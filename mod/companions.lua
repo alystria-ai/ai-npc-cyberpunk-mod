@@ -219,12 +219,12 @@ local function stepIntoConversation(entry, player, playerPosition, at)
         entry.focusStepDone = true
         return false
     end
-    local advance = math.max(0.0, math.min(0.12, gap - 1.25))
+    local advance = math.max(0.0, math.min(0.16, gap - 1.20))
     releaseHold(entry)
     local ok, command = pcall(function()
         local destination = Vector4.new(
-            at.x + dx / gap * advance - math.cos(formationAngle) * 0.42,
-            at.y + dy / gap * advance - math.sin(formationAngle) * 0.42,
+            at.x + dx / gap * advance,
+            at.y + dy / gap * advance,
             at.z, at.w)
         local world = WorldPosition.new()
         world:SetVector4(destination)
@@ -248,6 +248,9 @@ local function stepIntoConversation(entry, player, playerPosition, at)
         entry.focusStep = command
         entry.focusStepAt = runtimeClock
         entry.focusStepStart = copyPosition(at)
+        -- Claim this step before movement begins. Gaze targeting can briefly
+        -- drop while the actor moves, and reacquisition must not send another.
+        entry.attentionStepAnchor = copyPosition(playerPosition)
         return true
     end
     entry.focusStepError = tostring(command)
