@@ -10,7 +10,7 @@ This is the running request and verification list. A checked item means the beha
 - [x] Spawn the nearest companion beside V without bumping V; bring the nearest side position to about 1.5 metres. Measured in-game after the latest spawn.
 - [x] Give companions a subtle look toward V, a full body turn and small footstep when V looks at one, then turn back when V looks away. The latest footstep and softer upper-body look were accepted in the live Judy test.
 - [ ] Recheck the latest look, footstep, return turn, and closer spacing with a group of at least three, including duplicate copies, during walking and running.
-- [ ] Show each active managed copy on the minimap with a marker that follows it; remove the marker when that copy is dismissed or disappears. In progress.
+- [ ] Show each active managed copy on the minimap with a marker that follows it; remove the marker when that copy is dismissed or disappears. The first game mappin drew a missing-texture square on the actor. The later save-load crash was isolated to CET replaying a stale spawn diagnostic; the world-widget hook was removed during isolation. Both marker and hook remain disabled pending a safer implementation.
 - [x] Settle facing the correct travel direction after following V at a run. Confirmed in the live Judy test.
 - [ ] Confirm the attention step no longer causes a second sideways correction. The fix is coded but needs the next live check.
 - [ ] Make group walking feel like friends beside V across turns, obstacles, sprint catch-up, and stopping, rather than an escort or a rigid formation. Continue live tuning of the current controller.
@@ -48,4 +48,4 @@ This is the running request and verification list. A checked item means the beha
 - Sources: `mod/`, `r6/scripts/CyberpunkConvai/`, `bridge/`, and `characters/`.
 - Reference sources: `vendor/reference-convai-github/`, `vendor/reference-dawnwalker/`, and `ref mods/`.
 - The game is running for live testing. Ask the user for in-game observations; they retracted Computer Use. When a restart is needed, install first and launch the game EXE for them.
-- The first NPC map pin showed a missing-texture square on Judy's chest. That pin was removed. A compiled world-widget suppression hook is ready for the next restart; verify the minimap icon and absence of a world square before checking this feature off.
+- The first NPC map pin showed a missing-texture square on Judy's chest. The experimental world-widget suppression hook is quarantined under ignored `vendor/unused-game-hooks/`. The save-load crash persisted after its removal, then disappeared when CET's stale diagnostic replay was removed. The same save loaded with redscript only and then with repaired CET. Do not re-enable the hook without a separate safe game test.

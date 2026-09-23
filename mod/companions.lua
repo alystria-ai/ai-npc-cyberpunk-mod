@@ -23,7 +23,7 @@ local previousPlayerPosition = nil
 local formationAngle = nil
 local formationFrame = {moving = false, run = false, anchor = nil, quietFor = 0, movingFor = 0, fastFor = 0, slowFor = 0, epoch = 0}
 local commandCursor = 0
-local minimapMarkersEnabled = true
+local minimapMarkersEnabled = false
 
 local function copyPosition(p)
     return Vector4.new(p.x, p.y, p.z, p.w)

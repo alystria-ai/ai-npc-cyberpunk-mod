@@ -228,6 +228,20 @@ local function captureDiagnostic()
     if not ok then log('Diagnostic capture failed: ' .. tostring(err)) end
 end
 
+local function captureNpcDiagnostic()
+    -- The diagnostic hotkey must not repeat the previous remote command.
+    local nonce = 'npc-diagnostic:' .. tostring(os.time()) .. ':' .. tostring(os.clock())
+    local request = io.open('runtime/diagnostic-request.txt', 'wb')
+    if not request then
+        log('NPC diagnostic request could not be written')
+        return
+    end
+    request:write(nonce)
+    request:close()
+    lastDiagnosticRequest = nonce
+    captureDiagnostic()
+end
+
 local function openManager()
     local ok, result = pcall(function()
         local player = Game.GetPlayer()
@@ -291,12 +305,18 @@ local function saveSettings(player)
 end
 
 registerHotkey('cyberpunk_convai_text', 'Cyberpunk Convai: talk by text', beginText)
-registerHotkey('cyberpunk_convai_diagnostic', 'Cyberpunk Convai: capture NPC diagnostic', captureDiagnostic)
+registerHotkey('cyberpunk_convai_diagnostic', 'Cyberpunk Convai: capture NPC diagnostic', captureNpcDiagnostic)
 registerHotkey('cyberpunk_convai_manager', 'Cyberpunk Convai: companion manager', openManager)
 
 registerForEvent('onInit', function()
     log('Game adapter initialized; press the bound talk-by-text key while facing an NPC')
-    captureDiagnostic()
+    -- Requests are one-shot commands. A CET reload must not replay a spawn or
+    -- other game mutation left in the request file by an earlier session.
+    local request = io.open('runtime/diagnostic-request.txt', 'rb')
+    if request then
+        lastDiagnosticRequest = request:read('*a')
+        request:close()
+    end
 end)
 
 registerForEvent('onUpdate', function(delta)

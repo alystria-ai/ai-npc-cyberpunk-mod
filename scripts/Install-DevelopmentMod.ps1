@@ -15,7 +15,6 @@ $targets = @(
     @{ From = (Join-Path $project 'mod\companions.lua'); To = (Join-Path $game 'bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai\companions.lua') },
     @{ From = (Join-Path $project 'r6\scripts\CyberpunkConvai\Composer.reds'); To = (Join-Path $game 'r6\scripts\CyberpunkConvai\Composer.reds') },
     @{ From = (Join-Path $project 'r6\scripts\CyberpunkConvai\Engagement.reds'); To = (Join-Path $game 'r6\scripts\CyberpunkConvai\Engagement.reds') },
-    @{ From = (Join-Path $project 'r6\scripts\CyberpunkConvai\Mappins.reds'); To = (Join-Path $game 'r6\scripts\CyberpunkConvai\Mappins.reds') },
     @{ From = (Join-Path $project 'r6\scripts\CyberpunkConvai\Manager.reds'); To = (Join-Path $game 'r6\scripts\CyberpunkConvai\Manager.reds') }
 )
 foreach ($item in $targets) {
