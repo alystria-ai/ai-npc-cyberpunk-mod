@@ -12,7 +12,7 @@ This is the running request and verification list. A checked item means the beha
 - [ ] Recheck the latest look, footstep, return turn, and closer spacing with a group of at least three, including duplicate copies, during walking and running.
 - [ ] Show each active managed copy on the minimap with a marker that follows it; remove the marker when that copy is dismissed or disappears. The first game mappin drew a missing-texture square on the actor. The later save-load crash was isolated to CET replaying a stale spawn diagnostic; the world-widget hook was removed during isolation. Both marker and hook remain disabled pending a safer implementation.
 - [x] Settle facing the correct travel direction after following V at a run. Confirmed in the live Judy test.
-- [ ] Confirm the attention step no longer causes a second sideways correction. The fix is coded but needs the next live check.
+- [x] Prevent a second sideways attention step when V briefly looks away and back. A live movement trace identified repeated focus acquisition; the once-per-resting-position fix passed the Judy look-away/look-back check.
 - [ ] Make group walking feel like friends beside V across turns, obstacles, sprint catch-up, and stopping, rather than an escort or a rigid formation. Continue live tuning of the current controller.
 - [ ] Decide how companions persist across save loads, fast travel, vehicles, combat, and game reloads; restore or clean them safely.
 

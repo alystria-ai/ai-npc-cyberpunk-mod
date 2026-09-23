@@ -210,6 +210,7 @@ local function stepIntoConversation(entry, player, playerPosition, at)
             playerPosition.x - current.x, playerPosition.y - current.y)
         releaseFocusStep(entry)
         entry.focusStepDone = true
+        entry.attentionStepAnchor = copyPosition(playerPosition)
         return false
     end
     local dx, dy = playerPosition.x - at.x, playerPosition.y - at.y
@@ -781,6 +782,10 @@ function M.update(player, delta, focusEntity)
                 entry.distanceToSeat = distance(at, formationPosition(player, entry.slot, frame.anchor))
                 entry.speed = speed
                 local naturalSide = inSideZone(entry, at, playerPosition)
+                if entry.attentionStepAnchor
+                    and distance(playerPosition, entry.attentionStepAnchor) > 0.45 then
+                    entry.attentionStepAnchor = nil
+                end
                 if frame.justStopped then entry.alignAfterTravel = true end
                 if frame.moving then entry.alignAfterTravel = false end
                 local interruption = busyReason(entry, focusEntity)
@@ -794,7 +799,7 @@ function M.update(player, delta, focusEntity)
                         entry.focusInitialError = entry.facingError
                         entry.focusBestError = entry.facingError
                         entry.focusTurnAttempts = 0
-                        entry.focusStepDone = false
+                        entry.focusStepDone = entry.attentionStepAnchor ~= nil
                         entry.focusStepDistance = nil
                         entry.focusStepFacingError = nil
                     else
@@ -803,6 +808,10 @@ function M.update(player, delta, focusEntity)
                 else
                     entry.focusStartedAt = nil
                     entry.focusTurnAttempts = 0
+                    if entry.focusStep and entry.focusStepStart
+                        and distance(entry.focusStepStart, at) > 0.1 then
+                        entry.attentionStepAnchor = copyPosition(playerPosition)
+                    end
                     releaseFocusStep(entry)
                     releaseFocusTurn(entry)
                     if wasFocused then
@@ -830,8 +839,10 @@ function M.update(player, delta, focusEntity)
                     -- second, unnecessary shuffle back to the exact slot.
                     if wasFocused and naturalSide then
                         entry.parked = copyPosition(at)
+                        entry.attentionAnchor = copyPosition(playerPosition)
                     else
                         entry.parked = nil
+                        entry.attentionAnchor = nil
                     end
                     entry.progress = nil
                 end
@@ -847,10 +858,17 @@ function M.update(player, delta, focusEntity)
                 if entry.epoch ~= frame.epoch then
                     entry.epoch = frame.epoch
                     entry.parked = nil
+                    entry.attentionAnchor = nil
+                    entry.attentionStepAnchor = nil
                     entry.progress = nil
                 end
                 local seat = formationPosition(player, entry.slot, frame.anchor)
+                if entry.attentionAnchor
+                    and distance(playerPosition, entry.attentionAnchor) > 0.45 then
+                    entry.attentionAnchor = nil
+                end
                 if not frame.moving and entry.parked
+                    and not entry.attentionAnchor
                     and distance(entry.parked, seat) > 0.65 then
                     entry.parked = nil
                     entry.adjusting = true
