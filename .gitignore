@@ -1,0 +1,12 @@
+/vendor/
+/backups/
+/runtime/
+/ref mods/
+/PAUSED_PROGRESS_*.md
+/node_modules/
+/dist/
+.env
+.env.*
+*.key
+*.log
+*.tmp
