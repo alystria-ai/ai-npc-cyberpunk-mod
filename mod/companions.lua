@@ -23,7 +23,6 @@ local previousPlayerPosition = nil
 local formationAngle = nil
 local formationFrame = {moving = false, run = false, anchor = nil, quietFor = 0, movingFor = 0, fastFor = 0, slowFor = 0, epoch = 0}
 local commandCursor = 0
-local minimapMarkersEnabled = false
 
 local function copyPosition(p)
     return Vector4.new(p.x, p.y, p.z, p.w)
@@ -362,52 +361,6 @@ local function clearAmbientLook(entry)
     end
 end
 
-local function removeMappin(entry)
-    if not entry.mappinID then return end
-    local id = entry.mappinID
-    entry.mappinID = nil
-    local system = entry.mappinSystem or Game.GetMappinSystem()
-    pcall(function() system:UnregisterMappin(id) end)
-    entry.mappinSystem = nil
-end
-
-local function ensureMappin(entry)
-    if not minimapMarkersEnabled then return end
-    if entry.mappinID or not entry.npc or not entry.npc:IsAttached() then return end
-    if (entry.mappinAttempts or 0) >= 3 then return end
-    if runtimeClock - (entry.mappinAttemptAt or -10) < 3.0 then return end
-    entry.mappinAttemptAt = runtimeClock
-    entry.mappinAttempts = (entry.mappinAttempts or 0) + 1
-    local ok, result, system = pcall(function()
-        local mappin = NewObject('gamemappinsMappinData')
-        mappin.mappinType = TweakDBID.new('Mappins.DefaultStaticMappin')
-        mappin.variant = Enum.new('gamedataMappinVariant', 'NPCVariant')
-        mappin.active = true
-        mappin.visibleThroughWalls = false
-        mappin.debugCaption = entry.name
-        local data = NewObject('ConvaiCompanionMappinData')
-        data.serial = entry.serial
-        mappin.scriptData = data
-        local owner = Game.GetMappinSystem()
-        local slot = entry.npc:GetRoleMappinSlotName()
-        local id = owner:RegisterMappinWithObject(mappin, entry.npc, slot)
-        if not id then error('RegisterMappinWithObject returned no ID') end
-        local activated, activationError = pcall(function() owner:SetMappinActive(id, true) end)
-        if not activated then
-            pcall(function() owner:UnregisterMappin(id) end)
-            error(activationError)
-        end
-        return id, owner
-    end)
-    if ok then
-        entry.mappinID = result
-        entry.mappinSystem = system
-        entry.mappinError = nil
-    else
-        entry.mappinError = tostring(result)
-    end
-end
-
 local function ensureAmbientLook(entry, player)
     if entry.ambientLook or entry.ambientLookDisabled then return end
     local ok, result = pcall(function()
@@ -545,7 +498,6 @@ local function attachFollower(entry, player)
     entry.npc = npc
     entry.role = role
     entry.state = 'ready'
-    ensureMappin(entry)
     followPlayer(entry, player, false)
     return true
 end
@@ -603,7 +555,6 @@ function M.dismiss(serialToDismiss)
     for index, entry in ipairs(entries) do
         if entry.serial == serialToDismiss then
             clearAmbientLook(entry)
-            removeMappin(entry)
             releaseFocusStep(entry)
             releaseFocusTurn(entry)
             releaseRelaxTurn(entry)
@@ -669,9 +620,6 @@ function M.list()
             holdError = entry.holdError,
             ambientLook = entry.ambientLook ~= nil,
             ambientLookError = entry.ambientLookError,
-            mappinID = entry.mappinID and tostring(entry.mappinID) or nil,
-            mappinError = entry.mappinError,
-            mappinAttempts = entry.mappinAttempts or 0,
             relativeSide = entry.relativeSide,
             relativeForward = entry.relativeForward,
             facingErrorDegrees = entry.facingError,
@@ -760,10 +708,8 @@ function M.update(player, delta, focusEntity)
         local slot = (first + i - 1) % #order + 1
         local entry = order[slot]
         if not entry.npc:IsAttached() then
-            removeMappin(entry)
             entry.state = 'missing'
         else
-            ensureMappin(entry)
             local ok, problem = pcall(function()
                 local at = entry.npc:GetWorldPosition()
                 local towardX, towardY = playerPosition.x - at.x, playerPosition.y - at.y
