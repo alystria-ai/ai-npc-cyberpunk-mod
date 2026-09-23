@@ -18,6 +18,7 @@ local gazeLost = 0
 local gazePoll = 0
 local focusedCrowd = nil
 local releasedCrowd = nil
+local pendingPhoneAction = nil
 
 local function log(line)
     local file = io.open('runtime/probe.log', 'a')
@@ -260,19 +261,22 @@ local function openManager()
     end
 end
 
-local function queueSelectedPhoneAction(join)
-    local ok, queued = pcall(function()
-        local player = Game.GetPlayer()
-        return player and player:ConvaiPhoneQueueSelected(join)
-    end)
-    if not ok or not queued then
-        log('Select a supported contact in the phone before using the companion shortcut')
-    end
-end
-
 local function processPhoneAction(player)
-    local ok, request = pcall(function() return player:ConvaiPhoneTakeRequest() end)
-    if not ok or not request or request == '' then return end
+    if not pendingPhoneAction then
+        local ok, request = pcall(function() return player:ConvaiPhoneTakeRequest() end)
+        if not ok or not request or request == '' then return end
+        pendingPhoneAction = request
+    end
+    -- Contact screens pause the world. Let the request run once gameplay
+    -- resumes so entity creation and the first follower command have a frame.
+    local menuOk, inMenu = pcall(function()
+        local definitions = Game.GetAllBlackboardDefs()
+        return Game.GetBlackboardSystem():Get(definitions.UI_System)
+            :GetBool(definitions.UI_System.IsInMenu)
+    end)
+    if not menuOk or inMenu then return end
+    local request = pendingPhoneAction
+    pendingPhoneAction = nil
     local join, key = request:sub(1, 1) == '+', request:sub(2)
     if join then
         local serial, err = companions.spawn(key)
@@ -338,8 +342,6 @@ end
 registerHotkey('cyberpunk_convai_text', 'Cyberpunk Convai: talk by text', beginText)
 registerHotkey('cyberpunk_convai_diagnostic', 'Cyberpunk Convai: capture NPC diagnostic', captureNpcDiagnostic)
 registerHotkey('cyberpunk_convai_manager', 'Cyberpunk Convai: companion manager', openManager)
-registerHotkey('cyberpunk_convai_phone_join', 'Cyberpunk Convai: join selected phone contact', function() queueSelectedPhoneAction(true) end)
-registerHotkey('cyberpunk_convai_phone_leave', 'Cyberpunk Convai: dismiss selected phone contact', function() queueSelectedPhoneAction(false) end)
 
 registerForEvent('onInit', function()
     log('Game adapter initialized; press the bound talk-by-text key while facing an NPC')
@@ -374,6 +376,7 @@ registerForEvent('onUpdate', function(delta)
     local player = Game.GetPlayer()
     if not player then
         companions.dismissAll()
+        pendingPhoneAction = nil
         active = nil; pending = nil; settingsRevision = nil; focusUntil = nil
         focusMode = nil; focusEntity = nil; endFocus(nil); resetGaze()
         return

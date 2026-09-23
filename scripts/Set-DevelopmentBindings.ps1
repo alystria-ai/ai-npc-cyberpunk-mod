@@ -11,15 +11,13 @@ if (-not $bindings.Contains('CyberpunkConvai')) { $bindings['CyberpunkConvai'] =
 $desired = [ordered]@{
     cyberpunk_convai_manager    = ([long]0x74 -shl 48) # F5
     cyberpunk_convai_text       = ([long]0x75 -shl 48) # F6
-    cyberpunk_convai_phone_join = ([long]0x76 -shl 48) # F7
-    cyberpunk_convai_phone_leave = ([long]0x77 -shl 48) # F8
 }
 
 foreach ($mod in $bindings.Keys) {
     if ($mod -eq 'CyberpunkConvai') { continue }
     foreach ($entry in $bindings[$mod].GetEnumerator()) {
         if ([long]$entry.Value -in $desired.Values) {
-            throw "F5-F8 conflicts with existing binding $mod.$($entry.Key)"
+            throw "F5-F6 conflicts with existing binding $mod.$($entry.Key)"
         }
     }
 }
@@ -31,4 +29,4 @@ foreach ($entry in $desired.GetEnumerator()) {
 }
 $json = $bindings | ConvertTo-Json -Depth 8
 Set-Content -LiteralPath $path -Value $json -Encoding utf8
-Write-Output "Configured F5 manager, F6 text, F7 phone join, F8 phone dismiss. Backup: $backup"
+Write-Output "Configured F5 manager and F6 text. Phone join and dismiss use the native [+] and [-] controls. Backup: $backup"

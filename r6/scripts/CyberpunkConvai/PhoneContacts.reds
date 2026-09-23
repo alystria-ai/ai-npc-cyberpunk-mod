@@ -17,7 +17,7 @@ private final func ConvaiContactKey() -> String {
     switch contact.id {
         case "judy": return "judy-alvarez";
         case "panam": return "panam-palmer";
-        case "viktor": return "viktor-vektor";
+        case "victor_vector": return "viktor-vektor";
         case "misty": return "misty-olszewski";
     };
     return "";
@@ -34,8 +34,8 @@ private final func ConvaiMakeContactAction(name: CName, label: String, rightMarg
     action.SetText(label);
     action.SetFontFamily("base\\gameplay\\gui\\fonts\\raj\\raj.inkfontfamily");
     action.SetFontStyle(n"Semi-Bold");
-    action.SetFontSize(25);
-    action.SetSize(new Vector2(92.0, 46.0));
+    action.SetFontSize(28);
+    action.SetSize(new Vector2(56.0, 46.0));
     action.SetAnchor(inkEAnchor.CenterRight);
     action.SetAnchorPoint(new Vector2(1.0, 0.5));
     action.SetMargin(new inkMargin(0.0, 0.0, rightMargin, 0.0));
@@ -51,8 +51,8 @@ private final func ConvaiMakeContactAction(name: CName, label: String, rightMarg
 protected cb func OnDataChanged(value: Variant) -> Bool {
     let result: Bool = wrappedMethod(value);
     if !IsDefined(this.m_convaiJoin) {
-        this.m_convaiJoin = this.ConvaiMakeContactAction(n"convaiJoin", "[F7 +]", 180.0);
-        this.m_convaiLeave = this.ConvaiMakeContactAction(n"convaiLeave", "[F8 -]", 280.0);
+        this.m_convaiJoin = this.ConvaiMakeContactAction(n"convaiJoin", "[+]", 180.0);
+        this.m_convaiLeave = this.ConvaiMakeContactAction(n"convaiLeave", "[-]", 240.0);
     };
     let eligible: Bool = StrLen(this.ConvaiContactKey()) > 0;
     if IsDefined(this.m_convaiJoin) {
@@ -81,58 +81,6 @@ protected cb func OnConvaiPhoneAction(evt: ref<inkPointerEvent>) -> Bool {
 
 @addField(PlayerPuppet)
 private let m_convaiPhoneRequests: array<String>;
-
-@addField(PlayerPuppet)
-private let m_convaiPhoneController: wref<NewHudPhoneGameController>;
-
-@wrapMethod(NewHudPhoneGameController)
-public func EnableContactsInput() -> Void {
-    wrappedMethod();
-    if IsDefined(this.m_player) {
-        this.m_player.ConvaiPhoneSetController(this);
-    };
-}
-
-@wrapMethod(NewHudPhoneGameController)
-public func DisableContactsInput() -> Void {
-    if IsDefined(this.m_player) {
-        this.m_player.ConvaiPhoneSetController(null);
-    };
-    wrappedMethod();
-}
-
-@addMethod(NewHudPhoneGameController)
-public final func ConvaiSelectedContactKey() -> String {
-    let contact: wref<ContactData> = this.m_contactListLogicController.GetSelectedContactData();
-    if !IsDefined(contact) {
-        return "";
-    };
-    switch contact.id {
-        case "judy": return "judy-alvarez";
-        case "panam": return "panam-palmer";
-        case "viktor": return "viktor-vektor";
-        case "misty": return "misty-olszewski";
-    };
-    return "";
-}
-
-@addMethod(PlayerPuppet)
-public final func ConvaiPhoneSetController(controller: wref<NewHudPhoneGameController>) -> Void {
-    this.m_convaiPhoneController = controller;
-}
-
-@addMethod(PlayerPuppet)
-public final func ConvaiPhoneQueueSelected(join: Bool) -> Bool {
-    if !IsDefined(this.m_convaiPhoneController) {
-        return false;
-    };
-    let key: String = this.m_convaiPhoneController.ConvaiSelectedContactKey();
-    if StrLen(key) == 0 {
-        return false;
-    };
-    this.ConvaiPhoneQueue(key, join);
-    return true;
-}
 
 @addMethod(PlayerPuppet)
 public final func ConvaiPhoneQueue(key: String, join: Bool) -> Void {

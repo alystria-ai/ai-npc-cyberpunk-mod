@@ -20,7 +20,8 @@ This is the running request and verification list. A checked item means the beha
 
 - [x] Use a game-styled native text input that accepts typing without opening CET. Basic live text exchange with Convai worked.
 - [ ] Finish the text conversation flow: per-character sessions, loading and error states, replies, cancellation, and return to gameplay.
-- [ ] Add voice interaction, Convai Kokoro voices for each character, audible playback, and in-game lip sync; verify in a live conversation.
+- [ ] Add F7 single-character voice interaction with press to start and press again to finish, Convai Kokoro voices for each character, audible playback, and in-game lip sync; verify in a live conversation.
+- [ ] Add F8 group text and F9 group voice. Follow Dawnwalker's individual-client coordination: addressed or nearest speaker first, up to two other distinct nearby identities, listener-scoped context, and orderly reply playback. Multiple copies of one identity remain one speaker.
 - [ ] Use the same LLM model as the Dawnwalker mod for Convai characters and check that the configured character IDs and voices are actually applied. The older Cyberpunk mod supplies existing IDs.
 - [ ] Have one nearby NPC react to V looking at them before pressing Talk, selected by both gaze and distance; release the reaction when V looks away. Still or managed NPCs are the priority. Walking crowd NPCs are optional if a safe, reversible method is found.
 - [ ] Ensure the look and conversation behaviors do not seize quest actors or leave pedestrians stuck. An earlier crowd-role experiment crashed; that approach is retired.
@@ -29,8 +30,8 @@ This is the running request and verification list. A checked item means the beha
 
 - [ ] Replace the current native Codeware popup prototype with a proper full companion manager menu page, independent of Mod Configuration Menu if feasible.
 - [ ] Make the manager operate on the actual party: enable/disable characters, create or dismiss multiple copies, choose voices, and show each copy's current state. Keep controls and saved settings in sync with the runtime.
-- [ ] Add native styled join and dismiss controls to eligible phone Contacts rows beside message and call, with clear button mapping (F7/F8) and support for multiple copies. The hook and runtime bridge compile; verify their appearance and behavior in the live phone before checking this item.
-- [ ] Match Dawnwalker-style controls. Bind and verify F5 manager, F6 text chat, F7 phone join, and F8 phone dismiss in CET; current game `bindings.json` still reports the original two as unbound.
+- [ ] Add native styled `[+]` join and `[-]` dismiss controls to eligible phone Contacts rows beside message and call, with support for multiple copies. The hook and runtime bridge compile; verify their appearance and click behavior in the live phone before checking this item.
+- [ ] Match Dawnwalker's five controls: F5 manager, F6 single text, F7 single voice, F8 group text, F9 group voice. The local reference confirms this in `bridge/ModKeyBindings.cs` and `README.md`. Bind F5/F6 now; add the remaining bindings as their modes are implemented. Phone join and dismiss use their own on-screen controls.
 - [ ] Keep native UI styling for text boxes and menu controls, with mouse and keyboard navigation and a reliable way to close screens.
 
 ## Architecture and release readiness
