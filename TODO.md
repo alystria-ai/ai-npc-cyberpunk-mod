@@ -29,8 +29,8 @@ This is the running request and verification list. A checked item means the beha
 
 - [ ] Replace the current native Codeware popup prototype with a proper full companion manager menu page, independent of Mod Configuration Menu if feasible.
 - [ ] Make the manager operate on the actual party: enable/disable characters, create or dismiss multiple copies, choose voices, and show each copy's current state. Keep controls and saved settings in sync with the runtime.
-- [ ] Add a summon/join control to the phone Contacts page beside the existing message and call actions for eligible characters. Let it add or dismiss the chosen companion copy.
-- [ ] Match Dawnwalker-style controls. F5 manager and F6 text chat are configured; verify the final bindings and usability in game.
+- [ ] Add native styled join and dismiss controls to eligible phone Contacts rows beside message and call, with clear button mapping (F7/F8) and support for multiple copies. The hook and runtime bridge compile; verify their appearance and behavior in the live phone before checking this item.
+- [ ] Match Dawnwalker-style controls. Bind and verify F5 manager, F6 text chat, F7 phone join, and F8 phone dismiss in CET; current game `bindings.json` still reports the original two as unbound.
 - [ ] Keep native UI styling for text boxes and menu controls, with mouse and keyboard navigation and a reliable way to close screens.
 
 ## Architecture and release readiness

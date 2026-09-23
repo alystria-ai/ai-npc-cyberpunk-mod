@@ -15,7 +15,8 @@ $targets = @(
     @{ From = (Join-Path $project 'mod\companions.lua'); To = (Join-Path $game 'bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai\companions.lua') },
     @{ From = (Join-Path $project 'r6\scripts\CyberpunkConvai\Composer.reds'); To = (Join-Path $game 'r6\scripts\CyberpunkConvai\Composer.reds') },
     @{ From = (Join-Path $project 'r6\scripts\CyberpunkConvai\Engagement.reds'); To = (Join-Path $game 'r6\scripts\CyberpunkConvai\Engagement.reds') },
-    @{ From = (Join-Path $project 'r6\scripts\CyberpunkConvai\Manager.reds'); To = (Join-Path $game 'r6\scripts\CyberpunkConvai\Manager.reds') }
+    @{ From = (Join-Path $project 'r6\scripts\CyberpunkConvai\Manager.reds'); To = (Join-Path $game 'r6\scripts\CyberpunkConvai\Manager.reds') },
+    @{ From = (Join-Path $project 'r6\scripts\CyberpunkConvai\PhoneContacts.reds'); To = (Join-Path $game 'r6\scripts\CyberpunkConvai\PhoneContacts.reds') }
 )
 foreach ($item in $targets) {
     if (-not [IO.File]::Exists($item.From)) { throw "Missing source: $($item.From)" }

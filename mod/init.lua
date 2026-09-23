@@ -260,6 +260,37 @@ local function openManager()
     end
 end
 
+local function queueSelectedPhoneAction(join)
+    local ok, queued = pcall(function()
+        local player = Game.GetPlayer()
+        return player and player:ConvaiPhoneQueueSelected(join)
+    end)
+    if not ok or not queued then
+        log('Select a supported contact in the phone before using the companion shortcut')
+    end
+end
+
+local function processPhoneAction(player)
+    local ok, request = pcall(function() return player:ConvaiPhoneTakeRequest() end)
+    if not ok or not request or request == '' then return end
+    local join, key = request:sub(1, 1) == '+', request:sub(2)
+    if join then
+        local serial, err = companions.spawn(key)
+        log(serial and ('Phone joined ' .. key .. ' #' .. serial)
+            or ('Phone join failed for ' .. key .. ': ' .. tostring(err)))
+        return
+    end
+    local party = companions.list()
+    for index = #party, 1, -1 do
+        if party[index].key == key then
+            companions.dismiss(party[index].serial)
+            log('Phone dismissed ' .. key .. ' #' .. party[index].serial)
+            return
+        end
+    end
+    log('Phone dismiss: no active copy of ' .. key)
+end
+
 local function readSettings()
     local file = io.open('runtime/settings.json', 'rb')
     if not file then return nil end
@@ -307,6 +338,8 @@ end
 registerHotkey('cyberpunk_convai_text', 'Cyberpunk Convai: talk by text', beginText)
 registerHotkey('cyberpunk_convai_diagnostic', 'Cyberpunk Convai: capture NPC diagnostic', captureNpcDiagnostic)
 registerHotkey('cyberpunk_convai_manager', 'Cyberpunk Convai: companion manager', openManager)
+registerHotkey('cyberpunk_convai_phone_join', 'Cyberpunk Convai: join selected phone contact', function() queueSelectedPhoneAction(true) end)
+registerHotkey('cyberpunk_convai_phone_leave', 'Cyberpunk Convai: dismiss selected phone contact', function() queueSelectedPhoneAction(false) end)
 
 registerForEvent('onInit', function()
     log('Game adapter initialized; press the bound talk-by-text key while facing an NPC')
@@ -345,6 +378,7 @@ registerForEvent('onUpdate', function(delta)
         focusMode = nil; focusEntity = nil; endFocus(nil); resetGaze()
         return
     end
+    processPhoneAction(player)
     companions.update(player, 0.1, focusEntity)
     if focusUntil and not active and os.time() >= focusUntil then
         endFocus(player)

@@ -2,6 +2,28 @@
 local requestFile = io.open('runtime/diagnostic-request.txt', 'rb')
 local request = requestFile and requestFile:read('*a') or ''
 if requestFile then requestFile:close() end
+if request:match('^phone%-preflight:') then
+    local ok, result = pcall(function()
+        if convaiPhoneObserverInstalled then return 'already installed' end
+        ObserveAfter('PhoneContactItemVirtualController', 'OnDataChanged', function(controller)
+            local succeeded, line = pcall(function()
+                local contact = controller:GetContactData()
+                if not contact then return 'no contact data' end
+                return 'id=' .. tostring(contact.id)
+                    .. ' contactId=' .. tostring(contact.contactId)
+                    .. ' name=' .. tostring(contact.localizedName)
+                    .. ' callable=' .. tostring(contact.isCallable)
+            end)
+            local log = io.open('runtime/phone-contacts.txt', 'ab')
+            if log then log:write(tostring(succeeded), ' ', tostring(line), '\n'); log:close() end
+        end)
+        convaiPhoneObserverInstalled = true
+        return 'observer installed'
+    end)
+    local file = io.open('runtime/phone-preflight.txt', 'wb')
+    if file then file:write('ok=', tostring(ok), '\nresult=', tostring(result), '\n'); file:close() end
+    return
+end
 if request:match('^party%-mappin%-preflight:') then
     local ok, result = pcall(function()
         local names = {
