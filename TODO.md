@@ -25,6 +25,7 @@ This is the running request and verification list. A checked item means the beha
 - [x] Use native dialogue subtitles for replies and remove the thinking notification. Installed live without restart. The game had Cinematic subtitles disabled; enabled and saved that setting, and the user confirmed Alex's named native subtitle appears without thinking notifications. Only this mod's caption IDs are removed. Long text is paged by reading time until voiced playback supplies timing.
 - [ ] Finish the text conversation flow: per-character sessions, loading and error states, replies, cancellation, and return to gameplay.
 - [ ] Add F7 single-character voice interaction with press to start and press again to finish, Convai Kokoro voices for each character, audible playback, and in-game lip sync; verify in a live conversation.
+  - Kokoro reply playback and native bottom subtitles confirmed in-game with Alex on September 28. Fixed an immediate cancellation caused by comparing CET player wrappers; entity IDs are authoritative. F7 capture and lifecycle guards are implemented and awaiting a live microphone test. Facial frames are captured from Convai, but Cyberpunk rig mapping/lip sync is still open.
 - [ ] Add F8 group text and F9 group voice. Follow Dawnwalker's individual-client coordination: addressed or nearest speaker first, up to two other distinct nearby identities, listener-scoped context, and orderly reply playback. Multiple copies of one identity remain one speaker.
 - [ ] Use the same LLM model as the Dawnwalker mod for Convai characters and check that the configured character IDs and voices are actually applied. The older Cyberpunk mod supplies existing IDs.
 - [ ] Have one nearby NPC react to V looking at them before pressing Talk, selected by both gaze and distance; release the reaction when V looks away. Still or managed NPCs are the priority. Walking crowd NPCs are optional if a safe, reversible method is found.
@@ -63,12 +64,14 @@ Port the intent to V and Cyberpunk systems; do not assume Dawnwalker APIs, Coen'
 
 - [ ] Complete a fresh Cyberpunk overhaul guided by the Dawnwalker AI companion philosophy and features. Reuse or port good code when it fits, but do not carry over the old Cyberpunk mod's janky structure.
 - [ ] Review the old Convai Cyberpunk mod, the Dawnwalker source, and the supplied `ref mods` archives when implementing each feature; record important compatibility choices.
-- [ ] Keep the Convai key outside the project and out of published files. Character configuration and local bridge must work with the user's own account.
+- [x] Keep the Convai key out of Git and published files. At the user's request it is stored locally in ignored `runtime/convai-key.txt`; the bridge uses their account.
 - [ ] Add repeatable diagnostics and real-game acceptance checks for the manager, phone action, text, voice, lip sync, multi-copy lifecycle, and minimap markers.
 - [ ] Prepare a distributable mod with clear prerequisites and install instructions after the live feature checks pass.
 - [ ] When publishing is authorized, use the user's personal account rather than the work account; confirm the intended account before GitHub or mod-site actions.
 
 ## Current setup notes
+
+- September 28 voice implementation: installed Audioware 1.9.9 and TweakXL 1.11.4, backed up prior dependency files, compiled and launched. New speech adapter owns playback, cancellation, target-loss cleanup and captions driven by the native audio cursor. Eight validated on-demand WAV slots avoid restarting per reply. Convai's older REST endpoint returns HTTP 500 for Kokoro voice while text succeeds; the Dawnwalker SDK 1.7.0 realtime path returned a valid 2.77-second, 48 kHz mono reply plus 49 facial frames. A hidden browser captures remote speech. User confirmed audible Alex and native subtitles after the player identity fix. Microphone opens only after an explicit F7 start, with a 30-second limit; first mic test pending. Actual rig mapping/lip sync remains unimplemented.
 
 - Game: `E:\SteamLibrary\steamapps\common\Cyberpunk 2077`.
 - Sources: `mod/`, `r6/scripts/CyberpunkConvai/`, `bridge/`, and `characters/`.

@@ -1,0 +1,14 @@
+{
+  "name": "cyberpunk-convai",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:voice": "esbuild bridge/realtime-client.mjs --bundle --format=esm --outfile=runtime/realtime-client.js",
+    "test": "node --test bridge/protocol.test.mjs bridge/speech-audio.test.mjs bridge/microphone-session.test.mjs"
+  },
+  "dependencies": {
+    "@convai/web-sdk": "1.7.0",
+    "playwright": "1.58.2"
+  },
+  "devDependencies": {"esbuild": "0.28.2"}
+}

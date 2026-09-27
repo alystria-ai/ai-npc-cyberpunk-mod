@@ -16,6 +16,7 @@ function M.clear()
         end)
     end
     M.pages = nil
+    M.timed = nil
 end
 
 -- Keep captions readable, including text without spaces, without cutting a
@@ -49,7 +50,7 @@ local function showPage()
     line.isPersistent = false
     local words = 0
     for _ in text:gmatch('%S+') do words = words + 1 end
-    line.duration = math.max(3.5, math.min(12, math.max(words / 2.8, #text / 36) + 1.2))
+    line.duration = M.timed and M.timed.duration + 1 or math.max(3.5, math.min(12, math.max(words / 2.8, #text / 36) + 1.2))
     M.line, M.remaining = line, line.duration
     board():SetVariant(Game.GetAllBlackboardDefs().UIGameData.ShowDialogLine,
         ToVariant({line}, 'array:scnDialogLineData'), true)
@@ -63,9 +64,39 @@ function M.show(speaker, text)
     showPage()
 end
 
+function M.beginTimed(speaker, text, duration)
+    M.clear()
+    M.pages = M.split(text)
+    if #M.pages == 0 then M.pages = nil; return end
+    local weights, total = {}, 0
+    for i, page in ipairs(M.pages) do
+        local count = 0
+        for _ in page:gmatch('[%z\1-\127\194-\244][\128-\191]*') do count = count + 1 end
+        total = total + count
+        weights[i] = total
+    end
+    -- Approximate phrase boundaries by text length, but advance exclusively
+    -- from actual audio position. No phoneme alignment is claimed here.
+    M.timed = {duration = duration, weights = weights, total = total}
+    M.speaker, M.page = speaker, 1
+    showPage()
+end
+
+function M.syncTimed(position)
+    if not M.timed then return end
+    local target = 1
+    while target < #M.pages and position >= M.timed.duration * M.timed.weights[target] / M.timed.total do target = target + 1 end
+    if target == M.page then return end
+    local pages, timed = M.pages, M.timed
+    M.clear()
+    M.pages, M.timed, M.page = pages, timed, target
+    showPage()
+end
+
 function M.update(delta)
     if not M.line then return end
     if not Game.GetPlayer() then M.clear(); return end
+    if M.timed then return end
     local defs = Game.GetAllBlackboardDefs()
     if Game.GetBlackboardSystem():Get(defs.UI_System):GetBool(defs.UI_System.IsInMenu) then return end
     M.remaining = M.remaining - delta

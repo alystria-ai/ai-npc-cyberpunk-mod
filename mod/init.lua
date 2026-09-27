@@ -2,6 +2,8 @@
 -- This first adapter records an in-game targeting and text-input probe.
 local companions = dofile('companions.lua')
 local subtitles = dofile('subtitles.lua')
+local speech = dofile('speech.lua')
+local microphone = dofile('microphone.lua')
 convaiCompanions = companions
 local generation = 0
 local active = nil
@@ -211,6 +213,10 @@ local function beginText()
             log('Native composer unavailable (check redscript and Codeware)')
             return
         end
+        speech.stop('new-conversation')
+        microphone.cancel()
+        subtitles.clear()
+        speech.target = npc
         if focusEntity ~= identity then
             local focused, reason = beginFocus(player, npc)
             if not focused then
@@ -228,6 +234,41 @@ local function beginText()
         log('Composer opened: generation=' .. generation .. ' actor=' .. identity .. ' name=' .. name)
     end)
     if not ok then log('Open failed: ' .. tostring(err)) end
+end
+
+local function toggleVoice()
+    local player = Game.GetPlayer()
+    if not player then return end
+    if microphone.context and microphone.state ~= 'reply' then
+        pending = microphone.finish()
+        pending.sentAt = os.time()
+        focusUntil = os.time() + 90
+        return
+    end
+    if not gameplayCanAcquire(player) then return end
+    local ok, err = pcall(function()
+        local npc, reason = targetAtCrosshair()
+        if not npc then player:ConvaiPhoneFeedback(reason); return end
+        local key, name = companions.identity(npc)
+        name = name or tostring(npc:GetTweakDBFullDisplayName(true) or 'NPC')
+        local body = tostring(npc:GetBodyType() or '')
+        local index = rosterIndex(name, body)
+        if not index or not player:ConvaiManagerEnabled(index) then return end
+        generation = generation + 1
+        speech.stop('microphone'); subtitles.clear()
+        speech.target = npc
+        local entity = tostring(npc:GetEntityID().hash)
+        local context = {generation = generation, entity = entity, name = name, bodyType = body,
+            profileKey = key or profileKeys[index + 1], text = '[Microphone]', sentAt = os.time()}
+        context.requestId = tostring(os.time()) .. '-' .. tostring(generation) .. '-' .. entity
+        if microphone.begin(context) then
+            beginFocus(player, npc)
+            focusMode, focusEntity, focusUntil = 'chat', entity, os.time() + 120
+            active, pending = nil, nil
+            player:ConvaiPhoneFeedback('Connecting microphone - wait for Listening')
+        end
+    end)
+    if not ok then microphone.cancel(); log('Microphone failed: ' .. tostring(err)) end
 end
 
 local function captureDiagnostic()
@@ -356,6 +397,7 @@ local function saveSettings(player)
 end
 
 registerHotkey('cyberpunk_convai_text', 'Cyberpunk Convai: talk by text', beginText)
+registerHotkey('cyberpunk_convai_voice', 'Cyberpunk Convai: talk by voice (F7)', toggleVoice)
 registerHotkey('cyberpunk_convai_diagnostic', 'Cyberpunk Convai: capture NPC diagnostic', captureNpcDiagnostic)
 registerHotkey('cyberpunk_convai_manager', 'Cyberpunk Convai: companion manager', openManager)
 
@@ -373,6 +415,11 @@ registerForEvent('onInit', function()
 end)
 
 registerForEvent('onUpdate', function(delta)
+    local speechOk, speechError = pcall(speech.update, tonumber(delta) or 0)
+    if not speechOk then
+        log('Speech update failed: ' .. tostring(speechError))
+        speech.stop('error')
+    end
     local subtitlesOk, subtitlesError = pcall(subtitles.update, tonumber(delta) or 0)
     if not subtitlesOk then
         log('Subtitle update failed: ' .. tostring(subtitlesError))
@@ -397,6 +444,10 @@ registerForEvent('onUpdate', function(delta)
     if poll < 0.1 then return end
     poll = 0
     local player = Game.GetPlayer()
+    local voiceSubmission = microphone.update(player)
+    if voiceSubmission then
+        pending = voiceSubmission; pending.sentAt = os.time(); focusUntil = os.time() + 90
+    end
     if not player then
         companions.dismissAll()
         pendingPhoneAction = nil
@@ -468,16 +519,16 @@ registerForEvent('onUpdate', function(delta)
                 and (type(reply.text) == 'string' or type(reply.error) == 'string') then
                 local shown = pcall(function()
                     if reply.error then player:ConvaiPhoneFeedback(reply.error)
-                    else subtitles.show(pending.name, reply.text:sub(1, 1200)) end
+                    else speech.start(pending, reply) end
                 end)
                 if shown then
                     log('Conversation result: generation=' .. pending.generation .. ' error=' .. tostring(reply.error ~= nil))
-                    focusUntil = os.time() + 8
+                    focusUntil = os.time() + (speech.duration or 8) + 1
                     pending = nil
                 end
             end
         end
-        if pending and os.time() - pending.sentAt > 40 then
+        if pending and os.time() - pending.sentAt > 90 then
             player:ConvaiPhoneFeedback('No reply arrived. Check that the Convai bridge is running.')
             log('Conversation timed out: generation=' .. pending.generation)
             pending = nil
@@ -509,7 +560,7 @@ registerForEvent('onUpdate', function(delta)
                 os.remove('runtime/last-input.json')
                 os.rename('runtime/last-input.json.tmp', 'runtime/last-input.json')
                 pending = context
-                focusUntil = os.time() + 40
+                focusUntil = os.time() + 90
             end
             log('Native input captured: generation=' .. context.generation .. ' bytes=' .. #message)
         else
@@ -520,6 +571,8 @@ registerForEvent('onUpdate', function(delta)
 end)
 
 registerForEvent('onShutdown', function()
+    microphone.cancel()
+    speech.stop('shutdown')
     subtitles.clear()
     active = nil
     companions.dismissAll()

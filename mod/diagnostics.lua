@@ -2,6 +2,23 @@
 local requestFile = io.open('runtime/diagnostic-request.txt', 'rb')
 local request = requestFile and requestFile:read('*a') or ''
 if requestFile then requestFile:close() end
+if request:match('^speech%-install:') or request:match('^speech%-replay:') then
+    local ok, err = pcall(function()
+        local speech = dofile('speech.lua')
+        if request:match('^speech%-replay:') then
+            local input = io.open('runtime/last-input.json', 'rb')
+            local reply = io.open('runtime/reply.json', 'rb')
+            local context = json.decode(input:read('*a')); input:close()
+            local response = json.decode(reply:read('*a')); reply:close()
+            assert(context.requestId == response.requestId, 'Reply is stale')
+            return speech.start(context, response)
+        end
+        return 'installed'
+    end)
+    local f = io.open('runtime/speech-probe.txt', 'wb')
+    if f then f:write(tostring(ok), ' ', tostring(err)); f:close() end
+    return
+end
 if request:match('^composer%-input:') then
     local fix = dofile('composer-input.lua')
     fix.install()
