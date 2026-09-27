@@ -19,6 +19,8 @@ local gazePoll = 0
 local focusedCrowd = nil
 local releasedCrowd = nil
 local pendingPhoneAction = nil
+local phoneCatalogReady = false
+local profileKeys = {'viktor-vektor', 'misty-olszewski', 'judy-alvarez', 'panam-palmer', 'resident-male', 'resident-female'}
 
 local function log(line)
     local file = io.open('runtime/probe.log', 'a')
@@ -198,6 +200,8 @@ local function beginText()
         local name = tostring(npc:GetTweakDBFullDisplayName(true) or 'NPC')
         local identity = tostring(npc:GetEntityID().hash)
         local bodyType = tostring(npc:GetBodyType() or '')
+        local managedKey, managedName = companions.identity(npc)
+        if managedName then name = managedName end
         local index = rosterIndex(name, bodyType)
         if not index then log('No companion profile matches ' .. name .. ' (' .. bodyType .. ')'); return end
         if not player:ConvaiManagerEnabled(index) then log('Companion disabled in manager: ' .. name); return end
@@ -217,7 +221,8 @@ local function beginText()
         focusMode = 'chat'
         resetGaze()
         focusUntil = os.time() + 45
-        active = {generation = generation, entity = identity, name = name, bodyType = bodyType}
+        active = {generation = generation, entity = identity, name = name, bodyType = bodyType,
+            profileKey = managedKey or profileKeys[index + 1]}
         pending = nil
         log('Composer opened: generation=' .. generation .. ' actor=' .. identity .. ' name=' .. name)
     end)
@@ -262,6 +267,7 @@ local function openManager()
 end
 
 local function processPhoneAction(player)
+    if player:ConvaiPhoneIsOpen() then return end
     if not pendingPhoneAction then
         local ok, request = pcall(function() return player:ConvaiPhoneTakeRequest() end)
         if not ok or not request or request == '' then return end
@@ -277,11 +283,18 @@ local function processPhoneAction(player)
     if not menuOk or inMenu then return end
     local request = pendingPhoneAction
     pendingPhoneAction = nil
-    local join, key = request:sub(1, 1) == '+', request:sub(2)
+    local join, contactId = request:sub(1, 1) == '+', request:sub(2)
+    local key, reason, name = companions.phoneContactKey(contactId)
+    if not key then
+        log('Phone request unavailable for ' .. contactId .. ': ' .. tostring(reason))
+        player:ConvaiPhoneFeedback(reason)
+        return
+    end
     if join then
         local serial, err = companions.spawn(key)
-        log(serial and ('Phone joined ' .. key .. ' #' .. serial)
+        log(serial and ('Phone spawn requested for ' .. key .. ' #' .. serial)
             or ('Phone join failed for ' .. key .. ': ' .. tostring(err)))
+        player:ConvaiPhoneFeedback(serial and (name .. ' is joining you.') or tostring(err))
         return
     end
     local party = companions.list()
@@ -289,10 +302,12 @@ local function processPhoneAction(player)
         if party[index].key == key then
             companions.dismiss(party[index].serial)
             log('Phone dismissed ' .. key .. ' #' .. party[index].serial)
+            player:ConvaiPhoneFeedback(name .. ': dismissed one companion.')
             return
         end
     end
     log('Phone dismiss: no active copy of ' .. key)
+    player:ConvaiPhoneFeedback(name .. ' is not in your group.')
 end
 
 local function readSettings()
@@ -344,6 +359,7 @@ registerHotkey('cyberpunk_convai_diagnostic', 'Cyberpunk Convai: capture NPC dia
 registerHotkey('cyberpunk_convai_manager', 'Cyberpunk Convai: companion manager', openManager)
 
 registerForEvent('onInit', function()
+    dofile('phone-input.lua').install()
     log('Game adapter initialized; press the bound talk-by-text key while facing an NPC')
     -- Requests are one-shot commands. A CET reload must not replay a spawn or
     -- other game mutation left in the request file by an earlier session.
@@ -377,9 +393,15 @@ registerForEvent('onUpdate', function(delta)
     if not player then
         companions.dismissAll()
         pendingPhoneAction = nil
+        phoneCatalogReady = false
         active = nil; pending = nil; settingsRevision = nil; focusUntil = nil
         focusMode = nil; focusEntity = nil; endFocus(nil); resetGaze()
         return
+    end
+    if not phoneCatalogReady then
+        local ok, err = pcall(companions.registerPhoneContacts, player)
+        if not ok then log('Phone catalog registration failed: ' .. tostring(err)) end
+        phoneCatalogReady = ok
     end
     processPhoneAction(player)
     companions.update(player, 0.1, focusEntity)
@@ -436,14 +458,23 @@ registerForEvent('onUpdate', function(delta)
                 and reply.requestId == pending.requestId
                 and reply.generation == pending.generation
                 and reply.entity == pending.entity
-                and type(reply.text) == 'string' then
-                local shown = pcall(function() player:ConvaiShowReply(pending.name, reply.text:sub(1, 1200)) end)
+                and (type(reply.text) == 'string' or type(reply.error) == 'string') then
+                local shown = pcall(function()
+                    if reply.error then player:ConvaiPhoneFeedback(reply.error)
+                    else player:ConvaiShowReply(pending.name, reply.text:sub(1, 1200)) end
+                end)
                 if shown then
-                    log('Reply shown: generation=' .. pending.generation .. ' bytes=' .. #reply.text)
+                    log('Conversation result: generation=' .. pending.generation .. ' error=' .. tostring(reply.error ~= nil))
                     focusUntil = os.time() + 8
                     pending = nil
                 end
             end
+        end
+        if pending and os.time() - pending.sentAt > 40 then
+            player:ConvaiPhoneFeedback('No reply arrived. Check that the Convai bridge is running.')
+            log('Conversation timed out: generation=' .. pending.generation)
+            pending = nil
+            focusUntil = os.time() + 1
         end
     end
     local ok, ready = pcall(function() return player:ConvaiHasSubmission() end)
@@ -461,13 +492,18 @@ registerForEvent('onUpdate', function(delta)
     if taken and type(message) == 'string' and #message > 0 then
         local context = active
         if context then
-            local file = io.open('runtime/last-input.txt', 'wb')
+            local file = io.open('runtime/last-input.json.tmp', 'wb')
             if file then
                 context.requestId = tostring(os.time()) .. '-' .. tostring(context.generation) .. '-' .. context.entity
-                file:write(context.requestId, '\n', tostring(context.generation), '\n', context.entity, '\n', context.name, '\n', context.bodyType, '\n', message)
+                context.text = message
+                context.sentAt = os.time()
+                file:write(json.encode(context))
                 file:close()
+                os.remove('runtime/last-input.json')
+                os.rename('runtime/last-input.json.tmp', 'runtime/last-input.json')
                 pending = context
                 focusUntil = os.time() + 40
+                player:ConvaiPhoneFeedback(context.name .. ' is thinking...')
             end
             log('Native input captured: generation=' .. context.generation .. ' bytes=' .. #message)
         else

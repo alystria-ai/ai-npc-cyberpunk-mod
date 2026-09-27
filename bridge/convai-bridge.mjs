@@ -1,11 +1,12 @@
 import {readFile, writeFile, rename, stat, mkdir} from 'node:fs/promises';
 import {resolve, dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {parseInput, profileFor} from './protocol.mjs';
 
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const game = process.env.CYBERPUNK_CONVAI_GAME || 'E:\\SteamLibrary\\steamapps\\common\\Cyberpunk 2077';
 const runtime = resolve(game, 'bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/runtime');
-const keyFile = process.env.CYBERPUNK_CONVAI_KEY_FILE || 'C:\\Users\\akshi\\Downloads\\New Text Document.txt';
+const keyFile = process.env.CYBERPUNK_CONVAI_KEY_FILE || resolve(project, 'runtime/convai-key.txt');
 const roster = JSON.parse(await readFile(resolve(project, 'characters/roster.json'), 'utf8'));
 const ids = JSON.parse(await readFile(resolve(project, 'runtime/characters.json'), 'utf8'));
 const keyLine = (await readFile(keyFile, 'utf8')).trim();
@@ -13,7 +14,7 @@ const key = /^api-key\s*=\s*(\S+)\s*$/i.exec(keyLine)?.[1];
 if (!key) throw Error('Local Convai key file must contain api-key=...');
 await mkdir(runtime, {recursive: true});
 
-const inputPath = resolve(runtime, 'last-input.txt');
+const inputPath = resolve(runtime, 'last-input.json');
 const replyPath = resolve(runtime, 'reply.json');
 const statusPath = resolve(runtime, 'bridge-status.json');
 const sessions = new Map();
@@ -30,30 +31,6 @@ async function atomic(path, data) {
       await new Promise(done => setTimeout(done, 20));
     }
   }
-}
-
-const canonical = text => String(text || '').normalize('NFKD').replace(/\p{M}/gu, '').toLowerCase().replace(/[^a-z0-9]/g, '');
-function profileFor(input) {
-  const token = canonical(input.name);
-  for (const profile of roster.slice(0, 4)) {
-    if (profile.aliases.some(alias => canonical(alias) === token)) return profile;
-  }
-  if (/^(ncresident|nightcityresident|npc)$/.test(token)) {
-    const body = canonical(input.bodyType);
-    if (body.includes('woman') || body.includes('female')) return roster.find(profile => profile.key === 'resident-female');
-    if (body.includes('man') || body.includes('male')) return roster.find(profile => profile.key === 'resident-male');
-  }
-  return undefined;
-}
-
-function parseInput(raw) {
-  const lines = raw.split(/\r?\n/);
-  if (lines.length < 6 || !/^[0-9]+-[0-9]+-[0-9]+ULL$/.test(lines[0])) return null;
-  const [requestId, generationRaw, entity, name, bodyType] = lines;
-  const text = lines.slice(5).join('\n').trim();
-  const generation = Number(generationRaw);
-  if (!Number.isSafeInteger(generation) || generation < 0 || !/^\d+ULL$/.test(entity) || !text || text.length > 1200) return null;
-  return {requestId, generation, entity, name: name.slice(0, 120), bodyType: bodyType.slice(0, 80), text};
 }
 
 async function status(state, detail = '') {
@@ -82,6 +59,7 @@ async function respond(input, profile) {
 async function tick() {
   if (busy) return;
   busy = true;
+  let input;
   try {
     const stamp = await stat(inputPath).catch(() => null);
     if (!stamp) return;
@@ -89,11 +67,13 @@ async function tick() {
     const signature = `${stamp.mtimeMs}:${stamp.size}:${raw}`;
     if (signature === observed) return;
     observed = signature;
-    const input = parseInput(raw);
+    input = parseInput(raw);
     if (!input) { await status('invalid-input', 'Could not parse the game request'); return; }
-    const profile = profileFor(input);
+    const profile = profileFor(input, roster);
     if (!profile || !ids[profile.key]) {
       await status('unmatched-npc', `No verified profile for ${input.name} (${input.bodyType})`);
+      await atomic(replyPath, JSON.stringify({...input, text: undefined,
+        error: `${input.name} does not have a conversation profile configured yet.`}));
       return;
     }
     await status('thinking', profile.name);
@@ -113,6 +93,9 @@ async function tick() {
     await status('ready', profile.name);
   } catch (error) {
     await status('error', error.message).catch(() => {});
+    if (input) await atomic(replyPath, JSON.stringify({requestId: input.requestId,
+      generation: input.generation, entity: input.entity,
+      error: 'The conversation service could not reply. Please try again.'})).catch(() => {});
     console.error('[CyberpunkConvai] Bridge request failed:', error.message);
   } finally { busy = false; }
 }

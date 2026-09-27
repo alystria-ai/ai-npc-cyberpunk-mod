@@ -5,6 +5,10 @@ public class ConvaiPhoneArtwork {
     private static func Place(widget: ref<inkWidget>, parent: ref<inkCompoundWidget>, x: Float, y: Float, width: Float, height: Float) -> Void {
         widget.SetSize(new Vector2(width, height));
         widget.SetMargin(new inkMargin(x, y, 0.0, 0.0));
+        widget.SetHAlign(inkEHorizontalAlign.Left);
+        widget.SetVAlign(inkEVerticalAlign.Top);
+        widget.SetAnchor(inkEAnchor.TopLeft);
+        widget.SetAnchorPoint(new Vector2(0.0, 0.0));
         widget.SetStyle(r"base\\gameplay\\gui\\common\\main_colors.inkstyle");
         widget.BindProperty(n"tintColor", n"MainColors.Blue");
         widget.SetInteractive(false);
@@ -18,40 +22,37 @@ public class ConvaiPhoneArtwork {
     public static func Make(name: CName, join: Bool) -> ref<inkCanvas> {
         let action: ref<inkCanvas> = new inkCanvas();
         action.SetName(name);
-        action.SetSize(new Vector2(82.0, 46.0));
-        action.SetMargin(new inkMargin(4.0, 0.0, 4.0, 0.0));
+        action.SetSize(new Vector2(112.0, 64.0));
+        action.SetVAlign(inkEVerticalAlign.Center);
         action.SetAffectsLayoutWhenHidden(false);
         action.SetVisible(false);
-        action.SetInteractive(true);
-        // Outlined keycap followed by a person with a small plus/minus badge.
-        ConvaiPhoneArtwork.Bar(action, 1.0, 7.0, 28.0, 2.0);
-        ConvaiPhoneArtwork.Bar(action, 1.0, 37.0, 28.0, 2.0);
-        ConvaiPhoneArtwork.Bar(action, 1.0, 9.0, 2.0, 28.0);
-        ConvaiPhoneArtwork.Bar(action, 27.0, 9.0, 2.0, 28.0);
-        ConvaiPhoneArtwork.Bar(action, 8.0, 22.0, 14.0, 2.0);
+        action.SetInteractive(false);
+        // Use the actual keyboard atlas at the native R/F hint dimensions.
+        let key: ref<inkImage> = new inkImage();
+        key.SetAtlasResource(r"base\\gameplay\\gui\\common\\input\\icons_keyboard.inkatlas");
+        key.SetTexturePart(join ? n"kb_j" : n"kb_l");
+        ConvaiPhoneArtwork.Place(key, action, 0.0, 0.0, 64.0, 64.0);
+        ConvaiPhoneArtwork.Place(new inkCircle(), action, 74.0, 10.0, 15.0, 15.0);
+        ConvaiPhoneArtwork.Place(new inkCircle(), action, 66.0, 29.0, 29.0, 19.0);
+        ConvaiPhoneArtwork.Bar(action, 69.0, 38.0, 23.0, 12.0);
+        ConvaiPhoneArtwork.Bar(action, 95.0, 25.0, 16.0, 3.0);
         if join {
-            ConvaiPhoneArtwork.Bar(action, 14.0, 16.0, 2.0, 14.0);
-        };
-        ConvaiPhoneArtwork.Place(new inkCircle(), action, 45.0, 8.0, 12.0, 12.0);
-        ConvaiPhoneArtwork.Place(new inkCircle(), action, 39.0, 23.0, 24.0, 15.0);
-        ConvaiPhoneArtwork.Bar(action, 41.0, 30.0, 20.0, 8.0);
-        ConvaiPhoneArtwork.Bar(action, 65.0, 21.0, 14.0, 3.0);
-        if join {
-            ConvaiPhoneArtwork.Bar(action, 70.5, 15.5, 3.0, 14.0);
+            ConvaiPhoneArtwork.Bar(action, 101.5, 18.5, 3.0, 16.0);
         };
         return action;
     }
 }
 
 @addMethod(PhoneDialerLogicController)
-public final func ConvaiSelectedCompanionAction(join: Bool) -> Void {
+public final func ConvaiSelectedCompanionAction(join: Bool) -> Bool {
     if NotEquals(this.m_currentTab, PhoneDialerTabs.Contacts) || !IsDefined(this.m_listController) {
-        return;
+        return false;
     };
     let item: ref<PhoneContactItemVirtualController> = this.m_listController.GetSelectedItem() as PhoneContactItemVirtualController;
     if IsDefined(item) {
-        item.ConvaiRequestCompanion(join);
+        return item.ConvaiRequestCompanion(join);
     };
+    return false;
 }
 
 // Scope raw key callbacks to the same lifetime as the native contact inputs.
@@ -62,13 +63,14 @@ private let m_convaiPhoneKeys: ref<CallbackSystemHandler>;
 @wrapMethod(NewHudPhoneGameController)
 public func EnableContactsInput() -> Void {
     wrappedMethod();
+    if IsDefined(this.m_player) {
+        this.m_player.ConvaiPhoneSetOpen(true);
+    };
     this.ConvaiStopPhoneKeys();
     this.m_convaiPhoneKeys = GameInstance.GetCallbackSystem()
         .RegisterCallback(n"Input/Key", this, n"OnConvaiPhoneKey")
-        .AddTarget(InputTarget.Key(EInputKey.IK_Equals, EInputAction.IACT_Press))
-        .AddTarget(InputTarget.Key(EInputKey.IK_Minus, EInputAction.IACT_Press))
-        .AddTarget(InputTarget.Key(EInputKey.IK_NumPlus, EInputAction.IACT_Press))
-        .AddTarget(InputTarget.Key(EInputKey.IK_NumMinus, EInputAction.IACT_Press));
+        .AddTarget(InputTarget.Key(EInputKey.IK_J, EInputAction.IACT_Press))
+        .AddTarget(InputTarget.Key(EInputKey.IK_L, EInputAction.IACT_Press));
 }
 
 @addMethod(NewHudPhoneGameController)
@@ -88,6 +90,17 @@ public func DisableContactsInput() -> Void {
 @wrapMethod(NewHudPhoneGameController)
 protected cb func OnUninitialize() -> Bool {
     this.ConvaiStopPhoneKeys();
+    if IsDefined(this.m_player) {
+        this.m_player.ConvaiPhoneSetOpen(false);
+    };
+    return wrappedMethod();
+}
+
+@wrapMethod(NewHudPhoneGameController)
+protected cb func OnContactListClosed() -> Bool {
+    if IsDefined(this.m_player) {
+        this.m_player.ConvaiPhoneSetOpen(false);
+    };
     return wrappedMethod();
 }
 
@@ -98,8 +111,9 @@ private cb func OnConvaiPhoneKey(evt: ref<KeyInputEvent>) -> Void {
         || evt.IsControlDown() || evt.IsAltDown() || !IsDefined(this.m_contactListLogicController) {
         return;
     };
-    this.m_contactListLogicController.ConvaiSelectedCompanionAction(
-        Equals(evt.GetKey(), EInputKey.IK_Equals) || Equals(evt.GetKey(), EInputKey.IK_NumPlus));
+    if this.m_contactListLogicController.ConvaiSelectedCompanionAction(Equals(evt.GetKey(), EInputKey.IK_J)) {
+        this.m_audioSystem.Play(n"ui_phone_incoming_call_positive");
+    };
 }
 
 // Each virtual contact row is recycled by the game's phone list. Keep the
@@ -113,19 +127,71 @@ private let m_convaiLeave: wref<inkCanvas>;
 @addField(PhoneContactItemVirtualController)
 private let m_convaiSelected: Bool;
 
+@addField(PhoneContactItemVirtualController)
+private let m_convaiLabelWidth: Float;
+
+@addField(PhoneContactItemVirtualController)
+private let m_convaiFeedback: wref<inkText>;
+
+@addMethod(PhoneContactItemVirtualController)
+private final func ConvaiShowActionFeedback(message: String) -> Void {
+    if !IsDefined(this.m_convaiFeedback) {
+        let label: wref<inkWidget> = inkWidgetRef.Get(this.m_label);
+        let parent: ref<inkCompoundWidget> = IsDefined(label) ? label.GetParentWidget() as inkCompoundWidget : null;
+        if !IsDefined(parent) { return; };
+        let feedback: ref<inkText> = new inkText();
+        feedback.SetName(n"convaiActionFeedback");
+        feedback.SetFontFamily("base\\gameplay\\gui\\fonts\\raj\\raj.inkfontfamily");
+        feedback.SetFontStyle(n"Medium");
+        feedback.SetFontSize(22);
+        feedback.SetSize(new Vector2(376.0, 26.0));
+        feedback.SetHAlign(inkEHorizontalAlign.Left);
+        feedback.SetStyle(r"base\\gameplay\\gui\\common\\main_colors.inkstyle");
+        feedback.BindProperty(n"tintColor", n"MainColors.Blue");
+        feedback.SetInteractive(false);
+        feedback.SetAffectsLayoutWhenHidden(false);
+        feedback.Reparent(parent);
+        this.m_convaiFeedback = feedback;
+    };
+    this.m_convaiFeedback.SetText(message);
+    this.m_convaiFeedback.SetVisible(StrLen(message) > 0);
+}
+
+@addMethod(PhoneContactItemVirtualController)
+private final func ConvaiLayoutActions(selected: Bool) -> Void {
+    this.m_convaiSelected = selected;
+    if IsDefined(this.m_convaiFeedback) {
+        this.m_convaiFeedback.SetVisible(false);
+    };
+    let visible: Bool = selected && StrLen(this.ConvaiContactKey()) > 0;
+    let player: ref<PlayerPuppet> = GetPlayer(GetGameInstance()) as PlayerPuppet;
+    let available: Bool = IsDefined(player) && player.ConvaiPhoneContactAvailable(this.ConvaiContactKey());
+    let label: wref<inkWidget> = inkWidgetRef.Get(this.m_label);
+    if IsDefined(label) {
+        if this.m_convaiLabelWidth <= 0.0 {
+            this.m_convaiLabelWidth = label.GetWidth();
+        };
+        // The native label has a fixed 600-unit width. Reserve two 112-unit
+        // action cells, then restore its original width when the row is recycled.
+        label.SetWidth(visible ? MaxF(1.0, this.m_convaiLabelWidth - 224.0) : this.m_convaiLabelWidth);
+    };
+    if IsDefined(this.m_convaiJoin) {
+        this.m_convaiJoin.SetVisible(visible);
+        this.m_convaiJoin.SetOpacity(available ? 1.0 : 0.3);
+    };
+    if IsDefined(this.m_convaiLeave) {
+        this.m_convaiLeave.SetVisible(visible);
+        this.m_convaiLeave.SetOpacity(available ? 1.0 : 0.3);
+    };
+}
+
 @addMethod(PhoneContactItemVirtualController)
 private final func ConvaiContactKey() -> String {
     let contact: ref<ContactData> = this.GetContactData();
     if !IsDefined(contact) || NotEquals(contact.type, MessengerContactType.Contact) {
         return "";
     };
-    switch contact.id {
-        case "judy": return "judy-alvarez";
-        case "panam": return "panam-palmer";
-        case "victor_vector": return "viktor-vektor";
-        case "misty": return "misty-olszewski";
-    };
-    return "";
+    return contact.id;
 }
 
 @addMethod(PhoneContactItemVirtualController)
@@ -138,7 +204,6 @@ private final func ConvaiMakeContactAction(name: CName, join: Bool, index: Int32
         return null;
     };
     let action: ref<inkCanvas> = ConvaiPhoneArtwork.Make(name, join);
-    action.RegisterToCallback(n"OnRelease", this, n"OnConvaiPhoneAction");
     action.Reparent(row, index);
     return action;
 }
@@ -152,56 +217,22 @@ protected cb func OnDataChanged(value: Variant) -> Bool {
     if !IsDefined(this.m_convaiLeave) {
         this.m_convaiLeave = this.ConvaiMakeContactAction(n"convaiLeave", false, 1);
     };
-    this.m_convaiSelected = this.IsSelected();
-    let eligible: Bool = StrLen(this.ConvaiContactKey()) > 0;
-    if IsDefined(this.m_convaiJoin) {
-        this.m_convaiJoin.SetVisible(eligible && this.m_convaiSelected);
-    };
-    if IsDefined(this.m_convaiLeave) {
-        this.m_convaiLeave.SetVisible(eligible && this.m_convaiSelected);
-    };
+    this.ConvaiLayoutActions(this.IsSelected());
     return result;
 }
 
 @wrapMethod(PhoneContactItemVirtualController)
 protected cb func OnSelected(itemController: wref<inkVirtualCompoundItemController>, discreteNav: Bool) -> Bool {
     let result: Bool = wrappedMethod(itemController, discreteNav);
-    this.m_convaiSelected = true;
-    let eligible: Bool = StrLen(this.ConvaiContactKey()) > 0;
-    if IsDefined(this.m_convaiJoin) {
-        this.m_convaiJoin.SetVisible(eligible);
-    };
-    if IsDefined(this.m_convaiLeave) {
-        this.m_convaiLeave.SetVisible(eligible);
-    };
+    this.ConvaiLayoutActions(true);
     return result;
 }
 
 @wrapMethod(PhoneContactItemVirtualController)
 protected cb func OnDeselected(itemController: wref<inkVirtualCompoundItemController>) -> Bool {
     let result: Bool = wrappedMethod(itemController);
-    this.m_convaiSelected = false;
-    if IsDefined(this.m_convaiJoin) {
-        this.m_convaiJoin.SetVisible(false);
-    };
-    if IsDefined(this.m_convaiLeave) {
-        this.m_convaiLeave.SetVisible(false);
-    };
+    this.ConvaiLayoutActions(false);
     return result;
-}
-
-@addMethod(PhoneContactItemVirtualController)
-protected cb func OnConvaiPhoneAction(evt: ref<inkPointerEvent>) -> Bool {
-    if !evt.IsAction(n"click") || !this.m_convaiSelected {
-        return false;
-    };
-    let target: wref<inkWidget> = evt.GetCurrentTarget();
-    if target != this.m_convaiJoin && target != this.m_convaiLeave {
-        return false;
-    };
-    this.ConvaiRequestCompanion(target == this.m_convaiJoin);
-    evt.Handle();
-    return true;
 }
 
 @addMethod(PhoneContactItemVirtualController)
@@ -211,18 +242,81 @@ public final func ConvaiRequestCompanion(join: Bool) -> Bool {
     if !this.m_convaiSelected || StrLen(key) == 0 || !IsDefined(player) {
         return false;
     };
-    player.ConvaiPhoneQueue(key, join);
-    return true;
+    let accepted: Bool = player.ConvaiPhoneQueue(key, join);
+    this.ConvaiShowActionFeedback(accepted
+        ? (join ? "INVITE QUEUED - CLOSE PHONE" : "DISMISS QUEUED - CLOSE PHONE")
+        : (player.ConvaiPhoneContactAvailable(key) ? "CLOSE PHONE TO CONTINUE" : "COMPANION UNAVAILABLE"));
+    return accepted;
 }
 
 @addField(PlayerPuppet)
 private let m_convaiPhoneRequests: array<String>;
 
+@addField(PlayerPuppet)
+private let m_convaiPhoneOpen: Bool;
+
 @addMethod(PlayerPuppet)
-public final func ConvaiPhoneQueue(key: String, join: Bool) -> Void {
+public final func ConvaiPhoneSetOpen(open: Bool) -> Void {
+    this.m_convaiPhoneOpen = open;
+}
+
+@addMethod(PlayerPuppet)
+public final func ConvaiPhoneIsOpen() -> Bool {
+    return this.m_convaiPhoneOpen;
+}
+
+@addField(PlayerPuppet)
+private let m_convaiPhoneContactIds: array<String>;
+
+@addField(PlayerPuppet)
+private let m_convaiPhoneContactNames: array<String>;
+
+@addField(PlayerPuppet)
+private let m_convaiPhoneContactErrors: array<String>;
+
+@addMethod(PlayerPuppet)
+public final func ConvaiPhoneClearContacts() -> Void {
+    ArrayClear(this.m_convaiPhoneContactIds);
+    ArrayClear(this.m_convaiPhoneContactNames);
+    ArrayClear(this.m_convaiPhoneContactErrors);
+}
+
+@addMethod(PlayerPuppet)
+public final func ConvaiPhoneRegisterContact(id: String, name: String, reason: String) -> Void {
+    ArrayPush(this.m_convaiPhoneContactIds, id);
+    ArrayPush(this.m_convaiPhoneContactNames, name);
+    ArrayPush(this.m_convaiPhoneContactErrors, reason);
+}
+
+@addMethod(PlayerPuppet)
+public final func ConvaiPhoneContactAvailable(id: String) -> Bool {
+    let index: Int32 = ArrayFindFirst(this.m_convaiPhoneContactIds, id);
+    return index >= 0 && StrLen(this.m_convaiPhoneContactErrors[index]) == 0;
+}
+
+@addMethod(PlayerPuppet)
+public final func ConvaiPhoneFeedback(message: String) -> Void {
+    this.SetWarningMessage(message, SimpleMessageType.Neutral);
+}
+
+@addMethod(PlayerPuppet)
+public final func ConvaiPhoneQueue(key: String, join: Bool) -> Bool {
+    let index: Int32 = ArrayFindFirst(this.m_convaiPhoneContactIds, key);
+    if index < 0 {
+        this.ConvaiPhoneFeedback("This contact has no companion mapping yet.");
+        return false;
+    };
+    if StrLen(this.m_convaiPhoneContactErrors[index]) > 0 {
+        this.ConvaiPhoneFeedback(this.m_convaiPhoneContactErrors[index]);
+        return false;
+    };
     if ArraySize(this.m_convaiPhoneRequests) < 8 {
         ArrayPush(this.m_convaiPhoneRequests, (join ? "+" : "-") + key);
+        this.ConvaiPhoneFeedback(this.m_convaiPhoneContactNames[index] + (join ? ": invite queued." : ": dismiss queued."));
+        return true;
     };
+    this.ConvaiPhoneFeedback("Close the phone to finish the pending companion requests.");
+    return false;
 }
 
 @addMethod(PlayerPuppet)

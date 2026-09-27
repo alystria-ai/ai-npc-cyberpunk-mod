@@ -2,6 +2,83 @@
 local requestFile = io.open('runtime/diagnostic-request.txt', 'rb')
 local request = requestFile and requestFile:read('*a') or ''
 if requestFile then requestFile:close() end
+if request:match('^phone%-input:') then
+    local ok, result = pcall(function()
+        local input = dofile('phone-input.lua')
+        input.install()
+        return 'installed=' .. tostring(input.installed) .. '\nblocked=' .. tostring(input.blocked)
+    end)
+    local f = io.open('runtime/phone-input.txt', 'wb')
+    if f then f:write(ok and result or tostring(result)); f:close() end
+    return
+end
+if request:match('^phone%-all%-contacts:') then
+    local ok, result = pcall(function()
+        assert(Game.GetPlayer(), 'Load a save before reading the journal')
+        local journal = Game.GetJournalManager()
+        local context = JournalRequestContext.new({stateFilter = JournalRequestStateFilter.new({
+            inactive = true, active = true, succeeded = true, failed = true,
+        })})
+        local first, second = journal:GetContacts(context)
+        local entries = type(second) == 'table' and second or first
+        assert(type(entries) == 'table', 'Journal contact array was not returned')
+        local contacts = {}
+        for _, entry in ipairs(entries) do
+            contacts[#contacts + 1] = {id = entry:GetId(), name = GetLocalizedText(entry:GetLocalizedName(journal)), known = entry:IsKnown(journal)}
+        end
+        return json.encode(contacts)
+    end)
+    local f = io.open('runtime/phone-all-contacts.json', 'wb')
+    if f then f:write(ok and result or json.encode({error = tostring(result)})); f:close() end
+    return
+end
+if request:match('^lua%-check:') then
+    local results = {}
+    for _, name in ipairs({'init', 'companions', 'phone-input'}) do
+        local compiled, err = loadfile('runtime/check-' .. name .. '.lua')
+        results[#results + 1] = name .. '=' .. (compiled and 'syntax OK' or tostring(err))
+    end
+    local f = io.open('runtime/lua-check.txt', 'wb')
+    if f then f:write(table.concat(results, '\n')); f:close() end
+    return
+end
+if request:match('^phone%-catalog:') then
+    local ok, result = pcall(function()
+        local dump = {contacts = {}, characters = {}}
+        for _, c in ipairs(Game.GetJournalManager():GetContactDataArray(false, false) or {}) do
+            dump.contacts[#dump.contacts + 1] = {id = tostring(c.id), name = GetLocalizedText(c.localizedName)}
+        end
+        for _, record in ipairs(TweakDB:GetRecords('gamedataCharacter_Record') or {}) do
+            local debugId = tostring(record:GetID())
+            local id = debugId:match('%-%-%[%[ (.-) %-%-%]%]')
+            if id then
+                local displayOk, display = pcall(function()
+                    local raw = tostring(TweakDB:GetFlat(id .. '.displayName'))
+                    local number = raw:match('LocKey%((%d+)')
+                    return GetLocalizedText(number and ('LocKey#' .. number) or raw)
+                end)
+                dump.characters[#dump.characters + 1] = {id = id, name = displayOk and display or ''}
+            end
+        end
+        return json.encode(dump)
+    end)
+    local f = io.open('runtime/phone-catalog.json', 'wb')
+    if f then f:write(ok and result or json.encode({error = tostring(result)})); f:close() end
+    return
+end
+if request:match('^phone%-preview%-disable:') then
+    -- Existing preview observers look up these functions at call time.
+    -- Disarm them before the phone rebuilds its virtualized contact rows.
+    if convaiPhonePreview then
+        convaiPhonePreview.layout = function() end
+        convaiPhonePreview.keys = function() end
+        convaiPhonePreview.input = function() end
+        convaiPhonePreview.disabled = true
+    end
+    local f = io.open('runtime/phone-preview-disabled.txt', 'wb')
+    if f then f:write('disabled=true\n'); f:close() end
+    return
+end
 if request:match('^phone%-tree:') then
     local ok, result = pcall(function()
         if convaiPhoneTreeObserverInstalled then return 'already installed' end

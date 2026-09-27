@@ -8,6 +8,44 @@ local records = {
     ['panam-palmer'] = {id = 'Character.Panam', name = 'Panam Palmer'},
 }
 
+-- Conversation profiles and spawnable phone contacts are separate catalogs.
+-- Every spawned entry is still a new managed copy, never a quest-world actor.
+local phoneContacts = {}
+do
+    local file = io.open('phone-contacts.json', 'rb')
+    if file then
+        local raw = file:read('*a')
+        file:close()
+        local ok, catalog = pcall(json.decode, raw)
+        if ok and type(catalog) == 'table' then
+            for _, contact in ipairs(catalog) do
+                if type(contact.contact) == 'string' then
+                    phoneContacts[contact.contact] = contact
+                    if type(contact.key) == 'string' and type(contact.record) == 'string' then
+                        records[contact.key] = {id = contact.record, name = contact.name}
+                    end
+                end
+            end
+        end
+    end
+end
+
+function M.phoneContactKey(contactId)
+    local contact = phoneContacts[contactId]
+    if not contact then return nil, 'This contact has no companion mapping yet.' end
+    if contact.unavailable then return nil, contact.unavailable end
+    if not TweakDB:GetRecord(contact.record) then return nil, 'Character unavailable in this game installation.' end
+    return contact.key, nil, contact.name
+end
+
+function M.registerPhoneContacts(player)
+    player:ConvaiPhoneClearContacts()
+    for id, contact in pairs(phoneContacts) do
+        local key, reason = M.phoneContactKey(id)
+        player:ConvaiPhoneRegisterContact(id, contact.name, key and '' or reason)
+    end
+end
+
 local slots = {
     {-1.5, 0.05}, {1.5, 0.05},
     {-2.6, -1.35}, {2.6, -1.35},
@@ -592,6 +630,17 @@ function M.owns(npc)
         if entry.state == 'ready' and tostring(entry.entityID.hash) == identity then return true end
     end
     return false
+end
+
+function M.identity(npc)
+    if not npc then return nil end
+    local identity = tostring(npc:GetEntityID().hash)
+    for _, entry in ipairs(entries) do
+        if entry.state == 'ready' and tostring(entry.entityID.hash) == identity then
+            return entry.key, records[entry.key].name
+        end
+    end
+    return nil
 end
 
 function M.list()

@@ -1,9 +1,10 @@
 param(
     [string]$ProjectDirectory = (Split-Path -Parent $PSScriptRoot),
-    [string]$KeyFile = 'C:\Users\akshi\Downloads\New Text Document.txt'
+    [string]$KeyFile
 )
 
 $ErrorActionPreference = 'Stop'
+if (-not $KeyFile) { $KeyFile = Join-Path $ProjectDirectory 'runtime\convai-key.txt' }
 $line = (Get-Content -LiteralPath $KeyFile -Raw).Trim()
 if ($line -notmatch '^api-key\s*=\s*(\S+)\s*$') { throw 'Expected one api-key=... line in the local key file.' }
 $headers = @{ 'CONVAI-API-KEY' = $Matches[1] }
@@ -57,6 +58,7 @@ foreach ($character in $roster) {
             charName = $character.name
             voiceType = $character.voice
             backstory = $character.backstory
+            model_group_name = $character.model
         }
         $id = $created.charID
         if (-not $id) { throw "Character create did not return an ID for $key." }
