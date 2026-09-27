@@ -2,6 +2,119 @@
 local requestFile = io.open('runtime/diagnostic-request.txt', 'rb')
 local request = requestFile and requestFile:read('*a') or ''
 if requestFile then requestFile:close() end
+if request:match('^phone%-tree:') then
+    local ok, result = pcall(function()
+        if convaiPhoneTreeObserverInstalled then return 'already installed' end
+        ObserveAfter('PhoneContactItemVirtualController', 'OnSelected', function(controller)
+            local worked, detail = pcall(function()
+                local contact = controller:GetContactData()
+                if not contact or tostring(contact.id) ~= 'judy' then return nil end
+                local lines = {}
+                local function describe(widget, depth)
+                    if not widget then return end
+                    local sizeOk, size = pcall(function() return widget:GetSize() end)
+                    local marginOk, margin = pcall(function() return widget:GetMargin() end)
+                    local nameOk, name = pcall(function() return widget:GetName() end)
+                    local visOk, visible = pcall(function() return widget:IsVisible() end)
+                    local opacityOk, opacity = pcall(function() return widget:GetOpacity() end)
+                    local countOk, count = pcall(function() return widget:GetNumChildren() end)
+                    lines[#lines + 1] = string.rep(' ', depth * 2) .. 'name=' .. tostring(nameOk and name)
+                        .. ' size=' .. tostring(sizeOk and size and size.X) .. ',' .. tostring(sizeOk and size and size.Y)
+                        .. ' margin=' .. tostring(marginOk and margin and margin.left) .. ',' .. tostring(marginOk and margin and margin.top)
+                        .. ',' .. tostring(marginOk and margin and margin.right)
+                        .. ' visible=' .. tostring(visOk and visible) .. ' opacity=' .. tostring(opacityOk and opacity)
+                        .. ' children=' .. tostring(countOk and count)
+                    if depth < 4 and countOk and count then
+                        for i = 0, math.min(count - 1, 12) do
+                            local childOk, child = pcall(function() return widget:GetWidgetByIndex(i) end)
+                            if childOk then describe(child, depth + 1) end
+                        end
+                    end
+                end
+                describe(controller:GetRootWidget(), 0)
+                return table.concat(lines, '\n')
+            end)
+            if detail then
+                local log = io.open('runtime/phone-tree.txt', 'wb')
+                if log then log:write('ok=', tostring(worked), '\n', tostring(detail), '\n'); log:close() end
+            end
+        end)
+        convaiPhoneTreeObserverInstalled = true
+        return 'observer installed'
+    end)
+    local file = io.open('runtime/phone-tree-install.txt', 'wb')
+    if file then file:write('ok=', tostring(ok), '\nresult=', tostring(result), '\n'); file:close() end
+    return
+end
+if request:match('^phone%-selection%-preflight:') then
+    local ok, result = pcall(function()
+        if convaiPhoneSelectionObserverInstalled then return 'already installed' end
+        local function report(controller, action)
+            local worked, detail = pcall(function()
+                local contact = controller:GetContactData()
+                if not contact or tostring(contact.id) ~= 'judy' then return nil end
+                local root = controller:GetRootWidget()
+                local lines = {'action=' .. action, 'root=' .. tostring(root)}
+                for _, pair in ipairs({
+                    {'size', function() return root:GetSize() end},
+                    {'visible', function() return root:IsVisible() end},
+                    {'num-children', function() return root:GetNumChildren() end},
+                    {'join', function() return root:GetWidgetByPathName('convaiJoin') end},
+                    {'leave', function() return root:GetWidgetByPathName('convaiLeave') end},
+                }) do
+                    local success, value = pcall(pair[2])
+                    lines[#lines + 1] = pair[1] .. '=' .. tostring(success) .. ':' .. tostring(value)
+                end
+                return table.concat(lines, '\n')
+            end)
+            if detail then
+                local log = io.open('runtime/phone-selection-preflight.txt', 'ab')
+                if log then log:write('ok=', tostring(worked), '\n', tostring(detail), '\n'); log:close() end
+            end
+        end
+        ObserveAfter('PhoneContactItemVirtualController', 'OnSelected', function(controller) report(controller, 'selected') end)
+        ObserveAfter('PhoneContactItemVirtualController', 'OnDeselected', function(controller) report(controller, 'deselected') end)
+        convaiPhoneSelectionObserverInstalled = true
+        return 'observer installed'
+    end)
+    local file = io.open('runtime/phone-selection-install.txt', 'wb')
+    if file then file:write('ok=', tostring(ok), '\nresult=', tostring(result), '\n'); file:close() end
+    return
+end
+if request:match('^phone%-widget%-preflight:') then
+    local ok, result = pcall(function()
+        if convaiPhoneWidgetObserverInstalled then return 'already installed' end
+        ObserveAfter('PhoneContactItemVirtualController', 'OnDataChanged', function(controller)
+            local worked, value = pcall(function()
+                local contact = controller:GetContactData()
+                if not contact or tostring(contact.id) ~= 'judy' then return nil end
+                local root = controller:GetRootWidget()
+                local lines = {'root=' .. tostring(root)}
+                for _, pair in ipairs({
+                    {'root-size', function() return root:GetSize() end},
+                    {'root-visible', function() return root:IsVisible() end},
+                    {'root-compound', function() return root:IsA('inkCompoundWidget') end},
+                    {'root-children', function() return root:GetNumChildren() end},
+                    {'join-child', function() return root:GetWidgetByPathName('convaiJoin') end},
+                    {'leave-child', function() return root:GetWidgetByPathName('convaiLeave') end},
+                }) do
+                    local success, detail = pcall(pair[2])
+                    lines[#lines + 1] = pair[1] .. '=' .. tostring(success) .. ':' .. tostring(detail)
+                end
+                return table.concat(lines, '\n')
+            end)
+            if value then
+                local log = io.open('runtime/phone-widget-preflight.txt', 'ab')
+                if log then log:write('ok=', tostring(worked), '\n', tostring(value), '\n'); log:close() end
+            end
+        end)
+        convaiPhoneWidgetObserverInstalled = true
+        return 'observer installed'
+    end)
+    local file = io.open('runtime/phone-widget-install.txt', 'wb')
+    if file then file:write('ok=', tostring(ok), '\nresult=', tostring(result), '\n'); file:close() end
+    return
+end
 if request:match('^phone%-preflight:') then
     local ok, result = pcall(function()
         if convaiPhoneObserverInstalled then return 'already installed' end
