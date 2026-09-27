@@ -3,6 +3,9 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+if (Get-Process Cyberpunk2077 -ErrorAction SilentlyContinue) {
+    throw 'Close Cyberpunk before changing CET keybindings.'
+}
 $path = Join-Path $GameDirectory 'bin\x64\plugins\cyber_engine_tweaks\bindings.json'
 if (-not (Test-Path -LiteralPath $path)) { throw "CET bindings not found: $path" }
 $bindings = Get-Content -LiteralPath $path -Raw | ConvertFrom-Json -AsHashtable
