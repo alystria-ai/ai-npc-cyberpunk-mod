@@ -2,6 +2,90 @@
 local requestFile = io.open('runtime/diagnostic-request.txt', 'rb')
 local request = requestFile and requestFile:read('*a') or ''
 if requestFile then requestFile:close() end
+if request:match('^composer%-input:') then
+    local fix = dofile('composer-input.lua')
+    fix.install()
+    for _, layer in ipairs(Game.GetInkSystem():GetLayers()) do
+        for _, controller in ipairs(layer:GetGameControllers()) do
+            if controller:IsA('GenericMessageNotification') then
+                local ok, err = pcall(fix.apply, controller)
+                if not ok then fix.lastError = tostring(err) end
+            end
+        end
+    end
+    local f = io.open('runtime/composer-input.json', 'wb')
+    if f then f:write(json.encode({installed = fix.installed, patched = fix.patched, seen = fix.seen,
+        title = fix.lastTitle, case = fix.lastCase, error = fix.lastError})); f:close() end
+    return
+end
+if request:match('^subtitles%-enable:') then
+    local ok, err = pcall(function()
+        local setting = UserSettings.new():GetVar('/accessibility/subtitles', 'Cinematic')
+        setting:SetValue(true)
+        assert(setting:GetValue(), 'Dialogue subtitle setting did not enable')
+        if convaiSubtitleController then
+            convaiSubtitleController:GetSystemRequestsHandler():RequestSaveUserSettings()
+        end
+        local file = io.open('runtime/subtitles-enabled.txt', 'wb')
+        if file then file:write('cinematic=true'); file:close() end
+    end)
+    if not ok then error(err) end
+    return
+end
+if request:match('^subtitles%-probe:') then
+    local out = {}
+    local ok, err = pcall(function()
+        local settings = UserSettings.new()
+        out[#out + 1] = 'cinematic=' .. tostring(settings:GetVar('/accessibility/subtitles', 'Cinematic'):GetValue())
+        for _, layer in ipairs(Game.GetInkSystem():GetLayers()) do
+            for _, controller in ipairs(layer:GetGameControllers()) do
+                if controller:IsA('SubtitlesGameController') then
+                    local root = controller:GetRootWidget()
+                    convaiSubtitleController = controller
+                    out[#out + 1] = 'found=' .. tostring(layer:GetLayerName()) .. ' visible=' .. tostring(root:IsVisible())
+                    out[#out + 1] = 'sameBoard=' .. tostring(controller:GetUIBlackboard() == Game.GetBlackboardSystem():Get(Game.GetAllBlackboardDefs().UIGameData))
+                end
+            end
+        end
+        if not convaiSubtitleProbeInstalled then
+            Observe('BaseSubtitlesGameController', 'OnShowDialogLine', function(_, value)
+                local f = io.open('runtime/subtitles-events.txt', 'ab')
+                if f then f:write('show received\n'); f:close() end
+            end)
+            Observe('SubtitleLineLogicController', 'SetLineData', function(_, line)
+                local f = io.open('runtime/subtitles-events.txt', 'ab')
+                if f then f:write('line rendered: ', tostring(line.text), '\n'); f:close() end
+            end)
+            convaiSubtitleProbeInstalled = true
+        end
+        dofile('subtitles.lua').show('Alex', 'Checking the native dialogue subtitles.')
+    end)
+    out[#out + 1] = 'ok=' .. tostring(ok) .. ' error=' .. tostring(err)
+    local f = io.open('runtime/subtitles-probe.txt', 'wb')
+    if f then f:write(table.concat(out, '\n')); f:close() end
+    return
+end
+if request:match('^subtitles%-state:') then
+    local s = convaiSubtitles
+    local f = io.open('runtime/subtitles-state.json', 'wb')
+    if f then
+        f:write(json.encode({installed = s ~= nil, serial = s and s.serial,
+            active = s and s.line ~= nil, page = s and s.page,
+            remaining = s and s.remaining, error = s and s.lastError}))
+        f:close()
+    end
+    return
+end
+if request:match('^subtitles%-install:') then
+    local ok, result = pcall(function()
+        local subtitles = dofile('subtitles.lua')
+        subtitles.installLive()
+        return 'Native subtitle adapter installed; thinking notification suppressed.'
+    end)
+    local f = io.open('runtime/subtitles-check.txt', 'wb')
+    if f then f:write(ok and result or tostring(result)); f:close() end
+    return
+end
 if request:match('^phone%-input:') then
     local ok, result = pcall(function()
         local input = dofile('phone-input.lua')

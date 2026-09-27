@@ -1,6 +1,7 @@
 -- Cyberpunk Convai game adapter. It never renders an ImGui text field.
 -- This first adapter records an in-game targeting and text-input probe.
 local companions = dofile('companions.lua')
+local subtitles = dofile('subtitles.lua')
 convaiCompanions = companions
 local generation = 0
 local active = nil
@@ -359,6 +360,7 @@ registerHotkey('cyberpunk_convai_diagnostic', 'Cyberpunk Convai: capture NPC dia
 registerHotkey('cyberpunk_convai_manager', 'Cyberpunk Convai: companion manager', openManager)
 
 registerForEvent('onInit', function()
+    dofile('composer-input.lua').install()
     dofile('phone-input.lua').install()
     log('Game adapter initialized; press the bound talk-by-text key while facing an NPC')
     -- Requests are one-shot commands. A CET reload must not replay a spawn or
@@ -371,6 +373,11 @@ registerForEvent('onInit', function()
 end)
 
 registerForEvent('onUpdate', function(delta)
+    local subtitlesOk, subtitlesError = pcall(subtitles.update, tonumber(delta) or 0)
+    if not subtitlesOk then
+        log('Subtitle update failed: ' .. tostring(subtitlesError))
+        subtitles.clear()
+    end
     diagnosticPoll = diagnosticPoll + (tonumber(delta) or 0)
     if diagnosticPoll >= 0.5 then
         diagnosticPoll = 0
@@ -461,7 +468,7 @@ registerForEvent('onUpdate', function(delta)
                 and (type(reply.text) == 'string' or type(reply.error) == 'string') then
                 local shown = pcall(function()
                     if reply.error then player:ConvaiPhoneFeedback(reply.error)
-                    else player:ConvaiShowReply(pending.name, reply.text:sub(1, 1200)) end
+                    else subtitles.show(pending.name, reply.text:sub(1, 1200)) end
                 end)
                 if shown then
                     log('Conversation result: generation=' .. pending.generation .. ' error=' .. tostring(reply.error ~= nil))
@@ -503,7 +510,6 @@ registerForEvent('onUpdate', function(delta)
                 os.rename('runtime/last-input.json.tmp', 'runtime/last-input.json')
                 pending = context
                 focusUntil = os.time() + 40
-                player:ConvaiPhoneFeedback(context.name .. ' is thinking...')
             end
             log('Native input captured: generation=' .. context.generation .. ' bytes=' .. #message)
         else
@@ -514,6 +520,7 @@ registerForEvent('onUpdate', function(delta)
 end)
 
 registerForEvent('onShutdown', function()
+    subtitles.clear()
     active = nil
     companions.dismissAll()
     local player = Game.GetPlayer()
