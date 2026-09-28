@@ -1,0 +1,546 @@
+{
+  "profiles": 77,
+  "named": 75,
+  "model": "fast-gemma-4-31b-it",
+  "characters": [
+    {
+      "key": "8ug8ear",
+      "words": 796,
+      "voice": "Megan (Neutral Adult American Female)",
+      "sources": 4,
+      "uncertainties": 1
+    },
+    {
+      "key": "aaron",
+      "words": 808,
+      "voice": "Logan (Expressive Young-Adult American Male)",
+      "sources": 4,
+      "uncertainties": 1
+    },
+    {
+      "key": "alan-noel",
+      "words": 832,
+      "voice": "Harry (Deep Middle-Aged British Male)",
+      "sources": 4,
+      "uncertainties": 1
+    },
+    {
+      "key": "alex",
+      "words": 831,
+      "voice": "Anna (Expressive Young-Adult American Female)",
+      "sources": 3,
+      "uncertainties": 1
+    },
+    {
+      "key": "ana-friedman",
+      "words": 765,
+      "voice": "Megan (Neutral Adult American Female)",
+      "sources": 4,
+      "uncertainties": 1
+    },
+    {
+      "key": "arthur-jenkins",
+      "words": 837,
+      "voice": "Mark (Bold Middle-Aged American Male)",
+      "sources": 3,
+      "uncertainties": 1
+    },
+    {
+      "key": "babs-okoye",
+      "words": 781,
+      "voice": "Anna (Expressive Young-Adult American Female)",
+      "sources": 2,
+      "uncertainties": 1
+    },
+    {
+      "key": "bill-mitchell",
+      "words": 862,
+      "voice": "Ethan (Calm Young-Adult American Male)",
+      "sources": 4,
+      "uncertainties": 1
+    },
+    {
+      "key": "blue-moon",
+      "words": 831,
+      "voice": "Emily (Friendly Young-Adult American Female)",
+      "sources": 3,
+      "uncertainties": 1
+    },
+    {
+      "key": "bob-sagan",
+      "words": 828,
+      "voice": "Cole (Husky Middle-Aged American Male)",
+      "sources": 3,
+      "uncertainties": 1
+    },
+    {
+      "key": "briana-dolson",
+      "words": 811,
+      "voice": "Anna (Expressive Young-Adult American Female)",
+      "sources": 3,
+      "uncertainties": 1
+    },
+    {
+      "key": "carol-emeka",
+      "words": 845,
+      "voice": "Sarah (Authoritative Middle-Aged American Female)",
+      "sources": 4,
+      "uncertainties": 1
+    },
+    {
+      "key": "cassidy-righter",
+      "words": 827,
+      "voice": "Henry (Excited Old American Male)",
+      "sources": 4,
+      "uncertainties": 1
+    },
+    {
+      "key": "chang-hoon-nam",
+      "words": 804,
+      "voice": "Ethan (Calm Young-Adult American Male)",
+      "sources": 4,
+      "uncertainties": 1
+    },
+    {
+      "key": "claire-russell",
+      "words": 884,
+      "voice": "Katie (Husky Young-Adult American Female)",
+      "sources": 4,
+      "uncertainties": 1
+    },
+    {
+      "key": "coach-fred",
+      "words": 836,
+      "voice": "Noah (Confident Adult American Male)",
+      "sources": 2,
+      "uncertainties": 1
+    },
+    {
+      "key": "cynthia-najarro",
+      "words": 842,
+      "voice": "Emily (Friendly Young-Adult American Female)",
+      "sources": 2,
+      "uncertainties": 1
+    },
+    {
+      "key": "dakota-smith",
+      "words": 836,
+      "voice": "Sarah (Authoritative Middle-Aged American Female)",
+      "sources": 3,
+      "uncertainties": 1
+    },
+    {
+      "key": "dennis-cranmer",
+      "words": 834,
+      "voice": "Lucas (Light Middle-Aged American Male)",
+      "sources": 2,
+      "uncertainties": 1
+    },
+    {
+      "key": "dexter-deshawn",
+      "words": 858,
+      "voice": "Mark (Bold Middle-Aged American Male)",
+      "sources": 4,
+      "uncertainties": 1
+    },
+    {
+      "key": "dino-dinovic",
+      "words": 862,
+      "voice": "Ryan (Expressive Young-Adult American Male)",
+      "sources": 2,
+      "uncertainties": 1
+    },
+    {
+      "key": "elizabeth-peralez",
+      "words": 852,
+      "voice": "Rachel (Neutral Adult American Female)",
+      "sources": 4,
+      "uncertainties": 1
+    },
+    {
+      "key": "evelyn-parker",
+      "words": 886,
+      "voice": "Megan (Neutral Adult American Female)",
+      "sources": 3,
+      "uncertainties": 1
+    },
+    {
+      "key": "frank-nostra",
+      "words": 882,
+      "voice": "Harry (Deep Middle-Aged British Male)",
+      "sources": 2,
+      "uncertainties": 1
+    },
+    {
+      "key": "hanako-arasaka",
+      "words": 852,
+      "voice": "Freya (Authoritative Adult British Female)",
+      "sources": 3,
+      "uncertainties": 1
+    },
+    {
+      "key": "iris-tanner",
+      "words": 869,
+      "voice": "Katie (Husky Young-Adult American Female)",
+      "sources": 3,
+      "uncertainties": 1
+    },
+    {
+      "key": "jackie-welles",
+      "words": 904,
+      "voice": "Noah (Confident Adult American Male)",
+      "sources": 6,
+      "uncertainties": 1
+    },
+    {
+      "key": "jake-estevez",
+      "words": 858,
+      "voice": "Ethan (Calm Young-Adult American Male)",
+      "sources": 3,
+      "uncertainties": 1
+    },
+    {
+      "key": "jefferson-peralez",
+      "words": 896,
+      "voice": "Noah (Confident Adult American Male)",
+      "sources": 3,
+      "uncertainties": 1
+    },
+    {
+      "key": "jesse",
+      "words": 865,
+      "voice": "Ryan (Expressive Young-Adult American Male)",
+      "sources": 2,
+      "uncertainties": 1
+    },
+    {
+      "key": "jim-jarry",
+      "words": 840,
+      "voice": "Ryan (Expressive Young-Adult American Male)",
+      "sources": 3,
+      "uncertainties": 3
+    },
+    {
+      "key": "joss-kutcher",
+      "words": 851,
+      "voice": "Helen (Gentle Middle-Aged American Female)",
+      "sources": 3,
+      "uncertainties": 3
+    },
+    {
+      "key": "judy-alvarez",
+      "words": 868,
+      "voice": "Julia (Expressive Young-Adult American Female)",
+      "sources": 4,
+      "uncertainties": 3
+    },
+    {
+      "key": "kerry-eurodyne",
+      "words": 861,
+      "voice": "Logan (Expressive Young-Adult American Male)",
+      "sources": 3,
+      "uncertainties": 3
+    },
+    {
+      "key": "liam-northom",
+      "words": 848,
+      "voice": "Ethan (Calm Young-Adult American Male)",
+      "sources": 2,
+      "uncertainties": 3
+    },
+    {
+      "key": "life-coach",
+      "words": 812,
+      "voice": "Lucas (Light Middle-Aged American Male)",
+      "sources": 2,
+      "uncertainties": 3
+    },
+    {
+      "key": "lina-malina",
+      "words": 869,
+      "voice": "Laura (Upbeat Young-Adult American Female)",
+      "sources": 4,
+      "uncertainties": 3
+    },
+    {
+      "key": "lizzy-wizzy",
+      "words": 855,
+      "voice": "Julia (Expressive Young-Adult American Female)",
+      "sources": 3,
+      "uncertainties": 3
+    },
+    {
+      "key": "mama-welles",
+      "words": 835,
+      "voice": "Linda (Deep Middle-Aged American Female)",
+      "sources": 3,
+      "uncertainties": 3
+    },
+    {
+      "key": "mark-bana",
+      "words": 875,
+      "voice": "Arthur (Husky Middle-Aged British Male)",
+      "sources": 6,
+      "uncertainties": 3
+    },
+    {
+      "key": "meredith-stout",
+      "words": 806,
+      "voice": "Sarah (Authoritative Middle-Aged American Female)",
+      "sources": 2,
+      "uncertainties": 3
+    },
+    {
+      "key": "misty-olszewski",
+      "words": 831,
+      "voice": "Helen (Gentle Middle-Aged American Female)",
+      "sources": 3,
+      "uncertainties": 3
+    },
+    {
+      "key": "mitch-anderson",
+      "words": 846,
+      "voice": "Cole (Husky Middle-Aged American Male)",
+      "sources": 3,
+      "uncertainties": 3
+    },
+    {
+      "key": "mr-hands",
+      "words": 872,
+      "voice": "Harry (Deep Middle-Aged British Male)",
+      "sources": 3,
+      "uncertainties": 3
+    },
+    {
+      "key": "muamar-reyes",
+      "words": 913,
+      "voice": "Noah (Confident Adult American Male)",
+      "sources": 3,
+      "uncertainties": 3
+    },
+    {
+      "key": "nancy-hartley",
+      "words": 828,
+      "voice": "Amelia (Expressive Young-Adult British Female)",
+      "sources": 2,
+      "uncertainties": 2
+    },
+    {
+      "key": "nele-springer",
+      "words": 865,
+      "voice": "Rachel (Neutral Adult American Female)",
+      "sources": 5,
+      "uncertainties": 2
+    },
+    {
+      "key": "nix",
+      "words": 843,
+      "voice": "Cole (Husky Middle-Aged American Male)",
+      "sources": 3,
+      "uncertainties": 2
+    },
+    {
+      "key": "ozob-bozo",
+      "words": 857,
+      "voice": "Logan (Expressive Young-Adult American Male)",
+      "sources": 2,
+      "uncertainties": 2
+    },
+    {
+      "key": "paco-torres",
+      "words": 862,
+      "voice": "Ryan (Expressive Young-Adult American Male)",
+      "sources": 2,
+      "uncertainties": 2
+    },
+    {
+      "key": "padre-ibarra",
+      "words": 886,
+      "voice": "John (Deep Calm Middle-Aged American Male)",
+      "sources": 4,
+      "uncertainties": 2
+    },
+    {
+      "key": "panam-palmer",
+      "words": 889,
+      "voice": "Katie (Husky Young-Adult American Female)",
+      "sources": 4,
+      "uncertainties": 2
+    },
+    {
+      "key": "pepe-najarro",
+      "words": 882,
+      "voice": "Lucas (Light Middle-Aged American Male)",
+      "sources": 2,
+      "uncertainties": 2
+    },
+    {
+      "key": "placide",
+      "words": 860,
+      "voice": "John (Deep Calm Middle-Aged American Male)",
+      "sources": 2,
+      "uncertainties": 2
+    },
+    {
+      "key": "r3n0",
+      "words": 875,
+      "voice": "Megan (Neutral Adult American Female)",
+      "sources": 3,
+      "uncertainties": 2
+    },
+    {
+      "key": "rachel-casich",
+      "words": 877,
+      "voice": "Julia (Expressive Young-Adult American Female)",
+      "sources": 3,
+      "uncertainties": 2
+    },
+    {
+      "key": "regina-jones",
+      "words": 893,
+      "voice": "Sarah (Authoritative Middle-Aged American Female)",
+      "sources": 3,
+      "uncertainties": 2
+    },
+    {
+      "key": "river-ward",
+      "words": 896,
+      "voice": "Ethan (Calm Young-Adult American Male)",
+      "sources": 4,
+      "uncertainties": 2
+    },
+    {
+      "key": "robert-wilson",
+      "words": 890,
+      "voice": "Lucas (Light Middle-Aged American Male)",
+      "sources": 3,
+      "uncertainties": 2
+    },
+    {
+      "key": "rogue-amendiares",
+      "words": 907,
+      "voice": "Sarah (Authoritative Middle-Aged American Female)",
+      "sources": 5,
+      "uncertainties": 2
+    },
+    {
+      "key": "sandra-dorsett",
+      "words": 875,
+      "voice": "Anna (Expressive Young-Adult American Female)",
+      "sources": 2,
+      "uncertainties": 2
+    },
+    {
+      "key": "santiago",
+      "words": 856,
+      "voice": "Cole (Husky Middle-Aged American Male)",
+      "sources": 2,
+      "uncertainties": 3
+    },
+    {
+      "key": "saul-bright",
+      "words": 848,
+      "voice": "Mark (Bold Middle-Aged American Male)",
+      "sources": 2,
+      "uncertainties": 2
+    },
+    {
+      "key": "sergei-karasinsky",
+      "words": 827,
+      "voice": "Arthur (Husky Middle-Aged British Male)",
+      "sources": 2,
+      "uncertainties": 2
+    },
+    {
+      "key": "shank",
+      "words": 825,
+      "voice": "Cole (Husky Middle-Aged American Male)",
+      "sources": 5,
+      "uncertainties": 2
+    },
+    {
+      "key": "solomon-reed",
+      "words": 835,
+      "voice": "John (Deep Calm Middle-Aged American Male)",
+      "sources": 3,
+      "uncertainties": 2
+    },
+    {
+      "key": "songbird",
+      "words": 875,
+      "voice": "Megan (Neutral Adult American Female)",
+      "sources": 3,
+      "uncertainties": 3
+    },
+    {
+      "key": "spider-murphy",
+      "words": 795,
+      "voice": "Megan (Neutral Adult American Female)",
+      "sources": 1,
+      "uncertainties": 3
+    },
+    {
+      "key": "steven-santos",
+      "words": 829,
+      "voice": "Ethan (Calm Young-Adult American Male)",
+      "sources": 3,
+      "uncertainties": 3
+    },
+    {
+      "key": "t-bug",
+      "words": 827,
+      "voice": "Megan (Neutral Adult American Female)",
+      "sources": 2,
+      "uncertainties": 2
+    },
+    {
+      "key": "takemura",
+      "words": 803,
+      "voice": "John (Deep Calm Middle-Aged American Male)",
+      "sources": 1,
+      "uncertainties": 3
+    },
+    {
+      "key": "thompson",
+      "words": 835,
+      "voice": "Harry (Deep Middle-Aged British Male)",
+      "sources": 2,
+      "uncertainties": 3
+    },
+    {
+      "key": "viktor-vektor",
+      "words": 840,
+      "voice": "John (Deep Calm Middle-Aged American Male)",
+      "sources": 2,
+      "uncertainties": 3
+    },
+    {
+      "key": "wakako-okada",
+      "words": 810,
+      "voice": "Linda (Deep Middle-Aged American Female)",
+      "sources": 1,
+      "uncertainties": 3
+    },
+    {
+      "key": "yorinobu-arasaka",
+      "words": 877,
+      "voice": "Mark (Bold Middle-Aged American Male)",
+      "sources": 2,
+      "uncertainties": 3
+    },
+    {
+      "key": "resident-male",
+      "words": 76,
+      "voice": "Ethan (Calm Young-Adult American Male)",
+      "sources": 0,
+      "uncertainties": 0
+    },
+    {
+      "key": "resident-female",
+      "words": 76,
+      "voice": "Emily (Friendly Young-Adult American Female)",
+      "sources": 0,
+      "uncertainties": 0
+    }
+  ]
+}

@@ -1,18 +1,34 @@
 -- Cyberpunk Convai game adapter. It never renders an ImGui text field.
--- This first adapter records an in-game targeting and text-input probe.
+-- Owns native composers, targeted turns, party connections and live diagnostics.
 local companions = dofile('companions.lua')
 local subtitles = dofile('subtitles.lua')
 local speech = dofile('speech.lua')
 local microphone = dofile('microphone.lua')
+local characterCatalog = dofile('character-catalog.lua')
 local groupChat = dofile('group-chat.lua')
 convaiGroupChat = groupChat
+groupChat.onPreparation = function(preparation)
+    local f = io.open('runtime/group-prefetch.json.tmp', 'wb')
+    if not f then return end
+    f:write(preparation and json.encode(preparation) or '{}'); f:close()
+    os.remove('runtime/group-prefetch.json')
+    os.rename('runtime/group-prefetch.json.tmp', 'runtime/group-prefetch.json')
+end
+groupChat.onPreparation(nil)
 local supportedProfiles = {}
+local profiles = {}
 do
     local f = io.open('conversation-characters.json', 'rb')
     if f then
-        local ok, profiles = pcall(json.decode, f:read('*a')); f:close()
-        if ok then for _, profile in ipairs(profiles) do supportedProfiles[profile.key] = true end end
+        local ok, decoded = pcall(json.decode, f:read('*a')); f:close()
+        if ok and type(decoded) == 'table' then profiles = decoded end
+        for _, profile in ipairs(profiles) do supportedProfiles[profile.key] = true end
     end
+end
+local catalog = characterCatalog.build(profiles)
+for record, profile in pairs(characterCatalog.build(profiles).records) do
+    local ok, id = pcall(function() return tostring(TweakDBID.new(record)) end)
+    if ok then catalog.records[id] = profile end
 end
 convaiCompanions = companions
 local generation = 0
@@ -34,6 +50,61 @@ local releasedCrowd = nil
 local pendingPhoneAction = nil
 local phoneCatalogReady = false
 local profileKeys = {'viktor-vektor', 'misty-olszewski', 'judy-alvarez', 'panam-palmer', 'resident-male', 'resident-female'}
+local legacySettingIndex = {}
+for i, key in ipairs(profileKeys) do legacySettingIndex[key] = i - 1 end
+
+local function profileEnabled(player, key)
+    if not key then return false end
+    local index = legacySettingIndex[key]
+    return index == nil or player:ConvaiManagerEnabled(index)
+end
+
+local function profileIdentity(npc)
+    local managedKey, managedName = companions.identity(npc)
+    local name = managedName or tostring(npc:GetTweakDBFullDisplayName(true) or 'NPC')
+    local body = tostring(npc:GetBodyType() or '')
+    local recordOk, record = pcall(function() return tostring(npc:GetRecordID()) end)
+    local crowdOk, crowd = pcall(function() return npc:IsCrowd() end)
+    local key, canonical = characterCatalog.resolve(catalog, {managedKey = managedKey, name = name,
+        bodyType = body, record = recordOk and record or '', crowd = crowdOk and crowd})
+    return key, canonical, body
+end
+
+local function warmConversation(participants, key)
+    local f = io.open('runtime/conversation-prewarm.json.tmp', 'wb')
+    if not f then return end
+    local hint = '{}'
+    if key then
+        local audience = {}
+        if participants then
+            for _, person in ipairs(participants) do audience[#audience + 1] = person.profileKey end
+        else audience[1] = key end
+        hint = json.encode({nonce = 'composer-' .. tostring(os.time()) .. '-' .. tostring(generation),
+            audience = audience, group = participants ~= nil})
+    end
+    f:write(hint); f:close()
+    os.remove('runtime/conversation-prewarm.json')
+    os.rename('runtime/conversation-prewarm.json.tmp', 'runtime/conversation-prewarm.json')
+end
+warmConversation(nil, nil)
+
+local lastPartyHint, lastPartyHeartbeat = nil, 0
+local function publishPartyConnections(force)
+    local keys, encoded = companions.connectionProfiles(), {}
+    local signature, now = table.concat(keys, ','), os.time()
+    if not force and signature == lastPartyHint and now - lastPartyHeartbeat < 2 then return end
+    for _, key in ipairs(keys) do encoded[#encoded + 1] = json.encode(key) end
+    local f = io.open('runtime/party-connections.json.tmp', 'wb')
+    if not f then return end
+    f:write('{"updated":' .. tostring(now * 1000) .. ',"profiles":[' .. table.concat(encoded, ',') .. ']}')
+    f:close()
+    os.remove('runtime/party-connections.json')
+    if os.rename('runtime/party-connections.json.tmp', 'runtime/party-connections.json') then
+        lastPartyHint, lastPartyHeartbeat = signature, now
+    end
+end
+companions.onPartyChanged = function() publishPartyConnections(true) end
+publishPartyConnections(true)
 
 local function log(line)
     local file = io.open('runtime/probe.log', 'a')
@@ -214,41 +285,29 @@ local function beginText(groupMode)
         if groupMode then
             local enabled = {}
             for _, candidate in ipairs(candidates) do
-                local choice = rosterIndex(candidate.name, candidate.bodyType)
-                if choice and player:ConvaiManagerEnabled(choice) then enabled[#enabled + 1] = candidate end
+                if profileEnabled(player, candidate.profileKey) then enabled[#enabled + 1] = candidate end
             end
             candidates = enabled
         end
         if not npc and groupMode and candidates[1] then npc = candidates[1].npc end
         if not npc then log(reason); return end
-        local name = tostring(npc:GetTweakDBFullDisplayName(true) or 'NPC')
+        local key, name, bodyType = profileIdentity(npc)
         local identity = tostring(npc:GetEntityID().hash)
-        local bodyType = tostring(npc:GetBodyType() or '')
-        local managedKey, managedName = companions.identity(npc)
-        if managedName then name = managedName end
-        local index = rosterIndex(name, bodyType)
-        if not index then log('No companion profile matches ' .. name .. ' (' .. bodyType .. ')'); return end
-        if not player:ConvaiManagerEnabled(index) then log('Companion disabled in manager: ' .. name); return end
-        local primary = {npc = npc, name = name, entity = identity, bodyType = bodyType, profileKey = managedKey or profileKeys[index + 1]}
-        if not supportedProfiles[primary.profileKey] then
+        if not key or not supportedProfiles[key] then
             player:ConvaiPhoneFeedback(name .. ' does not have a conversation profile configured yet.')
-            log('Conversation unavailable: profile=' .. primary.profileKey)
+            log('Conversation unavailable: profile=' .. tostring(key))
             return
         end
+        if not profileEnabled(player, key) then log('Companion disabled in manager: ' .. name); return end
+        local primary = {npc = npc, name = name, entity = identity, bodyType = bodyType, profileKey = key}
         local participants = groupMode and groupChat.choose(primary, candidates, supportedProfiles) or nil
         if participants and #participants == 0 then player:ConvaiPhoneFeedback('No configured characters are nearby'); return end
         if participants and #participants < 2 then
-            player:ConvaiPhoneFeedback('Group chat needs two configured characters nearby. Invite Judy, Panam, Alex or Kerry; use F6 for one person.')
+            player:ConvaiPhoneFeedback('Group chat needs two characters nearby. Use F6 for one person.')
             return
         end
-        local title = name
-        if participants then
-            local names = {}
-            for _, person in ipairs(participants) do names[#names + 1] = person.name end
-            title = 'GROUP: ' .. table.concat(names, ', ')
-        end
         generation = generation + 1
-        if not player:ConvaiOpenComposer(title) then
+        if not player:ConvaiOpenComposer(name) then
             log('Native composer unavailable (check redscript and Codeware)')
             return
         end
@@ -269,7 +328,8 @@ local function beginText(groupMode)
         resetGaze()
         focusUntil = os.time() + 45
         active = {generation = generation, entity = identity, name = name, bodyType = bodyType,
-            profileKey = managedKey or profileKeys[index + 1], participants = participants}
+            profileKey = key, participants = participants}
+        warmConversation(participants, key)
         pending = nil
         log('Composer opened: generation=' .. generation .. ' actor=' .. identity .. ' name=' .. name)
     end)
@@ -289,18 +349,19 @@ local function toggleVoice()
     local ok, err = pcall(function()
         local npc, reason = targetAtCrosshair()
         if not npc then player:ConvaiPhoneFeedback(reason); return end
-        local key, name = companions.identity(npc)
-        name = name or tostring(npc:GetTweakDBFullDisplayName(true) or 'NPC')
-        local body = tostring(npc:GetBodyType() or '')
-        local index = rosterIndex(name, body)
-        if not index or not player:ConvaiManagerEnabled(index) then return end
+        local key, name, body = profileIdentity(npc)
+        if not key or not supportedProfiles[key] then
+            player:ConvaiPhoneFeedback(name .. ' does not have a conversation profile configured yet.'); return
+        end
+        if not profileEnabled(player, key) then return end
         generation = generation + 1
         groupChat.cancel()
+        warmConversation(nil, nil)
         speech.stop('microphone'); subtitles.clear()
         speech.target = npc
         local entity = tostring(npc:GetEntityID().hash)
         local context = {generation = generation, entity = entity, name = name, bodyType = body,
-            profileKey = key or profileKeys[index + 1], text = '[Microphone]', sentAt = os.time()}
+            profileKey = key, text = '[Microphone]', sentAt = os.time()}
         context.requestId = tostring(os.time()) .. '-' .. tostring(generation) .. '-' .. entity
         if microphone.begin(context) then
             beginFocus(player, npc)
@@ -343,6 +404,8 @@ local function updateGroup(player)
     if not round then return end
     if not player then groupChat.cancel(); return end
     local live = groupAudience(player)
+    local deliveryFailed = speech.state == 'target-lost' or speech.state == 'error'
+        or speech.state == 'playback-failed'
     if round.stage == 'playing' and round.reply then
         local kept = {}
         for _, listener in ipairs(round.reply.listeners) do
@@ -351,13 +414,15 @@ local function updateGroup(player)
             end
         end
         round.reply.listeners = kept
+        local prepared = groupChat.preview(generation + 1, os.time(), live, deliveryFailed)
+        if prepared then generation = math.max(generation, prepared.generation) end
     end
     local person = round.participants[round.index]
     if round.stage == 'waiting' and person and not live[person.entity] then
         groupChat.received(round.requestId, '', true, {})
         if pending and pending.requestId == round.requestId then pending = nil end
     elseif round.stage == 'playing' and not speech.requestId and not subtitles.line then
-        groupChat.completed(round.requestId, speech.state ~= 'target-lost' and speech.state ~= 'error')
+        groupChat.completed(round.requestId, not deliveryFailed)
     end
     if round.stage ~= 'next' or not gameplayCanAcquire(player) then return end
     generation = generation + 1
@@ -549,7 +614,9 @@ registerForEvent('onUpdate', function(delta)
     end
     if not player then
         groupChat.cancel()
+        if active then warmConversation(nil, nil) end
         companions.dismissAll()
+        publishPartyConnections(false)
         pendingPhoneAction = nil
         phoneCatalogReady = false
         active = nil; pending = nil; settingsRevision = nil; focusUntil = nil
@@ -563,6 +630,7 @@ registerForEvent('onUpdate', function(delta)
     end
     processPhoneAction(player)
     companions.update(player, 0.1, focusEntity)
+    publishPartyConnections(false)
     updateGroup(player)
     if focusUntil and not active and os.time() >= focusUntil then
         endFocus(player)
@@ -645,6 +713,7 @@ registerForEvent('onUpdate', function(delta)
             local openOk, composerOpen = pcall(function() return player:ConvaiComposerOpen() end)
             if openOk and not composerOpen then
                 active = nil
+                warmConversation(nil, nil)
                 focusUntil = os.time() + 1
             end
         end
@@ -672,6 +741,7 @@ end)
 
 registerForEvent('onShutdown', function()
     groupChat.cancel()
+    warmConversation(nil, nil)
     microphone.cancel()
     speech.stop('shutdown')
     subtitles.clear()

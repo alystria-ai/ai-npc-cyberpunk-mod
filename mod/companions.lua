@@ -586,6 +586,8 @@ function M.spawn(key)
         requestedAt = os.time(),
     }
     entries[#entries + 1] = entry
+    -- Start connection setup while the engine is attaching the new copy.
+    if M.onPartyChanged then pcall(M.onPartyChanged) end
     return serial
 end
 
@@ -612,6 +614,7 @@ function M.dismiss(serialToDismiss)
                 formationAngle = nil
                 previousPlayerPosition = nil
             end
+            if M.onPartyChanged then pcall(M.onPartyChanged) end
             return true
         end
     end
@@ -641,6 +644,26 @@ function M.identity(npc)
         end
     end
     return nil
+end
+
+function M.connectionProfiles()
+    local ordered, result, seen = {}, {}, {}
+    for _, entry in ipairs(entries) do ordered[#ordered + 1] = entry end
+    table.sort(ordered, function(a, b) return a.slot < b.slot end)
+    for _, entry in ipairs(ordered) do
+        local alive = entry.state == 'spawning'
+        if entry.state == 'ready' then
+            local ok, attached = pcall(function()
+                return entry.npc:IsAttached() and not entry.npc:IsDeadNoStatPool()
+            end)
+            alive = ok and attached
+        end
+        if alive and not seen[entry.key] then
+            result[#result + 1] = entry.key
+            seen[entry.key] = true
+        end
+    end
+    return result
 end
 
 function M.conversationCandidates(player, radius)

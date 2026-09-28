@@ -1,7 +1,7 @@
 import {ConvaiClient} from '@convai/web-sdk/vanilla';
 
 let client, identity, context, source, capture, prime, remote, turn, micTimer;
-const sessions = new Map();
+let initialSession, submitted = false, epoch = 0;
 const waitFor = (condition, timeout, message) => new Promise((resolve, reject) => {
   const start = performance.now();
   const timer = setInterval(() => {
@@ -13,6 +13,7 @@ const waitFor = (condition, timeout, message) => new Promise((resolve, reject) =
 });
 
 async function close() {
+  ++epoch;
   clearTimeout(micTimer);
   if (client) await disableMic().catch(() => {});
   if (turn) { turn.error = 'Conversation cancelled'; turn = null; }
@@ -20,20 +21,30 @@ async function close() {
   if (prime) { remote?.detach(prime); prime.pause(); prime.srcObject = null; prime.remove(); }
   if (context) await context.close().catch(() => {});
   if (client) {
-    if (client.characterSessionId) sessions.set(identity, client.characterSessionId);
     await client.disconnect().catch(() => {});
   }
   client = context = source = capture = prime = remote = identity = null;
+  initialSession = null; submitted = false;
 }
 
 async function connect(config) {
+  const started = performance.now();
   const desired = config.characterId + ':' + (config.scope || 'private');
-  if (identity === desired && client?.isBotReady) return;
+  const sessionMatches = !config.sessionId || config.sessionId === initialSession || config.sessionId === client?.characterSessionId;
+  // Preparation can reuse a warmed *unused* anonymous connection. It can
+  // never append speculative dialogue to a previously used character session.
+  if (identity === desired && client?.isBotReady && sessionMatches
+      && (!config.freshSession || (initialSession === '-1' && !submitted))) {
+    return {connectionMs: performance.now() - started, connectionReused: true};
+  }
   await close();
+  const connectionEpoch = epoch;
   identity = desired;
+  initialSession = config.freshSession ? '-1' : config.sessionId || '-1';
   client = new ConvaiClient({apiKey: config.key, characterId: config.characterId,
-    characterSessionId: sessions.get(identity) || config.sessionId, transport: 'livekit', startWithAudioOn: false,
+    characterSessionId: initialSession, transport: 'livekit', startWithAudioOn: false,
     enableVideo: false, enableLipsync: true, logRtviMessages: false,
+    respondModes: {contextUpdate: 'silent'},
     blendshapeConfig: {format: 'arkit', output_fps: 30}});
   context = new AudioContext({sampleRate: 48000});
   await context.audioWorklet.addModule('/capture.js');
@@ -42,7 +53,10 @@ async function connect(config) {
   capture.connect(context.destination); // Processor emits silence, only captures remote NPC audio.
   capture.port.onmessage = ({data}) => {
     if (!turn) return;
-    if (data.pcm.some(x => Math.abs(x) > 0.00015)) turn.lastSignal = performance.now();
+    if (data.pcm.some(x => Math.abs(x) > 0.00015)) {
+      turn.lastSignal = performance.now();
+      turn.firstAudioMs ??= turn.lastSignal - turn.started;
+    }
     if (!turn.origin) {
       if (!turn.lastSignal) return;
       turn.origin = data.at;
@@ -75,11 +89,14 @@ async function connect(config) {
     }
   });
   await client.connect();
-  await waitFor(() => client?.isBotReady, 20000, 'Convai character did not become ready');
+  await waitFor(() => {
+    if (connectionEpoch !== epoch) throw Error('Conversation startup cancelled');
+    return client?.isBotReady;
+  }, 20000, 'Convai character did not become ready');
   await client.room.startAudio();
   if (prime) { prime.muted = true; prime.volume = 0; }
   client.room.remoteParticipants.forEach(p => p.audioTrackPublications.forEach(pub => { if (pub.track) attach(pub.track); }));
-  client.updateDynamicInfo('You are speaking to V in Night City. Reply briefly in one or two spoken sentences without stage directions. No quest or relationship state has been supplied; do not invent it.');
+  return {connectionMs: performance.now() - started, connectionReused: false};
 }
 
 function encodeWav(chunks, rate) {
@@ -97,8 +114,10 @@ function encodeWav(chunks, rate) {
   return btoa(binary);
 }
 
-function beginTurn() {
-  return turn = {before: new Set(client.chatMessages.map(m => m.id)), chunks: [], faces: [], captions: [], text: '', origin: 0, lastSignal: 0};
+function beginTurn(timing = {}) {
+  submitted = true;
+  return turn = {before: new Set(client.chatMessages.map(m => m.id)), chunks: [], faces: [], captions: [], text: '', origin: 0, lastSignal: 0,
+    started: performance.now(), epoch, timing};
 }
 
 async function collect(current) {
@@ -107,6 +126,7 @@ async function collect(current) {
   try {
     await waitFor(() => {
       if (current.error) throw Error(current.error);
+      if (current.epoch !== epoch) throw Error('Conversation cancelled');
       const now = performance.now(), q = client.blendshapeQueue;
       carry += Math.min((now - previous) / 1000, 0.25) * q.getPlaybackFps(); previous = now;
       const count = Math.min(Math.floor(carry), q.length); carry -= Math.floor(carry);
@@ -117,8 +137,10 @@ async function collect(current) {
       return current.text && current.chunks.length && q.isConversationEnded() && !q.length
         && !client.state.isSpeaking && !client.state.isThinking && now - current.lastSignal > 450;
     }, 60000, 'Convai did not finish the voiced reply');
+    const collectedAt = performance.now(), audio = encodeWav(current.chunks, context.sampleRate);
     const result = {text: current.text, sessionID: client.characterSessionId,
-      audio: encodeWav(current.chunks, context.sampleRate),
+      audio, timing: {...current.timing, firstAudioMs: current.firstAudioMs,
+        collectionMs: collectedAt - started, audioEncodeMs: performance.now() - collectedAt},
       faces: current.faces.map(f => ({at: Math.max(0, f.at - current.origin), values: f.values})),
       captions: current.captions.map(c => ({at: Math.max(0, c.at - current.origin), text: c.text}))};
     return result;
@@ -126,10 +148,9 @@ async function collect(current) {
 }
 
 async function reply(config) {
-  await connect(config);
-  client.updateDynamicInfo('You are speaking to V in Night City. Reply briefly without stage directions. No verified quest or relationship state is supplied. '
-    + (config.context || 'This is a private conversation with V.'));
-  const current = beginTurn();
+  const timing = await connect(config);
+  updateContext(config);
+  const current = beginTurn(timing);
   client.sendUserTextMessage(config.text);
   return collect(current);
 }
@@ -148,8 +169,9 @@ async function disableMic() {
 }
 
 async function beginVoice(config) {
-  await connect(config);
-  beginTurn();
+  const timing = await connect(config);
+  updateContext(config);
+  beginTurn(timing);
   client.toggleStt(true);
   try {
     await client.audioControls.enableAudio();
@@ -160,10 +182,22 @@ async function beginVoice(config) {
   } catch (error) { await disableMic(); turn = null; throw error; }
 }
 
+function updateContext(config) {
+  client.updateContext({mode: 'replace', run_llm: 'false',
+    text: 'You are speaking to V in Night City. Reply briefly without stage directions. No verified quest or relationship state is supplied. '
+      + (config.context || 'This is a private conversation with V.')});
+}
+
 async function finishVoice() {
   await disableMic();
   if (!turn) throw Error('No microphone conversation is active');
   return collect(turn);
 }
 
-window.convaiRealtime = {reply, beginVoice, finishVoice, close};
+function readiness(keepAlive = false) {
+  const ready = !!client?.isBotReady;
+  if (ready && keepAlive) client.resetIdleTimer();
+  return {ready};
+}
+
+window.convaiRealtime = {reply, warm: connect, readiness, beginVoice, finishVoice, close};

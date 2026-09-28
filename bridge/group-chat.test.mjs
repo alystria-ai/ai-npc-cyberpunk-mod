@@ -54,6 +54,50 @@ test('departed speakers are skipped, cancelled rounds and failed replies cannot 
   assert(not group.received(third.requestId,'late',false,{}))
   assert(group.next(4,103,live)==nil)
 `));
+test('preparing the next reply reserves its identity but never advances playback', () => check(`
+  local published
+  group.onPreparation=function(value) published=value end
+  group.start('round',{judy,panam,alex},'Hello friends')
+  local first=group.next(1,100,live)
+  group.received(first.requestId,'Hello V',false,{'judy','panam','alex'})
+  local prepared=group.preview(2,101,live)
+  assert(published.sourceRequestId==first.requestId)
+  assert(prepared.profileKey=='panam' and prepared.group.heard[1].text=='Hello V')
+  assert(group.round.stage=='playing' and group.next(3,101,live)==nil)
+  assert(group.preview(3,102,live)==prepared)
+  group.completed(first.requestId,true)
+  local actual=group.next(3,105,live)
+  assert(actual.requestId==prepared.requestId and actual.generation==2 and actual.sentAt==105)
+`));
+test('a changed audience rebuilds preparation, cancellation and failed playback invalidate it', () => check(`
+  local published
+  group.onPreparation=function(value) published=value end
+  group.start('round',{judy,panam,alex},'Hello')
+  local first=group.next(1,100,live)
+  group.received(first.requestId,'Hello V',false,{'judy','panam','alex'})
+  local old=group.preview(2,101,live)
+  live['3ULL']=nil
+  local fresh=group.preview(3,102,live)
+  assert(fresh.requestId~=old.requestId and #fresh.group.audience==2)
+  assert(group.preview(4,103,live,true)==nil and published==nil)
+  assert(group.round.stage=='playing')
+  group.completed(first.requestId,false)
+  assert(published==nil)
+  local actual=group.next(4,105,live)
+  assert(actual.requestId~=fresh.requestId and #actual.group.heard==0)
+  group.cancel(); assert(published==nil)
+`));
+test('a listener who missed part of a line never receives it as completed heard context', () => check(`
+  group.start('round',{judy,panam,alex},'Hello')
+  local first=group.next(1,100,live)
+  group.received(first.requestId,'Hello V',false,{'judy','panam','alex'})
+  local old=group.preview(2,101,live)
+  group.round.reply.listeners={'judy','alex'}
+  local fresh=group.preview(3,102,live)
+  assert(#fresh.group.heard==0 and fresh.requestId~=old.requestId)
+  group.completed(first.requestId,true)
+  assert(#group.next(4,103,live).group.heard==0)
+`));
 test('validate group metadata and isolate private and group session scopes', () => {
   const group = {id: 'round-1', index: 1, total: 3, audience: ['judy', 'panam'], heard: []};
   assert.ok(parseGroup(group));

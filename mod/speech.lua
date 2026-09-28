@@ -40,10 +40,13 @@ function M.start(context, reply)
     end
     local actor = M.target
     local player = Game.GetPlayer()
-    if not actor or not player or tostring(actor:GetEntityID().hash) ~= context.entity then return false end
+    if not actor or not player or tostring(actor:GetEntityID().hash) ~= context.entity then
+        M.state = 'target-lost'; publish(); return false
+    end
     local ok, started = pcall(function() return player:ConvaiSpeechStart(actor, CName.new(audio.event)) end)
     if not ok or not started then
-        M.error = tostring(started); captions.show(context.name, reply.text); publish(); return false
+        M.state, M.error = 'playback-failed', tostring(started)
+        captions.show(context.name, reply.text); publish(); return false
     end
     M.player, M.actor = player, actor
     M.playerID = tostring(player:GetEntityID().hash)

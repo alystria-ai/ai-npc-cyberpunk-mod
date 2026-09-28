@@ -52,6 +52,10 @@ test('native playback respects mute and subtitle changes without restarting audi
     assert(not speech.start(context,reply) and starts==1 and captions.line)
     visible=false
     assert(not speech.start(context,reply) and not captions.line and starts==1)
+    voice=true; visible=true
+    player.ConvaiSpeechStart=function() return false end
+    assert(not speech.start(context,reply) and speech.state=='playback-failed')
+    assert(captions.line and not speech.requestId)
   `;
   const result = lauxlib.luaL_dostring(state, to_luastring(program));
   const error = result === lua.LUA_OK ? '' : to_jsstring(lua.lua_tostring(state, -1));

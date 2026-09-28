@@ -1,15 +1,17 @@
 param(
     [string]$GameDirectory = 'E:\SteamLibrary\steamapps\common\Cyberpunk 2077',
-    [string]$ProjectDirectory = (Split-Path -Parent $PSScriptRoot)
+    [string]$ProjectDirectory = (Split-Path -Parent $PSScriptRoot),
+    [switch]$LuaOnly
 )
 
 $ErrorActionPreference = 'Stop'
 $game = [IO.Path]::GetFullPath($GameDirectory).TrimEnd('\')
 $project = [IO.Path]::GetFullPath($ProjectDirectory).TrimEnd('\')
 if (-not [IO.File]::Exists((Join-Path $game 'bin\x64\Cyberpunk2077.exe'))) { throw 'Game directory is invalid.' }
-if ((Get-Process Cyberpunk2077 -ErrorAction SilentlyContinue)) { throw 'Close the game before installing the development mod.' }
+if (-not $LuaOnly -and (Get-Process Cyberpunk2077 -ErrorAction SilentlyContinue)) { throw 'Close the game before installing native scripts, or use -LuaOnly for a CET reload.' }
 
 $targets = @(
+    @{ From = (Join-Path $project 'mod\character-catalog.lua'); To = (Join-Path $game 'bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai\character-catalog.lua') },
     @{ From = (Join-Path $project 'mod\group-chat.lua'); To = (Join-Path $game 'bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai\group-chat.lua') },
     @{ From = (Join-Path $project 'characters\roster.json'); To = (Join-Path $game 'bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai\conversation-characters.json') },
     @{ From = (Join-Path $project 'mod\microphone.lua'); To = (Join-Path $game 'bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai\microphone.lua') },
@@ -27,6 +29,9 @@ $targets = @(
     @{ From = (Join-Path $project 'r6\scripts\CyberpunkConvai\Manager.reds'); To = (Join-Path $game 'r6\scripts\CyberpunkConvai\Manager.reds') },
     @{ From = (Join-Path $project 'r6\scripts\CyberpunkConvai\PhoneContacts.reds'); To = (Join-Path $game 'r6\scripts\CyberpunkConvai\PhoneContacts.reds') }
 )
+if ($LuaOnly) {
+    $targets = @($targets | Where-Object { $_.From.EndsWith('.lua') -or $_.From.EndsWith('.json') })
+}
 foreach ($item in $targets) {
     if (-not [IO.File]::Exists($item.From)) { throw "Missing source: $($item.From)" }
     [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($item.To)) | Out-Null
@@ -36,4 +41,5 @@ foreach ($item in $targets) {
     }
 }
 [IO.Directory]::CreateDirectory((Join-Path $game 'bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai\runtime')) | Out-Null
-Write-Output 'Development adapter installed and hash verified.'
+if ($LuaOnly) { Write-Output 'Lua adapter and catalogs installed and hash verified. Use CET Reload All Mods to activate.' }
+else { Write-Output 'Development adapter installed and hash verified.' }

@@ -1,0 +1,140 @@
+{
+  "verified": "2026-09-28",
+  "voices": [
+    {
+      "name": "Anna (Expressive Young-Adult American Female)",
+      "voice_value": "convai-kokoro-8a2919b7b1a581e7",
+      "gender": "FEMALE"
+    },
+    {
+      "name": "Sarah (Authoritative Middle-Aged American Female)",
+      "voice_value": "convai-kokoro-5bcc8b021c01ea90",
+      "gender": "FEMALE"
+    },
+    {
+      "name": "Emily (Friendly Young-Adult American Female)",
+      "voice_value": "convai-kokoro-4516f4ce70b89e5a",
+      "gender": "FEMALE"
+    },
+    {
+      "name": "Katie (Husky Young-Adult American Female)",
+      "voice_value": "convai-kokoro-66f6de32b10f0a58",
+      "gender": "FEMALE"
+    },
+    {
+      "name": "Laura (Upbeat Young-Adult American Female)",
+      "voice_value": "convai-kokoro-3220be3d9a11d9fd",
+      "gender": "FEMALE"
+    },
+    {
+      "name": "Linda (Deep Middle-Aged American Female)",
+      "voice_value": "convai-kokoro-655335922019f8a9",
+      "gender": "FEMALE"
+    },
+    {
+      "name": "Julia (Expressive Young-Adult American Female)",
+      "voice_value": "convai-kokoro-ec5ab9b858b3bb52",
+      "gender": "FEMALE"
+    },
+    {
+      "name": "Helen (Gentle Middle-Aged American Female)",
+      "voice_value": "convai-kokoro-36c981057bd1e1c6",
+      "gender": "FEMALE"
+    },
+    {
+      "name": "Noah (Confident Adult American Male)",
+      "voice_value": "convai-kokoro-cdaba86a412f444f",
+      "gender": "MALE"
+    },
+    {
+      "name": "Ethan (Calm Young-Adult American Male)",
+      "voice_value": "convai-kokoro-c06cbef9a39378f9",
+      "gender": "MALE"
+    },
+    {
+      "name": "Lucas (Light Middle-Aged American Male)",
+      "voice_value": "convai-kokoro-d59ec59e96e50fd2",
+      "gender": "MALE"
+    },
+    {
+      "name": "Ryan (Expressive Young-Adult American Male)",
+      "voice_value": "convai-kokoro-2f0f28b645bf0757",
+      "gender": "MALE"
+    },
+    {
+      "name": "Logan (Expressive Young-Adult American Male)",
+      "voice_value": "convai-kokoro-d854e05c9f9c4646",
+      "gender": "MALE"
+    },
+    {
+      "name": "Henry (Excited Old American Male)",
+      "voice_value": "convai-kokoro-f67a4a61a866f414",
+      "gender": "MALE"
+    },
+    {
+      "name": "Amelia (Expressive Young-Adult British Female)",
+      "voice_value": "convai-kokoro-3db3134695ef8943",
+      "gender": "FEMALE"
+    },
+    {
+      "name": "Freya (Authoritative Adult British Female)",
+      "voice_value": "convai-kokoro-14992a358de8d395",
+      "gender": "FEMALE"
+    },
+    {
+      "name": "Claire (Whispering Young-Adult American Female)",
+      "voice_value": "convai-kokoro-045426c126c71030",
+      "gender": "FEMALE"
+    },
+    {
+      "name": "Rachel (Neutral Adult American Female)",
+      "voice_value": "convai-kokoro-69686a3c38a39576",
+      "gender": "FEMALE"
+    },
+    {
+      "name": "Megan (Neutral Adult American Female)",
+      "voice_value": "convai-kokoro-228cf635fab5d078",
+      "gender": "FEMALE"
+    },
+    {
+      "name": "Mark (Bold Middle-Aged American Male)",
+      "voice_value": "convai-kokoro-a140acd135a0d3a1",
+      "gender": "MALE"
+    },
+    {
+      "name": "Cole (Husky Middle-Aged American Male)",
+      "voice_value": "convai-kokoro-194d5a6334084328",
+      "gender": "MALE"
+    },
+    {
+      "name": "John (Deep Calm Middle-Aged American Male)",
+      "voice_value": "convai-kokoro-adc3f8cb01f0badb",
+      "gender": "MALE"
+    },
+    {
+      "name": "Isla (Expressive Young British Female)",
+      "voice_value": "convai-kokoro-34fbf9fd302325a0",
+      "gender": "FEMALE"
+    },
+    {
+      "name": "Oliver (Husky Middle-Aged British Male)",
+      "voice_value": "convai-kokoro-0e43a3543ef6b96f",
+      "gender": "MALE"
+    },
+    {
+      "name": "George (Light Young British Male)",
+      "voice_value": "convai-kokoro-74ad351b69494b30",
+      "gender": "MALE"
+    },
+    {
+      "name": "Arthur (Husky Middle-Aged British Male)",
+      "voice_value": "convai-kokoro-bf1eb6c52e527d25",
+      "gender": "MALE"
+    },
+    {
+      "name": "Harry (Deep Middle-Aged British Male)",
+      "voice_value": "convai-kokoro-04c5659ef7eeef25",
+      "gender": "MALE"
+    }
+  ]
+}
