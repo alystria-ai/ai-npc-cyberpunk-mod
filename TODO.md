@@ -69,6 +69,7 @@ This is the running request and verification list. A checked item means the beha
 
 ## In-game management and controls
 
+- [x] September 29: add breathing room between the phone's J/L keys and person icons. The live row measures a 16-unit gap instead of 2, with 132-unit action cells and compensating label space. Applied without a restart; the user confirmed it looks fine. The live adapter reads the actual widget tree because private controller fields are not exposed to CET.
 - [ ] Investigate intermittent rapid top-to-bottom looping in Phone Contacts if it recurs. Reported September 28; user said it stopped on its own before a trace could be collected. No cause established and no input/layout fix applied.
 - [x] Prevent phone J/L actions from also triggering normal game shortcuts. A scoped CET menu-action guard was installed live; the user confirmed J/L work in Contacts and J works normally after closing.
 - [ ] Support contacts unlocked later in the same playthrough automatically when they appear in the phone; include inactive journal contacts in the catalog without unlocking quests or contacts for the player.

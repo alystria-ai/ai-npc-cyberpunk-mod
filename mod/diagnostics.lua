@@ -297,6 +297,19 @@ if request:match('^subtitles%-install:') then
     if f then f:write(ok and result or tostring(result)); f:close() end
     return
 end
+if request:match('^phone%-spacing:') then
+    local layout = dofile('phone-layout.lua')
+    local ok, err = pcall(function() layout.install(true); layout.refresh(true) end)
+    local file = io.open('runtime/phone-spacing.json', 'wb')
+    if file then
+        file:write(json.encode({ok = ok, error = not ok and tostring(err) or layout.lastError,
+            patched = layout.patched, seen = layout.seen, selected = layout.selected, scan = layout.scan,
+            phoneOpen = Game.GetPlayer():ConvaiPhoneIsOpen(),
+            keyIconGap = 16, cellWidth = 132}))
+        file:close()
+    end
+    return
+end
 if request:match('^phone%-input:') then
     local ok, result = pcall(function()
         local input = dofile('phone-input.lua')

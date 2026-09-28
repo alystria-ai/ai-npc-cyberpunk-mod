@@ -8,6 +8,7 @@ local characterCatalog = dofile('character-catalog.lua')
 local groupChat = dofile('group-chat.lua')
 local manager = dofile('manager.lua')
 local mcm = dofile('mcm.lua')
+local phoneLayout = dofile('phone-layout.lua')
 convaiGroupChat = groupChat
 groupChat.onPreparation = function(preparation)
     local f = io.open('runtime/group-prefetch.json.tmp', 'wb')
@@ -536,6 +537,7 @@ registerForEvent('onInit', function()
     end)
     dofile('composer-input.lua').install()
     dofile('phone-input.lua').install()
+    phoneLayout.install()
     local ok, err = pcall(mcm.install)
     if not ok then log('MCM registration failed: ' .. tostring(err)) end
     ObserveBefore('PlayerPuppet', 'OnDetach', function()
@@ -582,6 +584,8 @@ registerForEvent('onUpdate', function(delta)
     -- menu adapter needs these frames even when delta is zero; followers don't.
     local mcmOk, mcmError = pcall(mcm.update, menuPlayer, worldReady)
     if not mcmOk then log('MCM update failed: ' .. tostring(mcmError)) end
+    local phoneOk, phoneError = pcall(phoneLayout.refresh)
+    if not phoneOk then phoneLayout.lastError = tostring(phoneError) end
     local speechOk, speechError = pcall(speech.update, tonumber(delta) or 0)
     if not speechOk then
         log('Speech update failed: ' .. tostring(speechError))
