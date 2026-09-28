@@ -135,5 +135,20 @@ gaze target, ordinary forward departure, rear rows waiting in an eight-person
 party, and one addressed person's adjustment after V stops. The full suite now
 passes **112 tests with no skips**; all 21 Lua files compile. Installed and
 hash verified at **02:45 IST** with the prior Lua backed up in
-`backups/gathering-interaction-20260929-024545/`. This correction still requires
-CET reload and a fresh visual check.
+`backups/gathering-interaction-20260929-024545/`.
+
+The user confirmed reload at **02:46 IST**, then accepted the complete local
+interaction and departure test ("everything good now") and requested the next
+feature. Judy `11067216ULL` and Johnny `11067217ULL` were restored for this test.
+The 90-second trace is saved locally in
+`runtime/party-motion-gathering-accepted-september29.json`.
+
+Both stayed in local interaction from 27.6 seconds; Johnny retained his hold
+while Judy alone stepped and turned. At 54.1 seconds both entered travelling,
+then catch-up, approach and braking. Johnny settled at 61.1 seconds, Judy by
+62.1 seconds, followed by another normal attention step. This closes the
+reported stepping-back/rearrangement defect for the two-person live scenario.
+Unseen obstacle layouts, larger parties and save/death recovery remain open.
+
+Local Git checkpoint for this accepted controller: `68ae15c`. Installed-file
+rollback copies are preserved separately from source history.
