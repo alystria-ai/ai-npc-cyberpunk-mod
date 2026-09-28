@@ -1,12 +1,12 @@
 {
-  "profiles": 77,
-  "named": 75,
+  "profiles": 79,
+  "named": 77,
   "model": "fast-gemma-4-31b-it",
   "characters": [
     {
       "key": "8ug8ear",
       "words": 796,
-      "voice": "Megan (Neutral Adult American Female)",
+      "voice": "Julia (Expressive Young-Adult American Female)",
       "sources": 4,
       "uncertainties": 1
     },
@@ -16,6 +16,13 @@
       "voice": "Logan (Expressive Young-Adult American Male)",
       "sources": 4,
       "uncertainties": 1
+    },
+    {
+      "key": "adam-smasher",
+      "words": 914,
+      "voice": "John (Deep Calm Middle-Aged American Male)",
+      "sources": 5,
+      "uncertainties": 2
     },
     {
       "key": "alan-noel",
@@ -34,7 +41,7 @@
     {
       "key": "ana-friedman",
       "words": 765,
-      "voice": "Megan (Neutral Adult American Female)",
+      "voice": "Anna (Expressive Young-Adult American Female)",
       "sources": 4,
       "uncertainties": 1
     },
@@ -160,7 +167,7 @@
     {
       "key": "evelyn-parker",
       "words": 886,
-      "voice": "Megan (Neutral Adult American Female)",
+      "voice": "Julia (Expressive Young-Adult American Female)",
       "sources": 3,
       "uncertainties": 1
     },
@@ -219,6 +226,13 @@
       "voice": "Ryan (Expressive Young-Adult American Male)",
       "sources": 3,
       "uncertainties": 3
+    },
+    {
+      "key": "johnny-silverhand",
+      "words": 916,
+      "voice": "Logan (Expressive Young-Adult American Male)",
+      "sources": 5,
+      "uncertainties": 2
     },
     {
       "key": "joss-kutcher",
@@ -384,7 +398,7 @@
     {
       "key": "r3n0",
       "words": 875,
-      "voice": "Megan (Neutral Adult American Female)",
+      "voice": "Emily (Friendly Young-Adult American Female)",
       "sources": 3,
       "uncertainties": 2
     },
@@ -468,14 +482,14 @@
     {
       "key": "songbird",
       "words": 875,
-      "voice": "Megan (Neutral Adult American Female)",
+      "voice": "Anna (Expressive Young-Adult American Female)",
       "sources": 3,
       "uncertainties": 3
     },
     {
       "key": "spider-murphy",
       "words": 795,
-      "voice": "Megan (Neutral Adult American Female)",
+      "voice": "Sarah (Authoritative Middle-Aged American Female)",
       "sources": 1,
       "uncertainties": 3
     },
@@ -489,7 +503,7 @@
     {
       "key": "t-bug",
       "words": 827,
-      "voice": "Megan (Neutral Adult American Female)",
+      "voice": "Sarah (Authoritative Middle-Aged American Female)",
       "sources": 2,
       "uncertainties": 2
     },

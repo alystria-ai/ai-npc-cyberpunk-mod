@@ -5,6 +5,8 @@ import {fileURLToPath} from 'node:url';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const read = async file => JSON.parse((await readFile(resolve(root,file),'utf8')).replace(/^\uFEFF/,''));
 const contacts = await read('characters/phone-contacts.json');
+const managerCharacters = await read('characters/manager-characters.json');
+const characterModels = [...contacts, ...managerCharacters];
 const previous = await read('characters/roster.json');
 const voices = await read('characters/kokoro-voices.json');
 const settings = await read('characters/profile-settings.json');
@@ -15,22 +17,21 @@ for (const value of voices.voices) {
   if (value.voice_value?.startsWith('convai-kokoro-')) catalog.set(value.name.split(' ')[0], value);
 }
 const cast = {
-  Anna:['alex','babs-okoye','briana-dolson','sandra-dorsett'],
-  Sarah:['meredith-stout','dakota-smith','carol-emeka','rogue-amendiares','regina-jones'],
-  Emily:['blue-moon','cynthia-najarro','resident-female'],
+  Anna:['alex','ana-friedman','songbird','babs-okoye','briana-dolson','sandra-dorsett'],
+  Sarah:['meredith-stout','dakota-smith','carol-emeka','rogue-amendiares','regina-jones','t-bug','spider-murphy'],
+  Emily:['blue-moon','cynthia-najarro','resident-female','r3n0'],
   Katie:['panam-palmer','claire-russell','iris-tanner'],
   Laura:['lina-malina'], Linda:['mama-welles','wakako-okada'],
-  Julia:['judy-alvarez','lizzy-wizzy','rachel-casich'],
+  Julia:['judy-alvarez','lizzy-wizzy','rachel-casich','8ug8ear','evelyn-parker'],
   Helen:['misty-olszewski','joss-kutcher'],
   Noah:['jackie-welles','coach-fred','muamar-reyes','jefferson-peralez'],
   Ethan:['resident-male','jake-estevez','chang-hoon-nam','river-ward','bill-mitchell','liam-northom','steven-santos'],
   Lucas:['robert-wilson','life-coach','pepe-najarro','dennis-cranmer'],
-  Ryan:['paco-torres','jesse','dino-dinovic','jim-jarry'], Logan:['kerry-eurodyne','aaron','ozob-bozo'],
+  Ryan:['paco-torres','jesse','dino-dinovic','jim-jarry'], Logan:['kerry-eurodyne','aaron','ozob-bozo','johnny-silverhand'],
   Henry:['cassidy-righter'], Freya:['hanako-arasaka'], Rachel:['elizabeth-peralez','nele-springer'],
-  Megan:['8ug8ear','ana-friedman','songbird','t-bug','spider-murphy','evelyn-parker','r3n0'],
   Mark:['arthur-jenkins','dexter-deshawn','saul-bright','yorinobu-arasaka'],
   Cole:['bob-sagan','mitch-anderson','nix','santiago','shank'],
-  John:['viktor-vektor','solomon-reed','padre-ibarra','placide','takemura'],
+  John:['viktor-vektor','solomon-reed','padre-ibarra','placide','takemura','adam-smasher'],
   Arthur:['sergei-karasinsky','mark-bana'],
   Harry:['mr-hands','alan-noel','frank-nostra','thompson'],
   Amelia:['nancy-hartley']
@@ -41,9 +42,9 @@ Established history and relationships provide your background. A fact marked con
 Current-save context outranks remembered claims. Being present as a summoned companion does not prove that a quest was completed, a dead character revived, or an old acquaintance met in this timeline. Do not invent missing canon to fill gaps. Never claim to grant items, move vehicles, complete missions or change the world unless an advertised game action reports success.
 In a group, respond to the message as yourself and acknowledge only statements you actually heard. Do not reveal private conversation history. Only the final scheduled speaker may ask V a follow-up question; other speakers leave room for the group.`;
 
-const files=(await readdir(resolve(root,'characters/research'))).filter(f=>/^contacts-[a-e]\.json$/.test(f)).sort();
+const files=(await readdir(resolve(root,'characters/research'))).filter(f=>/^contacts-[a-e]\.json$/.test(f) || f==='manager-extras.json').sort();
 const research=(await Promise.all(files.map(f=>read('characters/research/'+f)))).flat();
-const expected=new Map(contacts.filter(c=>c.key&&c.record).map(c=>[c.key,c]));
+const expected=new Map(characterModels.filter(c=>c.key&&c.record).map(c=>[c.key,c]));
 const actual=new Map();
 for(const p of research){
   if(actual.has(p.key)||!expected.has(p.key))throw Error('Duplicate or unexpected researched key: '+p.key);
@@ -71,7 +72,7 @@ for(const [key,p] of [...actual].sort(([a],[b])=>a.localeCompare(b))){
     'ORIGINAL DIALOGUE EXAMPLES\n'+p.sampleDialogue.map(s=>`V: ${s.user}\n${name}: ${s.character}`).join('\n'),
     `[CyberpunkConvai profile v2:${key}]`].join('\n\n');
   built.push({key,name,gender:p.gender.toUpperCase(),aliases:[...new Set([...(old?.aliases||[]),name,p.name])],
-    records:[...new Set(contacts.filter(c=>c.key===key).map(c=>c.record))],
+    records:[...new Set(characterModels.filter(c=>c.key===key).map(c=>c.record))],
     voice:voice.voice_value,voiceName:voice.name,model,backstory,backstoryWords:backstory.split(/\s+/).length,
     profileRevision:2,summary:p.summary,relationships:p.relationships,speakingRules:p.speakingRules,
     sampleDialogue:p.sampleDialogue,sources:p.sources,uncertainty:p.uncertainty||[]});

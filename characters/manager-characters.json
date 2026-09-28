@@ -1,0 +1,16 @@
+[
+  {
+    "key": "johnny-silverhand",
+    "name": "Johnny Silverhand",
+    "record": "Character.Silverhand",
+    "profileKey": "johnny-silverhand",
+    "note": "Managed physical copy; separate from the story's Relic appearances."
+  },
+  {
+    "key": "adam-smasher",
+    "name": "Adam Smasher",
+    "record": "Character.Smasher",
+    "profileKey": "adam-smasher",
+    "note": "Managed copy; boss rig and follower compatibility need live qualification."
+  }
+]
