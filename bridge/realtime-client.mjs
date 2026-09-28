@@ -27,10 +27,11 @@ async function close() {
 }
 
 async function connect(config) {
-  if (identity === config.characterId && client?.isBotReady) return;
+  const desired = config.characterId + ':' + (config.scope || 'private');
+  if (identity === desired && client?.isBotReady) return;
   await close();
-  identity = config.characterId;
-  client = new ConvaiClient({apiKey: config.key, characterId: identity,
+  identity = desired;
+  client = new ConvaiClient({apiKey: config.key, characterId: config.characterId,
     characterSessionId: sessions.get(identity) || config.sessionId, transport: 'livekit', startWithAudioOn: false,
     enableVideo: false, enableLipsync: true, logRtviMessages: false,
     blendshapeConfig: {format: 'arkit', output_fps: 30}});
@@ -126,6 +127,8 @@ async function collect(current) {
 
 async function reply(config) {
   await connect(config);
+  client.updateDynamicInfo('You are speaking to V in Night City. Reply briefly without stage directions. No verified quest or relationship state is supplied. '
+    + (config.context || 'This is a private conversation with V.'));
   const current = beginTurn();
   client.sendUserTextMessage(config.text);
   return collect(current);

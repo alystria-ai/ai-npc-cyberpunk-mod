@@ -1,5 +1,7 @@
 // Managed identity is authoritative. Never silently route an unsupported named
 // companion into a resident profile just because its body type is recognized.
+import {parseGroup} from './group-context.mjs';
+
 export function profileFor(input, roster) {
   return roster.find(profile => profile.key === input.profileKey);
 }
@@ -15,5 +17,7 @@ export function parseInput(raw) {
       || typeof text !== 'string' || !text.trim() || text.length > 1200
       || typeof name !== 'string' || typeof bodyType !== 'string'
       || typeof profileKey !== 'string' || !/^[a-z0-9-]+$/.test(profileKey)) return null;
-  return {requestId, generation, entity, name: name.slice(0, 120), bodyType: bodyType.slice(0, 80), profileKey, text: text.trim()};
+  const group = value.group === undefined ? undefined : parseGroup(value.group);
+  if (group === null) return null;
+  return {requestId, generation, entity, name: name.slice(0, 120), bodyType: bodyType.slice(0, 80), profileKey, text: text.trim(), group};
 }

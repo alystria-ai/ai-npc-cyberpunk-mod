@@ -10,6 +10,8 @@ if (-not [IO.File]::Exists((Join-Path $game 'bin\x64\Cyberpunk2077.exe'))) { thr
 if ((Get-Process Cyberpunk2077 -ErrorAction SilentlyContinue)) { throw 'Close the game before installing the development mod.' }
 
 $targets = @(
+    @{ From = (Join-Path $project 'mod\group-chat.lua'); To = (Join-Path $game 'bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai\group-chat.lua') },
+    @{ From = (Join-Path $project 'characters\roster.json'); To = (Join-Path $game 'bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai\conversation-characters.json') },
     @{ From = (Join-Path $project 'mod\microphone.lua'); To = (Join-Path $game 'bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai\microphone.lua') },
     @{ From = (Join-Path $project 'mod\speech.lua'); To = (Join-Path $game 'bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai\speech.lua') },
     @{ From = (Join-Path $project 'r6\scripts\CyberpunkConvai\Speech.reds'); To = (Join-Path $game 'r6\scripts\CyberpunkConvai\Speech.reds') },

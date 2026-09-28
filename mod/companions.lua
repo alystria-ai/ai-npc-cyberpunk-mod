@@ -643,6 +643,28 @@ function M.identity(npc)
     return nil
 end
 
+function M.conversationCandidates(player, radius)
+    local result = {}
+    if not player then return result end
+    local origin = player:GetWorldPosition()
+    for _, entry in ipairs(entries) do
+        if entry.state == 'ready' and entry.npc and entry.npc:IsAttached() and not entry.npc:IsDeadNoStatPool() then
+            local pos = entry.npc:GetWorldPosition()
+            local distance = math.sqrt((pos.x-origin.x)^2 + (pos.y-origin.y)^2 + (pos.z-origin.z)^2)
+            if distance <= radius then
+                result[#result + 1] = {npc = entry.npc, entity = tostring(entry.entityID.hash),
+                    profileKey = entry.key, name = records[entry.key].name,
+                    bodyType = tostring(entry.npc:GetBodyType() or ''), distance = distance}
+            end
+        end
+    end
+    table.sort(result, function(a, b)
+        if a.distance == b.distance then return a.entity < b.entity end
+        return a.distance < b.distance
+    end)
+    return result
+end
+
 function M.list()
     local copy = {}
     local totals, seen = {}, {}

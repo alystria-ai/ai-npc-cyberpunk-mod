@@ -2,6 +2,18 @@
 local requestFile = io.open('runtime/diagnostic-request.txt', 'rb')
 local request = requestFile and requestFile:read('*a') or ''
 if requestFile then requestFile:close() end
+if request:match('^conversation%-state:') then
+    local r = convaiGroupChat and convaiGroupChat.round
+    local f = io.open('runtime/conversation-state.json', 'wb')
+    if f then
+        f:write(json.encode({group = r and {id = r.id, stage = r.stage, index = r.index,
+            total = #r.participants, requestId = r.requestId} or false,
+            speech = convaiSpeech and {state = convaiSpeech.state, requestId = convaiSpeech.requestId,
+                position = convaiSpeech.position, error = convaiSpeech.error} or false}))
+        f:close()
+    end
+    return
+end
 if request:match('^speech%-install:') or request:match('^speech%-replay:') then
     local ok, err = pcall(function()
         local speech = dofile('speech.lua')

@@ -4,6 +4,16 @@ local companions = dofile('companions.lua')
 local subtitles = dofile('subtitles.lua')
 local speech = dofile('speech.lua')
 local microphone = dofile('microphone.lua')
+local groupChat = dofile('group-chat.lua')
+convaiGroupChat = groupChat
+local supportedProfiles = {}
+do
+    local f = io.open('conversation-characters.json', 'rb')
+    if f then
+        local ok, profiles = pcall(json.decode, f:read('*a')); f:close()
+        if ok then for _, profile in ipairs(profiles) do supportedProfiles[profile.key] = true end end
+    end
+end
 convaiCompanions = companions
 local generation = 0
 local active = nil
@@ -195,11 +205,22 @@ local function updateGaze(player, elapsed)
     resetGaze()
 end
 
-local function beginText()
+local function beginText(groupMode)
     local ok, err = pcall(function()
-        local npc, reason = targetAtCrosshair()
-        if not npc then log(reason); return end
         local player = Game.GetPlayer()
+        if not player or not gameplayCanAcquire(player) then return end
+        local npc, reason = targetAtCrosshair()
+        local candidates = groupMode and companions.conversationCandidates(player, 8) or {}
+        if groupMode then
+            local enabled = {}
+            for _, candidate in ipairs(candidates) do
+                local choice = rosterIndex(candidate.name, candidate.bodyType)
+                if choice and player:ConvaiManagerEnabled(choice) then enabled[#enabled + 1] = candidate end
+            end
+            candidates = enabled
+        end
+        if not npc and groupMode and candidates[1] then npc = candidates[1].npc end
+        if not npc then log(reason); return end
         local name = tostring(npc:GetTweakDBFullDisplayName(true) or 'NPC')
         local identity = tostring(npc:GetEntityID().hash)
         local bodyType = tostring(npc:GetBodyType() or '')
@@ -208,13 +229,23 @@ local function beginText()
         local index = rosterIndex(name, bodyType)
         if not index then log('No companion profile matches ' .. name .. ' (' .. bodyType .. ')'); return end
         if not player:ConvaiManagerEnabled(index) then log('Companion disabled in manager: ' .. name); return end
+        local primary = {npc = npc, name = name, entity = identity, bodyType = bodyType, profileKey = managedKey or profileKeys[index + 1]}
+        local participants = groupMode and groupChat.choose(primary, candidates, supportedProfiles) or nil
+        if participants and #participants == 0 then player:ConvaiPhoneFeedback('No configured characters are nearby'); return end
+        local title = name
+        if participants then
+            local names = {}
+            for _, person in ipairs(participants) do names[#names + 1] = person.name end
+            title = 'GROUP: ' .. table.concat(names, ', ')
+        end
         generation = generation + 1
-        if not player:ConvaiOpenComposer(name) then
+        if not player:ConvaiOpenComposer(title) then
             log('Native composer unavailable (check redscript and Codeware)')
             return
         end
         speech.stop('new-conversation')
         microphone.cancel()
+        groupChat.cancel()
         subtitles.clear()
         speech.target = npc
         if focusEntity ~= identity then
@@ -229,7 +260,7 @@ local function beginText()
         resetGaze()
         focusUntil = os.time() + 45
         active = {generation = generation, entity = identity, name = name, bodyType = bodyType,
-            profileKey = managedKey or profileKeys[index + 1]}
+            profileKey = managedKey or profileKeys[index + 1], participants = participants}
         pending = nil
         log('Composer opened: generation=' .. generation .. ' actor=' .. identity .. ' name=' .. name)
     end)
@@ -255,6 +286,7 @@ local function toggleVoice()
         local index = rosterIndex(name, body)
         if not index or not player:ConvaiManagerEnabled(index) then return end
         generation = generation + 1
+        groupChat.cancel()
         speech.stop('microphone'); subtitles.clear()
         speech.target = npc
         local entity = tostring(npc:GetEntityID().hash)
@@ -269,6 +301,63 @@ local function toggleVoice()
         end
     end)
     if not ok then microphone.cancel(); log('Microphone failed: ' .. tostring(err)) end
+end
+
+local function sendRequest(context)
+    local file = io.open('runtime/last-input.json.tmp', 'wb')
+    if not file then return false end
+    file:write(json.encode(context)); file:close()
+    os.remove('runtime/last-input.json')
+    if not os.rename('runtime/last-input.json.tmp', 'runtime/last-input.json') then return false end
+    pending = context
+    focusUntil = os.time() + 90
+    return true
+end
+
+local function groupAudience(player)
+    local live, listeners = {}, {}
+    if not groupChat.round or not player then return live, listeners end
+    local origin = player:GetWorldPosition()
+    for _, person in ipairs(groupChat.round.participants) do
+        local ok, nearby = pcall(function()
+            if not person.npc:IsAttached() or person.npc:IsDeadNoStatPool() then return false end
+            local pos = person.npc:GetWorldPosition()
+            return (pos.x-origin.x)^2 + (pos.y-origin.y)^2 + (pos.z-origin.z)^2 <= 144
+        end)
+        if ok and nearby then live[person.entity] = true; listeners[#listeners + 1] = person.profileKey end
+    end
+    return live, listeners
+end
+
+local function updateGroup(player)
+    local round = groupChat.round
+    if not round then return end
+    if not player then groupChat.cancel(); return end
+    local live = groupAudience(player)
+    if round.stage == 'playing' and round.reply then
+        local kept = {}
+        for _, listener in ipairs(round.reply.listeners) do
+            for _, candidate in ipairs(round.participants) do
+                if candidate.profileKey == listener and live[candidate.entity] then kept[#kept + 1] = listener; break end
+            end
+        end
+        round.reply.listeners = kept
+    end
+    local person = round.participants[round.index]
+    if round.stage == 'waiting' and person and not live[person.entity] then
+        groupChat.received(round.requestId, '', true, {})
+        if pending and pending.requestId == round.requestId then pending = nil end
+    elseif round.stage == 'playing' and not speech.requestId and not subtitles.line then
+        groupChat.completed(round.requestId, speech.state ~= 'target-lost' and speech.state ~= 'error')
+    end
+    if round.stage ~= 'next' or not gameplayCanAcquire(player) then return end
+    generation = generation + 1
+    local context, actor = groupChat.next(generation, os.time(), live)
+    if not context then focusUntil = os.time() + 1; return end
+    speech.target = actor
+    beginFocus(player, actor)
+    focusMode, focusEntity = 'chat', context.entity
+    if not sendRequest(context) then groupChat.cancel(); log('Group request could not be written') end
 end
 
 local function captureDiagnostic()
@@ -396,7 +485,8 @@ local function saveSettings(player)
     os.rename('runtime/settings.json.tmp', 'runtime/settings.json')
 end
 
-registerHotkey('cyberpunk_convai_text', 'Cyberpunk Convai: talk by text', beginText)
+registerHotkey('cyberpunk_convai_text', 'Cyberpunk Convai: talk by text', function() beginText(false) end)
+registerHotkey('cyberpunk_convai_group_text', 'Cyberpunk Convai: group text chat (F8)', function() beginText(true) end)
 registerHotkey('cyberpunk_convai_voice', 'Cyberpunk Convai: talk by voice (F7)', toggleVoice)
 registerHotkey('cyberpunk_convai_diagnostic', 'Cyberpunk Convai: capture NPC diagnostic', captureNpcDiagnostic)
 registerHotkey('cyberpunk_convai_manager', 'Cyberpunk Convai: companion manager', openManager)
@@ -449,6 +539,7 @@ registerForEvent('onUpdate', function(delta)
         pending = voiceSubmission; pending.sentAt = os.time(); focusUntil = os.time() + 90
     end
     if not player then
+        groupChat.cancel()
         companions.dismissAll()
         pendingPhoneAction = nil
         phoneCatalogReady = false
@@ -463,6 +554,7 @@ registerForEvent('onUpdate', function(delta)
     end
     processPhoneAction(player)
     companions.update(player, 0.1, focusEntity)
+    updateGroup(player)
     if focusUntil and not active and os.time() >= focusUntil then
         endFocus(player)
         focusUntil = nil
@@ -522,6 +614,8 @@ registerForEvent('onUpdate', function(delta)
                     else speech.start(pending, reply) end
                 end)
                 if shown then
+                    local _, listeners = groupAudience(player)
+                    groupChat.received(pending.requestId, reply.text, reply.error ~= nil or (not speech.requestId and not subtitles.line), listeners)
                     log('Conversation result: generation=' .. pending.generation .. ' error=' .. tostring(reply.error ~= nil))
                     focusUntil = os.time() + (speech.duration or 8) + 1
                     pending = nil
@@ -531,6 +625,7 @@ registerForEvent('onUpdate', function(delta)
         if pending and os.time() - pending.sentAt > 90 then
             player:ConvaiPhoneFeedback('No reply arrived. Check that the Convai bridge is running.')
             log('Conversation timed out: generation=' .. pending.generation)
+            groupChat.received(pending.requestId, '', true, {})
             pending = nil
             focusUntil = os.time() + 1
         end
@@ -550,17 +645,13 @@ registerForEvent('onUpdate', function(delta)
     if taken and type(message) == 'string' and #message > 0 then
         local context = active
         if context then
-            local file = io.open('runtime/last-input.json.tmp', 'wb')
-            if file then
+            if context.participants then
+                groupChat.start('group-' .. tostring(os.time()) .. '-' .. tostring(context.generation), context.participants, message)
+            else
                 context.requestId = tostring(os.time()) .. '-' .. tostring(context.generation) .. '-' .. context.entity
                 context.text = message
                 context.sentAt = os.time()
-                file:write(json.encode(context))
-                file:close()
-                os.remove('runtime/last-input.json')
-                os.rename('runtime/last-input.json.tmp', 'runtime/last-input.json')
-                pending = context
-                focusUntil = os.time() + 90
+                sendRequest(context)
             end
             log('Native input captured: generation=' .. context.generation .. ' bytes=' .. #message)
         else
@@ -571,6 +662,7 @@ registerForEvent('onUpdate', function(delta)
 end)
 
 registerForEvent('onShutdown', function()
+    groupChat.cancel()
     microphone.cancel()
     speech.stop('shutdown')
     subtitles.clear()

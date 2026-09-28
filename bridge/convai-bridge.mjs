@@ -7,6 +7,7 @@ import {audioReady, storeSpeech, SLOT_COUNT} from './speech-audio.mjs';
 import {RealtimeHost} from './realtime-host.mjs';
 import {MicrophoneSession} from './microphone-session.mjs';
 import {randomUUID} from 'node:crypto';
+import {groupContext, conversationScope} from './group-context.mjs';
 
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const game = process.env.CYBERPUNK_CONVAI_GAME || 'E:\\SteamLibrary\\steamapps\\common\\Cyberpunk 2077';
@@ -47,14 +48,16 @@ async function status(state, detail = '') {
 }
 
 async function respond(input, profile) {
+  const scope = conversationScope(input), sessionKey = input.profileKey + ':' + scope;
+  const context = groupContext(input);
   if (await audioReady(runtime)) return {...await realtime.reply({key, characterId: ids[profile.key],
-    sessionId: realtimeSessions.get(input.profileKey), text: input.text}), transport: 'realtime'};
-  return requestReply({key, characterId: ids[profile.key], text: input.text,
-    sessionId: sessions.get(input.profileKey) || '-1', voice: false});
+    sessionId: realtimeSessions.get(sessionKey), scope, context, text: input.text}), transport: 'realtime'};
+  return requestReply({key, characterId: ids[profile.key], text: context ? context + '\nV says: ' + input.text : input.text,
+    sessionId: sessions.get(sessionKey) || '-1', voice: false});
 }
 
 async function publishResult(input, profile, result) {
-  (result.transport === 'realtime' ? realtimeSessions : sessions).set(input.profileKey, result.sessionID);
+  (result.transport === 'realtime' ? realtimeSessions : sessions).set(input.profileKey + ':' + conversationScope(input), result.sessionID);
   let audio, audioError;
   if (result.audio) {
     try {
@@ -113,7 +116,7 @@ async function pollMicrophone() {
         }
         // A new microphone turn supersedes a pending text reply.
         await realtime.close();
-        void mic.start(input, {key, characterId: ids[profile.key], sessionId: realtimeSessions.get(input.profileKey)}).catch(error => console.error(error.message));
+        void mic.start(input, {key, characterId: ids[profile.key], scope: 'private', sessionId: realtimeSessions.get(input.profileKey + ':private')}).catch(error => console.error(error.message));
       }
     }
     void mic.tick(await audioReady(runtime)).catch(error => console.error(error.message));
