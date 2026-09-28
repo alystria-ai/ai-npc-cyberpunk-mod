@@ -230,8 +230,17 @@ local function beginText(groupMode)
         if not index then log('No companion profile matches ' .. name .. ' (' .. bodyType .. ')'); return end
         if not player:ConvaiManagerEnabled(index) then log('Companion disabled in manager: ' .. name); return end
         local primary = {npc = npc, name = name, entity = identity, bodyType = bodyType, profileKey = managedKey or profileKeys[index + 1]}
+        if not supportedProfiles[primary.profileKey] then
+            player:ConvaiPhoneFeedback(name .. ' does not have a conversation profile configured yet.')
+            log('Conversation unavailable: profile=' .. primary.profileKey)
+            return
+        end
         local participants = groupMode and groupChat.choose(primary, candidates, supportedProfiles) or nil
         if participants and #participants == 0 then player:ConvaiPhoneFeedback('No configured characters are nearby'); return end
+        if participants and #participants < 2 then
+            player:ConvaiPhoneFeedback('Group chat needs two configured characters nearby. Invite Judy, Panam, Alex or Kerry; use F6 for one person.')
+            return
+        end
         local title = name
         if participants then
             local names = {}

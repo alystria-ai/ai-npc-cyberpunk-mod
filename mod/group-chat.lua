@@ -2,6 +2,8 @@
 local M = {}
 
 function M.choose(primary, candidates, supported)
+    -- An explicitly addressed person must never silently become somebody else.
+    if primary and not supported[primary.profileKey] then return {}, 'unsupported-primary' end
     local selected, seen = {}, {}
     local function add(candidate)
         if candidate and supported[candidate.profileKey] and not seen[candidate.profileKey] and #selected < 3 then

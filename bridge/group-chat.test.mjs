@@ -19,6 +19,12 @@ test('addressed speaker first, duplicate copies count once, maximum three suppor
   local chosen = group.choose(alex,{judy,p('judy',4),panam,p('unknown',5)},{judy=true,panam=true,alex=true})
   assert(#chosen==3 and chosen[1]==alex and chosen[2]==judy and chosen[3]==panam)
 `));
+test('an unconfigured addressed companion is never replaced by a different speaker', () => check(`
+  local chosen, reason = group.choose(p('8ug8ear',4),{alex},{alex=true})
+  assert(#chosen==0 and reason=='unsupported-primary')
+  local nearby = group.choose(nil,{alex},{alex=true})
+  assert(#nearby==1 and nearby[1]==alex)
+`));
 test('next speaker cannot start before playback completes; duplicate completions are harmless', () => check(`
   group.start('round',{judy,panam,alex},'Hello friends')
   local first = group.next(1,100,live)
