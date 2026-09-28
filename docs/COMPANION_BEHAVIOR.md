@@ -126,6 +126,12 @@ Installed files were SHA-256 verified; the prior Lua is saved in ignored
 
 The following stance/facing revision was installed and SHA-256 verified at
 01:55 IST on September 29, with the preceding live Lua backed up under
-`backups/movement-facing-20260929-015546/`. The user was asked for one CET reload
-to activate the permanent exact-command hook and removed alignment phase.
-The temporary broad test-copy probe is discarded by that reload.
+`backups/movement-facing-20260929-015546/`. Checkpoint: `955b1d9`.
+The user confirmed the CET reload; the log confirms reinitialization at
+01:56:34 IST. Fresh Judy (`11034257ULL`) and Johnny (`11034258ULL`) both reached
+ready. The permanent exact-command hook subsequently checked eight ordinary
+walking commands and cleared two stale targets, with no error. The latest
+trace shows both settled after movement and no active route-turn. This verifies
+the native command-ID ownership gate as well as the cleanup. The old broad
+test-copy probe was discarded by the reload. User visual acceptance of the
+revised look/run/stop sequence remains pending.
