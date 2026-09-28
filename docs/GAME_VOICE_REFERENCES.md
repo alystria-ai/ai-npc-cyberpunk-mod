@@ -75,7 +75,7 @@ SoundDB provides searchable scene/speaker metadata and the WEM/subtitle paths. I
 
 Local REDmod tweak records support `judy`, `johnny`, `smasher` and `blue_moon` voice tags. Ana's `Character.sts_ep1_08_client_background` record does not contain an explicit tag, but the scene index identifies Ana and her files use `ana_friedman_sts_ep1_08`. A name lookup should therefore be a discovery aid rather than the only speaker check.
 
-## Why a small extraction is sufficient
+## Bounded reference extraction
 
 Dialogue WEMs are individual resources in the language voice archives. OpusPak extraction is primarily the sound-effects route and is unnecessary for these selected lines. Main, holocall and helmet assets can be separate variants; prefer the main spoken asset for a neutral reference. [WolvenKit audio guide](https://wiki.redmodding.org/wolvenkit/wolvenkit-app/usage/video-and-audio), [audio-file documentation](https://wiki.redmodding.org/cyberpunk-2077-modding/for-mod-creators-theory/files-and-what-they-do/audio-files).
 
@@ -102,3 +102,14 @@ Build a per-character inventory first, using the roster key and actual game reco
 For each candidate, retain the local archive identity, StringID, complete WEM path, transcript variant, original WAV, decoder version, sample count and review status. Prefer a complete 6–15 second conversational line with one speaker and enough phonetic variety. Exclude choice captions without audio, grunts, songs, screams and phone/helmet versions unless that delivery is intentional. Listen to the actual extracted clip before marking it suitable; format and amplitude checks cannot establish naturalness, background isolation or identity.
 
 Use explicit statuses such as `metadata_found`, `extracted_and_local_transcript_verified`, `listening_verified`, and `reference_approved`. Leave missing or ambiguous voices unresolved. A summonable named character is not a guarantee of a distinct recorded speaking voice. Keep the selected reference and its exact transcript paired when handing them to VoiceStudio; any backend-specific resampling or mono conversion belongs in a separate derived copy with its own receipt.
+
+## Additional dialogue for training
+
+The user's later request to spend more time training character voices expands
+the scope beyond the 23 short comparison references. The separate preparation
+pipeline extracts an explicit allowlist of up to 240 lines each for Judy,
+Johnny and Panam, using the same archive/transcript verification in batches of
+32. Source WAVs are preserved; training and evaluation use separate scene groups.
+See [character voice preparation](VOICE_TRAINING.md) for dataset counts, model
+revisions, limits and the distinction between a trained adapter and an accepted
+voice. The original reference manifests and listening comparisons remain intact.
