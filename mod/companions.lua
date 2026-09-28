@@ -1,5 +1,8 @@
 -- Managed copies only. World and quest NPCs are never assigned a follower role.
 local M = {}
+local behavior = dofile('companion-behavior.lua')
+local placement = dofile('companion-placement.lua')
+local appearance = dofile('companion-appearance.lua')
 
 local records = {
     ['viktor-vektor'] = {id = 'Character.Victor_Vector', name = 'Viktor Vektor'},
@@ -129,13 +132,6 @@ local function advanceFrame(player, position, step)
         local forward = player:GetWorldForward()
         formationAngle = atan2(forward.y, forward.x)
     end
-    -- The camera never changes the party heading. Only real travel does.
-    if groundDistance > 0.35 and speed > 0.8 then
-        local travelAngle = atan2(dy, dx)
-        local turn = (travelAngle - formationAngle + math.pi) % (2 * math.pi) - math.pi
-        local limit = math.min(0.35, step * 0.7)
-        formationAngle = formationAngle + math.max(-limit, math.min(limit, turn))
-    end
     if speed > 0.9 then
         frame.movingFor = frame.movingFor + step
         frame.quietFor = 0
@@ -143,12 +139,22 @@ local function advanceFrame(player, position, step)
         frame.quietFor = frame.quietFor + step
         frame.movingFor = 0
     end
-    if not frame.moving and frame.movingFor >= 0.45 then
+    local departureDistance = frame.anchor and distance(frame.anchor, position) or 0
+    -- A person can step around a resting group to face a friend. Keep the
+    -- group's places and heading until V actually leaves that small area.
+    if not frame.moving and ((frame.movingFor >= 0.45 and departureDistance >= 1.15)
+        or departureDistance > 2.2) then
         frame.moving = true
         frame.epoch = frame.epoch + 1
     elseif frame.moving and frame.quietFor >= 0.9 then
         frame.moving = false
         frame.justStopped = true
+    end
+    if frame.moving and groundDistance > 0.35 and speed > 0.8 then
+        local travelAngle = atan2(dy, dx)
+        local turn = (travelAngle - formationAngle + math.pi) % (2 * math.pi) - math.pi
+        local limit = math.min(0.35, step * 0.7)
+        formationAngle = formationAngle + math.max(-limit, math.min(limit, turn))
     end
     if speed > 2.6 then
         frame.fastFor = frame.fastFor + step
@@ -170,7 +176,7 @@ local function advanceFrame(player, position, step)
             anchor.y = anchor.y + dy / groundDistance * magnitude
         end
         frame.anchor = anchor
-    elseif not frame.anchor or frame.quietFor < 1.4 then
+    elseif not frame.anchor or frame.justStopped then
         frame.anchor = copyPosition(position)
     end
     previousPlayerPosition = copyPosition(position)
@@ -232,6 +238,20 @@ local function releaseRelaxTurn(entry)
     stopAICommand(entry, entry.relaxTurn)
     entry.relaxTurn = nil
     entry.relaxTurnAt = nil
+end
+
+local function releaseRouteTurn(entry)
+    stopAICommand(entry, entry.routeTurn)
+    entry.routeTurn, entry.routeTurnAt = nil, nil
+end
+
+local function clearFocusLook(entry)
+    if not entry.focusLook then return end
+    local event = entry.focusLook
+    entry.focusLook = nil
+    if entry.npc and entry.npc:IsAttached() then
+        pcall(function() LookAtRemoveEvent.QueueRemoveLookatEvent(entry.npc, event) end)
+    end
 end
 
 local function issueRotate(entry, target, speed)
@@ -299,6 +319,8 @@ local function stepIntoConversation(entry, player, playerPosition, at)
         local move = NewObject('AIMoveToCommand')
         move.movementTarget = target
         move.facingTarget = facing
+        -- Only the accepted 16 cm conversation step may face V while moving.
+        move.rotateEntityTowardsFacingTarget = true
         move.movementType = Enum.new('moveMovementType', 'Walk')
         move.desiredDistanceFromTarget = 0.05
         move.finishWhenDestinationReached = true
@@ -332,6 +354,7 @@ local function turnTowardPlayer(entry, playerPosition)
         local ok, state = pcall(function()
             return tostring(entry.npc:GetAIControllerComponent():GetCommandState(entry.focusTurn))
         end)
+        entry.focusTurnState = ok and state or 'Unavailable'
         if ok and (state:find('Executing', 1, true) or state:find('Enqueued', 1, true))
             and runtimeClock - (entry.focusTurnAt or 0) < 3.0 then return end
         releaseFocusTurn(entry)
@@ -433,12 +456,18 @@ local function ensureAmbientLook(entry, player)
         event:SetEntityTarget(player, CName.new('pla_default_tgt'), Vector4.new(0, 0, 0, 0))
         event:SetStyle(Enum.new('animLookAtStyle', 'Normal'))
         event.bodyPart = CName.new('Eyes')
+        event.request.limits.softLimitDegrees = 60.0
+        event.request.limits.hardLimitDegrees = 110.0
+        event.request.limits.backLimitDegrees = 110.0
+        event.request.limits.hardLimitDistance = 5.0
         local head = LookAtPartRequest.new()
         head.partName = CName.new('Head')
         head.weight = 0.05
         head.suppress = 1.0
         head.mode = 0
-        event:SetAdditionalPartsArray({head})
+        local chest = LookAtPartRequest.new()
+        chest.partName, chest.weight, chest.suppress, chest.mode = CName.new('Chest'), 0.0, 0.0, 0
+        event:SetAdditionalPartsArray({head, chest})
         entry.npc:QueueEvent(event)
         return event
     end)
@@ -448,6 +477,28 @@ local function ensureAmbientLook(entry, player)
         entry.ambientLookDisabled = true
         entry.ambientLookError = tostring(result)
     end
+end
+
+local function ensureFocusLook(entry, player)
+    if entry.focusLook then return end
+    local ok, result = pcall(function()
+        local event = LookAtAddEvent.new()
+        event:SetEntityTarget(player, CName.new('pla_default_tgt'), Vector4.new(0, 0, 0, 0))
+        event:SetStyle(Enum.new('animLookAtStyle', 'Normal'))
+        event.bodyPart = CName.new('Eyes')
+        event.request.limits.softLimitDegrees = 360.0
+        event.request.limits.hardLimitDegrees = 270.0
+        event.request.limits.backLimitDegrees = 210.0
+        event.request.limits.hardLimitDistance = 5.0
+        event.request.calculatePositionInParentSpace = true
+        local head, chest = LookAtPartRequest.new(), LookAtPartRequest.new()
+        head.partName, head.weight, head.suppress, head.mode = CName.new('Head'), 0.1, 1.0, 0
+        chest.partName, chest.weight, chest.suppress, chest.mode = CName.new('Chest'), 0.0, 0.0, 0
+        event:SetAdditionalPartsArray({head, chest})
+        entry.npc:QueueEvent(event)
+        return event
+    end)
+    if ok then entry.focusLook = result else entry.focusLookError = tostring(result) end
 end
 
 local function inSideZone(entry, at, playerPosition)
@@ -466,6 +517,36 @@ local function inSideZone(entry, at, playerPosition)
         and distance(at, playerPosition) < (entry.slot <= 2 and 3.3 or 4.8)
 end
 
+local function turnBeforeWalking(entry, target, remaining)
+    local at = entry.npc:GetWorldPosition()
+    local error = headingError(entry.npc, target.x-at.x, target.y-at.y)
+    entry.routeFacingError = error
+    if entry.routeTurn then
+        if error <= 30.0 or remaining < 0.4 then
+            releaseRouteTurn(entry)
+            return false
+        end
+        if runtimeClock - entry.routeTurnAt > 2.5 then
+            releaseRouteTurn(entry)
+            -- A failed native rotation must not create an endless turn loop.
+            entry.fallbackUntil = runtimeClock + 3.0
+            return true
+        end
+        return true
+    end
+    -- Native short-path locomotion can choose a backward/strafe animation even
+    -- without a look-at target. Face the route first for a substantial turn.
+    if remaining < 0.6 or error < 65.0 then return false end
+    if (entry.npcSpeed or 0) > 0.6 and (error < 110.0 or remaining > 4.0) then return false end
+    cancelMovement(entry)
+    releaseHold(entry)
+    clearAmbientLook(entry)
+    entry.routeTurn = issueRotate(entry, target, 120.0)
+    entry.routeTurnAt = runtimeClock
+    entry.mode = 'route-turn'
+    return true
+end
+
 local function followPlayer(entry, player, running)
     local mode = running and 'run' or 'follow'
     if entry.mode == mode and entry.command then
@@ -477,9 +558,10 @@ local function followPlayer(entry, player, running)
     cancelMovement(entry)
     local command = NewObject('AIFollowTargetCommand')
     command.target = player
-    command.lookAtTarget = player
-    command.desiredDistance = 1.1
-    command.tolerance = 0.25
+    -- Path following owns heading. An entity look-at here persists throughout
+    -- catch-up and competes with the later diagonal approach to a side lane.
+    command.desiredDistance = 1.6 + math.floor((entry.slot - 1) / 2) * 0.4
+    command.tolerance = 0.5
     -- FollowTarget remains active as V moves. Sprint is needed for a real
     -- catch-up animation; repeated world-point MoveTo commands restart gait.
     command.movementType = Enum.new('moveMovementType', running and 'Sprint' or 'Walk')
@@ -500,10 +582,12 @@ local function moveBeside(entry, target, running, allowCommand)
     local at = npc:GetWorldPosition()
     local remaining = distance(at, target)
     if remaining < 0.4 then
+        releaseRouteTurn(entry)
         if entry.mode ~= 'settled' then cancelMovement(entry) end
         entry.mode = 'settled'
         return false
     end
+    if turnBeforeWalking(entry, target, remaining) then return false end
     local now = runtimeClock
     if entry.mode == 'side' and entry.commandTarget
         and entry.commandRunning == running
@@ -519,14 +603,10 @@ local function moveBeside(entry, target, running, allowCommand)
     spec:SetWorldPosition(world)
     local command = NewObject('AIMoveToCommand')
     command.movementTarget = spec
-    local facingWorld = WorldPosition.new()
-    facingWorld:SetVector4(Vector4.new(
-        target.x + math.cos(formationAngle) * 3.0,
-        target.y + math.sin(formationAngle) * 3.0,
-        target.z, target.w))
-    local facing = AIPositionSpec.new()
-    facing:SetWorldPosition(facingWorld)
-    command.facingTarget = facing
+    -- Explicitly disable strafe-facing. The native handler only replaces its
+    -- facing entity for entity specs, so a world-point facing spec can leave V
+    -- from a previous conversation step in the behavior's argument mapping.
+    command.rotateEntityTowardsFacingTarget = false
     command.movementType = Enum.new('moveMovementType', running and 'Run' or 'Walk')
     command.desiredDistanceFromTarget = 0.15
     command.finishWhenDestinationReached = true
@@ -549,6 +629,11 @@ local function attachFollower(entry, player)
     if not npc or not npc:IsAttached() then return nil, 'Awaiting entity attachment' end
     if not npc:IsA('NPCPuppet') then return false, 'This model is not a controllable NPC.' end
     if npc:IsCrowd() then return false, 'Managed copy unexpectedly joined the crowd' end
+    local actual = npc:GetWorldPosition()
+    entry.spawnActual = copyPosition(actual)
+    if math.abs(actual.z-entry.spawnPosition.z) > 0.9 or distance(actual, entry.spawnPosition) > 2.0 then
+        return false, 'The game placed this copy away from the verified ground. Invitation cancelled.'
+    end
     local ai = npc:GetAIControllerComponent()
     if not ai then return false, 'This model has no companion-compatible AI controller.' end
     local current = ai:GetAIRole()
@@ -557,6 +642,7 @@ local function attachFollower(entry, player)
         entry.error = 'This model requires its authored AI role and cannot follow safely.'
         return false, entry.error
     end
+    entry.phantomControllersDisabled = appearance.prepare(npc)
     local role = NewObject('AIFollowerRole')
     role.followerRef = Game.CreateEntityReference('#player', {})
     ai:SetAIRole(role)
@@ -565,7 +651,8 @@ local function attachFollower(entry, player)
     entry.npc = npc
     entry.role = role
     entry.state = 'ready'
-    followPlayer(entry, player, false)
+    -- The formation decision below chooses the first command. Starting an
+    -- unconditional follow here makes a correctly placed spawn walk into V.
     return true
 end
 
@@ -603,13 +690,24 @@ function M.spawn(key)
         if not occupied[slot] then freeSlot = slot; break end
     end
     if not freeSlot then return nil, 'Party is full' end
+    local occupiedPositions = {}
+    for _, member in ipairs(entries) do
+        if member.state == 'ready' and member.npc and member.npc:IsAttached() then
+            occupiedPositions[#occupiedPositions + 1] = member.npc:GetWorldPosition()
+        elseif member.state == 'spawning' then
+            occupiedPositions[#occupiedPositions + 1] = member.spawnPosition
+        end
+    end
+    local spawnPosition, placementError = placement.find(player, formationPosition(player, freeSlot), occupiedPositions)
+    if not spawnPosition then return nil, placementError end
     local spec = NewObject('DynamicEntitySpec')
     spec.recordID = recordID
-    spec.position = formationPosition(player, freeSlot)
+    spec.position = spawnPosition
     spec.orientation = player:GetWorldOrientation()
     spec.spawnInView = true
     spec.active = true
     spec.alwaysSpawned = true
+    spec.persistState, spec.persistSpawn = false, false
     local created, entityID = pcall(function() return system:CreateEntity(spec) end)
     if not created or not entityID or tostring(entityID.hash):match('^0+[uUlL]*$') then
         return nil, 'The game could not create a copy of this model.'
@@ -621,6 +719,8 @@ function M.spawn(key)
         record = definition.id or tostring(recordID),
         entityID = entityID, system = system, state = 'spawning',
         requestedAt = os.time(), requestedClock = runtimeClock,
+        spawnPosition = copyPosition(spawnPosition),
+        behavior = behavior.new(), behaviorTrace = {},
     }
     entries[#entries + 1] = entry
     -- Start connection setup while the engine is attaching the new copy.
@@ -656,11 +756,13 @@ function M.dismiss(serialToDismiss)
     for index, entry in ipairs(entries) do
         if entry.serial == serialToDismiss then
             clearAmbientLook(entry)
+            clearFocusLook(entry)
             releaseFocusStep(entry)
             releaseFocusTurn(entry)
             releaseRelaxTurn(entry)
             releaseHold(entry)
             cancelMovement(entry)
+            releaseRouteTurn(entry)
             if entry.npc and entry.npc:IsAttached() and entry.role then
                 pcall(function()
                     local ai = entry.npc:GetAIControllerComponent()
@@ -771,7 +873,15 @@ function M.list()
             slot = entry.slot,
             name = entry.name .. (totals[entry.key] > 1 and (' #' .. seen[entry.key]) or ''),
             state = entry.state, mode = entry.mode, error = entry.error,
+            behavior = entry.behavior and entry.behavior.phase,
+            behaviorReason = entry.behavior and entry.behavior.reason,
+            behaviorTrace = entry.behaviorTrace,
             entityID = tostring(entry.entityID.hash),
+            spawnZ = entry.spawnPosition and entry.spawnPosition.z,
+            actualSpawnZ = entry.spawnActual and entry.spawnActual.z,
+            phantomControllersDisabled = entry.phantomControllersDisabled,
+            playerZ = entry.playerZ,
+            npcZ = entry.lastPosition and entry.lastPosition.z,
             distanceToPlayer = entry.distanceToPlayer,
             distanceToSeat = entry.distanceToSeat,
             playerSpeed = entry.speed,
@@ -786,13 +896,17 @@ function M.list()
             holdError = entry.holdError,
             ambientLook = entry.ambientLook ~= nil,
             ambientLookError = entry.ambientLookError,
+            focusLook = entry.focusLook ~= nil,
+            focusLookError = entry.focusLookError,
             relativeSide = entry.relativeSide,
             relativeForward = entry.relativeForward,
             facingErrorDegrees = entry.facingError,
             focused = entry.focused,
             focusTurnAttempts = entry.focusTurnAttempts or 0,
             focusTurnError = entry.focusTurnError,
-            focusTurnState = entry.focusTurn and tostring(entry.npc:GetAIControllerComponent():GetCommandState(entry.focusTurn)) or nil,
+            -- list() is also read by paused menus and during load transitions.
+            -- Never dereference an engine command from this snapshot path.
+            focusTurnState = entry.focusTurnState,
             focusStepState = entry.focusStepState,
             focusStepDone = entry.focusStepDone,
             focusStepError = entry.focusStepError,
@@ -803,6 +917,8 @@ function M.list()
             relaxAttempts = entry.relaxAttempts,
             relaxTurnError = entry.relaxTurnError,
             alignAfterTravel = entry.alignAfterTravel,
+            routeFacingError = entry.routeFacingError,
+            routeTurning = entry.routeTurn ~= nil,
             adjusting = entry.adjusting,
             focusInitialError = entry.focusInitialError,
             focusBestError = entry.focusBestError,
@@ -813,11 +929,24 @@ function M.list()
     return copy
 end
 
-local function busyReason(entry, focusEntity)
-    if tostring(entry.entityID.hash) == focusEntity then return 'focus' end
-    local ok, fighting = pcall(function() return NPCPuppet.IsInCombat(entry.npc) end)
-    if ok and fighting == true then return 'combat' end
-    return nil
+local function spotIsClear(entry, at, playerPosition)
+    if distance(at, playerPosition) < 1.0 then return false end
+    for _, other in ipairs(entries) do
+        if other ~= entry and other.state == 'ready' and other.npc and other.npc:IsAttached()
+            and distance(at, other.npc:GetWorldPosition()) < 0.85 then return false end
+    end
+    return true
+end
+
+-- Called while the engine unloads a world. Discard references only: cancelling
+-- AI commands or deleting entities at this point can call an already torn-down
+-- native controller. Nonpersistent owned entities are removed by Codeware.
+function M.abandon()
+    entries = {}
+    elapsed, runtimeClock, commandCursor = 0, 0, 0
+    previousPlayerPosition, formationAngle = nil, nil
+    formationFrame = {moving = false, run = false, anchor = nil,
+        quietFor = 0, movingFor = 0, fastFor = 0, slowFor = 0, epoch = 0}
 end
 
 local function observeProgress(entry, at, gap)
@@ -901,88 +1030,34 @@ function M.update(player, delta, focusEntity)
                 entry.maxNpcSpeed = math.max(entry.maxNpcSpeed or 0, entry.npcSpeed)
                 entry.maxPlayerSpeed = math.max(entry.maxPlayerSpeed or 0, speed)
                 entry.distanceToPlayer = distance(at, playerPosition)
+                entry.playerZ = playerPosition.z
                 entry.distanceToSeat = distance(at, formationPosition(player, entry.slot, frame.anchor))
                 entry.speed = speed
                 local naturalSide = inSideZone(entry, at, playerPosition)
-                if entry.attentionStepAnchor
-                    and distance(playerPosition, entry.attentionStepAnchor) > 0.45 then
-                    entry.attentionStepAnchor = nil
-                end
-                if frame.justStopped then entry.alignAfterTravel = true end
-                if frame.moving then entry.alignAfterTravel = false end
-                local interruption = busyReason(entry, focusEntity)
-                local wasFocused = entry.focused
-                entry.focused = interruption == 'focus'
-                if entry.focused then
-                    releaseRelaxTurn(entry)
-                    entry.relaxNeeded = false
-                    if not entry.focusStartedAt then
-                        entry.focusStartedAt = runtimeClock
-                        entry.focusInitialError = entry.facingError
-                        entry.focusBestError = entry.facingError
-                        entry.focusTurnAttempts = 0
-                        entry.focusStepDone = entry.attentionStepAnchor ~= nil
-                        entry.focusStepDistance = nil
-                        entry.focusStepFacingError = nil
-                    else
-                        entry.focusBestError = math.min(entry.focusBestError or 180, entry.facingError or 180)
-                    end
-                else
-                    entry.focusStartedAt = nil
-                    entry.focusTurnAttempts = 0
-                    if entry.focusStep and entry.focusStepStart
-                        and distance(entry.focusStepStart, at) > 0.1 then
-                        entry.attentionStepAnchor = copyPosition(playerPosition)
-                    end
-                    releaseFocusStep(entry)
-                    releaseFocusTurn(entry)
-                    if wasFocused then
-                        entry.relaxNeeded = true
-                        entry.relaxAttempts = 0
-                    end
-                end
-                if interruption then
-                    clearAmbientLook(entry)
-                    if entry.mode ~= 'busy' then cancelMovement(entry) end
-                    entry.mode = 'busy'
-                    entry.parked = copyPosition(at)
-                    if interruption == 'focus' then
-                        if stepIntoConversation(entry, player, playerPosition, at) then return end
-                        turnTowardPlayer(entry, playerPosition)
-                    else
-                        releaseHold(entry)
-                    end
-                    return
-                end
-                if entry.mode == 'busy' then
-                    releaseHold(entry)
-                    -- A conversation step may leave the actor in a comfortable
-                    -- spot beside V. Keep that spot instead of ordering a
-                    -- second, unnecessary shuffle back to the exact slot.
-                    if wasFocused and naturalSide then
-                        entry.parked = copyPosition(at)
-                        entry.attentionAnchor = copyPosition(playerPosition)
-                    else
-                        entry.parked = nil
-                        entry.attentionAnchor = nil
-                    end
-                    entry.progress = nil
-                end
-                if entry.relaxNeeded then
-                    if frame.moving or distance(at, playerPosition) > 3.5 then
-                        releaseRelaxTurn(entry)
-                        entry.relaxNeeded = false
-                    else
-                        ensureAmbientLook(entry, player)
-                        if relaxToWalkingHeading(entry, at) then return end
-                    end
-                end
+                local playerShifted = entry.attentionStepAnchor
+                    and distance(playerPosition, entry.attentionStepAnchor) > 0.45
+                if playerShifted then entry.attentionStepAnchor = nil end
                 if entry.epoch ~= frame.epoch then
                     entry.epoch = frame.epoch
                     entry.parked = nil
                     entry.attentionAnchor = nil
                     entry.attentionStepAnchor = nil
                     entry.progress = nil
+                end
+                if frame.justStopped then entry.alignAfterTravel = true end
+                if frame.moving then
+                    entry.alignAfterTravel, entry.relaxNeeded = false, false
+                    entry.parked, entry.attentionAnchor = nil, nil
+                end
+                local focusRequested = tostring(entry.entityID.hash) == focusEntity
+                if entry.focused and (not focusRequested or frame.moving or playerShifted) then
+                    entry.relaxNeeded, entry.relaxAttempts = not frame.moving, 0
+                    if not frame.moving and naturalSide and spotIsClear(entry, at, playerPosition) then
+                        -- Accept the small conversation step instead of sending
+                        -- the actor back to an exact mathematical seat.
+                        entry.parked = copyPosition(at)
+                        entry.attentionAnchor = copyPosition(playerPosition)
+                    end
                 end
                 local seat = formationPosition(player, entry.slot, frame.anchor)
                 if entry.attentionAnchor
@@ -999,7 +1074,8 @@ function M.update(player, delta, focusEntity)
                     entry.adjusting = false
                 end
                 if not frame.moving and not entry.adjusting
-                    and (distance(at, seat) < 0.6 or naturalSide) then
+                    and (distance(at, seat) < 0.6 or naturalSide)
+                    and spotIsClear(entry, at, playerPosition) then
                     -- Park only after the companion reaches the side seat.
                     -- A loose side zone avoids rigid position micro-adjustments.
                     entry.parked = entry.parked or copyPosition(at)
@@ -1007,42 +1083,80 @@ function M.update(player, delta, focusEntity)
                 local goal = entry.parked or seat
                 local gap = distance(at, goal)
                 local playerGap = distance(at, playerPosition)
-                if entry.alignAfterTravel and not frame.moving
-                    and gap < 0.55 and entry.npcSpeed < 0.6 then
-                    entry.alignAfterTravel = false
-                    entry.relaxNeeded = true
-                    entry.relaxAttempts = 0
-                    if relaxToWalkingHeading(entry, at) then return end
-                end
-                if playerGap < 4.5 then
-                    ensureAmbientLook(entry, player)
-                else
-                    clearAmbientLook(entry)
-                end
-                if frame.moving or gap > 0.65 then releaseHold(entry) end
                 observeProgress(entry, at, gap)
-                -- During a sprint, a persistent native follow command keeps
-                -- the gait stable. On walking, return each copy to its seat.
-                local catchingUp = frame.run or playerGap > 4.2 or gap > 5.0
-                    or runtimeClock < (entry.fallbackUntil or 0)
-                if (entry.mode == 'run' or entry.mode == 'follow')
-                    and frame.moving and playerGap > 3.3 then catchingUp = true end
-                if catchingUp then
-                    if budget > 0 then
-                        local running = frame.run or playerGap > 4.2 or speed > 2.5
-                        if followPlayer(entry, player, running) then budget = budget - 1 end
-                    end
-                elseif budget > 0 then
-                    local running = frame.run or (frame.moving and gap > 1.5)
-                    if moveBeside(entry, goal, running, true) then budget = budget - 1 end
-                else
-                    moveBeside(entry, goal, frame.run, false)
+                local combatOk, fighting = pcall(function() return NPCPuppet.IsInCombat(entry.npc) end)
+                entry.behavior = entry.behavior or behavior.new()
+                local decision = behavior.decide(entry.behavior, {
+                    combat = combatOk and fighting == true,
+                    playerMoving = frame.moving, playerRunning = frame.run, playerSpeed = speed,
+                    npcSpeed = entry.npcSpeed, playerGap = playerGap, seatGap = gap,
+                    arrived = gap < 0.6 and spotIsClear(entry, at, playerPosition),
+                    focusRequested = focusRequested, playerShifted = playerShifted,
+                    facingError = entry.facingError or 180,
+                    needsAlignment = entry.alignAfterTravel or entry.relaxNeeded,
+                    blocked = runtimeClock < (entry.fallbackUntil or 0),
+                }, step)
+                if decision.changed then
+                    entry.behaviorTrace = entry.behaviorTrace or {}
+                    if #entry.behaviorTrace >= 12 then table.remove(entry.behaviorTrace, 1) end
+                    entry.behaviorTrace[#entry.behaviorTrace + 1] = {
+                        at = runtimeClock, phase = decision.phase, reason = decision.reason,
+                        playerGap = playerGap, seatGap = gap, npcSpeed = entry.npcSpeed}
                 end
-                if not frame.moving and entry.mode == 'settled' then
-                    ensureHold(entry)
-                else
+
+                -- Release all commands from the previous owner before the next
+                -- phase submits anything. Gaze cannot leave a hold or turn alive
+                -- underneath a follow/move command, including during combat.
+                if decision.movement ~= 'attention' then
+                    clearFocusLook(entry)
+                    releaseFocusStep(entry)
+                    releaseFocusTurn(entry)
+                    entry.focused, entry.focusStartedAt = false, nil
+                end
+                if decision.look ~= 'side' then clearAmbientLook(entry) end
+                if decision.movement ~= 'rotate' then releaseRelaxTurn(entry) end
+                if decision.movement ~= 'side' then releaseRouteTurn(entry) end
+
+                if decision.movement == 'release' then
+                    cancelMovement(entry)
                     releaseHold(entry)
+                    entry.mode, entry.parked, entry.progress = 'combat', nil, nil
+                    return
+                elseif decision.movement == 'attention' then
+                    cancelMovement(entry)
+                    if not entry.focused then
+                        entry.focused, entry.focusStartedAt = true, runtimeClock
+                        entry.focusInitialError, entry.focusBestError = entry.facingError, entry.facingError
+                        entry.focusTurnAttempts = 0
+                        entry.focusStepDone = entry.attentionStepAnchor ~= nil
+                        entry.focusStepDistance, entry.focusStepFacingError = nil, nil
+                    end
+                    entry.focusBestError = math.min(entry.focusBestError or 180, entry.facingError or 180)
+                    entry.mode, entry.relaxNeeded = 'busy', false
+                    ensureFocusLook(entry, player)
+                    if stepIntoConversation(entry, player, playerPosition, at) then return end
+                    turnTowardPlayer(entry, playerPosition)
+                    return
+                elseif decision.movement == 'rotate' then
+                    cancelMovement(entry)
+                    if entry.alignAfterTravel then
+                        entry.alignAfterTravel, entry.relaxNeeded, entry.relaxAttempts = false, true, 0
+                    end
+                    if relaxToWalkingHeading(entry, at) then return end
+                elseif decision.movement == 'hold' then
+                    cancelMovement(entry)
+                    entry.mode = 'settled'
+                    ensureHold(entry)
+                elseif decision.movement == 'follow' then
+                    releaseHold(entry)
+                    if budget > 0 then
+                        if followPlayer(entry, player, decision.running) then budget = budget - 1 end
+                    end
+                elseif decision.movement == 'side' then
+                    releaseHold(entry)
+                    if moveBeside(entry, goal, decision.running, budget > 0) then budget = budget - 1 end
                 end
+                if decision.look == 'side' and not entry.routeTurn then ensureAmbientLook(entry, player) end
                 entry.distanceToPlayer = playerGap
                 entry.distanceToSeat = gap
                 entry.speed = speed

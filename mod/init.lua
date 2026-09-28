@@ -7,6 +7,7 @@ local microphone = dofile('microphone.lua')
 local characterCatalog = dofile('character-catalog.lua')
 local groupChat = dofile('group-chat.lua')
 local manager = dofile('manager.lua')
+local mcm = dofile('mcm.lua')
 convaiGroupChat = groupChat
 groupChat.onPreparation = function(preparation)
     local f = io.open('runtime/group-prefetch.json.tmp', 'wb')
@@ -27,6 +28,8 @@ do
     end
 end
 manager.configure(companions, profiles)
+mcm.configure(manager, companions, dofile('manager-party.lua'), dofile('mcm-entry.lua'))
+convaiManager = mcm
 local catalog = characterCatalog.build(profiles)
 for record, profile in pairs(characterCatalog.build(profiles).records) do
     local ok, id = pcall(function() return tostring(TweakDBID.new(record)) end)
@@ -175,6 +178,9 @@ end
 
 local function beginFocus(player, npc)
     endFocus(player)
+    -- Owned companions arbitrate attention against locomotion themselves.
+    -- The civilian path can add a second hold/turn independently of that state.
+    if companions.owns(npc) then return true end
     local ok, focused = pcall(function() return player:ConvaiBeginFocus(npc) end)
     if not ok or not focused then return false, tostring(focused) end
     local managed = companions.owns(npc)
@@ -439,13 +445,7 @@ local function captureNpcDiagnostic()
 end
 
 local function openManager()
-    local ok, result = pcall(function()
-        local player = Game.GetPlayer()
-        if not player then return false end
-        if player:ConvaiCloseManager() then return true end
-        if not manager.prepare(player) then return false end
-        return player:ConvaiOpenManager()
-    end)
+    local ok, result, reason = pcall(mcm.open)
     if ok and result then
         endFocus(Game.GetPlayer())
         focusMode = nil
@@ -453,7 +453,7 @@ local function openManager()
         focusUntil = nil
         resetGaze()
     else
-        log('Companion manager is unavailable; open it during gameplay')
+        log('Companion manager: ' .. tostring(reason or result or 'Open it during gameplay.'))
     end
 end
 
@@ -507,9 +507,43 @@ registerHotkey('cyberpunk_convai_voice', 'Cyberpunk Convai: talk by voice (F7)',
 registerHotkey('cyberpunk_convai_diagnostic', 'Cyberpunk Convai: capture NPC diagnostic', captureNpcDiagnostic)
 registerHotkey('cyberpunk_convai_manager', 'Cyberpunk Convai: companion manager', openManager)
 
+local worldSuspended, sessionHasState = false, false
+
+local function abandonSession(reason)
+    -- Never touch NPC/player components during native world destruction.
+    -- pcall cannot catch an access violation in an already unloaded component.
+    companions.abandon()
+    mcm.resetSession()
+    speech.abandon()
+    subtitles.abandon()
+    microphone.cancel()
+    groupChat.cancel()
+    active, pending, focusUntil, focusMode, focusEntity = nil, nil, nil, nil, nil
+    focusedCrowd, releasedCrowd, pendingPhoneAction = nil, nil, nil
+    phoneCatalogReady = false
+    resetGaze()
+    manager.reset()
+    warmConversation(nil, nil)
+    publishPartyConnections(true)
+    sessionHasState, poll = false, 0
+    log('Session references released: ' .. reason)
+end
+
 registerForEvent('onInit', function()
     dofile('composer-input.lua').install()
     dofile('phone-input.lua').install()
+    local ok, err = pcall(mcm.install)
+    if not ok then log('MCM registration failed: ' .. tostring(err)) end
+    ObserveBefore('PlayerPuppet', 'OnDetach', function()
+        worldSuspended = true
+        abandonSession('player detached')
+    end)
+    ObserveBefore('PlayerPuppet', 'OnDeath', function()
+        worldSuspended = true
+        abandonSession('player died')
+    end)
+    ObserveAfter('PlayerPuppet', 'OnGameAttached', function() worldSuspended = false end)
+    ObserveAfter('PlayerPuppet', 'OnTakeControl', function() worldSuspended = false end)
     log('Game adapter initialized; press the bound talk-by-text key while facing an NPC')
     -- Requests are one-shot commands. A CET reload must not replay a spawn or
     -- other game mutation left in the request file by an earlier session.
@@ -521,6 +555,29 @@ registerForEvent('onInit', function()
 end)
 
 registerForEvent('onUpdate', function(delta)
+    local menuPlayer = Game.GetPlayer()
+    local sessionOk, sessionReady = pcall(function()
+        return not worldSuspended and menuPlayer and menuPlayer:IsAttached()
+            and not menuPlayer:IsDeadNoStatPool() and not Game.GetSystemRequestsHandler():IsPreGame()
+    end)
+    if not sessionOk or not sessionReady then
+        if sessionHasState then abandonSession('world unavailable') end
+        return
+    end
+    sessionHasState = true
+    local worldOk, worldReady = pcall(function()
+        if not menuPlayer or not menuPlayer:IsAttached() then return false end
+        local definitions = Game.GetAllBlackboardDefs()
+        return not Game.GetSystemRequestsHandler():IsGamePaused()
+            and not Game.GetSystemRequestsHandler():IsPreGame()
+            and not Game.GetBlackboardSystem():Get(definitions.UI_System):GetBool(definitions.UI_System.IsInMenu)
+            and not menuPlayer:ConvaiComposerOpen()
+    end)
+    worldReady = worldOk and worldReady
+    -- CET still calls onUpdate while native menus pause the simulation. The
+    -- menu adapter needs these frames even when delta is zero; followers don't.
+    local mcmOk, mcmError = pcall(mcm.update, menuPlayer, worldReady)
+    if not mcmOk then log('MCM update failed: ' .. tostring(mcmError)) end
     local speechOk, speechError = pcall(speech.update, tonumber(delta) or 0)
     if not speechOk then
         log('Speech update failed: ' .. tostring(speechError))
@@ -548,6 +605,7 @@ registerForEvent('onUpdate', function(delta)
     end
     poll = poll + (tonumber(delta) or 0)
     if poll < 0.1 then return end
+    local elapsedPoll = poll
     poll = 0
     local player = Game.GetPlayer()
     local voiceSubmission = microphone.update(player)
@@ -574,7 +632,7 @@ registerForEvent('onUpdate', function(delta)
     processPhoneAction(player)
     local managerOk, managerError = pcall(manager.update, player, 0.1)
     if not managerOk then log('Manager update failed: ' .. tostring(managerError)) end
-    companions.update(player, 0.1, focusEntity)
+    if worldReady then companions.update(player, elapsedPoll, focusEntity) end
     publishPartyConnections(false)
     updateGroup(player)
     if focusUntil and not active and os.time() >= focusUntil then
@@ -674,6 +732,7 @@ registerForEvent('onUpdate', function(delta)
 end)
 
 registerForEvent('onShutdown', function()
+    mcm.shutdown()
     groupChat.cancel()
     warmConversation(nil, nil)
     microphone.cancel()

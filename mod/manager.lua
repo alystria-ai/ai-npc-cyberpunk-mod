@@ -532,6 +532,78 @@ function M.prepare(player)
     return ok
 end
 
+-- MCM reads the same catalogue and saved settings as the conversation runtime.
+-- This interface does not create the retired HUD popup or touch world actors.
+function M.snapshot(player)
+    if player then initialize(player) else loadSettings() end
+    updateParty()
+    updateLocalVoice()
+    local enabled = {}
+    for key, value in pairs(settings.enabledByKey) do enabled[key] = value end
+    return {
+        profiles = profiles, models = models, party = party, feedback = feedback,
+        settings = {voice = settings.voice, subtitles = settings.subtitles,
+            omniSteps = settings.omniSteps, enabledByKey = enabled},
+        localVoice = localVoiceState,
+        scan = {started = scanStarted, finished = scanFinished, error = scanError,
+            count = #models, read = math.max(0, modelIndex - 1), total = #(modelRows or models)},
+    }
+end
+
+function M.scanModels()
+    beginModels()
+    scanModels()
+    return scanFinished
+end
+
+function M.definition(key)
+    return companions and companions.definition(key)
+end
+
+function M.applySettings(player, values)
+    loadSettings()
+    -- Validate and save the complete transaction before exposing any changed
+    -- values to native playback. A failed save leaves the MCM draft intact.
+    if type(values) ~= 'table' then return false, 'No settings were supplied.' end
+    local nextSettings = {}
+    for key, value in pairs(settings) do nextSettings[key] = value end
+    nextSettings.enabledByKey = {}
+    for key, value in pairs(settings.enabledByKey) do nextSettings.enabledByKey[key] = value end
+    for key, value in pairs(values) do
+        if key == 'voice' or key == 'subtitles' then
+            if type(value) ~= 'boolean' then return false, 'Playback settings must be on or off.' end
+            nextSettings[key] = value
+        elseif key == 'omniSteps' then
+            if value ~= 16 and value ~= 32 then return false, 'Choose 16 or 32 voice steps.' end
+            nextSettings.omniSteps = value
+        elseif key == 'enabledByKey' then
+            if type(value) ~= 'table' then return false, 'Invalid conversation settings.' end
+            for profile, enabled in pairs(value) do
+                if not byKey[profile] or type(enabled) ~= 'boolean' then
+                    return false, 'That conversation profile is unavailable.'
+                end
+                nextSettings.enabledByKey[profile] = enabled
+            end
+        else return false, 'Unknown setting: ' .. tostring(key) end
+    end
+    local previous = settings
+    settings = nextSettings
+    if not saveSettings() then
+        settings = previous
+        return false, 'The settings could not be saved. Your changes are still pending.'
+    end
+    if player then
+        pcall(function() player:ConvaiManagerSetVoice(settings.voice) end)
+        pcall(function() player:ConvaiManagerSetSubtitles(settings.subtitles) end)
+        for index, key in ipairs(legacyKeys) do
+            pcall(function() player:ConvaiManagerSetEnabled(index - 1, settings.enabledByKey[key] ~= false) end)
+        end
+    end
+    if companions.onPartyChanged then pcall(companions.onPartyChanged) end
+    say('Settings saved.')
+    return true
+end
+
 function M.update(player, delta)
     if not player then if initialized then M.reset() end; return end
     local ready = initialize(player)

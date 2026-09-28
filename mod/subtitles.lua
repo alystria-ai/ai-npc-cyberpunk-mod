@@ -72,6 +72,11 @@ function M.show(speaker, text)
     showPage()
 end
 
+function M.abandon()
+    -- The HUD is being destroyed; no event may be queued to the old player.
+    M.line, M.pages, M.timed, M.speaker, M.page = nil, nil, nil, nil, nil
+end
+
 function M.beginTimed(speaker, text, duration)
     M.clear()
     if not M.enabled() then return end

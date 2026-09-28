@@ -57,6 +57,14 @@ function M.start(context, reply)
     return true
 end
 
+function M.abandon()
+    -- Unload callback: release Lua references without calling native emitters.
+    M.player, M.actor, M.playerID, M.requestId = nil, nil, nil, nil
+    M.slot, M.duration, M.position = nil, nil, 0
+    M.state, M.available = 'idle', false
+    publish()
+end
+
 function M.update(delta)
     local player = Game.GetPlayer()
     M.heartbeat = M.heartbeat + delta

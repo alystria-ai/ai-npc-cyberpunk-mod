@@ -1,11 +1,16 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import {readFileSync, readdirSync} from 'node:fs';
+import path from 'node:path';
 import fengari from 'fengari';
+import {companionModules, flatNavigation} from './companion-fixture.mjs';
 
 const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
 const managerSource = readFileSync(new URL('../mod/manager.lua', import.meta.url), 'utf8');
 const companionsSource = readFileSync(new URL('../mod/companions.lua', import.meta.url), 'utf8');
+const queueSource = readFileSync(new URL('../mod/manager-party.lua', import.meta.url), 'utf8');
+const mcmSource = readFileSync(new URL('../mod/mcm.lua', import.meta.url), 'utf8');
+const entrySource = readFileSync(new URL('../mod/mcm-entry.lua', import.meta.url), 'utf8');
 
 function run(code) {
   const state = lauxlib.luaL_newstate();
@@ -112,6 +117,306 @@ const managerFixture = `
   local manager = (function() ${managerSource} end)()
   local function request(value, dt) player.queue[#player.queue + 1] = value; manager.update(player, dt or 0.1) end
 `;
+
+test('MCM party invitations reserve distinct copies, cancel without spawning and flush only once', () => {
+  run(`${managerFixture}
+    manager.configure(api, profiles)
+    local queue = (function() ${queueSource} end)().new(api)
+    assert(queue.invite('johnny-silverhand') == false)
+    queue.bind('player-1')
+    for _ = 1, 8 do assert(queue.invite('johnny-silverhand')) end
+    assert(#spawned == 0 and queue.count() == 8 and #queue.list() == 8)
+    assert(queue.invite('person-1') == false)
+    local first, second = queue.list()[1].id, queue.list()[2].id
+    assert(first ~= second and queue.list()[1].state == 'queued')
+    assert(queue.dismiss(first) and queue.count() == 7 and #spawned == 0)
+    assert(queue.assign(second, 'person-1', 'Person 01'))
+    queue.flush()
+    assert(#spawned == 7 and #members == 7 and members[1].profileKey == 'person-1')
+    queue.flush(); assert(#spawned == 7, 'menu operation replayed')
+    queue.bind(nil); queue.bind('player-2'); queue.flush()
+    assert(#spawned == 7)
+  `);
+});
+
+test('MCM dismissals free planned places, cannot undo into an overfull party and cleanly report world failures', () => {
+  run(`${managerFixture}
+    manager.configure(api, profiles)
+    local queue = (function() ${queueSource} end)().new(api)
+    queue.bind('player-1')
+    for _ = 1, 8 do api.spawn('johnny-silverhand') end
+    local id = queue.list()[1].id
+    assert(queue.dismiss(id) and #members == 8 and queue.count() == 7)
+    assert(queue.invite('person-1') and queue.count() == 8)
+    assert(queue.undoDismiss(id) == false)
+    assert(queue.list()[1].state == 'leaving')
+    queue.flush()
+    assert(#members == 8 and members[8].key == 'person-1')
+    assert(queue.dismiss('live:123456') == false)
+    queue.dismiss(queue.list()[1].id)
+    local oldDismiss = api.dismiss
+    api.dismiss = function() return false, 'World unavailable' end
+    queue.invite('person-2')
+    queue.flush()
+    assert(#members == 8 and #spawned == 9)
+    assert(queue.list()[9].state == 'failed' and queue.message():find('eight copies', 1, true))
+    queue.flush(); assert(#spawned == 9, 'failed request must not retry every frame')
+    api.dismiss = oldDismiss
+    queue.bind(nil); assert(#queue.list() == 8, 'loading a save cancels pending work')
+  `);
+});
+
+test('MCM settings apply as one saved transaction and leave playback unchanged on a save failure', () => {
+  run(`${managerFixture}
+    manager.configure(api, profiles); manager.snapshot(player)
+    assert(manager.applySettings(player, {voice = false, omniSteps = 16, enabledByKey = {['johnny-silverhand'] = false}}))
+    assert(player.voice == false and saved.omniSteps == 16 and not manager.profileEnabled('johnny-silverhand'))
+    failSave = true
+    assert(manager.applySettings(player, {voice = true, subtitles = false, omniSteps = 32}) == false)
+    local values = manager.snapshot(player).settings
+    assert(values.voice == false and values.subtitles == true and values.omniSteps == 16)
+    assert(player.voice == false and player.subtitles == true)
+    failSave = false
+    assert(manager.applySettings(player, {voice = true, omniSteps = 8}) == false)
+    assert(manager.applySettings(player, {enabledByKey = {unknown = true}}) == false)
+    assert(manager.applySettings(nil, {voice = true}))
+    manager.reset(); manager.snapshot(player); assert(player.voice == true)
+  `);
+});
+
+test('MCM waits for NPC attachment, reports late failures once and discards notices on save change', () => {
+  run(`${managerFixture}
+    manager.configure(api, profiles)
+    local queue = (function() ${queueSource} end)().new(api)
+    queue.bind('player-1')
+    queue.invite('johnny-silverhand'); queue.flush()
+    assert(#queue.takeNotices() == 0, 'accepting CreateEntity is not a completed spawn')
+    members[1].state = 'ready'; queue.flush()
+    local notices = queue.takeNotices()
+    assert(#notices == 1 and notices[1].message:find('joined your group', 1, true))
+    queue.flush(); assert(#queue.takeNotices() == 0, 'confirmation repeated every frame')
+    queue.invite('person-1'); queue.flush()
+    members[2].state, members[2].error = 'failed', 'No walkable position'
+    queue.flush(); notices = queue.takeNotices()
+    assert(#notices == 1 and notices[1].failed and notices[1].message:find('No walkable position', 1, true))
+    queue.flush(); assert(#queue.takeNotices() == 0)
+    queue.invite('person-2'); queue.flush(); members[3].state = 'ready'
+    queue.bind(nil); queue.bind('player-1'); queue.flush()
+    assert(#queue.takeNotices() == 0, 'old session completion leaked into new save')
+  `);
+});
+
+const mcmFixture = `
+  ${managerFixture}
+  manager.configure(api, profiles)
+  local handlers, registered, loaded, activeMod = {}, nil, nil, nil
+  local drafts, reloads = false, 0
+  local nativeApi = {apiVersion = 2, providers = {}}
+  nativeApi.providers.registerProvider = function(value) registered = value; return true end
+  nativeApi.providers.unregisterProvider = function(id) assert(id == registered.id); registered = nil; return true end
+  nativeApi.refreshProvider = function() return true end
+  nativeApi.getDiagnostics = function() return {activeModKey = activeMod} end
+  nativeApi.hasDrafts = function() return drafts end
+  nativeApi.reloadMod = function()
+    reloads = reloads + 1; loaded = registered.loadMod('manager'); return loaded
+  end
+  GetMod = function(name) assert(name == 'ModConfigurationMenuAPI'); return nativeApi end
+  Game = {GetPlayer = function() return player end}
+  Observe = function(class, method, callback) handlers[method] = callback end
+  ObserveAfter = Observe
+  Override = Observe
+  local entryFactory = {new = function()
+    return {install = function() end, update = function() end, selected = function() end,
+      state = function() return 'idle' end, reset = function() end, open = function() return true end}
+  end}
+  local mcm = (function() ${mcmSource} end)()
+  mcm.configure(manager, api, (function() ${queueSource} end)(), entryFactory)
+  mcm.install()
+  activeMod = 'cyberpunk-convai:manager'
+  loaded = registered.loadMod('manager')
+  local function row(id)
+    for _, category in ipairs(loaded.categories) do
+      for _, setting in ipairs(category.settings) do if setting.id == id then return setting end end
+    end
+  end
+  local controller = {McmUiEmitSearch = function(_, context, value) handlers.McmUiEmitSearch(nil, context, value) end}
+  local function invoke(id)
+    local result = registered.invokeAction('manager', id, {interaction = {controller = controller}})
+    if result.ok and result.schemaChanged then loaded = registered.loadMod('manager') end
+    return result
+  end
+`;
+
+test('MCM schema uses native controls, operates on current copies while paused, and preserves setting drafts', () => {
+  run(`${mcmFixture}
+    assert(registered.apiVersion == 2 and registered.listMods().mods[1].name == 'Companion Manager')
+    assert(row('invite:johnny-silverhand').type == 'action')
+    assert(invoke('invite:johnny-silverhand').ok)
+    mcm.update(player, false)
+    assert(#spawned == 0 and #mcm.inspect().party == 1)
+    assert(invoke('tab:party').ok)
+    assert(row('dismiss:queued:1').value == 'Cancel invitation')
+    assert(invoke('assign:queued:1').ok and invoke('assign-profile:person-1').ok)
+    assert(invoke('tab:settings').ok)
+    assert(row('voice').type == 'bool' and row('omniSteps').type == 'select')
+    local applied = registered.applyBatch('manager', {{id = 'voice', value = false}, {id = 'omniSteps', value = 1}})
+    assert(applied.ok and applied.atomic and #applied.appliedIds == 2 and saved.omniSteps == 16)
+    assert(player.voice == false)
+    drafts = true
+    local before = reloads
+    mcm.update(player, false); assert(reloads == before, 'external refresh must not erase MCM drafts')
+    drafts = false
+    mcm.update(player, true)
+    assert(#spawned == 1 and members[1].profileKey == 'person-1')
+    assert(invoke('tab:party').ok and row('dismiss:live:1'))
+    mcm.shutdown(); assert(registered == nil)
+  `);
+});
+
+test('MCM model search covers the full installed catalogue while exposing bounded result rows', () => {
+  run(`${mcmFixture}
+    assert(scans == 0)
+    assert(invoke('tab:models').ok)
+    for _ = 1, 126 do mcm.update(player, false) end
+    assert(scans == 1 and visits == 6000)
+    loaded = registered.loadMod('manager')
+    local function countInvites()
+      local count = 0
+      for _, category in ipairs(loaded.categories) do
+        for _, item in ipairs(category.settings) do
+          if item.id:sub(1,7) == 'invite:' then count = count + 1 end
+        end
+      end
+      return count
+    end
+    assert(countInvites() == 18 and row('models:next'))
+    handlers.McmUiEmitSearch(nil, 'content', 'Model_6000')
+    for _ = 1, 6 do mcm.update(player, false) end
+    assert(countInvites() == 1 and row('invite:model:6000'))
+    assert(invoke('invite:model:6000').ok and #spawned == 0)
+    mcm.update(player, true); assert(members[1].key == 'model:6000')
+    assert(members[1].profileKey == nil)
+    assert(invoke('tab:party').ok and mcm.inspect().view == 'party')
+  `);
+});
+
+test('native MCM action banner describes the queued invitation and leaves other pages and errors alone', () => {
+  run(`${mcmFixture}
+    assert(invoke('invite:johnny-silverhand').ok)
+    local rendered
+    local function paint(label, status)
+      handlers.McmUiBegin({}, 'MCM', '', 'Mods', label, status, 1, '', true, true, 0,
+        function(title, subtitle, sidebar, content, message) rendered = message end)
+      return rendered
+    end
+    assert(paint('Companion Manager', 'Completed: Johnny Silverhand'):find('return to the game', 1, true))
+    assert(paint('Other Mod', 'Completed: Johnny Silverhand') == 'Completed: Johnny Silverhand')
+    assert(paint('Companion Manager', 'Action failed') == 'Action failed')
+    invoke('tab:settings')
+    assert(paint('Companion Manager', 'Completed: Settings') == 'Completed: Settings')
+  `);
+});
+
+test('F5 goes through the real Mods entry and selects only its own native sidebar action', () => {
+  run(`
+    local callbacks, stageEvents, activated, selected, closed = {}, {}, 0, nil, 0
+    Observe = function(_, method, callback) callbacks[method] = callback end
+    ObserveAfter = Observe
+    local inMenu = false
+    local player = {IsAttached = function() return true end, ConvaiComposerOpen = function() return false end,
+      GetEntityID = function() return {} end}
+    local boards = {Get = function() return {GetBool = function() return inMenu end,
+      SetName = function(_, field, name) stageEvents[#stageEvents + 1] = name end} end,
+      GetLocalInstanced = function() return {GetInt = function() return 0 end} end}
+    local attachedControllers = {}
+    Game = {GetPlayer = function() return player end,
+      GetSystemRequestsHandler = function() return {IsPreGame = function() return false end} end,
+      GetInkSystem = function() return {GetLayers = function() return {{GetGameControllers = function() return attachedControllers end}} end} end,
+      GetBlackboardSystem = function() return boards end,
+      GetAllBlackboardDefs = function() return {UI_System = {}, MenuEventBlackboard = {}, PlayerStateMachine = {}} end}
+    NameToString = function(value) return value end
+    local mcmEvent = {}
+    CName = {new = function(name) assert(name == 'OnSwitchToMCM'); return mcmEvent end}
+    local entry = (function() ${entrySource} end)().new('Companion Manager', function() return true end, function() end)
+    entry.install()
+    assert(entry.open() and stageEvents[1] == 'OnOpenPauseMenu')
+    assert(entry.open() and #stageEvents == 1)
+    local pause = {menuListController = {Size = function() return 1 end,
+      GetItemAt = function() return {GetController = function() return {GetData = function() return {eventName = mcmEvent, label = 'Mods'} end} end} end},
+      OnMenuItemActivated = function() activated = activated + 1 end}
+    -- The initialization observer may fire before the list exists. Keep the
+    -- opening request alive and resolve the real attached controller later.
+    callbacks.OnInitialize({})
+    callbacks.PopulateMenuItemList({})
+    entry.update(); assert(activated == 0 and entry.state() == 'pause')
+    pause.IsA = function(_, name) return name == 'PauseMenuGameController' end
+    attachedControllers = {pause}
+    entry.update(); assert(activated == 1 and entry.state() == 'select')
+    local settings = {McmUiEmitAction = function(_, id) selected = id end, McmUiIsActive = function() return true end,
+      RequestClose = function() closed = closed + 1 end}
+    callbacks.OnInitialize(settings)
+    callbacks.McmUiAddSidebarItem(settings, 'other', '', 'Other Mod', '', false)
+    entry.update(); assert(selected == nil)
+    callbacks.McmUiAddSidebarItem(settings, 'manager-id', '', 'Companion Manager', '', false)
+    entry.update(); assert(selected == 'manager-id')
+    entry.selected(); assert(entry.state() == 'idle')
+    assert(entry.open() and closed == 1)
+    callbacks.OnUninitialize(); inMenu = true; attachedControllers = {}
+    assert(entry.open() == false and #stageEvents == 1)
+    attachedControllers = {pause}
+    assert(entry.open())
+    entry.update(); assert(activated == 2 and #stageEvents == 1, 'opening from Pause must not request a second pause host')
+  `);
+});
+
+// Optional local integration gate: execute the actual installed API modules,
+// without writing their data directory or copying third-party code into Git.
+test('installed MCM API accepts the provider, actions, draft transactions and dynamic model schema',
+  {skip: !process.env.CYBERPUNK_MCM_API}, () => {
+    const root = process.env.CYBERPUNK_MCM_API;
+    const preloads = readdirSync(path.join(root, 'modules'), {recursive: true})
+      .filter(file => file.endsWith('.lua'))
+      .map(file => {
+        const key = `modules/${file.replaceAll('\\', '/').slice(0, -4)}`;
+        return `package.preload[${JSON.stringify(key)}] = function()\n${readFileSync(path.join(root, 'modules', file), 'utf8')}\nend`;
+      }).join('\n');
+    run(`${mcmFixture}
+      mcm.shutdown()
+      local encoded, jsonSequence = {}, 0
+      json = {encode = function(value) jsonSequence = jsonSequence + 1; local id = 'json-' .. jsonSequence; encoded[id] = value; return id end,
+        decode = function(value) return encoded[value] or saved or {} end}
+      ${preloads}
+      local core = require('modules/core')
+      core.init()
+      local actual = core.getApi()
+      GetMod = function() return actual end
+      mcm.install()
+      assert(actual.refreshIndex())
+      local key = 'cyberpunk-convai:manager'
+      assert(actual.openMod(key))
+      assert(actual.invokeAction(key .. ':invite:johnny-silverhand'))
+      assert(#spawned == 0 and #mcm.inspect().party == 1)
+      assert(actual.invokeAction(key .. ':tab:settings'))
+      assert(actual.setDraft(key .. ':voice', false))
+      assert(actual.setDraft(key .. ':omniSteps', 1))
+      assert(actual.invokeAction(key .. ':tab:characters') == false)
+      local ok, err = actual.apply(key)
+      assert(ok, err)
+      assert(actual.getValue(key .. ':voice') == false and actual.getValue(key .. ':omniSteps') == 1)
+      assert(manager.snapshot(player).settings.omniSteps == 16 and not actual.hasDrafts(key))
+      assert(actual.invokeAction(key .. ':tab:party'))
+      assert(actual.invokeAction(key .. ':dismiss:queued:1'))
+      assert(#mcm.inspect().party == 0 and #spawned == 0)
+      assert(actual.invokeAction(key .. ':tab:models'))
+      for _ = 1, 126 do mcm.update(player, false) end
+      assert(actual.reloadMod(key))
+      local count = 0
+      for _, row in ipairs(actual.listSettings(key)) do if row.type == 'action' then count = count + 1 end end
+      assert(count < 30)
+      assert(actual.closeMod())
+      mcm.shutdown(); core.shutdown()
+    `);
+  });
 
 test('native manager pages profiles, searches case-insensitively, and persists key-based chat settings with legacy migration', () => {
   run(`${managerFixture}
@@ -245,6 +550,7 @@ const engineFixture = `
     function npc:IsA(kind) return kind == 'NPCPuppet' and self.record ~= 'NotNPC' end
     function npc:IsCrowd() return self.record == 'Crowd' end
     function npc:GetAIControllerComponent() if self.record ~= 'NoAI' then return self.ai end end
+    function npc:GetComponents() return {} end
     function npc:IsDeadNoStatPool() return false end
     function npc:GetWorldPosition() return self.pos end
     function npc:GetWorldForward() return Vector4.new(0,1,0,0) end
@@ -263,6 +569,8 @@ const engineFixture = `
     GetTargetingSystem = function() return {GetCrosshairData = function() return nil, Vector4.new(0,1,0,0) end} end,
     CreateEntityReference = function() return {} end}
   NPCPuppet = {IsInCombat = function() return false end}
+  ${companionModules}
+  ${flatNavigation}
   local companions = (function() ${companionsSource} end)()
 `;
 

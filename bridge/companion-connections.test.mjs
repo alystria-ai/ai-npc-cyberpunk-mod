@@ -2,6 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import fengari from 'fengari';
+import {companionModules, flatNavigation} from './companion-fixture.mjs';
 const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
 const source = readFileSync(new URL('../mod/companions.lua', import.meta.url), 'utf8');
 
@@ -15,6 +16,7 @@ test('accepted spawns immediately publish unique identities; last dismissal and 
     TweakDBID={new=function(v) return v end}
     TweakDB={GetRecord=function() return {IsA=function(_, kind) return kind=='gamedataCharacter_Record' end} end}
     NewObject=function() return {} end
+    Enum={new=function(_, value) return value end}
     local player={
       GetWorldPosition=function() return Vector4.new(0,0,0,1) end,
       GetWorldForward=function() return Vector4.new(0,1,0,0) end,
@@ -26,6 +28,8 @@ test('accepted spawns immediately publish unique identities; last dismissal and 
     Game={GetPlayer=function() return player end,GetDynamicEntitySystem=function() return system end,
       GetTargetingSystem=function() return {GetCrosshairData=function()
         return player:GetWorldPosition(),player:GetWorldForward() end} end}
+    ${companionModules}
+    ${flatNavigation}
     local companions=(function() ${source} end)()
     local changes={}
     companions.onPartyChanged=function() changes[#changes+1]=table.concat(companions.connectionProfiles(),',') end

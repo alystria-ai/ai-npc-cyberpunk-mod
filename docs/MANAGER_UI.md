@@ -1,65 +1,98 @@
-# Native companion manager
+# Companion Manager in MCM
 
-The F5 screen is implemented in r6/scripts/CyberpunkConvai/Manager.reds with Codeware native widgets. Lua owns the catalogue, filtering, party state, settings, and actions. The screen reuses eight result widgets per refresh and never creates a widget for every game model.
+The manager uses **Mod Configuration Menu 0.10.3 / API v2**, inside the game's
+native settings host. The user rejected the earlier HUD popup and suggested
+MCM. Its source remains for compatibility, but F5 and the manager diagnostic
+no longer open it.
 
-## Lua to native API
+## Player flow
 
-Call these methods on PlayerPuppet. Setters prepare one update; call ConvaiManagerRefresh() after writing the full batch.
+- **Manager shortcut (currently F4 locally):** requests the real pause menu's MCM entry and selects **Companion
+  Manager**. **Esc → MCM → Companion Manager** is also available.
+- **Characters:** searchable researched profiles, including Johnny Silverhand
+  and Adam Smasher, with Invite / Add copy actions for available models.
+  This catalogue is independent of phone contacts and quest unlocks.
+- **Current party:** each actual or invited copy has its own state, conversation
+  profile action and dismissal. Invitations can be cancelled before spawning;
+  pending dismissals can be undone if their places have not been reused.
+- **Model browser:** discovers installed Character records in batches of 48,
+  shows at most 18 model results per page and searches the full discovered
+  catalogue by name or record. Use MCM's **Search settings** field. Models without
+  a researched identity can be assigned one through Current party.
+- **Settings:** voice playback, native dialogue subtitles, OmniVoice 16/32
+  generation steps (32 by default), service readiness and per-character
+  conversation participation. MCM owns Apply, Revert, defaults and draft guards.
 
-    ConvaiManagerClearRows()
-    ConvaiManagerAddRow(key: String, label: String, note: String, selected: Bool)
-    ConvaiManagerSetDetail(title: String, body: String,
-        primaryAction: String, primaryLabel: String, primaryEnabled: Bool,
-        secondaryAction: String, secondaryLabel: String, secondaryEnabled: Bool)
-    ConvaiManagerSetPage(text: String, previous: Bool, next: Bool)
-    ConvaiManagerSetTab(tab: String)
-    ConvaiManagerSetSearch(text: String)
-    ConvaiManagerSetFeedback(text: String)
-    ConvaiManagerSetPartyStatus(text: String)
-    ConvaiManagerRefresh()
-    ConvaiManagerTakeRequest() -> String
-    ConvaiManagerIsOpen() -> Bool
-    ConvaiOpenManager() -> Bool
-    ConvaiCloseManager() -> Bool
+Invitations and dismissals are queued while the page pauses gameplay. Their
+pending state appears immediately. They run once after the player returns to
+gameplay; paused spawn timers do not advance. Closing this menu returns to the
+normal pause menu, whose Resume/Escape action returns to gameplay.
 
-Rows with empty keys and rows after the eighth are ignored. Tab values are characters, models, party, and settings. ConvaiManagerSetSearch updates the field without producing a search request. ConvaiManagerSetPartyStatus supplies the compact header status, such as Party: 3/8.
+## Ownership
 
-## Native to Lua requests
+- `mod/mcm.lua`: provider `cyberpunk-convai`, mod `manager`, registered through
+  `GetMod('ModConfigurationMenuAPI').providers.registerProvider`. Produces the
+  native schema and extends content search to the model catalogue. MCM files
+  and preferences are never edited.
+- `mod/mcm-entry.lua`: F5 entry state machine. Activates the real
+  `OnSwitchToMCM` item after the pause host is established, then invokes the
+  actual sidebar action observed for Companion Manager. No simulated keys.
+  Pause/input ownership stays with MCM and vanilla. A bounded timeout leaves
+  the player in a working menu.
+- `mod/manager-party.lua`: in-memory queue with distinct copy IDs and capacity
+  reservations. The companion system rechecks capacity at execution. Deletions
+  precede spawns. Accepted requests are tracked through attachment; ready/failure
+  notices appear once in gameplay and remain in the manager feedback row.
+  Failures are reported and never retried every frame.
+  Player/save changes and CET shutdown discard pending requests.
+- `mod/manager.lua`: shared catalogue, settings storage, discovery and native
+  playback flags. Settings are validated and saved as one transaction before
+  their values are exposed; a failed save leaves playback unchanged.
+- `mod/companions.lua`: owns actual entities, copy serials, formation slots and
+  connection membership. Manager operations never adopt quest/ambient actors.
 
-ConvaiManagerTakeRequest() returns the oldest pending request, or an empty string when the queue is empty:
+MCM updates run outside the game-time poll so the page stays interactive when
+simulation delta is zero. World changes and follower updates wait for unpaused
+gameplay. Schema refresh waits while MCM has unsaved drafts. Discovery is lazy,
+and file-backed readiness checks are throttled.
 
-- tab:characters, tab:models, tab:party, or tab:settings
-- search:<original-case text>
-- select:<row-key>
-- page:previous or page:next
-- The exact primary or secondary action string supplied by Lua.
+The native MCM action banner is scoped to this provider's page: invitation and
+dismissal actions describe their queued work instead of the stock "Completed"
+text. Other providers and failure messages retain MCM's ordinary rendering.
+No MCM source or saved preferences are modified.
 
-The FIFO holds at most 64 requests. Consecutive search edits are coalesced, adjacent duplicate requests are suppressed, and a full queue reports feedback. Detail text pagination is local to the screen; its internal _detail:previous and _detail:next controls do not reach Lua.
+The existing native voice/subtitle and legacy enabled flags remain compatible.
+No new redscript is required: **CET Reload All Mods** activates the adapter with
+the installed dependencies. The separate dry-emitter change remains staged.
 
-Opening requests the stored tab and search. Clicking a tab clears the search and requests both the new tab and the empty query. Search, result pagination, and selection disable stale detail actions until Lua supplies updated data. The native layer never spawns or dismisses entities.
+## Verification — September 28
 
-## Controls and presentation
+All **72 automated checks passed**, including the installed MCM 0.10.3 API's
+real core/catalogue/draft/action modules executed in a local Lua harness.
+The integration gate covers registration, dynamic schemas, queued actions,
+rejection of actions with drafts, multi-setting apply and readback. It does
+not modify MCM's installed data files.
 
-- Four tabs: Characters, Game models, Your party, and Settings.
-- Settings includes persistent OmniVoice 32/16-step selection, default 32, and local voice readiness. The bridge applies changes to the next request without reloading its shared model. Other characters retain their Convai voices.
-- Native OriginalCase search input, limited to 96 characters, with native caret, selection, and clipboard behavior. Input waiting for glyph measurement is queued.
-- Mouse selection, result pagination, and primary or secondary actions.
-- Up/Down selects a visible row; Left/Right changes result pages; Ctrl+Left/Right changes tabs; Tab switches between search and list; Enter invokes an enabled primary action. Navigation shortcuts yield to the focused search field.
-- Long details have their own compact text pages. Long status messages are also preserved in the detail text.
-- Escape uses Codeware's native cancel handling. F5 remains owned by the CET hotkey; use ConvaiCloseManager(), then ConvaiOpenManager() when no manager was open.
+Set `CYBERPUNK_MCM_API` to the installed `ModConfigurationMenuAPI` directory
+before `npm test` to include that local gate. Without it, ordinary tests still
+run and the installed-API check is explicitly skipped.
 
-## Popup ownership
+Lua and catalogues were installed and SHA-256 verified; the previous installed
+Lua is in ignored `backups/mcm-lua-20260928-163622/`. The user reloaded CET and
+confirmed the manager appears in MCM. Their screenshots show the native
+Characters, empty Current party and Settings pages, including Invite controls
+and the 32-step default. The controller-readiness and runtime CName lookup
+fixes are installed. On September 29 the user confirmed **F4 opened the menu**
+and Iris joined through Invite. Johnny's apparently absent model was traced to
+his native phantom visibility controller; the user confirmed the live repair.
+The initial floor concern and crash after V died prompted the work in
+[COMPANION_BEHAVIOR.md](COMPANION_BEHAVIOR.md). The latest combined suite passes
+90 checks. Fresh Johnny invitation, save reload, model search, settings apply/revert and repeated
+close/reopen still need acceptance.
 
-Closing is idempotent. A close requested before Codeware attaches the delayed popup is deferred until OnShow. Detach unregisters raw keyboard input and calls the base lifecycle so Codeware restores its modal context, blur, and radial-menu time dilation. Identity checks prevent a late callback from clearing a newer popup's owner reference. The pending request queue is cleared when the owned popup closes.
+The local manager binding remains F4. The distributed action name still mentions
+F5 as its reference default; the game's QuickSave mapping was not altered.
 
-Codeware applies its existing radial-menu time dilation while open. Lua must use actual entity readiness before reporting a successful spawn.
-
-## Compatibility
-
-The existing six-slot settings and PlayerPuppet methods remain available: ConvaiManagerName, ConvaiManagerSelected, ConvaiManagerSelect, ConvaiManagerEnabled, ConvaiManagerSetEnabled, ConvaiManagerVoice, ConvaiManagerSetVoice, ConvaiManagerSubtitles, ConvaiManagerSetSubtitles, and ConvaiManagerRevision.
-
-## Verification
-
-The complete repository script set compiled with scripts/Compile-Redscript.ps1 -StagedAudio, exit code 0, on 2026-09-28 at 12:07:07 +0530. The log is vendor/compiler-check-55bb38b3b7974978819230f7d2ca5ac0/compile.log.
-
-In-game visual and interaction acceptance remains pending: different display resolutions, rapid mixed-case typing, tab and result navigation, long details, enabled and disabled actions, and repeated Escape/F5 close and reopen. Compilation does not establish those results.
+The one-shot `mcm-state:<nonce>` diagnostic writes `runtime/mcm-state.json`
+inside the installed mod. It reports the section, entry stage, party, feedback
+and API availability without opening a menu or creating a companion.

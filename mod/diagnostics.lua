@@ -426,6 +426,96 @@ if request:match('^party%-list:') then
     if file then file:write('ok=', tostring(ok), '\nresult=', tostring(result), '\n'); file:close() end
     return
 end
+if request:match('^party%-motion%-watch:') then
+    convaiMotionWatch = {elapsed = 0, sampleAt = 0, samples = {}, previous = {}}
+    if not convaiMotionOriginalUpdate then
+        convaiMotionOriginalUpdate = convaiCompanions.update
+        convaiCompanions.update = function(player, dt, focus)
+            convaiMotionOriginalUpdate(player, dt, focus)
+            local watch = convaiMotionWatch
+            if not watch then return end
+            watch.elapsed = watch.elapsed + dt
+            if watch.elapsed < watch.sampleAt then return end
+            watch.sampleAt = watch.elapsed + 0.45
+            local states, rows = {}, {}
+            for _, member in ipairs(convaiCompanions.list()) do states[member.entityID] = member end
+            for _, item in ipairs(convaiCompanions.conversationCandidates(player, 35)) do
+                local npc, state = item.npc, states[item.entity]
+                if state then
+                    local position, forward = npc:GetWorldPosition(), npc:GetWorldForward()
+                    local old = watch.previous[item.entity]
+                    state.time = watch.elapsed
+                    state.position = {x = position.x, y = position.y, z = position.z}
+                    state.forward = {x = forward.x, y = forward.y}
+                    if old then
+                        local x, y = position.x-old.position.x, position.y-old.position.y
+                        local length, facingLength = math.sqrt(x*x+y*y), math.sqrt(forward.x^2+forward.y^2)
+                        state.measuredSpeed = length/(state.time-old.time)
+                        if length > 0.04 and facingLength > 0.1 then
+                            state.movementFacingAngle = math.deg(math.acos(math.max(-1, math.min(1,
+                                (x*forward.x+y*forward.y)/(length*facingLength)))))
+                        end
+                    end
+                    state.behaviorTrace = nil
+                    watch.previous[item.entity] = state
+                    rows[#rows + 1] = state
+                end
+            end
+            watch.samples[#watch.samples + 1] = rows
+            local file = io.open('runtime/party-motion-watch.json', 'wb')
+            if file then file:write(json.encode({elapsed = watch.elapsed, done = watch.elapsed >= 90, samples = watch.samples})); file:close() end
+            if watch.elapsed >= 90 then convaiMotionWatch = nil end
+        end
+    end
+    return
+end
+if request:match('^party%-appearance:') then
+    local rows = {}
+    local function read(row, key, callback)
+        local ok, value = pcall(callback)
+        if ok then row[key] = value else row[key] = 'error: ' .. tostring(value) end
+    end
+    for _, item in ipairs(convaiCompanions.conversationCandidates(Game.GetPlayer(), 30)) do
+        local npc, row = item.npc, {name = item.name, entity = item.entity}
+        for _, check in ipairs({
+            {'appearance', function() return npc:GetCurrentAppearanceName() end},
+            {'record', function() return npc:GetRecordID() end},
+        }) do
+            local ok, value = pcall(check[2])
+            row[check[1]] = (ok and '' or 'error: ') .. tostring(value)
+        end
+        row.components = {}
+        for _, component in ipairs(npc:GetComponents()) do
+            local name = tostring(component:GetName())
+            local visual = component:IsA('entIVisualComponent')
+            if visual or name:find('Phantom', 1, true) or name:find('visualOffset', 1, true) then
+                local detail = {name = name, visual = visual}
+                read(detail, 'enabled', function() return component:IsEnabled() end)
+                read(detail, 'class', function() return tostring(component:GetClassName()) end)
+                read(detail, 'position', function() return tostring(component:GetLocalPosition()) end)
+                read(detail, 'world', function() return tostring(component:GetLocalToWorld()) end)
+                for _, field in ipairs({'mesh', 'chunkMask', 'visibilityAnimationParam', 'visibilityAnimationParamEnabled'}) do
+                    read(detail, field, function() return tostring(component[field]) end)
+                end
+                row.components[#row.components + 1] = detail
+            end
+        end
+        rows[#rows + 1] = row
+    end
+    local records = {}
+    for _, record in ipairs(TweakDB:GetRecords('gamedataCharacter_Record')) do
+        local id = tostring(record:GetID())
+        if id:lower():find('silverhand', 1, true) or id:lower():find('johnny', 1, true) then
+            local detail = {id = id}
+            read(detail, 'appearance', function() return tostring(record:AppearanceName()) end)
+            read(detail, 'template', function() return tostring(record:EntityTemplatePath()) end)
+            records[#records + 1] = detail
+        end
+    end
+    local file = io.open('runtime/party-appearance.json', 'wb')
+    if file then file:write(json.encode({actors = rows, records = records})); file:close() end
+    return
+end
 if request:match('^viktor%-record%-search:') then
     local ok, result = pcall(function()
         local records = TweakDB:GetRecords('gamedataCharacter_Record')
@@ -968,9 +1058,64 @@ if request:match('^manager%-close:') then
     end
     return
 end
+if request:match('^mcm%-state:') then
+    local file = io.open('runtime/mcm-state.json', 'wb')
+    if file then file:write(json.encode(convaiManager and convaiManager.inspect() or {available = false})); file:close() end
+    return
+end
+if request:match('^mcm%-entry%-reload:') then
+    local result = 'Manager is not loaded.'
+    if convaiManager then
+        -- Patch our public module table, which the hotkey and update loop both
+        -- retain. The provider, open page, party queue and drafts stay intact.
+        if convaiMcmEntryProbe then convaiMcmEntryProbe.reset() end
+        convaiMcmEntryProbe = dofile('mcm-entry.lua').new('Companion Manager',
+            function() return convaiManager.inspect().available end,
+            function(message)
+                local f = io.open('runtime/mcm.log', 'a')
+                if f then f:write(os.date('!%Y-%m-%dT%H:%M:%SZ'), ' ', message, '\n'); f:close() end
+            end)
+        convaiMcmEntryProbe.install()
+        if not convaiMcmOriginalUpdate then
+            convaiMcmOriginalUpdate = convaiManager.update
+            convaiManager.update = function(...)
+                convaiMcmOriginalUpdate(...)
+                convaiMcmEntryProbe.update()
+            end
+        end
+        convaiManager.open = function() return convaiMcmEntryProbe.open() end
+        result = 'Entry adapter reloaded.'
+    end
+    local file = io.open('runtime/mcm-entry-reload.txt', 'wb')
+    if file then file:write(result); file:close() end
+    return
+end
+if request:match('^mcm%-entry%-state:') then
+    local file = io.open('runtime/mcm-entry-state.json', 'wb')
+    if file then file:write(json.encode(convaiMcmEntryProbe and convaiMcmEntryProbe.inspect() or {})); file:close() end
+    return
+end
+if request:match('^mcm%-native%-state:') then
+    local result = {}
+    for _, layer in ipairs(Game.GetInkSystem():GetLayers()) do
+        for _, controller in ipairs(layer:GetGameControllers()) do
+            if controller:IsA('PauseMenuGameController') or controller:IsA('SettingsMainGameController') then
+                local row = {layer = tostring(layer:GetLayerName()), type = tostring(controller)}
+                for _, field in ipairs({'menuListController', 'm_menuListController'}) do
+                    local ok, value = pcall(function() return controller[field] end)
+                    row[field] = ok and tostring(value) or ('error: ' .. tostring(value))
+                end
+                result[#result + 1] = row
+            end
+        end
+    end
+    local file = io.open('runtime/mcm-native-state.json', 'wb')
+    if file then file:write(json.encode(result)); file:close() end
+    return
+end
 if request:match('^manager:') then
     local player = Game.GetPlayer()
-    local opened = player and player:ConvaiOpenManager()
+    local opened = convaiManager and convaiManager.open()
     local resultFile = io.open('runtime/manager-status.txt', 'wb')
     if resultFile then
         resultFile:write('request=', request, '\nplayer=', tostring(player ~= nil), '\nopened=', tostring(opened), '\n')
