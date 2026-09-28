@@ -32,6 +32,7 @@ destination, a travel direction, or evidence that a moving person has stopped.
 | --- | --- | --- |
 | Camera turns while V stands | Existing places and travel direction remain valid | A glance may affect eyes/head only |
 | Small step inside the resting group | Only a person whose personal space is invaded may adjust | No party-wide rearrangement |
+| Back up or circle to face a settled person | Fixed gathering anchors distinguish local interaction from leaving; even the rear members wait | Only the addressed person may readjust after V stops |
 | Purposeful departure | Stable lanes follow the actual path; pace follows measured speed | Social body turns yield before locomotion starts |
 | Sustained corner or U-turn | Follow the new path after displacement establishes it | Camera yaw alone cannot establish a turn |
 | Behind the group | Native catch-up, then a planned approach to free side space | Looking back does not interrupt the route |
@@ -105,5 +106,34 @@ hook checked 21 commands and cleared one stale object without an error.
 No moving sample above 0.4 m/s had movement opposed to body facing by more than
 100 degrees. One Johnny side-route validation was rejected; he entered native
 recovery and later settled. This is measured runtime evidence, **not visual
-acceptance**. The user's assessment of arrival, looking back, and the small
-social step is still pending.
+acceptance**. The user subsequently accepted the glance but reported that
+moving fully into position to face a person still moved the group.
+
+### Moving within a gathering
+
+The same trace confirms a second, distinct intention error: at 61.8 seconds V
+had backed up roughly 1.9 metres while still addressing Judy. She was about
+three metres away. The simple departure distance treated that as travelling,
+rotated the formation and moved both people. Another unselected local step
+caused the same transition at 76.5 seconds.
+
+Travel now records fixed positions of settled people for the current stop.
+Addressing a nearby person, or stepping across the old travel line within the
+gathering, enters local interaction. Gaze loss while circling does not move
+the group. The area is bounded by both the original stop (four metres) and
+proximity to its people (3.4 metres); its anchors never follow V. Leaving that
+area restores travel. Ordinary forward departure without social interest
+retains the earlier prompt follow behavior.
+
+Standing members, including distant rear rows, wait during local interaction.
+Personal-space yielding still belongs only to the affected person. Once V
+stops in a meaningfully different place, the addressed person alone can make
+another small social adjustment. It cannot repeat while V remains still.
+
+Regression cases cover backing up during attention, circling with no locked
+gaze target, ordinary forward departure, rear rows waiting in an eight-person
+party, and one addressed person's adjustment after V stops. The full suite now
+passes **112 tests with no skips**; all 21 Lua files compile. Installed and
+hash verified at **02:45 IST** with the prior Lua backed up in
+`backups/gathering-interaction-20260929-024545/`. This correction still requires
+CET reload and a fresh visual check.

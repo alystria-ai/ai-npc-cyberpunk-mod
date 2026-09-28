@@ -344,6 +344,8 @@ function M.list()
             playerSpeed=groupFrame and groupFrame.rawSpeed or 0,
             playerRunning=groupFrame and groupFrame.running or false,
             playerMoving=groupFrame and groupFrame.moving or false,
+            groupIntent=groupFrame and (groupFrame.localInteraction and 'local-interaction'
+                or (groupFrame.moving and 'travelling' or 'resting')) or 'resting',
             travelDirection=groupFrame and space.copy(groupFrame.direction) or nil,
             playerPosition=groupFrame and space.copy(groupFrame.position) or nil,
             stopID=groupFrame and groupFrame.stop or 0,
@@ -419,7 +421,6 @@ function M.update(player,delta,focusEntity)
     local playerPosition=space.copy(player:GetWorldPosition())
     if not groupFrame then return end
     local lastReversal=groupFrame.reversal
-    travel.update(groupFrame,playerPosition,step)
 
     for _,entry in ipairs(entries) do
         if entry.state=='spawning' then
@@ -436,7 +437,7 @@ function M.update(player,delta,focusEntity)
         end
     end
 
-    local order,others={},{}
+    local order,others,company={},{},{people={},focus=focusEntity}
     -- All people are sensed before anyone is planned: iteration order must not
     -- make later members react to partially updated group state.
     for _,entry in ipairs(entries) do
@@ -452,18 +453,21 @@ function M.update(player,delta,focusEntity)
                 local forward=entry.npc:GetWorldForward()
                 entry.direction=space.unit(forward.x,forward.y)
                 entry.maxSpeed=math.max(entry.maxSpeed or 0,entry.speed)
-                entry.maxPlayerSpeed=math.max(entry.maxPlayerSpeed or 0,groupFrame.rawSpeed)
                 entry.playerGap=space.distance(at,playerPosition)
                 entry.facingError=space.angle(entry.direction,space.bearing(at,playerPosition))
                 actuator.sense(entry.motor,at,entry.speed,step)
                 order[#order+1]=entry
+                company.people[#company.people+1]={id=tostring(entry.entityID.hash),position=at,
+                    phase=entry.person.phase}
                 others[#others+1]={id=tostring(entry.entityID.hash),position=at}
             end
         end
     end
+    travel.update(groupFrame,playerPosition,step,company)
     if #order==0 then return end
     if lastReversal~=groupFrame.reversal then reassignReversal(order) end
     for _,entry in ipairs(order) do
+        entry.maxPlayerSpeed=math.max(entry.maxPlayerSpeed or 0,groupFrame.rawSpeed)
         if entry.motor.target and entry.motor.kind=='move' and not entry.motor.face
             and not entry.motor.feedback.complete and not entry.motor.feedback.failed then
             others[#others+1]={id=tostring(entry.entityID.hash),position=space.copy(entry.motor.target),reserved=true}

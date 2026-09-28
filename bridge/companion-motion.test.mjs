@@ -133,8 +133,77 @@ test('a walking operation releases full attention before its first command reach
       assert(step.state~='Executing')
     end
   end
-  for i=1,10 do player.pos.y=i*0.25; companions.update(player,0.1,npc.id.hash) end
+  for i=1,20 do player.pos.y=i*0.25; companions.update(player,0.1,npc.id.hash) end
   assert(submits>0)
+`));
+
+test('backing up to face a settled friend does not make the group form up again',()=>run(`${companionEngine}
+  local one=spawn(); local two=spawn('panam-palmer'); tick(4)
+  -- Establish attention without walking into the person, then step back two
+  -- metres while maintaining that interest, like the 61-second live failure.
+  companions.update(player,0.1,one.id.hash)
+  local counts={#one.ai.commands,#two.ai.commands}
+  for i=1,10 do player.pos.y=i*0.2; companions.update(player,0.1,one.id.hash) end
+  assert(companions.list()[1].groupIntent=='local-interaction')
+  for i,npc in ipairs({one,two}) do
+    assert(#npc.ai.commands==counts[i], 'repositioning for conversation moved a companion')
+  end
+  assert(companions.list()[1].travelDirection.y>0.99,'local steps changed the group heading')
+  -- The space is finite: actually leaving still releases the whole group.
+  for i=11,28 do player.pos.y=i*0.2; companions.update(player,0.1) end
+  assert(companions.list()[1].playerMoving and #one.ai.commands>counts[1])
+`));
+
+test('circling within the resting group without a precise gaze target keeps friends in place',()=>run(`${companionEngine}
+  local one=spawn(); local two=spawn('panam-palmer'); tick(4)
+  local counts={#one.ai.commands,#two.ai.commands}
+  -- Move off the travel line and around its edge, with no locked gaze target.
+  for i=1,12 do
+    player.pos=Vector4.new(i*0.14,-i*0.1)
+    companions.update(player,0.1)
+  end
+  for i=1,20 do
+    player.pos=Vector4.new(1.68-i*0.14,-1.2)
+    companions.update(player,0.1)
+  end
+  for i,npc in ipairs({one,two}) do assert(#npc.ai.commands==counts[i]) end
+  assert(not companions.list()[1].playerMoving)
+`));
+
+test('ordinary forward walking starts promptly when V is not addressing anyone',()=>run(`${companionEngine}
+  local npc=spawn(); tick(4)
+  for i=1,10 do player.pos.y=i*0.15; companions.update(player,0.1) end
+  assert(companions.list()[1].playerMoving and last(npc,'AIMoveToCommand'))
+`));
+
+test('after V circles and stops, only the addressed person readjusts once',()=>run(`${companionEngine}
+  local one=spawn(); local two=spawn('panam-palmer'); tick(4)
+  tick(2,one.id.hash)
+  local first=last(one,'AIMoveToCommand'); assert(first)
+  one.pos=first.movementTarget.position; first.state='Success'
+  one.forward=Vector4.new(-one.pos.x,-one.pos.y); tick(6,one.id.hash)
+  local countTwo=#two.ai.commands
+  for i=1,10 do player.pos.y=i*0.2; companions.update(player,0.1,one.id.hash) end
+  tick(4,one.id.hash)
+  local second=last(one,'AIMoveToCommand')
+  assert(second~=first and second.rotateEntityTowardsFacingTarget)
+  one.pos=second.movementTarget.position; second.state='Success'
+  one.forward=Vector4.new(player.pos.x-one.pos.x,player.pos.y-one.pos.y)
+  tick(8,one.id.hash)
+  assert(last(one,'AIMoveToCommand')==second,'stationary attention repeated its adjustment')
+  assert(#two.ai.commands==countTwo,'addressed person readjusted the whole party')
+`));
+
+test('rear members wait with a large resting party while V steps around a front member',()=>run(`${companionEngine}
+  for i=1,8 do spawn() end
+  tick(4)
+  local counts={}
+  for i,npc in ipairs(entities) do counts[i]=#npc.ai.commands end
+  companions.update(player,0.1,entities[1].id.hash)
+  for i=1,10 do player.pos.y=i*0.2; companions.update(player,0.1,entities[1].id.hash) end
+  for i,npc in ipairs(entities) do
+    assert(#npc.ai.commands==counts[i],'rear member followed during local interaction')
+  end
 `));
 
 // A deliberately simple engine stand-in provides acceleration, delayed stops,

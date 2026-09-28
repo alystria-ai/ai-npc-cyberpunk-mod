@@ -9,7 +9,37 @@ function M.new(position,initialDirection)
         path={{position=space.copy(position),direction=space.unit(initialDirection.x,initialDirection.y),distance=0}},pathDistance=0}
 end
 
-function M.update(s,position,dt)
+local function insideGathering(s,position,company)
+    if s.moving then return false end
+    s.restPeople=s.restPeople or {}
+    local present={}
+    for _,person in ipairs(company and company.people or {}) do
+        present[person.id]=true
+        local social=person.phase=='settled' or person.phase:find('attend',1,true)
+        if social and not s.restPeople[person.id] then
+            s.restPeople[person.id]=space.copy(person.position)
+        end
+    end
+    for id in pairs(s.restPeople) do if not present[id] then s.restPeople[id]=nil end end
+    local focus=company and company.focus
+    if focus and s.restPeople[focus] then s.interest=focus end
+    local nearest=math.huge
+    for _,point in pairs(s.restPeople) do nearest=math.min(nearest,space.distance(point,position)) end
+    local offset=space.ground(position,s.stopAnchor)
+    -- A gathering occupies space. Moving around one of its people is not a
+    -- departure merely because V moved one metre. These anchors stay fixed
+    -- through local interaction; they cannot chase V and grow without bound.
+    local nearby=nearest<3.4 and offset<4.0 and math.abs(position.z-s.stopAnchor.z)<1.2
+    local interest=s.interest and s.restPeople[s.interest]
+    local addressing=interest and space.distance(position,interest)<3.4
+    local across=offset>0.35 and offset<2.8 and nearest<2.8
+        and space.angle(s.direction,space.bearing(s.stopAnchor,position))>40
+    if not nearby then s.interest,s.localInteraction=nil,false; return false end
+    if addressing or across then s.localInteraction=true end
+    return s.localInteraction==true
+end
+
+function M.update(s,position,dt,company)
     dt=math.max(0.001,dt)
     s.clock=s.clock+dt
     local stride=space.ground(position,s.previous)
@@ -24,20 +54,25 @@ function M.update(s,position,dt)
     if s.discontinuity then
         s.moving,s.speed,s.stillFor=false,0,0
         s.pendingTurn,s.activeFor=nil,0
+        s.restPeople,s.interest,s.localInteraction=nil,nil,false
         s.stopAnchor=space.copy(position)
         s.epoch,s.stop=s.epoch+1,s.stop+1
         s.history,s.path={},{{position=space.copy(position),distance=0}}
         s.pathDistance=0
     end
     local departure=space.ground(position,s.stopAnchor)
-    if not s.moving and ((departure>1.0 and s.activeFor>=0.3) or departure>2.2) then
+    local localInteraction=insideGathering(s,position,company)
+    if not s.moving and not localInteraction
+        and ((departure>1.0 and s.activeFor>=0.3) or departure>2.2) then
         s.moving,s.justDeparted=true,true
         s.epoch=s.epoch+1
+        s.restPeople,s.interest,s.localInteraction=nil,nil,false
     elseif s.moving and s.stillFor>=0.6 then
         s.moving,s.justStopped=false,true
         s.stopAnchor=space.copy(position)
         s.stop=s.stop+1
         s.pendingTurn=nil
+        s.restPeople,s.interest,s.localInteraction=nil,nil,false
     end
 
     s.history[#s.history+1]={position=space.copy(position),time=s.clock}

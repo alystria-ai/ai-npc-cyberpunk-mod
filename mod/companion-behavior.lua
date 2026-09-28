@@ -128,7 +128,8 @@ function M.decide(s,c,dt)
         if c.playerGap>5.5 then return recover(s,c,'The group has moved away') end
         return emit(s,glance(c))
     end
-    if c.playerGap>5.0 and not arrivals[s.phase] then
+    local waitingWithGroup=c.frame.localInteraction and (s.phase=='settled' or social[s.phase])
+    if c.playerGap>5.0 and not arrivals[s.phase] and not waitingWithGroup then
         enter(s,'catch_up','Reach the stopped group before choosing a stance')
         operation(s,'follow',nil,pace(c,true),false,false)
         return emit(s)
@@ -227,7 +228,16 @@ function M.decide(s,c,dt)
         end
         return emit(s,'full')
     end
-    if s.phase=='attend' then return emit(s,'full') end
+    if s.phase=='attend' then
+        if c.selected and c.frame.stillFor>=0.65 and s.stillFor>=0.65
+            and c.facingError>35 and s.attentionAnchor
+            and space.ground(s.attentionAnchor,c.frame.position)>0.8 then
+            -- V has finished moving around this person. Only this person may
+            -- make a fresh social adjustment; the group's lanes remain still.
+            return accept(s,c)
+        end
+        return emit(s,'full')
+    end
 
     -- Arrival glances are not banked as requests to rotate after stopping.
     if s.phase=='settled' and c.selected and c.frame.stillFor>=0.65 and s.stillFor>=0.65

@@ -83,7 +83,7 @@ test('settled members can attend once; departure releases step, turn and hold to
   tick(4,npc.id.hash)
   local count=#npc.ai.commands; tick(3,npc.id.hash)
   assert(last(npc,'AIMoveToCommand')==step, 'no repeated attention step at the same stop')
-  player.pos=Vector4.new(0,2); tick(1,npc.id.hash)
+  player.pos=Vector4.new(0,5); tick(1,npc.id.hash)
   assert(#active(npc,'AIRotateToCommand')==0 and #active(npc,'AIHoldPositionCommand')==0)
   assert(step.state~='Executing', 'departure cannot retain a conversation step')
 `));
