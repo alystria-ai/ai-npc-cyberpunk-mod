@@ -1,4 +1,5 @@
 import {ConvaiClient} from '@convai/web-sdk/vanilla';
+import {drainBlendshapes} from './blendshape-capture.mjs';
 
 let client, identity, context, source, capture, prime, remote, turn, micTimer;
 let initialSession, submitted = false, epoch = 0, ttsEnabled = true;
@@ -129,19 +130,13 @@ function beginTurn(timing = {}) {
 
 async function collect(current) {
   const started = performance.now();
-  let previous = started, carry = 0;
   try {
     await waitFor(() => {
       if (current.error) throw Error(current.error);
       if (current.epoch !== epoch) throw Error('Conversation cancelled');
       if (!current.ttsEnabled) return current.text && current.textComplete && !client.state.isThinking;
       const now = performance.now(), q = client.blendshapeQueue;
-      carry += Math.min((now - previous) / 1000, 0.25) * q.getPlaybackFps(); previous = now;
-      const count = Math.min(Math.floor(carry), q.length); carry -= Math.floor(carry);
-      if (count) {
-        const frame = q.getFrameWithAlpha(count - 1); q.consumeFrames(count);
-        if (frame) current.faces.push({at: context.currentTime, values: Array.from(frame)});
-      }
+      drainBlendshapes(q, current.faces);
       return current.text && current.chunks.length && q.isConversationEnded() && !q.length
         && !client.state.isSpeaking && !client.state.isThinking && now - current.lastSignal > 450;
     }, 60000, 'Convai did not finish the reply');
@@ -149,7 +144,7 @@ async function collect(current) {
     const result = {text: current.text, sessionID: client.characterSessionId,
       audio, timing: {...current.timing, firstAudioMs: current.firstAudioMs,
         collectionMs: collectedAt - started, audioEncodeMs: performance.now() - collectedAt},
-      faces: current.faces.map(f => ({at: Math.max(0, f.at - current.origin), values: f.values})),
+      faces: current.faces, facesFormat: 'arkit61', facesTimebase: 'audio-seconds',
       captions: current.captions.map(c => ({at: Math.max(0, c.at - current.origin), text: c.text}))};
     return result;
   } finally { if (turn === current) turn = null; }

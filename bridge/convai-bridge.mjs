@@ -4,6 +4,7 @@ import {fileURLToPath} from 'node:url';
 import {parseInput, profileFor} from './protocol.mjs';
 import {requestReply} from './convai-client.mjs';
 import {audioReady, storeSpeech, SLOT_COUNT} from './speech-audio.mjs';
+import {buildFacialTimeline} from './facial-timeline.mjs';
 import {RealtimeHost} from './realtime-host.mjs';
 import {MicrophoneSession} from './microphone-session.mjs';
 import {randomUUID} from 'node:crypto';
@@ -140,7 +141,7 @@ async function respond(input, profile, {signal, prepared} = {}) {
 async function publishResult(input, profile, result, current = async () => true) {
   if (!await current()) return false;
   const preparationStartedAt = Date.now();
-  let audio, audioError = result.audioError;
+  let audio, face, audioError = result.audioError;
   if (result.audio) {
     try {
       const playing = JSON.parse(await readFile(resolve(runtime, 'speech-state.json'), 'utf8').catch(() => '{}'));
@@ -148,8 +149,11 @@ async function publishResult(input, profile, result, current = async () => true)
       const slot = nextSlot; nextSlot = (nextSlot + 1) % SLOT_COUNT;
       audio = await storeSpeech(result.audio, audioDepot, slot);
       if (!await current()) return false;
+      try { face = buildFacialTimeline(result, input); }
+      catch (error) { console.error('[CyberpunkConvai] Facial timing unavailable:', error.message); }
       await atomic(resolve(runtime, 'last-speech-timing.json'), JSON.stringify({
-        requestId: input.requestId, faces: result.faces, captions: result.captions, duration: audio.duration,
+        requestId: input.requestId, faces: result.faces, facesFormat: result.facesFormat,
+        captions: result.captions, duration: audio.duration, face,
       }));
     } catch (error) {
       audioError = 'Voice could not be prepared; showing the written reply.';
@@ -158,7 +162,7 @@ async function publishResult(input, profile, result, current = async () => true)
   }
   if (!await current()) return false;
   await atomic(replyPath, JSON.stringify({requestId: input.requestId, generation: input.generation,
-    entity: input.entity, profile: profile.key, text: result.text, audio, audioError, updated: Date.now()}));
+    entity: input.entity, profile: profile.key, text: result.text, audio, face, audioError, updated: Date.now()}));
   (result.transport === 'realtime' ? realtimeSessions : sessions).set(sessionKey(input), result.sessionID);
   if (result.transport === 'realtime') connections.used(input, result.timing);
   prefetch.published(input, result.text);

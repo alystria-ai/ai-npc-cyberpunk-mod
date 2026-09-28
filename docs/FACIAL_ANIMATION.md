@@ -2,7 +2,9 @@
 
 ## Current status — September 29
 
-**Installed September 29 at 03:40 IST; Judy's visible jaw test passed.**
+**Native layer installed September 29 at 03:40 IST; Judy's visible jaw test passed.
+Speech timing is installed live; the user confirmed speech movement/reset but
+rejected the simplistic local articulation.**
 
 The accepted movement checkpoint is `61a703d` (code `68ae15c`). That movement
 controller is unchanged. The user closed the game; the installer hash-verified
@@ -24,8 +26,8 @@ confirmed **visible mouth movement and return to normal**. This is a jaw-control
 proof, not yet speech lip-sync acceptance. Johnny's graph is prepared, but his
 visible facial test is still separate.
 
-Full reply lip sync remains open: the native control test must pass before
-connecting Convai frames and local-voice timing to the actual audio cursor.
+Full reply lip-sync acceptance remains open. The first driver now connects
+Convai frames and local-voice timing to the actual audio cursor, as described below.
 
 ## What the running game showed
 
@@ -80,9 +82,10 @@ route successfully.
   or change movement, gaze, audio or quest actors.
 
 The service stores resource references, not live NPC references. A normal
-zero-valued feature is the idle state. Before production speech uses the layer,
-add utterance ownership and reset on completion, cancellation, pause, range loss,
-mute, death and reload, without querying destroyed components during unload.
+zero-valued feature is the idle state. The Lua speech adapter owns each utterance
+and resets on completion, cancellation, pause and mute. Death/unload drops its
+state without querying destroyed components. Live lifecycle and range-loss
+checks remain separate from executable unit checks.
 
 ## Build and verification
 
@@ -133,6 +136,45 @@ builder, native service, diagnostics and tests.
 
 ## Sources and outstanding work
 
+### Speech integration, September 29
+
+The first playback adapter is installed live, without another native restart.
+`bridge/blendshape-capture.mjs` preserves each SDK frame and its indexed time;
+the earlier collector consumed several frames but saved only the last one at
+each browser poll. The mapping explicitly uses SDK 1.7.0's ARKit **61** ordering
+(JawOpen index 17). It does not assume the common ARKit-52 ordering.
+
+`bridge/facial-timeline.mjs` produces a bounded 30 Hz timeline of eleven mouth
+controls. Convai replies use captured jaw, lip closure, funnel, purse and stretch
+weights. The local OmniVoice path uses a read-only PCM amplitude analysis to
+drive the three already tested jaw/lip-apart controls. This local fallback is
+**not phoneme-accurate lip sync**. Neither route modifies the voice WAV, and
+neither supplies head or eye rotation. Silent audio intervals close the mouth.
+
+`mod/facial-playback.lua` validates the request ID, exact copy's entity ID,
+duration, timestamps, control whitelist and weights. Only a prepared owned
+companion can receive a feature. `speech.lua` samples at Audioware's actual
+playback cursor, resets on pause/cancel/end, and discards all facial references
+without native calls on world unload. A facial failure leaves the voice and
+subtitles available. Unsupported rigs and ambient quest/crowd actors continue
+without this facial layer.
+
+Validation: 132 checks passed; the installed-MCM check was skipped. The new checks
+include actual SDK queue batches, ARKit ordering, PCM 16/24/32 and float stereo,
+silent intervals, unchanged waveform bytes, stale reply rejection, cursor-based
+interpolation, pause/resume, switching speakers, muting and world unload.
+The user confirmed Judy's mouth moves during the reply and returns to normal,
+but called the articulation too simplistic. The timing/cleanup foundation is
+accepted; the amplitude-only local face is not the intended finished result.
+
+A real Judy F6 reply used OmniVoice 32 and a 30.4-second timeline of 913 frames.
+The game accepted 1,322 interpolated feature applications and returned
+`finished`, `restored=true` at the end. This verifies the installed cursor and
+reset path, not the visible quality. Receipt:
+`runtime/speech-face-judy-20260929.json`. An additional browser collection check
+passes: draining ahead-delivered facial data cannot finish a reply while audio
+is still playing.
+
 - [Codeware lifecycle documentation](https://github.com/psiberx/cp2077-codeware/wiki#lifecycle)
   identifies Initialize as the stage with an assigned entity ID before component
   initialization; it also documents dynamic-entity tag filters.
@@ -145,9 +187,8 @@ builder, native service, diagnostics and tests.
   inputs. It informed the investigation; no Blender installation or solver copy
   is required by the mod.
 
-After the jaw proof: validate individual lip-closure/funnel controls, map the
-actual Convai frame ordering, preserve frame timing against native audio position,
-and add a bounded local-voice timing fallback without processing the voice audio.
-Then blend restrained expressions and blinking and verify private/group playback,
-pause/cancel/reload and multiple copies in the game. The existing OmniVoice 32/16
-choice and raw audio quality remain the voice policy.
+Next: visually validate real speech with local and Convai voices, including the
+individual lip-closure/funnel controls and remote stream alignment. Then refine
+local articulation and blend restrained expressions/blinking, and verify group
+playback, pause/cancel/reload and multiple copies in the game. The existing
+OmniVoice 32/16 choice and raw audio quality remain the voice policy.

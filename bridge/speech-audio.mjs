@@ -5,7 +5,9 @@ import {resolve} from 'node:path';
 
 export const SLOT_COUNT = 8;
 
-export function inspectWav(bytes) {
+// A read-only view for animation analysis. The original bytes are still what
+// storeSpeech writes; no normalization, filters or resampling are applied.
+export function readPcmWav(bytes) {
   if (!Buffer.isBuffer(bytes) || bytes.length < 44 || bytes.length > 24000000
       || bytes.toString('ascii', 0, 4) !== 'RIFF' || bytes.toString('ascii', 8, 12) !== 'WAVE') {
     throw Error('Speech response is not a supported WAV');
@@ -32,7 +34,13 @@ export function inspectWav(bytes) {
   }
   const duration = data.length / format.align / format.rate;
   if (duration < 0.05 || duration > 120) throw Error('Speech duration is outside the supported range');
-  return {duration, sampleRate: format.rate, channels: format.channels, bits: format.bits};
+  return {duration, sampleRate: format.rate, channels: format.channels, bits: format.bits,
+    codec: format.codec, align: format.align, data};
+}
+
+export function inspectWav(bytes) {
+  const {duration, sampleRate, channels, bits} = readPcmWav(bytes);
+  return {duration, sampleRate, channels, bits};
 }
 
 export function silentWav() {

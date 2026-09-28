@@ -5,6 +5,7 @@ import fengari from 'fengari';
 const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
 const subtitles = readFileSync(new URL('../mod/subtitles.lua', import.meta.url), 'utf8');
 const speech = readFileSync(new URL('../mod/speech.lua', import.meta.url), 'utf8');
+const facial = readFileSync(new URL('../mod/facial-playback.lua', import.meta.url), 'utf8');
 
 test('native playback respects mute and subtitle changes without restarting audio', () => {
   const state = lauxlib.luaL_newstate(); lualib.luaL_openlibs(state);
@@ -30,7 +31,8 @@ test('native playback respects mute and subtitle changes without restarting audi
     scnDialogLineType={OwnerlessRegular=1}
     io.open=function() return nil end
     local captions=(function() ${subtitles} end)()
-    dofile=function() return captions end
+    local face=(function() ${facial} end)()
+    dofile=function(path) return path=='facial-playback.lua' and face or captions end
     local speech=(function() ${speech} end)()
     speech.available=true
     speech.target={GetEntityID=function() return {hash='npc'} end,

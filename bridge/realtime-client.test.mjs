@@ -2,11 +2,15 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {runInNewContext} from 'node:vm';
+import {drainBlendshapes} from './blendshape-capture.mjs';
+import {BlendshapeQueue} from '../node_modules/@convai/web-sdk/dist/core/BlendshapeQueue.js';
 
-const source = readFileSync(new URL('./realtime-client.mjs', import.meta.url), 'utf8').replace("import {ConvaiClient} from '@convai/web-sdk/vanilla';", '');
+const source = readFileSync(new URL('./realtime-client.mjs', import.meta.url), 'utf8')
+  .replace("import {ConvaiClient} from '@convai/web-sdk/vanilla';", '')
+  .replace("import {drainBlendshapes} from './blendshape-capture.mjs';", '');
 const flush = () => new Promise(done => setImmediate(done));
 function fixture() {
-  const clients = [], events = [];
+  const clients = [], events = [], captures = [];
   class Client {
     constructor(options) {
       this.options = options; this.characterSessionId = 'session-' + clients.length; this.handlers = new Map();
@@ -24,15 +28,16 @@ function fixture() {
     resetIdleTimer() { events.push('idle-reset'); }
   }
   class Audio {
-    constructor() { events.push('audio-capture'); this.audioWorklet = {addModule: async () => {}}; }
+    constructor() { events.push('audio-capture'); this.sampleRate = 48000; this.audioWorklet = {addModule: async () => {}}; }
     async resume() {}
     async close() {}
   }
-  class Capture { constructor() { this.port = {}; } connect() {} disconnect() {} }
+  class Capture { constructor() { this.port = {}; captures.push(this); } connect() {} disconnect() {} }
   const window = {};
-  runInNewContext(source, {ConvaiClient: Client, AudioContext: Audio, AudioWorkletNode: Capture,
-    window, performance, setTimeout, clearTimeout, setInterval, clearInterval});
-  return {api: window.convaiRealtime, clients, events};
+  runInNewContext(source, {ConvaiClient: Client, AudioContext: Audio, AudioWorkletNode: Capture, drainBlendshapes,
+    window, performance, setTimeout, clearTimeout, setInterval, clearInterval,
+    btoa: data => Buffer.from(data, 'binary').toString('base64')});
+  return {api: window.convaiRealtime, clients, events, captures};
 }
 const config = {key: 'test-key', characterId: 'alex', scope: 'group:alex,panam', text: 'Hello'};
 
@@ -111,5 +116,32 @@ test('switching between native Convai voice and local speech reconnects the sess
   assert.equal(clients.length, 2);
   assert.equal(clients[0].isBotReady, false);
   assert.equal(clients[1].options.ttsEnabled, false);
+  await api.close();
+});
+
+test('ahead-delivered facial frames do not end a reply before its actual audio finishes', async () => {
+  const {api, clients, captures} = fixture();
+  await api.warm(config);
+  const pending = api.reply(config); await flush();
+  const client = clients[0], queue = client.blendshapeQueue = new BlendshapeQueue();
+  queue.startConversation();
+  queue.addChunk(Array.from({length: 60}, () => Array(61).fill(0.3)),
+    {fps: 30, startFrameIndex: 0, responseId: 'spoken'});
+  queue.endConversation({fps: 30, total_blendshapes: 60, total_audio_duration_ms: 2000}, {responseId: 'spoken'});
+  client.handlers.get('messagesChange')([{id: 'reply', type: 'bot-llm-text', content: 'Hello V.', isStreaming: false}]);
+  let finished = false; pending.then(() => { finished = true; });
+  await new Promise(done => setTimeout(done, 80));
+  assert.equal(queue.length, 0); assert.equal(finished, false);
+  queue.startBotSpeaking(); client.state.isSpeaking = true;
+  const pcm = new Float32Array(48000).fill(0.1);
+  captures[0].port.onmessage({data: {at: 10, pcm}});
+  await new Promise(done => setTimeout(done, 80));
+  assert.equal(finished, false);
+  captures[0].port.onmessage({data: {at: 11, pcm}});
+  queue.stopBotSpeaking(); client.state.isSpeaking = false;
+  const result = await pending;
+  assert.equal(result.faces.length, 60); assert.equal(result.facesFormat, 'arkit61');
+  assert.equal(result.faces[59].at, 59 / 30); assert.equal(result.facesTimebase, 'audio-seconds');
+  assert.equal(Buffer.from(result.audio, 'base64').readUInt32LE(40), 96000 * 2);
   await api.close();
 });

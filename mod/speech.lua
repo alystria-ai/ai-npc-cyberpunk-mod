@@ -2,6 +2,7 @@
 -- drives captions: the native sound's playback cursor is authoritative.
 local M = convaiSpeech or {heartbeat = 0, available = false}
 local captions = dofile('subtitles.lua')
+local face = dofile('facial-playback.lua')
 
 local function voiceEnabled(player)
     if not player then return false end
@@ -14,12 +15,13 @@ local function publish()
     if f then
         f:write(json.encode({available = M.available, updated = os.time() * 1000,
             requestId = M.requestId, slot = M.slot, state = M.state or 'idle',
-            position = M.position, error = M.error}))
+            position = M.position, error = M.error, face = face.status()}))
         f:close()
     end
 end
 
 function M.stop(reason)
+    face.stop(M.actor, reason)
     if M.player then pcall(function() M.player:ConvaiSpeechStop() end) end
     if M.requestId then captions.clear() end
     M.player, M.actor, M.requestId, M.slot, M.duration = nil, nil, nil, nil, nil
@@ -53,12 +55,15 @@ function M.start(context, reply)
     M.requestId, M.slot, M.duration = context.requestId, audio.slot, audio.duration
     M.state, M.position, M.waited, M.stalled, M.paused = 'starting', 0, 0, 0, false
     M.speaker, M.text, M.error = context.name, reply.text, nil
+    face.start(context, reply.face, actor, audio.duration)
     publish()
     return true
 end
 
 function M.abandon()
     -- Unload callback: release Lua references without calling native emitters.
+    face.abandon()
+    M.target = nil
     M.player, M.actor, M.playerID, M.requestId = nil, nil, nil, nil
     M.slot, M.duration, M.position = nil, nil, 0
     M.state, M.available = 'idle', false
@@ -76,8 +81,8 @@ function M.update(delta)
     if not M.requestId then return end
     -- CET can return different Lua wrappers for the same engine object.
     -- Compare the stable entity ID, never wrapper identity.
-    if not player or tostring(player:GetEntityID().hash) ~= M.playerID
-        or not M.actor:IsAttached() or M.actor:IsDeadNoStatPool() then M.stop('target-lost'); return end
+    if not player or tostring(player:GetEntityID().hash) ~= M.playerID then M.abandon(); return end
+    if not M.actor:IsAttached() or M.actor:IsDeadNoStatPool() then M.stop('target-lost'); return end
     if not voiceEnabled(player) then
         local speaker, text = M.speaker, M.text
         M.stop('muted')
@@ -87,7 +92,7 @@ function M.update(delta)
     local defs = Game.GetAllBlackboardDefs()
     local paused = Game.GetBlackboardSystem():Get(defs.UI_System):GetBool(defs.UI_System.IsInMenu)
     if paused ~= M.paused then M.player:ConvaiSpeechPause(paused); M.paused = paused end
-    if paused then return end
+    if paused then face.pause(M.actor); return end
     local pos = M.player:ConvaiSpeechPosition()
     M.waited = M.waited + delta
     if pos > (M.position or 0) + 0.001 then
@@ -105,6 +110,7 @@ function M.update(delta)
             captions.beginTimed(M.speaker, M.text, M.duration)
         end
         captions.syncTimed(pos)
+        face.sync(M.actor, pos, M.requestId)
     end
     if pos >= M.duration - 0.025 then M.stop('finished')
     elseif M.stalled > 3 then
