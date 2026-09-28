@@ -42,3 +42,44 @@ All first twelve WAVs were independently checked: mono, 24 kHz, PCM16, non-silen
 - [Engine survey and pinned sources](VOICE_ENGINE_COMPARISON.md).
 
 Production still uses Convai/Kokoro. Do not activate the local provider until a voice has passed listening review and the chosen service is warm. A local provider failure preserves the written reply; it does not substitute another character's voice. The new audio requires its own speech/facial alignment; Convai's old audio timings are deliberately discarded.
+
+## VoxCPM2: first familiar-character comparison
+
+The user preferred base OmniVoice over the Judy fine-tuning pilot. On the same
+running-game setup, the next samples use VoiceStudio's actual VoxCPM2 adapter,
+package 2.0.3 and model revision `32279effe8c19989596f05d353d1447f51d9e915`.
+This run calls the repository's adapter and isolated worker directly; it does
+not use the HTTP route or imply native game playback. See [setup and scope](VOICE_ENGINE_COMPARISON.md#additional-engines-in-the-user-shared-repository).
+
+The same original character references were used, with a longer common line:
+“Hey V, slow down a second. We have been running all over Night City, and you
+still have not told me what is on your mind.” Settings were 10 inference steps,
+guidance 2.0, native 48 kHz, bfloat16 CUDA and no optional Torch compilation.
+No EQ, pitch/speed changes, gain, denoising or mastering was added. The upstream
+adapter trims edge silence in references and long silent tails in output.
+
+| Character | Audio duration | Time to completed waveform | Full-scale saturated samples |
+| --- | ---: | ---: | ---: |
+| Johnny | 10.24 s | 162.29 s, including cold imports/model load/warmup | 0 |
+| Judy | 5.92 s | 24.85 s | 0 |
+| Panam | 8.32 s | 37.28 s | 0 |
+
+The worker reported 5,431 MiB allocated after rendering; this is retained model
+memory, not a peak measurement. The worker was shut down after the batch and GPU
+use returned to roughly 4,652 MiB with the game still open. Warm timings include
+reference preparation and all generation. They are currently too high to claim
+a useful live-dialogue latency improvement. No same-seed comparison is claimed:
+VoiceStudio's VoxCPM2 adapter does not forward a seed.
+
+Samples, exact reference hashes and the completed report are retained under
+`runtime/voice-comparison/voxcpm2-10steps-first-review`. Listening preference is
+pending; base OmniVoice remains the reference. Do not adopt VoxCPM2 based on
+sample rate, a successful WAV render or an automatic similarity score.
+
+Local Whisper transcribed all intended words in Judy and Panam. In Johnny it
+joined “over Night City” into “overnight city”; that may be a transcription error
+and needs listening. WavLM similarity against eight separate original recordings
+per character was 0.9213 for Johnny, 0.8851 for Judy and 0.9180 for Panam. These
+are diagnostic values, not evidence that VoxCPM2 beats OmniVoice. All three PCM
+headers, durations and SHA256 hashes were independently read back successfully.
+The evaluation worker also exited; no candidate inference process remains.

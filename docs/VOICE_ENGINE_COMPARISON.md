@@ -87,3 +87,49 @@ Chatterbox Turbo/Nano/Flash declare MIT licenses; Qwen's code and 0.6B Base mode
 | VoiceStudio, existing baseline | `08a1592e3cb9b4c36beef5fa3185ec2313bb1fea` |
 
 See [VOICESTUDIO_RESEARCH.md](VOICESTUDIO_RESEARCH.md) for the already-inspected Convai text-only switch, VoiceStudio HTTP fields, raw-audio settings, and native WAV constraints.
+
+## Additional engines in the user-shared repository
+
+After the Judy LoRA pilot, the user preferred base OmniVoice and asked to try
+other options already included in VoiceStudio. The adapter is set aside; lower
+training loss did not establish better audible quality. See [training evidence](VOICE_TRAINING.md).
+
+VoiceStudio's [engine catalog](https://github.com/debpalash/VoiceStudio/blob/08a1592e3cb9b4c36beef5fa3185ec2313bb1fea/docs/engines/README.md)
+also includes VoxCPM2, IndexTTS 2.5, CosyVoice 3, GPT-SoVITS and MOSS-TTS engines.
+Their presence is not evidence that they sound better for these characters.
+
+- **VoxCPM2 is the next listening candidate.** Its actual VoiceStudio adapter
+  supports cloning with the reference recording plus its exact transcript;
+  the native output is 48 kHz. A higher sample rate alone does not establish
+  better likeness. [Model card](https://huggingface.co/openbmb/VoxCPM2),
+  [VoiceStudio adapter](https://github.com/debpalash/VoiceStudio/blob/08a1592e3cb9b4c36beef5fa3185ec2313bb1fea/backend/engines/voxcpm2_subprocess/main.py).
+- **IndexTTS 2.5 is another candidate**, with separate reference-voice and emotion
+  controls. It needs its own environment and has not been installed or measured
+  here. [VoiceStudio guide](https://github.com/debpalash/VoiceStudio/blob/08a1592e3cb9b4c36beef5fa3185ec2313bb1fea/docs/engines/indextts.md).
+
+The VoxCPM2 comparison uses package 2.0.3 in `vendor/voxcpm2-runtime`, Torch
+2.8.0+cu128 and its matching torchaudio, and model revision
+`32279effe8c19989596f05d353d1447f51d9e915`. The external environment's import and
+CUDA probes passed before writing VoiceStudio's completion marker. Its full
+dependency receipt is retained there; this is not the app-managed Torch 2.11
+installation recipe. OmniVoice's environment and weights are unchanged.
+
+`scripts/Compare-VoiceStudioEngine.py` calls the real VoiceStudio engine adapter
+and its isolated worker directly. This avoids the HTTP application's unrelated
+OmniVoice startup preload, which would consume GPU memory during this comparison.
+It does not replace the engine implementation or claim HTTP/native game playback
+acceptance. The adapter retains reference edge trimming and output-silence
+trimming; no mastering, EQ, pitch changes, denoising or volume adjustment is added.
+Its VoxCPM2 adapter does not forward a fixed seed, so this is not a same-seed
+comparison with OmniVoice. Optional Torch compilation is disabled on Windows.
+
+The private model receipt is `runtime/voxcpm2-model.json`; listening WAVs and
+per-character receipts are under `runtime/voice-comparison`. Run with VoiceStudio's
+interpreter:
+
+```powershell
+& .\vendor\reference-voicestudio\.venv\Scripts\python.exe scripts/Compare-VoiceStudioEngine.py --label first-review
+```
+
+Use a new label for another run. The worker is released after the batch; this
+comparison does not change the production speech provider or restart the game.
