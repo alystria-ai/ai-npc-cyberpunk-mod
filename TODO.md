@@ -36,6 +36,7 @@ This is the running request and verification list. A checked item means the beha
 
 ## In-game management and controls
 
+- [ ] Investigate intermittent rapid top-to-bottom looping in Phone Contacts if it recurs. Reported September 28; user said it stopped on its own before a trace could be collected. No cause established and no input/layout fix applied.
 - [x] Prevent phone J/L actions from also triggering normal game shortcuts. A scoped CET menu-action guard was installed live; the user confirmed J/L work in Contacts and J works normally after closing.
 - [ ] Support contacts unlocked later in the same playthrough automatically when they appear in the phone; include inactive journal contacts in the catalog without unlocking quests or contacts for the player.
 - [ ] Replace the current native Codeware popup prototype with a proper full companion manager menu page, independent of Mod Configuration Menu if feasible.
