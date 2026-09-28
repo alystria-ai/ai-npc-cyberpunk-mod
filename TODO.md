@@ -4,6 +4,7 @@ This is the running request and verification list. A checked item means the beha
 
 ## Companion experience
 
+- [ ] September 29 movement rebuild: looking back while Judy arrives still made her turn away and show her back. Trace identified accepting a moving arrival sample, coasting beyond it, and a reverse correction. Replaced that controller with explicit travel, approach, braking, settled attention and recovery stages; destination planning, native execution and gaze now have separate ownership. Added continuous movement/overshoot regression cases. See `docs/COMPANION_MOVEMENT_DESIGN.md`. All 107 checks pass; installed at 02:34 IST, awaiting CET reload and fresh in-game animation acceptance.
 - [ ] September 29: correct the sideways/backwards glide and repeated turning after sprint catch-up. The live handler retained V in `_facingTarget` even with rotation disabled. Clearing that argument stopped Judy's turn loop in the trace; the production hook is scoped to exact owned travel commands. Walking legs cannot repeatedly restart their pre-turn, and accepted loose side spots are retained. See `docs/COMPANION_BEHAVIOR.md`; full animation acceptance remains pending.
 - [ ] September 29: remove the automatic standing turn back to the group's travel direction, as requested after the latest test. Keep a relaxed stance after eye contact and allow the small social footstep. The alignment phase is removed and active after the confirmed CET reload; visual acceptance pending.
 - [ ] September 29: prevent invitations placing a companion on a road below V. Same-floor navigation/path/clearance checks reject unsafe invitations; attached position is checked before assigning the follower role. Runtime confirms both Johnny roots and Iris on V's floor. The later Johnny invisibility report is tracked separately below; elevated/disconnected-floor visual acceptance remains pending.
@@ -14,12 +15,12 @@ This is the running request and verification list. A checked item means the beha
 - [x] Support multiple characters and duplicate copies in one party. A Judy, Panam, second Judy party spawned and moved in a live save.
 - [x] Keep stable side positions as V turns the camera; run to catch up when V runs. Both were observed in the live group test.
 - [x] Spawn the nearest companion beside V without bumping V; bring the nearest side position to about 1.5 metres. Measured in-game after the latest spawn.
-- [x] Give companions a subtle look toward V, a full body turn and small footstep when V looks at one, then turn back when V looks away. The latest footstep and softer upper-body look were accepted in the live Judy test.
-- [ ] Recheck the latest look, footstep, return turn, and closer spacing with a group of at least three, including duplicate copies, during walking and running.
+- [x] Give companions a subtle look toward V, a full body turn and small footstep when V looks at one. The footstep and softer upper-body look were accepted in an earlier live Judy test. On September 29 the user removed the automatic return turn; retain the comfortable stance after looking away.
+- [ ] Recheck the latest look, footstep, relaxed stance after looking away, and closer spacing with a group of at least three, including duplicate copies, during walking and running.
 - [x] Show each active managed copy on the minimap with a marker that follows it and disappears on dismissal. The game's follower role supplies a green marker per copy: Judy, Panam, and a second Judy showed three distinct markers with our custom pin disabled; dismissing Panam left two. The extra custom mappin and world-widget hook were removed.
-- [x] Settle facing the correct travel direction after following V at a run. Confirmed in the live Judy test.
+- [ ] Reverify natural arrival facing after following V at a run. An earlier test passed, but the latest looking-back test exposed a reverse correction during deceleration; the rebuilt arrival controller still needs a fresh live check.
 - [x] Prevent a second sideways attention step after Judy first repositions. A fresh live test showed one 0.16-metre step, a full turn toward V, and no extra backward move.
-- [ ] Make group walking feel like friends beside V across turns, obstacles, sprint catch-up, and stopping, rather than an escort or a rigid formation. Continue live tuning of the current controller.
+- [ ] Make group walking feel like friends beside V across turns, obstacles, sprint catch-up, and stopping. Validate the rebuilt continuous controller across the cases in `docs/COMPANION_MOVEMENT_DESIGN.md`; do not treat a single settled frame as motion acceptance.
 - [ ] Decide how companions persist across save loads, fast travel, vehicles, combat, and game reloads; restore or clean them safely.
 
 ## Interaction and conversation

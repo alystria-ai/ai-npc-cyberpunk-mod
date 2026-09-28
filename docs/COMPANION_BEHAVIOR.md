@@ -1,5 +1,9 @@
 # Walking together, attention and safe invitations
 
+This document preserves the earlier experiments and native facing discovery.
+The current controller and the later arrival/coasting failure are described in
+[COMPANION_MOVEMENT_DESIGN.md](COMPANION_MOVEMENT_DESIGN.md).
+
 ## Findings from September 29
 
 The player reported a sideways/backwards glide when companions reached V after

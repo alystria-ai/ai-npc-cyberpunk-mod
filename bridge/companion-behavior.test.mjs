@@ -2,10 +2,9 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import fengari from 'fengari';
-import {companionModules, flatNavigation} from './companion-fixture.mjs';
+import {companionEngine, flatNavigation} from './companion-fixture.mjs';
 
 const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
-const source = readFileSync(new URL('../mod/companions.lua', import.meta.url), 'utf8');
 const locomotion = readFileSync(new URL('../mod/companion-locomotion.lua', import.meta.url), 'utf8');
 const init = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8');
 
@@ -18,82 +17,7 @@ function run(code) {
 
 // Execute production Lua with command ownership and explicit measured positions.
 // This verifies arbitration, not native animation, pathfinding or rendered gait.
-const fixture = `
-  io.open=function() return nil end
-  ${companionModules}
-  Vector4={new=function(x,y,z,w) return {x=x,y=y,z=z or 0,w=w or 1} end}
-  Enum={new=function(_, value) return value end}; CName={new=function(value) return value end}
-  TweakDBID={new=function(value) return value end}
-  TweakDB={GetRecord=function() return {IsA=function() return true end} end}
-  WorldPosition={new=function() return {SetVector4=function(self,p) self.position=p end} end}
-  AIPositionSpec={new=function() return {
-    SetWorldPosition=function(self,p) self.position=p.position end,
-    SetEntity=function(self,e) self.entity=e end} end}
-  LookAtPartRequest={new=function() return {} end}
-  LookAtAddEvent={new=function() return {request={limits={}},
-    SetEntityTarget=function(self,target) self.target=target end,
-    SetStyle=function() end,
-    SetAdditionalPartsArray=function(self,parts) self.parts=parts end} end}
-  LookAtRemoveEvent={QueueRemoveLookatEvent=function(npc,event) npc.looks[event]=nil end}
-  NewObject=function(kind) return {kind=kind, state='New',
-    rotateEntityTowardsFacingTarget=true, OnRoleCleared=function() end} end
-  local player={pos=Vector4.new(0,0),forward=Vector4.new(0,1)}
-  function player:GetWorldPosition() return self.pos end
-  function player:GetWorldForward() return self.forward end
-  function player:GetWorldOrientation() return {} end
-  local entities, sequence={},0
-  local system={IsReady=function() return true end, IsSpawned=function() return true end}
-  function system:CreateEntity(spec)
-    sequence=sequence+1
-    local ai={commands={}, role={IsA=function() return true end}}
-    function ai:GetAIRole() return self.role end
-    function ai:SetAIRole(role) self.role=role end
-    function ai:OnAttach() end
-    function ai:SendCommand(cmd)
-      cmd.id=#self.commands+1; cmd.state='Executing'; self.commands[#self.commands+1]=cmd
-      if self.onSend then self.onSend(cmd) end
-    end
-    function ai:GetCommandState(cmd) return cmd.state end
-    function ai:StopExecutingCommand(cmd) cmd.state='Stopped' end
-    function ai:CancelCommand(cmd) cmd.state='Cancelled' end
-    local npc={id={hash=tostring(sequence)},pos=spec.position,forward=Vector4.new(0,1),ai=ai,looks={}}
-    function npc:GetEntityID() return self.id end
-    function npc:IsAttached() return true end
-    function npc:IsA(kind) return kind=='NPCPuppet' end
-    function npc:IsCrowd() return false end
-    function npc:IsDeadNoStatPool() return false end
-    function npc:GetWorldPosition() return self.pos end
-    function npc:GetWorldForward() return self.forward end
-    function npc:GetAIControllerComponent() return self.ai end
-    function npc:GetComponents() return self.components or {} end
-    function npc:QueueEvent(event) self.looks[event]=true end
-    entities[sequence]=npc
-    return npc.id
-  end
-  function system:GetEntity(id) return entities[tonumber(id.hash)] end
-  function system:DeleteEntity(id) entities[tonumber(id.hash)]=nil; return true end
-  Game={GetPlayer=function() return player end,GetDynamicEntitySystem=function() return system end,
-    GetTargetingSystem=function() return {GetCrosshairData=function() return nil,player.forward end} end,
-    CreateEntityReference=function() return {} end}
-  NPCPuppet={IsInCombat=function(npc) return npc.combat or false end}
-  ${flatNavigation}
-  local companions=(function() ${source} end)()
-  local function tick(count,focus)
-    for i=1,(count or 1) do companions.update(player,0.5,focus) end
-    for _,row in ipairs(companions.list()) do assert(not row.error, row.error) end
-  end
-  local function spawn(key) companions.spawn(key or 'judy-alvarez'); tick(); return entities[sequence] end
-  local function active(npc,kind)
-    local result={}
-    for _,cmd in ipairs(npc.ai.commands) do
-      if cmd.state=='Executing' and (not kind or cmd.kind==kind) then result[#result+1]=cmd end
-    end
-    return result
-  end
-  local function last(npc,kind)
-    for i=#npc.ai.commands,1,-1 do if npc.ai.commands[i].kind==kind then return npc.ai.commands[i] end end
-  end
-`;
+const fixture = companionEngine;
 
 test('catch-up releases attention and never pins running body direction to V', () => run(`${fixture}
   local npc=spawn(); tick(3)
@@ -137,12 +61,15 @@ test('post-run rejoin uses path facing, including after a conversation step', ()
   local move=last(npc,'AIMoveToCommand')
   assert(move and move.rotateEntityTowardsFacingTarget==false, 'rejoin must explicitly disable strafing')
   assert(not move.facingTarget or not move.facingTarget.entity, 'no entity-facing target while rejoining')
-  assert(next(npc.looks)==nil, 'finish rejoining before making eye contact')
+  for event in pairs(npc.looks) do
+    assert(event.parts[1].weight<=0.05, 'arrival may glance but cannot claim the body')
+  end
 `));
 
 test('looking at an approaching member does not interrupt their arrival', () => run(`${fixture}
   local npc=spawn(); tick(3)
-  npc.pos=Vector4.new(1.5,-2); tick(3,npc.id.hash)
+  player.pos=Vector4.new(0,8); tick(1); tick(3)
+  npc.pos=Vector4.new(1.5,6); tick(1,npc.id.hash)
   assert(#active(npc,'AIMoveToCommand')==1, 'an approaching member must keep their route')
   assert(last(npc,'AIMoveToCommand').rotateEntityTowardsFacingTarget==false)
   assert(#active(npc,'AIRotateToCommand')==0 and #active(npc,'AIHoldPositionCommand')==0)
@@ -186,23 +113,33 @@ test('a small step inside the resting group does not restart everybody\'s format
     assert(#npc.ai.commands==counts[i], 'local reposition by V made the whole group relocate')
   end
   player.pos=Vector4.new(0,4); tick(1)
-  assert(last(one,'AIFollowTargetCommand'), 'leaving the resting group must still start catch-up')
+  assert(#active(one,'AIFollowTargetCommand')+#active(one,'AIMoveToCommand')>0,
+    'leaving the resting group must start travelling')
 `));
 
 test('a short route behind the companion turns first instead of starting a backward walk', () => run(`${fixture}
-  local npc=spawn(); tick(4)
-  npc.pos=Vector4.new(1.5,3); tick(1)
+  companions.spawn('judy-alvarez'); local npc=entities[1]
+  local motor=dofile('companion-actuator.lua')
+  local state=motor.new(npc)
+  npc.pos=Vector4.new(1.5,3)
+  local context={position=npc.pos,direction=npc.forward,speed=0,player=player,
+    playerGap=3.4,frame={position=player.pos},others={},id=npc.id.hash}
+  local decision={operation={ticket='route',kind='move',goal=Vector4.new(1.5,0.05),
+    gait='Walk',finish=true,face=false},look='none'}
+  motor.apply(state,decision,context,true)
   local turn=last(npc,'AIRotateToCommand')
   assert(turn and #active(npc,'AIMoveToCommand')==0, 'a short backward correction needs a turn before locomotion')
   assert(next(npc.looks)==nil, 'route turn must not fight social gaze')
-  npc.forward=Vector4.new(0,-1); turn.state='Success'; tick(2)
+  npc.forward=Vector4.new(0,-1); context.direction=npc.forward; turn.state='Success'
+  motor.sense(state,npc.pos,0,0.5); motor.apply(state,decision,context,true)
   assert(#active(npc,'AIMoveToCommand')==1)
   assert(last(npc,'AIMoveToCommand').rotateEntityTowardsFacingTarget==false)
 `));
 
 test('a walking leg owns steering and is not repeatedly cancelled by yaw changes', () => run(`${fixture}
   local npc=spawn(); tick(3)
-  npc.pos=Vector4.new(1.5,-2); tick(2)
+  player.pos=Vector4.new(0,8); tick(1); tick(3)
+  npc.pos=Vector4.new(1.5,6); tick(2)
   local move=last(npc,'AIMoveToCommand'); assert(move)
   npc.forward=Vector4.new(0,-1); tick(2)
   assert(#active(npc,'AIRotateToCommand')==0, 'a yaw change during a walking leg must not start another turn')
@@ -353,7 +290,7 @@ test('arrival requires actual settling before gaze can take over; losing gaze do
   npc.pos=approach.movementTarget.position; approach.state='Succeeded'
   tick(1,npc.id.hash)
   assert(not companions.list()[1].focused, 'arrival momentum must settle before the turn')
-  tick(2,npc.id.hash)
+  tick(4,npc.id.hash)
   local step=last(npc,'AIMoveToCommand')
   assert(step~=approach and step.rotateEntityTowardsFacingTarget==true)
   npc.pos=step.movementTarget.position; step.state='Succeeded'; tick(1,npc.id.hash)
@@ -363,7 +300,8 @@ test('arrival requires actual settling before gaze can take over; losing gaze do
 
 test('a blocked route gets one quiet native recovery interval rather than a command every frame', () => run(`${fixture}
   local npc=spawn(); tick(3)
-  npc.pos=Vector4.new(1.5,-3); tick(10)
+  player.pos=Vector4.new(0,8); tick(1); tick(3)
+  npc.pos=Vector4.new(1.5,6); tick(8)
   assert(companions.list()[1].behavior=='recover')
   local follow=last(npc,'AIFollowTargetCommand'); local count=#npc.ai.commands
   tick(3)

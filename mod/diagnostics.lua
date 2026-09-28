@@ -438,6 +438,11 @@ if request:match('^party%-motion%-watch:') then
             if watch.elapsed < watch.sampleAt then return end
             watch.sampleAt = watch.elapsed + 0.45
             local states, rows = {}, {}
+            local camera
+            pcall(function()
+                local _, view = Game.GetTargetingSystem():GetCrosshairData(player)
+                if view then camera = {x=view.x, y=view.y, z=view.z} end
+            end)
             for _, member in ipairs(convaiCompanions.list()) do states[member.entityID] = member end
             for _, item in ipairs(convaiCompanions.conversationCandidates(player, 35)) do
                 local npc, state = item.npc, states[item.entity]
@@ -445,6 +450,7 @@ if request:match('^party%-motion%-watch:') then
                     local position, forward = npc:GetWorldPosition(), npc:GetWorldForward()
                     local old = watch.previous[item.entity]
                     state.time = watch.elapsed
+                    state.focusEntity, state.cameraForward = focus, camera
                     state.position = {x = position.x, y = position.y, z = position.z}
                     state.forward = {x = forward.x, y = forward.y}
                     if old then
@@ -457,6 +463,8 @@ if request:match('^party%-motion%-watch:') then
                         end
                     end
                     state.behaviorTrace = nil
+                    state.lastCommand = state.commandTrace and state.commandTrace[#state.commandTrace] or nil
+                    state.commandTrace = nil
                     watch.previous[item.entity] = state
                     rows[#rows + 1] = state
                 end
