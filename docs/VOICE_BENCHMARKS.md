@@ -83,3 +83,52 @@ per character was 0.9213 for Johnny, 0.8851 for Judy and 0.9180 for Panam. These
 are diagnostic values, not evidence that VoxCPM2 beats OmniVoice. All three PCM
 headers, durations and SHA256 hashes were independently read back successfully.
 The evaluation worker also exited; no candidate inference process remains.
+
+## Follow-up: OmniVoice speed and resources
+
+The user requested a comparison of speed and resources and verification that
+the engines use the GPU. A fresh base OmniVoice run used the actual VoiceStudio
+adapter and loader, with the same longer Judy sentence and source recording as
+the VoxCPM2 comparison. Cyberpunk remained running. ASR and optional compilation
+were disabled, and no speech effects or output processing were added.
+
+| Run | Audio | Complete-waveform generation |
+| --- | ---: | ---: |
+| First use of Judy reference, 32 steps | 6.96 s | 4.36 s |
+| Cached reference, 32 steps | 6.96 s | 2.77 s |
+| Cached reference, 16 steps | 6.96 s | 1.38 s |
+
+Model loading took 48.92 seconds (52.81 seconds with imports). These new times
+measure the engine directly. Earlier 7.26–10.29-second OmniVoice results used
+shorter sentences and the full HTTP service, including its output pipeline.
+The runs were not simultaneous and game load was not fixed; their difference
+cannot be attributed entirely to HTTP overhead. The 16-step sample has not
+received a new listening review. No end-to-end in-game latency is established.
+
+OmniVoice memory from its own CUDA allocator:
+
+- Loaded model: 1,937 MiB allocated / 1,960 MiB reserved.
+- First reference render: peak 4,239 MiB allocated / 4,336 MiB reserved.
+- Warm render: peak 2,091 MiB allocated, with the allocator retaining its
+  4,336 MiB reservation for reuse. Driver overhead is additional.
+- Process resident system RAM: approximately 2,233 MiB during warm generation;
+  the full import/load/render run peaked at 3,437 MiB. Windows private committed
+  memory peaked at 8,857 MiB; that is not all simultaneously resident physical RAM.
+- Warm CPU time averaged about 0.9–1.0 CPU core while inference used CUDA.
+
+The earlier VoxCPM2 worker reported 5,431 MiB allocated on the GPU after the batch;
+its GPU peak was not captured. A process snapshot during that batch showed
+11,892,461,568 bytes (about 11.1 GiB) resident in its worker. This is a single-worker
+snapshot, not a continuously sampled RAM peak or a whole-service total. Its log
+explicitly records `Running on device: cuda, dtype: bfloat16`; optional compilation
+was disabled because Triton was absent. That does not disable ordinary CUDA.
+Chatterbox's loader also explicitly used `cuda`, with recorded allocator peaks.
+
+Cached weights including the relevant audio decoder/tokenizer total 3.032 GiB
+for OmniVoice and 4.617 GiB for VoxCPM2. These exclude Python environments,
+reference recordings, training data and experimental checkpoints.
+
+Private fresh evidence: `runtime/voice-comparison/omnivoice-resource-check/report.json`
+and `runtime/omnivoice-resource-check.log`. The measurement worker exited and GPU
+use returned to 4,652 MiB for the game/desktop baseline. Production speech settings
+were unchanged.

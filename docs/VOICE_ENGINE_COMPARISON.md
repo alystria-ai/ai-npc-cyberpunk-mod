@@ -4,7 +4,14 @@ Assessed 2026-09-28 against the upstream revisions below. This document records 
 
 ## Recommendation
 
-**Current listening decision: prefer VoiceStudio/OmniVoice; Chatterbox is rejected.** After hearing the familiar-character samples, the user reported that Chatterbox does not sound good and OmniVoice sounds better. OmniVoice samples were generated through the user-shared VoiceStudio repository's local backend. This establishes relative preference, not final acceptance of every voice or game latency. Keep Qwen3-TTS Base as a possible fallback if another comparison is needed; only its source was cloned, with no environment or weights installed.
+**Current listening decision: VoxCPM2 is preferred for quality; latency remains unresolved.** The user rejected Chatterbox, preferred base OmniVoice over its Judy training pilot, and then preferred the VoxCPM2 samples. Both OmniVoice and VoxCPM2 were rendered through actual code from the user-shared VoiceStudio repository. Their underlying models come from k2-fsa and OpenBMB respectively. Keep OmniVoice as the faster comparison. Qwen remains an untested fallback: only its source was cloned, with no environment or weights installed.
+
+**Practical live-chat recommendation after the resource check: base OmniVoice at
+32 steps**, with a resident model and cached references. The user highlighted
+OmniVoice as a promising choice after seeing the warm 2.77-second result for
+6.96 seconds of speech. Preserve VoxCPM2 as the preferred likeness comparison.
+The 16-step mode is faster but needs listening review; full-service and actual
+game latency still need measurement before calling the runtime ready.
 
 The initial bounded test order was OmniVoice, Turbo, then Nano for latency. That comparison is complete; do not continue tuning the rejected Chatterbox variants. Qwen's 0.6B Base is the smaller option; assess the 1.7B Base memory budget when prioritizing voice similarity. Keep Flash and xVASynth out of the initial installation queue: Flash adds dependency/backend work; xVASynth's verified catalog does not cover the original three companions. These are workload choices, not a universal quality ranking.
 
@@ -23,7 +30,7 @@ Sources: [xVASynth author page](https://www.nexusmods.com/cyberpunk2077/mods/216
 
 ### Memory: plausible candidates, unverified peak residency
 
-The observed hardware was an RTX 4080 Laptop GPU with 12,282 MiB total and 7,344 MiB free, plus approximately 32 GB RAM. This is a changing snapshot while the game is open. No listed engine has a measured peak here. Keep **one TTS engine resident**, serialize synthesis, and cache character prompts rather than loading one model per companion.
+At the initial survey, the hardware was an RTX 4080 Laptop GPU with 12,282 MiB total and 7,344 MiB free, plus approximately 32 GB RAM. No local runtime measurements existed then. Subsequent measurements are in [VOICE_BENCHMARKS.md](VOICE_BENCHMARKS.md); do not substitute download sizes or this old free-memory snapshot for current runtime use. Keep **one TTS engine resident**, serialize synthesis, and cache character prompts rather than loading one model per companion.
 
 For download planning only, the selected checkpoint files total approximately: Turbo **2.78 GiB**, Nano **1.81 GiB**, Flash **2.98 GiB**, Qwen **2.34 GiB**, OmniVoice **3.03 GiB**. These include the relevant decoder/tokenizer and voice encoder where applicable; Turbo/Nano exclude the unused alternate `s3gen.safetensors`. These are file sizes, **not VRAM requirements**. Runtime dtype, activation/cache allocations, temporary loading copies, CUDA graphs, and game memory use determine fit. Nano's shared speech decoder is why its complete artifacts are much larger than “110M” suggests.
 
