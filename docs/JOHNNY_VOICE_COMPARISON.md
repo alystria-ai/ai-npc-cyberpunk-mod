@@ -4,6 +4,8 @@ September 28, 2026. All five options received the same original Johnny line.
 The listening pack contains his extracted game recording followed by the first
 timed take from each option. Listening approval is pending.
 
+**Follow-up:** [cold and warm timing with RT Ultra, Turbo and a fixed 60 FPS view](VOICE_RT60_COLD_WARM.md). All five options completed and released their GPU memory. The fifth result uses an experimental reduced-memory VoxCPM2 runtime and a new sample; it is distinct from this original all-GPU listening pack. The original recordings and measurements below remain unchanged.
+
 ## Listen
 
 Private local files: `runtime/voice-comparison/johnny-original-line/listening/`.

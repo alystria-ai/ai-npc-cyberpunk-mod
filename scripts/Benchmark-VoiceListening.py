@@ -32,7 +32,25 @@ def main():
     parser.add_argument("--key", default="johnny-silverhand")
     parser.add_argument("--label", default="five-options-johnny")
     parser.add_argument("--original-line", help="Verified game line to reproduce; must differ from the cloning reference")
+    parser.add_argument("--cold-only", action="store_true",
+                        help="Save the first render without a discarded warmup, then unload and exit")
+    parser.add_argument("--record-first-render", action="store_true",
+                        help="Also save the first render before the two warm takes; caller can time startup to its receipt")
+    parser.add_argument("--stop-file", type=Path,
+                        help="Cooperative cancellation flag checked between GPU operations")
+    parser.add_argument("--voxcpm-bounded", action="store_true",
+                        help="Experimental bounded-memory VoxCPM2 worker; records CPU placement changes")
+    parser.add_argument("--omni-steps", nargs="+", type=int, choices=(16, 32),
+                        help="OmniVoice settings to render; cold-only accepts one setting")
     args = parser.parse_args()
+    if args.voxcpm_bounded and args.engine != "voxcpm2":
+        parser.error("--voxcpm-bounded applies only to VoxCPM2")
+    if args.omni_steps and args.engine != "omnivoice":
+        parser.error("--omni-steps applies only to OmniVoice")
+    first_recorded = args.cold_only or args.record_first_render
+    omni_steps = args.omni_steps or ([32] if first_recorded else [32, 16])
+    if len(omni_steps) != len(set(omni_steps)) or (first_recorded and len(omni_steps) != 1):
+        parser.error("Use unique step settings and only one per cold process")
     if not re.fullmatch(r"[a-z0-9-]{1,40}", args.label):
         parser.error("Invalid comparison label")
     selected = json.loads((ROOT / "runtime/voice-references/selected-benchmark.json").read_text("utf-8"))
@@ -101,6 +119,8 @@ def main():
     monitor.start()
     backend = None
     report = {"engine": args.engine, "key": args.key, "text": text,
+              "mode": "cold-only" if args.cold_only else "warm-comparison",
+              "firstRenderRecorded": args.cold_only or args.record_first_render,
               "model": {"repo": repo, "revision": revision},
               "referencePath": ref["wavPath"], "referenceSha256": ref["wav"]["sha256"],
               "referenceTranscript": ref_text, "referenceTranscriptEncodingRepaired": ref_text != ref["transcript"],
@@ -114,7 +134,15 @@ def main():
     def save():
         report_path.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
 
+    def cancelled():
+        if args.stop_file and args.stop_file.exists():
+            report.update(cancelled=True, completed=False)
+            return True
+        return False
+
     try:
+        if cancelled():
+            return
         import numpy as np
         import soundfile as sf
         import torch
@@ -143,7 +171,14 @@ def main():
             sys.path.insert(0, str(ROOT / "vendor/reference-voicestudio/backend"))
             from services.tts_backend import get_backend_class
             logging.basicConfig(level=logging.INFO, stream=sys.stderr)
-            backend = get_backend_class(args.engine)()
+            backend_class = get_backend_class(args.engine)
+            if args.voxcpm_bounded:
+                os.environ['CONVAI_VOX_METRICS'] = str(directory / 'bounded-memory.json')
+                os.environ['CONVAI_VOX_STOP'] = str(args.stop_file or directory / 'stop-request.json')
+                backend_class = type('BoundedVoxCPM2Backend', (backend_class,), {
+                    'sidecar_script': classmethod(lambda cls: ROOT / 'scripts/VoxCPM2-BoundedWorker.py')})
+                report['experimentalMemoryMode'] = '1024-token cache; CPU audio codec, feature encoder and text embedding; CUDA speech transformers; 4300 MiB allocator ceiling with 1024 MiB whole-GPU headroom; no startup warmup; max 128 audio tokens; no badcase retries'
+            backend = backend_class()
             report["voiceStudioRevision"] = "08a1592e3cb9b4c36beef5fa3185ec2313bb1fea"
             if args.engine == "omnivoice":
                 begin = time.perf_counter()
@@ -153,10 +188,12 @@ def main():
                 report["executionDevice"] = backend.execution_device
                 if not report["executionDevice"].startswith("cuda"):
                     raise RuntimeError("OmniVoice did not load on CUDA")
-                options = [("omnivoice-32", 32), ("omnivoice-16", 16)]
+                options = [(f"omnivoice-{steps}", steps) for steps in omni_steps]
             else:
                 options = [("voxcpm2-10", 10)]
-                report["seedNote"] = "The unmodified VoiceStudio VoxCPM2 adapter does not forward the seed to its isolated engine"
+                report["seedNote"] = ("Experimental sidecar sets torch seed 1042 before each request"
+                                      if args.voxcpm_bounded else
+                                      "The unmodified VoiceStudio VoxCPM2 adapter does not forward the seed to its isolated engine")
             sample_rate = backend.sample_rate
 
             def generate(steps):
@@ -165,9 +202,13 @@ def main():
                                         speed=1, denoise=False, postprocess_output=False)
         report["cpuThreads"] = torch.get_num_threads()
         for variant, steps in options:
-            # One warmup followed by two recorded runs. Same seed for each
-            # in-process render; independent engines do not share RNG semantics.
-            for run in range(3):
+            # Normal comparison: one warmup plus two recorded runs. Cold-only
+            # records the first render and exits. Its caller times process
+            # launch to the flushed WAV receipt, including imports and loading.
+            # Independent engines do not share RNG semantics.
+            for run in range(1 if args.cold_only else 3):
+                if cancelled():
+                    return
                 own_cuda = args.engine != "voxcpm2"
                 if own_cuda:
                     torch.manual_seed(1042)
@@ -196,10 +237,12 @@ def main():
                 else:
                     backend.health_check()
                     row["cudaResidentAllocatedMiB"] = backend._vram_mb
-                if run:
-                    path = directory / f"{variant}-run{run}.wav"
+                if run or args.cold_only or args.record_first_render:
+                    suffix = "cold" if run == 0 else f"run{run}"
+                    path = directory / f"{variant}-{suffix}.wav"
                     sf.write(path, values, sample_rate, subtype="PCM_16")
                     row.update({"path": str(path), "sha256": hashlib.sha256(path.read_bytes()).hexdigest()})
+                if run or args.cold_only:
                     report["clips"].append(row)
                 else:
                     report["warmups"].append(row)

@@ -2,6 +2,8 @@
 
 September 28, 2026. These are generated-audio and timing checks, not listening acceptance or in-game playback acceptance.
 
+**Latest timing run:** [RT Ultra at 60 FPS: cold starts, warm replies and memory release](VOICE_RT60_COLD_WARM.md). All five options now have completed results: the four smaller engines and a separate experimental VoxCPM2 run using CPU offload and reduced GPU cache. VoxCPM2 took 83.82 s cold and 44.38–44.72 s warm, reserving 3.82 GiB on the GPU. This differs from the stock all-GPU setup. Read the cold/warm definitions before comparing with earlier service timings.
+
 **Latest comparison:** [Johnny's original game line and all five generated options](JOHNNY_VOICE_COMPARISON.md) use the same words, a separate cloning reference, two warm GPU renders per option, and measured process-tree memory. The six-file listening pack is under `runtime/voice-comparison/johnny-original-line/listening/`. Keep the earlier results below as separate experiments.
 
 **Listening update:** the user rejected Chatterbox, initially preferred OmniVoice, and then said the VoxCPM2 samples below sound better. VoxCPM2 is now the preferred quality candidate; its measured latency still prevents promotion to live gameplay. Keep prior measurements as evidence. Every OmniVoice sample here came from the user-shared VoiceStudio repository's local backend.
