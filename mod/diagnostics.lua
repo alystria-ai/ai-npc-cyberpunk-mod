@@ -469,6 +469,104 @@ if request:match('^party%-motion%-watch:') then
     end
     return
 end
+if request:match('^party%-pause:') then
+    if not convaiPausedPartyUpdate then
+        convaiPausedPartyUpdate = convaiCompanions.update
+        convaiCompanions.update = function() end
+    end
+    local rows = {}
+    for _, item in ipairs(convaiCompanions.conversationCandidates(Game.GetPlayer(), 100)) do
+        local row = {entity = item.entity, name = item.name}
+        local ok, err = pcall(function()
+            local ai = item.npc:GetAIControllerComponent()
+            row.cancelled = ai:CancelOrInterruptCommand(CName.new('AIMoveCommand'), true, false)
+            local hold = NewObject('AIHoldPositionCommand')
+            hold.duration = 300.0
+            row.held = ai:SendCommand(hold)
+        end)
+        if not ok then row.error = tostring(err) end
+        rows[#rows + 1] = row
+    end
+    local file = io.open('runtime/party-paused.json', 'wb')
+    if file then file:write(json.encode(rows)); file:close() end
+    return
+end
+if request:match('^party%-resume:') then
+    for _, item in ipairs(convaiCompanions.conversationCandidates(Game.GetPlayer(), 100)) do
+        item.npc:GetAIControllerComponent():CancelOrInterruptCommand(CName.new('AIHoldPositionCommand'), false, true)
+    end
+    if convaiPausedPartyUpdate then
+        convaiCompanions.update = convaiPausedPartyUpdate
+        convaiPausedPartyUpdate = nil
+    end
+    return
+end
+if request:match('^party%-mapping%-reflect:') then
+    local result = {}
+    local ok, err = pcall(function()
+        for _, className in ipairs({'AIMoveToCommandHandler', 'AIMoveRotateToCommandHandler'}) do
+            local fields = {}
+            for _, prop in ipairs(Reflection.GetClass(CName.new(className)):GetProperties()) do
+                fields[#fields + 1] = NameToString(prop:GetName())
+            end
+            result[className] = fields
+        end
+    end)
+    if not ok then result.error = tostring(err) end
+    local file = io.open('runtime/party-mapping-reflect.json', 'wb')
+    if file then file:write(json.encode(result)); file:close() end
+    return
+end
+if request:match('^party%-facing%-state:') then
+    local motion = convaiLocomotion or convaiFacingFix or {}
+    local file = io.open('runtime/party-facing-fix.json', 'wb')
+    if file then file:write(json.encode({installed = motion.installed,
+        checked = motion.checked, cleared = motion.cleared, error = motion.error})); file:close() end
+    return
+end
+if request:match('^party%-facing%-watch:') then
+    convaiFacingSamples = {}
+    convaiFacingProbe = function(handler, context, command)
+        if #convaiFacingSamples >= 16 then return end
+        local row = {}
+        local ok, err = pcall(function()
+            local owner = ScriptExecutionContext.GetOwner(context)
+            if not convaiCompanions.owns(owner) then return end
+            row.entity = tostring(owner:GetEntityID().hash)
+            row.rotate = command.rotateEntityTowardsFacingTarget
+            row.requestedFacing = tostring(AIPositionSpec.GetEntity(command.facingTarget))
+            row.mappings = {}
+            for _, name in ipairs({'outFacingTarget', 'outRotateEntityTowardsFacingTarget', 'outMovementTarget', 'outMovementTargetPos'}) do
+                local mapping = handler[name]
+                local field = {name = name, mapping = tostring(mapping)}
+                if mapping then
+                    field.argument = NameToString(mapping:GetArgumentName())
+                    field.type = tostring(mapping:GetArgumentType())
+                    field.parameterization = tostring(mapping:GetParameterizationType())
+                    field.value = tostring(FromVariant(ScriptExecutionContext.GetMappingValue(context, mapping)))
+                    if name == 'outFacingTarget' then
+                        local target = ScriptExecutionContext.GetArgumentObject(context, mapping:GetArgumentName())
+                        field.entity = target and tostring(target:GetEntityID().hash) or 'nil'
+                    end
+                end
+                row.mappings[#row.mappings + 1] = field
+            end
+            row.locomotion = tostring(owner:GetMovePolicesComponent():GetCurrentLocomotionAction())
+        end)
+        if not ok then row.error = tostring(err) end
+        if not row.entity then return end
+        convaiFacingSamples[#convaiFacingSamples + 1] = row
+        local file = io.open('runtime/party-facing-watch.json', 'wb')
+        if file then file:write(json.encode(convaiFacingSamples)); file:close() end
+    end
+    if not convaiFacingObserverInstalled then
+        ObserveAfter('AIMoveToCommandHandler', 'UpdateCommand', function(handler, context, command)
+            if convaiFacingProbe then convaiFacingProbe(handler, context, command) end
+        end)
+        convaiFacingObserverInstalled = true
+    end
+    return
+end
 if request:match('^party%-appearance:') then
     local rows = {}
     local function read(row, key, callback)

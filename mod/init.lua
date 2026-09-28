@@ -530,6 +530,10 @@ local function abandonSession(reason)
 end
 
 registerForEvent('onInit', function()
+    convaiLocomotion = dofile('companion-locomotion.lua')
+    convaiLocomotion.install(function(npc, command)
+        return companions.ownsTravelCommand(npc, command)
+    end)
     dofile('composer-input.lua').install()
     dofile('phone-input.lua').install()
     local ok, err = pcall(mcm.install)

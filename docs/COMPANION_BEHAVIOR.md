@@ -9,10 +9,30 @@ and gaze could interrupt movement through both the civilian native focus path
 and the managed companion controller.
 
 The installed REDmod `AIMoveToCommandHandler` only replaces its facing-entity
-mapping for entity specs. Our conversation step set V as that entity; a later
-world-point facing spec did not clear it. Rejoining now explicitly disables
-`rotateEntityTowardsFacingTarget`. Only the accepted small conversation step
-may face V while moving its feet. Ordinary paths own body direction.
+mapping for entity specs. A live handler probe confirmed that our ordinary
+walking command had `_rotateEntityTowardsFacingTarget = false` while
+`_facingTarget` still referenced V (`1ULL`). Disabling the flag alone did not
+clear the entity. `companion-locomotion.lua` now clears that typed object
+argument after the native handler, only for the exact current travel command
+issued by this controller on an owned copy. The conversation step keeps its
+intentional facing target; unrelated commands and world NPCs are excluded.
+
+The running game's reflected property is `outFacingTarget`, without the
+`m_` prefix used in the bundled REDmod reference scripts. The first field-name
+probe failed; runtime reflection established the actual property before the
+fix was applied. No handler or execution-context references are retained.
+
+Clearing the target in the live test stopped the repeated turn loop in the
+trace: Judy settled facing V, with Johnny stationary separately. This is
+measured engine behavior, not final visual acceptance of all walking cases.
+The user then requested removal of the standing turn back to the group's
+travel direction. That alignment phase has been removed. Small social foot
+adjustments remain allowed; companions do not mirror V's camera yaw.
+
+A separate regression reproduced a comfortable side spot being accepted and
+then revoked on the next update for being 0.7 m from the exact formation seat.
+Accepted spots now remain accepted for that stop. A walking leg also retains
+steering ownership instead of being interrupted by repeated pre-turns.
 
 The user confirmed F4 opens MCM, initially thought Johnny appeared on a lower
 road, then clarified that Johnny seemed absent while Iris spawned normally.
@@ -36,12 +56,12 @@ crash cause remains unconfirmed until an in-game reload check.
 | Walking together | Stable side lanes, loose comfortable spacing; native navigation turns along the path. | Gentle eyes/head glance within a reasonable angle. Camera yaw never rotates formation slots. |
 | Running or falling behind | Persistent native sprint/follow, with slightly different following distances by row. | Release social look-at and body turns. Distance hysteresis prevents rapid command switching. |
 | Rejoining after catch-up | Walk into an acceptable spot for that copy's lane, facing along the route. | Defer direct gaze until arrival. |
-| Short route substantially to the side or behind | Turn toward the route before starting locomotion. Native short-path walking can otherwise choose a backward/strafe gait even without a look-at. | Release social glance during that turn; bounded failure yields to native navigation recovery. |
+| Short route substantially to the side or behind | Turn toward the route before starting a new walking leg. Once walking, navigation owns steering. | Release social glance during that turn; do not repeatedly interrupt the same walking leg to correct yaw. |
 | Settling | Cancel the finished approach and hold the accepted spot while the stop animation completes. | Measured speed must stay low for 0.65 seconds before attention takes over. |
 | Standing together | Keep feet in place; tolerate variation from the exact slot. | Gentle side glance toward V, with no chest contribution or extreme backward look. |
 | V takes a small step inside a resting group | Retain the stop's anchor and heading. Resume the group after V departs the local area, rather than on every movement sample. | The addressed character can turn; the whole group does not re-form around V. |
 | V looks directly at a settled member | One approach/turn step of at most 16 cm, then a native rotation if needed. | Full eyes/head attention. Brief gaze loss/reacquisition does not repeat the step at the same stop. |
-| V looks away | Keep the spot reached by the attention step; rotate back toward the group's travel heading once. | Return to a subtle glance. No second shuffle to an exact slot. |
+| V looks away | Keep the comfortable stance reached by the attention step. No automatic turn to V's camera or the group's travel heading. | Return to a subtle glance. No second shuffle to an exact slot; small social foot adjustments are allowed. |
 | V moves during eye contact | Release the attention step, hold and rotation before submitting locomotion. | Full attention yields to walking or catching up. |
 | Blocked route | Stop repeated formation requests; allow a bounded native follower recovery interval. | Release social facing, then retry ordinary formation. |
 | Combat | Release all movement, hold and turn commands owned by the social controller. | Native combat takes ownership, even when V is looking at that character. |
@@ -85,7 +105,27 @@ turn and a 0.6 m step by V relocating the whole resting group. Both now pass.
 The live motion trace also recorded backward root motion with our social
 look-at disabled; field selection alone had not solved every native gait.
 
+The subsequent facing/stance update passes **95 tests**, with no skips,
+including the installed MCM API gate. New regressions cover the retained native
+entity, exact-command ownership during `SendCommand`, unrelated commands,
+save-boundary ownership, explicit attention targets, accepted loose parking,
+no repeated turn during one walking leg, and no look-away alignment turn.
+All 18 Lua files compile. These are command/lifecycle checks, not visual proof.
+
 F4 entry, Iris spawning and the one-copy Johnny visibility repair are confirmed
-by the user. Fresh Johnny invitations, save reload and the latest route-turn /
-local-movement behavior still need live acceptance. The user explicitly reported
-intermittent moonwalking after the first ownership fix; it is not marked solved.
+by the user. After the combined Lua update and CET reload, the user confirmed a
+fresh Johnny is visible and the post-join confirmation appears (Judy and Johnny
+both reached ready in the log). The next test reported repeated turning; the
+retained-facing probe and cleanup above were performed in response. Save reload,
+the removal of standing alignment and the complete run/stop/look sequence still
+need live acceptance. Intermittent moonwalking is not marked solved.
+
+Installed files were SHA-256 verified; the prior Lua is saved in ignored
+`backups/companion-controls-20260929-013041/`. Local implementation checkpoint:
+`e1b146d`. No native script restart was needed for this update.
+
+The following stance/facing revision was installed and SHA-256 verified at
+01:55 IST on September 29, with the preceding live Lua backed up under
+`backups/movement-facing-20260929-015546/`. The user was asked for one CET reload
+to activate the permanent exact-command hook and removed alignment phase.
+The temporary broad test-copy probe is discarded by that reload.

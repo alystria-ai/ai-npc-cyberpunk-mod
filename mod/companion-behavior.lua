@@ -67,9 +67,6 @@ function M.decide(state, c, delta)
     if c.focusRequested and c.playerGap <= limits.attentionDistance then
         return choose('attend', 'attention', 'full', 'A settled companion returns direct eye contact')
     end
-    if c.needsAlignment then
-        return choose('align', 'rotate', 'none', 'Face the travel direction after arrival or conversation')
-    end
     return choose('idle', 'hold', glance(), 'Stay in the accepted spot with a gentle side glance')
 end
 

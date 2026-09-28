@@ -87,8 +87,9 @@ and Iris joined through Invite. Johnny's apparently absent model was traced to
 his native phantom visibility controller; the user confirmed the live repair.
 The initial floor concern and crash after V died prompted the work in
 [COMPANION_BEHAVIOR.md](COMPANION_BEHAVIOR.md). The latest combined suite passes
-90 checks. Fresh Johnny invitation, save reload, model search, settings apply/revert and repeated
-close/reopen still need acceptance.
+90 checks. The user then reloaded CET and confirmed a fresh Johnny is visible
+and the post-join confirmation appears. Save reload, model search, settings
+apply/revert and repeated close/reopen still need acceptance.
 
 The local manager binding remains F4. The distributed action name still mentions
 F5 as its reference default; the game's QuickSave mapping was not altered.

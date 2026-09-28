@@ -6,6 +6,7 @@ import {companionModules, flatNavigation} from './companion-fixture.mjs';
 
 const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
 const source = readFileSync(new URL('../mod/companions.lua', import.meta.url), 'utf8');
+const locomotion = readFileSync(new URL('../mod/companion-locomotion.lua', import.meta.url), 'utf8');
 const init = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8');
 
 function run(code) {
@@ -48,7 +49,10 @@ const fixture = `
     function ai:GetAIRole() return self.role end
     function ai:SetAIRole(role) self.role=role end
     function ai:OnAttach() end
-    function ai:SendCommand(cmd) cmd.state='Executing'; self.commands[#self.commands+1]=cmd end
+    function ai:SendCommand(cmd)
+      cmd.id=#self.commands+1; cmd.state='Executing'; self.commands[#self.commands+1]=cmd
+      if self.onSend then self.onSend(cmd) end
+    end
     function ai:GetCommandState(cmd) return cmd.state end
     function ai:StopExecutingCommand(cmd) cmd.state='Stopped' end
     function ai:CancelCommand(cmd) cmd.state='Cancelled' end
@@ -194,6 +198,95 @@ test('a short route behind the companion turns first instead of starting a backw
   npc.forward=Vector4.new(0,-1); turn.state='Success'; tick(2)
   assert(#active(npc,'AIMoveToCommand')==1)
   assert(last(npc,'AIMoveToCommand').rotateEntityTowardsFacingTarget==false)
+`));
+
+test('a walking leg owns steering and is not repeatedly cancelled by yaw changes', () => run(`${fixture}
+  local npc=spawn(); tick(3)
+  npc.pos=Vector4.new(1.5,-2); tick(2)
+  local move=last(npc,'AIMoveToCommand'); assert(move)
+  npc.forward=Vector4.new(0,-1); tick(2)
+  assert(#active(npc,'AIRotateToCommand')==0, 'a yaw change during a walking leg must not start another turn')
+  assert(move.state=='Executing', 'do not cancel a short walking route to correct yaw')
+`));
+
+test('an accepted loose side spot remains accepted for the whole stop', () => run(`${fixture}
+  local npc=spawn(); tick(3)
+  player.pos=Vector4.new(0,8); tick(1); tick(3)
+  npc.pos=Vector4.new(2.2,8.05); tick(1)
+  local count=#npc.ai.commands
+  tick(6)
+  assert(#active(npc,'AIMoveToCommand')==0 and #active(npc,'AIRotateToCommand')==0,
+    'an accepted side spot was revoked in favor of the exact mathematical seat')
+  assert(#npc.ai.commands==count, 'settling should not restart walking each update')
+`));
+
+test('looking away does not rotate a settled friend back to the group heading', () => run(`${fixture}
+  local npc=spawn(); tick(3); tick(1,npc.id.hash)
+  local step=last(npc,'AIMoveToCommand')
+  npc.pos=step.movementTarget.position; step.state='Success'
+  npc.forward=Vector4.new(-npc.pos.x,-npc.pos.y)
+  tick(2,npc.id.hash)
+  local count=#npc.ai.commands
+  player.forward=Vector4.new(1,0); tick(5)
+  assert(#active(npc,'AIRotateToCommand')==0, 'look-away must not align the body to a travel or camera heading')
+  assert(#npc.ai.commands==count and last(npc,'AIMoveToCommand')==step,
+    'keep the natural conversation step and do not force a second reposition')
+`));
+
+const nativeFacing = `
+  local observer
+  ObserveAfter=function(_,_,callback) observer=callback end
+  AIPositionSpec.IsEntity=function(spec) return spec and spec.entity~=nil end
+  local mapping={GetArgumentName=function() return '_facingTarget' end,
+    GetArgumentType=function() return 'AIArgumentType : Object (7)' end,
+    GetParameterizationType=function() return 'AIParameterizationType : BehaviorArgument (0)' end}
+  local handler={outFacingTarget=mapping}
+  ScriptExecutionContext={
+    GetOwner=function(context) return context.owner end,
+    GetArgumentObject=function(context,name) return context[name] end,
+    SetArgumentObject=function(context,name,value) context[name]=value end,
+  }
+  local motion=(function() ${locomotion} end)()
+  motion.install(companions.ownsTravelCommand)
+`;
+
+test('native retained facing is cleared only for the current owned travel command, even during SendCommand', () => run(`${fixture}
+  ${nativeFacing}
+  local npc=spawn(); tick(3)
+  local context={owner=npc}
+  npc.ai.onSend=function(command)
+    if command.kind~='AIMoveToCommand' then return end
+    -- Model the engine handler: an empty spec leaves the old object in place.
+    if AIPositionSpec.IsEntity(command.facingTarget) then context._facingTarget=command.facingTarget.entity end
+    observer(handler,context,command)
+  end
+  tick(1,npc.id.hash)
+  assert(context._facingTarget==player, 'the useful conversation step must retain its facing target')
+  player.pos=Vector4.new(0,8); tick(1); tick(3)
+  npc.pos=Vector4.new(1.5,6); tick(2)
+  local travel=last(npc,'AIMoveToCommand')
+  assert(context._facingTarget==nil and motion.cleared==1, 'an ordinary walk inherited the conversation facing target')
+  assert(companions.ownsTravelCommand(npc,travel), 'native callback must recognize ownership before SendCommand returns')
+  context._facingTarget=player
+  observer(handler,context,{id=999, rotateEntityTowardsFacingTarget=false})
+  assert(context._facingTarget==player, 'commands from another system on our copy must remain untouched')
+  local foreign={GetEntityID=function() return {hash='quest-actor'} end}
+  context.owner=foreign; observer(handler,context,travel)
+  assert(context._facingTarget==player, 'story NPC facing must remain untouched')
+  context.owner=npc; companions.abandon(); observer(handler,context,travel)
+  assert(context._facingTarget==player, 'an old copy cannot retain command ownership across save unload')
+`));
+
+test('native facing cleanup respects explicit targets and skips unconfigured mappings', () => run(`${fixture}
+  ${nativeFacing}
+  local context={_facingTarget=player}
+  assert(not motion.apply(handler,context,{rotateEntityTowardsFacingTarget=true}))
+  assert(not motion.apply(handler,context,{rotateEntityTowardsFacingTarget=false,facingTarget={entity=player}}))
+  assert(context._facingTarget==player)
+  assert(not motion.apply({},context,{rotateEntityTowardsFacingTarget=false}))
+  mapping.GetParameterizationType=function() return 'AIParameterizationType : CustomValue (1)' end
+  assert(not motion.apply(handler,context,{rotateEntityTowardsFacingTarget=false}))
+  assert(context._facingTarget==player and motion.cleared==0)
 `));
 
 test('managed gaze has one owner and does not also start the civilian native hold', () => {

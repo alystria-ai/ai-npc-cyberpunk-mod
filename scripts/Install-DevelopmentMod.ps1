@@ -11,6 +11,7 @@ if (-not [IO.File]::Exists((Join-Path $game 'bin\x64\Cyberpunk2077.exe'))) { thr
 if (-not $LuaOnly -and (Get-Process Cyberpunk2077 -ErrorAction SilentlyContinue)) { throw 'Close the game before installing native scripts, or use -LuaOnly for a CET reload.' }
 
 $targets = @(
+    @{ From = (Join-Path $project 'mod\companion-locomotion.lua'); To = (Join-Path $game 'bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai\companion-locomotion.lua') },
     @{ From = (Join-Path $project 'mod\companion-appearance.lua'); To = (Join-Path $game 'bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai\companion-appearance.lua') },
     @{ From = (Join-Path $project 'mod\companion-behavior.lua'); To = (Join-Path $game 'bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai\companion-behavior.lua') },
     @{ From = (Join-Path $project 'mod\companion-placement.lua'); To = (Join-Path $game 'bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai\companion-placement.lua') },

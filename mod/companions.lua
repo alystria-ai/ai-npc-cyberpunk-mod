@@ -234,12 +234,6 @@ local function releaseFocusStep(entry)
     entry.focusStepAt = nil
 end
 
-local function releaseRelaxTurn(entry)
-    stopAICommand(entry, entry.relaxTurn)
-    entry.relaxTurn = nil
-    entry.relaxTurnAt = nil
-end
-
 local function releaseRouteTurn(entry)
     stopAICommand(entry, entry.routeTurn)
     entry.routeTurn, entry.routeTurnAt = nil, nil
@@ -378,46 +372,6 @@ local function turnTowardPlayer(entry, playerPosition)
     end
 end
 
-local function relaxToWalkingHeading(entry, at)
-    local x, y = math.cos(formationAngle), math.sin(formationAngle)
-    local error = headingError(entry.npc, x, y)
-    entry.relaxFacingError = error
-    if error < 12.0 then
-        releaseRelaxTurn(entry)
-        entry.relaxNeeded = false
-        entry.mode = 'settled'
-        ensureHold(entry)
-        return false
-    end
-    if entry.relaxTurn then
-        local ok, state = pcall(function()
-            return tostring(entry.npc:GetAIControllerComponent():GetCommandState(entry.relaxTurn))
-        end)
-        if ok and (state:find('Executing', 1, true) or state:find('Enqueued', 1, true))
-            and runtimeClock - (entry.relaxTurnAt or 0) < 3.0 then return true end
-        releaseRelaxTurn(entry)
-    end
-    if (entry.relaxAttempts or 0) >= 2 then
-        entry.relaxNeeded = false
-        entry.mode = 'settled'
-        ensureHold(entry)
-        return false
-    end
-    releaseHold(entry)
-    local target = Vector4.new(at.x + x * 3.0, at.y + y * 3.0, at.z, at.w)
-    local ok, command = pcall(function() return issueRotate(entry, target, 75.0) end)
-    if ok then
-        entry.relaxTurn = command
-        entry.relaxTurnAt = runtimeClock
-        entry.relaxAttempts = (entry.relaxAttempts or 0) + 1
-        entry.mode = 'relax'
-        return true
-    end
-    entry.relaxTurnError = tostring(command)
-    entry.relaxNeeded = false
-    return false
-end
-
 ensureHold = function(entry)
     if entry.hold then
         local ok, state = pcall(function()
@@ -521,6 +475,11 @@ local function turnBeforeWalking(entry, target, remaining)
     local at = entry.npc:GetWorldPosition()
     local error = headingError(entry.npc, target.x-at.x, target.y-at.y)
     entry.routeFacingError = error
+    -- Once a leg is walking, navigation owns steering. Do not interrupt it
+    -- with another turn because a start/stop animation briefly changes yaw.
+    -- A materially different destination or a new leg may turn again.
+    if entry.command and entry.mode == 'side' and entry.commandTarget
+        and distance(entry.commandTarget, target) < 0.9 then return false end
     if entry.routeTurn then
         if error <= 30.0 or remaining < 0.4 then
             releaseRouteTurn(entry)
@@ -613,8 +572,10 @@ local function moveBeside(entry, target, running, allowCommand)
     command.ignoreNavigation = false
     command.useStart = true
     command.useStop = true
-    npc:GetAIControllerComponent():SendCommand(command)
+    -- Publish ownership before SendCommand; the native handler may run during
+    -- that call. Its facing cleanup must match this exact command and copy.
     entry.command = command
+    npc:GetAIControllerComponent():SendCommand(command)
     entry.commandTarget = target
     entry.commandRunning = running
     entry.requestedGait = running and 'Run' or 'Walk'
@@ -759,7 +720,6 @@ function M.dismiss(serialToDismiss)
             clearFocusLook(entry)
             releaseFocusStep(entry)
             releaseFocusTurn(entry)
-            releaseRelaxTurn(entry)
             releaseHold(entry)
             cancelMovement(entry)
             releaseRouteTurn(entry)
@@ -802,6 +762,19 @@ function M.owns(npc)
     if not ok then return false end
     for _, entry in ipairs(entries) do
         if entry.state == 'ready' and tostring(entry.entityID.hash) == identity then return true end
+    end
+    return false
+end
+
+function M.ownsTravelCommand(npc, command)
+    if not npc or not command then return false end
+    local identity = tostring(npc:GetEntityID().hash)
+    for _, entry in ipairs(entries) do
+        if entry.state == 'ready' and tostring(entry.entityID.hash) == identity
+            and entry.command and entry.command.id ~= nil
+            and entry.command.id == command.id then
+            return true
+        end
     end
     return false
 end
@@ -912,14 +885,8 @@ function M.list()
             focusStepError = entry.focusStepError,
             focusStepDistance = entry.focusStepDistance,
             focusStepFacingError = entry.focusStepFacingError,
-            relaxNeeded = entry.relaxNeeded,
-            relaxFacingError = entry.relaxFacingError,
-            relaxAttempts = entry.relaxAttempts,
-            relaxTurnError = entry.relaxTurnError,
-            alignAfterTravel = entry.alignAfterTravel,
             routeFacingError = entry.routeFacingError,
             routeTurning = entry.routeTurn ~= nil,
-            adjusting = entry.adjusting,
             focusInitialError = entry.focusInitialError,
             focusBestError = entry.focusBestError,
             focusSeconds = entry.focusStartedAt and math.max(0, runtimeClock - entry.focusStartedAt) or nil,
@@ -1044,14 +1011,11 @@ function M.update(player, delta, focusEntity)
                     entry.attentionStepAnchor = nil
                     entry.progress = nil
                 end
-                if frame.justStopped then entry.alignAfterTravel = true end
                 if frame.moving then
-                    entry.alignAfterTravel, entry.relaxNeeded = false, false
                     entry.parked, entry.attentionAnchor = nil, nil
                 end
                 local focusRequested = tostring(entry.entityID.hash) == focusEntity
                 if entry.focused and (not focusRequested or frame.moving or playerShifted) then
-                    entry.relaxNeeded, entry.relaxAttempts = not frame.moving, 0
                     if not frame.moving and naturalSide and spotIsClear(entry, at, playerPosition) then
                         -- Accept the small conversation step instead of sending
                         -- the actor back to an exact mathematical seat.
@@ -1064,16 +1028,9 @@ function M.update(player, delta, focusEntity)
                     and distance(playerPosition, entry.attentionAnchor) > 0.45 then
                     entry.attentionAnchor = nil
                 end
-                if not frame.moving and entry.parked
-                    and not entry.attentionAnchor
-                    and distance(entry.parked, seat) > 0.65 then
-                    entry.parked = nil
-                    entry.adjusting = true
-                end
-                if entry.adjusting and distance(at, seat) < 0.45 then
-                    entry.adjusting = false
-                end
-                if not frame.moving and not entry.adjusting
+                -- Keep a comfortable arrival for the whole stop. Revoking it
+                -- for being off the exact seat caused a second correction.
+                if not frame.moving
                     and (distance(at, seat) < 0.6 or naturalSide)
                     and spotIsClear(entry, at, playerPosition) then
                     -- Park only after the companion reaches the side seat.
@@ -1093,7 +1050,6 @@ function M.update(player, delta, focusEntity)
                     arrived = gap < 0.6 and spotIsClear(entry, at, playerPosition),
                     focusRequested = focusRequested, playerShifted = playerShifted,
                     facingError = entry.facingError or 180,
-                    needsAlignment = entry.alignAfterTravel or entry.relaxNeeded,
                     blocked = runtimeClock < (entry.fallbackUntil or 0),
                 }, step)
                 if decision.changed then
@@ -1114,7 +1070,6 @@ function M.update(player, delta, focusEntity)
                     entry.focused, entry.focusStartedAt = false, nil
                 end
                 if decision.look ~= 'side' then clearAmbientLook(entry) end
-                if decision.movement ~= 'rotate' then releaseRelaxTurn(entry) end
                 if decision.movement ~= 'side' then releaseRouteTurn(entry) end
 
                 if decision.movement == 'release' then
@@ -1132,17 +1087,11 @@ function M.update(player, delta, focusEntity)
                         entry.focusStepDistance, entry.focusStepFacingError = nil, nil
                     end
                     entry.focusBestError = math.min(entry.focusBestError or 180, entry.facingError or 180)
-                    entry.mode, entry.relaxNeeded = 'busy', false
+                    entry.mode = 'busy'
                     ensureFocusLook(entry, player)
                     if stepIntoConversation(entry, player, playerPosition, at) then return end
                     turnTowardPlayer(entry, playerPosition)
                     return
-                elseif decision.movement == 'rotate' then
-                    cancelMovement(entry)
-                    if entry.alignAfterTravel then
-                        entry.alignAfterTravel, entry.relaxNeeded, entry.relaxAttempts = false, true, 0
-                    end
-                    if relaxToWalkingHeading(entry, at) then return end
                 elseif decision.movement == 'hold' then
                     cancelMovement(entry)
                     entry.mode = 'settled'
