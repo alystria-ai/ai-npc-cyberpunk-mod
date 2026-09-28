@@ -2,6 +2,61 @@
 local requestFile = io.open('runtime/diagnostic-request.txt', 'rb')
 local request = requestFile and requestFile:read('*a') or ''
 if requestFile then requestFile:close() end
+if request:match('^party%-combat%-state:') then
+    local report = {records = {}, companions = {}}
+    for _, record in ipairs({'Character.Silverhand', 'Character.Judy', 'Character.Grayson',
+        'CyberpunkConvai.JohnnyCompanion'}) do
+        local row = {record = record, fields = {}}
+        local ok, err = pcall(function()
+            row.exists = TweakDB:GetRecord(record) ~= nil
+            if not row.exists then return end
+            for _, field in ipairs({'abilities', 'archetypeData', 'primaryEquipment',
+                'secondaryEquipment', 'reactionPreset', 'entityTemplatePath'}) do
+                local value = TweakDB:GetFlat(record .. '.' .. field)
+                if field == 'abilities' then
+                    row.fields[field] = {}
+                    for _, ability in ipairs(value or {}) do
+                        row.fields[field][#row.fields[field] + 1] = tostring(ability)
+                    end
+                else row.fields[field] = tostring(value) end
+                if field == 'primaryEquipment' and value then
+                    local equipment = TweakDB:GetRecord(value)
+                    row.weapons = {}
+                    if equipment then
+                        for _, item in ipairs(equipment:EquipmentItems()) do
+                            row.weapons[#row.weapons + 1] = tostring(item:Item():GetID())
+                        end
+                    end
+                end
+            end
+        end)
+        if not ok then row.error = tostring(err) end
+        report.records[#report.records + 1] = row
+    end
+    for _, item in ipairs(convaiCompanions.conversationCandidates(Game.GetPlayer(), 100)) do
+        local row = {name = item.name, entity = item.entity}
+        local ok, err = pcall(function()
+            row.record = tostring(item.npc:GetRecordID())
+            row.combat = NPCPuppet.IsInCombat(item.npc)
+            row.state = tostring(item.npc:GetHighLevelStateFromBlackboard())
+            row.role = NameToString(item.npc:GetAIControllerComponent():GetAIRole():GetClassName())
+            row.follower = item.npc:IsPlayerCompanion()
+            row.stats = {}
+            for _, stat in ipairs({'CanUseRightHand', 'CanUseLeftHand', 'CanShootWhileMoving',
+                'CanPreciseShoot', 'CanSwitchWeapon'}) do
+                local readOK, value = pcall(function()
+                    return Game.GetStatsSystem():GetStatValue(item.npc:GetEntityID(), stat)
+                end)
+                row.stats[stat] = readOK and value or tostring(value)
+            end
+        end)
+        if not ok then row.error = tostring(err) end
+        report.companions[#report.companions + 1] = row
+    end
+    local file = io.open('runtime/party-combat-state.json', 'wb')
+    if file then file:write(json.encode(report)); file:close() end
+    return
+end
 if request:match('^party%-face%-probe:') then
     local key = request:match('^party%-face%-probe:([^:]+):')
     local probe = dofile('face-probe.lua')

@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "build:voice": "esbuild bridge/realtime-client.mjs --bundle --format=esm --outfile=runtime/realtime-client.js",
-    "test": "node --test bridge/protocol.test.mjs bridge/speech-audio.test.mjs bridge/microphone-session.test.mjs bridge/group-chat.test.mjs bridge/playback-settings.test.mjs bridge/character-catalog.test.mjs bridge/transport-pool.test.mjs bridge/group-prefetch.test.mjs bridge/realtime-client.test.mjs bridge/companion-connections.test.mjs bridge/companion-behavior.test.mjs bridge/companion-motion.test.mjs bridge/party-connections.test.mjs bridge/manager.test.mjs bridge/voice-studio.test.mjs bridge/resident-voice.test.mjs bridge/facial-graphs.test.mjs",
+    "test": "node --test bridge/protocol.test.mjs bridge/speech-audio.test.mjs bridge/microphone-session.test.mjs bridge/group-chat.test.mjs bridge/playback-settings.test.mjs bridge/character-catalog.test.mjs bridge/transport-pool.test.mjs bridge/group-prefetch.test.mjs bridge/realtime-client.test.mjs bridge/companion-connections.test.mjs bridge/companion-behavior.test.mjs bridge/companion-motion.test.mjs bridge/companion-records.test.mjs bridge/party-connections.test.mjs bridge/manager.test.mjs bridge/voice-studio.test.mjs bridge/resident-voice.test.mjs bridge/facial-graphs.test.mjs",
     "build:profiles": "node scripts/Build-CharacterProfiles.mjs",
     "profiles:plan": "node scripts/Provision-Characters.mjs"
   },

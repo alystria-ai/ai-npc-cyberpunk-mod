@@ -6,6 +6,7 @@ local travel = dofile('companion-travel.lua')
 local actuator = dofile('companion-actuator.lua')
 local placement = dofile('companion-placement.lua')
 local appearance = dofile('companion-appearance.lua')
+local spawnRecords = dofile('companion-records.lua')
 
 local records = {
     ['viktor-vektor'] = {id = 'Character.Victor_Vector', name = 'Viktor Vektor'},
@@ -166,8 +167,10 @@ function M.spawn(key)
     end
     local spawnPosition, placementError = placement.find(player, formationPosition(player, freeLane), occupiedPositions)
     if not spawnPosition then return nil, placementError end
+    local spawnRecord, recordError, spawnRecordName = spawnRecords.resolve(recordID)
+    if not spawnRecord then return nil, recordError end
     local spec = NewObject('DynamicEntitySpec')
-    spec.recordID = recordID
+    spec.recordID = spawnRecord
     spec.position = spawnPosition
     spec.orientation = player:GetWorldOrientation()
     spec.spawnInView = true
@@ -186,6 +189,7 @@ function M.spawn(key)
         serial = serial, key = key, name = definition.name, slot = freeSlot, lane = freeLane,
         profileKey = definition.profileKey, profileName = definition.profileName or definition.name,
         record = definition.id or tostring(recordID),
+        spawnRecord = spawnRecordName or definition.id or tostring(recordID),
         entityID = entityID, system = system, state = 'spawning',
         requestedAt = os.time(), requestedClock = runtimeClock,
         spawnPosition = copyPosition(spawnPosition),
@@ -341,6 +345,7 @@ function M.list()
         rows[#rows+1]={
             serial=e.serial,key=e.key,name=e.name..(totals[e.key]>1 and (' #'..seen[e.key]) or ''),
             profileKey=e.profileKey,profileName=e.profileName,record=e.record,slot=e.slot,lane=e.lane,
+            spawnRecord=e.spawnRecord,
             entityID=tostring(e.entityID.hash),state=e.state,error=e.error,
             behavior=phase,behaviorReason=p.reason,behaviorTrace=p.trace,
             mode=m.stage=='orient' and 'route-turn' or (focused and 'busy' or phase),

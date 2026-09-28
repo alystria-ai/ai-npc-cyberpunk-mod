@@ -525,6 +525,7 @@ const engineFixture = `
   function player:GetWorldForward() return Vector4.new(0,1,0,0) end
   function player:GetWorldOrientation() return {} end
   TweakDBID = {new = function(id) return id end}
+  CName = {new = function(value) return value end}
   TweakDB = {GetRecord = function(_, id)
     if id == 'Missing' then return nil end
     return {IsA = function(_, kind) return kind == 'gamedataCharacter_Record' and id ~= 'NotCharacter' end}

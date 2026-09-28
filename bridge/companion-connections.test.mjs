@@ -14,6 +14,7 @@ test('accepted spawns immediately publish unique identities; last dismissal and 
     io.open=function() return nil end
     Vector4={new=function(x,y,z,w) return {x=x,y=y,z=z,w=w} end}
     TweakDBID={new=function(v) return v end}
+    CName={new=function(v) return v end}
     TweakDB={GetRecord=function() return {IsA=function(_, kind) return kind=='gamedataCharacter_Record' end} end}
     NewObject=function() return {} end
     Enum={new=function(_, value) return value end}
@@ -23,7 +24,9 @@ test('accepted spawns immediately publish unique identities; last dismissal and 
       GetWorldOrientation=function() return {} end
     }
     local system={IsReady=function() return true end,
-      CreateEntity=function() created=created+1; return {hash=tostring(created)} end,
+      CreateEntity=function(_,spec)
+        assert(spec.tags[1]=='CyberpunkConvaiCompanion')
+        created=created+1; return {hash=tostring(created)} end,
       DeleteEntity=function() end, IsSpawned=function() return false end}
     Game={GetPlayer=function() return player end,GetDynamicEntitySystem=function() return system end,
       GetTargetingSystem=function() return {GetCrosshairData=function()

@@ -3,6 +3,7 @@ import {readFileSync} from 'node:fs';
 const behavior = readFileSync(new URL('../mod/companion-behavior.lua', import.meta.url), 'utf8');
 const placement = readFileSync(new URL('../mod/companion-placement.lua', import.meta.url), 'utf8');
 const appearance = readFileSync(new URL('../mod/companion-appearance.lua', import.meta.url), 'utf8');
+const spawnRecords = readFileSync(new URL('../mod/companion-records.lua', import.meta.url), 'utf8');
 const space = readFileSync(new URL('../mod/companion-space.lua', import.meta.url), 'utf8');
 const travel = readFileSync(new URL('../mod/companion-travel.lua', import.meta.url), 'utf8');
 const actuator = readFileSync(new URL('../mod/companion-actuator.lua', import.meta.url), 'utf8');
@@ -14,6 +15,7 @@ export const companionModules = `
     if file=='companion-behavior.lua' then return (function() ${behavior} end)() end
     if file=='companion-placement.lua' then return (function() ${placement} end)() end
     if file=='companion-appearance.lua' then return (function() ${appearance} end)() end
+    if file=='companion-records.lua' then return (function() ${spawnRecords} end)() end
     error('Unexpected module '..file)
   end
 `;
@@ -69,7 +71,7 @@ export const companionEngine = `
     function ai:GetCommandState(cmd) return cmd.state end
     function ai:StopExecutingCommand(cmd) cmd.state='Stopped' end
     function ai:CancelCommand(cmd) cmd.state='Cancelled' end
-    local npc={id={hash=tostring(sequence)},pos=spec.position,forward=Vector4.new(0,1),ai=ai,looks={}}
+    local npc={id={hash=tostring(sequence)},pos=spec.position,forward=Vector4.new(0,1),ai=ai,looks={},spec=spec}
     function npc:GetEntityID() return self.id end
     function npc:IsAttached() return true end
     function npc:IsA(kind) return kind=='NPCPuppet' end
