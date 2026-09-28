@@ -4,9 +4,9 @@ Assessed 2026-09-28 against the upstream revisions below. This document records 
 
 ## Recommendation
 
-**Use the OmniVoice setup already in progress as the first baseline, and Chatterbox Turbo as the first additional candidate.** Both can use one persistent model with a small saved prompt per character, feeding the existing completed-WAV native adapter. Choose from the three characters' actual reference recordings, listening comparisons, and warm timings while the game is running. There is no evidence yet that either reproduces these voices well on this machine.
+**Current listening decision: prefer VoiceStudio/OmniVoice; Chatterbox is rejected.** After hearing the familiar-character samples, the user reported that Chatterbox does not sound good and OmniVoice sounds better. OmniVoice samples were generated through the user-shared VoiceStudio repository's local backend. This establishes relative preference, not final acceptance of every voice or game latency. Keep Qwen3-TTS Base as a possible fallback if another comparison is needed; only its source was cloned, with no environment or weights installed.
 
-If Turbo is too expensive or slow, try **Nano through pinned source**; if the voice match is weak, try **Qwen3-TTS 0.6B Base**. Keep Flash and xVASynth out of the initial installation queue: Flash adds dependency/backend work; xVASynth's verified catalog does not cover the three current companions. This is a bounded test order, not a quality ranking.
+The initial bounded test order was OmniVoice, Turbo, then Nano for latency. That comparison is complete; do not continue tuning the rejected Chatterbox variants. Qwen's 0.6B Base is the smaller option; assess the 1.7B Base memory budget when prioritizing voice similarity. Keep Flash and xVASynth out of the initial installation queue: Flash adds dependency/backend work; xVASynth's verified catalog does not cover the original three companions. These are workload choices, not a universal quality ranking.
 
 ## Comparison
 

@@ -2,6 +2,8 @@
 
 September 28, 2026. These are generated-audio and timing checks, not listening acceptance or in-game playback acceptance.
 
+**Listening update:** the user rejected Chatterbox's voice quality after the Johnny/Judy/Panam comparison and said OmniVoice sounds better. VoiceStudio/OmniVoice is the leading option. Keep Chatterbox measurements as evidence, but do not promote that route. Every OmniVoice sample here came from the user-shared VoiceStudio repository's local backend.
+
 ## Conditions
 
 - Cyberpunk remained open on the same RTX 4080 Laptop GPU (12,282 MiB total). One speech engine was resident at a time.
