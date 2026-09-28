@@ -2,6 +2,13 @@
 -- Only IDs allocated here are ever removed; native dialogue is left intact.
 local M = convaiSubtitles or {serial = 0}
 
+function M.enabled()
+    local player = Game.GetPlayer()
+    if not player then return false end
+    local ok, enabled = pcall(function() return player:ConvaiManagerSubtitles() end)
+    return not ok or enabled
+end
+
 local function board()
     return Game.GetBlackboardSystem():Get(Game.GetAllBlackboardDefs().UIGameData)
 end
@@ -58,6 +65,7 @@ end
 
 function M.show(speaker, text)
     M.clear()
+    if not M.enabled() then return end
     M.pages = M.split(text)
     if #M.pages == 0 then M.pages = nil; return end
     M.speaker, M.page = speaker, 1
@@ -66,6 +74,7 @@ end
 
 function M.beginTimed(speaker, text, duration)
     M.clear()
+    if not M.enabled() then return end
     M.pages = M.split(text)
     if #M.pages == 0 then M.pages = nil; return end
     local weights, total = {}, 0
@@ -95,7 +104,7 @@ end
 
 function M.update(delta)
     if not M.line then return end
-    if not Game.GetPlayer() then M.clear(); return end
+    if not M.enabled() then M.clear(); return end
     if M.timed then return end
     local defs = Game.GetAllBlackboardDefs()
     if Game.GetBlackboardSystem():Get(defs.UI_System):GetBool(defs.UI_System.IsInMenu) then return end
