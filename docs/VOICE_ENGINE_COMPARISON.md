@@ -140,3 +140,8 @@ interpreter:
 
 Use a new label for another run. The worker is released after the batch; this
 comparison does not change the production speech provider or restart the game.
+
+The subsequent [Johnny original-line comparison](JOHNNY_VOICE_COMPARISON.md)
+contains an original recording plus OmniVoice 32/16, Chatterbox Nano/Turbo and
+VoxCPM2 10-step takes. It records published system guidance separately from
+actual GPU allocation and process-tree RAM, and preserves both warmed timings.

@@ -2,6 +2,8 @@
 
 September 28, 2026. These are generated-audio and timing checks, not listening acceptance or in-game playback acceptance.
 
+**Latest comparison:** [Johnny's original game line and all five generated options](JOHNNY_VOICE_COMPARISON.md) use the same words, a separate cloning reference, two warm GPU renders per option, and measured process-tree memory. The six-file listening pack is under `runtime/voice-comparison/johnny-original-line/listening/`. Keep the earlier results below as separate experiments.
+
 **Listening update:** the user rejected Chatterbox, initially preferred OmniVoice, and then said the VoxCPM2 samples below sound better. VoxCPM2 is now the preferred quality candidate; its measured latency still prevents promotion to live gameplay. Keep prior measurements as evidence. Every OmniVoice sample here came from the user-shared VoiceStudio repository's local backend.
 
 ## Conditions
