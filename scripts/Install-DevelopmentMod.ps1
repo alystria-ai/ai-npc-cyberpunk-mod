@@ -11,6 +11,10 @@ if (-not [IO.File]::Exists((Join-Path $game 'bin\x64\Cyberpunk2077.exe'))) { thr
 if (-not $LuaOnly -and (Get-Process Cyberpunk2077 -ErrorAction SilentlyContinue)) { throw 'Close the game before installing native scripts, or use -LuaOnly for a CET reload.' }
 
 $targets = @(
+    @{ From = (Join-Path $project 'mod\face-probe.lua'); To = (Join-Path $game 'bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai\face-probe.lua') },
+    @{ From = (Join-Path $project 'r6\scripts\CyberpunkConvai\Face.reds'); To = (Join-Path $game 'r6\scripts\CyberpunkConvai\Face.reds') },
+    @{ From = (Join-Path $project 'r6\scripts\CyberpunkConvai\FaceFeature.reds'); To = (Join-Path $game 'r6\scripts\CyberpunkConvai\FaceFeature.reds') },
+    @{ From = (Join-Path $project 'runtime\facial-rig\package\convai_facial.archive'); To = (Join-Path $game 'archive\pc\mod\convai_facial.archive') },
     @{ From = (Join-Path $project 'mod\companion-space.lua'); To = (Join-Path $game 'bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai\companion-space.lua') },
     @{ From = (Join-Path $project 'mod\companion-travel.lua'); To = (Join-Path $game 'bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai\companion-travel.lua') },
     @{ From = (Join-Path $project 'mod\companion-actuator.lua'); To = (Join-Path $game 'bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai\companion-actuator.lua') },
@@ -46,6 +50,8 @@ if ($LuaOnly) {
 }
 foreach ($item in $targets) {
     if (-not [IO.File]::Exists($item.From)) { throw "Missing source: $($item.From)" }
+}
+foreach ($item in $targets) {
     [IO.Directory]::CreateDirectory([IO.Path]::GetDirectoryName($item.To)) | Out-Null
     [IO.File]::Copy($item.From, $item.To, $true)
     if ((Get-FileHash -LiteralPath $item.From -Algorithm SHA256).Hash -ne (Get-FileHash -LiteralPath $item.To -Algorithm SHA256).Hash) {

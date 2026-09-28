@@ -174,6 +174,9 @@ function M.spawn(key)
     spec.active = true
     spec.alwaysSpawned = true
     spec.persistState, spec.persistSpawn = false, false
+    -- Native facial setup uses this tag before attachment. It never replaces
+    -- an ambient or quest actor's graph based only on their character record.
+    spec.tags = {CName.new('CyberpunkConvaiCompanion')}
     local created, entityID = pcall(function() return system:CreateEntity(spec) end)
     if not created or not entityID or tostring(entityID.hash):match('^0+[uUlL]*$') then
         return nil, 'The game could not create a copy of this model.'

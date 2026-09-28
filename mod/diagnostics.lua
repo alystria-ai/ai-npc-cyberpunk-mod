@@ -2,6 +2,122 @@
 local requestFile = io.open('runtime/diagnostic-request.txt', 'rb')
 local request = requestFile and requestFile:read('*a') or ''
 if requestFile then requestFile:close() end
+if request:match('^party%-face%-probe:') then
+    local key = request:match('^party%-face%-probe:([^:]+):')
+    local probe = dofile('face-probe.lua')
+    if key == 'cancel' then probe.stop('cancelled') else probe.start(key) end
+    return
+end
+if request:match('^party%-face%-state:') then
+    local rows = {}
+    for _, item in ipairs(convaiCompanions.conversationCandidates(Game.GetPlayer(), 100)) do
+        local row = {name = item.name, entity = item.entity}
+        local ok, err = pcall(function()
+            row.ready = item.npc:ConvaiFaceReady()
+            row.status = item.npc:ConvaiFaceStatus()
+        end)
+        if not ok then row.error = tostring(err) end
+        rows[#rows + 1] = row
+    end
+    local file = io.open('runtime/party-face-state.json', 'wb')
+    if file then file:write(json.encode(rows)); file:close() end
+    return
+end
+if request:match('^party%-face%-reflect:') then
+    -- Read-only discovery, restricted to this mod's attached companion copies.
+    -- Do not retain components after the probe or change animation inputs.
+    local report = {classes = {}, companions = {}}
+    local function describe(className)
+        if report.classes[className] then return end
+        local row = {properties = {}, functions = {}, staticFunctions = {}}
+        report.classes[className] = row
+        local ok, err = pcall(function()
+            local cls = Reflection.GetClass(CName.new(className))
+            if not cls then row.missing = true; return end
+            for _, prop in ipairs(cls:GetProperties()) do
+                row.properties[#row.properties + 1] = {
+                    name = NameToString(prop:GetName()), type = NameToString(prop:GetType():GetName())}
+            end
+            for _, method in ipairs(cls:GetFunctions()) do
+                row.functions[#row.functions + 1] = NameToString(method:GetFullName())
+            end
+            for _, method in ipairs(cls:GetStaticFunctions()) do
+                row.staticFunctions[#row.staticFunctions + 1] = NameToString(method:GetFullName())
+            end
+        end)
+        if not ok then row.error = tostring(err) end
+    end
+    local ok, err = pcall(function()
+        for _, item in ipairs(convaiCompanions.conversationCandidates(Game.GetPlayer(), 30)) do
+            local npc = item.npc
+            if convaiCompanions.owns(npc) and npc:IsAttached() then
+                local row = {name = item.name, entity = item.entity, components = {}}
+                for _, component in ipairs(npc:GetComponents()) do
+                    local name, className = NameToString(component:GetName()), NameToString(component:GetClassName())
+                    local detail = {name = name, class = className}
+                    if component:IsA('entAnimatedComponent') or component:IsA('entAnimationControllerComponent')
+                        or className:lower():find('facial', 1, true) then
+                        describe(className)
+                        detail.fields = {}
+                        for _, field in ipairs({'rig', 'graph', 'facialSetup', 'controlBinding', 'animParameters'}) do
+                            local readOK, value = pcall(function() return component[field] end)
+                            detail.fields[field] = readOK and tostring(value) or ('error: ' .. tostring(value))
+                        end
+                        if name == 'face_rig' then
+                            local readOK, readError = pcall(function()
+                                local cls = Reflection.GetClass(CName.new(className))
+                                local owner = ToVariant(component)
+                                local rigRef = ResourceRef.FromVariant(cls:GetProperty(CName.new('rig')):GetValue(owner))
+                                local graphRef = ResourceRef.FromVariant(cls:GetProperty(CName.new('graph')):GetValue(owner))
+                                detail.rigPath = ResRef.ToString(ResourceRef.GetPath(rigRef))
+                                detail.graphPath = ResRef.ToString(ResourceRef.GetPath(graphRef))
+                                local rig = ResourceRef.GetResource(rigRef)
+                                detail.tracks = {}
+                                for i, track in ipairs(rig.trackNames) do
+                                    detail.tracks[#detail.tracks + 1] = {name = NameToString(track), reference = rig.referenceTracks[i]}
+                                end
+                                local graph = ResourceRef.GetResource(graphRef)
+                                detail.variables = {}
+                                for _, kind in ipairs({'boolVariables', 'intVariables', 'floatVariables'}) do
+                                    for _, variable in ipairs(graph.variables[kind]) do
+                                        detail.variables[#detail.variables + 1] = {name = NameToString(variable.name),
+                                            kind = kind, value = variable.value, default = variable.default}
+                                    end
+                                end
+                                detail.nodes = {}
+                                for _, node in ipairs(graph.nodesToInit) do
+                                    local nodeClass = NameToString(node:GetClassName())
+                                    local entry = {class = nodeClass}
+                                    for _, field in ipairs({'name', 'group'}) do
+                                        local value = node[field]
+                                        if value then entry[field] = NameToString(value) end
+                                    end
+                                    detail.nodes[#detail.nodes + 1] = entry
+                                end
+                                detail.parameters = {}
+                                for _, parameter in ipairs(component.animParameters) do
+                                    detail.parameters[#detail.parameters + 1] = {track = NameToString(parameter.animTrackName),
+                                        parameter = NameToString(parameter.parameterName), default = parameter.defaultValue}
+                                end
+                            end)
+                            if not readOK then detail.resourceError = tostring(readError) end
+                        end
+                    end
+                    row.components[#row.components + 1] = detail
+                end
+                report.companions[#report.companions + 1] = row
+            end
+        end
+        for _, className in ipairs({'animAnimGraph', 'animRig', 'animFacialSetup', 'entAnimTrackParameter',
+            'entAnimationControlBinding', 'AnimInputSetterFloat', 'AnimationControllerComponent'}) do
+            describe(className)
+        end
+    end)
+    if not ok then report.error = tostring(err) end
+    local file = io.open('runtime/party-face-reflect.json', 'wb')
+    if file then file:write(json.encode(report)); file:close() end
+    return
+end
 if request:match('^conversation%-state:') then
     local r = convaiGroupChat and convaiGroupChat.round
     local f = io.open('runtime/conversation-state.json', 'wb')
