@@ -10,4 +10,6 @@
 *.key
 *.log
 *.tmp
+__pycache__/
+*.pyc
 /Cyberpunk2077.exe-*.txt
