@@ -2,7 +2,7 @@
 
 September 28, 2026. These are generated-audio and timing checks, not listening acceptance or in-game playback acceptance.
 
-**Listening update:** the user rejected Chatterbox's voice quality after the Johnny/Judy/Panam comparison and said OmniVoice sounds better. VoiceStudio/OmniVoice is the leading option. Keep Chatterbox measurements as evidence, but do not promote that route. Every OmniVoice sample here came from the user-shared VoiceStudio repository's local backend.
+**Listening update:** the user rejected Chatterbox, initially preferred OmniVoice, and then said the VoxCPM2 samples below sound better. VoxCPM2 is now the preferred quality candidate; its measured latency still prevents promotion to live gameplay. Keep prior measurements as evidence. Every OmniVoice sample here came from the user-shared VoiceStudio repository's local backend.
 
 ## Conditions
 
@@ -72,8 +72,8 @@ a useful live-dialogue latency improvement. No same-seed comparison is claimed:
 VoiceStudio's VoxCPM2 adapter does not forward a seed.
 
 Samples, exact reference hashes and the completed report are retained under
-`runtime/voice-comparison/voxcpm2-10steps-first-review`. Listening preference is
-pending; base OmniVoice remains the reference. Do not adopt VoxCPM2 based on
+`runtime/voice-comparison/voxcpm2-10steps-first-review`. The user subsequently
+said this version sounds better; retain base OmniVoice for comparison. Do not adopt VoxCPM2 based on
 sample rate, a successful WAV render or an automatic similarity score.
 
 Local Whisper transcribed all intended words in Judy and Panam. In Johnny it
