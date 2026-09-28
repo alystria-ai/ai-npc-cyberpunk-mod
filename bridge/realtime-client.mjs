@@ -1,7 +1,7 @@
 import {ConvaiClient} from '@convai/web-sdk/vanilla';
 
 let client, identity, context, source, capture, prime, remote, turn, micTimer;
-let initialSession, submitted = false, epoch = 0;
+let initialSession, submitted = false, epoch = 0, ttsEnabled = true;
 const waitFor = (condition, timeout, message) => new Promise((resolve, reject) => {
   const start = performance.now();
   const timer = setInterval(() => {
@@ -29,7 +29,7 @@ async function close() {
 
 async function connect(config) {
   const started = performance.now();
-  const desired = config.characterId + ':' + (config.scope || 'private');
+  const desired = config.characterId + ':' + (config.scope || 'private') + ':' + (config.ttsEnabled !== false);
   const sessionMatches = !config.sessionId || config.sessionId === initialSession || config.sessionId === client?.characterSessionId;
   // Preparation can reuse a warmed *unused* anonymous connection. It can
   // never append speculative dialogue to a previously used character session.
@@ -40,12 +40,14 @@ async function connect(config) {
   await close();
   const connectionEpoch = epoch;
   identity = desired;
+  ttsEnabled = config.ttsEnabled !== false;
   initialSession = config.freshSession ? '-1' : config.sessionId || '-1';
   client = new ConvaiClient({apiKey: config.key, characterId: config.characterId,
     characterSessionId: initialSession, transport: 'livekit', startWithAudioOn: false,
-    enableVideo: false, enableLipsync: true, logRtviMessages: false,
+    enableVideo: false, enableLipsync: ttsEnabled, ttsEnabled, logRtviMessages: false,
     respondModes: {contextUpdate: 'silent'},
     blendshapeConfig: {format: 'arkit', output_fps: 30}});
+  if (ttsEnabled) {
   context = new AudioContext({sampleRate: 48000});
   await context.audioWorklet.addModule('/capture.js');
   await context.resume();
@@ -64,8 +66,9 @@ async function connect(config) {
     if (data.at - turn.origin > 120) { turn.error = 'Voice exceeded two minutes'; return; }
     turn.chunks.push(data);
   };
+  }
   const attach = track => {
-    if (track.kind !== 'audio' || source) return;
+    if (!ttsEnabled || track.kind !== 'audio' || source) return;
     remote = track;
     prime = document.createElement('audio'); prime.autoplay = true;
     track.attach(prime); prime.muted = true; prime.volume = 0; document.body.append(prime);
@@ -82,9 +85,13 @@ async function connect(config) {
     const llm = fresh.filter(m => ['bot-llm-text', 'convai'].includes(m.type) && m.content?.trim());
     const rows = llm.length ? llm : fresh.filter(m => m.type === 'bot-output' && m.content?.trim());
     turn.text = rows.map(m => m.content).join(' ').trim();
+    // The SDK marks the LLM message complete on bot-llm-stopped, separately
+    // from TTS. Never infer completion from a pause between text tokens.
+    turn.textComplete = llm.length > 0 && llm.every(m => m.isStreaming === false);
   });
+  client.on('llmNoResponse', () => { if (turn) turn.error = 'Convai returned no dialogue'; });
   client.on('botOutput', data => {
-    if (turn && data.text && (data.spoken || ['in-progress', 'completed'].includes(data.spokenStatus))) {
+    if (turn && context && data.text && (data.spoken || ['in-progress', 'completed'].includes(data.spokenStatus))) {
       turn.captions.push({at: context.currentTime, text: data.text});
     }
   });
@@ -93,7 +100,7 @@ async function connect(config) {
     if (connectionEpoch !== epoch) throw Error('Conversation startup cancelled');
     return client?.isBotReady;
   }, 20000, 'Convai character did not become ready');
-  await client.room.startAudio();
+  if (ttsEnabled) await client.room.startAudio();
   if (prime) { prime.muted = true; prime.volume = 0; }
   client.room.remoteParticipants.forEach(p => p.audioTrackPublications.forEach(pub => { if (pub.track) attach(pub.track); }));
   return {connectionMs: performance.now() - started, connectionReused: false};
@@ -117,7 +124,7 @@ function encodeWav(chunks, rate) {
 function beginTurn(timing = {}) {
   submitted = true;
   return turn = {before: new Set(client.chatMessages.map(m => m.id)), chunks: [], faces: [], captions: [], text: '', origin: 0, lastSignal: 0,
-    started: performance.now(), epoch, timing};
+    started: performance.now(), epoch, timing, ttsEnabled, textComplete: false};
 }
 
 async function collect(current) {
@@ -127,6 +134,7 @@ async function collect(current) {
     await waitFor(() => {
       if (current.error) throw Error(current.error);
       if (current.epoch !== epoch) throw Error('Conversation cancelled');
+      if (!current.ttsEnabled) return current.text && current.textComplete && !client.state.isThinking;
       const now = performance.now(), q = client.blendshapeQueue;
       carry += Math.min((now - previous) / 1000, 0.25) * q.getPlaybackFps(); previous = now;
       const count = Math.min(Math.floor(carry), q.length); carry -= Math.floor(carry);
@@ -136,8 +144,8 @@ async function collect(current) {
       }
       return current.text && current.chunks.length && q.isConversationEnded() && !q.length
         && !client.state.isSpeaking && !client.state.isThinking && now - current.lastSignal > 450;
-    }, 60000, 'Convai did not finish the voiced reply');
-    const collectedAt = performance.now(), audio = encodeWav(current.chunks, context.sampleRate);
+    }, 60000, 'Convai did not finish the reply');
+    const collectedAt = performance.now(), audio = current.ttsEnabled ? encodeWav(current.chunks, context.sampleRate) : undefined;
     const result = {text: current.text, sessionID: client.characterSessionId,
       audio, timing: {...current.timing, firstAudioMs: current.firstAudioMs,
         collectionMs: collectedAt - started, audioEncodeMs: performance.now() - collectedAt},

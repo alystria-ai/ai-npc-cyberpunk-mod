@@ -9,14 +9,14 @@ function fixture() {
   const clients = [], events = [];
   class Client {
     constructor(options) {
-      this.options = options; this.characterSessionId = 'session-' + clients.length;
+      this.options = options; this.characterSessionId = 'session-' + clients.length; this.handlers = new Map();
       this.chatMessages = []; this.state = {}; this.blendshapeQueue = {length: 0, getPlaybackFps: () => 30, isConversationEnded: () => false};
       this.room = {on() {}, startAudio: async () => {}, remoteParticipants: new Map(),
         localParticipant: {audioTrackPublications: new Map()}};
       this.audioControls = {disableAudio: async () => {}, enableAudio: async () => { events.push('microphone'); }};
       clients.push(this);
     }
-    on() {}
+    on(name, callback) { this.handlers.set(name, callback); }
     async connect() { this.isBotReady = true; }
     async disconnect() { this.isBotReady = false; }
     updateContext(config) { events.push(['context', config]); }
@@ -24,7 +24,7 @@ function fixture() {
     resetIdleTimer() { events.push('idle-reset'); }
   }
   class Audio {
-    constructor() { this.audioWorklet = {addModule: async () => {}}; }
+    constructor() { events.push('audio-capture'); this.audioWorklet = {addModule: async () => {}}; }
     async resume() {}
     async close() {}
   }
@@ -41,7 +41,7 @@ test('warm is silent and an unused anonymous connection can prepare without reco
   await api.warm(config);
   const timing = await api.warm({...config, freshSession: true, sessionId: '-1'});
   assert.equal(clients.length, 1); assert.equal(timing.connectionReused, true);
-  assert.deepEqual(events, []); // No prompt, generated reply, or microphone activation.
+  assert.deepEqual(events, ['audio-capture']); // No prompt, generated reply, or microphone activation.
   assert.equal(clients[0].options.startWithAudioOn, false);
   assert.equal(clients[0].options.characterSessionId, '-1');
   await api.close();
@@ -75,7 +75,41 @@ test('isolated preparation never reuses a supplied persistent session or carries
 test('party keepalive resets only the service idle timer without dialogue or microphone', async () => {
   const {api, events} = fixture(); await api.warm(config);
   assert.equal(api.readiness(true).ready, true);
-  assert.deepEqual(events, ['idle-reset']);
+  assert.deepEqual(events, ['audio-capture', 'idle-reset']);
   await api.close(); assert.equal(api.readiness(true).ready, false);
-  assert.deepEqual(events, ['idle-reset']);
+  assert.deepEqual(events, ['audio-capture', 'idle-reset']);
+});
+
+test('text-only replies finish on LLM completion without audio, lipsync or microphone', async () => {
+  const {api, clients, events} = fixture();
+  await api.warm({...config, ttsEnabled: false});
+  const pending = api.reply({...config, ttsEnabled: false});
+  await flush();
+  const client = clients[0];
+  assert.equal(client.options.ttsEnabled, false);
+  assert.equal(client.options.enableLipsync, false);
+  client.chatMessages = [{id: 'answer', type: 'bot-llm-text', content: 'Hello V.', isStreaming: true}];
+  client.state.isThinking = true;
+  client.handlers.get('messagesChange')(client.chatMessages);
+  let completed = false; pending.then(() => { completed = true; });
+  await new Promise(done => setTimeout(done, 80));
+  assert.equal(completed, false);
+  client.chatMessages[0].isStreaming = false;
+  client.state.isThinking = false;
+  client.handlers.get('messagesChange')(client.chatMessages);
+  const result = await pending;
+  assert.equal(result.text, 'Hello V.'); assert.equal(result.audio, undefined);
+  assert.equal(events.includes('audio-capture'), false);
+  assert.equal(events.includes('microphone'), false);
+  await api.close();
+});
+
+test('switching between native Convai voice and local speech reconnects the session with correct TTS flag', async () => {
+  const {api, clients} = fixture();
+  await api.warm(config);
+  await api.warm({...config, ttsEnabled: false});
+  assert.equal(clients.length, 2);
+  assert.equal(clients[0].isBotReady, false);
+  assert.equal(clients[1].options.ttsEnabled, false);
+  await api.close();
 });

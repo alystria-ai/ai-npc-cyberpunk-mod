@@ -17,6 +17,7 @@ public final func ConvaiSpeechStart(actor: ref<GameObject>, eventName: CName) ->
   settings.distances.min = 2.00;
   settings.distances.max = 18.00;
   settings.persistUntilSoundsFinish = false;
+  settings.affectedByReverbMix = false;
   let audio = GameInstance.GetAudioSystemExt(this.GetGame());
   if !audio.RegisterEmitter(actor.GetEntityID(), n"CyberpunkConvaiSpeech", n"", settings) { return false; }
   let ext = new AudioSettingsExt();

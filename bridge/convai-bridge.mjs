@@ -11,6 +11,7 @@ import {groupContext, conversationScope} from './group-context.mjs';
 import {GroupPrefetch, inputIdentity, validatePrefetch, parsePrewarm} from './group-prefetch.mjs';
 import {throwIfCancelled} from './transport-pool.mjs';
 import {PartyConnections} from './party-connections.mjs';
+import {VoiceStudioClient} from './voice-studio.mjs';
 
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const game = process.env.CYBERPUNK_CONVAI_GAME || 'E:\\SteamLibrary\\steamapps\\common\\Cyberpunk 2077';
@@ -18,6 +19,11 @@ const runtime = resolve(game, 'bin/x64/plugins/cyber_engine_tweaks/mods/Cyberpun
 const keyFile = process.env.CYBERPUNK_CONVAI_KEY_FILE || resolve(project, 'runtime/convai-key.txt');
 const roster = JSON.parse(await readFile(resolve(project, 'characters/roster.json'), 'utf8'));
 const ids = JSON.parse(await readFile(resolve(project, 'runtime/characters.json'), 'utf8'));
+const voiceConfig = JSON.parse(await readFile(resolve(project, 'runtime/voice-studio.json'), 'utf8').catch(error => {
+  if (error.code === 'ENOENT') return '{}';
+  throw error;
+}));
+const localVoice = new VoiceStudioClient(voiceConfig);
 const keyLine = (await readFile(keyFile, 'utf8')).trim();
 const key = /^api-key\s*=\s*(\S+)\s*$/i.exec(keyLine)?.[1];
 if (!key) throw Error('Local Convai key file must contain api-key=...');
@@ -46,9 +52,9 @@ let connectionMetricsWriting = Promise.resolve();
 const sessionKey = input => input.profileKey + ':' + conversationScope(input);
 const completeContext = input => JSON.stringify([groupContext(input), ids[input.profileKey], realtimeSessions.get(sessionKey(input)) || null]);
 const realtimeConfig = input => ({key, characterId: ids[input.profileKey], sessionId: realtimeSessions.get(sessionKey(input)),
-  scope: conversationScope(input), context: groupContext(input), text: input.text});
+  scope: conversationScope(input), context: groupContext(input), text: input.text, ttsEnabled: !localVoice.enabled});
 const connections = new PartyConnections({host: realtime, isKnown: profile => Object.hasOwn(ids, profile),
-  configFor: (profile, scope) => ({key, characterId: ids[profile], scope, sessionId: realtimeSessions.get(profile + ':' + scope)}),
+  configFor: (profile, scope) => ({key, characterId: ids[profile], scope, sessionId: realtimeSessions.get(profile + ':' + scope), ttsEnabled: !localVoice.enabled}),
   onState: state => {
     connectionMetricsWriting = connectionMetricsWriting.catch(() => {}).then(() => atomic(resolve(runtime, 'party-connection-state.json'), JSON.stringify(state)));
     return connectionMetricsWriting;
@@ -70,8 +76,26 @@ const prefetch = new GroupPrefetch({prepare: async (input, {signal}) => {
   // The SDK has no session fork/rollback. Existing sessions are warm-only so
   // cancelled predictions cannot alter memory or erase conversation history.
   if (realtimeSessions.has(sessionKey(input))) throw Error('Existing character session is warm-only');
-  return {...await realtime.prepare(realtimeConfig(input), {signal}), transport: 'realtime'};
+  return synthesizeReply(input, {...await realtime.prepare(realtimeConfig(input), {signal}), transport: 'realtime'}, signal);
 }});
+
+async function synthesizeReply(input, result, signal) {
+  if (!localVoice.enabled) return result;
+  throwIfCancelled(signal);
+  try {
+    const generated = await localVoice.synthesize(input.profileKey, result.text, {signal});
+    return {...result, ...generated, timing: {...result.timing, ...generated.timing}};
+  } catch (error) {
+    throwIfCancelled(signal);
+    console.error('[CyberpunkConvai] Local speech:', error.message);
+    // Preserve a successful dialogue turn if a local model is unavailable.
+    // Do not substitute a different character's voice or turn Convai TTS on.
+    return {...result, audio: undefined, faces: [], captions: [],
+      audioError: localVoice.hasProfile(input.profileKey)
+        ? 'Local voice is unavailable; showing the written reply.'
+        : 'This character has no cloned voice yet; showing the written reply.'};
+  }
+}
 
 async function atomic(path, data) {
   const temp = path + '.' + randomUUID() + '.tmp';
@@ -98,7 +122,7 @@ async function respond(input, profile, {signal, prepared} = {}) {
       catch { throwIfCancelled(signal); /* Failed speculation falls back to the submitted turn. */ }
     }
     throwIfCancelled(signal);
-    return {...await realtime.reply(realtimeConfig(input), {signal}), transport: 'realtime'};
+    return synthesizeReply(input, {...await realtime.reply(realtimeConfig(input), {signal}), transport: 'realtime'}, signal);
   }
   prefetch.invalidate(); prepared?.cancel();
   throwIfCancelled(signal);
@@ -109,7 +133,7 @@ async function respond(input, profile, {signal, prepared} = {}) {
 async function publishResult(input, profile, result, current = async () => true) {
   if (!await current()) return false;
   const preparationStartedAt = Date.now();
-  let audio, audioError;
+  let audio, audioError = result.audioError;
   if (result.audio) {
     try {
       const playing = JSON.parse(await readFile(resolve(runtime, 'speech-state.json'), 'utf8').catch(() => '{}'));
@@ -148,7 +172,8 @@ const mic = new MicrophoneSession({hostFactory: () => realtime.voiceChannel(),
   onReply: async (input, result) => {
     const command = JSON.parse(await readFile(micPath, 'utf8'));
     if (command.input?.requestId !== input.requestId || command.action === 'cancel') return;
-    await publishResult(input, profileFor(input, roster), {...result, transport: 'realtime'}, async () => {
+    const spoken = await synthesizeReply(input, {...result, transport: 'realtime'});
+    await publishResult(input, profileFor(input, roster), spoken, async () => {
       const latest = JSON.parse(await readFile(micPath, 'utf8').catch(() => '{}'));
       return latest.input?.requestId === input.requestId && latest.action !== 'cancel';
     });
@@ -182,7 +207,7 @@ async function pollMicrophone() {
         // A new microphone turn supersedes a pending text reply.
         active?.controller.abort(); prefetch.invalidate();
         await connections.setRequest({...input, group: undefined});
-        void mic.start(input, {key, characterId: ids[profile.key], scope: 'private', sessionId: realtimeSessions.get(input.profileKey + ':private')}).catch(error => console.error(error.message));
+        void mic.start(input, {key, characterId: ids[profile.key], scope: 'private', sessionId: realtimeSessions.get(input.profileKey + ':private'), ttsEnabled: !localVoice.enabled}).catch(error => console.error(error.message));
       }
     }
     void mic.tick(await audioReady(runtime)).catch(error => console.error(error.message));
