@@ -2,14 +2,15 @@
 
 ## Current status — September 29
 
-**Prepared for the first in-game jaw test, not yet installed or visually accepted.**
+**Installed September 29 at 03:40 IST; the first in-game jaw test is pending.**
 
-The accepted movement checkpoint is `61a703d` (code `68ae15c`). The running Judy
-and Johnny still use that controller. Only the read-only facial discovery probe
-has been installed live during this work.
+The accepted movement checkpoint is `61a703d` (code `68ae15c`). That movement
+controller is unchanged. The user closed the game; the installer hash-verified
+the native scripts, separate archive and Lua modules, then launched the EXE.
+The game's startup redscript compilation completed at 03:40:46 IST. A fresh
+Johnny will also use the private combat record from `00ce6b9`.
 
-The new archive and redscript service require a startup. After installing them,
-spawn a fresh owned Judy, inspect `party-face-state`, and run one five-second
+Spawn a fresh owned Judy, inspect `party-face-state`, and run one five-second
 `party-face-probe:judy-alvarez:<nonce>`. Her jaw should open and close twice and
 return to the original face. Verify Johnny independently. Do not describe the
 layer as working based only on compilation or an accepted feature event.
@@ -104,7 +105,12 @@ Current evidence:
   Audioware and other installed scripts.
 - Nine graph round-trips passed, 50 connected controls each.
 - The archive's exact entry set passed verification.
-- 42 graph and companion checks passed; no skips. All Lua modules compile.
+- 46 graph, combat-record and companion checks passed; no skips. The full suite
+  has 119 passes, no failures, and one environment-dependent installed-MCM test
+  skipped. All 23 Lua modules compile.
+- Installed game startup compilation passed; this proves script loading, not
+  visible animation. The same install activated the previously staged per-voice
+  reverb opt-out in `Speech.reds`.
 - **No live pose or dialogue lip-sync acceptance yet.**
 
 Game-derived binaries and JSON exports stay under ignored `runtime/`; tools and

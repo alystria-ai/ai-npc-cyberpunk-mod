@@ -48,6 +48,9 @@ game record in place.
   duplicate copies, model/profile separation, missing records, native write
   failure/readback mismatch, retry, and native-combat ownership.
 - The existing movement and facial asset checks pass (46 combined checks).
+- Full suite: 119 passed, zero failures, one environment-dependent MCM check
+  skipped. All 23 Lua modules compile. Installed and hash-verified at 03:40 IST;
+  the game was relaunched and native startup compilation passed.
 - `party-combat-state:<nonce>` captures original/private record fields, equipment
   items, live companion role, high-level state and weapon-use stats.
 - **Pending:** installed record readback, a fresh Johnny visibly drawing/firing
