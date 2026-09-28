@@ -26,6 +26,23 @@ local function publish()
     end
 end
 
+local function unhook()
+    local hook = M.hook
+    if not hook then return end
+    for _, key in ipairs({'update', 'stop', 'abandon'}) do
+        if hook.owner[key] == hook.wrapped[key] then hook.owner[key] = hook.original[key] end
+    end
+    M.hook = nil
+end
+
+function M.abandon(reason)
+    -- Called before native teardown; do not resolve or reset a disappearing NPC.
+    M.active, M.state, M.restored = false, reason or 'unloaded', false
+    M.entity, M.playerID = nil, nil
+    unhook()
+    publish()
+end
+
 function M.stop(reason)
     local actor = M.entity and actorFor(M.entity)
     M.restored = false
@@ -34,7 +51,34 @@ function M.stop(reason)
         M.restored = ok and restored == true
     end
     M.active, M.state = false, reason or 'cancelled'
+    unhook()
     publish()
+end
+
+local function hookUpdates()
+    -- Reuse the existing adapter tick. CET event registration belongs to init,
+    -- not to a diagnostic loaded later. Restore these temporary delegates when
+    -- the proof ends, and retain no live actor or component in the callbacks.
+    local owner = assert(convaiSpeech, 'Speech lifecycle is unavailable')
+    local hook = {owner = owner, original = {}, wrapped = {}}
+    for _, key in ipairs({'update', 'stop', 'abandon'}) do
+        assert(type(owner[key]) == 'function', 'Missing adapter lifecycle: ' .. key)
+        hook.original[key] = owner[key]
+    end
+    hook.wrapped.update = function(delta)
+        hook.original.update(delta)
+        if M.active then M.update(delta) end
+    end
+    hook.wrapped.stop = function(reason)
+        if M.active then M.stop(reason == 'shutdown' and 'shutdown' or 'interrupted') end
+        return hook.original.stop(reason)
+    end
+    hook.wrapped.abandon = function()
+        M.abandon('unloaded')
+        return hook.original.abandon()
+    end
+    M.hook = hook
+    for key, callback in pairs(hook.wrapped) do owner[key] = callback end
 end
 
 function M.start(profileKey)
@@ -50,6 +94,7 @@ function M.start(profileKey)
     M.playerID = tostring(player:GetEntityID().hash)
     M.entity, M.name, M.samples, M.elapsed, M.interval = selected.entity, selected.name, {}, 0, 0
     M.error, M.restored, M.deadline = nil, false, os.time() + 12
+    hookUpdates()
     M.active, M.state = true, 'running'
     publish()
 end
@@ -81,10 +126,5 @@ function M.update(delta)
     if not ok then M.error = tostring(err); M.stop('error') end
 end
 
-if not M.registered then
-    registerForEvent('onUpdate', function(delta) if convaiFaceProbe then convaiFaceProbe.update(delta) end end)
-    registerForEvent('onShutdown', function() if convaiFaceProbe and convaiFaceProbe.active then convaiFaceProbe.stop('reload') end end)
-    M.registered = true
-end
 convaiFaceProbe = M
 return M

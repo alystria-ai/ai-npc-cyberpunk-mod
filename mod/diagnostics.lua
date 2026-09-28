@@ -59,8 +59,19 @@ if request:match('^party%-combat%-state:') then
 end
 if request:match('^party%-face%-probe:') then
     local key = request:match('^party%-face%-probe:([^:]+):')
-    local probe = dofile('face-probe.lua')
-    if key == 'cancel' then probe.stop('cancelled') else probe.start(key) end
+    local stage = 'load'
+    local ok, err = xpcall(function()
+        local probe = dofile('face-probe.lua')
+        stage = 'start'
+        if key == 'cancel' then probe.stop('cancelled') else probe.start(key) end
+    end, function(value)
+        return debug and debug.traceback and debug.traceback(tostring(value), 2) or tostring(value)
+    end)
+    if not ok then
+        local file = io.open('runtime/face-probe.json', 'wb')
+        if file then file:write(json.encode({state = 'start-error', stage = stage, error = err})); file:close() end
+        error(err)
+    end
     return
 end
 if request:match('^party%-face%-state:') then

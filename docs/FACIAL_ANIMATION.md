@@ -2,7 +2,7 @@
 
 ## Current status — September 29
 
-**Installed September 29 at 03:40 IST; the first in-game jaw test is pending.**
+**Installed September 29 at 03:40 IST; Judy's visible jaw test passed.**
 
 The accepted movement checkpoint is `61a703d` (code `68ae15c`). That movement
 controller is unchanged. The user closed the game; the installer hash-verified
@@ -14,6 +14,15 @@ Spawn a fresh owned Judy, inspect `party-face-state`, and run one five-second
 `party-face-probe:judy-alvarez:<nonce>`. Her jaw should open and close twice and
 return to the original face. Verify Johnny independently. Do not describe the
 layer as working based only on compilation or an accepted feature event.
+
+The fresh Judy and Johnny both report prepared native graphs. The first probe
+failed in its diagnostic runner before producing any frame. After replacing
+late CET event registration with a temporary delegate on the existing adapter
+tick, Judy's five-second probe completed with 24 logged samples and an accepted
+native reset. Evidence: `runtime/judy-jaw-probe-20260929.json`. The user then
+confirmed **visible mouth movement and return to normal**. This is a jaw-control
+proof, not yet speech lip-sync acceptance. Johnny's graph is prepared, but his
+visible facial test is still separate.
 
 Full reply lip sync remains open: the native control test must pass before
 connecting Convai frames and local-voice timing to the actual audio cursor.
@@ -64,6 +73,9 @@ route successfully.
 - `face-probe.lua` runs only when requested through diagnostics. It submits two
   smooth jaw pulses over five seconds, then resets the feature. It also cancels
   on a menu, speech, target loss, CET shutdown or its twelve-second deadline.
+  It temporarily delegates from the existing speech adapter's idle update loop,
+  restores every delegate on completion, and drops IDs without native queries
+  on session unload. It never registers another CET update/shutdown callback.
   Only IDs are retained between ticks; it does not retain actor/component handles
   or change movement, gaze, audio or quest actors.
 
@@ -111,7 +123,9 @@ Current evidence:
 - Installed game startup compilation passed; this proves script loading, not
   visible animation. The same install activated the previously staged per-voice
   reverb opt-out in `Speech.reds`.
-- **No live pose or dialogue lip-sync acceptance yet.**
+- Judy's two jaw pulses and return to normal were visually accepted by the user.
+  Four diagnostic lifecycle checks also pass. **Dialogue lip-sync acceptance
+  remains open.**
 
 Game-derived binaries and JSON exports stay under ignored `runtime/`; tools and
 reference repositories stay under ignored `vendor/`. Commit the authored schema,
