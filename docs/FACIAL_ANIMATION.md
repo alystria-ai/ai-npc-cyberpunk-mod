@@ -136,6 +136,15 @@ builder, native service, diagnostics and tests.
 
 ## Sources and outstanding work
 
+### Phonetic articulation and phrase playback, September 29
+
+The amplitude-only local face below is now the failure fallback. The installed
+local pipeline uses CPU phonetic cues, authored 3D articulation across 17 native
+controls, and continuous 60 Hz transitions. Local TTS is prepared in phrases so
+the first voice/face segment can play while later segments generate. No new game
+startup assets are needed. See [SPEECH_STREAMING.md](SPEECH_STREAMING.md) for the
+protocol, measurements, setup, limitations and pending visible validation.
+
 ### Speech integration, September 29
 
 The first playback adapter is installed live, without another native restart.

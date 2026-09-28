@@ -98,6 +98,15 @@ test('worker loss rejects waiting speech and reports that GPU residency ended', 
   assert.equal(h.requests.length, 1);
 });
 
+test('all phrases retain their utterance quality if the user changes the next-reply setting', async () => {
+  const h = harness(); h.client.setSteps(16);
+  const phrase = h.client.synthesize('judy-alvarez', 'Still part of the 32-step reply.', {steps: 32});
+  await tick(); assert.equal(h.requests[0].steps, 32); h.reply(0); await phrase;
+  const next = h.client.synthesize('judy-alvarez', 'A new reply.');
+  await tick(); assert.equal(h.requests[1].steps, 16); h.reply(1); await next;
+  const closed = h.client.close(); h.finish(); await closed;
+});
+
 test('wrong device/precision cannot report readiness; wrong speaker and malformed audio cannot play', async () => {
   const bad = harness({autoReady: false}); const failed = assert.rejects(bad.client.start(), /did not warm/);
   bad.ready({dtype: 'torch.float32'}); await failed; bad.finish(1);

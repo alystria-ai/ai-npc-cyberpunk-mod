@@ -6,6 +6,8 @@ local allowed = {
     lips_together_up = true, lips_together_dn = true,
     lips_l_funnel = true, lips_r_funnel = true, lips_l_purse = true,
     lips_r_purse = true, lips_l_stretch = true, lips_r_stretch = true,
+    lips_l_lower_raise = true, lips_r_lower_raise = true,
+    lips_tighten_up = true, lips_tighten_dn = true, lips_suck_dn = true, tongue_mid_tip_up = true,
 }
 local function finite(value)
     return type(value) == 'number' and value == value and value > -math.huge and value < math.huge
@@ -45,9 +47,10 @@ function M.start(context, timeline, actor, duration)
             and timeline.entity == context.entity, 'Facial timeline belongs to another reply')
         assert(finite(duration) and duration > 0 and duration <= 120
             and finite(timeline.duration) and math.abs(timeline.duration - duration) < 0.001, 'Facial duration mismatch')
-        assert(timeline.source == 'convai-arkit61' or timeline.source == 'audio-envelope', 'Unknown facial source')
-        assert(type(timeline.tracks) == 'table' and #timeline.tracks > 0 and #timeline.tracks <= 11
-            and type(timeline.frames) == 'table' and #timeline.frames >= 2 and #timeline.frames <= 3602,
+        assert(timeline.source == 'convai-arkit61' or timeline.source == 'audio-envelope'
+            or timeline.source == 'local-phonetic', 'Unknown facial source')
+        assert(type(timeline.tracks) == 'table' and #timeline.tracks > 0 and #timeline.tracks <= 17
+            and type(timeline.frames) == 'table' and #timeline.frames >= 2 and #timeline.frames <= 7202,
             'Invalid facial timeline size')
         local used, previous = {}, -1
         for _, track in ipairs(timeline.tracks) do

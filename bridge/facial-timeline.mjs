@@ -1,11 +1,14 @@
 import {readPcmWav} from './speech-audio.mjs';
+import {PHONETIC_TRACKS, phoneticPose} from './phonetic-poses.mjs';
+import {validateMouthCues} from './phonetic-lipsync.mjs';
 
 // Conservative speech controls. Head/eye rotation stays with the companion
-// gaze controller. Local OmniVoice has no visemes: its fallback is explicitly
-// an amplitude-driven mouth movement, not a phonetic lip-sync model.
+// gaze controller. Local voices use audio-derived phonetic cues; the envelope
+// remains an explicit fallback when the external analyser is unavailable.
 export const SPEECH_TRACKS = Object.freeze([
   'jaw_mid_open', 'lips_apart_up', 'lips_apart_dn', 'lips_together_up', 'lips_together_dn',
   'lips_l_funnel', 'lips_r_funnel', 'lips_l_purse', 'lips_r_purse', 'lips_l_stretch', 'lips_r_stretch',
+  ...PHONETIC_TRACKS,
 ]);
 const clamp = (value, max = 1) => Math.max(0, Math.min(max, value));
 const zero = () => SPEECH_TRACKS.map(() => 0);
@@ -61,18 +64,24 @@ function mapArkit(v) {
     0.16 * Math.max(open, (a(37) + a(38)) / 2) * (1 - closed),
     0.20 * closed, 0.20 * closed,
     0.30 * a(19), 0.30 * a(19), 0.28 * a(20), 0.28 * a(20),
-    0.20 * a(29), 0.20 * a(30)];
+    0.20 * a(29), 0.20 * a(30), ...PHONETIC_TRACKS.map(() => 0)];
 }
 
 export function buildFacialTimeline(result, owner) {
   if (!result.audio || typeof owner?.requestId !== 'string' || typeof owner.entity !== 'string') return undefined;
   const wav = readPcmWav(Buffer.from(result.audio, 'base64'));
   const envelope = amplitude(wav), source = validFaces(result, wav.duration), frames = [];
+  let cues;
+  if (!source && result.mouthCuesFormat === 'rhubarb-phonetic-v1') {
+    try { cues = validateMouthCues({metadata: {duration: wav.duration}, mouthCues: result.mouthCues}, wav.duration); }
+    catch { /* A damaged analyser result cannot take voice playback down. */ }
+  }
+  const fps = cues ? 60 : 30;
   let index = 0;
-  for (let sample = 0; sample / 30 < wav.duration; sample++) {
-    const at = sample / 30, level = envelope[sample] || 0;
+  for (let sample = 0; sample / fps < wav.duration; sample++) {
+    const at = sample / fps, level = envelope[Math.floor(at * 30)] || 0;
     let values = zero();
-    if (sample > 0 && level > 0) {
+    if (sample > 0 && (level > 0 || cues)) {
       if (source) {
         while (index + 1 < source.length && source[index + 1].at <= at) index++;
         const left = source[index], right = source[index + 1];
@@ -80,6 +89,8 @@ export function buildFacialTimeline(result, owner) {
           const blend = right ? clamp((at - left.at) / (right.at - left.at)) : 0;
           values = mapArkit(left.values.map((v, i) => v + ((right?.values[i] ?? v) - v) * blend));
         }
+      } else if (cues) {
+        values = phoneticPose(cues, at, level, SPEECH_TRACKS);
       } else {
         values[0] = 0.35 * level; values[1] = 0.12 * level; values[2] = 0.16 * level;
       }
@@ -91,5 +102,5 @@ export function buildFacialTimeline(result, owner) {
   }
   frames.push([wav.duration, ...zero()]);
   return {version: 1, requestId: owner.requestId, entity: owner.entity, duration: wav.duration,
-    source: source ? 'convai-arkit61' : 'audio-envelope', tracks: [...SPEECH_TRACKS], frames};
+    source: source ? 'convai-arkit61' : cues ? 'local-phonetic' : 'audio-envelope', tracks: [...SPEECH_TRACKS], frames};
 }

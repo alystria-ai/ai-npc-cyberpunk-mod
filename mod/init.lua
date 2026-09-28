@@ -643,7 +643,7 @@ registerForEvent('onUpdate', function(delta)
     if worldReady then companions.update(player, elapsedPoll, focusEntity) end
     publishPartyConnections(false)
     updateGroup(player)
-    if focusUntil and not active and os.time() >= focusUntil then
+    if focusUntil and not active and not speech.requestId and os.time() >= focusUntil then
         endFocus(player)
         focusUntil = nil
         focusMode = nil

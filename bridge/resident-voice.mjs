@@ -119,10 +119,11 @@ export class ResidentVoice {
     // when a malformed response has made this worker unusable.
     if (this.child && !this.child.stdin.writableEnded) this.child.stdin.end();
   }
-  synthesize(profile, text, {signal} = {}) {
+  synthesize(profile, text, {signal, steps: chosenSteps} = {}) {
     if (!this.usesProfile(profile)) return Promise.reject(Error('This character uses its Convai voice'));
     if (typeof text !== 'string' || !text.trim() || text.length > 12_000) return Promise.reject(Error('Invalid speech text'));
-    const steps = this.steps, queued = performance.now();
+    if (chosenSteps !== undefined && ![16, 32].includes(chosenSteps)) return Promise.reject(Error('Invalid voice quality'));
+    const steps = chosenSteps ?? this.steps, queued = performance.now();
     const operation = this.tail.then(async () => {
       throwIfCancelled(signal);
       if (this.closing || this.failure) throw this.failure || cancelled();

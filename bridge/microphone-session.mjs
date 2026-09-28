@@ -10,7 +10,7 @@ export class MicrophoneSession {
     const revision = ++this.revision;
     await this.release();
     if (revision !== this.revision) return;
-    const session = this.current = {input, host: this.hostFactory(), intent: 'record', opened: 0};
+    const session = this.current = {input, host: this.hostFactory(), intent: 'record', opened: 0, controller: new AbortController()};
     await this.onState('starting', input);
     session.opening = session.host.beginVoice(config);
     try {
@@ -32,7 +32,7 @@ export class MicrophoneSession {
     await this.onState('reply', session.input);
     try {
       const result = await session.host.finishVoice();
-      if (this.current === session && session.intent !== 'cancel') await this.onReply(session.input, result);
+      if (this.current === session && session.intent !== 'cancel') await this.onReply(session.input, result, session.controller.signal);
     } catch (error) {
       if (this.current === session && session.intent !== 'cancel') await this.onError(session.input, error);
     } finally {
@@ -48,6 +48,7 @@ export class MicrophoneSession {
     const session = this.current;
     if (!session) return;
     session.intent = 'cancel'; this.current = null;
+    session.controller.abort();
     await session.host.close();
     await this.onState('off', session.input);
   }
