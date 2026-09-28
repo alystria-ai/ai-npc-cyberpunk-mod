@@ -85,6 +85,25 @@ installation requires one CET reload; no redscript restart is needed.
 
 Installed and hash verified at **02:34 IST, September 29**. The preceding 18
 installed Lua files are preserved in the ignored local rollback directory
-`backups/movement-rebuild-20260929-023441/`. Activation and live acceptance are
-pending the user's CET reload. The pre-rebuild party consisted of Judy
+`backups/movement-rebuild-20260929-023441/`. The pre-rebuild party consisted of Judy
 `11034257ULL` and Johnny `11034258ULL`; both were ready in the old controller.
+
+### First live trace after activation
+
+The user confirmed CET reload at 02:35 IST. Recreated Judy `11053704ULL` and
+Johnny `11053706ULL`; both attached, entered settled state and held one owned
+native command with no Lua or gaze error. The 90-second trace is preserved in
+ignored `runtime/party-motion-rebuild-first-live-september29.json`.
+
+During Judy's second arrival, one approach ticket remained active through
+braking at 42.6 seconds (about 1.04 m/s). She continued another 0.45 metres,
+then accepted the actual stopped stance at 44.2 seconds. Direct attention
+began afterward, moved about 0.16 metres, and reached a measured facing error
+of zero at 47.4 seconds. Looking away retained that stance. The native facing
+hook checked 21 commands and cleared one stale object without an error.
+
+No moving sample above 0.4 m/s had movement opposed to body facing by more than
+100 degrees. One Johnny side-route validation was rejected; he entered native
+recovery and later settled. This is measured runtime evidence, **not visual
+acceptance**. The user's assessment of arrival, looking back, and the small
+social step is still pending.
