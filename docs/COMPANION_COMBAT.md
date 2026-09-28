@@ -53,9 +53,15 @@ game record in place.
   the game was relaunched and native startup compilation passed.
 - `party-combat-state:<nonce>` captures original/private record fields, equipment
   items, live companion role, high-level state and weapon-use stats.
-- **Pending:** installed record readback, a fresh Johnny visibly drawing/firing
-  his weapon, and returning to ordinary following after combat. Existing copies
-  require reinvitation to use the new spawn record.
+- **Native readback passed:** fresh Johnny `11036018ULL` uses the private record,
+  has the Malorian pool, follower role, and five checked weapon/hand abilities at
+  `1`, matching Judy. The original Johnny, Judy and Grayson combat fields match
+  their pre-spawn values. Evidence: ignored
+  `runtime/johnny-combat-prepared-20260929.json`.
+- **Visual fighting accepted:** the user tested a fight with these fresh copies
+  and confirmed "Johnny fights now." Broader combat balance and recovery across
+  deaths/save loads remain separate tasks. Existing copies require reinvitation
+  to use the new spawn record.
 
 The movement rollback tag is `movement-accepted-2026-09-29` (`61a703d`). The
 pre-native-install game backup is
