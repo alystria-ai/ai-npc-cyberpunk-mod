@@ -41,6 +41,7 @@ Opening requests the stored tab and search. Clicking a tab clears the search and
 ## Controls and presentation
 
 - Four tabs: Characters, Game models, Your party, and Settings.
+- Settings includes persistent OmniVoice 32/16-step selection, default 32, and local voice readiness. The bridge applies changes to the next request without reloading its shared model. Other characters retain their Convai voices.
 - Native OriginalCase search input, limited to 96 characters, with native caret, selection, and clipboard behavior. Input waiting for glyph measurement is queued.
 - Mouse selection, result pagination, and primary or secondary actions.
 - Up/Down selects a visible row; Left/Right changes result pages; Ctrl+Left/Right changes tabs; Tab switches between search and list; Enter invokes an enabled primary action. Navigation shortcuts yield to the focused search field.

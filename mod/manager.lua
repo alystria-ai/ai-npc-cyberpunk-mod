@@ -14,6 +14,8 @@ local scanStarted, scanFinished, scanError = false, false, nil
 local dirty, feedback, partyClock = true, '', 0
 local party, partySignature, previousStates = {}, '', {}
 local visible, selectedItem = {}, nil
+local localVoiceState, localVoiceSignature = {}, ''
+local localVoices = {['johnny-silverhand'] = true, ['judy-alvarez'] = true, ['panam-palmer'] = true}
 local render
 
 local function readJSON(path)
@@ -45,6 +47,9 @@ local function loadSettings()
     settings.version = 2
     if type(settings.voice) ~= 'boolean' then settings.voice = true end
     if type(settings.subtitles) ~= 'boolean' then settings.subtitles = true end
+    if settings.omniSteps ~= 16 and settings.omniSteps ~= 32 then
+        settings.omniSteps, settingsNeedSave = 32, true
+    end
     if type(settings.enabledByKey) ~= 'table' then settings.enabledByKey = {} end
     for index, key in ipairs(legacyKeys) do
         if type(settings.enabledByKey[key]) ~= 'boolean' and type(settings.enabled) == 'table'
@@ -138,6 +143,16 @@ function M.reset()
     scanStarted, scanFinished, scanError = false, false, nil
     dirty, feedback, partyClock = true, '', 0
     party, partySignature, previousStates, visible, selectedItem = {}, '', {}, {}, nil
+    localVoiceState, localVoiceSignature = {}, ''
+end
+
+local function updateLocalVoice()
+    local state = readJSON('runtime/local-voice-state.json') or {}
+    local fresh = type(state.updated) == 'number' and math.abs(os.time() - state.updated / 1000) < 15
+    if not fresh then state.state = 'waiting' end
+    local signature = tostring(state.provider) .. ':' .. tostring(state.state) .. ':' .. tostring(state.steps)
+    localVoiceState = state
+    if signature ~= localVoiceSignature then localVoiceSignature, dirty = signature, true end
 end
 
 local function identity(player)
@@ -311,6 +326,10 @@ local function rowsForTab()
                     note = value.value and 'On' or 'Off', setting = value.key, kind = 'setting'}
             end
         end
+        if matches('Local voice quality OmniVoice') then
+            result[#result + 1] = {key = 'setting:omniSteps', name = 'Local voice quality',
+                note = 'OmniVoice ' .. settings.omniSteps .. ' steps', kind = 'voice-quality'}
+        end
     end
     return result
 end
@@ -342,7 +361,9 @@ local function detail(player, item)
         body = clean(profile.summary or 'Conversation profile for ' .. profile.name, 1100)
             .. '\n\nConversation: ' .. (M.profileEnabled(profile.key) and 'on' or 'off')
             .. '\nCopies in party: ' .. copyCount(profile.key)
-        if profile.voiceName then body = body .. '\nVoice: ' .. clean(profile.voiceName, 140) end
+        if localVoices[profile.key] and localVoiceState.provider == 'hybrid' then
+            body = body .. '\nVoice: OmniVoice ' .. settings.omniSteps .. ' steps'
+        elseif profile.voiceName then body = body .. '\nVoice: ' .. clean(profile.voiceName, 140) end
         if not item.definition then body = body .. '\nChoose a model in Models, then assign this profile in Party.' end
         primary, primaryLabel, primaryEnabled = 'spawn:' .. profile.key, 'Add a copy', item.definition ~= nil and #party < 8
         secondary, secondaryLabel, secondaryEnabled = 'toggle-profile:' .. profile.key,
@@ -368,6 +389,17 @@ local function detail(player, item)
             or 'Show companion reply subtitles during conversations.'
         body = body .. '\n\nCurrently ' .. (settings[item.setting] and 'on.' or 'off.')
         primary, primaryLabel, primaryEnabled = 'toggle:' .. item.setting, settings[item.setting] and 'Turn off' or 'Turn on', true
+    elseif item.kind == 'voice-quality' then
+        title = 'Local voice quality'
+        body = 'Johnny, Judy and Panam use OmniVoice. Other characters keep their Convai voices.'
+            .. '\n\n32 steps: fuller quality (default).\n16 steps: faster replies.'
+            .. '\n\nThe shared model stays loaded while the voice service runs. Changes apply to the next reply.'
+        local labels = {ready = 'Ready', speaking = 'Preparing a reply', loading = 'Loading', warming = 'Preparing voices',
+            error = 'Unavailable - restart the voice service', disabled = 'Not configured', stopping = 'Stopping',
+            stopped = 'Stopped', waiting = 'Waiting for the voice service'}
+        body = body .. '\n\nLocal voices: ' .. (labels[localVoiceState.state] or labels.waiting)
+        primary, primaryLabel, primaryEnabled = 'omni:32', 'Use 32 steps', settings.omniSteps ~= 32
+        secondary, secondaryLabel, secondaryEnabled = 'omni:16', 'Use 16 steps', settings.omniSteps ~= 16
     end
     if #party >= 8 and (tab == 'characters' or tab == 'models') then body = body .. '\n\nParty full: dismiss a copy before adding another.' end
     player:ConvaiManagerSetDetail(clean(title, 160), clean(body, 1800), primary, primaryLabel,
@@ -459,6 +491,9 @@ local function action(player, request)
         else player:ConvaiManagerSetSubtitles(nextValue) end
         settings[key] = nextValue
         savedFeedback((key == 'voice' and 'Voice playback' or 'Subtitles') .. (nextValue and ' on.' or ' off.'))
+    elseif request == 'omni:16' or request == 'omni:32' then
+        settings.omniSteps = tonumber(request:sub(6))
+        savedFeedback('OmniVoice ' .. settings.omniSteps .. ' steps selected for the next reply.')
     elseif request:sub(1, 7) == 'assign:' then
         local serial = tonumber(request:sub(8))
         if not findParty(serial) then say('That copy is no longer in your party.'); return end
@@ -490,6 +525,7 @@ function M.prepare(player)
     local ok, problem = pcall(function()
         if not initialize(player) then return end
         updateParty()
+        updateLocalVoice()
         render(player)
     end)
     if not ok then say('The manager could not be prepared: ' .. clean(problem, 160)) end
@@ -519,7 +555,7 @@ function M.update(player, delta)
         savedFeedback('Playback settings updated.')
     end
     partyClock = partyClock + math.max(0, tonumber(delta) or 0)
-    if partyClock >= 0.5 then partyClock = 0; updateParty() end
+    if partyClock >= 0.5 then partyClock = 0; updateParty(); updateLocalVoice() end
     if open then
         if tab == 'models' then beginModels(); scanModels() end
         if dirty then

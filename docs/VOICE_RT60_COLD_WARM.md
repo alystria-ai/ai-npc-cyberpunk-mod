@@ -166,9 +166,10 @@ changes; vendor sources and cached weight files remain unchanged.
 
 ## Implication for the mod
 
-OmniVoice 16 was the fastest warm option in this run. Restarting the full speech
-worker for every message would incur the measured cold delay. Before choosing
-an idle VRAM policy, measure a persistent CPU worker with cached weights and
-GPU release/reload separately. A shared engine can serve multiple character
-references; these memory figures are not multiplied by the companion count.
-Production remains on Kokoro and this benchmark changes no game speech settings.
+OmniVoice 16 was the fastest warm option in this run. The user's subsequent
+decision is default 32 steps with a 16-step option, keeping one shared model
+loaded throughout the voice service's lifetime. Johnny, Judy and Panam use
+local speech; other characters retain Convai voices. These memory figures are
+not multiplied by the companion count. Both settings use FP16 CUDA/PyTorch,
+without TensorRT. See [LOCAL_VOICES.md](LOCAL_VOICES.md) for integration status.
+The benchmark itself changed no game speech settings.

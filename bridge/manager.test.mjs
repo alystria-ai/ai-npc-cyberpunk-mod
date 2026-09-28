@@ -164,6 +164,24 @@ test('all installed models are discovered lazily in bounded batches, and closing
   `);
 });
 
+test('OmniVoice defaults to 32 steps, switches without a native reload, and preserves quality through a manager reset', () => {
+  run(`${managerFixture}
+    manager.configure(api, profiles); manager.prepare(player)
+    assert(saved.omniSteps == 32)
+    request('tab:settings'); request('select:setting:omniSteps')
+    assert(player.detail[3] == 'omni:32' and player.detail[5] == false)
+    assert(player.detail[6] == 'omni:16' and player.detail[8] == true)
+    request('omni:16')
+    assert(saved.omniSteps == 16 and player.detail[5] == true and player.detail[8] == false)
+    manager.reset(); manager.prepare(player)
+    request('tab:settings'); request('select:setting:omniSteps')
+    assert(player.detail[8] == false)
+    request('omni:8'); assert(saved.omniSteps == 16)
+    request('omni:32'); assert(saved.omniSteps == 32)
+    assert(saved.voice == true and saved.subtitles == true)
+  `);
+});
+
 test('party uses actual copy serials, assigns and clears profiles, reports asynchronous failures, and enforces eight copies', () => {
   run(`${managerFixture}
     manager.configure(api, profiles); manager.prepare(player)

@@ -1,5 +1,7 @@
 # Character voice preparation
 
+**September 28 decision:** further datasets and training are deferred at the user's request. The live implementation uses the base OmniVoice model with the three existing Johnny/Judy/Panam references. The experiments below are preserved as history; the rejected Judy fine-tune is excluded from production. See [LOCAL_VOICES.md](LOCAL_VOICES.md).
+
 The user prefers spending extra time preparing character voices, including real
 training, to improve likeness and delivery. OmniVoice was preferred over
 Chatterbox. The existing OmniVoice listening samples used the user-shared

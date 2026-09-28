@@ -4,14 +4,11 @@ Assessed 2026-09-28 against the upstream revisions below. This document records 
 
 ## Recommendation
 
-**Current listening decision: VoxCPM2 is preferred for quality; latency remains unresolved.** The user rejected Chatterbox, preferred base OmniVoice over its Judy training pilot, and then preferred the VoxCPM2 samples. Both OmniVoice and VoxCPM2 were rendered through actual code from the user-shared VoiceStudio repository. Their underlying models come from k2-fsa and OpenBMB respectively. Keep OmniVoice as the faster comparison. Qwen remains an untested fallback: only its source was cloned, with no environment or weights installed.
+**Final September 28 listening decision: base OmniVoice at 32 steps.** The user prefers its pacing to VoxCPM2 and wants 16 steps as an alternative. Johnny, Judy and Panam use the existing references with one resident model; other characters retain Convai voices. Additional training and datasets are deferred. Both engines were tested through the user-shared VoiceStudio repository. See [LOCAL_VOICES.md](LOCAL_VOICES.md) for the chosen runtime and verification status.
 
-**Practical live-chat recommendation after the resource check: base OmniVoice at
-32 steps**, with a resident model and cached references. The user highlighted
-OmniVoice as a promising choice after seeing the warm 2.77-second result for
-6.96 seconds of speech. Preserve VoxCPM2 as the preferred likeness comparison.
-The 16-step mode is faster but needs listening review; full-service and actual
-game latency still need measurement before calling the runtime ready.
+Both OmniVoice options use FP16 CUDA through PyTorch, without TensorRT. The
+16/32 selector changes generation steps and does not reload the weights.
+Actual conversation latency and playback still require live game acceptance.
 
 The initial bounded test order was OmniVoice, Turbo, then Nano for latency. That comparison is complete; do not continue tuning the rejected Chatterbox variants. Qwen's 0.6B Base is the smaller option; assess the 1.7B Base memory budget when prioritizing voice similarity. Keep Flash and xVASynth out of the initial installation queue: Flash adds dependency/backend work; xVASynth's verified catalog does not cover the original three companions. These are workload choices, not a universal quality ranking.
 
