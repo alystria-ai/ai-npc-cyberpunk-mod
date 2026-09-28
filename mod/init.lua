@@ -6,6 +6,7 @@ local speech = dofile('speech.lua')
 local microphone = dofile('microphone.lua')
 local characterCatalog = dofile('character-catalog.lua')
 local groupChat = dofile('group-chat.lua')
+local manager = dofile('manager.lua')
 convaiGroupChat = groupChat
 groupChat.onPreparation = function(preparation)
     local f = io.open('runtime/group-prefetch.json.tmp', 'wb')
@@ -25,6 +26,7 @@ do
         for _, profile in ipairs(profiles) do supportedProfiles[profile.key] = true end
     end
 end
+manager.configure(companions, profiles)
 local catalog = characterCatalog.build(profiles)
 for record, profile in pairs(characterCatalog.build(profiles).records) do
     local ok, id = pcall(function() return tostring(TweakDBID.new(record)) end)
@@ -37,7 +39,6 @@ local pending = nil
 local poll = 0
 local diagnosticPoll = 0
 local lastDiagnosticRequest = nil
-local settingsRevision = nil
 local focusUntil = nil
 local focusMode = nil
 local focusEntity = nil
@@ -49,20 +50,15 @@ local focusedCrowd = nil
 local releasedCrowd = nil
 local pendingPhoneAction = nil
 local phoneCatalogReady = false
-local profileKeys = {'viktor-vektor', 'misty-olszewski', 'judy-alvarez', 'panam-palmer', 'resident-male', 'resident-female'}
-local legacySettingIndex = {}
-for i, key in ipairs(profileKeys) do legacySettingIndex[key] = i - 1 end
-
 local function profileEnabled(player, key)
-    if not key then return false end
-    local index = legacySettingIndex[key]
-    return index == nil or player:ConvaiManagerEnabled(index)
+    return manager.profileEnabled(key)
 end
 
 local function profileIdentity(npc)
-    local managedKey, managedName = companions.identity(npc)
+    local managedKey, managedName, owned = companions.identity(npc)
     local name = managedName or tostring(npc:GetTweakDBFullDisplayName(true) or 'NPC')
     local body = tostring(npc:GetBodyType() or '')
+    if owned and not managedKey then return nil, name, body end
     local recordOk, record = pcall(function() return tostring(npc:GetRecordID()) end)
     local crowdOk, crowd = pcall(function() return npc:IsCrowd() end)
     local key, canonical = characterCatalog.resolve(catalog, {managedKey = managedKey, name = name,
@@ -90,7 +86,10 @@ warmConversation(nil, nil)
 
 local lastPartyHint, lastPartyHeartbeat = nil, 0
 local function publishPartyConnections(force)
-    local keys, encoded = companions.connectionProfiles(), {}
+    local keys, encoded = {}, {}
+    for _, key in ipairs(companions.connectionProfiles()) do
+        if manager.profileEnabled(key) then keys[#keys + 1] = key end
+    end
     local signature, now = table.concat(keys, ','), os.time()
     if not force and signature == lastPartyHint and now - lastPartyHeartbeat < 2 then return end
     for _, key in ipairs(keys) do encoded[#encoded + 1] = json.encode(key) end
@@ -157,18 +156,6 @@ local function targetAtCrosshair()
     end
     if not best then return nil, 'Face a nearby NPC within eight metres' end
     return best, nil
-end
-
-local function rosterIndex(name, bodyType)
-    local label = name:lower()
-    if label:find('viktor', 1, true) or label:find('vektor', 1, true) then return 0 end
-    if label:find('misty', 1, true) then return 1 end
-    if label:find('judy', 1, true) then return 2 end
-    if label:find('panam', 1, true) then return 3 end
-    local body = bodyType:lower()
-    if body:find('woman', 1, true) or body:find('female', 1, true) then return 5 end
-    if body:find('man', 1, true) or body:find('male', 1, true) then return 4 end
-    return nil
 end
 
 local function resetGaze()
@@ -238,10 +225,8 @@ local function updateGaze(player, elapsed)
     if canFocus then
         local found, result = pcall(targetAtCrosshair)
         if found and result then
-            local name = tostring(result:GetTweakDBFullDisplayName(true) or 'NPC')
-            local body = tostring(result:GetBodyType() or '')
-            local index = rosterIndex(name, body)
-            if index and player:ConvaiManagerEnabled(index) then
+            local key = profileIdentity(result)
+            if manager.profileEnabled(key) then
                 npc = result
                 identity = tostring(result:GetEntityID().hash)
             end
@@ -458,6 +443,7 @@ local function openManager()
         local player = Game.GetPlayer()
         if not player then return false end
         if player:ConvaiCloseManager() then return true end
+        if not manager.prepare(player) then return false end
         return player:ConvaiOpenManager()
     end)
     if ok and result then
@@ -513,50 +499,6 @@ local function processPhoneAction(player)
     end
     log('Phone dismiss: no active copy of ' .. key)
     player:ConvaiPhoneFeedback(name .. ' is not in your group.')
-end
-
-local function readSettings()
-    local file = io.open('runtime/settings.json', 'rb')
-    if not file then return nil end
-    local raw = file:read('*a')
-    file:close()
-    local ok, value = pcall(json.decode, raw)
-    return ok and type(value) == 'table' and value or nil
-end
-
-local function applySettings(player)
-    local saved = readSettings()
-    if not saved then return end
-    pcall(function()
-        if type(saved.selected) == 'number' then player:ConvaiManagerSelect(saved.selected) end
-        if type(saved.voice) == 'boolean' then player:ConvaiManagerSetVoice(saved.voice) end
-        if type(saved.subtitles) == 'boolean' then player:ConvaiManagerSetSubtitles(saved.subtitles) end
-        if type(saved.enabled) == 'table' then
-            for i = 1, math.min(6, #saved.enabled) do
-                if type(saved.enabled[i]) == 'boolean' then player:ConvaiManagerSetEnabled(i - 1, saved.enabled[i]) end
-            end
-        end
-    end)
-end
-
-local function saveSettings(player)
-    local ok, state = pcall(function()
-        local value = {
-            selected = player:ConvaiManagerSelected(),
-            voice = player:ConvaiManagerVoice(),
-            subtitles = player:ConvaiManagerSubtitles(),
-            enabled = {},
-        }
-        for i = 0, 5 do value.enabled[i + 1] = player:ConvaiManagerEnabled(i) end
-        return value
-    end)
-    if not ok then return end
-    local file = io.open('runtime/settings.json.tmp', 'wb')
-    if not file then return end
-    file:write(json.encode(state))
-    file:close()
-    os.remove('runtime/settings.json')
-    os.rename('runtime/settings.json.tmp', 'runtime/settings.json')
 end
 
 registerHotkey('cyberpunk_convai_text', 'Cyberpunk Convai: talk by text', function() beginText(false) end)
@@ -619,7 +561,8 @@ registerForEvent('onUpdate', function(delta)
         publishPartyConnections(false)
         pendingPhoneAction = nil
         phoneCatalogReady = false
-        active = nil; pending = nil; settingsRevision = nil; focusUntil = nil
+        manager.reset()
+        active = nil; pending = nil; focusUntil = nil
         focusMode = nil; focusEntity = nil; endFocus(nil); resetGaze()
         return
     end
@@ -629,6 +572,8 @@ registerForEvent('onUpdate', function(delta)
         phoneCatalogReady = ok
     end
     processPhoneAction(player)
+    local managerOk, managerError = pcall(manager.update, player, 0.1)
+    if not managerOk then log('Manager update failed: ' .. tostring(managerError)) end
     companions.update(player, 0.1, focusEntity)
     publishPartyConnections(false)
     updateGroup(player)
@@ -640,17 +585,6 @@ registerForEvent('onUpdate', function(delta)
         if pending then
             log('Reply timed out: generation=' .. pending.generation)
             pending = nil
-        end
-    end
-    local settingsOk, revision = pcall(function() return player:ConvaiManagerRevision() end)
-    if settingsOk then
-        if settingsRevision == nil then
-            applySettings(player)
-            settingsRevision = player:ConvaiManagerRevision()
-            saveSettings(player)
-        elseif settingsRevision ~= revision then
-            settingsRevision = revision
-            saveSettings(player)
         end
     end
     if focusedCrowd and not focusedCrowd.checked and os.time() > focusedCrowd.at then
@@ -748,6 +682,8 @@ registerForEvent('onShutdown', function()
     active = nil
     companions.dismissAll()
     local player = Game.GetPlayer()
+    if player then pcall(function() player:ConvaiCloseManager() end) end
+    manager.reset()
     endFocus(player)
     focusMode = nil
     focusEntity = nil

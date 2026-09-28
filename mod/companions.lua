@@ -7,6 +7,7 @@ local records = {
     ['judy-alvarez'] = {id = 'Character.Judy', name = 'Judy Alvarez'},
     ['panam-palmer'] = {id = 'Character.Panam', name = 'Panam Palmer'},
 }
+for key, definition in pairs(records) do definition.profileKey = key end
 
 -- Conversation profiles and spawnable phone contacts are separate catalogs.
 -- Every spawned entry is still a new managed copy, never a quest-world actor.
@@ -22,12 +23,38 @@ do
                 if type(contact.contact) == 'string' then
                     phoneContacts[contact.contact] = contact
                     if type(contact.key) == 'string' and type(contact.record) == 'string' then
-                        records[contact.key] = {id = contact.record, name = contact.name}
+                        records[contact.key] = {id = contact.record, name = contact.name, profileKey = contact.key}
                     end
                 end
             end
         end
     end
+end
+
+-- A model and a conversation identity are independent. Only definitions with
+-- an explicit profileKey participate in conversation routing or connections.
+function M.registerDefinition(key, definition)
+    if type(key) ~= 'string' or key == '' or type(definition) ~= 'table' then
+        return false, 'Invalid companion definition.'
+    end
+    local id = definition.id or definition.record
+    if (type(id) ~= 'string' or id == '') and not definition.recordID then
+        return false, 'This model has no character record.'
+    end
+    if definition.profileKey ~= nil and (type(definition.profileKey) ~= 'string' or definition.profileKey == '') then
+        return false, 'Invalid conversation profile.'
+    end
+    records[key] = {id = id, recordID = definition.recordID,
+        name = tostring(definition.name or id or key),
+        profileKey = definition.profileKey, profileName = definition.profileName}
+    return true
+end
+
+function M.definition(key)
+    local value = records[key]
+    if not value then return nil end
+    return {id = value.id, recordID = value.recordID, name = value.name,
+        profileKey = value.profileKey, profileName = value.profileName}
 end
 
 function M.phoneContactKey(contactId)
@@ -520,12 +547,14 @@ end
 local function attachFollower(entry, player)
     local npc = entry.system:GetEntity(entry.entityID)
     if not npc or not npc:IsAttached() then return nil, 'Awaiting entity attachment' end
+    if not npc:IsA('NPCPuppet') then return false, 'This model is not a controllable NPC.' end
     if npc:IsCrowd() then return false, 'Managed copy unexpectedly joined the crowd' end
     local ai = npc:GetAIControllerComponent()
+    if not ai then return false, 'This model has no companion-compatible AI controller.' end
     local current = ai:GetAIRole()
     if current and not current:IsA('AINoRole') then
         entry.state = 'failed'
-        entry.error = 'Authored AI role would be replaced'
+        entry.error = 'This model requires its authored AI role and cannot follow safely.'
         return false, entry.error
     end
     local role = NewObject('AIFollowerRole')
@@ -543,12 +572,15 @@ end
 function M.spawn(key)
     local definition = records[key]
     if not definition then return nil, 'Unknown companion' end
-    if #entries >= #slots then return nil, 'Party is full' end
+    if #entries >= #slots then return nil, 'Your party has eight copies. Dismiss one first.' end
     local player = Game.GetPlayer()
     local system = Game.GetDynamicEntitySystem()
     if not player or not system or not system:IsReady() then return nil, 'World is not ready' end
-    local record = TweakDB:GetRecord(definition.id)
-    if not record then return nil, 'Character record is unavailable' end
+    local recordID = definition.recordID or TweakDBID.new(definition.id)
+    local recordOk, record = pcall(function() return TweakDB:GetRecord(recordID) end)
+    if not recordOk or not record then return nil, 'This model is not available in your installation.' end
+    local typeOk, character = pcall(function() return record:IsA('gamedataCharacter_Record') end)
+    if not typeOk or not character then return nil, 'This record is not a character model.' end
     if #entries == 0 then
         -- Camera yaw can change without a world-position update. A new party
         -- takes its initial side lanes from the current view, not an old walk.
@@ -572,23 +604,52 @@ function M.spawn(key)
     end
     if not freeSlot then return nil, 'Party is full' end
     local spec = NewObject('DynamicEntitySpec')
-    spec.recordID = TweakDBID.new(definition.id)
+    spec.recordID = recordID
     spec.position = formationPosition(player, freeSlot)
     spec.orientation = player:GetWorldOrientation()
     spec.spawnInView = true
     spec.active = true
     spec.alwaysSpawned = true
-    local entityID = system:CreateEntity(spec)
+    local created, entityID = pcall(function() return system:CreateEntity(spec) end)
+    if not created or not entityID or tostring(entityID.hash):match('^0+[uUlL]*$') then
+        return nil, 'The game could not create a copy of this model.'
+    end
     serial = serial + 1
     local entry = {
         serial = serial, key = key, name = definition.name, slot = freeSlot,
+        profileKey = definition.profileKey, profileName = definition.profileName or definition.name,
+        record = definition.id or tostring(recordID),
         entityID = entityID, system = system, state = 'spawning',
-        requestedAt = os.time(),
+        requestedAt = os.time(), requestedClock = runtimeClock,
     }
     entries[#entries + 1] = entry
     -- Start connection setup while the engine is attaching the new copy.
     if M.onPartyChanged then pcall(M.onPartyChanged) end
     return serial
+end
+
+function M.setProfile(serialToAssign, key, name)
+    if key ~= nil and (type(key) ~= 'string' or key == '') then
+        return false, 'Invalid conversation profile.'
+    end
+    for _, entry in ipairs(entries) do
+        if entry.serial == serialToAssign then
+            entry.profileKey = key
+            entry.profileName = key and (name or key) or entry.name
+            if M.onPartyChanged then pcall(M.onPartyChanged) end
+            return true
+        end
+    end
+    return false, 'That companion is no longer in your party.'
+end
+
+local function deleteOwnedCopy(entry)
+    if entry.removed then return true end
+    local checked, managed = pcall(function() return entry.system:IsManaged(entry.entityID) end)
+    if checked and not managed then entry.removed = true; return true end
+    local removed, result = pcall(function() return entry.system:DeleteEntity(entry.entityID) end)
+    if removed and result ~= false then entry.removed = true; return true end
+    return false
 end
 
 function M.dismiss(serialToDismiss)
@@ -608,7 +669,10 @@ function M.dismiss(serialToDismiss)
                     ai:OnAttach()
                 end)
             end
-            pcall(function() entry.system:DeleteEntity(entry.entityID) end)
+            if not deleteOwnedCopy(entry) then
+                entry.state, entry.error = 'failed', 'The game could not dismiss this copy. Try again after closing other menus.'
+                return false, entry.error
+            end
             table.remove(entries, index)
             if #entries == 0 then
                 formationAngle = nil
@@ -622,7 +686,12 @@ function M.dismiss(serialToDismiss)
 end
 
 function M.dismissAll()
-    while #entries > 0 do M.dismiss(entries[#entries].serial) end
+    -- A failed engine deletion must not trap shutdown in an endless loop.
+    local allRemoved = true
+    for index = #entries, 1, -1 do
+        if not M.dismiss(entries[index].serial) then allRemoved = false end
+    end
+    return allRemoved
 end
 
 function M.owns(npc)
@@ -637,10 +706,12 @@ end
 
 function M.identity(npc)
     if not npc then return nil end
-    local identity = tostring(npc:GetEntityID().hash)
+    local ok, identity = pcall(function() return tostring(npc:GetEntityID().hash) end)
+    if not ok then return nil end
     for _, entry in ipairs(entries) do
-        if entry.state == 'ready' and tostring(entry.entityID.hash) == identity then
-            return entry.key, records[entry.key].name
+        if tostring(entry.entityID.hash) == identity then
+            return entry.state == 'ready' and entry.profileKey or nil,
+                entry.profileKey and entry.profileName or entry.name, true
         end
     end
     return nil
@@ -658,9 +729,9 @@ function M.connectionProfiles()
             end)
             alive = ok and attached
         end
-        if alive and not seen[entry.key] then
-            result[#result + 1] = entry.key
-            seen[entry.key] = true
+        if alive and entry.profileKey and not seen[entry.profileKey] then
+            result[#result + 1] = entry.profileKey
+            seen[entry.profileKey] = true
         end
     end
     return result
@@ -671,12 +742,12 @@ function M.conversationCandidates(player, radius)
     if not player then return result end
     local origin = player:GetWorldPosition()
     for _, entry in ipairs(entries) do
-        if entry.state == 'ready' and entry.npc and entry.npc:IsAttached() and not entry.npc:IsDeadNoStatPool() then
+        if entry.profileKey and entry.state == 'ready' and entry.npc and entry.npc:IsAttached() and not entry.npc:IsDeadNoStatPool() then
             local pos = entry.npc:GetWorldPosition()
             local distance = math.sqrt((pos.x-origin.x)^2 + (pos.y-origin.y)^2 + (pos.z-origin.z)^2)
             if distance <= radius then
                 result[#result + 1] = {npc = entry.npc, entity = tostring(entry.entityID.hash),
-                    profileKey = entry.key, name = records[entry.key].name,
+                    profileKey = entry.profileKey, name = entry.profileName,
                     bodyType = tostring(entry.npc:GetBodyType() or ''), distance = distance}
             end
         end
@@ -696,6 +767,7 @@ function M.list()
         seen[entry.key] = (seen[entry.key] or 0) + 1
         copy[#copy + 1] = {
             serial = entry.serial, key = entry.key,
+            profileKey = entry.profileKey, profileName = entry.profileName, record = entry.record,
             slot = entry.slot,
             name = entry.name .. (totals[entry.key] > 1 and (' #' .. seen[entry.key]) or ''),
             state = entry.state, mode = entry.mode, error = entry.error,
@@ -784,9 +856,16 @@ function M.update(player, delta, focusEntity)
                     entry.error = tostring(ok and reason or result)
                 end
             end
-            if entry.state == 'spawning' and os.time() - entry.requestedAt > 12 then
+            if entry.state == 'spawning' and runtimeClock - entry.requestedClock > 12 then
                 entry.state = 'failed'
                 entry.error = 'Spawn timed out'
+            end
+            if entry.state == 'failed' then
+                -- Only the DynamicEntitySystem copy created above is removed.
+                -- Keep its failed row so the manager can explain the failure.
+                if not deleteOwnedCopy(entry) then
+                    entry.error = entry.error .. ' The copy could not be removed; try Dismiss.'
+                end
             end
         end
     end

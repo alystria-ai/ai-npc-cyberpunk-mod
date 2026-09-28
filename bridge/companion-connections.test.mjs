@@ -13,7 +13,7 @@ test('accepted spawns immediately publish unique identities; last dismissal and 
     io.open=function() return nil end
     Vector4={new=function(x,y,z,w) return {x=x,y=y,z=z,w=w} end}
     TweakDBID={new=function(v) return v end}
-    TweakDB={GetRecord=function() return {} end}
+    TweakDB={GetRecord=function() return {IsA=function(_, kind) return kind=='gamedataCharacter_Record' end} end}
     NewObject=function() return {} end
     local player={
       GetWorldPosition=function() return Vector4.new(0,0,0,1) end,
@@ -39,7 +39,7 @@ test('accepted spawns immediately publish unique identities; last dismissal and 
     assert(changes[4]=='judy-alvarez,panam-palmer')
     companions.dismiss(two)
     assert(changes[5]=='panam-palmer')
-    now=113; companions.update(player,0.5,nil)
+    now=113; companions.update(player,13.0,nil)
     assert(#companions.connectionProfiles()==0) -- Engine never attached Panam.
     companions.dismissAll()
     assert(changes[#changes]=='')

@@ -11,6 +11,8 @@ if (-not [IO.File]::Exists((Join-Path $game 'bin\x64\Cyberpunk2077.exe'))) { thr
 if (-not $LuaOnly -and (Get-Process Cyberpunk2077 -ErrorAction SilentlyContinue)) { throw 'Close the game before installing native scripts, or use -LuaOnly for a CET reload.' }
 
 $targets = @(
+    @{ From = (Join-Path $project 'mod\manager.lua'); To = (Join-Path $game 'bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai\manager.lua') },
+    @{ From = (Join-Path $project 'characters\manager-characters.json'); To = (Join-Path $game 'bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai\manager-characters.json') },
     @{ From = (Join-Path $project 'mod\character-catalog.lua'); To = (Join-Path $game 'bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai\character-catalog.lua') },
     @{ From = (Join-Path $project 'mod\group-chat.lua'); To = (Join-Path $game 'bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai\group-chat.lua') },
     @{ From = (Join-Path $project 'characters\roster.json'); To = (Join-Path $game 'bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai\conversation-characters.json') },
