@@ -67,8 +67,17 @@ run separately against the game's actual API files. The source checkpoint is
 `ac609bc`. Fixture checks do not qualify audible game behavior.
 The combined Lua update was installed and hash-verified at 01:00 IST on
 September 30; the conversation bridge was restarted with the new context code.
-CET activation and the first spoken loot reaction are pending. The previous
-installed adapters are backed up under
+CET activation was confirmed from the new globals, registered hooks and complete
+321-item inventory baseline. The user collected the prepared two-drink stack
+and confirmed hearing a loot comment. The live trace recorded one quantity-two
+receipt at 01:03:23 IST, one Judy reaction after the six-second collection wait,
+a successful result at 01:03:36 and completed playback at 01:03:41. No duplicate
+reaction was generated. Evidence is retained locally in
+`runtime/loot-first-audible-20260930.json` and the matching `.log`.
+
+Storage provenance is captured and has regression coverage; the combined battle
+closing with loot and the Legendary exception still need live acceptance. The
+previous installed adapters are backed up under
 `backups/loot-equipment-before-20260930-010043/`.
 
 Only the observed item-specific Loot path is admitted initially. Corpse loot-all,
