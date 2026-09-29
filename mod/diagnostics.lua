@@ -12,11 +12,17 @@ if request:match('^phone%-chat%-state:') then
         report.typing = player and player:ConvaiPhoneChatTyping()
         for _, layer in ipairs(Game.GetInkSystem():GetLayers()) do
             for _, controller in ipairs(layer:GetGameControllers()) do
-                if NameToString(controller:GetClassName()) == 'PhoneMessagePopupGameController' then
+                local class = NameToString(controller:GetClassName())
+                if class == 'PhoneMessagePopupGameController' or (request:find(':all:') and class == 'NewHudPhoneGameController') then
                     local function visit(widget, depth)
-                        if not widget or depth > 12 or #report.widgets >= 220 then return end
+                        if not widget or depth > 18 or #report.widgets >= 650 then return end
                         local item = {name = NameToString(widget:GetName()), class = NameToString(widget:GetClassName()),
                             depth = depth, visible = widget:IsVisible(), width = widget:GetWidth(), height = widget:GetHeight()}
+                        local margin = widget:GetMargin()
+                        item.margin = {left=margin.left, top=margin.top, right=margin.right, bottom=margin.bottom}
+                        item.anchor, item.halign, item.valign = tostring(widget:GetAnchor()), tostring(widget:GetHAlign()), tostring(widget:GetVAlign())
+                        local logic = widget:GetController()
+                        if logic then item.controller = NameToString(logic:GetClassName()) end
                         local parent = widget:GetParentWidget()
                         if parent then item.parent = NameToString(parent:GetName()) end
                         report.widgets[#report.widgets + 1] = item

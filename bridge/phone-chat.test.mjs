@@ -89,7 +89,9 @@ os.rename=function(a,b) files[b]=files[a]; files[a]=nil; return true end
 NewObject=function() return {} end
 local function put(path,v) files[path]=json.encode(v) end
 put('phone-contacts.json', {{contact='judy',key='judy-alvarez'},{contact='panam',key='panam-palmer'}})
-local m=(function() ${adapter} end)()
+local function newModule() return (function() ${adapter} end)() end
+local m=newModule()
+local disappearing=false
 local contact, draft, submission, enabled, paints = 'judy', '', nil, true, {}
 local player={ConvaiPhoneChatContact=function() return contact end,
   ConvaiPhoneChatTick=function() end,
@@ -100,7 +102,11 @@ local player={ConvaiPhoneChatContact=function() return contact end,
     paints[#paints+1]={contact=c,lines=lines,status=status,allowed=allowed,busy=busy}
     if reset then draft=d end
   end}
-m.configure({{key='judy-alvarez'},{key='panam-palmer'}},{profileEnabled=function() return enabled end})
+local function configure()
+  m.configure({{key='judy-alvarez'},{key='panam-palmer'}},
+    {profileEnabled=function() return enabled end, disappearingMessages=function() return disappearing end})
+end
+configure()
 local function update() for i=1,8 do m.update(player,0) end end
 `;
 test('paused phone frames deliver replies to the original contact after selection changes', () => runLua(setup + `
@@ -130,3 +136,84 @@ update(); draft='Hello'; submission={contact='judy',text=draft}; update()
 draft='A new unsent thought'; clock=clock+46; update()
 assert(not m.pending and draft=='A new unsent thought')
 `));
+
+test('disappearing messages wait for the current launch and clear only the local transcript and drafts', () => runLua(setup + `
+put('runtime/phone-history.json',{version=2,launch='1-100',
+  history={judy={{text='An old conversation',sent=false}}},drafts={judy='Old draft'}})
+put('runtime/phone-sessions.json',{['judy-alvarez']='retained-convai-session'})
+local sessions=files['runtime/phone-sessions.json']
+disappearing=true; m=newModule(); configure(); update()
+assert(not paints[#paints].allowed and #paints[#paints].lines==0 and draft=='')
+put('runtime/phone-game-launch.json',{world='stale-world',launch='2-200'})
+update(); assert(not paints[#paints].allowed and m.history.judy)
+put('runtime/phone-game-launch.json',{world=m.world,launch='2-200'})
+update(); assert(paints[#paints].allowed and not m.history.judy and (m.drafts.judy or '')=='')
+local saved=json.decode(files['runtime/phone-history.json'])
+assert(saved.launch=='2-200' and not saved.history.judy and not saved.drafts.judy)
+assert(files['runtime/phone-sessions.json']==sessions)
+`));
+
+test('CET reloads, save loads and bridge identity refresh retain this launch history and drafts', () => runLua(setup + `
+disappearing=true; m=newModule(); configure(); update()
+put('runtime/phone-game-launch.json',{world=m.world,launch='2-200'}); update()
+draft='Hi'; submission={contact='judy',text=draft}; update()
+local pending=m.pending
+put('runtime/phone-chat-output.json',{world=m.world,id=pending.id,contact='judy',state='reply',text='Hey V'})
+update(); draft='Keep my draft'; clock=clock+1; update(); m.abandon()
+update(); assert(#m.history.judy==2 and draft=='Keep my draft')
+m.abandon(); m=newModule(); configure(); update()
+assert(not paints[#paints].allowed)
+put('runtime/phone-game-launch.json',{world=m.world,launch='2-200'}); update()
+assert(paints[#paints].allowed and #m.history.judy==2 and draft=='Keep my draft')
+`));
+
+test('persistent history is the default and enabling disappearance applies at the next game launch', () => runLua(setup + `
+update(); put('runtime/phone-game-launch.json',{world=m.world,launch='2-200'}); update()
+draft='Remember this'; submission={contact='judy',text=draft}; update()
+local pending=m.pending
+put('runtime/phone-chat-output.json',{world=m.world,id=pending.id,contact='judy',state='reply',text='Of course'})
+update(); disappearing=true
+update(); assert(#m.history.judy==2)
+m.abandon(); m=newModule(); configure(); update()
+put('runtime/phone-game-launch.json',{world=m.world,launch='2-200'}); update()
+assert(#m.history.judy==2, 'enabling then CET reload is not a new game launch')
+m.abandon(); m=newModule(); configure(); update()
+put('runtime/phone-game-launch.json',{world=m.world,launch='3-300'}); update()
+assert(not m.history.judy)
+`));
+
+test('persistent display history survives a new game launch and old-format migration', () => runLua(setup + `
+put('runtime/phone-history.json',{version=1,history={judy={{text='Remember me',sent=false}}},drafts={judy='Hello'}})
+m=newModule(); configure(); update()
+assert(#m.history.judy==1 and paints[#paints].allowed)
+put('runtime/phone-game-launch.json',{world=m.world,launch='3-300'}); update()
+assert(#m.history.judy==1 and m.launch=='3-300')
+`));
+
+test('persisted conversation history does not silently discard earlier turns', () => runLua(setup + `
+update()
+for i=1,25 do
+  draft='Message '..i; submission={contact='judy',text=draft}; update()
+  local pending=m.pending
+  put('runtime/phone-chat-output.json',{world=m.world,id=pending.id,contact='judy',state='reply',text='Reply '..i})
+  update()
+end
+assert(#m.history.judy==50 and m.history.judy[1].text=='Message 1')
+m.abandon(); m=newModule(); configure(); update()
+assert(#m.history.judy==50 and #paints[#paints].lines==50)
+`));
+
+test('a fresh game/bridge session reuses saved Convai memory independently of the UI transcript', async () => {
+  const calls = [];
+  let sessions = {};
+  const create = () => new PhoneChat({contacts: [{contact: 'judy', key: 'judy-alvarez'}],
+    ids: {'judy-alvarez': 'judy-id'}, now: () => now, sessions,
+    publish: async () => {}, saveSessions: async value => { sessions = structuredClone(value); },
+    reply: async args => { calls.push(args); return {text: 'Hey V.', sessionID: 'retained-session'}; }});
+  let chat = create();
+  await chat.accept(state()); await chat.active?.work; chat.close();
+  chat = create();
+  await chat.accept(state({world: 'new-game', request: {id: 'new-game-1', contact: 'judy', text: 'Remember me?'}}));
+  await chat.active?.work;
+  assert.equal(calls[1].sessionId, 'retained-session');
+});

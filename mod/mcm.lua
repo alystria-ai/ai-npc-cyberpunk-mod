@@ -201,6 +201,8 @@ local function schema()
         rows = {
             setting('voice', 'Voice playback', 'bool', snapshot.settings.voice, true, 'Play voiced replies from your companions.'),
             setting('subtitles', 'Dialogue subtitles', 'bool', snapshot.settings.subtitles, true, 'Show companion replies through the game’s native dialogue subtitles.'),
+            setting('disappearingMessages', 'Disappearing messages', 'bool', snapshot.settings.disappearingMessages, false,
+                'Clear the phone Chat history and drafts when you next launch the game. Characters keep their Convai conversation memory. Loading a save or reloading mods does not clear messages.'),
             setting('omniSteps', 'Local voice quality', 'select', snapshot.settings.omniSteps == 16 and 1 or 2, 2,
                 'Johnny, Judy and Panam use OmniVoice. 32 steps gives the preferred quality; 16 steps is faster. The shared voice model stays loaded. Other characters use Convai voices.',
                 {'16 steps · Faster', '32 steps · Higher quality (default)'}),
@@ -245,7 +247,7 @@ function M.configure(domain, companions, queueFactory, entryFactory)
             local values, applied = {enabledByKey = {}}, {}
             for _, change in ipairs(changes) do
                 local key = change.id
-                if key == 'voice' or key == 'subtitles' then values[key] = change.value
+                if key == 'voice' or key == 'subtitles' or key == 'disappearingMessages' then values[key] = change.value
                 elseif key == 'omniSteps' then
                     if change.value ~= 1 and change.value ~= 2 then return {ok = false, error = 'Choose a voice quality.'} end
                     values.omniSteps = change.value == 1 and 16 or 32

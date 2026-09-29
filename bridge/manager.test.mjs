@@ -169,16 +169,20 @@ test('MCM dismissals free planned places, cannot undo into an overfull party and
 test('MCM settings apply as one saved transaction and leave playback unchanged on a save failure', () => {
   run(`${managerFixture}
     manager.configure(api, profiles); manager.snapshot(player)
-    assert(manager.applySettings(player, {voice = false, omniSteps = 16, enabledByKey = {['johnny-silverhand'] = false}}))
+    assert(not manager.disappearingMessages())
+    assert(manager.applySettings(player, {voice = false, omniSteps = 16, disappearingMessages = true, enabledByKey = {['johnny-silverhand'] = false}}))
     assert(player.voice == false and saved.omniSteps == 16 and not manager.profileEnabled('johnny-silverhand'))
+    assert(saved.disappearingMessages and manager.disappearingMessages())
     failSave = true
-    assert(manager.applySettings(player, {voice = true, subtitles = false, omniSteps = 32}) == false)
+    assert(manager.applySettings(player, {voice = true, subtitles = false, omniSteps = 32, disappearingMessages = false}) == false)
     local values = manager.snapshot(player).settings
     assert(values.voice == false and values.subtitles == true and values.omniSteps == 16)
     assert(player.voice == false and player.subtitles == true)
+    assert(values.disappearingMessages and manager.disappearingMessages())
     failSave = false
     assert(manager.applySettings(player, {voice = true, omniSteps = 8}) == false)
     assert(manager.applySettings(player, {enabledByKey = {unknown = true}}) == false)
+    assert(manager.applySettings(player, {disappearingMessages = 'yes'}) == false)
     assert(manager.applySettings(nil, {voice = true}))
     manager.reset(); manager.snapshot(player); assert(player.voice == true)
   `);
@@ -259,8 +263,10 @@ test('MCM schema uses native controls, operates on current copies while paused, 
     assert(invoke('assign:queued:1').ok and invoke('assign-profile:person-1').ok)
     assert(invoke('tab:settings').ok)
     assert(row('voice').type == 'bool' and row('omniSteps').type == 'select')
-    local applied = registered.applyBatch('manager', {{id = 'voice', value = false}, {id = 'omniSteps', value = 1}})
-    assert(applied.ok and applied.atomic and #applied.appliedIds == 2 and saved.omniSteps == 16)
+    assert(row('disappearingMessages').type == 'bool' and row('disappearingMessages').value == false)
+    local applied = registered.applyBatch('manager', {{id = 'voice', value = false}, {id = 'omniSteps', value = 1}, {id = 'disappearingMessages', value = true}})
+    assert(applied.ok and applied.atomic and #applied.appliedIds == 3 and saved.omniSteps == 16)
+    assert(manager.disappearingMessages())
     assert(player.voice == false)
     drafts = true
     local before = reloads

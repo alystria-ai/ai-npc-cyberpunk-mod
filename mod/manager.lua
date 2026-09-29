@@ -47,6 +47,7 @@ local function loadSettings()
     settings.version = 2
     if type(settings.voice) ~= 'boolean' then settings.voice = true end
     if type(settings.subtitles) ~= 'boolean' then settings.subtitles = true end
+    if type(settings.disappearingMessages) ~= 'boolean' then settings.disappearingMessages = false end
     if settings.omniSteps ~= 16 and settings.omniSteps ~= 32 then
         settings.omniSteps, settingsNeedSave = 32, true
     end
@@ -93,6 +94,11 @@ end
 function M.profileEnabled(key)
     loadSettings()
     return key ~= nil and byKey[key] ~= nil and settings.enabledByKey[key] ~= false
+end
+
+function M.disappearingMessages()
+    loadSettings()
+    return settings.disappearingMessages == true
 end
 
 local function savedFeedback(message)
@@ -543,6 +549,7 @@ function M.snapshot(player)
     return {
         profiles = profiles, models = models, party = party, feedback = feedback,
         settings = {voice = settings.voice, subtitles = settings.subtitles,
+            disappearingMessages = settings.disappearingMessages,
             omniSteps = settings.omniSteps, enabledByKey = enabled},
         localVoice = localVoiceState,
         scan = {started = scanStarted, finished = scanFinished, error = scanError,
@@ -570,8 +577,8 @@ function M.applySettings(player, values)
     nextSettings.enabledByKey = {}
     for key, value in pairs(settings.enabledByKey) do nextSettings.enabledByKey[key] = value end
     for key, value in pairs(values) do
-        if key == 'voice' or key == 'subtitles' then
-            if type(value) ~= 'boolean' then return false, 'Playback settings must be on or off.' end
+        if key == 'voice' or key == 'subtitles' or key == 'disappearingMessages' then
+            if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings[key] = value
         elseif key == 'omniSteps' then
             if value ~= 16 and value ~= 32 then return false, 'Choose 16 or 32 voice steps.' end

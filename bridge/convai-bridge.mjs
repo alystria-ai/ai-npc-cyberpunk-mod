@@ -16,6 +16,7 @@ import {throwIfCancelled} from './transport-pool.mjs';
 import {PartyConnections} from './party-connections.mjs';
 import {ResidentVoice, voiceSteps} from './resident-voice.mjs';
 import {PhoneChat, parsePhoneState} from './phone-chat.mjs';
+import {GameLaunchIdentity, identifyGameLaunch} from './game-launch.mjs';
 
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const game = process.env.CYBERPUNK_CONVAI_GAME || 'E:\\SteamLibrary\\steamapps\\common\\Cyberpunk 2077';
@@ -53,11 +54,15 @@ const phone = new PhoneChat({
   sessions: phoneSessions, saveSessions: value => atomic(phoneSessionPath, JSON.stringify(value)),
 });
 let phonePolling = false;
+const phoneLaunch = new GameLaunchIdentity({identify: () => identifyGameLaunch(game),
+  publish: value => atomic(resolve(runtime, 'phone-game-launch.json'), JSON.stringify(value))});
 async function pollPhone() {
   if (phonePolling || stopped) return;
   phonePolling = true;
   try {
     const state = parsePhoneState(await readFile(phoneInput, 'utf8').catch(() => ''));
+    await phoneLaunch.update(state).catch(() => {});
+    if (stopped) return;
     if (state?.request) {
       // A service restart must not replay a reply already published to the mod.
       let prior; try { prior = JSON.parse(await readFile(phoneOutput, 'utf8')); } catch {}

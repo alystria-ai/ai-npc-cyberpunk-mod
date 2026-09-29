@@ -11,12 +11,11 @@ local function write(path, value)
     os.remove(path); return os.rename(path .. '.tmp', path) ~= nil
 end
 local function save()
-    write('runtime/phone-history.json', {version = 1, history = M.history, drafts = M.drafts})
+    write('runtime/phone-history.json', {version = 2, launch = M.launch, history = M.history, drafts = M.drafts})
 end
 local function append(contact, text, sent)
     local rows = M.history[contact] or {}; M.history[contact] = rows
     rows[#rows + 1] = {text = text, sent = sent}
-    while #rows > 40 do table.remove(rows, 1) end
     M.dirty = true; save()
 end
 local function publish(active)
@@ -30,11 +29,16 @@ function M.configure(profiles, manager)
     end
     M.manager = manager
     local stored = read('runtime/phone-history.json') or {}
+    M.launch = stored.launch
+    M.disappearOnLaunch = manager.disappearingMessages and manager.disappearingMessages() or false
+    M.captureDrafts = not M.disappearOnLaunch
     for contact in pairs(M.catalog) do
         local rows = stored.history and stored.history[contact]
         if type(rows) == 'table' then
             M.history[contact] = {}
-            for i = math.max(1, #rows - 39), #rows do
+            -- The transcript is user history. Retention is controlled by the
+            -- explicit disappearing-messages policy, never a silent row cap.
+            for i = 1, #rows do
                 local row = rows[i]
                 if type(row) == 'table' and type(row.text) == 'string' and #row.text <= 6000 then
                     table.insert(M.history[contact], {text = row.text, sent = row.sent == true})
@@ -44,6 +48,19 @@ function M.configure(profiles, manager)
         local draft = stored.drafts and stored.drafts[contact]
         if type(draft) == 'string' and #draft <= 4800 then M.drafts[contact] = draft end
     end
+end
+
+local function identifyLaunch()
+    if M.launchResolved then return true end
+    local identity = read('runtime/phone-game-launch.json')
+    if not identity or identity.world ~= M.world or type(identity.launch) ~= 'string'
+        or not identity.launch:match('^%d+%-%d+$') then return not M.disappearOnLaunch end
+    if M.disappearOnLaunch and identity.launch ~= M.launch then
+        M.history, M.drafts, M.errors = {}, {}, {}
+    end
+    M.launch, M.launchResolved, M.dirty, M.lastPaint = identity.launch, true, true, nil
+    save()
+    return true
 end
 function M.abandon()
     if M.world then publish(false) end
@@ -72,9 +89,10 @@ function M.update(player, delta)
         M.registered = true
     end
     contact = tostring(contact or '')
+    local historyReady = identifyLaunch()
     local draft = player:ConvaiPhoneChatDraft()
     -- Native stores the last draft before its controller is destroyed or recycled.
-    if draft and M.catalog[draft.contact] and M.drafts[draft.contact] ~= draft.text then
+    if M.captureDrafts and draft and M.catalog[draft.contact] and M.drafts[draft.contact] ~= draft.text then
         M.drafts[draft.contact] = draft.text; M.saveDraft = true
     end
     if contact ~= M.contact then M.contact = contact; M.dirty = true end
@@ -83,7 +101,9 @@ function M.update(player, delta)
         local key = M.catalog[submission.contact]
         local text = tostring(submission.text or ''):match('^%s*(.-)%s*$')
         M.errors = M.errors or {}
-        if text == '' then
+        if not historyReady then
+            M.errors[submission.contact] = 'Waiting for the conversation service.'
+        elseif text == '' then
             M.errors[submission.contact] = 'Type a message first.'
         elseif not key or not M.manager.profileEnabled(key) then
             M.errors[submission.contact] = 'Conversations are disabled for this contact.'
@@ -133,17 +153,19 @@ function M.update(player, delta)
     end
     if contact ~= '' and M.dirty then
         local key = M.catalog[contact]
-        local enabled = key ~= nil and M.manager.profileEnabled(key)
+        local enabled = historyReady and key ~= nil and M.manager.profileEnabled(key)
         local lines = {}
-        for _, row in ipairs(M.history[contact] or {}) do
+        for _, row in ipairs(historyReady and M.history[contact] or {}) do
             local line = NewObject('CyberpunkConvai.ConvaiPhoneChatLine')
             line.text, line.sent = row.text, row.sent; lines[#lines + 1] = line
         end
         local waiting = M.pending and (M.pending.contact == contact and 'Message sent. Waiting for reply.' or 'Waiting for your previous message to finish.') or ''
         local status = (M.errors or {})[contact] or waiting
         if not enabled then status = key and 'Conversations are disabled in Companion Manager.' or 'Conversation is unavailable for this contact.' end
+        if not historyReady then status = 'Opening chat. Waiting for the conversation service.' end
         local reset = M.lastPaint ~= contact or M.clearDraft == contact
-        player:ConvaiPhoneChatPresent(contact, lines, status, M.drafts[contact] or '', enabled, M.pending ~= nil, reset)
+        player:ConvaiPhoneChatPresent(contact, lines, status, historyReady and (M.drafts[contact] or '') or '', enabled, M.pending ~= nil, reset)
+        if historyReady then M.captureDrafts = true end
         M.lastPaint, M.dirty, M.clearDraft = contact, false, nil
     end
 end

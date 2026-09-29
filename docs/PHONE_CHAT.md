@@ -1,62 +1,108 @@
-# Native phone conversations
+# Native phone Chat
 
-## Controls
+## Player flow
 
-Open the phone, select a supported contact, and open their Messages conversation.
-Press **Enter** to focus the integrated composer, type, and press **Enter** to send.
-**Escape** ends typing; the usual phone navigation then works again. Typed case,
-clipboard operations and native caret movement are preserved. Existing scripted
-reply choices remain available when the composer is unfocused.
+Hold **T** to open the phone. **Chat** is the third tab, beside Messages and
+Contacts. Use the phone's left/right tab controls to select it, choose a person,
+and press the normal confirm action (**F** on the current keyboard map). The
+conversation opens directly; there is no quest-message thread selector.
+The existing secondary message action also opens the selected Chat conversation.
+Pointer callbacks are provided for the tabs and contact rows where a pointer is
+available; the game's ordinary phone navigation remains the primary input.
 
-The character does not have to be spawned or nearby. Phone replies are written
-messages in the game's normal sent/received bubbles. F6–F9 keep their existing
-in-person conversation behavior.
+The composer is docked to the bottom of the conversation frame, outside the
+scrolling history. **Enter** starts typing and sends the message. **Escape** ends
+typing, after which the normal back action returns to the Chat contact list.
+Typed case, clipboard operations and caret movement are preserved. Quest replies
+remain in the game's Messages and Contacts flows.
 
-## Ownership
+The character does not have to be spawned or nearby. Chat lists active, known
+contacts supported by the conversation catalog, including contacts with no quest
+SMS. Newly unlocked contacts are picked up when opening the tab. Replies use the
+game's sent/received message bubbles. F6–F9 remain in-person conversations.
 
-- `PhoneChat.reds` owns the composer and native message presentation. Custom rows
-  are `IScriptable` display data, never journal entries. It wraps the game's SMS
-  update after the original messages are built; it does not call quest reply actions.
-- `phone-chat.lua` owns drafts, the last 40 messages per supported contact, one
-  outstanding request, acknowledgement and save/unload lifecycle. It runs on menu
-  frames even when simulation delta is zero. Contact identity is captured on send.
-- `phone-chat.mjs` resolves contact IDs through the project catalog and sends
-  text-only requests through the existing Convai client. It uses no world entity,
-  microphone, TTS, local GPU model, companion movement or speech playback slot.
-- Each game attachment has a fresh request scope. Fifteen-second heartbeat expiry
-  cancels service work after a game exit; a 45-second UI timeout preserves the draft.
-  Late replies cannot enter a new game attachment. Repeated file polls do not resend.
+## History and memory
 
-Drafts and displayed history live in the installed mod's
-`runtime/phone-history.json`. They are local mod history shared across saves, not
-quest history stored in a Cyberpunk save. Phone session IDs are stored privately
-in the project's ignored `runtime/phone-sessions.json`, independently of F6/F8
-sessions. No API key or session ID goes into game widgets or test output.
+**Companion Manager → Settings → Disappearing messages** defaults **Off**.
 
-Unsupported contacts get an unavailable message. Manager-disabled conversations
-cannot send. An API failure keeps a draft and inline status. No recipient is
-silently substituted. A supported contact already unlocked in the game can open
-the composer even without an authored SMS thread; the temporary list row does
-not unlock contacts or change quest state.
+- Off: history and per-contact drafts persist across game launches.
+- On: clear that displayed history and drafts on the next game launch.
+- Loading a save, restarting the bridge, or reloading CET does not clear the
+  current launch's transcript. Enabling the option takes effect at the next launch.
+- Convai phone sessions remain in their separate store. Clearing local history
+  never deletes a Convai session or submits a memory-reset request.
+
+History and drafts are in the installed mod's `runtime/phone-history.json`.
+They are shared across saves, independent of Cyberpunk's quest journal. All valid
+stored turns are retained; the prototype's silent 40-message cutoff is removed.
+Phone sessions are in the project's ignored `runtime/phone-sessions.json`, separate
+from F6/F8 sessions. No API keys or session IDs enter game widgets or test output.
+
+The bridge identifies the actual game process by PID and creation time, once per
+adapter attachment, and acknowledges that identity for the current adapter world.
+A stale identity cannot clear history. When disappearing messages is enabled,
+Chat waits for this acknowledgement before displaying old messages or accepting
+input. This avoids briefly showing messages that should disappear if the bridge
+is unavailable. Local history is cleared only after acknowledgement.
+
+## State and ownership
+
+- `PhoneChatTabs.reds`: third-tab navigation and explicit Off → List → Opening →
+  Conversation states. Native UI readiness completes the transition; generation
+  checks reject a cancelled opening. Returning goes directly to the Chat list.
+- `PhoneChat.reds`: composer, draft handoff and native bubble presentation. Chat
+  data is display-only. AI mode bypasses the native SMS setup that activates or
+  visits journal entries, detaches quest-message callbacks, and restores normal
+  mode when the native panel is reused for Messages.
+- The composer belongs to the native Conversation canvas. The scroll viewport
+  and scrollbar reserve 156 native layout units at the bottom; normal SMS mode
+  restores their original margins. It does not follow the message-list height.
+- `phone-chat.lua`: local transcript, drafts, launch retention and one outstanding
+  text request. It runs on menu frames with zero simulation delta. Contact identity
+  is captured on send; changing the view cannot redirect a reply.
+- `phone-chat.mjs`: catalog-authorized text-only Convai calls and persistent phone
+  sessions. No NPC, microphone, local TTS, movement or speech playback is needed.
+- `game-launch.mjs`: hidden, read-only process identification and scoped retries.
+
+An API failure preserves the draft and shows inline status. A newer unsent draft
+is not replaced by an earlier request's failure. Fifteen-second heartbeat expiry
+cancels service work after exit; a 45-second UI timeout preserves the draft. Late
+replies cannot enter a new attachment, and repeated polls do not resend a request.
 
 ## Verification — September 29
 
-- Full native isolated compilation passed, including both existing phone controls
-  and the new composer. Changed Lua and bridge JavaScript pass syntax checks.
-- Full project suite: 158 passing checks, zero failures, one existing installed-MCM
-  check skipped (159 total).
-- Nine executable tests cover protocol bounds, duplicate heartbeat delivery,
-  contact-specific sessions, unload/stale replies, service errors, paused-frame
-  polling, switching contacts, timeout recovery, disabled profiles and preserving
-  a newer unsent draft during an earlier request's failure.
-- A real text-only Judy request returned 26 characters in 4.866 seconds. This is
-  service-path evidence, not a measurement of on-screen send-to-display latency.
-- Installed with SHA-256 copy verification after the user closed the game. Restarted
-  the bridge, launched Cyberpunk PID 11260, and confirmed actual startup compilation
-  completed at 13:19:02 IST. Only `PhoneChat.reds` differed from the installed native
-  files before this install; existing native scripts were unchanged.
-- Visual layout and real typing are **pending**. Confirm mixed-case
-  text containing J/L/F/C does not trigger Journal, invite, call or close; verify
-  Escape, a reply in the panel, draft retention and the normal scripted choices.
-- Check a supported contact without an existing SMS thread as a separate native
-  navigation case. No controller text-entry support is claimed by this prototype.
+### Confirmed previous prototype
+
+- User screenshots show an 8ug8ear message (`hi`) and a written reply in native
+  bubbles. They also expose the rejected mixed quest/AI history, indirect thread
+  flow, and composer attached to the scrolling content.
+- A read-only probe of the user's open panel confirmed the actual native widget
+  tree and the original composer's parent. No game input was injected.
+
+### New Chat implementation
+
+- Native isolated compilation passed at 13:53 IST. Lua and bridge syntax checks pass.
+- Full project suite: 167 passing checks, zero failures, one existing installed-MCM
+  check skipped (168 total). Focused phone/launch/manager run: 32 pass, one skip.
+- Focused lifecycle checks cover launch-only clearing, CET/save/bridge survival,
+  delayed or stale identity acknowledgement, default persistence, migration,
+  complete history retention, and reuse of the saved Convai session after restart.
+- MCM checks cover default Off, atomic save, invalid values and failed-save rollback.
+- The real running game process was identified twice with the same launch token;
+  the token was not printed or committed.
+- Native files are **prepared, not yet installed**. Screenshot and interaction
+  acceptance of the new Chat tab and bottom composer remain pending.
+
+### Combined live check
+
+1. Open Phone → Chat, choose a person, and confirm: one direct conversation screen.
+2. Inspect header, bottom composer, scrollbar, and empty/history states. Send a
+   mixed-case message containing J/L/F/C; confirm one reply to that contact.
+3. Escape typing, return to the list, choose someone else, and return. Drafts and
+   history must stay with their contact. Check normal Messages/Contacts afterward.
+4. Toggle Disappearing messages On. CET/save reload must retain the current history.
+   At a later normal game relaunch, check empty display history and retained Convai
+   context. Batch this with the next needed restart; do not restart solely to repeat
+   an already accepted check.
+
+Controller text entry is not implemented; keyboard typing is the current path.

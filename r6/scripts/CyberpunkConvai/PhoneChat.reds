@@ -155,7 +155,7 @@ private let m_convaiChatEscapeFrames: Int32;
 
 @addMethod(PhoneMessagePopupGameController)
 public final func ConvaiChatContact() -> String {
-    if !this.m_isFocused || !IsDefined(this.m_contactEntry) || !this.m_data.openedFromPhone { return ""; };
+    if !this.m_isFocused || !IsDefined(this.m_contactEntry) || !this.m_data.convaiChat { return ""; };
     return this.m_contactEntry.GetId();
 }
 @addMethod(PhoneMessagePopupGameController)
@@ -167,9 +167,38 @@ public final func ConvaiChatTyping() -> Bool {
 private func SetupData() -> Void {
     this.ConvaiChatSaveDraft();
     this.m_convaiChatInitialized = false;
+    this.m_convaiChatEnabled = false;
+    this.m_convaiChatBusy = false;
     this.ConvaiChatBlur();
-    if IsDefined(this.m_dialogViewController) { this.m_dialogViewController.ConvaiChatClear(); };
-    wrappedMethod();
+    this.m_dialogViewController.ConvaiChatMode(this.m_data.convaiChat, this.m_journalMgr);
+    if !this.m_data.convaiChat {
+        this.ConvaiChatPath(false);
+        wrappedMethod();
+        return;
+    };
+    // AI chat has no quest message, attachment or read receipt. In particular,
+    // the native SetupData changes journal state, so it must not run here.
+    this.m_contactEntry = this.m_data.journalEntry as JournalContact;
+    this.m_entry = null;
+    this.m_attachment = null;
+    this.m_attachmentHash = 0u;
+    this.m_activeEntry = null;
+    this.m_journalEntryHash = 0;
+    inkTextRef.SetText(this.m_title, this.m_contactEntry.GetLocalizedName(this.m_journalMgr));
+    InkImageUtils.RequestAvatarOrUnknown(this, this.m_avatarImage, this.m_contactEntry.GetAvatarID(this.m_journalMgr));
+    inkWidgetRef.SetVisible(this.m_menuBackgrouns, false);
+    inkWidgetRef.SetVisible(this.m_hintTrack, false);
+    inkWidgetRef.SetVisible(this.m_hintCall, false);
+    inkWidgetRef.SetVisible(this.m_hintReply, false);
+    inkWidgetRef.SetVisible(this.m_scrollReply, false);
+    inkWidgetRef.SetVisible(this.m_hintMessenger, false);
+    inkWidgetRef.SetVisible(this.m_contactsPath, false);
+    inkWidgetRef.SetVisible(this.m_messagesPath, true);
+    this.ConvaiChatPath(true);
+    this.SetFocus(false);
+    let ready = new ConvaiPhoneChatReadyEvent();
+    ready.generation = this.m_data.convaiChatGeneration;
+    this.QueueEvent(ready);
 }
 
 @wrapMethod(PhoneMessagePopupGameController)
@@ -178,13 +207,14 @@ private func SetFocus(isFocused: Bool) -> Void {
     wrappedMethod(isFocused);
     this.m_convaiChatEscape = false;
     let player = this.m_player as PlayerPuppet;
-    if IsDefined(player) && this.m_data.openedFromPhone {
-        player.m_convaiChatView = isFocused ? this : null;
+    if IsDefined(player) && this.m_data.convaiChat {
+        if isFocused { player.m_convaiChatView = this; }
+        else { if player.m_convaiChatView == this { player.m_convaiChatView = null; }; };
         if isFocused {
             this.ConvaiChatCreate();
         };
     };
-    if IsDefined(this.m_convaiChatPanel) { this.m_convaiChatPanel.SetVisible(isFocused); };
+    if IsDefined(this.m_convaiChatPanel) { this.m_convaiChatPanel.SetVisible(isFocused && this.m_data.convaiChat); };
 }
 
 @addMethod(PhoneMessagePopupGameController)
@@ -201,11 +231,15 @@ private final func ConvaiChatCreate() -> Void {
     panel.SetName(n"convaiPhoneComposer");
     panel.SetHAlign(inkEHorizontalAlign.Fill);
     panel.SetFitToContent(true);
-    panel.SetMargin(new inkMargin(0.0, 24.0, 0.0, 20.0));
+    panel.SetVAlign(inkEVerticalAlign.Bottom);
+    panel.SetAnchor(inkEAnchor.BottomFillHorizontaly);
+    panel.SetAnchorPoint(new Vector2(0.0, 1.0));
+    panel.SetMargin(new inkMargin(20.0, 0.0, 35.0, 20.0));
+    panel.SetAffectsLayoutWhenHidden(false);
     panel.Reparent(parent);
     this.m_convaiChatPanel = panel;
     this.m_convaiChatInput = ConvaiPhoneChatInput.Create(this);
-    this.m_convaiChatInput.SetWidth(720.0);
+    this.m_convaiChatInput.SetWidth(1230.0);
     this.m_convaiChatInput.Reparent(panel);
     let hint = new inkText();
     hint.SetName(n"convaiPhoneComposerHint");
@@ -228,7 +262,7 @@ private cb func OnConvaiChatKey(evt: ref<KeyInputEvent>) -> Void {
         if this.m_convaiChatEscape { this.m_convaiChatEscapeFrames = 2; };
         return;
     };
-    if !this.m_isFocused || !this.m_convaiChatEnabled || !this.m_phoneSystem.IsTextingEnabled()
+    if !this.m_data.convaiChat || !this.m_isFocused || !this.m_convaiChatEnabled || !this.m_phoneSystem.IsTextingEnabled()
         || !IsDefined(this.m_convaiChatInput) || this.m_convaiChatInput.IsFocused() { return; };
     // Set focus is queued by ink. Consume this opening Enter immediately so it
     // cannot also activate an authored reply choice in the same input frame.
@@ -306,6 +340,11 @@ protected cb func OnAction(action: ListenerAction, consumer: ListenerActionConsu
         ListenerActionConsumer.Consume(consumer);
         return false;
     };
+    if this.m_data.convaiChat && (Equals(ListenerAction.GetName(action), n"call")
+        || Equals(ListenerAction.GetName(action), n"phone_open_journal")) {
+        ListenerActionConsumer.Consume(consumer);
+        return false;
+    };
     return wrappedMethod(action, consumer);
 }
 @wrapMethod(PhoneMessagePopupGameController)
@@ -319,18 +358,107 @@ protected cb func OnUninitialize() -> Bool {
     this.ConvaiChatBlur();
     if IsDefined(this.m_convaiChatKeys) { this.m_convaiChatKeys.Unregister(); this.m_convaiChatKeys = null; };
     let player = this.m_player as PlayerPuppet;
-    if IsDefined(player) { player.m_convaiChatView = null; };
+    if IsDefined(player) && player.m_convaiChatView == this { player.m_convaiChatView = null; };
+    if this.m_data.convaiChat {
+        this.DisableInput();
+        this.m_blackboard.SetBool(this.m_blackboardDef.isDisplayingMessage, false, true);
+        this.m_journalMgr.UnregisterScriptCallback(this, n"OnChoiceEntryStateChanged");
+        return true;
+    };
     return wrappedMethod();
+}
+
+@wrapMethod(PhoneMessagePopupGameController)
+protected cb func OnGotFocus(evt: ref<FocusSmsMessagerEvent>) -> Bool {
+    if this.m_data.convaiChat {
+        this.SetFocus(true);
+        GameInstance.GetAudioSystem(this.m_player.GetGame()).Play(n"ui_menu_hover");
+        this.EnableInput();
+        return true;
+    };
+    return wrappedMethod(evt);
+}
+@wrapMethod(PhoneMessagePopupGameController)
+protected cb func OnChoiceEntryStateChanged(entryHash: Uint32, className: CName, notifyOption: JournalNotifyOption, changeType: JournalChangeType) -> Bool {
+    if this.m_data.convaiChat { return false; };
+    return wrappedMethod(entryHash, className, notifyOption, changeType);
+}
+
+// Bounded, named-widget lookup: the paths below come from the live HUD tree.
+public class ConvaiPhoneChatLayout {
+    public static func Find(root: ref<inkWidget>, name: CName, depth: Int32) -> ref<inkWidget> {
+        if !IsDefined(root) { return null; };
+        if Equals(root.GetName(), name) { return root; };
+        let parent = root as inkCompoundWidget;
+        if depth <= 0 || !IsDefined(parent) { return null; };
+        let i = 0;
+        while i < parent.GetNumChildren() {
+            let found = ConvaiPhoneChatLayout.Find(parent.GetWidgetByIndex(i), name, depth - 1);
+            if IsDefined(found) { return found; };
+            i += 1;
+        };
+        return null;
+    }
+}
+@addField(PhoneMessagePopupGameController)
+private let m_convaiPathText: String;
+@addMethod(PhoneMessagePopupGameController)
+private final func ConvaiChatPath(chat: Bool) -> Void {
+    let text = ConvaiPhoneChatLayout.Find(inkWidgetRef.Get(this.m_messagesPath), n"txtValue", 3) as inkText;
+    if !IsDefined(text) { return; };
+    if chat {
+        if StrLen(this.m_convaiPathText) == 0 { this.m_convaiPathText = text.GetText(); };
+        text.SetText("CHAT");
+    } else {
+        if StrLen(this.m_convaiPathText) > 0 { text.SetText(this.m_convaiPathText); };
+    };
 }
 
 @addField(MessengerDialogViewController)
 private let m_convaiChatLines: array<ref<ConvaiPhoneChatLine>>;
+@addField(MessengerDialogViewController)
+private let m_convaiChatOnly: Bool;
+@addField(MessengerDialogViewController)
+private let m_convaiScrollMargin: inkMargin;
+@addField(MessengerDialogViewController)
+private let m_convaiSliderMargin: inkMargin;
 @addMethod(MessengerDialogViewController)
 public final func ConvaiChatParent() -> ref<inkCompoundWidget> {
-    return inkCompoundRef.Get(this.m_messagesList).GetParentWidget() as inkCompoundWidget;
+    return ConvaiPhoneChatLayout.Find(this.GetRootWidget(), n"Conversation", 4) as inkCompoundWidget;
 }
 @addMethod(MessengerDialogViewController)
-public final func ConvaiChatClear() -> Void { ArrayClear(this.m_convaiChatLines); }
+public final func ConvaiChatMode(chat: Bool, journal: wref<JournalManager>) -> Void {
+    ArrayClear(this.m_convaiChatLines);
+    let viewport = ConvaiPhoneChatLayout.Find(this.GetRootWidget(), n"MessagesScrollArea", 5);
+    let slider = ConvaiPhoneChatLayout.Find(this.GetRootWidget(), n"Slider", 5);
+    if chat && !this.m_convaiChatOnly {
+        this.m_convaiScrollMargin = viewport.GetMargin();
+        this.m_convaiSliderMargin = slider.GetMargin();
+        let margin = this.m_convaiScrollMargin;
+        margin.bottom += 156.0;
+        viewport.SetMargin(margin);
+        margin = this.m_convaiSliderMargin;
+        margin.bottom += 156.0;
+        slider.SetMargin(margin);
+        this.DetachJournalManager();
+    };
+    if !chat && this.m_convaiChatOnly {
+        viewport.SetMargin(this.m_convaiScrollMargin);
+        slider.SetMargin(this.m_convaiSliderMargin);
+        this.AttachJournalManager(journal);
+    };
+    this.m_convaiChatOnly = chat;
+    if chat {
+        this.StopDotsAnimation();
+        ArrayClear(this.m_messages);
+        ArrayClear(this.m_replyOptions);
+        this.m_parentEntry = null;
+        this.m_parentHash = 0;
+        this.m_contactHash = 0;
+        this.m_conversationHash = 0;
+        this.UpdateData(false, false);
+    };
+}
 @addMethod(MessengerDialogViewController)
 public final func ConvaiChatScroll() -> Void { this.m_scrollController.SetScrollPosition(1.0); }
 @addMethod(MessengerDialogViewController)
@@ -340,7 +468,11 @@ public final func ConvaiChatSetLines(lines: array<ref<ConvaiPhoneChatLine>>) -> 
 }
 @wrapMethod(MessengerDialogViewController)
 public func UpdateData(animateLastMessage: Bool, setVisited: Bool) -> Void {
-    wrappedMethod(animateLastMessage, setVisited);
+    if !this.m_convaiChatOnly { wrappedMethod(animateLastMessage, setVisited); return; };
+    this.m_messagesListController.Clear();
+    this.m_choicesListController.Clear();
+    inkCompoundRef.SetVisible(this.m_replayFluff, false);
+    inkWidgetRef.SetVisible(this.m_typingFluff, false);
     let items: array<ref<IScriptable>>;
     for line in this.m_convaiChatLines { ArrayPush(items, line); };
     if ArraySize(items) > 0 { this.m_messagesListController.PushDataList(items, true); };
@@ -357,54 +489,4 @@ protected cb func OnDataChanged(value: ref<IScriptable>) -> Bool {
 public final func ConvaiChatRender(line: ref<ConvaiPhoneChatLine>) -> Void {
     inkImageRef.SetVisible(this.m_image, false);
     this.SetMessageView(line.text, line.sent ? MessageViewType.Sent : MessageViewType.Received, "");
-}
-
-// A supported, already unlocked contact can have no authored SMS yet. Create
-// only an ephemeral UI row so the normal phone panel can open; no journal data
-// is created, unlocked, visited or used as a synthetic quest reply.
-@wrapMethod(NewHudPhoneGameController)
-public func ExecuteAction() -> Void {
-    if IsDefined(this.m_contactListLogicController) {
-        let contact = this.m_contactListLogicController.GetSelectedContactData();
-        if IsDefined(contact) && Equals(contact.type, MessengerContactType.Contact)
-            && !contact.hasMessages && !contact.playerCanReply
-            && this.m_player.ConvaiPhoneChatHasContact(contact.id) {
-            this.ShowSelectedContactMessages(contact);
-            return;
-        };
-    };
-    wrappedMethod();
-}
-@wrapMethod(NewHudPhoneGameController)
-public func ShowSelectedContactMessages(contactData: wref<ContactData>) -> Void {
-    let messages = MessengerUtils.GetMessageDataArrayForContact(this.m_journalMgr, contactData.hash, true, true);
-    if ArraySize(messages) == 0 && this.m_player.ConvaiPhoneChatHasContact(contactData.id) {
-        let row = new ContactData();
-        row.id = contactData.id;
-        row.contactId = contactData.id;
-        row.hash = contactData.hash;
-        row.localizedName = contactData.localizedName;
-        row.localizedPreview = "Messages";
-        row.hasValidTitle = true;
-        row.isCallable = contactData.isCallable;
-        row.type = MessengerContactType.SingleThread;
-        ArrayPush(messages, row);
-        this.m_threadsVisible = true;
-        this.m_isSingleThread = true;
-        this.m_contactListLogicController.PushList(messages, ContactsSortMethod.ByTime);
-        this.m_contactListLogicController.SetTitle(contactData.localizedName);
-        this.m_contactListLogicController.ShowTitle(true);
-        return;
-    };
-    wrappedMethod(contactData);
-}
-@wrapMethod(PhoneContactItemVirtualController)
-protected cb func OnDataChanged(value: Variant) -> Bool {
-    let result = wrappedMethod(value);
-    let player = GetPlayer(GetGameInstance()) as PlayerPuppet;
-    if IsDefined(player) && IsDefined(this.m_contactData) && Equals(this.m_contactData.type, MessengerContactType.Contact)
-        && player.ConvaiPhoneChatHasContact(this.m_contactData.id) {
-        inkWidgetRef.SetVisible(this.m_chatInputHint, true);
-    };
-    return result;
 }

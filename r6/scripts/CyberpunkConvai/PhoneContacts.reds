@@ -188,7 +188,7 @@ private final func ConvaiLayoutActions(selected: Bool) -> Void {
 @addMethod(PhoneContactItemVirtualController)
 private final func ConvaiContactKey() -> String {
     let contact: ref<ContactData> = this.GetContactData();
-    if !IsDefined(contact) || NotEquals(contact.type, MessengerContactType.Contact) {
+    if !IsDefined(contact) || contact.convaiChat || NotEquals(contact.type, MessengerContactType.Contact) {
         return "";
     };
     return contact.id;
