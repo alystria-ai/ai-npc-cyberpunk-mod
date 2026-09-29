@@ -1,6 +1,7 @@
 /vendor/
 /backups/
 /runtime/
+/research/cyberpunk/cache/
 /ref mods/
 /PAUSED_PROGRESS_*.md
 /node_modules/

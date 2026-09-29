@@ -10,6 +10,14 @@ const characterModels = [...contacts, ...managerCharacters];
 const previous = await read('characters/roster.json');
 const voices = await read('characters/kokoro-voices.json');
 const settings = await read('characters/profile-settings.json');
+// Once the reviewed dossier corpus is adopted, every rebuild must use it.
+// Falling back to the old combined biographies would silently restore future
+// quest outcomes to the static character prompt.
+if (settings.profileSource === 'research/cyberpunk/dossiers') {
+  const {buildResearch} = await import('../research/cyberpunk/scripts/build_research.mjs');
+  await buildResearch({applyProfiles: true});
+  process.exit(process.exitCode || 0);
+}
 const model = settings.model;
 if (!model) throw Error('The verified reference model setting is missing.');
 const catalog = new Map();
