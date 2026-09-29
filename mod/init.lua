@@ -410,8 +410,72 @@ local function reactionLease(valid)
     return written ~= nil
 end
 
+local reactionGuard, reactionEvidence = nil, {}
+local battleCandidatesOk, battleSampleAt = nil, nil
+
+local function reactionManualActivity()
+    return {text = active ~= nil, group = groupChat.round ~= nil,
+        microphone = microphone.context ~= nil and microphone.state ~= 'reply', phone = phoneChat.pending ~= nil}
+end
+
+local function reactionOutputs(player)
+    local voiceOk, voice = pcall(function() return player:ConvaiManagerVoice() end)
+    local captionsOk, captions = pcall(function() return player:ConvaiManagerSubtitles() end)
+    local state = {voiceKnown = voiceOk and type(voice) == 'boolean',
+        subtitlesKnown = captionsOk and type(captions) == 'boolean'}
+    if state.voiceKnown then state.voice = voice end
+    if state.subtitlesKnown then state.subtitles = captions end
+    -- Unknown settings retain the existing fallback behavior. Only an explicit
+    -- Off/Off pair suppresses automatic turns; battle observations still update.
+    state.enabled = not (state.voice == false and state.subtitles == false)
+    return state
+end
+
+local function captureReactionGuard(worldReady, outputs, person)
+    local previous = reactionGuard and reactionGuard.speaker
+    local speaker = {present = person ~= nil, available = person ~= nil and person.available == true,
+        reason = person and (person.availableReason or 'unclassified')
+            or (battleCandidatesOk == false and 'candidate-read-failed' or 'not-in-nearby-enabled-party')}
+    if person then
+        speaker.distance, speaker.lastSeenAt = person.distance, os.time() * 1000
+    elseif previous then
+        speaker.lastDistance, speaker.lastSeenAt = previous.distance or previous.lastDistance, previous.lastSeenAt
+    end
+    local sample = battleSample or {}
+    reactionGuard = {worldReady = worldReady == true, outputs = outputs, speaker = speaker,
+        sampledAt = battleSampleAt, native = {available = sample.available, combat = sample.combat,
+            blocked = sample.blocked, reason = sample.reason, tier = sample.tier,
+            scene = sample.scene, dialogue = sample.dialogue, choices = sample.choices,
+            call = sample.call, vehicle = sample.vehicle, replacer = sample.replacer}}
+end
+
+local function recordReactionCancellation(reason, abandoning)
+    local manual = reactionManualActivity()
+    if reason == 'manual-text' then manual.text = true end
+    if reason == 'microphone' then manual.microphone = true end
+    local event = automatic.reaction or {}
+    local record = {at = os.time() * 1000, reason = reason, abandoning = abandoning == true,
+        requestId = automatic.requestId, entity = automatic.entity, profile = automatic.profileKey,
+        phase = event.phase, encounter = event.encounter, expiresAt = event.expiresAt,
+        playbackAt = automatic.playbackAt and automatic.playbackAt * 1000,
+        pending = pending ~= nil and pending.requestId == automatic.requestId,
+        playing = speech.requestId == automatic.requestId, shown = automatic.shown == true,
+        manual = manual.text or manual.group or manual.microphone or manual.phone,
+        manualActivity = manual, guard = reactionGuard, scheduler = battles.status()}
+    reactionEvidence[#reactionEvidence + 1] = record
+    if #reactionEvidence > 32 then table.remove(reactionEvidence, 1) end
+    -- This bounded ledger is diagnostic data only. No text, native object,
+    -- conversation session or credential is retained, including during unload.
+    local file = io.open('runtime/battle-cancellations.json.tmp', 'wb')
+    if not file then return end
+    file:write(json.encode({version = 1, updated = record.at, events = reactionEvidence})); file:close()
+    os.remove('runtime/battle-cancellations.json')
+    os.rename('runtime/battle-cancellations.json.tmp', 'runtime/battle-cancellations.json')
+end
+
 cancelAutomatic = function(reason, abandoning)
     if not automatic then return end
+    pcall(recordReactionCancellation, reason, abandoning)
     reactionLease(false)
     if pending and pending.requestId == automatic.requestId then pending = nil end
     if not abandoning then
@@ -419,7 +483,7 @@ cancelAutomatic = function(reason, abandoning)
         elseif automatic.shown then subtitles.clear() end
     end
     log('Automatic reaction released: ' .. tostring(reason))
-    automatic = nil
+    automatic, reactionGuard = nil, nil
 end
 
 local function updateBattles(player, elapsed, worldReady)
@@ -427,12 +491,14 @@ local function updateBattles(player, elapsed, worldReady)
     if not battleSample or battlePoll >= 0.5 then
         battlePoll = 0
         battleSample = battleObserver.sample(player)
+        battleSampleAt = os.time() * 1000
         battlePeople = {}
         local ok, candidates = pcall(companions.conversationCandidates, player, 20)
+        battleCandidatesOk = ok
         if ok then
             for _, person in ipairs(candidates) do
                 if supportedProfiles[person.profileKey] and manager.profileEnabled(person.profileKey) then
-                    person.available = battleObserver.canSpeak(person.npc, battleSample.combat and 'start' or 'end')
+                    person.available, person.availableReason = battleObserver.canSpeak(person.npc, battleSample.combat and 'start' or 'end')
                     battlePeople[#battlePeople + 1] = person
                 end
             end
@@ -441,18 +507,25 @@ local function updateBattles(player, elapsed, worldReady)
     battles.update(battleSample, worldReady and elapsed or 0, os.time(), manager.battleReactions(), battlePeople)
     local manual = active ~= nil or groupChat.round ~= nil
         or (microphone.context ~= nil and microphone.state ~= 'reply') or phoneChat.pending ~= nil
+    local outputs = reactionOutputs(player)
     if automatic then
-        local nearby = false
+        local speaker
         for _, person in ipairs(battlePeople) do
-            if person.entity == automatic.entity and person.available then nearby = true; break end
+            if person.entity == automatic.entity then speaker = person; break end
         end
-        if not worldReady or manual or not nearby or not battles.valid(automatic.reaction, os.time(), automatic.playbackAt) then
-            cancelAutomatic('priority-or-stale')
+        captureReactionGuard(worldReady, outputs, speaker)
+        local valid, invalidReason = battles.valid(automatic.reaction, os.time(), automatic.playbackAt)
+        local reason = not worldReady and 'world-not-ready' or manual and 'manual-priority'
+            or not outputs.enabled and 'outputs-disabled'
+            or not speaker and 'speaker-missing' or not speaker.available and 'speaker-unavailable'
+            or not valid and (invalidReason or 'event-invalid')
+        if reason then
+            cancelAutomatic(reason)
         elseif not pending and not speech.requestId and not subtitles.line then
             cancelAutomatic('completed')
         elseif not reactionLease(true) then cancelAutomatic('lease-write-failed') end
     end
-    local busy = not worldReady or manual or pending ~= nil or speech.requestId ~= nil or subtitles.line ~= nil or automatic ~= nil
+    local busy = not worldReady or manual or not outputs.enabled or pending ~= nil or speech.requestId ~= nil or subtitles.line ~= nil or automatic ~= nil
     local event = battles.offer(busy, battlePeople, os.time())
     if not event then return end
     generation = generation + 1
@@ -464,6 +537,7 @@ local function updateBattles(player, elapsed, worldReady)
         reaction = {kind = 'battle', encounter = event.encounter, phase = event.phase, expiresAt = event.expiresAt}}
     context.requestId = tostring(os.time()) .. '-' .. generation .. '-' .. context.entity
     automatic = context
+    captureReactionGuard(worldReady, outputs, person)
     if reactionLease(true) and sendRequest(context) then
         speech.target = person.npc
         battles.claim(event)

@@ -107,17 +107,29 @@ function M.new()
     function self.valid(event, now, playbackAt)
         local playing = event and type(playbackAt) == 'number' and playbackAt * 1000 <= event.expiresAt
             and now >= playbackAt and now - playbackAt <= 30
-        if not event or not enabled or not sample or not sample.available or sample.blocked
-            or not current or current.id ~= event.encounter or not current.eligible
-            or (not playing and now * 1000 > event.expiresAt) then return false end
-        if event.phase == 'start' then return current.state == 'fighting' and not current.quiet end
-        return current.state == 'ended' and not sample.combat
+        if not event then return false, 'event-missing' end
+        if not enabled then return false, 'setting-disabled' end
+        if not sample or not sample.available then return false, 'observation-unavailable' end
+        if sample.blocked then return false, 'scene-blocked' end
+        if not current or current.id ~= event.encounter then return false, 'encounter-changed' end
+        if not current.eligible then return false, 'encounter-ineligible' end
+        if not playing and now * 1000 > event.expiresAt then
+            return false, type(playbackAt) == 'number' and now - playbackAt > 30
+                and 'playback-window-expired' or 'admission-expired'
+        end
+        if event.phase == 'start' then
+            if current.state ~= 'fighting' then return false, 'opening-after-combat' end
+            if current.quiet then return false, 'combat-quiet' end
+        elseif current.state ~= 'ended' or sample.combat then return false, 'combat-resumed' end
+        return true, 'valid'
     end
 
     function self.status()
         return {clock = clock, cooldownUntil = cooldown, state = current and current.state or 'none',
             encounter = current and current.id, eligible = current and current.eligible,
             opening = current and current.opened, closing = current and current.closed,
+            quiet = current ~= nil and current.quiet ~= nil,
+            quietSeconds = current and current.quiet and math.max(0, clock - current.quiet),
             blocked = sample and sample.blocked, reason = sample and sample.reason, enabled = enabled}
     end
     return self

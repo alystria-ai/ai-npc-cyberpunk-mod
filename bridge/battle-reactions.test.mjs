@@ -112,9 +112,12 @@ local subtitles={clear=function()cleared=cleared+1 end}
 local microphone,groupChat,phoneChat={},{},{}
 local supportedProfiles={['judy-alvarez']=true,alex=true}
 local settings=true
+local voice,captions=true,true
+local player={ConvaiManagerVoice=function()return voice end,ConvaiManagerSubtitles=function()return captions end}
 local manager={profileEnabled=function()return true end,battleReactions=function()return settings end}
 local companions={conversationCandidates=function()return people end}
-local battleObserver={sample=function()return sample end,canSpeak=function()return true end}
+local speakerReady=true
+local battleObserver={sample=function()return sample end,canSpeak=function()return speakerReady,speakerReady and 'available' or 'native-dialogue' end}
 local questContext={capture=function()return {version=1,status='untracked'}end}
 local function log()end
 local encoded,files={},{}
@@ -127,8 +130,12 @@ os.remove=function(path)files[path]=nil end
 os.rename=function(from,to)files[to],files[from]=files[from],nil;return true end
 local cancelAutomatic
 ${adapter}
-sample.combat=false; updateBattles({},.5,true)
-sample.combat=true; for _=1,6 do now=now+.5;updateBattles({},.5,true)end
+local function lastCancellation()
+ local index=tonumber(files['runtime/battle-cancellations.json']:match('%d+'))
+ local rows=encoded[index].events;return rows[#rows],rows
+end
+sample.combat=false; updateBattles(player,.5,true)
+sample.combat=true; for _=1,6 do now=now+.5;updateBattles(player,.5,true)end
 assert(automatic and pending==automatic and pending.reaction.phase=='start')
 local request=automatic.requestId
 assert(speech.target==people[1].npc and focusUntil==nil,'Automatic speech must not seize attention')
@@ -140,17 +147,56 @@ ${focusExpiry}
 assert(pending==automatic and focusUntil==nil)
 -- Simulate a manual input taking ownership before the next frame.
 pending={requestId='manual'};active={};speech.requestId=request
-now=now+.5;updateBattles({},.5,true)
+now=now+.5;updateBattles(player,.5,true)
 assert(automatic==nil and pending.requestId=='manual' and stopped==1)
+local evidence=lastCancellation()
+assert(evidence.reason=='manual-priority' and evidence.manual and evidence.manualActivity.text)
+assert(evidence.guard.worldReady and evidence.guard.speaker.present and evidence.guard.speaker.distance==2)
 leaseIndex=tonumber(files['runtime/reaction-lease.json']:match('%d+'))
 assert(not encoded[leaseIndex].valid)
 active,pending,speech.requestId=nil,nil,nil
 -- A later battle is a fresh event; a blocked scene cancels it before delivery.
-policy.reset(); sample.combat=false;updateBattles({},.5,true)
-sample.combat=true;for _=1,6 do now=now+.5;updateBattles({},.5,true)end
+policy.reset(); sample.combat=false;updateBattles(player,.5,true)
+sample.combat=true;for _=1,6 do now=now+.5;updateBattles(player,.5,true)end
 assert(automatic and pending)
-sample.blocked=true;now=now+.5;updateBattles({},.5,true)
+sample.blocked=true;now=now+.5;updateBattles(player,.5,true)
 assert(not automatic and not pending)
+evidence=lastCancellation();assert(evidence.reason=='scene-blocked' and evidence.guard.native.blocked)
+-- Muting both outputs suppresses generation but retains manual combat context.
+policy.reset();sample.blocked=false;sample.combat=false;voice,captions=false,false
+updateBattles(player,.5,true)
+sample.combat=true;for _=1,6 do now=now+.5;updateBattles(player,.5,true)end
+assert(not automatic and not pending and battles.capture().status=='fighting')
+voice=true;now=now+.5;updateBattles(player,.5,true);assert(automatic and pending)
+voice=false;now=now+.5;updateBattles(player,.5,true)
+evidence=lastCancellation()
+assert(not automatic and evidence.reason=='outputs-disabled' and not evidence.guard.outputs.voice and not evidence.guard.outputs.subtitles)
+-- Record why a sampled speaker drops out, independently of the player's gate.
+policy.reset();sample.combat=false;voice=true;updateBattles(player,.5,true)
+sample.combat=true;for _=1,6 do now=now+.5;updateBattles(player,.5,true)end
+speakerReady=false;now=now+.5;updateBattles(player,.5,true)
+evidence=lastCancellation()
+assert(evidence.reason=='speaker-unavailable' and evidence.guard.speaker.present and not evidence.guard.speaker.available)
+assert(evidence.guard.speaker.reason=='native-dialogue' and evidence.guard.speaker.distance==2)
+-- A brief noncombat sample is visibly distinct from a missing actor or menu.
+policy.reset();speakerReady=true;sample.combat=false;updateBattles(player,.5,true)
+sample.combat=true;for _=1,6 do now=now+.5;updateBattles(player,.5,true)end
+sample.combat=false;now=now+.5;updateBattles(player,.5,true)
+evidence=lastCancellation()
+assert(evidence.reason=='combat-quiet' and evidence.scheduler.quiet and evidence.scheduler.quietSeconds==0)
+-- Unload and file-write diagnostics must contain only bounded plain state.
+for i=1,35 do
+ automatic={requestId='record-'..i,entity='1ULL',profileKey='judy-alvarez',text='PRIVATE TEXT',
+   reaction={phase='start',encounter='battle-1',expiresAt=2000000}}
+ cancelAutomatic('test-unload',true)
+end
+local rows;evidence,rows=lastCancellation();assert(#rows==32 and evidence.abandoning and evidence.requestId=='record-35')
+assert(evidence.text==nil and evidence.name==nil and evidence.reaction==nil)
+local function plain(value)
+ assert(type(value)~='userdata' and type(value)~='function')
+ if type(value)=='table' then for _,item in pairs(value)do plain(item)end end
+end
+plain(evidence)
 `));
 
 test('on-time speech may finish past admission expiry while gameplay interruption still wins', () => run(fixture + `
@@ -186,6 +232,24 @@ vehicle={};assert(m.sample(player).blocked);vehicle=nil
 Game.GetSceneSystem=function()error('Unavailable')end
 assert(m.sample(player).blocked and m.sample(player).error)
 assert(not m.canSpeak(nil,'end'))
+`));
+
+test('native speaker eligibility reports the failing gate without exposing native error text', () => run(`
+local attached,dead,dialogue,scene,combat=true,false,false,false,false
+local npc={IsAttached=function()return attached end,IsDeadNoStatPool=function()return dead end,GetEntityID=function()return 1 end}
+Game={GetSceneSystem=function()return {GetScriptInterface=function()return {
+ IsEntityInDialogue=function()return dialogue end,IsEntityInScene=function()return scene end}end}end}
+NPCPuppet={IsInCombat=function()return combat end}
+local m=(function() ${observer} end)()
+local ok,why=m.canSpeak(npc,'end');assert(ok and why=='available')
+attached=false;ok,why=m.canSpeak(npc,'start');assert(not ok and why=='detached');attached=true
+dead=true;ok,why=m.canSpeak(npc,'start');assert(not ok and why=='dead');dead=false
+dialogue=true;ok,why=m.canSpeak(npc,'start');assert(not ok and why=='native-dialogue');dialogue=false
+scene=true;ok,why=m.canSpeak(npc,'start');assert(not ok and why=='native-scene');scene=false
+combat=true;ok,why=m.canSpeak(npc,'end');assert(not ok and why=='still-in-combat')
+assert(m.canSpeak(npc,'start'))
+Game.GetSceneSystem=function()error('native private details')end
+ok,why=m.canSpeak(npc,'end');assert(not ok and why=='native-read-failed')
 `));
 
 const battle = {version: 1, status: 'ended', encounter: 'battle-1', ageSeconds: 8, durationSeconds: 25,

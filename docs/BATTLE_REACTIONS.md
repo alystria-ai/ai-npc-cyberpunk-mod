@@ -66,8 +66,8 @@ are reused.
 - Adapted encounter pacing and priority from the supplied Dawnwalker 0.5.5
   `battle_comments.lua` and `reaction_policy.lua`, using Cyberpunk's own APIs.
 - A live read-only probe confirmed ordinary gameplay, Judy/Alex speaker
-  availability, and the scene-membership caveat above. Native hostile sampling
-  and fight transitions still need a live combat check.
+  availability, and the scene-membership caveat above. The first fight later
+  confirmed hostile observations and combat transitions, as described below.
 - Executable Lua/bridge checks cover encounter transitions, cooldowns, reset,
   bounds, witness selection, group snapshots, manual priority, timeout ownership,
   admission versus playback expiry, native scene guards, protocol validation,
@@ -80,17 +80,28 @@ are reused.
   questions (approximately 7.8 and 8.2 seconds including fresh-session setup).
   These are transport/prompt checks, not warm in-game voice-latency measurements
   or a guarantee of model adherence on every reply.
-- In-game opening/closing audio, observed enemy labels, cooldown and save-load
-  behavior remain unaccepted until recorded during the live test.
-- Lua files and catalogs were installed with hash verification. Only the hidden
-  bridge was restarted; Cyberpunk remained open and the saved Convai voice choice
-  stayed active. The game adapter awaits the requested CET reload and fight check.
+- The first live fight captured Beat Cop / Patrol Officer observations and Judy
+  as a witness, but the user heard neither comment. Both automatic requests
+  reached the bridge, then the Lua adapter cancelled them before delivery. The
+  original combined `priority-or-stale` reason does not identify which gate
+  failed; no speculative timing changes have been made.
+- Specific cancellation reasons and a bounded evidence ledger are now installed.
+  They distinguish manual/menu interruption, output settings, missing/unavailable
+  speakers, native scene gates, combat-phase changes and expiry. Explicitly
+  disabling both voice and subtitles suppresses automatic generation while
+  retaining battle facts for manual conversation.
+- Forty-two focused phone/battle checks pass in the resumed run; all five changed
+  Lua files parse. Installation was hash-verified on September 29 while the game
+  was closed, then the game and hidden bridge were launched. The saved Convai
+  voice choice remains active. No CET reload is needed for this launch.
+- In-game opening/closing audio, cooldown and save-load behavior remain
+  unaccepted. The next fight must be checked against the new cancellation ledger.
 - Combining loot and exploration observations with the closing comment is still
   pending. No Horde-wave or kill-count equivalent is invented for Cyberpunk.
 
 ## Live check and diagnostics
 
-After one CET **Reload All Mods**, invite a companion and enter a short fight.
+After loading the save with the installed update, invite a companion and enter a short fight.
 Listen for at most one opening comment and one closing comment after combat has
 settled. Ask in F6 who V fought and compare the answer with what was visible.
 Manual conversation should cancel an automatic reply; a second fight within ten
@@ -100,3 +111,6 @@ Request `battle-context:<unique nonce>` through the existing diagnostic request
 file for `runtime/battle-context-probe.json`. This is read-only. Installed runtime
 logs record automatic starts/releases; bridge latency metadata labels the phase.
 No credentials or character session IDs enter these diagnostics or metrics.
+`runtime/battle-cancellations.json` retains at most 32 automatic release records,
+including the guard snapshot, speaker distance/availability, encounter phase and
+request/playback timing. It contains no dialogue or native object references.

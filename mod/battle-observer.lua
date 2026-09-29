@@ -56,13 +56,17 @@ function M.sample(player)
 end
 
 function M.canSpeak(npc, phase)
-    local ok, ready = pcall(function()
-        if not npc or not npc:IsAttached() or npc:IsDeadNoStatPool() then return false end
+    local ok, ready, reason = pcall(function()
+        if not npc then return false, 'missing' end
+        if not npc:IsAttached() then return false, 'detached' end
+        if npc:IsDeadNoStatPool() then return false, 'dead' end
         local scene = Game.GetSceneSystem():GetScriptInterface()
-        return not scene:IsEntityInDialogue(npc:GetEntityID()) and not scene:IsEntityInScene(npc:GetEntityID())
-            and (phase == 'start' or not NPCPuppet.IsInCombat(npc))
+        if scene:IsEntityInDialogue(npc:GetEntityID()) then return false, 'native-dialogue' end
+        if scene:IsEntityInScene(npc:GetEntityID()) then return false, 'native-scene' end
+        if phase ~= 'start' and NPCPuppet.IsInCombat(npc) then return false, 'still-in-combat' end
+        return true, 'available'
     end)
-    return ok and ready
+    return ok and ready, ok and reason or 'native-read-failed'
 end
 
 return M
