@@ -6,30 +6,65 @@ import {drainBlendshapes} from './blendshape-capture.mjs';
 import {BlendshapeQueue} from '../node_modules/@convai/web-sdk/dist/core/BlendshapeQueue.js';
 import {journalContext} from './quest-context.mjs';
 import {endUserOptions, transportKey, SessionBindings} from './transport-pool.mjs';
+import {PcmChunkStream} from './convai-audio-stream.mjs';
 
 const source = readFileSync(new URL('./realtime-client.mjs', import.meta.url), 'utf8')
   .replace("import {ConvaiClient} from '@convai/web-sdk/vanilla';", '')
   .replace("import {drainBlendshapes} from './blendshape-capture.mjs';", '')
-  .replace("import {endUserOptions, transportKey, SessionBindings} from './transport-pool.mjs';", '');
+  .replace("import {endUserOptions, transportKey, SessionBindings} from './transport-pool.mjs';", '')
+  .replace("import {PcmChunkStream} from './convai-audio-stream.mjs';", '');
 const flush = () => new Promise(done => setImmediate(done));
-function fixture() {
+function manualTimers() {
+  let now = 0, nextId = 0;
+  const pending = new Map();
+  return {
+    pending,
+    setTimeout(callback, delay) { const id = ++nextId; pending.set(id, {callback, due: now + delay}); return id; },
+    clearTimeout(id) { pending.delete(id); },
+    advance(milliseconds) {
+      now += milliseconds;
+      for (const [id, timer] of [...pending]) if (timer.due <= now) { pending.delete(id); timer.callback(); }
+    }
+  };
+}
+function fixture({emitAudio, allowMic = false, timers, onDisconnect, onDisableAudio} = {}) {
   const clients = [], events = [], captures = [];
   class Client {
     constructor(options) {
-      this.options = options; this.characterSessionId = 'session-' + clients.length; this.handlers = new Map();
-      this.chatMessages = []; this.state = {}; this.blendshapeQueue = {length: 0, getPlaybackFps: () => 30, isConversationEnded: () => false};
+      this.options = options; this.characterId = options.characterId;
+      this.characterSessionId = 'session-' + clients.length; this.handlers = new Map();
+      this.chatMessages = []; this.state = {endUserId: options.endUserId || null}; this.blendshapeQueue = {length: 0, getPlaybackFps: () => 30, isConversationEnded: () => false};
       this.room = {on() {}, startAudio: async () => {}, remoteParticipants: new Map(),
-        localParticipant: {audioTrackPublications: new Map()}};
-      this.audioControls = {disableAudio: async () => {}, enableAudio: async () => { events.push('microphone'); }};
+        localParticipant: {audioTrackPublications: new Map(), unpublishTrack: async () => this.room.localParticipant.audioTrackPublications.clear()}};
+      this.audioControls = {disableAudio: async () => {
+        if (allowMic) events.push('microphone-disable');
+        await onDisableAudio?.(this);
+      }, enableAudio: async () => {
+        events.push('microphone');
+        if (allowMic) {
+          const track = {readyState: 'live', label: 'fixture microphone', stop() {
+            if (this.readyState !== 'ended') events.push('microphone-stop');
+            this.readyState = 'ended';
+          }};
+          this.room.localParticipant.audioTrackPublications.set('mic', {source: 'microphone', isMuted: false,
+            track: {mediaStreamTrack: track}});
+        }
+      }};
       clients.push(this);
     }
     on(name, callback) { this.handlers.set(name, callback); }
     async connect() { this.isBotReady = true; }
-    async disconnect() { this.isBotReady = false; }
+    async disconnect() {
+      this.isBotReady = false;
+      if (allowMic) events.push(['disconnect', clients.indexOf(this)]);
+      await onDisconnect?.(this);
+    }
+    sendInterruptMessage() { if (allowMic) events.push(['interrupt', clients.indexOf(this)]); }
     updateContext(config) { events.push(['context', config]); }
     sendUserTextMessage(text) { events.push(['message', text]); }
     sendTriggerMessage(name, text) { events.push(['trigger', name, text]); }
     resetIdleTimer() { events.push('idle-reset'); }
+    toggleStt() {}
   }
   class Audio {
     constructor() { events.push('audio-capture'); this.sampleRate = 48000; this.audioWorklet = {addModule: async () => {}}; }
@@ -37,10 +72,11 @@ function fixture() {
     async close() {}
   }
   class Capture { constructor() { this.port = {}; captures.push(this); } connect() {} disconnect() {} }
-  const window = {};
+  const window = {__convaiAudioChunk: emitAudio};
   runInNewContext(source, {ConvaiClient: Client, AudioContext: Audio, AudioWorkletNode: Capture, drainBlendshapes,
-    endUserOptions, transportKey, SessionBindings,
-    window, performance, setTimeout, clearTimeout, setInterval, clearInterval,
+    endUserOptions, transportKey, SessionBindings, PcmChunkStream,
+    window, performance, setTimeout: timers?.setTimeout ?? setTimeout, clearTimeout: timers?.clearTimeout ?? clearTimeout,
+    setInterval, clearInterval,
     btoa: data => Buffer.from(data, 'binary').toString('base64')});
   return {api: window.convaiRealtime, clients, events, captures};
 }
@@ -55,6 +91,175 @@ test('automatic reactions send a game trigger without inventing a player utteran
   assert.equal(events.some(row => row[0] === 'message'), false);
   assert.deepEqual(events.find(row => row[0] === 'trigger'), ['trigger', undefined, config.text]);
   await api.close(); await assert.rejects(pending, /cancelled/);
+});
+
+test('warm registration reports the actual SDK end-user echo and rejects missing or mismatched registration', async () => {
+  const {api, clients} = fixture();
+  const identified = {...config, ttsEnabled: false, endUserId: 'save-branch-user'};
+  const first = await api.warm(identified);
+  assert.equal(first.registration.verified, true);
+  assert.equal(first.registration.endUserId, identified.endUserId);
+  assert.equal(first.registration.characterId, config.characterId);
+  clients[0].state.endUserId = null;
+  assert.equal((await api.warm(identified)).registration.verified, false);
+  clients[0].state.endUserId = 'another-user';
+  assert.equal((await api.warm(identified)).registration.verified, false);
+  await api.close();
+  assert.equal((await api.warm({...config, ttsEnabled: false})).registration.verified, false);
+  await api.close();
+});
+
+test('captured Convai audio reaches the native sink before the remote utterance finishes', async () => {
+  const chunks = [];
+  const {api, clients, captures} = fixture({emitAudio: async (token, chunk) => {
+    assert.equal(token, 'native-stream-one'); chunks.push(chunk);
+  }});
+  await api.warm(config);
+  const pending = api.reply({...config, audioStreamToken: 'native-stream-one'}); pending.catch(() => {});
+  await flush();
+  const client = clients[0], queue = client.blendshapeQueue = new BlendshapeQueue();
+  queue.startConversation();
+  queue.addChunk(Array.from({length: 90}, (_, index) => Array(61).fill(index / 100)),
+    {fps: 30, startFrameIndex: 0, responseId: 'spoken'});
+  queue.startBotSpeaking(); client.state.isSpeaking = true;
+  client.handlers.get('messagesChange')([{id: 'reply', type: 'bot-llm-text', content: 'Hello V. There is more to say.', isStreaming: false}]);
+  captures[0].port.onmessage({data: {at: 10, pcm: new Float32Array(96000).fill(.1)}});
+  await new Promise(done => setTimeout(done, 80));
+  assert.equal(chunks.length, 1);
+  assert.equal(chunks[0].duration, 1);
+  assert.equal(chunks[0].startSeconds, 0);
+  assert.equal(chunks[0].text, 'Hello V. There is more to say.');
+  assert.equal(chunks[0].faces[0].at, 0);
+  assert.equal(chunks[0].faces.at(-1).at, 1);
+  let finished = false; pending.then(() => { finished = true; });
+  await flush(); assert.equal(finished, false);
+  captures[0].port.onmessage({data: {at: 12, pcm: new Float32Array(48000).fill(.2)}});
+  queue.stopBotSpeaking(); client.state.isSpeaking = false;
+  queue.endConversation({fps: 30, total_blendshapes: 90, total_audio_duration_ms: 3000}, {responseId: 'spoken'});
+  const result = await pending;
+  assert.equal(chunks.length, 3);
+  assert.equal(chunks[1].duration, 1); assert.equal(chunks[1].startSeconds, 1);
+  assert(Math.abs(chunks[1].faces[0].values[0] - .3) < 1e-6);
+  assert.equal(result.streamed, true); assert.equal(result.stream.chunks, 3); assert.equal(result.stream.duration, 3);
+  assert.equal(result.audio, undefined); assert.equal(result.faces.length, 0);
+  await api.close();
+});
+
+test('microphone stop refreshes context on its original connection before disabling the device', async () => {
+  const {api, clients, events} = fixture({allowMic: true});
+  const original = {...config, ttsEnabled: false, endUserId: 'one-save', scope: 'private', context: 'Earlier journal.'};
+  const opened = await api.beginVoice(original);
+  assert.equal(opened.sessionID, clients[0].characterSessionId);
+  const pending = api.finishVoice({...original, sessionId: opened.sessionID, context: 'Newly verified objective.'});
+  await flush();
+  const contexts = events.filter(row => Array.isArray(row) && row[0] === 'context');
+  assert.match(contexts.at(-1)[1].text, /Newly verified objective/);
+  assert(events.lastIndexOf(contexts.at(-1)) < events.indexOf('microphone-stop'));
+  assert.equal(clients.length, 1);
+  clients[0].handlers.get('messagesChange')([{id: 'voice-reply', type: 'bot-llm-text', content: 'I know the current objective.', isStreaming: false}]);
+  assert.equal((await pending).text, 'I know the current objective.');
+  await api.close();
+});
+
+test('only the game finish submits speech after 30 seconds, with fresh context before disabling audio', async () => {
+  const timers = manualTimers(), {api, clients, events} = fixture({allowMic: true, timers});
+  const original = {...config, ttsEnabled: false, endUserId: 'one-save', scope: 'private', context: 'Earlier objective.'};
+  const opened = await api.beginVoice(original);
+  const obsoleteCeiling = [...timers.pending.values()][0].callback;
+  timers.advance(30000); await flush();
+  timers.advance(2000); await flush();
+  assert.equal(events.includes('microphone-disable'), false);
+  assert.equal(events.includes('microphone-stop'), false);
+  assert.equal(api.readiness().ready, true);
+  const pending = api.finishVoice({...original, sessionId: opened.sessionID, context: 'Verified at game finish.'});
+  await flush();
+  const latestContext = events.findLast(row => Array.isArray(row) && row[0] === 'context');
+  assert.match(latestContext[1].text, /Verified at game finish/);
+  assert(events.indexOf(latestContext) < events.indexOf('microphone-disable'));
+  assert.equal(timers.pending.size, 0);
+  // A queued callback can still run after clearTimeout; ownership and recording
+  // state must also make it harmless while the reply is being collected.
+  obsoleteCeiling(); timers.advance(3000); await flush();
+  assert.equal(api.readiness().ready, true);
+  assert.equal(events.some(row => Array.isArray(row) && row[0] === 'disconnect'), false);
+  await assert.rejects(api.finishVoice(original), /No microphone conversation is recording/);
+  clients[0].handlers.get('messagesChange')([{id: 'reply', type: 'bot-llm-text', content: 'Fresh reply.', isStreaming: false}]);
+  assert.equal((await pending).text, 'Fresh reply.');
+  assert.equal(events.filter(row => row === 'microphone-disable').length, 1);
+  await api.close();
+});
+
+test('an abandoned microphone cancels at 35 seconds without submitting or collecting its recording', async () => {
+  const timers = manualTimers(), {api, clients, events} = fixture({allowMic: true, timers});
+  const original = {...config, ttsEnabled: false, endUserId: 'one-save', scope: 'private'};
+  await api.beginVoice(original);
+  const track = clients[0].room.localParticipant.audioTrackPublications.get('mic').track.mediaStreamTrack;
+  timers.advance(34999); await flush();
+  assert.equal(track.readyState, 'live');
+  timers.advance(1); await flush();
+  assert.equal(track.readyState, 'ended');
+  assert.equal(api.readiness().ready, false);
+  assert.equal(events.includes('microphone-disable'), false);
+  const interrupted = events.findIndex(row => Array.isArray(row) && row[0] === 'interrupt');
+  const disconnected = events.findIndex(row => Array.isArray(row) && row[0] === 'disconnect');
+  assert(interrupted >= 0 && interrupted < disconnected && disconnected < events.indexOf('microphone-stop'));
+  assert.equal(events.filter(row => Array.isArray(row) && row[0] === 'context').length, 1);
+  clients[0].handlers.get('messagesChange')([{id: 'late', type: 'bot-llm-text', content: 'Unverified reply.', isStreaming: false}]);
+  await assert.rejects(api.finishVoice(original), /No microphone conversation is recording/);
+  assert.equal(timers.pending.size, 0);
+  await api.close();
+});
+
+test('late cancellation shutdown and its old timer cannot stop a new recording', async () => {
+  let releaseDisconnect;
+  const delayed = new Promise(done => { releaseDisconnect = done; });
+  const timers = manualTimers(), {api, clients, events} = fixture({allowMic: true, timers,
+    onDisconnect: connection => connection === clients[0] ? delayed : undefined});
+  const original = {...config, ttsEnabled: false, endUserId: 'one-save', scope: 'private'};
+  await api.beginVoice(original);
+  const oldCeiling = [...timers.pending.values()][0].callback;
+  const oldTrack = clients[0].room.localParticipant.audioTrackPublications.get('mic').track.mediaStreamTrack;
+  timers.advance(35000); await flush();
+  assert.equal(oldTrack.readyState, 'ended', 'network shutdown cannot delay local microphone stop');
+  await api.beginVoice({...original, endUserId: 'another-save'});
+  const newTrack = clients[1].room.localParticipant.audioTrackPublications.get('mic').track.mediaStreamTrack;
+  releaseDisconnect(); oldCeiling(); await flush();
+  assert.equal(newTrack.readyState, 'live');
+  assert.equal(api.readiness().ready, true);
+  assert.equal(timers.pending.size, 1);
+  assert.equal(events.includes('microphone-disable'), false);
+  assert.equal(events.filter(row => Array.isArray(row) && row[0] === 'disconnect').length, 1);
+  await api.close();
+});
+
+test('a cancelled finish cannot collect a new recording after delayed microphone disable', async () => {
+  let releaseDisable;
+  const delayed = new Promise(done => { releaseDisable = done; });
+  const timers = manualTimers(), {api, clients} = fixture({allowMic: true, timers,
+    onDisableAudio: connection => connection === clients[0] ? delayed : undefined});
+  const original = {...config, ttsEnabled: false, endUserId: 'one-save', scope: 'private'};
+  await api.beginVoice(original);
+  const finishing = api.finishVoice(original); finishing.catch(() => {});
+  await api.close();
+  await api.beginVoice({...original, endUserId: 'another-save'});
+  releaseDisable();
+  await assert.rejects(finishing, /Microphone finish cancelled/);
+  assert.equal(clients[1].room.localParticipant.audioTrackPublications.get('mic').track.mediaStreamTrack.readyState, 'live');
+  assert.equal(api.readiness().ready, true); assert.equal(timers.pending.size, 1);
+  await api.close();
+});
+
+test('microphone stop cannot change its character, user, audience, TTS route or session', async () => {
+  for (const change of [{characterId: 'panam'}, {endUserId: 'another-save'}, {scope: 'group:judy,panam'},
+    {ttsEnabled: true}, {sessionId: 'foreign-session'}, {freshSession: true}]) {
+    const {api, clients, events} = fixture({allowMic: true});
+    const original = {...config, ttsEnabled: false, endUserId: 'one-save', scope: 'private'};
+    await api.beginVoice(original);
+    await assert.rejects(api.finishVoice({...original, ...change}), /identity changed|speculative preparation/);
+    assert.equal(clients.length, 1);
+    assert.equal(events.filter(row => Array.isArray(row) && row[0] === 'context').length, 1);
+    await api.close();
+  }
 });
 
 test('a turn silently replaces journal context before sending the original user message', async () => {

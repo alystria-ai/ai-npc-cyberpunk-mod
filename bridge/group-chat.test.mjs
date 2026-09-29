@@ -98,6 +98,52 @@ test('a listener who missed part of a line never receives it as completed heard 
   group.completed(first.requestId,true)
   assert(#group.next(4,103,live).group.heard==0)
 `));
+
+test('dynamic group playback waits for final text before prefetch and stores the full completed utterance', () => check(`
+  local published, observed
+  group.onPreparation=function(value)published=value end
+  group.captureReply=function(id,generation,entity)
+    assert(id==observed.requestId and generation==observed.generation and entity==observed.entity)
+    return observed
+  end
+  group.start('round',{judy,panam},'Hello friends');local first=group.next(1,100,live)
+  observed={requestId=first.requestId,generation=first.generation,entity=first.entity,streamVersion=2,
+    streamId='live-1',text='Early words',textComplete=false,finished=false,failed=false,delivered=false}
+  group.received(first.requestId,'Early words',false,{'judy','panam'},{version=2,id='live-1'})
+  assert(not group.preview(2,101,live)and not published)
+  assert(not group.completed(first.requestId,true)and group.round.stage=='playing')
+  observed.text='The full reply includes words that arrived after playback started.';observed.textComplete=true
+  local prepared=group.preview(2,102,live)
+  assert(prepared.group.heard[1].text==observed.text and group.round.stage=='playing')
+  observed.finished=true;observed.delivered=true
+  assert(group.completed(first.requestId,true))
+  assert(group.round.heard[1].text==observed.text)
+  local actual=group.next(3,104,live)
+  assert(actual.requestId==prepared.requestId and actual.group.heard[1].text==observed.text)
+`));
+
+test('wrong stream owners and partial or cancelled native playback never become heard group context', () => check(`
+  local observed
+  group.captureReply=function()return observed end
+  group.start('round',{judy,panam},'Hello');local first=group.next(1,100,live)
+  group.received(first.requestId,'Prefix',false,{'judy','panam'},{version=2,id='live-1'})
+  observed={requestId=first.requestId,generation=first.generation,entity=panam.entity,streamVersion=2,
+    streamId='live-1',text='Wrong copy',textComplete=true,finished=true,failed=false,delivered=true}
+  assert(not group.preview(2,101,live))
+  observed.entity=first.entity;observed.generation=2;assert(not group.preview(2,101,live))
+  observed.generation=first.generation;observed.streamId='foreign';assert(not group.preview(2,101,live))
+  observed.streamId='live-1';observed.text='Full generated text';observed.finished=false;observed.delivered=false
+  assert(group.preview(2,102,live))
+  observed.failed=true;observed.finished=true
+  assert(not group.preview(3,103,live)and not group.round.prepared)
+  assert(group.completed(first.requestId,true))
+  assert(#group.next(4,104,live).group.heard==0)
+  group.start('round-2',{judy,panam},'Hello');first=group.next(5,105,live)
+  group.captureReply=nil
+  group.received(first.requestId,'Prefix',false,{'judy','panam'},{version=2,id='missing-final'})
+  assert(not group.preview(6,106,live))
+  group.completed(first.requestId,true);assert(#group.next(6,107,live).group.heard==0)
+`));
 test('validate group metadata and isolate private and group session scopes', () => {
   const group = {id: 'round-1', index: 1, total: 3, audience: ['judy', 'panam'], heard: []};
   assert.ok(parseGroup(group));

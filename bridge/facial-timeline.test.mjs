@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {BlendshapeQueue} from '../node_modules/@convai/web-sdk/dist/core/BlendshapeQueue.js';
 import {drainBlendshapes} from './blendshape-capture.mjs';
 import {buildFacialTimeline, SPEECH_TRACKS} from './facial-timeline.mjs';
+import {PcmChunkStream} from './convai-audio-stream.mjs';
 
 const owner = {requestId: 'reply-1', entity: 'judy-copy-2'};
 const values = amount => { const result = Array(61).fill(0); result[17] = amount; return result; };
@@ -90,4 +91,74 @@ test('malformed, incomplete and unknown facial formats fall back without discard
     assert.ok(line.frames.every((frame, n) => n === 0 || frame[0] > line.frames[n - 1][0]));
     assert.equal(line.tracks.length, SPEECH_TRACKS.length);
   }
+});
+
+test('ARKIT continuation keeps the actual mouth pose across native files and eases only the utterance ends', () => {
+  const wav = audio({duration: 1}).toString('base64');
+  const faces = Array.from({length: 31}, (_, index) => ({at: index / 30, values: values(.8)}));
+  const common = {audio: wav, faces, facesFormat: 'arkit61', facesTimebase: 'audio-seconds'};
+  const segments = [
+    {version: 1, index: 1, startSeconds: 0, first: true, last: false},
+    {version: 1, index: 2, startSeconds: 1, first: false, last: false},
+    {version: 1, index: 3, startSeconds: 2, first: false, last: true},
+  ];
+  const lines = segments.map(speechSegment => buildFacialTimeline({...common, speechSegment}, owner));
+  const jaw = lines[0].tracks.indexOf('jaw_mid_open') + 1;
+  assert.equal(lines[0].frames[0][jaw], 0);
+  assert.equal(lines[0].frames.at(-1)[jaw], .28);
+  assert.equal(lines[1].frames[0][jaw], .28);
+  assert.equal(lines[1].frames.at(-1)[jaw], .28);
+  assert.equal(lines[2].frames[0][jaw], .28);
+  assert.equal(lines[2].frames.at(-1)[jaw], 0);
+  assert(lines[2].frames.at(-2)[jaw] < .28);
+  assert.deepEqual(lines.map(line => line.segment), segments);
+  assert(lines.every(line => line.frames[22].slice(1).every(value => value === 0))); // Real silence still closes the mouth.
+});
+
+test('audio-envelope fallback does not create artificial neutral frames at continuation file edges', () => {
+  const wav = audio({duration: 1}).toString('base64');
+  const line = buildFacialTimeline({audio: wav,
+    speechSegment: {version: 1, index: 2, startSeconds: 1, first: false, last: false}}, owner);
+  const jaw = line.tracks.indexOf('jaw_mid_open') + 1;
+  assert.equal(line.source, 'audio-envelope');
+  assert(line.frames[0][jaw] > .3);
+  assert(line.frames.at(-1)[jaw] > .3);
+  assert(line.frames[22].slice(1).every(value => value === 0));
+  assert(line.frames.every(row => row.slice(1).every(value => Number.isFinite(value) && value >= 0 && value <= .5)));
+});
+
+test('malformed boundary claims cannot opt out of facial cleanup', () => {
+  const common = {audio: audio({duration: 1}).toString('base64')};
+  for (const speechSegment of [null, {}, {version: 1, index: 1, startSeconds: 0, first: false, last: false},
+    {version: 1, index: 2, startSeconds: 0, first: false, last: false},
+    {version: 1, index: 2, startSeconds: 1, first: false, last: 'false'},
+    {version: 1, index: 129, startSeconds: 119, first: false, last: true},
+    {version: 1, index: 2, startSeconds: 120, first: false, last: true}]) {
+    assert.throws(() => buildFacialTimeline({...common, speechSegment}, owner), /Invalid facial segment/);
+  }
+  const ordinary = buildFacialTimeline(common, owner);
+  assert.equal(ordinary.segment, undefined);
+  assert(ordinary.frames[0].slice(1).every(value => value === 0));
+  assert(ordinary.frames.at(-1).slice(1).every(value => value === 0));
+});
+
+test('real PCM producer flags only the captured final tail and builds connected facial boundaries', async () => {
+  const segments = [], stream = new PcmChunkStream({sampleRate: 8000, emit: async chunk => segments.push(chunk)});
+  const faces = Array.from({length: 97}, (_, index) => ({at: index / 30, values: values(.7)}));
+  const metadata = {text: 'This is one ongoing spoken sentence.', textComplete: true, faces, captions: []};
+  stream.update(metadata); stream.push(new Float32Array(8000 * 3).fill(.1));
+  await stream.pump();
+  assert.equal(segments.length, 2);
+  assert(segments.every(chunk => chunk.speechSegment.last === false));
+  await stream.finish(metadata);
+  assert.equal(segments.length, 3);
+  assert.deepEqual(segments.map(chunk => chunk.speechSegment.first), [true, false, false]);
+  assert.deepEqual(segments.map(chunk => chunk.speechSegment.last), [false, false, true]);
+  const lines = segments.map(chunk => buildFacialTimeline(chunk, owner));
+  const jaw = lines[0].tracks.indexOf('jaw_mid_open') + 1;
+  for (let index = 1; index < lines.length; index++) {
+    assert.equal(lines[index - 1].frames.at(-1)[jaw], lines[index].frames[0][jaw]);
+    assert(lines[index].frames[0][jaw] > 0);
+  }
+  assert.equal(lines.at(-1).frames.at(-1)[jaw], 0);
 });

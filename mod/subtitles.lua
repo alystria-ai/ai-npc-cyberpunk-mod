@@ -169,12 +169,38 @@ function M.beginTimed(speaker, text, duration, actor, expected)
     M.timed = {duration = duration, weights = weights, total = total, position = 0}
     return showPage()
 end
+function M.reviseTimed(text, duration, position)
+    -- A growing realtime transcript belongs to the same utterance. Updating
+    -- its text or final duration must not briefly render the first page again.
+    if not M.timed or not finite(duration) or duration <= 0 or duration > 120
+        or not finite(position) or position < 0 then return false end
+    if M.playerID and identity(Game.GetPlayer()) ~= M.playerID then M.abandon(); return false end
+    if not M.enabled() or (M.actor and not validActor(M.actor, M.entity)) then M.clear(); return false end
+    local pages = M.split(text, M.mode)
+    if #pages == 0 then return false end
+    local oldText, oldDuration, oldPage = M.pages[M.page], M.timed.duration, M.page
+    local weights, total = {}, 0
+    for index, page in ipairs(pages) do
+        for _ in page:gmatch(UTF8) do total = total + 1 end
+        weights[index] = total
+    end
+    local target = 1
+    while target < #pages and position >= duration * weights[target] / total do target = target + 1 end
+    -- A duration estimate becoming more accurate is not a reason to replay a
+    -- page which the player has already read.
+    M.page = math.max(math.min(oldPage, #pages), target)
+    M.pages, M.timed = pages, {duration = duration, weights = weights, total = total,
+        position = math.min(position, duration), pageFloor = M.page}
+    if not M.line or pages[M.page] ~= oldText or M.page ~= oldPage or oldDuration ~= duration then return showPage() end
+    return true
+end
 function M.syncTimed(position)
     if not M.timed or not finite(position) or position < 0 then return end
     if M.actor and not validActor(M.actor, M.entity) then M.clear(); return end
     M.timed.position = math.min(position, M.timed.duration)
     local target = 1
     while target < #M.pages and position >= M.timed.duration * M.timed.weights[target] / M.timed.total do target = target + 1 end
+    if M.timed.pageFloor then target = math.max(target, M.timed.pageFloor); M.timed.pageFloor = target end
     if target ~= M.page then M.page = target; showPage() end
 end
 function M.update(delta)

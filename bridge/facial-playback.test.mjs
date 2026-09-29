@@ -128,3 +128,45 @@ test('reserved upper lip and active corner controls reach the native feature and
   assert(face.status().articulation=='coarticulated-v4')
   speech.stop('cancelled'); assert(judy.resets==1 and not face.active)
 `));
+
+test('contiguous native audio segments retain the actual mouth pose until final completion', () => run(`
+  local context={entity='Judy-1',requestId='continuous',generation=7}
+  local function timeline(index,start,first,last,a,b)
+    return {version=1,requestId='continuous',entity='Judy-1',duration=1,source='convai-arkit61',
+      segment={version=1,index=index,startSeconds=start,first=first,last=last},
+      tracks={'jaw_mid_open'},frames={{0,a},{1,b}}}
+  end
+  assert(face.start(context,timeline(1,0,true,false,.05,.2),judy,1,{index=1,startSeconds=0}))
+  face.sync(judy,.996,'continuous');face.sync(judy,1,'continuous')
+  assert(face.active and judy.resets==0 and judy.frames[#judy.frames].jaw_mid_open==.2)
+  assert(face.hold(judy,'continuous')and judy.resets==0)
+  assert(face.start(context,timeline(2,1,false,false,.2,.3),judy,1,{index=2,startSeconds=1}))
+  assert(judy.resets==0);face.sync(judy,.01,'continuous')
+  assert(math.abs(judy.frames[#judy.frames].jaw_mid_open-.201)<.001)
+  face.sync(judy,1,'continuous')
+  assert(face.start(context,timeline(3,2,false,true,.3,0),judy,1,{index=3,startSeconds=2}))
+  assert(judy.resets==0);face.sync(judy,.5,'continuous');face.sync(judy,1,'continuous')
+  assert(judy.resets==1 and not face.active)
+`));
+
+test('invalid or noncontiguous facial replacements release the held pose and cannot borrow another turn', () => run(`
+  local context={entity='Judy-1',requestId='continuous',generation=7}
+  local function timeline(index,start)
+    return {version=1,requestId='continuous',entity='Judy-1',duration=1,source='convai-arkit61',
+      segment={version=1,index=index,startSeconds=start,first=index==1,last=false},
+      tracks={'jaw_mid_open'},frames={{0,.1},{1,.2}}}
+  end
+  assert(face.start(context,timeline(1,0),judy,1,{index=1,startSeconds=0}))
+  face.sync(judy,1,'continuous');assert(judy.resets==0)
+  assert(face.start(context,timeline(3,2),judy,1,{index=3,startSeconds=2}))
+  assert(judy.resets==1,'A missing segment must break the facial handoff')
+  face.sync(judy,1,'continuous')
+  assert(not face.start(context,timeline(4,3),judy,1,{index=5,startSeconds=3}))
+  assert(judy.resets==2 and not face.active)
+  assert(face.start(context,timeline(1,0),judy,1,{index=1,startSeconds=0}))
+  face.sync(judy,1,'continuous');context.generation=8
+  assert(face.start(context,timeline(2,1),judy,1,{index=2,startSeconds=1}))
+  assert(judy.resets==3)
+  face.sync(judy,.5,'continuous');assert(not face.start(context,nil,judy,1,{index=3,startSeconds=2}))
+  assert(judy.resets==4 and not face.active)
+`));

@@ -143,6 +143,17 @@ export class PartyConnections {
     }
     this.revision++; await this.reconcile(); this.emit();
   }
+  async refreshScope(profile, scope) {
+    // Called after host.refreshIdle succeeds. Replacing the object prevents an
+    // old warm/readiness callback from marking the renewed scope ready.
+    const identity = connectionKey(profile, scope), entry = this.entries.get(identity);
+    if (!entry) return false;
+    this.entries.set(identity, {profile, scope, role: entry.role, identity,
+      state: 'waiting', failures: 0, attempts: 0, nextCheck: 0});
+    entry.controller?.abort();
+    this.revision++; await this.reconcile(); this.emit();
+    return true;
+  }
   diagnostic() {
     return {updated: this.now(), partyUpdated: this.updated, stale: this.stale, limit: CONNECTION_LIMIT,
       profiles: this.profiles, unconfigured: this.profiles.filter(profile => !this.isKnown(profile)),

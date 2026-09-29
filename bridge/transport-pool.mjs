@@ -120,6 +120,19 @@ export class TransportPool {
       this.change();
     });
   }
+  discardIdle(key) {
+    // The busy check and disposal share the acquisition lock. A reply cannot
+    // acquire this entry between our check and close; a busy lease is untouched.
+    // Explicitly refreshing a retained key does not revoke its protection or
+    // evict other retained/private/group entries.
+    return this.lock(async () => {
+      const entry = this.entries.get(key);
+      if (!entry || entry.removed) return true;
+      if (entry.busy) return false;
+      await this.remove(entry);
+      return true;
+    });
+  }
   close() {
     this.closed = true; this.change();
     return this.lock(async () => { for (const entry of [...this.entries.values()]) await this.remove(entry); });

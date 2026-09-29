@@ -68,10 +68,25 @@ local function sameContext(a, b)
     return true
 end
 
+local function refreshReply(r)
+    if not r.reply or type(M.captureReply) ~= 'function' then return end
+    local ok, value = pcall(M.captureReply, r.requestId, r.generation, r.entity)
+    if not ok or type(value) ~= 'table' or value.requestId ~= r.requestId
+        or value.generation ~= r.generation or value.entity ~= r.entity or value.streamVersion ~= 2
+        or type(value.streamId) ~= 'string' or (r.reply.streamId and value.streamId ~= r.reply.streamId)
+        or type(value.text) ~= 'string' or #value.text > 12000 or not value.text:find('%S')
+        or type(value.textComplete) ~= 'boolean' or type(value.delivered) ~= 'boolean'
+        or type(value.failed) ~= 'boolean' or type(value.finished) ~= 'boolean' then return end
+    r.reply.streamVersion, r.reply.streamId = 2, value.streamId
+    r.reply.text, r.reply.textComplete = value.text, value.textComplete
+    r.reply.failed, r.reply.delivered, r.reply.finished = value.failed, value.delivered, value.finished
+end
+
 function M.preview(generation, now, live, deliveryFailed)
     local r = M.round
     if not r or r.stage ~= 'playing' or not r.reply then return nil end
-    if deliveryFailed then
+    refreshReply(r)
+    if deliveryFailed or r.reply.failed or r.reply.textComplete == false then
         if r.prepared then r.prepared = nil; prepareChanged(nil) end
         return nil
     end
@@ -103,21 +118,31 @@ function M.next(generation, now, live)
         prepareChanged(nil)
     end
     r.prepared = nil
-    r.requestId, r.stage = input.requestId, 'waiting'
+    r.requestId, r.generation, r.entity, r.stage = input.requestId, input.generation, input.entity, 'waiting'
     return input, speaker.npc
 end
 
-function M.received(requestId, text, failed, listeners)
+function M.received(requestId, text, failed, listeners, stream)
     local r = M.round
     if not r or r.requestId ~= requestId or r.stage ~= 'waiting' then return false end
     r.stage = failed and 'next' or 'playing'
     r.reply = failed and nil or {speaker = r.participants[r.index].name, text = text, listeners = listeners}
+    if r.reply and type(stream) == 'table' and stream.version == 2 then
+        r.reply.streamVersion, r.reply.streamId, r.reply.textComplete = 2, stream.id, false
+        r.reply.delivered = false
+    end
+    refreshReply(r)
     return true
 end
 
 function M.completed(requestId, delivered)
     local r = M.round
     if not r or r.stage ~= 'playing' or r.requestId ~= requestId then return false end
+    refreshReply(r)
+    if r.reply and r.reply.streamVersion == 2 then
+        if r.reply.finished == false then return false end
+        delivered = delivered and r.reply.textComplete == true and not r.reply.failed and r.reply.delivered == true
+    end
     if delivered and r.reply then r.heard[#r.heard + 1] = r.reply end
     if not delivered then r.prepared = nil; prepareChanged(nil) end
     r.reply, r.stage = nil, 'next'

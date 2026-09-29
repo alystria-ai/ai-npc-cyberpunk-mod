@@ -87,6 +87,40 @@ test('retained party connections cannot be evicted to make room for an unrelated
   assert.equal(live.size, 11); await nearby.release(); await pool.close();
 });
 
+test('an exact idle refresh refuses busy leases and preserves unrelated retained entries', async () => {
+  const {pool, disposed} = fixture();
+  const target = await pool.acquire('judy:private'), group = await pool.acquire('judy:group'), other = await pool.acquire('panam:private');
+  await group.release(); await other.release();
+  await pool.retain(['judy:private', 'judy:group', 'panam:private'], {protect: true});
+  assert.equal(await pool.discardIdle('judy:private'), false); assert.deepEqual(disposed, []);
+  assert.equal(pool.entries.get('judy:private').busy, true);
+  await target.release();
+  assert.equal(await pool.discardIdle('judy:private'), true);
+  assert.deepEqual(disposed, [target.value]);
+  assert.equal(pool.entries.get('judy:group').value, group.value);
+  assert.equal(pool.entries.get('panam:private').value, other.value);
+  assert.deepEqual([...pool.protectedKeys], ['judy:private', 'judy:group', 'panam:private']);
+  assert.equal(await pool.discardIdle('judy:private'), true); assert.equal(await pool.discardIdle('absent'), true);
+  const renewed = await pool.acquire('judy:private');
+  assert.notEqual(renewed.value, target.value); assert.equal(renewed.reused, false);
+  await renewed.release(); await pool.close();
+});
+
+test('idle refresh holds the acquisition lock until disposal finishes', async () => {
+  const disposing = deferred(), finish = deferred(); let count = 0;
+  const pool = new TransportPool({limit: 1, create: async key => ({key, serial: ++count}),
+    dispose: async () => { disposing.resolve(); await finish.promise; }});
+  const old = await pool.acquire('judy'); await old.release();
+  const refreshing = pool.discardIdle('judy'); await disposing.promise;
+  let acquired = false;
+  const next = pool.acquire('judy').then(lease => { acquired = true; return lease; });
+  await flush(); assert.equal(acquired, false); assert.equal(count, 1);
+  finish.resolve(); assert.equal(await refreshing, true);
+  const renewed = await next;
+  assert.equal(count, 2); assert.notEqual(renewed.value, old.value);
+  await renewed.release(); await pool.close();
+});
+
 // The real host and pool run against pages that perform no network, SDK or
 // browser work. This tests routing/leases at the public transport boundary.
 function hostFixture() {
@@ -143,6 +177,30 @@ test('a returned or supplied session cannot cross host pages into another user o
   await host.warm({...first, sessionId: 'restored-verified-session'});
   await assert.rejects(host.warm({...first, endUserId: 'opaque-user-b', sessionId: 'restored-verified-session'}), /another user or scope/);
   await host.close();
+});
+
+test('host idle refresh closes only the exact configuration and preserves session ownership', async () => {
+  const {host, pages} = hostFixture();
+  const target = {characterId: 'judy', endUserId: 'user-a', scope: 'private', ttsEnabled: false};
+  const group = {...target, scope: 'group:judy,panam'}, other = {...target, characterId: 'panam'};
+  const first = await host.reply(target);
+  await host.warm(group); await host.warm(other); await host.retain([target, group, other], {protect: true});
+  const evaluated = deferred(), complete = deferred();
+  pages[0].evaluate = () => { evaluated.resolve(); return complete.promise; };
+  const pending = host.reply({...target, sessionId: first.sessionID}); await evaluated.promise;
+  assert.equal(await host.refreshIdle(target), false); assert.equal(pages[0].closed, false);
+  complete.resolve({text: 'Finished reply', sessionID: first.sessionID, timing: {}}); await pending;
+  const owners = new Map(host.sessions.owners);
+  assert.equal(await host.refreshIdle({...target, ttsEnabled: true}), true);
+  assert.equal(pages[0].closed, false, 'a different TTS configuration must not close this page');
+  assert.equal(await host.refreshIdle(target), true);
+  assert.equal(pages[0].closed, true); assert.equal(pages[1].closed, false); assert.equal(pages[2].closed, false);
+  assert.deepEqual(host.sessions.owners, owners); assert.deepEqual(host.retained.keys, [target, group, other].map(transportKey));
+  await host.warm({...target, sessionId: first.sessionID});
+  assert.equal(pages.length, 4); assert.equal(pages[3].calls[0].config.sessionId, first.sessionID);
+  await assert.rejects(host.warm({...target, endUserId: 'another-user', sessionId: first.sessionID}), /another user or scope/);
+  await host.close();
+  assert.equal(await host.refreshIdle(target), true);
 });
 
 test('identified speculative preparation fails before host startup; anonymous preparation still discards its page', async () => {

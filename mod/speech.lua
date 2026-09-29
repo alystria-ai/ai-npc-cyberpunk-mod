@@ -4,6 +4,12 @@ local M = convaiSpeech or {heartbeat = 0, available = false}
 local captions = dofile('subtitles.lua')
 local face = dofile('facial-playback.lua')
 
+local function finite(value)
+    return type(value) == 'number' and value == value and math.abs(value) < math.huge
+end
+local function null(value)
+    return value == nil or (json.null ~= nil and value == json.null)
+end
 local function voiceEnabled(player)
     if not player then return false end
     local ok, enabled = pcall(function() return player:ConvaiManagerVoice() end)
@@ -19,7 +25,7 @@ local function receipt()
     local s = M.stream
     if not s then return M.streamReceipt end
     return {id = s.id, index = s.index, completed = s.completed, received = s.received,
-        history = s.history, error = s.error}
+        history = s.history, error = s.error, version = s.version, total = s.total, position = s.position}
 end
 local function publish()
     local f = io.open('runtime/speech-state.json', 'wb')
@@ -29,20 +35,65 @@ local function publish()
             requestId = M.requestId, slot = M.slot, state = M.state or 'idle',
             position = M.position, paused = M.paused, error = M.error, face = face.status(),
             streamId = r and r.id, chunkIndex = r and r.index, completedChunk = r and r.completed,
-            receivedChunks = r and r.received, chunks = r and r.history, streamError = r and r.error}))
+            receivedChunks = r and r.received, chunks = r and r.history, streamError = r and r.error,
+            streamVersion = r and r.version, totalChunks = r and r.total, utterancePosition = r and r.position,
+            lastDelivery = M.lastDelivery}))
         f:close()
     end
 end
 
+local function completedDelivery()
+    local context, stream = M.context, M.stream
+    if not context or context.requestId ~= M.requestId
+        or type(context.requestId) ~= 'string' or #context.requestId == 0 or #context.requestId > 160
+        or type(context.entity) ~= 'string' or #context.entity == 0 or #context.entity > 120
+        or type(context.generation) ~= 'number' or context.generation % 1 ~= 0
+        or context.generation < 0 or context.generation > 2147483647 then return end
+    local total = stream and stream.total or 1
+    if stream then
+        if not stream.manifest or not stream.manifest.complete or stream.error
+            or stream.completed ~= total or stream.nativeCompleted ~= total then return end
+    elseif not M.nativeCompleted then return end
+    -- Keep one small, plain receipt after stop releases the native/request
+    -- references. Polling the same receipt must never count as another delivery.
+    M.deliverySequence = (M.deliverySequence or 0) + 1
+    M.deliverySession = M.deliverySession or (tostring(os.time()) .. '-' .. tostring(math.random(100000000, 999999999)))
+    M.lastDelivery = {version = 1, id = 'speech-' .. M.deliverySession .. '-' .. M.deliverySequence,
+        sequence = M.deliverySequence, completedAt = os.time() * 1000.0,
+        source = 'native-playback', state = 'completed', partial = false, cancelled = false,
+        requestId = context.requestId, entity = context.entity, generation = context.generation,
+        conversationGeneration = context.generation, totalChunks = total, completedChunks = total}
+end
+
+local function finish()
+    completedDelivery()
+    M.stop('finished')
+end
+
 function M.stop(reason)
+    if M.context and M.utterance and M.utterance.requestId == M.requestId then
+        local delivered = M.lastDelivery
+        M.utterance.finished, M.utterance.failed = true, reason ~= 'finished'
+        M.utterance.delivered = delivered ~= nil and delivered.requestId == M.requestId
+            and delivered.entity == M.context.entity and delivered.generation == M.context.generation
+            and delivered.sequence > M.utterance.startSequence
+    end
     face.stop(M.actor, reason)
     if M.player then pcall(function() M.player:ConvaiSpeechStop() end) end
     if M.requestId then captions.clear() end
     M.streamReceipt = receipt()
-    M.stream, M.context = nil, nil
+    M.stream, M.context, M.nativeCompleted = nil, nil, nil
     M.player, M.actor, M.requestId, M.slot, M.duration = nil, nil, nil, nil, nil
     M.state, M.position, M.paused = reason or 'idle', nil, false
     publish()
+end
+
+function M.transcript(requestId, generation, entity)
+    local value = M.utterance
+    if not value or value.requestId ~= requestId or value.generation ~= generation or value.entity ~= entity then return nil end
+    return {requestId=value.requestId,generation=value.generation,entity=value.entity,text=value.text,
+        streamVersion=value.streamVersion,streamId=value.streamId,textComplete=value.textComplete,
+        finished=value.finished,failed=value.failed,delivered=value.delivered}
 end
 
 local function fallback(reason, text)
@@ -60,15 +111,18 @@ function M.clearEntity(entity)
     captions.clearEntity(entity)
 end
 
-local function beginChunk(audio, text, timeline)
+local function beginChunk(audio, text, timeline, startSeconds)
     local ok, started = pcall(function() return M.player:ConvaiSpeechStart(M.actor, CName.new(audio.event)) end)
     if not ok or not started then
         M.error = tostring(started)
         fallback('playback-failed', M.text); return false
     end
     M.slot, M.duration, M.chunkText = audio.slot, audio.duration, text
+    if M.stream and M.stream.version == 2 then M.stream.chunkStart = startSeconds or 0 end
     M.state, M.position, M.waited, M.stalled = 'starting', 0, 0, 0
-    face.start(M.context, timeline, M.actor, audio.duration)
+    local expected = M.stream and M.stream.version == 2
+        and {index = M.stream.index, startSeconds = M.stream.chunkStart} or nil
+    face.start(M.context, timeline, M.actor, audio.duration, expected)
     publish()
     return true
 end
@@ -81,10 +135,15 @@ function M.start(context, reply)
         captions.show(context.name, reply.text, M.target, context.entity); return false
     end
     local descriptor = reply.stream
-    if descriptor and (type(descriptor) ~= 'table' or descriptor.version ~= 1
+    if descriptor and (type(descriptor) ~= 'table' or (descriptor.version ~= 1 and descriptor.version ~= 2)
         or type(descriptor.id) ~= 'string' or #descriptor.id > 80
-        or type(descriptor.total) ~= 'number' or descriptor.total < 2 or descriptor.total > 32
-        or descriptor.total % 1 ~= 0 or type(descriptor.firstText) ~= 'string') then
+        or type(descriptor.firstText) ~= 'string' or #descriptor.firstText > 12000
+        or (descriptor.version == 1 and (not finite(descriptor.total) or descriptor.total < 2
+            or descriptor.total > 32 or descriptor.total % 1 ~= 0))
+        or (descriptor.version == 2 and (not null(descriptor.total) or descriptor.captionMode ~= 'utterance'
+            or not descriptor.firstText:find('%S') or type(descriptor.textComplete) ~= 'boolean'
+            or not finite(descriptor.bufferedDuration) or descriptor.bufferedDuration < audio.duration
+            or descriptor.bufferedDuration > 120 or audio.duration < .05 or audio.duration > 4.05))) then
         captions.show(context.name, reply.text, M.target, context.entity); return false
     end
     local actor, player = M.target, Game.GetPlayer()
@@ -96,9 +155,19 @@ function M.start(context, reply)
     M.requestId, M.context = context.requestId, {requestId = context.requestId, generation = context.generation,
         entity = context.entity, name = context.name}
     M.speaker, M.text, M.error, M.paused = context.name, reply.text, nil, false
+    M.utterance = {requestId=context.requestId,generation=context.generation,entity=context.entity,
+        text=reply.text,streamVersion=descriptor and descriptor.version,streamId=descriptor and descriptor.id,
+        textComplete=not descriptor or descriptor.version~=2 or descriptor.textComplete==true,
+        finished=false,failed=false,delivered=false,startSequence=M.deliverySequence or 0}
     if descriptor then
-        M.stream = {id = descriptor.id, total = descriptor.total, index = 1, completed = 0,
-            received = 1, history = {}, poll = 0, wait = 0, gap = 0}
+        M.stream = {id = descriptor.id, version = descriptor.version,
+            total = descriptor.version == 1 and descriptor.total or nil, index = 1, completed = 0,
+            nativeCompleted = 0, received = 1, history = {}, poll = 0, wait = 0, gap = 0}
+        if descriptor.version == 2 then
+            M.stream.text, M.stream.bufferedDuration = descriptor.firstText, descriptor.bufferedDuration
+            M.stream.position, M.stream.chunkStart = 0, 0
+            M.stream.firstAudio = {slot = audio.slot, event = audio.event, duration = audio.duration}
+        end
     end
     return beginChunk(audio, descriptor and descriptor.firstText or reply.text, reply.face)
 end
@@ -107,7 +176,8 @@ function M.abandon()
     -- Unload callback: release Lua references without calling native emitters.
     face.abandon()
     M.streamReceipt = receipt()
-    M.stream, M.context, M.target = nil, nil, nil
+    M.stream, M.context, M.target, M.nativeCompleted = nil, nil, nil, nil
+    M.utterance = nil
     M.player, M.actor, M.playerID, M.requestId = nil, nil, nil, nil
     M.slot, M.duration, M.position, M.paused = nil, nil, 0, false
     M.state, M.available = 'idle', false
@@ -116,23 +186,50 @@ end
 
 local function refreshManifest()
     local s = M.stream
+    local dynamic = s.version == 2
     local f = io.open('runtime/speech-stream.json', 'rb')
     if not f then return end
     local raw = f:read(4000001); f:close()
     if not raw or #raw > 4000000 then return end
     local ok, doc = pcall(json.decode, raw)
-    if not ok or type(doc) ~= 'table' or doc.version ~= 1 or doc.streamId ~= s.id
+    if not ok or type(doc) ~= 'table' or doc.version ~= (s.version or 1) or doc.streamId ~= s.id
         or doc.requestId ~= M.requestId or doc.entity ~= M.context.entity
-        or doc.generation ~= M.context.generation or doc.total ~= s.total
+        or doc.generation ~= M.context.generation
         or type(doc.complete) ~= 'boolean' or type(doc.chunks) ~= 'table'
-        or #doc.chunks < s.received or #doc.chunks > s.total then return end
+        or #doc.chunks < s.received or #doc.chunks > (dynamic and 128 or s.total) then return end
+    if dynamic then
+        if doc.captionMode ~= 'utterance' or type(doc.text) ~= 'string' or #doc.text > 12000 or not doc.text:find('%S')
+            or type(doc.textComplete) ~= 'boolean' or not finite(doc.bufferedDuration)
+            or (not doc.complete and not null(doc.total))
+            or (doc.complete and (not finite(doc.total) or doc.total % 1 ~= 0 or doc.total < 1
+                or doc.total ~= #doc.chunks or (not doc.error and not doc.textComplete)))
+            or (s.final and (not doc.complete or doc.total ~= s.total or doc.text ~= s.text or doc.error ~= s.error))
+            or (not null(doc.error) and (not doc.complete or type(doc.error) ~= 'string' or #doc.error > 240)) then return end
+    elseif doc.total ~= s.total then return end
     local duration = 0
     for index, chunk in ipairs(doc.chunks) do
         if type(chunk) ~= 'table' or chunk.index ~= index or not validAudio(chunk.audio)
             or type(chunk.text) ~= 'string' or #chunk.text > 12000 then return end
+        if dynamic then
+            if not finite(chunk.startSeconds) or math.abs(chunk.startSeconds - duration) > .0001
+                or chunk.audio.duration < .05 or chunk.audio.duration > 4.05 then return end
+            -- Already admitted files cannot change underneath the native ring
+            -- buffer. The initial descriptor owns chunk one before any poll.
+            local previous = s.manifest and s.manifest.chunks[index]
+            local oldAudio = previous and previous.audio or (index == 1 and s.firstAudio)
+            if oldAudio and (oldAudio.slot ~= chunk.audio.slot or oldAudio.event ~= chunk.audio.event
+                or math.abs(oldAudio.duration - chunk.audio.duration) > .0001
+                or (previous and (previous.startSeconds ~= chunk.startSeconds or previous.text ~= chunk.text))) then return end
+        end
         duration = duration + chunk.audio.duration
     end
-    if duration > 120 or (doc.complete and #doc.chunks ~= s.total and type(doc.error) ~= 'string') then return end
+    if duration > 120 or (not dynamic and doc.complete and #doc.chunks ~= s.total and type(doc.error) ~= 'string') then return end
+    if dynamic and math.abs(duration - doc.bufferedDuration) > .0001 then return end
+    if dynamic then
+        s.total, s.final, s.text, s.bufferedDuration = doc.complete and doc.total or nil, doc.complete, doc.text, duration
+        M.text = doc.text
+        M.utterance.text, M.utterance.textComplete, M.utterance.failed = doc.text, doc.textComplete, doc.error ~= nil
+    end
     s.manifest, s.received, s.error = doc, #doc.chunks, doc.error
 end
 
@@ -144,10 +241,33 @@ local function advanceStream()
     local nextChunk = doc.chunks[s.completed + 1]
     if nextChunk then
         s.index, s.wait = nextChunk.index, 0
-        beginChunk(nextChunk.audio, nextChunk.text, nextChunk.face)
+        beginChunk(nextChunk.audio, nextChunk.text, nextChunk.face, nextChunk.startSeconds)
     elseif doc.complete then
-        if doc.error then fallback('stream-incomplete', M.text) else M.stop('finished') end
+        if doc.error then fallback('stream-incomplete', M.text) else finish() end
     end
+end
+
+local function syncUtterance(position)
+    local s = M.stream
+    s.position = math.max(s.position or 0, position)
+    if not captions.enabled() then return end
+    local changed = s.captionText ~= s.text or s.captionFinal ~= s.final
+    if changed or not captions.timed then
+        local words, chars = 0, 0
+        for _ in s.text:gmatch('%S+') do words = words + 1 end
+        for _ in s.text:gmatch('[%z\1-\127\194-\244][\128-\191]*') do chars = chars + 1 end
+        -- Text can finish before audio arrives. Until final PCM duration is
+        -- known, use one conservative utterance estimate, not chunk lengths.
+        local duration = s.final and s.bufferedDuration
+            or math.min(120, math.max(s.bufferedDuration, words / 2.5, chars / 14) + .5)
+        local revised = captions.timed and type(captions.reviseTimed) == 'function'
+            and captions.reviseTimed(s.text, duration, s.position)
+        if not revised then
+            captions.beginTimed(M.speaker, s.text, duration, M.actor, M.context.entity)
+        end
+        s.captionText, s.captionFinal = s.text, s.final
+    end
+    captions.syncTimed(s.position)
 end
 
 function M.update(delta)
@@ -177,6 +297,8 @@ function M.update(delta)
         if M.state == 'buffering' or M.state == 'starting' then s.gap = s.gap + delta end
         if M.state == 'buffering' then
             s.wait = s.wait + delta
+            if s.version == 2 and s.wait > .2 then face.stop(M.actor, 'buffering') end
+            if s.version == 2 then syncUtterance(s.position) end
             advanceStream()
             if M.state ~= 'buffering' then return end
             if s.wait > 45 then
@@ -188,11 +310,12 @@ function M.update(delta)
     end
     local pos = M.player:ConvaiSpeechPosition()
     M.waited = M.waited + delta
+    if s and s.version == 2 and M.state == 'starting' and M.waited > .2 and pos <= 0 then face.pause(M.actor) end
     if pos > (M.position or 0) + .001 then
         M.stalled = 0
         if M.state == 'starting' then
             M.state = 'playing'
-            captions.beginTimed(M.speaker, M.chunkText, M.duration, M.actor, M.context.entity)
+            if not s or s.version ~= 2 then captions.beginTimed(M.speaker, M.chunkText, M.duration, M.actor, M.context.entity) end
             if s then
                 s.history[#s.history + 1] = {index = s.index, slot = M.slot, duration = M.duration,
                     firstCursor = pos, gapSeconds = s.completed > 0 and math.max(0, s.gap - pos) or 0,
@@ -205,17 +328,27 @@ function M.update(delta)
     local previous = M.position
     M.position = pos
     if M.state == 'playing' and pos >= 0 then
-        if captions.enabled() and not captions.timed then captions.beginTimed(M.speaker, M.chunkText, M.duration, M.actor, M.context.entity) end
-        captions.syncTimed(pos)
+        if s and s.version == 2 then syncUtterance(s.chunkStart + pos)
+        else
+            if captions.enabled() and not captions.timed then captions.beginTimed(M.speaker, M.chunkText, M.duration, M.actor, M.context.entity) end
+            captions.syncTimed(pos)
+        end
         face.sync(M.actor, pos, M.requestId)
     end
     local ended = pos >= M.duration - .005
         or (pos < 0 and previous and previous >= M.duration - .1)
         or (M.stalled > .25 and pos >= M.duration - .05)
     if ended then
-        if not s then M.stop('finished'); return end
-        face.stop(M.actor, 'chunk-finished')
-        M.player:ConvaiSpeechStop(); captions.clear()
+        -- Near-end stalls/negative cursors still release an emitter as before,
+        -- but only an observed final native cursor can confirm full delivery.
+        local nativeCompleted = M.state == 'playing' and (pos >= M.duration - .005
+            or (pos < 0 and previous and previous >= M.duration - .005))
+        if not s then M.nativeCompleted = nativeCompleted; finish(); return end
+        if s.version == 2 and type(face.hold) == 'function' then face.hold(M.actor, M.requestId)
+        else face.stop(M.actor, 'chunk-finished') end
+        M.player:ConvaiSpeechStop()
+        if not s or s.version ~= 2 then captions.clear() end
+        if nativeCompleted then s.nativeCompleted = (s.nativeCompleted or 0) + 1 end
         s.completed, s.wait, s.gap = s.index, 0, 0
         M.state, M.slot, M.position = 'buffering', nil, 0
         publish(); refreshManifest(); advanceStream()

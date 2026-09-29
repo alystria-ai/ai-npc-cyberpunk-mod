@@ -14,7 +14,7 @@ const clamp = (value, max = 1) => Math.max(0, Math.min(max, value));
 const zero = () => SPEECH_TRACKS.map(() => 0);
 const rounded = value => Math.round(value * 10000) / 10000;
 
-function amplitude(wav) {
+function amplitude(wav, segment) {
   const sampleBytes = wav.bits / 8, samples = wav.data.length / wav.align;
   const energies = [];
   for (let frame = 0; frame < Math.ceil(wav.duration * 30); frame++) {
@@ -37,7 +37,17 @@ function amplitude(wav) {
   const floor = Math.max(0.0008, reference * 0.025);
   const envelope = energies.map(x => clamp((x - floor) / (reference - floor)) ** 0.7);
   return envelope.map((value, index) => value === 0 ? 0
-    : 0.2 * (envelope[index - 1] || 0) + 0.6 * value + 0.2 * (envelope[index + 1] || 0));
+    : 0.2 * (envelope[index - 1] ?? (segment && !segment.first ? value : 0)) + 0.6 * value
+      + 0.2 * (envelope[index + 1] ?? (segment && !segment.last ? value : 0)));
+}
+
+function speechSegment(value, duration) {
+  if (value === undefined) return undefined;
+  if (!value || value.version !== 1 || !Number.isInteger(value.index) || value.index < 1 || value.index > 128
+      || !Number.isFinite(value.startSeconds) || value.startSeconds < 0 || value.startSeconds + duration > 120.0001
+      || value.first !== (value.index === 1) || typeof value.last !== 'boolean'
+      || (value.first ? value.startSeconds !== 0 : value.startSeconds <= 0)) throw Error('Invalid facial segment boundary');
+  return {version: 1, index: value.index, startSeconds: value.startSeconds, first: value.first, last: value.last};
 }
 
 function validFaces(result, duration) {
@@ -70,7 +80,9 @@ function mapArkit(v) {
 export function buildFacialTimeline(result, owner) {
   if (!result.audio || typeof owner?.requestId !== 'string' || typeof owner.entity !== 'string') return undefined;
   const wav = readPcmWav(Buffer.from(result.audio, 'base64'));
-  const envelope = amplitude(wav), source = validFaces(result, wav.duration), frames = [];
+  const segment = speechSegment(result.speechSegment, wav.duration);
+  const first = segment ? segment.first : true, last = segment ? segment.last : true;
+  const envelope = amplitude(wav, segment), source = validFaces(result, wav.duration), frames = [];
   let cues;
   if (!source && result.mouthCuesFormat === 'rhubarb-phonetic-v1') {
     try { cues = validateMouthCues({metadata: {duration: wav.duration}, mouthCues: result.mouthCues}, wav.duration); }
@@ -78,12 +90,16 @@ export function buildFacialTimeline(result, owner) {
   }
   const fps = cues ? 60 : 30;
   let index = 0;
-  for (let sample = 0; sample / fps < wav.duration; sample++) {
-    const at = sample / fps, energyFrame = at * 30, energyIndex = Math.floor(energyFrame);
+  const poseAt = at => {
+    // An intermediate segment ends inside one spoken utterance. Clamp the
+    // envelope to the last real sample instead of inventing an empty next
+    // analysis frame, which would itself close the jaw at every file edge.
+    const energyAt = segment && !last ? Math.min(at, Math.max(0, wav.duration - 1 / wav.sampleRate)) : at;
+    const energyFrame = energyAt * 30, energyIndex = Math.floor(energyFrame);
     const level = (envelope[energyIndex] || 0) * (1 - energyFrame + energyIndex)
-      + (envelope[energyIndex + 1] || 0) * (energyFrame - energyIndex);
+      + (envelope[energyIndex + 1] ?? (segment && !last ? envelope[energyIndex] || 0 : 0)) * (energyFrame - energyIndex);
     let values = zero();
-    if (sample > 0 && (level > 0 || cues)) {
+    if (level > 0 || cues) {
       if (source) {
         while (index + 1 < source.length && source[index + 1].at <= at) index++;
         const left = source[index], right = source[index + 1];
@@ -96,14 +112,20 @@ export function buildFacialTimeline(result, owner) {
       } else {
         values[0] = 0.35 * level; values[1] = 0.12 * level; values[2] = 0.16 * level;
       }
-      // Ease only the first/last 40 ms. The waveform is never changed.
-      const edge = clamp(Math.min(at, wav.duration - at) / 0.04);
+      // Only actual utterance boundaries ease to/from neutral. Ordinary
+      // replies and v1 phrase timelines retain their original edge behavior.
+      // No audio samples or gaze channels are changed by these pose flags.
+      const edge = clamp(Math.min(first ? at / .04 : 1, last ? (wav.duration - at) / .04 : 1));
       values = values.map(v => rounded(v * edge));
     }
-    frames.push([at, ...values]);
+    return values;
+  };
+  for (let sample = 0; sample / fps < wav.duration; sample++) {
+    const at = sample / fps;
+    frames.push([at, ...poseAt(at)]);
   }
-  frames.push([wav.duration, ...zero()]);
+  frames.push([wav.duration, ...poseAt(wav.duration)]);
   return {version: 1, requestId: owner.requestId, entity: owner.entity, duration: wav.duration,
     source: source ? 'convai-arkit61' : cues ? 'local-phonetic' : 'audio-envelope',
-    articulation: cues ? 'coarticulated-v4' : undefined, tracks: [...SPEECH_TRACKS], frames};
+    articulation: cues ? 'coarticulated-v4' : undefined, ...(segment ? {segment} : {}), tracks: [...SPEECH_TRACKS], frames};
 }

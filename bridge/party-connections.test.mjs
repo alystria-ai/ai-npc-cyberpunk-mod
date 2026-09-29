@@ -75,6 +75,43 @@ test('changing the voice route renews only affected connections and rejects stal
   await f.connections.clear();
 });
 
+test('scope refresh replaces only the requested metadata entry and leaves the current plan intact', async () => {
+  const f = fixture(); f.heartbeat(['alex', 'judy']);
+  for (let i = 0; i < 4; i++) await f.step(i ? 500 : 0);
+  const scope = 'group:alex,judy', key = connectionKey('judy', 'private');
+  const before = new Map(f.connections.entries), old = before.get(key), plan = f.connections.plan();
+  assert.equal(old.state, 'ready');
+  const refreshing = f.connections.refreshScope('judy', 'private');
+  assert.ok(f.connections.entries.has(key), 'refresh never leaves a metadata hole while reconciliation awaits');
+  assert.notEqual(f.connections.entries.get(key), old);
+  assert.equal(await refreshing, true);
+  const renewed = f.connections.entries.get(key);
+  assert.notEqual(renewed, old); assert.equal(renewed.state, 'waiting'); assert.equal(renewed.nextCheck, 0);
+  for (const [identity, entry] of before) if (identity !== key) assert.equal(f.connections.entries.get(identity), entry);
+  assert.equal(f.connections.entries.get(connectionKey('judy', scope)), before.get(connectionKey('judy', scope)));
+  assert.deepEqual(f.connections.plan(), plan);
+  assert.equal(await f.connections.refreshScope('judy', 'phone'), false);
+  await f.step(); assert.equal(renewed.state, 'ready');
+  assert.equal(f.calls.at(-1).profile, 'judy'); assert.equal(f.calls.at(-1).scope, 'private');
+  await f.connections.clear();
+});
+
+test('an old warm completion cannot mark a refreshed scope ready or alter another scope', async () => {
+  const f = fixture(); f.heartbeat(['alex', 'judy']); f.host.defer = true;
+  await f.step(0);
+  const key = connectionKey('alex', 'private'), old = f.connections.entries.get(key);
+  const group = f.connections.entries.get(connectionKey('alex', 'group:alex,judy'));
+  assert.equal(old.state, 'connecting');
+  assert.equal(await f.connections.refreshScope('alex', 'private'), true);
+  const renewed = f.connections.entries.get(key);
+  assert.equal(old.controller.signal.aborted, true); assert.notEqual(renewed, old);
+  f.pending[0].resolve(); await old.pending; await flush();
+  assert.equal(renewed.state, 'waiting'); assert.equal(renewed.attempts, 0);
+  assert.equal(f.connections.entries.get(connectionKey('alex', 'group:alex,judy')), group);
+  f.host.defer = false; await f.step(); assert.equal(renewed.state, 'ready');
+  await f.connections.clear();
+});
+
 test('all eight private connections coexist with three group pages and survive composer changes', async () => {
   const f = fixture(); f.heartbeat(profiles);
   for (let i = 0; i < 11; i++) { f.heartbeat(profiles); await f.step(); }

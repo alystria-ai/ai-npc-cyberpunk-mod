@@ -176,6 +176,42 @@ assert(shown()[6].type==scnDialogLineType.OverHead and shown()[6].speaker==judy)
 assert(settingsWrites==0)
 `));
 
+test('a growing timed transcript revises the current page without flashing or replaying page one', () => run(setup + `
+style='dialogue'
+local first=string.rep('A',160);local second=string.rep('B',160);local third=string.rep('C',80)
+m.beginTimed('Judy',first..second,8,judy,'201ULL');m.syncTimed(5)
+assert(m.page==2 and shown()[#shown()].text==second)
+local count=#shown();local old=shown()[count].id
+assert(m.reviseTimed(first..second..third,12,5))
+assert(#shown()==count+1 and shown()[#shown()].text==second and m.page==2)
+assert(hidden()[#hidden()]==old)
+m.syncTimed(5.1);assert(m.page==2 and #shown()==count+1)
+assert(m.reviseTimed(first..second..third,12,5.2));assert(#shown()==count+1)
+m.syncTimed(11);assert(m.page==3 and shown()[#shown()].text==third)
+assert(m.status().mode=='dialogue' and m.entity=='201ULL' and settingsWrites==0)
+`));
+
+test('caption revisions retain whole short sentences, reject invalid updates and respect actor/settings lifecycle', () => run(setup + `
+local initial='Night City looks different up here.'
+m.beginTimed('Judy',initial,8,judy,'201ULL')
+local text=initial..' The lights stretch out beyond the skyline.'
+assert(m.reviseTimed(text,10,2))
+assert(m.page==1 and #m.pages==1 and shown()[#shown()].text==text)
+local count=#shown();local old=shown()[count].id
+for _,args in ipairs({{'',10,2},{text,0,2},{text,121,2},{text,10,-1}})do
+ assert(not m.reviseTimed(args[1],args[2],args[3]))
+end
+assert(#shown()==count and shown()[count].id==old)
+judy.dead=true;assert(not m.reviseTimed(text,10,2)and not m.line)
+judy.dead=false;m.beginTimed('Judy',text,10,judy,'201ULL')
+enabled=false;assert(not m.reviseTimed(text,10,2)and not m.line)
+enabled=true;m.beginTimed('Judy',text,10,judy,'201ULL')
+currentPlayer=actor('different-player');local count=#hidden()
+assert(not m.reviseTimed(text,10,2)and not m.line and #hidden()==count)
+m.abandon();assert(not m.reviseTimed(text,10,2))
+assert(settingsWrites==0)
+`));
+
 test('native overhead captions attach only to the requested living copy', () => run(setup + `
 m.show('Judy','A short line.',judy,'201ULL')
 local first=shown()[1]
