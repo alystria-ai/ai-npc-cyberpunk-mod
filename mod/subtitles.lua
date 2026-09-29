@@ -1,135 +1,223 @@
--- Use the same dialogue blackboard and native line widgets as quest subtitles.
--- Only IDs allocated here are ever removed; native dialogue is left intact.
+-- Native subtitles, owned by one reply and one exact world speaker at a time.
+-- Overhead projection/layout stays in the game. We only advance owned lines.
 local M = convaiSubtitles or {serial = 0}
+local UTF8 = '[%z\1-\127\194-\244][\128-\191]*'
 
+local function finite(value)
+    return type(value) == 'number' and value == value and math.abs(value) < math.huge
+end
+local function identity(object)
+    local ok, id = pcall(function() return tostring(object:GetEntityID().hash) end)
+    return ok and id or nil
+end
+local function validActor(actor, expected)
+    if not actor or type(expected) ~= 'string' then return false end
+    local ok, valid = pcall(function()
+        return actor:IsAttached() == true and actor:IsDeadNoStatPool() == false and identity(actor) == expected
+    end)
+    return ok and valid == true
+end
+local function board()
+    return Game.GetBlackboardSystem():Get(Game.GetAllBlackboardDefs().UIGameData)
+end
+local function hideLine()
+    local line = M.line
+    M.line, M.controller = nil, nil
+    if line then
+        pcall(function()
+            board():SetVariant(Game.GetAllBlackboardDefs().UIGameData.HideDialogLine,
+                ToVariant({line.id}, 'array:CRUID'), true)
+        end)
+    end
+end
+
+function M.configure(options)
+    M.styleProvider = options and options.style
+end
+function M.style()
+    local ok, value = pcall(function() return M.styleProvider and M.styleProvider() end)
+    return ok and value == 'dialogue' and 'dialogue' or 'overhead'
+end
 function M.enabled()
     local player = Game.GetPlayer()
     if not player then return false end
     local ok, enabled = pcall(function() return player:ConvaiManagerSubtitles() end)
     return not ok or enabled
 end
-
-local function board()
-    return Game.GetBlackboardSystem():Get(Game.GetAllBlackboardDefs().UIGameData)
+function M.abandon()
+    -- Death/detach destroys the HUD. Release references without native calls.
+    M.line, M.controller, M.actor, M.entity, M.playerID = nil, nil, nil, nil, nil
+    M.pages, M.timed, M.speaker, M.page, M.remaining, M.mode = nil, nil, nil, nil, nil, nil
 end
-
 function M.clear()
-    if M.line then
-        local id = M.line.id
-        M.line = nil
-        pcall(function()
-            board():SetVariant(Game.GetAllBlackboardDefs().UIGameData.HideDialogLine,
-                ToVariant({id}, 'array:CRUID'), true)
-        end)
-    end
-    M.pages = nil
-    M.timed = nil
+    hideLine()
+    M.abandon()
+end
+function M.clearEntity(entity)
+    if entity ~= nil and entity == M.entity then M.clear(); return true end
+    return false
 end
 
--- Keep captions readable, including text without spaces, without cutting a
--- UTF-8 code point. Timing is reading time until voiced playback supplies it.
-function M.split(text)
-    local pages, current, count = {}, '', 0
-    for token in text:gmatch('%S+') do
-        local chars = {}
-        for char in token:gmatch('[%z\1-\127\194-\244][\128-\191]*') do chars[#chars + 1] = char end
-        if count > 0 and count + #chars + 1 > 160 then
-            pages[#pages + 1], current, count = current, '', 0
+-- Prefer a sentence/clause break, retain every word, and keep UTF-8 characters
+-- intact even in CJK text without spaces or unusually long words.
+function M.split(text, style)
+    if type(text) ~= 'string' then return {} end
+    text = text:gsub('%s+', ' '):match('^%s*(.-)%s*$')
+    local chars, pages = {}, {}
+    for char in text:gmatch(UTF8) do chars[#chars + 1] = char end
+    local short = style == 'overhead'
+    local maximum, start = short and 64 or 160, 1
+    while start <= #chars do
+        local finish = math.min(#chars, start + maximum - 1)
+        local boundary, punctuation, words, inWord = nil, nil, 0, false
+        local ended = false
+        for index = start, finish do
+            local char = chars[index]
+            if char == ' ' then
+                boundary, inWord = index - 1, false
+                if short and words >= 12 then finish, ended = index - 1, true; break end
+            else
+                if not inWord then words, inWord = words + 1, true end
+                if short and index - start >= 15 and (char:match('[.!?;]') or char == '。' or char == '！' or char == '？' or char == '；') then
+                    finish, ended = index, true; break
+                end
+                if short and index - start >= 27 and (char == ',' or char == ':' or char == '，' or char == '、' or char == '：') then
+                    punctuation = index
+                end
+            end
         end
-        if count > 0 then current, count = current .. ' ', count + 1 end
-        for _, char in ipairs(chars) do
-            if count >= 160 then pages[#pages + 1], current, count = current, '', 0 end
-            current, count = current .. char, count + 1
+        if not ended and finish < #chars and chars[finish + 1] ~= ' ' then
+            if punctuation and punctuation >= start + math.floor(maximum / 2) then finish = punctuation
+            elseif boundary and boundary >= start + math.floor(maximum / 2) then finish = boundary end
         end
+        local page = table.concat(chars, '', start, finish):match('^%s*(.-)%s*$')
+        if page ~= '' then pages[#pages + 1] = page end
+        start = finish + 1
+        while chars[start] == ' ' do start = start + 1 end
     end
-    if current ~= '' then pages[#pages + 1] = current end
     return pages
 end
 
 local function showPage()
+    if M.actor and not validActor(M.actor, M.entity) then M.clear(); return false end
+    hideLine()
     local text = M.pages[M.page]
     M.serial = M.serial + 1
     local line = scnDialogLineData.new()
     line.id = CRUID(0x436F6E760000 + M.serial)
-    line.type = scnDialogLineType.OwnerlessRegular
-    line.speakerName = M.speaker
-    line.text = text
-    line.isPersistent = false
-    local words = 0
+    line.type = M.mode == 'overhead' and scnDialogLineType.OverHead or scnDialogLineType.OwnerlessRegular
+    if M.mode == 'overhead' then line.speaker = M.actor end
+    line.speakerName, line.text, line.isPersistent = M.speaker, text, false
+    local words, characters = 0, 0
     for _ in text:gmatch('%S+') do words = words + 1 end
-    line.duration = M.timed and M.timed.duration + 1 or math.max(3.5, math.min(12, math.max(words / 2.8, #text / 36) + 1.2))
+    for _ in text:gmatch(UTF8) do characters = characters + 1 end
+    local reading = math.max(words / 2.8, characters / 10) + 0.8
+    line.duration = M.timed and M.timed.duration + 1 or math.max(M.mode == 'overhead' and 2 or 3.5, math.min(12, reading))
     M.line, M.remaining = line, line.duration
     board():SetVariant(Game.GetAllBlackboardDefs().UIGameData.ShowDialogLine,
         ToVariant({line}, 'array:scnDialogLineData'), true)
+    return true
 end
 
-function M.show(speaker, text)
+local function prepare(speaker, text, actor, expected)
     M.clear()
-    if not M.enabled() then return end
-    M.pages = M.split(text)
-    if #M.pages == 0 then M.pages = nil; return end
-    M.speaker, M.page = speaker, 1
-    showPage()
-end
-
-function M.abandon()
-    -- The HUD is being destroyed; no event may be queued to the old player.
-    M.line, M.pages, M.timed, M.speaker, M.page = nil, nil, nil, nil, nil
-end
-
-function M.beginTimed(speaker, text, duration)
-    M.clear()
-    if not M.enabled() then return end
-    M.pages = M.split(text)
-    if #M.pages == 0 then M.pages = nil; return end
-    local weights, total = {}, 0
-    for i, page in ipairs(M.pages) do
-        local count = 0
-        for _ in page:gmatch('[%z\1-\127\194-\244][\128-\191]*') do count = count + 1 end
-        total = total + count
-        weights[i] = total
+    if not M.enabled() then return false end
+    M.requestedStyle, M.fallback = M.style(), nil
+    M.entity = type(expected) == 'string' and expected or nil
+    if validActor(actor, expected) then M.actor = actor end
+    M.mode = M.requestedStyle
+    if M.mode == 'overhead' then
+        local ok, visible = pcall(function()
+            return UserSettings.new():GetVar('/accessibility/subtitles', 'Overheads'):GetValue()
+        end)
+        if not M.actor then M.mode, M.fallback = 'dialogue', 'speaker-unavailable'
+        elseif not ok or visible ~= true then M.mode, M.fallback = 'dialogue', 'native-overheads-disabled' end
     end
-    -- Approximate phrase boundaries by text length, but advance exclusively
-    -- from actual audio position. No phoneme alignment is claimed here.
-    M.timed = {duration = duration, weights = weights, total = total}
-    M.speaker, M.page = speaker, 1
-    showPage()
+    M.pages = M.split(text, M.mode)
+    if #M.pages == 0 then M.abandon(); return false end
+    M.playerID, M.speaker, M.page = identity(Game.GetPlayer()), speaker, 1
+    return true
 end
 
+function M.show(speaker, text, actor, expected)
+    if prepare(speaker, text, actor, expected) then return showPage() end
+    return false
+end
+function M.beginTimed(speaker, text, duration, actor, expected)
+    if not finite(duration) or duration <= 0 or duration > 120 then return M.show(speaker, text, actor, expected) end
+    if not prepare(speaker, text, actor, expected) then return false end
+    local weights, total = {}, 0
+    for index, page in ipairs(M.pages) do
+        for _ in page:gmatch(UTF8) do total = total + 1 end
+        weights[index] = total
+    end
+    -- Page boundaries are estimated within each audio chunk, not forced word
+    -- alignment. Only the native playback cursor advances them, including pause.
+    M.timed = {duration = duration, weights = weights, total = total, position = 0}
+    return showPage()
+end
 function M.syncTimed(position)
-    if not M.timed then return end
+    if not M.timed or not finite(position) or position < 0 then return end
+    if M.actor and not validActor(M.actor, M.entity) then M.clear(); return end
+    M.timed.position = math.min(position, M.timed.duration)
     local target = 1
     while target < #M.pages and position >= M.timed.duration * M.timed.weights[target] / M.timed.total do target = target + 1 end
-    if target == M.page then return end
-    local pages, timed = M.pages, M.timed
-    M.clear()
-    M.pages, M.timed, M.page = pages, timed, target
-    showPage()
+    if target ~= M.page then M.page = target; showPage() end
 end
-
 function M.update(delta)
     if not M.line then return end
-    if not M.enabled() then M.clear(); return end
+    local ok, player = pcall(function() return Game.GetPlayer() end)
+    if not ok or not player or (M.playerID and identity(player) ~= M.playerID) then M.abandon(); return end
+    if not M.enabled() or (M.actor and not validActor(M.actor, M.entity)) then M.clear(); return end
     if M.timed then return end
     local defs = Game.GetAllBlackboardDefs()
     if Game.GetBlackboardSystem():Get(defs.UI_System):GetBool(defs.UI_System.IsInMenu) then return end
-    M.remaining = M.remaining - delta
+    M.remaining = M.remaining - (finite(delta) and math.max(0, delta) or 0)
     if M.remaining > 0 then return end
-    local pages, nextPage = M.pages, M.page + 1
-    M.clear()
-    if nextPage <= #pages then
-        M.pages, M.page = pages, nextPage
-        showPage()
-    end
+    if M.page >= #M.pages then M.clear(); return end
+    M.page = M.page + 1
+    showPage()
 end
 
--- Existing sessions can use this adapter without restarting or dismissing the
--- party. A normal CET reload uses init.lua's direct calls instead.
-function M.installLive()
-    if M.liveInstalled then return end
-    Override('PlayerPuppet', 'ConvaiShowReply', function(_, speaker, text)
-        M.show(speaker, text)
+function M.install()
+    if M.hooksInstalled then return true end
+    if type(ObserveAfter) ~= 'function' then return false end
+    ObserveAfter('ChatterLineLogicController', 'SetLineData', function(controller, line)
+        if M.controller == controller then M.controller = nil end
+        if not M.line or M.mode ~= 'overhead' or tostring(line.id) ~= tostring(M.line.id) then return end
+        local ok, result = pcall(function()
+            return {id = tostring(line.id), entity = tostring(controller:GetOwnerID().hash),
+                renderer = 'native-overhead', text = line.text, projection = controller:GetProjection() ~= nil}
+        end)
+        M.rendered = ok and result or {error = tostring(result)}
+        if ok and result.entity == M.entity and result.projection then M.controller = controller end
     end)
+    -- Other crowd chatter can be closer to screen centre. Keep this exact
+    -- owned line readable; every other controller retains the native behavior.
+    if type(Override) == 'function' then
+        Override('ChatterLineLogicController', 'IsBubble', function(controller, target, wrapped)
+            if M.line and M.mode == 'overhead' and controller == M.controller then
+                M.bubbleOverrides = (M.bubbleOverrides or 0) + 1
+                return false
+            end
+            return wrapped(target)
+        end)
+    end
+    M.hooksInstalled = true
+    return true
+end
+function M.status()
+    return {active = M.line ~= nil, serial = M.serial, page = M.page, pages = M.pages and #M.pages or 0,
+        mode = M.mode, requestedStyle = M.requestedStyle, fallback = M.fallback, entity = M.entity,
+        timed = M.timed ~= nil, position = M.timed and M.timed.position, rendered = M.rendered,
+        bubbleOverrides = M.bubbleOverrides or 0}
+end
+
+-- Legacy live entry points keep the normal HUD when no exact actor is given.
+function M.installLive()
+    M.install()
+    if M.liveInstalled then return end
+    Override('PlayerPuppet', 'ConvaiShowReply', function(_, speaker, text) M.show(speaker, text) end)
     Override('PlayerPuppet', 'ConvaiPhoneFeedback', function(_, message, wrapped)
         if message:sub(-15) == ' is thinking...' then return end
         return wrapped(message)
@@ -141,10 +229,7 @@ function M.installLive()
         return previousUpdate(player, delta, focus)
     end
     local previousDismiss = convaiCompanions.dismissAll
-    convaiCompanions.dismissAll = function(...)
-        M.clear()
-        return previousDismiss(...)
-    end
+    convaiCompanions.dismissAll = function(...) M.clear(); return previousDismiss(...) end
     M.liveInstalled = true
 end
 

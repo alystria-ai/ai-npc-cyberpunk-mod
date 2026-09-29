@@ -8,6 +8,7 @@ const speech = readFileSync(new URL('../mod/speech.lua', import.meta.url), 'utf8
 const setup = `
 local cursor, paused, voice, world, starts, resets = 0, false, true, true, 0, 0
 local shown, published, manifest = {}, {}, nil
+local captionBindings, clearedEntities = {}, {}
 local function native() assert(world, 'native call after unload') end
 local player = {
  ConvaiManagerVoice=function() native(); return voice end,
@@ -25,8 +26,13 @@ Game={GetPlayer=function() return player end, GetAllBlackboardDefs=function() re
  GetBlackboardSystem=function() return {Get=function() return {GetBool=function() return paused end} end} end}
 CName={new=function(x) return x end}; NewObject=function() return {} end
 convaiCompanions={owns=function(a) return a==actor end}
-local captions={clear=function() end, show=function(_,text) shown[#shown+1]=text end,
- enabled=function() return true end, beginTimed=function(_,text) shown[#shown+1]=text end, syncTimed=function() end}
+local function caption(name,text,owner,entity)
+ shown[#shown+1]=text; captionBindings[#captionBindings+1]={owner=owner,entity=entity,name=name}
+end
+local captions={clear=function() end, show=caption,
+ clearEntity=function(entity) clearedEntities[#clearedEntities+1]=entity end,
+ enabled=function() return true end,
+ beginTimed=function(name,text,duration,owner,entity) caption(name,text,owner,entity) end, syncTimed=function() end}
 local function clone(value)
  if type(value)~='table' then return value end
  local copy={}; for key,item in pairs(value) do copy[key]=clone(item) end; return copy
@@ -111,4 +117,27 @@ test('partial production failure finishes the played portion and shows the full 
  cursor=2; speech.update(.1)
  assert(not speech.requestId and speech.state=='stream-incomplete')
  assert(shown[#shown]=='Phrase 1 Phrase 2' and starts==1)
+`));
+
+test('native captions keep the exact copy through playback, mute and partial-stream fallbacks', () => run(`
+ start(); cursor=.2; speech.update(.1)
+ assert(captionBindings[#captionBindings].owner==actor and captionBindings[#captionBindings].entity=='Judy-2')
+ voice=false; speech.update(.1)
+ assert(speech.state=='muted' and captionBindings[#captionBindings].owner==actor)
+ assert(captionBindings[#captionBindings].entity=='Judy-2')
+ voice=true; start(); cursor=.2; speech.update(.1)
+ manifest.complete=true; manifest.error='Worker stopped'; cursor=2; speech.update(.1)
+ assert(speech.state=='stream-incomplete' and captionBindings[#captionBindings].owner==actor)
+ assert(captionBindings[#captionBindings].entity=='Judy-2')
+`));
+
+test('text-only replies retain their target and dismissing another copy does not stop the speaker', () => run(`
+ voice=false
+ assert(not speech.start(context,{text='Hello V'}))
+ assert(captionBindings[1].owner==actor and captionBindings[1].entity=='Judy-2')
+ voice=true; start(); cursor=.2; speech.update(.1)
+ speech.clearEntity('Judy-1'); assert(speech.requestId=='one' and speech.target==actor)
+ speech.clearEntity('Judy-2')
+ assert(not speech.requestId and not speech.target and speech.state=='target-dismissed')
+ assert(clearedEntities[#clearedEntities]=='Judy-2')
 `));

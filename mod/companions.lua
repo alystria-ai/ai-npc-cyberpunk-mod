@@ -220,6 +220,9 @@ end
 
 local function deleteOwnedCopy(entry)
     if entry.removed then return true end
+    -- Remove reply-owned audio/captions while this exact entity is still live.
+    -- Other copies of the same character keep their own dialogue state.
+    if M.onBeforeRemove then pcall(M.onBeforeRemove, tostring(entry.entityID.hash)) end
     local checked, managed = pcall(function() return entry.system:IsManaged(entry.entityID) end)
     if checked and not managed then entry.removed = true; return true end
     local removed, result = pcall(function() return entry.system:DeleteEntity(entry.entityID) end)

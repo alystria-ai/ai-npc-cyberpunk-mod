@@ -89,3 +89,17 @@ test('failed native write or mismatched readback prevents a spawn and allows a c
   assert(spawn('johnny-silverhand').spec.recordID=='CyberpunkConvai.JohnnyCompanion')
   assert(clones==1 and writes==1)
 `));
+
+test('dismissal releases exact-copy presentation before deleting its live entity',()=>run(`
+  local first=spawn('judy-alvarez')
+  local second=spawn('judy-alvarez')
+  local rows=companions.list()
+  local released={}
+  companions.onBeforeRemove=function(entity)
+    assert(entities[tonumber(entity)]~=nil,'presentation cleanup ran after entity removal')
+    released[#released+1]=entity
+  end
+  assert(companions.dismiss(rows[1].serial))
+  assert(#released==1 and released[1]~=tostring(second:GetEntityID().hash))
+  assert(#companions.list()==1)
+`));

@@ -47,6 +47,9 @@ local function loadSettings()
     settings.version = 2
     if type(settings.voice) ~= 'boolean' then settings.voice = true end
     if type(settings.subtitles) ~= 'boolean' then settings.subtitles = true end
+    if settings.subtitleStyle ~= 'overhead' and settings.subtitleStyle ~= 'dialogue' then
+        settings.subtitleStyle, settingsNeedSave = 'overhead', true
+    end
     if type(settings.disappearingMessages) ~= 'boolean' then settings.disappearingMessages = false end
     if type(settings.battleReactions) ~= 'boolean' then settings.battleReactions, settingsNeedSave = true, true end
     if type(settings.lootReactions) ~= 'boolean' then settings.lootReactions, settingsNeedSave = true, true end
@@ -104,6 +107,11 @@ end
 function M.disappearingMessages()
     loadSettings()
     return settings.disappearingMessages == true
+end
+
+function M.subtitleStyle()
+    loadSettings()
+    return settings.subtitleStyle
 end
 
 function M.battleReactions()
@@ -563,7 +571,7 @@ function M.snapshot(player)
     for key, value in pairs(settings.enabledByKey) do enabled[key] = value end
     return {
         profiles = profiles, models = models, party = party, feedback = feedback,
-        settings = {voice = settings.voice, subtitles = settings.subtitles,
+        settings = {voice = settings.voice, subtitles = settings.subtitles, subtitleStyle = settings.subtitleStyle,
             disappearingMessages = settings.disappearingMessages,
             battleReactions = settings.battleReactions,
             lootReactions = settings.lootReactions,
@@ -598,6 +606,9 @@ function M.applySettings(player, values)
         if key == 'voice' or key == 'subtitles' or key == 'disappearingMessages' or key == 'battleReactions' or key == 'lootReactions' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings[key] = value
+        elseif key == 'subtitleStyle' then
+            if value ~= 'overhead' and value ~= 'dialogue' then return false, 'Choose Above speaker or Dialogue HUD.' end
+            nextSettings.subtitleStyle = value
         elseif key == 'omniSteps' then
             if value ~= 16 and value ~= 32 then return false, 'Choose 16 or 32 voice steps.' end
             nextSettings.omniSteps = value

@@ -2,6 +2,70 @@
 local requestFile = io.open('runtime/diagnostic-request.txt', 'rb')
 local request = requestFile and requestFile:read('*a') or ''
 if requestFile then requestFile:close() end
+if request:match('^overhead%-state:') then
+    local report = {request = request, controllers = {}, rendered = convaiOverheadProbe and convaiOverheadProbe.rendered,
+        adapter = convaiSubtitles and convaiSubtitles.status and convaiSubtitles.status()}
+    local ok, err = pcall(function()
+        for _, layer in ipairs(Game.GetInkSystem():GetLayers()) do
+            for _, controller in ipairs(layer:GetGameControllers()) do
+                if controller:IsA('ChattersGameController') then
+                    local entry = {visible = controller:GetRootWidget():IsVisible()}
+                    report.controllers[#report.controllers + 1] = entry
+                end
+            end
+        end
+    end)
+    report.ok, report.error = ok, not ok and tostring(err) or nil
+    local file = io.open('runtime/overhead-state.json', 'wb')
+    if file then file:write(json.encode(report)); file:close() end
+    return
+end
+if request:match('^overhead%-probe:') then
+    local report = {request = request}
+    local ok, err = pcall(function()
+        local player = Game.GetPlayer()
+        assert(player and player:IsAttached() and not player:IsDeadNoStatPool(), 'Player unavailable')
+        assert(not Game.GetSystemRequestsHandler():IsGamePaused(), 'Game is paused')
+        local people = convaiCompanions.conversationCandidates(player, 20)
+        assert(people and people[1] and people[1].npc, 'No nearby companion')
+        local person, subtitles = people[1], convaiSubtitles
+        assert(subtitles, 'Subtitle adapter unavailable')
+        assert(person.npc:IsAttached() and not person.npc:IsDeadNoStatPool(), 'Companion unavailable')
+        local settings = UserSettings.new()
+        report.nativeOverheads = settings:GetVar('/accessibility/subtitles', 'Overheads'):GetValue()
+        report.speaker, report.entity = person.name, person.entity
+        convaiOverheadProbe = convaiOverheadProbe or {}
+        if not convaiOverheadProbe.afterHook then
+            convaiOverheadProbe.afterHook = true
+            ObserveAfter('ChatterLineLogicController', 'SetLineData', function(controller, shown)
+                local capture = convaiOverheadProbe
+                if not capture.id or os.time() > capture.expiresAt or tostring(shown.id) ~= capture.id then return end
+                local passed, detail = pcall(function()
+                    return {id = tostring(shown.id), entity = tostring(controller:GetOwnerID().hash),
+                        text = shown.text, widgetVisible = controller:GetRootWidget():IsVisible(),
+                        hasProjection = controller:GetProjection() ~= nil, at = os.time()}
+                end)
+                capture.rendered = passed and detail or {error = tostring(detail)}
+            end)
+        end
+        subtitles.clear()
+        subtitles.serial = subtitles.serial + 1
+        local line = scnDialogLineData.new()
+        line.id = CRUID(0x436F6E760000 + subtitles.serial)
+        line.type, line.speaker, line.speakerName = scnDialogLineType.OverHead, person.npc, person.name
+        line.text, line.isPersistent, line.duration = 'Checking subtitles above the speaking companion.', false, 8
+        convaiOverheadProbe.id, convaiOverheadProbe.expiresAt, convaiOverheadProbe.rendered = tostring(line.id), os.time() + 10, nil
+        subtitles.line, subtitles.remaining, subtitles.pages, subtitles.page = line, 8, {line.text}, 1
+        subtitles.speaker = person.name
+        Game.GetBlackboardSystem():Get(Game.GetAllBlackboardDefs().UIGameData):SetVariant(
+            Game.GetAllBlackboardDefs().UIGameData.ShowDialogLine, ToVariant({line}, 'array:scnDialogLineData'), true)
+        report.line = tostring(line.id)
+    end)
+    report.ok, report.error = ok, not ok and tostring(err) or nil
+    local file = io.open('runtime/overhead-probe.json', 'wb')
+    if file then file:write(json.encode(report)); file:close() end
+    return
+end
 if request:match('^loot%-state:') then
     local report = {request = request, at = os.time() * 1000,
         observer = convaiLootObserver and convaiLootObserver.status() or {available = false},
@@ -544,7 +608,7 @@ if request:match('^subtitles%-state:') then
     local s = convaiSubtitles
     local f = io.open('runtime/subtitles-state.json', 'wb')
     if f then
-        f:write(json.encode({installed = s ~= nil, serial = s and s.serial,
+        f:write(json.encode({installed = s ~= nil, serial = s and s.serial, adapter = s and s.status and s.status(),
             active = s and s.line ~= nil, page = s and s.page,
             remaining = s and s.remaining, error = s and s.lastError}))
         f:close()

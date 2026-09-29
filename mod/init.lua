@@ -45,6 +45,8 @@ do
     end
 end
 manager.configure(companions, profiles)
+subtitles.configure({style = manager.subtitleStyle})
+companions.onBeforeRemove = speech.clearEntity
 phoneChat.configure(profiles, manager)
 mcm.configure(manager, companions, dofile('manager-party.lua'), dofile('mcm-entry.lua'))
 convaiManager = mcm
@@ -830,6 +832,7 @@ local function abandonSession(reason)
 end
 
 registerForEvent('onInit', function()
+    subtitles.install()
     lootObserver.configure({captureContext = captureLootContext})
     lootObserver.install()
     convaiLocomotion = dofile('companion-locomotion.lua')

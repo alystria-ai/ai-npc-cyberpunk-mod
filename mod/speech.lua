@@ -45,12 +45,26 @@ function M.stop(reason)
     publish()
 end
 
+local function fallback(reason, text)
+    local name, actor, entity = M.speaker, M.actor, M.context and M.context.entity
+    M.stop(reason)
+    captions.show(name, text, actor, entity)
+end
+
+function M.clearEntity(entity)
+    if M.context and M.context.entity == entity then M.stop('target-dismissed') end
+    if M.target then
+        local ok, current = pcall(function() return tostring(M.target:GetEntityID().hash) end)
+        if ok and current == entity then M.target = nil end
+    end
+    captions.clearEntity(entity)
+end
+
 local function beginChunk(audio, text, timeline)
     local ok, started = pcall(function() return M.player:ConvaiSpeechStart(M.actor, CName.new(audio.event)) end)
     if not ok or not started then
         M.error = tostring(started)
-        local name, remaining = M.speaker, M.text
-        M.stop('playback-failed'); captions.show(name, remaining); return false
+        fallback('playback-failed', M.text); return false
     end
     M.slot, M.duration, M.chunkText = audio.slot, audio.duration, text
     M.state, M.position, M.waited, M.stalled = 'starting', 0, 0, 0
@@ -64,14 +78,14 @@ function M.start(context, reply)
     M.streamReceipt = nil
     local audio = reply.audio
     if not voiceEnabled(Game.GetPlayer()) or not M.available or not validAudio(audio) then
-        captions.show(context.name, reply.text); return false
+        captions.show(context.name, reply.text, M.target, context.entity); return false
     end
     local descriptor = reply.stream
     if descriptor and (type(descriptor) ~= 'table' or descriptor.version ~= 1
         or type(descriptor.id) ~= 'string' or #descriptor.id > 80
         or type(descriptor.total) ~= 'number' or descriptor.total < 2 or descriptor.total > 32
         or descriptor.total % 1 ~= 0 or type(descriptor.firstText) ~= 'string') then
-        captions.show(context.name, reply.text); return false
+        captions.show(context.name, reply.text, M.target, context.entity); return false
     end
     local actor, player = M.target, Game.GetPlayer()
     if not actor or not player or tostring(actor:GetEntityID().hash) ~= context.entity then
@@ -132,9 +146,7 @@ local function advanceStream()
         s.index, s.wait = nextChunk.index, 0
         beginChunk(nextChunk.audio, nextChunk.text, nextChunk.face)
     elseif doc.complete then
-        local name, text, partial = M.speaker, M.text, doc.error
-        M.stop(partial and 'stream-incomplete' or 'finished')
-        if partial then captions.show(name, text) end
+        if doc.error then fallback('stream-incomplete', M.text) else M.stop('finished') end
     end
 end
 
@@ -150,8 +162,7 @@ function M.update(delta)
     if not player or tostring(player:GetEntityID().hash) ~= M.playerID then M.abandon(); return end
     if not M.actor:IsAttached() or M.actor:IsDeadNoStatPool() then M.stop('target-lost'); return end
     if not voiceEnabled(player) then
-        local name, text = M.speaker, M.text
-        M.stop('muted'); captions.show(name, text); return
+        fallback('muted', M.text); return
     end
     local defs = Game.GetAllBlackboardDefs()
     local paused = Game.GetBlackboardSystem():Get(defs.UI_System):GetBool(defs.UI_System.IsInMenu)
@@ -169,9 +180,8 @@ function M.update(delta)
             advanceStream()
             if M.state ~= 'buffering' then return end
             if s.wait > 45 then
-                local name, text = M.speaker, M.text
                 M.error = 'Next speech phrase did not arrive'
-                M.stop('stream-incomplete'); captions.show(name, text)
+                fallback('stream-incomplete', M.text)
             end
             return
         end
@@ -182,7 +192,7 @@ function M.update(delta)
         M.stalled = 0
         if M.state == 'starting' then
             M.state = 'playing'
-            captions.beginTimed(M.speaker, M.chunkText, M.duration)
+            captions.beginTimed(M.speaker, M.chunkText, M.duration, M.actor, M.context.entity)
             if s then
                 s.history[#s.history + 1] = {index = s.index, slot = M.slot, duration = M.duration,
                     firstCursor = pos, gapSeconds = s.completed > 0 and math.max(0, s.gap - pos) or 0,
@@ -195,7 +205,7 @@ function M.update(delta)
     local previous = M.position
     M.position = pos
     if M.state == 'playing' and pos >= 0 then
-        if captions.enabled() and not captions.timed then captions.beginTimed(M.speaker, M.chunkText, M.duration) end
+        if captions.enabled() and not captions.timed then captions.beginTimed(M.speaker, M.chunkText, M.duration, M.actor, M.context.entity) end
         captions.syncTimed(pos)
         face.sync(M.actor, pos, M.requestId)
     end
@@ -210,9 +220,8 @@ function M.update(delta)
         M.state, M.slot, M.position = 'buffering', nil, 0
         publish(); refreshManifest(); advanceStream()
     elseif M.stalled > 3 then
-        local name, text = M.speaker, M.text
         M.error = 'Native speech playback did not advance'
-        M.stop('playback-failed'); captions.show(name, text)
+        fallback('playback-failed', M.text)
     end
 end
 
