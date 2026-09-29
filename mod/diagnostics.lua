@@ -2,6 +2,9 @@
 local requestFile = io.open('runtime/diagnostic-request.txt', 'rb')
 local request = requestFile and requestFile:read('*a') or ''
 if requestFile then requestFile:close() end
+if request:match('^knowledge%-capture:') then
+    return dofile('knowledge-probe.lua')
+end
 if request:match('^subtitles%-style:') then
     local report = {request = request}
     local ok, err = pcall(function()
