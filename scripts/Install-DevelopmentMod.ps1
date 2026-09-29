@@ -13,6 +13,7 @@ if (-not $LuaOnly -and (Get-Process Cyberpunk2077 -ErrorAction SilentlyContinue)
 $targets = @(
     @{ From = (Join-Path $project 'r6\scripts\CyberpunkConvai\PhoneChatTabs.reds'); To = (Join-Path $game 'r6\scripts\CyberpunkConvai\PhoneChatTabs.reds') },
     @{ From = (Join-Path $project 'mod\phone-chat.lua'); To = (Join-Path $game 'bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai\phone-chat.lua') },
+    @{ From = (Join-Path $project 'mod\phone-chat-style.lua'); To = (Join-Path $game 'bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai\phone-chat-style.lua') },
     @{ From = (Join-Path $project 'r6\scripts\CyberpunkConvai\PhoneChat.reds'); To = (Join-Path $game 'r6\scripts\CyberpunkConvai\PhoneChat.reds') },
     @{ From = (Join-Path $project 'mod\facial-playback.lua'); To = (Join-Path $game 'bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai\facial-playback.lua') },
     @{ From = (Join-Path $project 'mod\phone-layout.lua'); To = (Join-Path $game 'bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai\phone-layout.lua') },

@@ -9,6 +9,7 @@ local groupChat = dofile('group-chat.lua')
 local manager = dofile('manager.lua')
 local mcm = dofile('mcm.lua')
 local phoneLayout = dofile('phone-layout.lua')
+local phoneChatStyle = dofile('phone-chat-style.lua')
 local phoneChat = dofile('phone-chat.lua')
 convaiPhoneChat = phoneChat
 convaiGroupChat = groupChat
@@ -542,6 +543,7 @@ registerForEvent('onInit', function()
     dofile('composer-input.lua').install()
     dofile('phone-input.lua').install()
     phoneLayout.install()
+    phoneChatStyle.install()
     local ok, err = pcall(mcm.install)
     if not ok then log('MCM registration failed: ' .. tostring(err)) end
     ObserveBefore('PlayerPuppet', 'OnDetach', function()
@@ -590,6 +592,8 @@ registerForEvent('onUpdate', function(delta)
     if not mcmOk then log('MCM update failed: ' .. tostring(mcmError)) end
     local phoneOk, phoneError = pcall(phoneLayout.refresh)
     if not phoneOk then phoneLayout.lastError = tostring(phoneError) end
+    local styleOk, styleError = pcall(phoneChatStyle.refresh)
+    if not styleOk then phoneChatStyle.lastError = tostring(styleError) end
     local chatOk, chatError = pcall(phoneChat.update, menuPlayer, delta)
     if not chatOk then phoneChat.lastError = tostring(chatError) end
     local speechOk, speechError = pcall(speech.update, tonumber(delta) or 0)

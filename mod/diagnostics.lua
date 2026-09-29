@@ -2,6 +2,21 @@
 local requestFile = io.open('runtime/diagnostic-request.txt', 'rb')
 local request = requestFile and requestFile:read('*a') or ''
 if requestFile then requestFile:close() end
+if request:match('^phone%-chat%-style:') then
+    local style = dofile('phone-chat-style.lua')
+    style.lastError = nil
+    local ok, err = pcall(function() style.install(true); style.refresh(true) end)
+    local failure = style.lastError
+    if not ok then failure = tostring(err) end
+    local file = io.open('runtime/phone-chat-style.json', 'wb')
+    if file then
+        file:write(json.encode({ok = ok and failure == nil, error = failure,
+            header = style.headerPatched, selectedIndex = style.headerIndex,
+            composer = style.composerPatched, choicesHidden = style.choicesHidden}))
+        file:close()
+    end
+    return
+end
 if request:match('^phone%-chat%-state:') then
     local chat = convaiPhoneChat
     local report = {contact = chat and chat.contact, error = chat and chat.lastError,
@@ -14,22 +29,48 @@ if request:match('^phone%-chat%-state:') then
             for _, controller in ipairs(layer:GetGameControllers()) do
                 local class = NameToString(controller:GetClassName())
                 if class == 'PhoneMessagePopupGameController' or (request:find(':all:') and class == 'NewHudPhoneGameController') then
-                    local function visit(widget, depth)
-                        if not widget or depth > 18 or #report.widgets >= 650 then return end
+                    if class == 'PhoneMessagePopupGameController' then
+                        report.popup = {}
+                        pcall(function() report.popup.contact = controller:ConvaiChatContact() end)
+                    end
+                    local function visit(widget, depth, path)
+                        if not widget or depth > 18 or #report.widgets >= 1800 then return end
                         local item = {name = NameToString(widget:GetName()), class = NameToString(widget:GetClassName()),
                             depth = depth, visible = widget:IsVisible(), width = widget:GetWidth(), height = widget:GetHeight()}
+                        if item.name == '' then
+                            for _, name in ipairs({'convaiChatTabLayout', 'convaiChatTabGlyph', 'convaiChatTabLabel',
+                                'convaiChatTabUnderline', 'convaiPhoneChatStyleMode'}) do
+                                if widget:GetName() == CName.new(name) then item.name = name; break end
+                            end
+                        end
+                        item.path = path .. '/' .. item.name
+                        pcall(function() item.state = NameToString(widget:GetState()) end)
+                        pcall(function() item.opacity = widget:GetOpacity() end)
+                        pcall(function() local c=widget:GetTintColor(); item.tint={r=c.Red,g=c.Green,b=c.Blue,a=c.Alpha} end)
+                        pcall(function() item.fontSize=widget:GetFontSize(); item.fontStyle=NameToString(widget:GetFontStyle()) end)
+                        pcall(function() item.desiredWidth=widget:GetDesiredWidth(); item.desiredHeight=widget:GetDesiredHeight() end)
+                        pcall(function() local s=widget:GetScale(); item.scale={x=s.X,y=s.Y} end)
+                        pcall(function() local s=widget:GetTranslation(); item.translation={x=s.X,y=s.Y} end)
                         local margin = widget:GetMargin()
                         item.margin = {left=margin.left, top=margin.top, right=margin.right, bottom=margin.bottom}
                         item.anchor, item.halign, item.valign = tostring(widget:GetAnchor()), tostring(widget:GetHAlign()), tostring(widget:GetVAlign())
                         local logic = widget:GetController()
-                        if logic then item.controller = NameToString(logic:GetClassName()) end
+                        if logic then
+                            item.controller = NameToString(logic:GetClassName())
+                            if item.controller == 'CyberpunkConvai.ConvaiPhoneChatInput' then
+                                pcall(function() item.placeholder = logic:GetDefaultText() end)
+                            end
+                            if item.controller == 'MessengerDialogViewController' then
+                                pcall(function() item.hasChoices = logic:HasReplyOptions() end)
+                            end
+                        end
                         local parent = widget:GetParentWidget()
                         if parent then item.parent = NameToString(parent:GetName()) end
                         report.widgets[#report.widgets + 1] = item
                         local compound, count = pcall(function() return widget:GetNumChildren() end)
-                        if compound then for index = 0, count - 1 do visit(widget:GetWidgetByIndex(index), depth + 1) end end
+                        if compound then for index = 0, count - 1 do visit(widget:GetWidgetByIndex(index), depth + 1, item.path) end end
                     end
-                    visit(controller:GetRootWidget(), 0)
+                    visit(controller:GetRootWidget(), 0, class)
                 end
             end
         end
