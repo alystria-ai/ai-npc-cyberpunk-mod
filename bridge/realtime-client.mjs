@@ -154,7 +154,8 @@ async function reply(config) {
   const timing = await connect(config);
   updateContext(config);
   const current = beginTurn(timing);
-  client.sendUserTextMessage(config.text);
+  if (config.reaction) client.sendTriggerMessage(undefined, config.text);
+  else client.sendUserTextMessage(config.text);
   return collect(current);
 }
 

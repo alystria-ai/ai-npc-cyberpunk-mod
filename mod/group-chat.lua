@@ -28,7 +28,7 @@ end
 function M.start(id, participants, text)
     M.cancel()
     M.round = {id = id, participants = participants, text = text, index = 0, stage = 'next', heard = {},
-        journal = M.captureJournal and M.captureJournal()}
+        journal = M.captureJournal and M.captureJournal(), battle = M.captureBattle and M.captureBattle()}
 end
 
 local function makeInput(r, index, generation, now, live, includePlaying)
@@ -51,7 +51,7 @@ local function makeInput(r, index, generation, now, live, includePlaying)
     if includePlaying and r.reply then addHeard(r.reply) end
     local input = {requestId = tostring(now) .. '-' .. tostring(generation) .. '-' .. speaker.entity,
         generation = generation, entity = speaker.entity, name = speaker.name, bodyType = speaker.bodyType,
-        profileKey = speaker.profileKey, text = r.text, sentAt = now, journal = r.journal,
+        profileKey = speaker.profileKey, text = r.text, sentAt = now, journal = r.journal, battle = r.battle,
         group = {id = r.id, index = index, total = total, audience = audience, heard = heard}}
     return input
 end

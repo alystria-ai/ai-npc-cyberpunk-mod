@@ -26,6 +26,7 @@ function fixture() {
     async disconnect() { this.isBotReady = false; }
     updateContext(config) { events.push(['context', config]); }
     sendUserTextMessage(text) { events.push(['message', text]); }
+    sendTriggerMessage(name, text) { events.push(['trigger', name, text]); }
     resetIdleTimer() { events.push('idle-reset'); }
   }
   class Audio {
@@ -41,6 +42,17 @@ function fixture() {
   return {api: window.convaiRealtime, clients, events, captures};
 }
 const config = {key: 'test-key', characterId: 'alex', scope: 'group:alex,panam', text: 'Hello'};
+
+test('automatic reactions send a game trigger without inventing a player utterance', async () => {
+  const {api, events} = fixture();
+  await api.warm({...config, ttsEnabled: false});
+  const pending = api.reply({...config, ttsEnabled: false, reaction: {kind: 'battle', phase: 'start'}});
+  pending.catch(() => {});
+  await flush();
+  assert.equal(events.some(row => row[0] === 'message'), false);
+  assert.deepEqual(events.find(row => row[0] === 'trigger'), ['trigger', undefined, config.text]);
+  await api.close(); await assert.rejects(pending, /cancelled/);
+});
 
 test('a turn silently replaces journal context before sending the original user message', async () => {
   const {api, events} = fixture();

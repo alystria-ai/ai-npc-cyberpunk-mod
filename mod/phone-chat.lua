@@ -112,7 +112,7 @@ function M.update(player, delta)
         else
             M.serial = M.serial + 1
             M.pending = {id = M.world .. '-' .. M.serial, contact = submission.contact, text = text,
-                journal = M.captureJournal and M.captureJournal()}
+                journal = M.captureJournal and M.captureJournal(), battle = M.captureBattle and M.captureBattle()}
             M.sentAt = os.time()
             M.errors[submission.contact] = nil
             if publish(true) then

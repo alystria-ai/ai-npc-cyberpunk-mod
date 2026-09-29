@@ -2,6 +2,21 @@
 local requestFile = io.open('runtime/diagnostic-request.txt', 'rb')
 local request = requestFile and requestFile:read('*a') or ''
 if requestFile then requestFile:close() end
+if request:match('^battle%-context:') then
+    local observer, player = dofile('battle-observer.lua'), Game.GetPlayer()
+    local report = observer.sample(player)
+    report.companions = {}
+    if convaiCompanions and player then
+        for _, person in ipairs(convaiCompanions.conversationCandidates(player, 20)) do
+            report.companions[#report.companions + 1] = {profile = person.profileKey, distance = person.distance,
+                available = observer.canSpeak(person.npc, report.combat and 'start' or 'end')}
+        end
+    end
+    if convaiBattleReactions then report.scheduler = convaiBattleReactions.status() end
+    local file = io.open('runtime/battle-context-probe.json', 'wb')
+    if file then file:write(json.encode(report)); file:close() end
+    return
+end
 if request:match('^quest%-context:') then
     local context = dofile('quest-context.lua')
     local report = {snapshot = context.capture()}

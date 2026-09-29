@@ -16,6 +16,7 @@ end
 function M.begin(context)
     M.cancel()
     context.journal = M.captureJournal and M.captureJournal()
+    context.battle = M.captureBattle and M.captureBattle()
     if not command('start', context) then return false end
     M.context, M.state, M.started = context, 'starting', os.time()
     return true

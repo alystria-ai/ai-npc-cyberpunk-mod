@@ -1,6 +1,7 @@
 // Phone messages have no world entity, audio, gaze or group-turn ownership.
 // Resolve the contact on the server; never accept an arbitrary character ID.
-import {parseJournal, journalContext} from './quest-context.mjs';
+import {parseJournal, conversationContext} from './quest-context.mjs';
+import {parseBattle} from './battle-context.mjs';
 
 export function parsePhoneState(raw) {
   let state;
@@ -13,7 +14,8 @@ export function parsePhoneState(raw) {
       || typeof contact !== 'string' || !/^[a-zA-Z0-9_-]{1,120}$/.test(contact)
       || typeof text !== 'string' || !text.trim() || [...text].length > 1200) return null;
   const journal = parseJournal(state.request.journal);
-  return {...state, request: {id, contact, text: text.trim(), ...(journal ? {journal} : {})}};
+  const battle = parseBattle(state.request.battle);
+  return {...state, request: {id, contact, text: text.trim(), ...(journal ? {journal} : {}), ...(battle ? {battle} : {})}};
 }
 
 export class PhoneChat {
@@ -60,7 +62,7 @@ export class PhoneChat {
     // Do not block the file poll while HTTP runs: unload/close must cancel it.
     active.work = (async () => {
       try {
-        const context = journalContext(input.journal);
+        const context = conversationContext({...input, profileKey: contact.profile});
         const result = await this.reply({characterId: contact.id, sessionId: this.sessions.get(contact.id) || '-1',
           text: context ? context + '\n\nV messages: ' + input.text : input.text,
           voice: false, signal: active.controller.signal});

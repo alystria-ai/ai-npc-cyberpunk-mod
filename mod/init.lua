@@ -12,9 +12,15 @@ local phoneLayout = dofile('phone-layout.lua')
 local phoneChatStyle = dofile('phone-chat-style.lua')
 local phoneChat = dofile('phone-chat.lua')
 local questContext = dofile('quest-context.lua')
+local battleObserver = dofile('battle-observer.lua')
+local battles = dofile('battle-reactions.lua').new()
+convaiBattleReactions = battles
 groupChat.captureJournal = questContext.capture
 phoneChat.captureJournal = questContext.capture
 microphone.captureJournal = questContext.capture
+groupChat.captureBattle = battles.capture
+phoneChat.captureBattle = battles.capture
+microphone.captureBattle = battles.capture
 convaiPhoneChat = phoneChat
 convaiGroupChat = groupChat
 groupChat.onPreparation = function(preparation)
@@ -61,6 +67,8 @@ local gazePoll = 0
 local focusedCrowd = nil
 local releasedCrowd = nil
 local pendingPhoneAction = nil
+local automatic, battleSample, battlePeople, battlePoll = nil, nil, {}, 0
+local cancelAutomatic = function() end
 local phoneCatalogReady = false
 local function profileEnabled(player, key)
     return manager.profileEnabled(key)
@@ -311,6 +319,7 @@ local function beginText(groupMode)
             log('Native composer unavailable (check redscript and Codeware)')
             return
         end
+        cancelAutomatic('manual-text')
         speech.stop('new-conversation')
         microphone.cancel()
         groupChat.cancel()
@@ -355,6 +364,7 @@ local function toggleVoice()
         end
         if not profileEnabled(player, key) then return end
         generation = generation + 1
+        cancelAutomatic('microphone')
         groupChat.cancel()
         warmConversation(nil, nil)
         speech.stop('microphone'); subtitles.clear()
@@ -375,14 +385,90 @@ end
 
 local function sendRequest(context)
     context.journal = context.journal or questContext.capture()
+    context.battle = context.battle or battles.capture()
     local file = io.open('runtime/last-input.json.tmp', 'wb')
     if not file then return false end
     file:write(json.encode(context)); file:close()
     os.remove('runtime/last-input.json')
     if not os.rename('runtime/last-input.json.tmp', 'runtime/last-input.json') then return false end
     pending = context
-    focusUntil = os.time() + 90
+    if not context.reaction then focusUntil = os.time() + 90 end
     return true
+end
+
+local function reactionLease(valid)
+    if not automatic then return false end
+    local now = os.time()
+    if valid and automatic.leaseAt == now then return true end
+    local file = io.open('runtime/reaction-lease.json.tmp', 'wb')
+    if not file then return false end
+    file:write(json.encode({requestId = automatic.requestId, valid = valid, updated = now * 1000,
+        playbackStartedAt = automatic.playbackAt and automatic.playbackAt * 1000})); file:close()
+    os.remove('runtime/reaction-lease.json')
+    local written = os.rename('runtime/reaction-lease.json.tmp', 'runtime/reaction-lease.json')
+    if written then automatic.leaseAt = now end
+    return written ~= nil
+end
+
+cancelAutomatic = function(reason, abandoning)
+    if not automatic then return end
+    reactionLease(false)
+    if pending and pending.requestId == automatic.requestId then pending = nil end
+    if not abandoning then
+        if speech.requestId == automatic.requestId then speech.stop(reason)
+        elseif automatic.shown then subtitles.clear() end
+    end
+    log('Automatic reaction released: ' .. tostring(reason))
+    automatic = nil
+end
+
+local function updateBattles(player, elapsed, worldReady)
+    battlePoll = battlePoll + elapsed
+    if not battleSample or battlePoll >= 0.5 then
+        battlePoll = 0
+        battleSample = battleObserver.sample(player)
+        battlePeople = {}
+        local ok, candidates = pcall(companions.conversationCandidates, player, 20)
+        if ok then
+            for _, person in ipairs(candidates) do
+                if supportedProfiles[person.profileKey] and manager.profileEnabled(person.profileKey) then
+                    person.available = battleObserver.canSpeak(person.npc, battleSample.combat and 'start' or 'end')
+                    battlePeople[#battlePeople + 1] = person
+                end
+            end
+        end
+    end
+    battles.update(battleSample, worldReady and elapsed or 0, os.time(), manager.battleReactions(), battlePeople)
+    local manual = active ~= nil or groupChat.round ~= nil
+        or (microphone.context ~= nil and microphone.state ~= 'reply') or phoneChat.pending ~= nil
+    if automatic then
+        local nearby = false
+        for _, person in ipairs(battlePeople) do
+            if person.entity == automatic.entity and person.available then nearby = true; break end
+        end
+        if not worldReady or manual or not nearby or not battles.valid(automatic.reaction, os.time(), automatic.playbackAt) then
+            cancelAutomatic('priority-or-stale')
+        elseif not pending and not speech.requestId and not subtitles.line then
+            cancelAutomatic('completed')
+        elseif not reactionLease(true) then cancelAutomatic('lease-write-failed') end
+    end
+    local busy = not worldReady or manual or pending ~= nil or speech.requestId ~= nil or subtitles.line ~= nil or automatic ~= nil
+    local event = battles.offer(busy, battlePeople, os.time())
+    if not event then return end
+    generation = generation + 1
+    local person = event.person
+    local context = {generation = generation, entity = person.entity, name = person.name,
+        bodyType = person.bodyType, profileKey = person.profileKey, battle = event.battle, sentAt = os.time(),
+        text = event.phase == 'start' and 'Combat has begun. Give a brief in-character reaction.'
+            or 'Combat has ended. Give a brief in-character reaction without assuming victory.',
+        reaction = {kind = 'battle', encounter = event.encounter, phase = event.phase, expiresAt = event.expiresAt}}
+    context.requestId = tostring(os.time()) .. '-' .. generation .. '-' .. context.entity
+    automatic = context
+    if reactionLease(true) and sendRequest(context) then
+        speech.target = person.npc
+        battles.claim(event)
+        log('Automatic battle reaction: ' .. event.phase .. ' speaker=' .. person.profileKey)
+    else cancelAutomatic('request-write-failed') end
 end
 
 local function groupAudience(player)
@@ -522,6 +608,9 @@ local worldSuspended, sessionHasState = false, false
 local function abandonSession(reason)
     -- Never touch NPC/player components during native world destruction.
     -- pcall cannot catch an access violation in an already unloaded component.
+    cancelAutomatic(reason, true)
+    battles.reset()
+    battleSample, battlePeople, battlePoll = nil, {}, 0
     companions.abandon()
     mcm.resetSession()
     speech.abandon()
@@ -658,12 +747,21 @@ registerForEvent('onUpdate', function(delta)
     if worldReady then companions.update(player, elapsedPoll, focusEntity) end
     publishPartyConnections(false)
     updateGroup(player)
+    local battleOk, battleError = pcall(updateBattles, player, elapsedPoll, worldReady)
+    if not battleOk then
+        cancelAutomatic('observation-error')
+        battleSample, battlePeople = nil, {}
+        if os.time() >= (battles.errorAt or 0) then
+            battles.errorAt = os.time() + 30
+            log('Battle observation skipped: ' .. tostring(battleError))
+        end
+    end
     if focusUntil and not active and not speech.requestId and os.time() >= focusUntil then
         endFocus(player)
         focusUntil = nil
         focusMode = nil
         focusEntity = nil
-        if pending then
+        if pending and not pending.reaction then
             log('Reply timed out: generation=' .. pending.generation)
             pending = nil
         end
@@ -702,20 +800,28 @@ registerForEvent('onUpdate', function(delta)
                 and reply.entity == pending.entity
                 and (type(reply.text) == 'string' or type(reply.error) == 'string') then
                 local shown = pcall(function()
-                    if reply.error then player:ConvaiPhoneFeedback(reply.error)
+                    if reply.error then
+                        if not pending.reaction then player:ConvaiPhoneFeedback(reply.error) end
                     else speech.start(pending, reply) end
                 end)
                 if shown then
                     local _, listeners = groupAudience(player)
                     groupChat.received(pending.requestId, reply.text, reply.error ~= nil or (not speech.requestId and not subtitles.line), listeners)
                     log('Conversation result: generation=' .. pending.generation .. ' error=' .. tostring(reply.error ~= nil))
-                    focusUntil = os.time() + (speech.duration or 8) + 1
+                    if automatic and pending.requestId == automatic.requestId then
+                        automatic.shown = reply.error == nil
+                        if automatic.shown and (speech.requestId or subtitles.line) then
+                            automatic.playbackAt, automatic.leaseAt = os.time(), nil
+                            reactionLease(true)
+                        end
+                    end
+                    if not pending.reaction then focusUntil = os.time() + (speech.duration or 8) + 1 end
                     pending = nil
                 end
             end
         end
         if pending and os.time() - pending.sentAt > 90 then
-            player:ConvaiPhoneFeedback('No reply arrived. Check that the Convai bridge is running.')
+            if not pending.reaction then player:ConvaiPhoneFeedback('No reply arrived. Check that the Convai bridge is running.') end
             log('Conversation timed out: generation=' .. pending.generation)
             groupChat.received(pending.requestId, '', true, {})
             pending = nil
@@ -755,6 +861,9 @@ registerForEvent('onUpdate', function(delta)
 end)
 
 registerForEvent('onShutdown', function()
+    cancelAutomatic('shutdown')
+    battles.reset()
+    battleSample, battlePeople = nil, {}
     phoneChat.abandon()
     mcm.shutdown()
     groupChat.cancel()

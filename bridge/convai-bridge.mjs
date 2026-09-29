@@ -12,6 +12,7 @@ import {MicrophoneSession} from './microphone-session.mjs';
 import {randomUUID} from 'node:crypto';
 import {conversationScope} from './group-context.mjs';
 import {conversationContext} from './quest-context.mjs';
+import {battleTrigger, reactionLeaseValid} from './battle-context.mjs';
 import {GroupPrefetch, inputIdentity, validatePrefetch, parsePrewarm} from './group-prefetch.mjs';
 import {throwIfCancelled} from './transport-pool.mjs';
 import {PartyConnections} from './party-connections.mjs';
@@ -111,7 +112,8 @@ const sessionKey = input => input.profileKey + ':' + conversationScope(input);
 const completeContext = input => JSON.stringify([conversationContext(input), ids[input.profileKey], realtimeSessions.get(sessionKey(input)) || null,
   localVoice.usesProfile(input.profileKey) ? localVoice.steps : 'convai']);
 const realtimeConfig = input => ({key, characterId: ids[input.profileKey], sessionId: realtimeSessions.get(sessionKey(input)),
-  scope: conversationScope(input), context: conversationContext(input), text: input.text, ttsEnabled: !localVoice.usesProfile(input.profileKey)});
+  scope: conversationScope(input), context: conversationContext(input), text: battleTrigger(input), reaction: input.reaction,
+  ttsEnabled: !localVoice.usesProfile(input.profileKey)});
 const connections = new PartyConnections({host: realtime, isKnown: profile => Object.hasOwn(ids, profile),
   configFor: (profile, scope) => ({key, characterId: ids[profile], scope, sessionId: realtimeSessions.get(profile + ':' + scope), ttsEnabled: !localVoice.usesProfile(profile)}),
   onState: state => {
@@ -197,8 +199,9 @@ async function respond(input, profile, {signal, prepared} = {}) {
   }
   prefetch.invalidate(); prepared?.cancel();
   throwIfCancelled(signal);
-  return requestReply({key, characterId: ids[profile.key], text: context ? context + '\nV says: ' + input.text : input.text,
-    sessionId: sessions.get(scopedSession) || '-1', voice: false});
+  return requestReply({key, characterId: ids[profile.key], text: context ? context
+      + (input.reaction ? '\nAutomatic game event: ' : '\nV says: ') + battleTrigger(input) : battleTrigger(input),
+    sessionId: sessions.get(scopedSession) || '-1', voice: false, signal});
 }
 
 async function publishResult(input, profile, result, current = async () => true, signal) {
@@ -311,18 +314,38 @@ async function pollMicrophone() {
   } finally { micPolling = false; }
 }
 
+async function reactionCurrent(input) {
+  if (!input.reaction) return true;
+  // CET replaces the heartbeat by removing then renaming its file. Retry
+  // that brief gap, but never retry an explicit cancellation or stale lease.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    let lease;
+    try { lease = JSON.parse(await readFile(resolve(runtime, 'reaction-lease.json'), 'utf8')); }
+    catch (error) {
+      if (error.code !== 'ENOENT' && !(error instanceof SyntaxError)) return false;
+      if (attempt === 2) return null; // Unreadable, rather than a cancelled request.
+      await new Promise(done => setTimeout(done, 15));
+      continue;
+    }
+    return reactionLeaseValid(input, lease);
+  }
+}
+
 async function tick() {
   if (polling || stopped) return;
   polling = true;
   try {
+    const reactionRequest = active;
+    if (reactionRequest?.input.reaction && !await reactionCurrent(reactionRequest.input)
+        && active === reactionRequest) reactionRequest.controller.abort();
     const stamp = await stat(inputPath).catch(() => null);
     if (!stamp) return;
     const raw = await readFile(inputPath, 'utf8');
     const signature = `${stamp.mtimeMs}:${stamp.size}:${raw}`;
     if (signature === observed) return;
-    observed = signature;
     const input = parseInput(raw);
     if (!input) {
+      observed = signature;
       prefetch.invalidate();
       // Lua replaces this small file in place. A transient partial write is
       // not a new target and must not cancel an otherwise valid active turn.
@@ -330,7 +353,13 @@ async function tick() {
       return;
     }
     const identity = inputIdentity(input);
-    if (identity === lastAcceptedIdentity) return;
+    if (identity === lastAcceptedIdentity) { observed = signature; return; }
+    const lease = await reactionCurrent(input);
+    // A missing/partial heartbeat has not accepted or rejected new input.
+    // Leave its signature unseen so the next poll can retry the same file.
+    if (lease === null) return;
+    observed = signature;
+    if (!lease) return;
     lastAcceptedIdentity = identity;
     active?.controller.abort();
     const controller = new AbortController();
@@ -347,7 +376,7 @@ async function processInput(request, prepared) {
   const current = async () => {
     if (controller.signal.aborted || active !== request || stopped) return false;
     const submitted = parseInput(await readFile(inputPath, 'utf8').catch(() => ''));
-    return !!submitted && inputIdentity(submitted) === inputIdentity(input);
+    return !!submitted && inputIdentity(submitted) === inputIdentity(input) && await reactionCurrent(input);
   };
   try {
     await mic.cancel();
@@ -360,7 +389,8 @@ async function processInput(request, prepared) {
       return;
     }
     await measure(input, {receivedAt: request.receivedAt, preparation: {mode: prepared ? 'claimed' : 'none'},
-      journalStatus: input.journal?.status || 'not-supplied', journalObjectives: input.journal?.quest?.objectives.length || 0});
+      journalStatus: input.journal?.status || 'not-supplied', journalObjectives: input.journal?.quest?.objectives.length || 0,
+      battleStatus: input.battle?.status || 'not-supplied', reaction: input.reaction?.phase});
     await status('thinking', profile.name);
     const canWarm = await audioReady(runtime);
     throwIfCancelled(controller.signal);

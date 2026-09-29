@@ -34,8 +34,8 @@ tracked, visited or completed by this feature.
   hidden outcomes or fabricated progress. Model adherence still needs live checks;
   filtering input cannot guarantee every generated sentence is spoiler-free.
 
-This supplies context when V speaks. Automatic battle, loot and exploration
-reactions remain separate backlog items.
+This supplies context when V speaks. [Battle awareness](BATTLE_REACTIONS.md) uses
+the same conversation routing; loot and exploration reactions remain backlog items.
 
 ## Evidence — September 29
 
