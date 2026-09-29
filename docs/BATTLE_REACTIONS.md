@@ -102,8 +102,9 @@ are reused.
   Lua files parse. Installation was hash-verified on September 29 while the game
   was closed, then the game and hidden bridge were launched. The saved Convai
   voice choice remains active. No CET reload is needed for this launch.
-- In-game opening/closing audio, cooldown and save-load behavior remain
-  unaccepted. The next fight must be checked against the new cancellation ledger.
+- In-game audio was initially unaccepted; the later corrected-run evidence is
+  recorded below. Cooldown/save-reset edge cases have automated coverage, without
+  a separate full ten-minute live check.
 - Combining loot and exploration observations with the closing comment is still
   pending. No Horde-wave or kill-count equivalent is invented for Cyberpunk.
 - Second live fight: the opening was cancelled two seconds after submission by
@@ -116,8 +117,13 @@ are reused.
   distance does not prove her distance at the closing window.
 - The waiting/delivery correction passes 23 focused battle/lease checks,
   including same-request retention, an intervening native voice line, unchanged
-  deadlines and manual/story/playback interruption. Lua is installed with hash
-  verification, awaiting CET reload and live acceptance; no game restart needed.
+  deadlines and manual/story/playback interruption. Lua was installed with hash
+  verification and CET-reloaded, with no game restart.
+- The corrected run submitted an opening at 18:09:09 UTC and reached playback at
+  18:09:14. A native Judy line interrupted it at 18:09:16. The closing submitted
+  at 18:09:33, began playback at 18:09:39 and completed normally at 18:09:42.
+  The user confirmed hearing **both opening and closing comments**. This is live
+  audible acceptance; it does not claim the opening played without interruption.
 
 ## Live check and diagnostics
 
