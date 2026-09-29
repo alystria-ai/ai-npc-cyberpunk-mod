@@ -9,8 +9,9 @@ Relaxed state alone did not establish that the weapon was holstered.
 
 `mod/companion-equipment.lua` adds an equipment owner per managed copy. Fresh
 attachment and new combat arm a cleanup check. It waits for a stable, stationary
-hold, no player/NPC combat, no player entity threat or NPC hostile threat, relaxed autonomous AI, a normal
-upper body, and no authored scene/dialogue. It then asks the native
+hold, no player/NPC combat, no player entity threat or NPC hostile threat,
+relaxed autonomous AI, a normal upper body, and no authored scene/dialogue.
+It then asks the native
 `AIUnequipCommand` to holster one occupied hand at a time, using the default
 animation. It verifies actual slot clearance, allows at most two attempts per
 hand, and bounds each command to six seconds. Renewed combat or story ownership
@@ -36,8 +37,8 @@ blocking movement or repeatedly sending cancellation requests.
 Twenty-two equipment/actuator integration checks and 42 existing movement and
 record checks pass; all four affected Lua modules parse. These cover exact
 command ownership, delayed cancellation, departure, combat, teardown and hand
-clearance. The temporary probe has been retired. The production handoff and
-visible holstering still need live verification after the combined CET reload.
+clearance. The temporary probe has been retired. Production acceptance is
+recorded below after the subsequent threat-filter correction.
 Checkpoint `679e801` was installed and hash-verified at 01:00 IST on September 30.
 The previous adapters are retained under
 `backups/loot-equipment-before-20260930-010043/`. CET activation passed, and the
@@ -51,8 +52,21 @@ The player guard now checks `HasHostileThreat(player, false, true)`, excluding
 location-only memories while retaining nonvisible hostile entities. The NPC
 threat and both combat/scene gates are unchanged. Twenty-four equipment checks
 pass, including the captured location-memory sequence and cancellation on a
-returning hostile entity. This correction still needs CET activation and live
-holstering verification.
+returning hostile entity. The filter matches the native autonomous combat
+condition's entity-only, visibility-independent check in
+`scripts/cyberpunk/ai/Conditions/aiAutonomousConditions.script:8-24,211` of the
+local reference. The impact is a plausible source of the location memory;
+its precise creation event was not captured.
+
+**Live acceptance:** after CET activation of `7ccdfd2`, the user confirmed
+"she holstered all good" and requested moving on. Both active managed Judys
+(`11072108ULL` and `11071767ULL`) independently reported exactly one
+`AIUnequipCommand` with Success, both hand slots empty, equipment complete,
+no movement suspension, and resumed executing standing holds at zero speed.
+Evidence: `runtime/equipment-holster-accepted-20260930.json`. The earlier empty-car
+shot only entered V's combat state while Judy remained unarmed; that run was
+not counted as a holster test. A proposed scripted draw probe was stopped before
+implementation because the production path had now been verified.
 Use `party-weapon-state:<nonce>` for read-only hand attachments, combat/scene
 gates, movement state and equipment ownership.
 

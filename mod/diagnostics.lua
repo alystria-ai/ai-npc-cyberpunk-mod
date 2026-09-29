@@ -250,6 +250,8 @@ if request:match('^party%-weapon%-state:') then
                 end),
                 autonomous = read(function() return npc:IsOnAutonomousAI() end),
                 hostileThreat = read(function() return TargetTrackingExtension.HasHostileThreat(npc) end),
+                threatEntities = read(function() return TargetTrackingExtension.HasHostileThreat(npc, false, true) end),
+                visibleThreatEntities = read(function() return TargetTrackingExtension.HasHostileThreat(npc, true, true) end),
                 scene = read(function() return Game.GetSceneSystem():GetScriptInterface():IsEntityInScene(npc:GetEntityID()) end),
                 dialogue = read(function() return Game.GetSceneSystem():GetScriptInterface():IsEntityInDialogue(npc:GetEntityID()) end),
                 follower = read(function() return npc:IsPlayerCompanion() end),
