@@ -90,8 +90,13 @@ replies cannot enter a new attachment, and repeated polls do not resend a reques
 - MCM checks cover default Off, atomic save, invalid values and failed-save rollback.
 - The real running game process was identified twice with the same launch token;
   the token was not printed or committed.
-- Native files are **prepared, not yet installed**. Screenshot and interaction
-  acceptance of the new Chat tab and bottom composer remain pending.
+- Installed after the user closed Cyberpunk, with SHA-256 verification of every
+  copied file. Previous phone native files were backed up under the ignored
+  runtime/install-backups directory. Restarted the hidden conversation bridge
+  (PID 24424), launched Cyberpunk (PID 24200), and verified actual startup
+  compilation completed at **13:58:42 IST**. The bridge reports ready.
+- Screenshot and interaction acceptance of the new Chat tab and bottom composer
+  remain pending. No game input was injected during installation or launch.
 
 ### Combined live check
 
