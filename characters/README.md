@@ -8,7 +8,9 @@ Each researched profile separates established background, conditional quest even
 
 Current save outcomes are not inferred from spawning a companion. A summoned Jackie, for example, does not establish a quest outcome. Impersonation, historical character versions, optional romances and branching deaths need explicit context. Sparse biographies are recorded as sparse rather than extended with invented personal history.
 
-The main Convai description contains the speaking guidance and examples, following the Dawnwalker profile structure. `profile-settings.json` records the model verified through the reference character's Core API data. `kokoro-voices.json` is the public voice selection data read from Convai on the recorded date. Voice casting is editorial; these are Kokoro voices, not replicas of the original actors.
+The Convai profile uses three separate fields: biography in `backstory`, delivery guidance in `speaking_style_description`, and original examples in `speaking_style_sample_dialogues`. The last two must not be embedded in the biography. The roster stores them as `speakingStyleDescription` and `speakingStyleSampleDialogues`; readable exports label all three sections. See [the API request and readback contract](../docs/CHARACTER_API.md).
+
+`profile-settings.json` records the model verified through the reference character's Core API data. `kokoro-voices.json` is the public voice selection data read from Convai on the recorded date. Voice casting is editorial; these are Kokoro voices, not replicas of the original actors.
 
 ## Build and apply
 
@@ -16,7 +18,7 @@ The main Convai description contains the speaking guidance and examples, followi
 2. Run `npm run profiles:plan` to review the intended profiles without writing to Convai.
 3. Run `node scripts/Provision-Characters.mjs --apply` to create missing mod profiles and update the project's mapped profiles. `--only key1,key2` limits a run.
 
-The provisioning tool reads the ignored local key file, retains existing IDs, backs up prior descriptions, checks account ownership, validates each description and voice after writing, and checks the model in the final character list. Ambiguous create failures are not automatically repeated. A subsequent run looks for the project ownership marker before creating another character.
+The provisioning tool reads the ignored local key file, retains existing IDs, backs up prior descriptions, checks account ownership, validates biography, speaking style, sample dialogues and voice after writing, and checks the model in the final character list. Ambiguous create failures are not automatically repeated. A subsequent run looks for the project ownership marker before creating another character. The PowerShell entry point now delegates to the same Node implementation and also requires `-Apply` for writes.
 
 Convai's API labels accept only letters, numbers and single spaces. Punctuation is replaced with spaces in those labels; canonical names such as Chang-Hoon Nam and T-Bug remain intact in the game and character instructions.
 

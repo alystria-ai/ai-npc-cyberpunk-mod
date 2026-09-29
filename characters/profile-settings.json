@@ -2,5 +2,5 @@
   "model": "fast-gemma-4-31b-it",
   "verified": "2026-09-28",
   "reference": "Dawnwalker Anca, Core API model readback; exported source agrees",
-  "profileRevision": 2
+  "profileRevision": 3
 }

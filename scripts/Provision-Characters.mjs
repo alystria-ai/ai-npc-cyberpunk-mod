@@ -2,6 +2,7 @@ import {readFile, writeFile, rename, mkdir, open, unlink} from 'node:fs/promises
 import {dirname, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
+import {apiCharacterName, characterPayload, characterMatches, verifyCharacter, verifyMemoryConfiguration} from './character-payload.mjs';
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const runtime=resolve(root,'runtime');
@@ -13,7 +14,9 @@ const atomic=async(path,value)=>{await writeFile(path+'.tmp',JSON.stringify(valu
 const roster=await read(resolve(root,'characters/roster.json'));
 const selected=roster.filter(p=>!only||only.has(p.key));
 if(only&&selected.length!==only.size)throw Error('Unknown profile in --only selection.');
-if(!apply){console.log(JSON.stringify({mode:'plan',count:selected.length,characters:selected.map(p=>({key:p.key,name:p.name,words:p.backstory.split(/\s+/).length,voice:p.voiceName,model:p.model}))},null,2));process.exit(0);}
+// Validate every three-field payload before the first remote write.
+const payloads=new Map(selected.map(p=>[p.key,characterPayload(p)]));
+if(!apply){console.log(JSON.stringify({mode:'plan',count:selected.length,characters:selected.map(p=>({key:p.key,name:p.name,words:p.backstory.split(/\s+/).length,styleCharacters:p.speakingStyleDescription.length,sampleCharacters:p.speakingStyleSampleDialogues.length,voice:p.voiceName,model:p.model}))},null,2));process.exit(0);}
 const keyPath=process.env.CYBERPUNK_CONVAI_KEY_FILE||resolve(runtime,'convai-key.txt');
 const key=/^api-key\s*=\s*(\S+)\s*$/i.exec((await readFile(keyPath,'utf8')).trim())?.[1];
 if(!key)throw Error('Local key file must contain api-key=...');
@@ -54,16 +57,14 @@ async function api(endpoint,body,canRetry=true){
 const marker=p=>`[CyberpunkConvai profile v2:${p.key}]`;
 // Core API labels reject punctuation such as the hyphen in Chang-Hoon.
 // The roster, prompt identity and in-game display retain the canonical name.
-const apiName=p=>p.name.replace(/[^\p{L}\p{N} ]/gu,' ').replace(/\s+/g,' ').trim();
-const verify=(p,id,actual)=>{
-  if(actual.character_id!==id||actual.character_name!==apiName(p)||actual.voice_type!==p.voice||actual.backstory!==p.backstory)throw Error('Profile readback mismatch: '+p.key);
-};
+const apiName=apiCharacterName;
 try{
   const cloud=await api('/character/list',{});
   const owned=new Map(cloud.characters.map(p=>[p.character_id,p]));
   for(const profile of selected){
     if(!profile.voice.startsWith('convai-kokoro-')||!profile.backstory||!profile.model)throw Error('Incomplete profile: '+profile.key);
-    const hash=createHash('sha256').update(JSON.stringify({name:profile.name,backstory:profile.backstory,voice:profile.voice,model:profile.model})).digest('hex');
+    const payload=payloads.get(profile.key);
+    const hash=createHash('sha256').update(JSON.stringify(payload)).digest('hex');
     let id=mapping[profile.key],before;
     if(id&&!owned.has(id))throw Error('Mapped profile is not in the account: '+profile.key);
     // Recover a prior create interrupted before the local ID mapping was saved.
@@ -76,7 +77,6 @@ try{
       }
       if(id){mapping[profile.key]=id;await atomic(mappingPath,mapping);}
     }
-    const payload={charName:apiName(profile),voiceType:profile.voice,backstory:profile.backstory,model_group_name:profile.model};
     let created=false;
     if(!id){
       // Never automatically repeat an ambiguous creation: a subsequent run
@@ -88,18 +88,20 @@ try{
       before??=await api('/character/get',{charID:id});
       await atomic(resolve(batch,profile.key+'-before.json'),before);
       const model=owned.get(id)?.personalised_prompt_config?.MODEL;
-      if(before.backstory!==profile.backstory||before.voice_type!==profile.voice||before.character_name!==apiName(profile)||model!==profile.model){
+      if(!characterMatches(before,payload)||model!==profile.model){
         const result=await api('/character/update',{charID:id,...payload});
         if(result.STATUS!=='SUCCESS')throw Error('Profile update did not confirm success: '+profile.key);
       }
     }
     const actual=await api('/character/get',{charID:id});
-    verify(profile,id,actual);
+    await atomic(resolve(batch,profile.key+'-readback.json'),actual);
+    verifyCharacter(id,actual,payload,profile.key);
+    if(before)verifyMemoryConfiguration(before,actual,profile.key);
     await atomic(resolve(batch,profile.key+'-verified.json'),actual);
     verified[profile.key]=hash;await atomic(verifiedPath,verified);
-    report.profiles.push({key:profile.key,id,created,backstoryVerified:true,voiceVerified:true,modelVerified:false,words:profile.backstory.split(/\s+/).length,memoryEnabled:actual.memory_settings?.enabled===true});
+    report.profiles.push({key:profile.key,id,created,backstoryVerified:true,speakingStyleVerified:true,sampleDialoguesVerified:true,voiceVerified:true,modelVerified:false,words:profile.backstory.split(/\s+/).length,memoryEnabled:actual.memory_settings?.enabled===true,memoryConfigurationPreserved:before?true:null});
     await atomic(resolve(runtime,'profile-enrichment-report.json'),report);
-    console.log('Verified '+profile.name+': description and Kokoro voice ('+profile.backstory.split(/\s+/).length+' words).');
+    console.log('Verified '+profile.name+': separate biography, speaking style, dialogue samples and Kokoro voice.');
   }
   const final=await api('/character/list',{});
   for(const item of report.profiles){
