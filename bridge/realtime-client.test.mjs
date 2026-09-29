@@ -5,10 +5,12 @@ import {runInNewContext} from 'node:vm';
 import {drainBlendshapes} from './blendshape-capture.mjs';
 import {BlendshapeQueue} from '../node_modules/@convai/web-sdk/dist/core/BlendshapeQueue.js';
 import {journalContext} from './quest-context.mjs';
+import {endUserOptions, transportKey, SessionBindings} from './transport-pool.mjs';
 
 const source = readFileSync(new URL('./realtime-client.mjs', import.meta.url), 'utf8')
   .replace("import {ConvaiClient} from '@convai/web-sdk/vanilla';", '')
-  .replace("import {drainBlendshapes} from './blendshape-capture.mjs';", '');
+  .replace("import {drainBlendshapes} from './blendshape-capture.mjs';", '')
+  .replace("import {endUserOptions, transportKey, SessionBindings} from './transport-pool.mjs';", '');
 const flush = () => new Promise(done => setImmediate(done));
 function fixture() {
   const clients = [], events = [], captures = [];
@@ -37,6 +39,7 @@ function fixture() {
   class Capture { constructor() { this.port = {}; captures.push(this); } connect() {} disconnect() {} }
   const window = {};
   runInNewContext(source, {ConvaiClient: Client, AudioContext: Audio, AudioWorkletNode: Capture, drainBlendshapes,
+    endUserOptions, transportKey, SessionBindings,
     window, performance, setTimeout, clearTimeout, setInterval, clearInterval,
     btoa: data => Buffer.from(data, 'binary').toString('base64')});
   return {api: window.convaiRealtime, clients, events, captures};
@@ -146,6 +149,88 @@ test('switching between native Convai voice and local speech reconnects the sess
   assert.equal(clients[0].isBotReady, false);
   assert.equal(clients[1].options.ttsEnabled, false);
   await api.close();
+});
+
+test('spawn warmup supplies verified identity and metadata before connecting, while absent identity stays anonymous', async () => {
+  const {api, clients, events} = fixture();
+  const identified = {...config, ttsEnabled: false, endUserId: 'opaque-user-a-branch-one',
+    endUserMetadata: {app: 'cyberpunk-convai', schema: 'memory-v1'}};
+  await api.warm(identified);
+  assert.equal(clients[0].options.endUserId, identified.endUserId);
+  assert.equal(clients[0].options.endUserMetadata, identified.endUserMetadata);
+  assert.equal(clients[0].options.characterSessionId, '-1');
+  assert.equal((await api.warm(identified)).connectionReused, true);
+  assert.equal(clients.length, 1);
+  assert.deepEqual(events, []);
+  await api.warm({...config, ttsEnabled: false, endUserMetadata: {ignored: true}});
+  assert.equal(clients.length, 2);
+  assert.equal(clients[0].isBotReady, false);
+  assert.equal(Object.hasOwn(clients[1].options, 'endUserId'), false);
+  assert.equal(Object.hasOwn(clients[1].options, 'endUserMetadata'), false);
+  await api.close();
+});
+
+test('a session cannot move to another user, save branch or audience, while its TTS route may change', async () => {
+  const {api, clients} = fixture();
+  const identified = {...config, ttsEnabled: false, endUserId: 'opaque-user-a-branch-one'};
+  await api.warm(identified);
+  const sessionId = clients[0].characterSessionId;
+  for (const change of [{endUserId: 'opaque-user-b'}, {endUserId: 'opaque-user-a-branch-two'},
+    {endUserId: undefined}, {scope: 'private'}]) {
+    await assert.rejects(api.warm({...identified, ...change, sessionId}), /another user or scope/);
+  }
+  assert.equal(clients.length, 1);
+  assert.equal(clients[0].isBotReady, true);
+  await api.warm({...identified, sessionId, ttsEnabled: true});
+  assert.equal(clients.length, 2);
+  assert.equal(clients[1].options.characterSessionId, sessionId);
+  assert.equal(clients[1].options.endUserId, identified.endUserId);
+  await api.close();
+});
+
+test('identified preparation is rejected before connecting or sending speculative dialogue', async () => {
+  const {api, clients, events} = fixture();
+  const unsafe = {...config, endUserId: 'opaque-user-a', freshSession: true, sessionId: '-1'};
+  await assert.rejects(api.warm(unsafe), /cannot use speculative preparation/);
+  await assert.rejects(api.reply(unsafe), /cannot use speculative preparation/);
+  assert.equal(clients.length, 0); assert.deepEqual(events, []);
+});
+
+test('late SDK events from a disconnected user cannot populate or fail the next user conversation', async () => {
+  const {api, clients} = fixture();
+  const first = {...config, ttsEnabled: false, endUserId: 'opaque-user-a'};
+  await api.warm(first);
+  const obsolete = api.reply(first); obsolete.catch(() => {});
+  await flush();
+  const second = {...first, endUserId: 'opaque-user-b'};
+  await api.warm(second);
+  await assert.rejects(obsolete, /cancelled/);
+  const pending = api.reply(second); await flush();
+  clients[0].handlers.get('messagesChange')([{id: 'old', type: 'bot-llm-text', content: 'Private to the other user.', isStreaming: false}]);
+  for (const event of ['error', 'disconnect', 'llmNoResponse']) clients[0].handlers.get(event)();
+  clients[0].handlers.get('botOutput')({text: 'Old caption', spoken: true});
+  let finished = false; pending.then(() => { finished = true; });
+  await new Promise(done => setTimeout(done, 80));
+  assert.equal(finished, false);
+  clients[1].handlers.get('messagesChange')([{id: 'new', type: 'bot-llm-text', content: 'Only the current reply.', isStreaming: false}]);
+  assert.equal((await pending).text, 'Only the current reply.');
+  assert.equal(clients[1].options.characterSessionId, '-1');
+  await api.close();
+});
+
+test('context permits explicit current-save relationships while keeping unsupplied relationships unknown', async () => {
+  const {api, clients, events} = fixture();
+  const request = {...config, ttsEnabled: false, context: 'Current-save verified fact: Judy and V are friends.'};
+  await api.warm(request);
+  const pending = api.reply(request); await flush();
+  const context = events.find(row => row[0] === 'context')[1];
+  assert.match(context.text, /explicitly supplied current-save facts for quest progress and relationships/);
+  assert.match(context.text, /not explicitly supplied is unknown/);
+  assert.match(context.text, /Current-save verified fact: Judy and V are friends\./);
+  assert.doesNotMatch(context.text, /No verified relationship state is supplied/);
+  assert.equal(context.mode, 'replace'); assert.equal(context.run_llm, 'false');
+  clients[0].handlers.get('messagesChange')([{id: 'reply', type: 'bot-llm-text', content: 'Hey, friend.', isStreaming: false}]);
+  await pending; await api.close();
 });
 
 test('ahead-delivered facial frames do not end a reply before its actual audio finishes', async () => {

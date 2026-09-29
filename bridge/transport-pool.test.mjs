@@ -1,6 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {TransportPool} from './transport-pool.mjs';
+import {TransportPool, transportKey} from './transport-pool.mjs';
+import {RealtimeHost} from './realtime-host.mjs';
 
 const deferred = () => { let resolve; const promise = new Promise(done => { resolve = done; }); return {promise, resolve}; };
 const flush = () => new Promise(done => setImmediate(done));
@@ -84,4 +85,129 @@ test('retained party connections cannot be evicted to make room for an unrelated
   const nearby = await waiting;
   for (let i = 0; i < 8; i++) assert.equal(pool.entries.get(party[i]).value, leases[i].value);
   assert.equal(live.size, 11); await nearby.release(); await pool.close();
+});
+
+// The real host and pool run against pages that perform no network, SDK or
+// browser work. This tests routing/leases at the public transport boundary.
+function hostFixture() {
+  const host = new RealtimeHost(), pages = [];
+  host.start = async () => {};
+  host.pool = new TransportPool({limit: 11, create: async key => {
+    const page = {key, calls: [], closed: false, sessionID: 'page-session-' + pages.length,
+      isClosed() { return this.closed; },
+      context: () => ({grantPermissions: async () => {}, clearPermissions: async () => {}}),
+      url: () => 'http://127.0.0.1:4321/',
+      async evaluate(_fn, payload) {
+        this.calls.push(payload);
+        if (payload?.method === 'warm') return {connectionMs: 1, connectionReused: this.calls.length > 1};
+        if (payload?.method === 'reply' || payload === undefined) return {text: 'Reply', sessionID: this.sessionID, timing: {}};
+        if (payload?.characterId) return {device: 'Test microphone'};
+        return {ready: true};
+      }};
+    pages.push(page); return page;
+  }, dispose: async page => { if (page) page.closed = true; }});
+  return {host, pages};
+}
+
+test('host pooling separates users, save branches, audience scopes and TTS routes while reusing an exact identity', async () => {
+  const {host, pages} = hostFixture();
+  const first = {characterId: 'judy', scope: 'private', ttsEnabled: false,
+    endUserId: 'opaque-user-a-branch-one', endUserMetadata: {schema: 'memory-v1'}};
+  assert.equal((await host.warm(first)).pageReused, false);
+  assert.equal((await host.warm({...first})).pageReused, true);
+  const variants = [{endUserId: 'opaque-user-b'}, {endUserId: 'opaque-user-a-branch-two'},
+    {endUserId: undefined}, {scope: 'group:judy,panam'}, {ttsEnabled: true}];
+  for (const change of variants) {
+    assert.deepEqual(await host.readiness({...first, ...change}), {present: false, ready: false});
+    assert.equal((await host.warm({...first, ...change})).pageReused, false);
+  }
+  assert.equal(pages.length, 6);
+  assert.equal(new Set(pages.map(page => page.key)).size, 6);
+  assert.equal(pages[0].calls[0].config.endUserMetadata, first.endUserMetadata);
+  await host.retain([{...first, endUserId: 'opaque-user-a-branch-two'}], {protect: true});
+  assert.equal(pages[2].closed, false);
+  assert.equal(pages.filter(page => !page.closed).length, 1);
+  assert.deepEqual(await host.readiness(first), {present: false, ready: false});
+  await host.close();
+});
+
+test('a returned or supplied session cannot cross host pages into another user or scope', async () => {
+  const {host, pages} = hostFixture();
+  const first = {characterId: 'judy', endUserId: 'opaque-user-a', scope: 'private', ttsEnabled: false};
+  const reply = await host.reply(first);
+  await assert.rejects(host.reply({...first, endUserId: 'opaque-user-b', sessionId: reply.sessionID}), /another user or scope/);
+  await assert.rejects(host.reply({...first, scope: 'group:judy,panam', sessionId: reply.sessionID}), /another user or scope/);
+  assert.equal(pages.length, 1);
+  await host.warm({...first, sessionId: reply.sessionID, ttsEnabled: true});
+  assert.equal(pages.length, 2);
+  await host.warm({...first, sessionId: 'restored-verified-session'});
+  await assert.rejects(host.warm({...first, endUserId: 'opaque-user-b', sessionId: 'restored-verified-session'}), /another user or scope/);
+  await host.close();
+});
+
+test('identified speculative preparation fails before host startup; anonymous preparation still discards its page', async () => {
+  const {host, pages} = hostFixture();
+  let starts = 0; host.start = async () => { starts++; };
+  const config = {characterId: 'judy', ttsEnabled: false};
+  await assert.rejects(host.prepare({...config, endUserId: 'opaque-user-a'}), /cannot use speculative preparation/);
+  assert.equal(starts, 0); assert.equal(pages.length, 0);
+  await host.prepare(config);
+  assert.equal(pages.length, 1); assert.equal(pages[0].closed, true);
+  assert.equal(pages[0].calls[0].config.sessionId, '-1');
+  assert.equal(pages[0].calls[0].config.freshSession, true);
+  await host.close();
+});
+
+test('microphone routing and its returned session retain the verified user namespace', async () => {
+  const {host, pages} = hostFixture();
+  const first = {characterId: 'judy', endUserId: 'opaque-user-a', scope: 'private',
+    endUserMetadata: {schema: 'memory-v1'}};
+  const channel = host.voiceChannel();
+  await channel.beginVoice(first);
+  assert.deepEqual(pages[0].calls[0], first);
+  await assert.rejects(host.beginVoice({...first, endUserId: 'opaque-user-b'}), /already running/);
+  assert.equal(pages.length, 1); assert.equal(pages[0].closed, false);
+  const reply = await channel.finishVoice();
+  await assert.rejects(host.beginVoice({...first, endUserId: 'opaque-user-b', sessionId: reply.sessionID}), /another user or scope/);
+  await host.beginVoice({...first, endUserId: 'opaque-user-b'});
+  assert.equal(pages.length, 2);
+  assert.equal(pages[1].calls[0].endUserId, 'opaque-user-b');
+  await host.cancelVoice();
+  assert.equal(pages[1].closed, true);
+  await host.close();
+});
+
+test('queued work keeps its admitted identity if the caller changes its configuration during startup', async () => {
+  const {host, pages} = hostFixture(), startup = deferred();
+  host.start = () => startup.promise;
+  const config = {characterId: 'judy', endUserId: 'opaque-user-a', scope: 'private', ttsEnabled: false};
+  const key = transportKey(config), pending = host.warm(config);
+  config.endUserId = 'opaque-user-b'; config.scope = 'group:judy,panam'; config.ttsEnabled = true;
+  startup.resolve(); await pending;
+  assert.equal(pages[0].key, key);
+  assert.equal(pages[0].calls[0].config.endUserId, 'opaque-user-a');
+  assert.equal(pages[0].calls[0].config.scope, 'private');
+  assert.equal(pages[0].calls[0].config.ttsEnabled, false);
+  await host.close();
+});
+
+test('a late completed evaluation cannot return a reply after its host closes', async () => {
+  const {host, pages} = hostFixture();
+  const config = {characterId: 'judy', endUserId: 'opaque-user-a'};
+  await host.warm(config);
+  const evaluated = deferred(), response = deferred();
+  pages[0].evaluate = () => { evaluated.resolve(); return response.promise; };
+  const pending = host.reply(config); pending.catch(() => {});
+  await evaluated.promise; await host.close();
+  response.resolve({sessionID: 'late-session', text: 'Obsolete reply', timing: {}});
+  await assert.rejects(pending, {name: 'AbortError'});
+});
+
+test('invalid supplied identities fail closed without exposing their contents; metadata alone is anonymous', () => {
+  const config = {characterId: 'judy'};
+  assert.equal(transportKey({...config, endUserMetadata: {private: 'not an identity'}}), transportKey(config));
+  for (const endUserId of ['', '   ', 123, {}, ['private-value']]) {
+    assert.throws(() => transportKey({...config, endUserId}), error => error.message === 'Invalid conversation user identity');
+  }
+  assert.throws(() => transportKey({...config, endUserId: 'opaque-user', endUserMetadata: []}), /Invalid conversation user metadata/);
 });

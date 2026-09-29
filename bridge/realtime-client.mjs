@@ -1,8 +1,10 @@
 import {ConvaiClient} from '@convai/web-sdk/vanilla';
 import {drainBlendshapes} from './blendshape-capture.mjs';
+import {endUserOptions, transportKey, SessionBindings} from './transport-pool.mjs';
 
 let client, identity, context, source, capture, prime, remote, turn, micTimer;
 let initialSession, submitted = false, epoch = 0, ttsEnabled = true;
+const sessions = new SessionBindings();
 const waitFor = (condition, timeout, message) => new Promise((resolve, reject) => {
   const start = performance.now();
   const timer = setInterval(() => {
@@ -30,7 +32,8 @@ async function close() {
 
 async function connect(config) {
   const started = performance.now();
-  const desired = config.characterId + ':' + (config.scope || 'private') + ':' + (config.ttsEnabled !== false);
+  const desired = transportKey(config);
+  sessions.accept(config);
   const sessionMatches = !config.sessionId || config.sessionId === initialSession || config.sessionId === client?.characterSessionId;
   // Preparation can reuse a warmed *unused* anonymous connection. It can
   // never append speculative dialogue to a previously used character session.
@@ -43,11 +46,13 @@ async function connect(config) {
   identity = desired;
   ttsEnabled = config.ttsEnabled !== false;
   initialSession = config.freshSession ? '-1' : config.sessionId || '-1';
-  client = new ConvaiClient({apiKey: config.key, characterId: config.characterId,
+  const connection = client = new ConvaiClient({apiKey: config.key, characterId: config.characterId,
+    ...endUserOptions(config),
     characterSessionId: initialSession, transport: 'livekit', startWithAudioOn: false,
     enableVideo: false, enableLipsync: ttsEnabled, ttsEnabled, logRtviMessages: false,
     respondModes: {contextUpdate: 'silent'},
     blendshapeConfig: {format: 'arkit', output_fps: 30}});
+  const currentConnection = () => epoch === connectionEpoch && client === connection;
   if (ttsEnabled) {
   context = new AudioContext({sampleRate: 48000});
   await context.audioWorklet.addModule('/capture.js');
@@ -55,7 +60,7 @@ async function connect(config) {
   capture = new AudioWorkletNode(context, 'convai-capture');
   capture.connect(context.destination); // Processor emits silence, only captures remote NPC audio.
   capture.port.onmessage = ({data}) => {
-    if (!turn) return;
+    if (!currentConnection() || !turn) return;
     if (data.pcm.some(x => Math.abs(x) > 0.00015)) {
       turn.lastSignal = performance.now();
       turn.firstAudioMs ??= turn.lastSignal - turn.started;
@@ -69,19 +74,19 @@ async function connect(config) {
   };
   }
   const attach = track => {
-    if (!ttsEnabled || track.kind !== 'audio' || source) return;
+    if (!currentConnection() || !ttsEnabled || track.kind !== 'audio' || source) return;
     remote = track;
     prime = document.createElement('audio'); prime.autoplay = true;
     track.attach(prime); prime.muted = true; prime.volume = 0; document.body.append(prime);
-    void prime.play().catch(() => { if (turn) turn.error = 'Remote audio decoder could not start'; });
+    void prime.play().catch(() => { if (currentConnection() && turn) turn.error = 'Remote audio decoder could not start'; });
     source = context.createMediaStreamSource(new MediaStream([track.mediaStreamTrack]));
     source.connect(capture);
   };
-  client.room.on('trackSubscribed', attach);
-  client.on('error', () => { if (turn) turn.error = 'Convai realtime connection failed'; });
-  client.on('disconnect', () => { if (turn) turn.error = 'Convai realtime connection closed'; });
-  client.on('messagesChange', messages => {
-    if (!turn) return;
+  connection.room.on('trackSubscribed', attach);
+  connection.on('error', () => { if (currentConnection() && turn) turn.error = 'Convai realtime connection failed'; });
+  connection.on('disconnect', () => { if (currentConnection() && turn) turn.error = 'Convai realtime connection closed'; });
+  connection.on('messagesChange', messages => {
+    if (!currentConnection() || !turn) return;
     const fresh = messages.filter(m => !turn.before.has(m.id));
     const llm = fresh.filter(m => ['bot-llm-text', 'convai'].includes(m.type) && m.content?.trim());
     const rows = llm.length ? llm : fresh.filter(m => m.type === 'bot-output' && m.content?.trim());
@@ -90,20 +95,21 @@ async function connect(config) {
     // from TTS. Never infer completion from a pause between text tokens.
     turn.textComplete = llm.length > 0 && llm.every(m => m.isStreaming === false);
   });
-  client.on('llmNoResponse', () => { if (turn) turn.error = 'Convai returned no dialogue'; });
-  client.on('botOutput', data => {
-    if (turn && context && data.text && (data.spoken || ['in-progress', 'completed'].includes(data.spokenStatus))) {
+  connection.on('llmNoResponse', () => { if (currentConnection() && turn) turn.error = 'Convai returned no dialogue'; });
+  connection.on('botOutput', data => {
+    if (currentConnection() && turn && context && data.text && (data.spoken || ['in-progress', 'completed'].includes(data.spokenStatus))) {
       turn.captions.push({at: context.currentTime, text: data.text});
     }
   });
-  await client.connect();
+  await connection.connect();
   await waitFor(() => {
-    if (connectionEpoch !== epoch) throw Error('Conversation startup cancelled');
-    return client?.isBotReady;
+    if (!currentConnection()) throw Error('Conversation startup cancelled');
+    return connection.isBotReady;
   }, 20000, 'Convai character did not become ready');
-  if (ttsEnabled) await client.room.startAudio();
+  sessions.bind(config, connection.characterSessionId);
+  if (ttsEnabled) await connection.room.startAudio();
   if (prime) { prime.muted = true; prime.volume = 0; }
-  client.room.remoteParticipants.forEach(p => p.audioTrackPublications.forEach(pub => { if (pub.track) attach(pub.track); }));
+  connection.room.remoteParticipants.forEach(p => p.audioTrackPublications.forEach(pub => { if (pub.track) attach(pub.track); }));
   return {connectionMs: performance.now() - started, connectionReused: false};
 }
 
@@ -189,7 +195,8 @@ async function beginVoice(config) {
 function updateContext(config) {
   client.updateContext({mode: 'replace', run_llm: 'false',
     text: 'You are speaking to V in Night City. Reply briefly without stage directions. '
-      + 'Use only explicitly supplied current-save facts for quest progress. No verified relationship state is supplied. '
+      + 'Use only explicitly supplied current-save facts for quest progress and relationships. '
+      + 'Any relationship state not explicitly supplied is unknown; do not infer it from character presence or past sessions. '
       + (config.context || 'This is a private conversation with V.')});
 }
 

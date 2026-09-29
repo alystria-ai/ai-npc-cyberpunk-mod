@@ -1,5 +1,39 @@
 // A lease owns one page until it is released. Page creation and disposal are
 // serialized so even a cancelled startup cannot exceed the browser page cap.
+export function endUserOptions(config) {
+  const id = config.endUserId;
+  // Unknown identity stays anonymous. Metadata alone must not establish one.
+  if (id === undefined || id === null) return {};
+  if (typeof id !== 'string' || !id.trim()) throw Error('Invalid conversation user identity');
+  // A fresh session still shares identified LTM. Dropping a speculative page
+  // cannot undo that write, so identified preparation must be gated upstream.
+  if (config.freshSession) throw Error('Identified conversations cannot use speculative preparation');
+  const metadata = config.endUserMetadata;
+  if (metadata != null && (typeof metadata !== 'object' || Array.isArray(metadata))) {
+    throw Error('Invalid conversation user metadata');
+  }
+  return {endUserId: id, ...(metadata != null ? {endUserMetadata: metadata} : {})};
+}
+
+const sessionIdentity = config => [config.characterId, endUserOptions(config).endUserId ?? null, config.scope || 'private'];
+
+export const transportKey = config => JSON.stringify([...sessionIdentity(config), config.ttsEnabled !== false]);
+
+// Upstream persistence owns provenance for a session first seen here. Once a
+// supplied or returned session is bound, even another page may not adopt it for
+// a different user/save namespace or audience. TTS changes keep that ownership.
+export class SessionBindings {
+  constructor() { this.owners = new Map(); }
+  accept(config) { if (!config.freshSession) this.bind(config, config.sessionId); }
+  bind(config, sessionId) {
+    if (sessionId == null || sessionId === '' || sessionId === '-1') return;
+    if (typeof sessionId !== 'string') throw Error('Invalid conversation session');
+    const owner = JSON.stringify(sessionIdentity(config)), previous = this.owners.get(sessionId);
+    if (previous !== undefined && previous !== owner) throw Error('Conversation session belongs to another user or scope');
+    this.owners.set(sessionId, owner);
+  }
+}
+
 export function cancelled(message = 'Conversation cancelled') {
   const error = Error(message); error.name = 'AbortError'; return error;
 }

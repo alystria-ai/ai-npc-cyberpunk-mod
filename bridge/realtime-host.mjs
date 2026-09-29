@@ -1,13 +1,13 @@
 import {createServer} from 'node:http';
 import {readFile} from 'node:fs/promises';
 import {chromium} from 'playwright';
-import {TransportPool, abortable, cancelled, throwIfCancelled} from './transport-pool.mjs';
+import {TransportPool, abortable, cancelled, throwIfCancelled, transportKey, SessionBindings} from './transport-pool.mjs';
 import {CONNECTION_LIMIT} from './party-connections.mjs';
 
-const pageKey = config => JSON.stringify([config.characterId, config.scope || 'private']);
+const pageKey = transportKey;
 
 export class RealtimeHost {
-  constructor() { this.epoch = 0; }
+  constructor() { this.epoch = 0; this.sessions = new SessionBindings(); }
   async start({signal} = {}) {
     throwIfCancelled(signal);
     if (this.closing) await this.closing;
@@ -58,11 +58,14 @@ export class RealtimeHost {
   }
   async run(config, method, {signal, discard = false} = {}) {
     throwIfCancelled(signal);
+    config = {...config}; // Keep queued work bound to the identity admitted now.
+    const key = pageKey(config);
+    this.sessions.accept(config);
     const started = performance.now();
     await this.start({signal});
     throwIfCancelled(signal);
     const startupMs = performance.now() - started, epoch = this.epoch;
-    const waiting = performance.now(), lease = await this.pool.acquire(pageKey(config), {signal});
+    const waiting = performance.now(), lease = await this.pool.acquire(key, {signal});
     const poolWaitMs = performance.now() - waiting;
     const cancel = () => { void lease.release({discard: true}).catch(() => {}); };
     signal?.addEventListener('abort', cancel, {once: true});
@@ -71,6 +74,9 @@ export class RealtimeHost {
       throwIfCancelled(signal);
       if (epoch !== this.epoch) throw cancelled();
       const result = await abortable(lease.value.evaluate(({config, method}) => window.convaiRealtime[method](config), {config, method}), signal);
+      throwIfCancelled(signal);
+      if (epoch !== this.epoch) throw cancelled();
+      this.sessions.bind(config, result.sessionID);
       failed = false;
       const host = {browserStartupMs: startupMs, poolWaitMs, pageReused: lease.reused, pages: this.pool?.entries.size || 0};
       return method === 'warm' ? {...result, ...host} : {...result, timing: {...result.timing, ...host}};
@@ -103,14 +109,26 @@ export class RealtimeHost {
       close: async () => { controller.abort(); await this.cancelVoice(owner); }};
   }
   async beginVoice(config, {signal, owner = this} = {}) {
+    throwIfCancelled(signal);
+    config = {...config};
+    const key = pageKey(config);
+    this.sessions.accept(config);
+    if (this.voiceLease) throw Error('Microphone connection is already running');
     await this.start({signal});
-    const lease = await this.pool.acquire(pageKey(config), {signal});
+    const epoch = this.epoch;
+    const lease = await this.pool.acquire(key, {signal});
     try {
       throwIfCancelled(signal);
-      lease.owner = owner; this.voiceLease = lease;
+      if (epoch !== this.epoch) throw cancelled();
+      if (this.voiceLease) throw Error('Microphone connection is already running');
+      lease.owner = owner; lease.config = config; this.voiceLease = lease;
       // This is the only code path that grants microphone permission.
       await lease.value.context().grantPermissions(['microphone'], {origin: new URL(lease.value.url()).origin});
-      return await lease.value.evaluate(config => window.convaiRealtime.beginVoice(config), config);
+      throwIfCancelled(signal);
+      const result = await lease.value.evaluate(config => window.convaiRealtime.beginVoice(config), config);
+      throwIfCancelled(signal);
+      if (epoch !== this.epoch || this.voiceLease !== lease) throw cancelled();
+      return result;
     } catch (error) {
       await lease.release({discard: true});
       if (this.voiceLease === lease) this.voiceLease = null;
@@ -121,7 +139,12 @@ export class RealtimeHost {
     const lease = this.voiceLease;
     if (!lease || lease.owner !== owner) throw Error('Microphone connection is not running');
     let failed = true;
-    try { const result = await lease.value.evaluate(() => window.convaiRealtime.finishVoice()); failed = false; return result; }
+    try {
+      const result = await lease.value.evaluate(() => window.convaiRealtime.finishVoice());
+      if (this.voiceLease !== lease) throw cancelled();
+      this.sessions.bind(lease.config, result.sessionID);
+      failed = false; return result;
+    }
     finally {
       await lease.value.context().clearPermissions().catch(() => {});
       await lease.release({discard: failed});
