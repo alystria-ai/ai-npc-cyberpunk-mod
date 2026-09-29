@@ -1,0 +1,4577 @@
+{
+  "version": 1,
+  "lane": "aldecaldos",
+  "sources": [
+    {
+      "id": "al-ghost",
+      "url": "https://cyberpunk.fandom.com/wiki/Ghost_Town",
+      "title": "Ghost Town",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Walkthrough; Notes",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    },
+    {
+      "id": "al-panam",
+      "url": "https://cyberpunk.fandom.com/wiki/Panam_Palmer",
+      "title": "Panam Palmer",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Biography; Database Entry; Romancing Panam / Optional Prelude / Endings; Notes",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    },
+    {
+      "id": "al-lightning",
+      "url": "https://www.powerpyx.com/cyberpunk-2077-lightning-breaks-walkthrough/",
+      "title": "Lightning Breaks Walkthrough",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Objectives / Satwave power plant",
+      "notes": "Indexed walkthrough objective material consulted; baseline launch-era guide. Timings, prices and skill thresholds are not treated as current executable rules."
+    },
+    {
+      "id": "al-mitch",
+      "url": "https://cyberpunk.fandom.com/wiki/Mitch_Anderson",
+      "title": "Mitch Anderson",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Biography; Database Entry; Associated Quests",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    },
+    {
+      "id": "al-ronin",
+      "url": "https://arasakas-ronin.netlify.app/",
+      "title": "Cyberpunk 2077 transcript backup",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Ghost Town through Queen of the Highway; We Gotta Live Together; Forward to Death; Belly of the Beast; All Along the Watchtower",
+      "notes": "Readable transcript consulted for speaker cadence, participation and differing camp attitudes. Incomplete fan transcription of game dialogue with transcription errors and selected branches; no native fact names and no exhaustive branch coverage. No dialogue is reproduced in the authored samples."
+    },
+    {
+      "id": "al-wartime",
+      "url": "https://cyberpunk.fandom.com/wiki/Life_During_Wartime",
+      "title": "Life During Wartime",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Walkthrough / abandoning Panam; Objectives; Notes",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    },
+    {
+      "id": "al-riders",
+      "url": "https://cyberpunk.fandom.com/wiki/Riders_on_the_Storm",
+      "title": "Riders on the Storm",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Objective; Quest Chain; Walkthrough / shelter",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    },
+    {
+      "id": "al-saul",
+      "url": "https://cyberpunk.fandom.com/wiki/Saul_Bright",
+      "title": "Saul Bright",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Biography; 2077; Database Entry; References to correspondence",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    },
+    {
+      "id": "al-carol",
+      "url": "https://cyberpunk.fandom.com/wiki/Carol_Emeka",
+      "title": "Carol Emeka",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Biography; Database Entry; Notes",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    },
+    {
+      "id": "al-riders-failure",
+      "url": "https://www.powerpyx.com/cyberpunk-2077-trophy-guide-roadmap/",
+      "title": "Cyberpunk 2077 Trophy Guide and Roadmap",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Life of the Road / missable Panam side jobs",
+      "notes": "Indexed guide documents a possible abandonment-and-delay failure. Conflicting community timer descriptions are not converted into a guessed 24-hour runtime condition."
+    },
+    {
+      "id": "al-fly",
+      "url": "https://cyberpunk.fandom.com/wiki/I%27ll_Fly_Away",
+      "title": "I'll Fly Away",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Walkthrough; Notes",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    },
+    {
+      "id": "al-friends",
+      "url": "https://cyberpunk.fandom.com/wiki/With_a_Little_Help_from_My_Friends",
+      "title": "With a Little Help from My Friends",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Walkthrough / decline, report to Saul, assist; Objectives",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    },
+    {
+      "id": "al-queen",
+      "url": "https://cyberpunk.fandom.com/wiki/Queen_of_the_Highway",
+      "title": "Queen of the Highway",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Walkthrough; Notes / Nash",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    },
+    {
+      "id": "al-gun",
+      "url": "https://cyberpunk.fandom.com/wiki/Gun_Music",
+      "title": "Gun Music",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Walkthrough; Objectives; Notes",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    },
+    {
+      "id": "al-cassidy",
+      "url": "https://cyberpunk.fandom.com/wiki/Cassidy_Righter",
+      "title": "Cassidy Righter",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Biography; Associated Quests; Notes",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    },
+    {
+      "id": "al-fortunate",
+      "url": "https://cyberpunk.fandom.com/wiki/Fortunate_Son",
+      "title": "Fortunate Son",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Walkthrough; Notes / malware, doctor spared, delay",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    },
+    {
+      "id": "al-members",
+      "url": "https://cyberpunk.fandom.com/wiki/Aldecaldos_Members",
+      "title": "Aldecaldos Members",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Bob Sagan; Jake Scooter; Trevor Brass; Bruce Welby; Mitch Anderson",
+      "notes": "Indexed roster entries consulted. Bob's dedicated English page did not expose substantive biography; no invented birth date, kinship or medical qualification supplied."
+    },
+    {
+      "id": "al-nocturne",
+      "url": "https://cyberpunk.fandom.com/wiki/Nocturne_Op55N1",
+      "title": "Nocturne Op55N1",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Objectives; Notes / point of no return",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    },
+    {
+      "id": "al-romance",
+      "url": "https://cyberpunk.fandom.com/wiki/Cyberpunk_2077_Romance",
+      "title": "Cyberpunk 2077 Romance",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Endings / selected final romance call",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    },
+    {
+      "id": "al-together",
+      "url": "https://cyberpunk.fandom.com/wiki/We_Gotta_Live_Together",
+      "title": "We Gotta Live Together",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Walkthrough / optional nomads, target practice; Objectives",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    },
+    {
+      "id": "al-bruce",
+      "url": "https://cyberpunk.fandom.com/wiki/Bruce_Welby",
+      "title": "Bruce Welby",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Biography / rescue and later camp appearance",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    },
+    {
+      "id": "al-star-guide",
+      "url": "https://www.trueachievements.com/game/Cyberpunk-2077/walkthrough/25",
+      "title": "Act 3 - The Star Ending",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Forward to Death; Belly of the Beast",
+      "notes": "Indexed walkthrough consulted to corroborate route sequence and Saul's scripted death. No version-specific combat-balance advice is retained."
+    },
+    {
+      "id": "al-belly-guide",
+      "url": "https://gamefaqs.gamespot.com/pc/672376-cyberpunk-2077/faqs/79161/belly-of-the-beast",
+      "title": "Belly of the Beast",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Journey to Mikoshi; control room; Adam Smasher",
+      "notes": "Indexed guide inspected for Mitch's return being non-branching and Panam/Saul's on-site perspective. March 2021 guide; it conflates Changes into Belly of the Beast, corrected here using the separate Changes entry."
+    },
+    {
+      "id": "al-changes",
+      "url": "https://cyberpunk.fandom.com/wiki/Changes",
+      "title": "Changes",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Walkthrough / body choice and route-dependent epilogues",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    },
+    {
+      "id": "al-watchtower",
+      "url": "https://cyberpunk.fandom.com/wiki/All_Along_the_Watchtower",
+      "title": "All Along the Watchtower",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Walkthrough; Notes / partner variants",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    },
+    {
+      "id": "al-tower",
+      "url": "https://cyberpunk.fandom.com/wiki/Things_Done_Changed",
+      "title": "Things Done Changed",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Walkthrough / 2079 and Panam call",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    },
+    {
+      "id": "al-blacksteel",
+      "url": "https://cyberpunk.fandom.com/wiki/Black_Steel_In_The_Hour_of_Chaos",
+      "title": "Black Steel In The Hour of Chaos",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Walkthrough / Carol; Objectives / gift",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    },
+    {
+      "id": "al-blacksteel-guide",
+      "url": "https://vulkk.com/2024/01/18/cyberpunk-2077-black-steel-in-the-hour-of-chaos-guide/",
+      "title": "Black Steel in the Hour of Chaos Guide",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Carol Emeka",
+      "notes": "Indexed explanation of Carol refusing to expose her family to MaxTac retaliation; prerequisite differs between guides, so exact unlock condition remains unresolved."
+    },
+    {
+      "id": "al-minefield",
+      "url": "https://cyberpunk.fandom.com/wiki/Gig%3A_Dancing_on_a_Minefield",
+      "title": "Gig: Dancing on a Minefield",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Walkthrough; Journal Entry; Objectives; Changelog",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    },
+    {
+      "id": "al-flying",
+      "url": "https://cyberpunk.fandom.com/wiki/Gig%3A_Flying_Drugs",
+      "title": "Gig: Flying Drugs",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Walkthrough; Journal Entry; Objectives",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    },
+    {
+      "id": "al-pete",
+      "url": "https://cyberpunk.fandom.com/wiki/Gig%3A_Big_Pete%27s_Got_Big_Problems",
+      "title": "Gig: Big Pete's Got Big Problems",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Walkthrough / bribe accepted or declined, death; Notes",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    },
+    {
+      "id": "al-nofixers",
+      "url": "https://cyberpunk.fandom.com/wiki/Gig%3A_No_Fixers",
+      "title": "Gig: No Fixers",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Walkthrough / own van; Journal Entry; Objectives",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    },
+    {
+      "id": "al-iris",
+      "url": "https://cyberpunk.fandom.com/wiki/Iris_Tanner",
+      "title": "Iris Tanner",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Biography / rescue vehicle; Database Entry",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    },
+    {
+      "id": "al-trevor",
+      "url": "https://cyberpunk.fandom.com/wiki/Gig%3A_Trevor%27s_Last_Ride",
+      "title": "Gig: Trevor's Last Ride",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Objective; Journal Entry; Objectives",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    },
+    {
+      "id": "al-mia",
+      "url": "https://cyberpunk.fandom.com/wiki/Gig%3A_MIA",
+      "title": "Gig: MIA",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Walkthrough; Journal Entry; Objectives",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    },
+    {
+      "id": "al-sparring",
+      "url": "https://cyberpunk.fandom.com/wiki/Gig%3A_Sparring_Partner",
+      "title": "Gig: Sparring Partner",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Journal Entry; Objectives",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    },
+    {
+      "id": "al-goodbye",
+      "url": "https://cyberpunk.fandom.com/wiki/Gig%3A_Goodbye%2C_Night_City",
+      "title": "Gig: Goodbye, Night City",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Journal Entry; Objectives; Notes / nonlethal bonus",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    },
+    {
+      "id": "al-radar",
+      "url": "https://cyberpunk.fandom.com/wiki/Gig%3A_Radar_Love",
+      "title": "Gig: Radar Love",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Walkthrough; Journal Entry; Objectives",
+      "notes": "Indexed page text consulted. Infobox calls the motel Lone Star while walkthrough calls it Sunshine; objective model P9D/2.161 is consistent. Geographic naming is not used as runtime evidence."
+    },
+    {
+      "id": "al-reward",
+      "url": "https://cyberpunk.fandom.com/wiki/Every_Grain_of_Sand",
+      "title": "Every Grain of Sand",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Walkthrough; List of Prerequisites; Objectives",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    }
+  ],
+  "quests": [
+    {
+      "key": "ghost-town",
+      "title": "Ghost Town",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "panam-palmer",
+        "mitch-anderson",
+        "rogue-amendiares"
+      ],
+      "synopsis": "V's Hellman lead becomes a reciprocal job with Panam: recover her vehicle and cargo before pursuing the transport.",
+      "stages": [
+        {
+          "key": "rogue-introduction",
+          "description": "Rogue points V toward Panam; this unlocks acquaintance, not a pre-existing friendship.",
+          "sourceIds": [
+            "al-ghost"
+          ]
+        },
+        {
+          "key": "camp-obligations",
+          "description": "Mitch and Scorpion remain at camp under Saul's orders but offer equipment.",
+          "sourceIds": [
+            "al-ghost"
+          ]
+        },
+        {
+          "key": "rocky-ridge",
+          "description": "Panam and V arrange the ambush and recover the truck.",
+          "sourceIds": [
+            "al-ghost"
+          ]
+        },
+        {
+          "key": "nash-branch",
+          "description": "Panam proposes pursuing the man who betrayed her.",
+          "sourceIds": [
+            "al-ghost"
+          ]
+        },
+        {
+          "key": "delivery-and-rest",
+          "description": "The recovered cargo is delivered to Boz before the Sunset Motel conversation.",
+          "sourceIds": [
+            "al-ghost"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "aldecaldos.ghost.camp-help",
+          "description": "What aid the camp actually provided.",
+          "topic": "aldecaldos.first-camp-support",
+          "outcomes": [
+            {
+              "key": "gear-only",
+              "description": "Mitch and Scorpion could not leave their assigned work; equipment was offered.",
+              "affects": [
+                "panam-palmer",
+                "mitch-anderson"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "al-ghost"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-ghost"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "No installed quest/scene condition has been verified. Require an observed branch/stage receipt; absence or zero alone cannot establish this outcome."
+          }
+        },
+        {
+          "id": "aldecaldos.ghost.truck",
+          "description": "Recovery and delivery are distinct from merely accepting Panam's request.",
+          "topic": "panam.truck-cargo",
+          "outcomes": [
+            {
+              "key": "recovered-and-delivered",
+              "description": "Warhorse and the cargo were recovered and the delivery completed.",
+              "affects": [
+                "panam-palmer"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "al-ghost"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-ghost"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "No installed quest/scene condition has been verified. Require an observed branch/stage receipt; absence or zero alone cannot establish this outcome."
+          }
+        },
+        {
+          "id": "aldecaldos.ghost.nash",
+          "description": "Whether V helps Panam pursue Nash after recovering the vehicle.",
+          "topic": "panam.nash-response",
+          "outcomes": [
+            {
+              "key": "helped",
+              "description": "V joined Panam's retaliation at the Raffen hideout; this is a shared deed, not a romance receipt.",
+              "affects": [
+                "panam-palmer"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "al-ghost"
+              ]
+            },
+            {
+              "key": "declined",
+              "description": "V refused the extra pursuit. Panam is upset and Rogue approves; the later Panam chain is not thereby universally blocked.",
+              "affects": [
+                "panam-palmer",
+                "rogue-amendiares"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "al-ghost"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-ghost"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Need explicit dialogue branch and completion evidence. If Nash's later state matters, independently inspect his outcome; refusal does not prove he is alive forever."
+          }
+        },
+        {
+          "id": "aldecaldos.ghost.motel",
+          "description": "Early flirtation and room sharing are not established partnership.",
+          "topic": "panam.motel-intimacy",
+          "outcomes": [
+            {
+              "key": "shared-room",
+              "description": "The room has separate beds; sharing it is not evidence of sex or a committed romance.",
+              "affects": [
+                "panam-palmer"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "al-panam"
+              ]
+            },
+            {
+              "key": "flirted",
+              "description": "V expressed attraction, but mutual relationship status still requires a later confirmed outcome.",
+              "affects": [
+                "panam-palmer"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "al-panam"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-panam"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "No installed quest/scene condition has been verified. Require an observed branch/stage receipt; absence or zero alone cannot establish this outcome."
+          }
+        }
+      ],
+      "sourceIds": [
+        "al-ghost",
+        "al-panam"
+      ],
+      "uncertainties": [
+        "Do not infer help with Nash from possession of Widow Maker; it can have a later source.",
+        "Vehicle reward details are patch-sensitive and are not required for emotional memory."
+      ]
+    },
+    {
+      "key": "lightning-breaks",
+      "title": "Lightning Breaks",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "panam-palmer",
+        "mitch-anderson"
+      ],
+      "synopsis": "Panam helps V attempt to ground the Kang Tao AV carrying Hellman. The operation causes communications failure before the crew knows the crash-site consequences.",
+      "stages": [
+        {
+          "key": "prepare",
+          "description": "V meets Panam and prepares the vehicle systems for the operation.",
+          "sourceIds": [
+            "al-lightning"
+          ]
+        },
+        {
+          "key": "power-plant",
+          "description": "The pair uses the power installation to produce the EMP.",
+          "sourceIds": [
+            "al-lightning"
+          ]
+        },
+        {
+          "key": "av-falls",
+          "description": "The EMP is insufficient by itself; Panam uses a missile and the pursuit continues.",
+          "sourceIds": [
+            "al-ronin",
+            "al-mitch"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "aldecaldos.lightning.av",
+          "description": "What the pair has actually done to the AV.",
+          "topic": "hellman.transport-down",
+          "outcomes": [
+            {
+              "key": "downed",
+              "description": "Panam and V have brought down the AV. Crash-site deaths have not yet been discovered merely because this objective completed.",
+              "affects": [
+                "panam-palmer"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "al-lightning",
+                "al-mitch"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-lightning",
+            "al-mitch"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "No installed quest/scene condition has been verified. Require an observed branch/stage receipt; absence or zero alone cannot establish this outcome."
+          }
+        }
+      ],
+      "sourceIds": [
+        "al-lightning",
+        "al-mitch",
+        "al-ronin"
+      ],
+      "uncertainties": [
+        "Mitch and Scorpion's decision to investigate is not a shared plan approved by Panam.",
+        "Do not announce Scorpion's death while the only known event is the distant crash."
+      ]
+    },
+    {
+      "key": "life-during-wartime",
+      "title": "Life During Wartime",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "panam-palmer",
+        "mitch-anderson",
+        "saul-bright"
+      ],
+      "synopsis": "The Hellman pursuit intersects with the aftermath of the AV crash, Mitch's captivity and the losses among the Aldecaldos.",
+      "stages": [
+        {
+          "key": "survey-crash",
+          "description": "Identify the armed crash site and Mitch's situation before asserting what happened.",
+          "sourceIds": [
+            "al-wartime",
+            "al-mitch"
+          ]
+        },
+        {
+          "key": "mitch",
+          "description": "V can help at the crash or leave Panam to handle it while pursuing Hellman.",
+          "sourceIds": [
+            "al-wartime"
+          ]
+        },
+        {
+          "key": "hellman-location",
+          "description": "Information from the pilot or physical tracks guides the chase.",
+          "sourceIds": [
+            "al-wartime"
+          ]
+        },
+        {
+          "key": "capture",
+          "description": "Hellman is captured and Aldecaldo help arrives.",
+          "sourceIds": [
+            "al-wartime"
+          ]
+        },
+        {
+          "key": "interrogation",
+          "description": "The medical interrogation is V's experience; do not broadcast its exact contents to absent nomads.",
+          "sourceIds": [
+            "al-wartime"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "aldecaldos.wartime.mitch-rescue",
+          "description": "Who actually rescued Mitch and whether V stayed to help.",
+          "topic": "mitch.rescue",
+          "outcomes": [
+            {
+              "key": "v-helped",
+              "description": "V assisted Panam in freeing Mitch at the crash site.",
+              "affects": [
+                "panam-palmer",
+                "mitch-anderson"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "al-wartime",
+                "al-mitch"
+              ]
+            },
+            {
+              "key": "panam-alone",
+              "description": "V went directly after Hellman and Panam rescued Mitch without V; her response expresses resentment at being left.",
+              "affects": [
+                "panam-palmer",
+                "mitch-anderson"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "al-wartime"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-wartime",
+            "al-mitch"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "No installed quest/scene condition has been verified. Require an observed branch/stage receipt; absence or zero alone cannot establish this outcome."
+          }
+        },
+        {
+          "id": "aldecaldos.wartime.loss",
+          "description": "Discovery of the crash-site casualties.",
+          "topic": "aldecaldos.scorpion-death",
+          "outcomes": [
+            {
+              "key": "confirmed",
+              "description": "Scorpion and fellow nomads died after approaching the armed AV; Mitch survived. This is discovered loss, not an intentionally caused murder by V.",
+              "affects": [
+                "panam-palmer",
+                "mitch-anderson"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "al-mitch",
+                "al-wartime"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-mitch",
+            "al-wartime"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Need discovery/dialogue stage. Later family knowledge requires its camp disclosure, not solely V scanning a body."
+          }
+        },
+        {
+          "id": "aldecaldos.wartime.pilot-information",
+          "description": "How V learned where Hellman was taken.",
+          "topic": "hellman.pursuit-information",
+          "outcomes": [
+            {
+              "key": "pilot-told",
+              "description": "The pilot disclosed the destination during the encounter.",
+              "affects": [
+                "panam-palmer",
+                "mitch-anderson"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "al-wartime"
+              ]
+            },
+            {
+              "key": "tracks-followed",
+              "description": "No destination was obtained in the standoff; V followed physical evidence.",
+              "affects": [
+                "panam-palmer"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "al-wartime"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-wartime"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Do not conflate pilot death, timing out, and receiving information. Their exact separate flags require scene extraction."
+          }
+        },
+        {
+          "id": "aldecaldos.wartime.hellman-captured",
+          "description": "The objective and what each participant can know.",
+          "topic": "hellman.capture",
+          "outcomes": [
+            {
+              "key": "captured",
+              "description": "V captured Hellman with Panam's help. Saul and Mitch encounter the aftermath; they do not automatically know the later private interrogation.",
+              "affects": [
+                "panam-palmer",
+                "saul-bright",
+                "mitch-anderson"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "al-wartime"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-wartime"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "No installed quest/scene condition has been verified. Require an observed branch/stage receipt; absence or zero alone cannot establish this outcome."
+          }
+        }
+      ],
+      "sourceIds": [
+        "al-wartime",
+        "al-mitch"
+      ],
+      "uncertainties": [
+        "The sources mark the Mitch rescue as optional; do not assume every completed job means V personally saved him.",
+        "Panam's injury, support dialogue to Saul and private interrogation details need further native branch coverage before fine-grained memory rules.",
+        "Mitch farewell availability can depend on the route; quest completion is not a universal relationship counter."
+      ]
+    },
+    {
+      "key": "riders-on-the-storm",
+      "title": "Riders on the Storm",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "panam-palmer",
+        "saul-bright",
+        "mitch-anderson",
+        "carol-emeka"
+      ],
+      "synopsis": "Panam proposes rescuing Saul from the Wraiths despite a weakened camp; extraction is followed by shelter and unresolved family politics.",
+      "stages": [
+        {
+          "key": "call",
+          "description": "Panam asks for help; acceptance is distinct from arriving or finishing.",
+          "sourceIds": [
+            "al-riders"
+          ]
+        },
+        {
+          "key": "briefing",
+          "description": "Mitch provides reconnaissance while Carol confronts the camp's shortages.",
+          "sourceIds": [
+            "al-carol",
+            "al-riders"
+          ]
+        },
+        {
+          "key": "infiltration",
+          "description": "Reach Saul in Wraith captivity at the cement factory.",
+          "sourceIds": [
+            "al-riders"
+          ]
+        },
+        {
+          "key": "extraction",
+          "description": "Get Saul out; stealth and an alerted escape provide different lived details.",
+          "sourceIds": [
+            "al-riders"
+          ]
+        },
+        {
+          "key": "farmhouse",
+          "description": "The group shelters from the storm and argues about corporate dependence.",
+          "sourceIds": [
+            "al-saul",
+            "al-ronin"
+          ]
+        },
+        {
+          "key": "morning",
+          "description": "Completion, gratitude and private parting interaction follow the night.",
+          "sourceIds": [
+            "al-riders",
+            "al-panam"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "aldecaldos.riders.briefing",
+          "description": "The rescue plan has been shared with those at the briefing.",
+          "topic": "saul.rescue-plan",
+          "outcomes": [
+            {
+              "key": "briefed",
+              "description": "Panam, Mitch and Carol know the proposed rescue and the camp's depleted condition.",
+              "affects": [
+                "panam-palmer",
+                "mitch-anderson",
+                "carol-emeka"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "al-carol",
+                "al-riders"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-carol",
+            "al-riders"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "No installed quest/scene condition has been verified. Require an observed branch/stage receipt; absence or zero alone cannot establish this outcome."
+          }
+        },
+        {
+          "id": "aldecaldos.riders.rescue",
+          "description": "Successful rescue versus an explicitly failed/abandoned attempt.",
+          "topic": "saul.captivity",
+          "outcomes": [
+            {
+              "key": "rescued",
+              "description": "Saul was freed and returned; V and Panam have earned a concrete debt of gratitude.",
+              "affects": [
+                "panam-palmer",
+                "saul-bright"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "al-riders",
+                "al-saul"
+              ]
+            },
+            {
+              "key": "failed",
+              "description": "An explicit failed branch ends this rescue path and damages Panam's relationship with V. Do not infer the failure simply because time passed or the job is not visible.",
+              "affects": [
+                "panam-palmer",
+                "saul-bright",
+                "mitch-anderson",
+                "carol-emeka"
+              ],
+              "knowledge": "shared-journal",
+              "sourceIds": [
+                "al-riders-failure"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-riders",
+            "al-saul",
+            "al-riders-failure"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Failure timer semantics are disputed in guides. Verify the installed graph and quest terminal state; do not guess a deadline. Saul death requires its own consequence evidence."
+          }
+        },
+        {
+          "id": "aldecaldos.riders.extraction-method",
+          "description": "The route may affect the story they remember without changing rescue success.",
+          "topic": "saul.extraction-method",
+          "outcomes": [
+            {
+              "key": "unnoticed",
+              "description": "The extraction remained covert; do not tell a chase story.",
+              "affects": [
+                "panam-palmer",
+                "saul-bright"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "al-riders"
+              ]
+            },
+            {
+              "key": "pursued",
+              "description": "The escape drew active pursuit; store only if that scene actually ran.",
+              "affects": [
+                "panam-palmer",
+                "saul-bright"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "al-riders"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-riders"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Fine route details remain research candidates; journal success alone does not distinguish them."
+          }
+        },
+        {
+          "id": "aldecaldos.riders.farmhouse",
+          "description": "V's actual stance during the family-policy disagreement.",
+          "topic": "aldecaldos.corporate-policy-stance",
+          "outcomes": [
+            {
+              "key": "supported-panam",
+              "description": "V supported Panam's concern over dependence; this is a witnessed opinion, not a later romance flag.",
+              "affects": [
+                "panam-palmer",
+                "saul-bright"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "al-saul",
+                "al-ronin"
+              ]
+            },
+            {
+              "key": "supported-saul",
+              "description": "V backed Saul's practical argument in this conversation; do not turn it into permanent hostility toward Panam.",
+              "affects": [
+                "panam-palmer",
+                "saul-bright"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "al-saul",
+                "al-ronin"
+              ]
+            },
+            {
+              "key": "not-established",
+              "description": "The precise dialogue stance was not captured; no allegiance conclusion is authored.",
+              "affects": [],
+              "knowledge": "shared-journal",
+              "sourceIds": [
+                "al-riders"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-saul",
+            "al-ronin",
+            "al-riders"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "No installed quest/scene condition has been verified. Require an observed branch/stage receipt; absence or zero alone cannot establish this outcome."
+          }
+        },
+        {
+          "id": "aldecaldos.riders.private-affection",
+          "description": "Optional farmhouse/morning closeness is private and not the final romance outcome.",
+          "topic": "panam.early-affection",
+          "outcomes": [
+            {
+              "key": "affection-expressed",
+              "description": "A supported affectionate exchange occurred; preserve consent and her boundaries without claiming sex or a completed relationship.",
+              "affects": [
+                "panam-palmer"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "al-panam"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-panam"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "No installed quest/scene condition has been verified. Require an observed branch/stage receipt; absence or zero alone cannot establish this outcome."
+          }
+        }
+      ],
+      "sourceIds": [
+        "al-riders",
+        "al-saul",
+        "al-carol",
+        "al-panam",
+        "al-riders-failure"
+      ],
+      "uncertainties": [
+        "Guide deadlines and skill thresholds are not stable evidence.",
+        "The farmhouse is shared until Saul leaves; subsequent private conversation has a narrower audience.",
+        "A missing native actor is never enough to infer Saul died."
+      ]
+    },
+    {
+      "key": "ill-fly-away",
+      "title": "I'll Fly Away",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "mitch-anderson"
+      ],
+      "synopsis": "Mitch invites V to a private farewell honoring Scorpion's wishes.",
+      "stages": [
+        {
+          "key": "invitation",
+          "description": "Mitch offers the farewell; the availability window is not proof V accepted.",
+          "sourceIds": [
+            "al-fly"
+          ]
+        },
+        {
+          "key": "journey",
+          "description": "V follows Mitch to the chosen ravine location.",
+          "sourceIds": [
+            "al-fly"
+          ]
+        },
+        {
+          "key": "send-off",
+          "description": "The pair sends Scorpion's car away as the farewell he requested.",
+          "sourceIds": [
+            "al-fly"
+          ]
+        },
+        {
+          "key": "keepsakes",
+          "description": "Mitch thanks V and offers Scorpion's keepsakes.",
+          "sourceIds": [
+            "al-fly"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "aldecaldos.fly.farewell",
+          "description": "Whether V actually joined the farewell.",
+          "topic": "mitch.scorpion-farewell",
+          "outcomes": [
+            {
+              "key": "attended",
+              "description": "Mitch and V shared the ceremony and its personal significance.",
+              "affects": [
+                "mitch-anderson"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "al-fly"
+              ]
+            },
+            {
+              "key": "missed",
+              "description": "A verified closed availability window or explicit nonparticipation means this is not a shared memory with V.",
+              "affects": [
+                "mitch-anderson"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "al-fly"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-fly"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Need invitation, participation and closure evidence. The source says it becomes unavailable after the Basilisk-ready text; verify native timing. Item ownership alone can survive an ending rollback and is insufficient."
+          }
+        }
+      ],
+      "sourceIds": [
+        "al-fly"
+      ],
+      "uncertainties": [
+        "Mitch knows his own intentions; Panam, Carol and the whole party do not automatically know the farewell details.",
+        "Phantom Liberty-sensitive dialogue variations exist but their exact wording and conditions are not mapped."
+      ]
+    },
+    {
+      "key": "with-a-little-help-from-my-friends",
+      "title": "With a Little Help from My Friends",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "panam-palmer",
+        "saul-bright",
+        "mitch-anderson",
+        "carol-emeka",
+        "cassidy-righter",
+        "bob-sagan"
+      ],
+      "synopsis": "Panam and the veterans plan to take a Militech Basilisk despite Saul's objections; V can assist, initially refuse, or betray the plan.",
+      "stages": [
+        {
+          "key": "leadership-argument",
+          "description": "Saul opposes the convoy job while Panam and Mitch press its value.",
+          "sourceIds": [
+            "al-friends"
+          ]
+        },
+        {
+          "key": "choice",
+          "description": "Agree, decline provisionally, or report the plan; these are separate choices.",
+          "sourceIds": [
+            "al-friends"
+          ]
+        },
+        {
+          "key": "railway",
+          "description": "The group reactivates old rail equipment to stop the convoy.",
+          "sourceIds": [
+            "al-friends"
+          ]
+        },
+        {
+          "key": "tower-talk",
+          "description": "Panam and V speak privately while the station is prepared.",
+          "sourceIds": [
+            "al-friends"
+          ]
+        },
+        {
+          "key": "campfire",
+          "description": "Veterans discuss their past and Scorpion before the operation.",
+          "sourceIds": [
+            "al-ronin"
+          ]
+        },
+        {
+          "key": "intercept",
+          "description": "The convoy is stopped and its Basilisk components secured.",
+          "sourceIds": [
+            "al-friends"
+          ]
+        },
+        {
+          "key": "return",
+          "description": "Saul reacts and assembly becomes the next task.",
+          "sourceIds": [
+            "al-friends"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "aldecaldos.friends.loyalty",
+          "description": "V's response to the secret plan.",
+          "topic": "panam.convoy-trust",
+          "outcomes": [
+            {
+              "key": "assisted",
+              "description": "V joined the operation rather than exposing it.",
+              "affects": [
+                "panam-palmer",
+                "mitch-anderson",
+                "carol-emeka",
+                "cassidy-righter",
+                "bob-sagan"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "al-friends"
+              ]
+            },
+            {
+              "key": "declined-initially",
+              "description": "V initially declined but still had a chance to join at the station; do not mark the friendship permanently broken.",
+              "affects": [
+                "panam-palmer",
+                "mitch-anderson"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "al-friends"
+              ]
+            },
+            {
+              "key": "reported-saul",
+              "description": "V told Saul; the operation is stopped and Panam ends contact, while Saul rewards the disclosure.",
+              "affects": [
+                "panam-palmer",
+                "saul-bright"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "al-friends"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-friends"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Require the report branch and later response separately if modeling when each character learns it. An initial decline or absent success flag is not betrayal."
+          }
+        },
+        {
+          "id": "aldecaldos.friends.railway",
+          "description": "Technical work on the station actually completed.",
+          "topic": "aldecaldos.railway-setup",
+          "outcomes": [
+            {
+              "key": "activated",
+              "description": "The station was brought online through the team's work, including Carol's control instructions and mechanical assistance.",
+              "affects": [
+                "panam-palmer",
+                "mitch-anderson",
+                "carol-emeka",
+                "cassidy-righter",
+                "bob-sagan"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "al-friends"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-friends"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "No installed quest/scene condition has been verified. Require an observed branch/stage receipt; absence or zero alone cannot establish this outcome."
+          }
+        },
+        {
+          "id": "aldecaldos.friends.tower-talk",
+          "description": "What V privately communicated about helping Panam.",
+          "topic": "panam.help-motive",
+          "outcomes": [
+            {
+              "key": "personal-support",
+              "description": "V expressed a personal reason for helping; do not promote this alone to a consummated romance.",
+              "affects": [
+                "panam-palmer"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "al-friends",
+                "al-panam"
+              ]
+            },
+            {
+              "key": "job-focused",
+              "description": "A recorded job/payment-focused response limits what can be claimed about romantic intent.",
+              "affects": [
+                "panam-palmer"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "al-friends",
+                "al-panam"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-friends",
+            "al-panam"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact dialogue and romance eligibility effect require native branch verification. Do not use guide shorthand as an executable permanent lockout."
+          }
+        },
+        {
+          "id": "aldecaldos.friends.convoy",
+          "description": "Was the planned Basilisk operation completed?",
+          "topic": "aldecaldos.basilisk-acquisition",
+          "outcomes": [
+            {
+              "key": "secured",
+              "description": "The veterans and V secured the components and returned them to camp; it still needs assembly.",
+              "affects": [
+                "panam-palmer",
+                "mitch-anderson",
+                "carol-emeka",
+                "cassidy-righter",
+                "bob-sagan"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "al-friends"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-friends"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "No installed quest/scene condition has been verified. Require an observed branch/stage receipt; absence or zero alone cannot establish this outcome."
+          }
+        },
+        {
+          "id": "aldecaldos.friends.campfire",
+          "description": "Whether the optional group recollections were heard.",
+          "topic": "aldecaldos.veteran-stories",
+          "outcomes": [
+            {
+              "key": "heard",
+              "description": "V heard the veterans' shared wartime discussion and the account of Scorpion challenging Saul; this does not expose additional private memories.",
+              "affects": [
+                "panam-palmer",
+                "mitch-anderson",
+                "carol-emeka",
+                "cassidy-righter",
+                "bob-sagan"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "al-ronin"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-ronin"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "No installed quest/scene condition has been verified. Require an observed branch/stage receipt; absence or zero alone cannot establish this outcome."
+          }
+        }
+      ],
+      "sourceIds": [
+        "al-friends",
+        "al-panam",
+        "al-ronin"
+      ],
+      "uncertainties": [
+        "Report-to-Saul rewards are not reliable substitutes for the dialogue branch.",
+        "A short-term disagreement with Saul does not mean every veteran has permanently renounced him.",
+        "All people at the campfire are not automatically an audience for Panam and V's earlier tower conversation."
+      ]
+    },
+    {
+      "key": "queen-of-the-highway",
+      "title": "Queen of the Highway",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "panam-palmer",
+        "saul-bright",
+        "mitch-anderson",
+        "carol-emeka",
+        "cassidy-righter",
+        "bob-sagan"
+      ],
+      "synopsis": "The assembled Basilisk is tested and used to defend camp, changing the family's leadership and bringing V's illness into view.",
+      "stages": [
+        {
+          "key": "assembly-ready",
+          "description": "The assembled machine is checked before V and Panam pilot it.",
+          "sourceIds": [
+            "al-queen"
+          ]
+        },
+        {
+          "key": "training",
+          "description": "Driving and target practice teach the shared-control system.",
+          "sourceIds": [
+            "al-queen"
+          ]
+        },
+        {
+          "key": "private-choice",
+          "description": "An optional consensual romantic encounter is separate from the operational test.",
+          "sourceIds": [
+            "al-queen",
+            "al-panam"
+          ]
+        },
+        {
+          "key": "attack",
+          "description": "Raffen attack the crew and camp; the Basilisk is used in defense.",
+          "sourceIds": [
+            "al-queen"
+          ]
+        },
+        {
+          "key": "recognition",
+          "description": "Saul acknowledges Panam and proposes shared leadership.",
+          "sourceIds": [
+            "al-queen"
+          ]
+        },
+        {
+          "key": "collapse-relocation",
+          "description": "V collapses; the family relocates and V later explains the condition.",
+          "sourceIds": [
+            "al-queen"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "aldecaldos.queen.basilisk-test",
+          "description": "The test and synchronization have actually happened.",
+          "topic": "aldecaldos.basilisk-training",
+          "outcomes": [
+            {
+              "key": "completed",
+              "description": "V and Panam operated the Basilisk. Its neural link is not a general means of reading each other's lives or all later thoughts.",
+              "affects": [
+                "panam-palmer"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "al-queen"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-queen"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "No installed quest/scene condition has been verified. Require an observed branch/stage receipt; absence or zero alone cannot establish this outcome."
+          }
+        },
+        {
+          "id": "aldecaldos.queen.romance",
+          "description": "The established intimate relationship outcome, kept separate from body type and casual flirtation.",
+          "topic": "panam.romance",
+          "outcomes": [
+            {
+              "key": "romanced",
+              "description": "The eligible mutually accepted romance occurred; private intimacy stays private.",
+              "affects": [
+                "panam-palmer"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "al-panam",
+                "al-queen"
+              ]
+            },
+            {
+              "key": "platonic",
+              "description": "The job was completed without the romantic outcome; closeness and family help remain possible.",
+              "affects": [
+                "panam-palmer"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "al-panam",
+                "al-queen"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-panam",
+            "al-queen"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Need affirmative completed-relationship evidence or a fully observed terminal platonic branch. Zero alone is not rejection; a menu override is not save-history evidence."
+          }
+        },
+        {
+          "id": "aldecaldos.queen.defense",
+          "description": "The camp defense has concluded.",
+          "topic": "aldecaldos.camp-defense",
+          "outcomes": [
+            {
+              "key": "repelled",
+              "description": "Panam and V helped repel the Raffen using the Basilisk; the family saw the vehicle's practical value.",
+              "affects": [
+                "panam-palmer",
+                "saul-bright",
+                "mitch-anderson",
+                "carol-emeka",
+                "cassidy-righter",
+                "bob-sagan"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "al-queen"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-queen"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "No installed quest/scene condition has been verified. Require an observed branch/stage receipt; absence or zero alone cannot establish this outcome."
+          }
+        },
+        {
+          "id": "aldecaldos.queen.nash",
+          "description": "Nash's presence after an earlier refusal is not a resurrection.",
+          "topic": "panam.nash-later",
+          "outcomes": [
+            {
+              "key": "encountered",
+              "description": "If the earlier pursuit was skipped, Nash may appear with the attackers here. Only an observed encounter establishes this for the current save.",
+              "affects": [
+                "panam-palmer"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "al-queen"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-queen"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "No installed quest/scene condition has been verified. Require an observed branch/stage receipt; absence or zero alone cannot establish this outcome."
+          }
+        },
+        {
+          "id": "aldecaldos.queen.leadership",
+          "description": "Saul's explicit change to the leadership arrangement.",
+          "topic": "aldecaldos.leadership",
+          "outcomes": [
+            {
+              "key": "co-leaders",
+              "description": "Saul invites Panam to lead alongside him and the family relocates.",
+              "affects": [
+                "panam-palmer",
+                "saul-bright",
+                "mitch-anderson",
+                "carol-emeka",
+                "cassidy-righter",
+                "bob-sagan"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "al-queen"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-queen"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "No installed quest/scene condition has been verified. Require an observed branch/stage receipt; absence or zero alone cannot establish this outcome."
+          }
+        },
+        {
+          "id": "aldecaldos.queen.relic-disclosure",
+          "description": "Visible illness and private explanation are different knowledge events.",
+          "topic": "v.relic-known-to-aldecaldos",
+          "outcomes": [
+            {
+              "key": "explained-panam",
+              "description": "V tells Panam about the Relic after waking. Store only the disclosure made to her.",
+              "affects": [
+                "panam-palmer"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "al-queen"
+              ]
+            },
+            {
+              "key": "collapse-witnessed",
+              "description": "Family members witnessed or assisted after V's collapse but do not automatically know the full explanation.",
+              "affects": [
+                "saul-bright",
+                "mitch-anderson",
+                "carol-emeka",
+                "cassidy-righter",
+                "bob-sagan"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "al-queen"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-queen"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Two outcomes can represent separate receipts rather than mutually exclusive branches; audiences must not be merged. Exact participant/camera presence requires native scene evidence."
+          }
+        },
+        {
+          "id": "aldecaldos.queen.policy",
+          "description": "The family corporate-policy transition is backed by correspondence rather than guessed from combat.",
+          "topic": "aldecaldos.biotechnica",
+          "outcomes": [
+            {
+              "key": "contract-ended",
+              "description": "Saul terminated Biotechnica dealings; disclose the correspondence content according to actual ownership/reading evidence.",
+              "affects": [
+                "saul-bright"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "al-saul"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-saul"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "The wiki references Saul's 'We are done here' mail. Locate that installed mail and its enabling conditions before mapping; defense completion alone is insufficient."
+          }
+        }
+      ],
+      "sourceIds": [
+        "al-queen",
+        "al-panam",
+        "al-saul"
+      ],
+      "uncertainties": [
+        "Romance does not gate ordinary friendship or the availability of the Aldecaldo help path.",
+        "The Relic explanation must not automatically reveal Johnny's every memory to all camp members.",
+        "Saul and Panam's co-leadership is not the same as sole Panam leadership after a later death."
+      ]
+    },
+    {
+      "key": "gun-music",
+      "title": "Gun Music",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "carol-emeka",
+        "cassidy-righter"
+      ],
+      "synopsis": "V encounters a tense Aldecaldo transaction with scavengers; intervention can preserve the deal, trigger a fight, or be abandoned.",
+      "stages": [
+        {
+          "key": "approach",
+          "description": "A family contact asks V to inspect the transaction.",
+          "sourceIds": [
+            "al-gun"
+          ]
+        },
+        {
+          "key": "recognized",
+          "description": "The scav leader recognizes V from the earlier rescue and the tension changes.",
+          "sourceIds": [
+            "al-carol"
+          ]
+        },
+        {
+          "key": "resolution",
+          "description": "Negotiation, combat or explicit departure each have different social consequences.",
+          "sourceIds": [
+            "al-gun",
+            "al-carol"
+          ]
+        },
+        {
+          "key": "aftermath",
+          "description": "Carol and Cassidy react from their different priorities.",
+          "sourceIds": [
+            "al-carol",
+            "al-cassidy"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "aldecaldos.gun.deal",
+          "description": "What happened to the transaction and how its participants interpret it.",
+          "topic": "aldecaldos.scav-deal",
+          "outcomes": [
+            {
+              "key": "intimidated",
+              "description": "V intimidates the opposition and the deal concludes without the firefight; Carol and Cassidy express thanks.",
+              "affects": [
+                "carol-emeka",
+                "cassidy-righter"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "al-gun",
+                "al-carol"
+              ]
+            },
+            {
+              "key": "firefight",
+              "description": "The confrontation becomes combat. Carol resents the lost deal while Cassidy acknowledges V's intent and possible protection.",
+              "affects": [
+                "carol-emeka",
+                "cassidy-righter"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "al-gun",
+                "al-carol",
+                "al-cassidy"
+              ]
+            },
+            {
+              "key": "abandoned",
+              "description": "V explicitly leaves; Carol sends reproach while granting limited allowance for Panam's faith in V.",
+              "affects": [
+                "carol-emeka"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "al-carol"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-gun",
+            "al-carol",
+            "al-cassidy"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Do not derive from player Body. References disagree on threshold and versions; capture the actual resolution."
+          }
+        },
+        {
+          "id": "aldecaldos.gun.panam-message",
+          "description": "Cassidy's protective message is a separately observed private exchange.",
+          "topic": "cassidy.panam-protective-message",
+          "outcomes": [
+            {
+              "key": "received",
+              "description": "The contextual message about treating Panam well reached V; it is not proof of a completed romance by itself.",
+              "affects": [
+                "cassidy-righter"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "al-gun",
+                "al-cassidy"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-gun",
+            "al-cassidy"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "No installed quest/scene condition has been verified. Require an observed branch/stage receipt; absence or zero alone cannot establish this outcome."
+          }
+        }
+      ],
+      "sourceIds": [
+        "al-gun",
+        "al-carol",
+        "al-cassidy"
+      ],
+      "uncertainties": [
+        "Sources describe the sale inconsistently as weapons or cyberware. This mapping deliberately calls it a transaction until the actual scene/item data is checked.",
+        "If the job temporarily disappears during another Panam mission, that is not evidence V abandoned it.",
+        "Quest completion need not globally rewrite Carol's stock dialogue; authored memory should retain the actual local event without claiming a vanilla disposition system."
+      ]
+    },
+    {
+      "key": "fortunate-son",
+      "title": "Fortunate Son",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "bob-sagan"
+      ],
+      "synopsis": "Bob asks V for a special kidney implant needed by Jake. What V learns about sabotage affects the later medical result.",
+      "stages": [
+        {
+          "key": "request",
+          "description": "Bob explains Jake's condition and the required implant.",
+          "sourceIds": [
+            "al-fortunate"
+          ]
+        },
+        {
+          "key": "hospital-handoff",
+          "description": "V meets the hospital employee and acquires the case; NCPD interference follows.",
+          "sourceIds": [
+            "al-fortunate"
+          ]
+        },
+        {
+          "key": "sabotage-evidence",
+          "description": "Confronting/spared contact can reveal malware and a correction.",
+          "sourceIds": [
+            "al-fortunate"
+          ]
+        },
+        {
+          "key": "delivery",
+          "description": "The case and the warning are separately meaningful; V may return uninformed.",
+          "sourceIds": [
+            "al-fortunate"
+          ]
+        },
+        {
+          "key": "follow-up",
+          "description": "The later response confirms recovery or death.",
+          "sourceIds": [
+            "al-fortunate"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "aldecaldos.fortunate.request",
+          "description": "V agreed to help Jake.",
+          "topic": "jake.implant-request",
+          "outcomes": [
+            {
+              "key": "accepted",
+              "description": "V accepted the errand; no delivery or survival is implied.",
+              "affects": [
+                "bob-sagan"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "al-fortunate"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-fortunate"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "No installed quest/scene condition has been verified. Require an observed branch/stage receipt; absence or zero alone cannot establish this outcome."
+          }
+        },
+        {
+          "id": "aldecaldos.fortunate.malware",
+          "description": "Whether V actually learned of the implant sabotage.",
+          "topic": "jake.implant-sabotage",
+          "outcomes": [
+            {
+              "key": "discovered",
+              "description": "V obtained the contact's information about NCPD malware and its remedy.",
+              "affects": [],
+              "knowledge": "private",
+              "sourceIds": [
+                "al-fortunate"
+              ]
+            },
+            {
+              "key": "not-discovered",
+              "description": "The terminal delivery route completed without that information; do not infer ignorance while the errand is still open.",
+              "affects": [],
+              "knowledge": "private",
+              "sourceIds": [
+                "al-fortunate"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-fortunate"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Check the installed disclosure path. The guide documents a spared-doctor alternative to an attribute check, so absence of a high stat is not ignorance."
+          }
+        },
+        {
+          "id": "aldecaldos.fortunate.implant",
+          "description": "What Bob received from V.",
+          "topic": "jake.implant-delivery",
+          "outcomes": [
+            {
+              "key": "delivered-informed",
+              "description": "Bob receives the implant with the sabotage warning needed to correct it.",
+              "affects": [
+                "bob-sagan"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "al-fortunate"
+              ]
+            },
+            {
+              "key": "delivered-uninformed",
+              "description": "Bob receives the implant without that warning.",
+              "affects": [
+                "bob-sagan"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "al-fortunate"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-fortunate"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "No installed quest/scene condition has been verified. Require an observed branch/stage receipt; absence or zero alone cannot establish this outcome."
+          }
+        },
+        {
+          "id": "aldecaldos.fortunate.result",
+          "description": "Only the follow-up establishes Jake's actual outcome.",
+          "topic": "jake.health",
+          "outcomes": [
+            {
+              "key": "recovered",
+              "description": "The follow-up confirms the corrected implant was accepted and Jake is recovering.",
+              "affects": [
+                "bob-sagan"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "al-fortunate"
+              ]
+            },
+            {
+              "key": "died",
+              "description": "The confirmed bad/failure outcome is Jake's death. Bob is sympathetic rather than automatically accusing V of deliberate harm.",
+              "affects": [
+                "bob-sagan"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "al-fortunate"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-fortunate"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Require terminal result/dialogue. Do not use elapsed time, item possession or presumed medical cause alone; a delay failure must be distinguished from malware outcome if supported."
+          }
+        }
+      ],
+      "sourceIds": [
+        "al-fortunate",
+        "al-members"
+      ],
+      "uncertainties": [
+        "The published walkthrough flags itself for cleanup and leaves portions of the contact confrontation terse.",
+        "The exact failure deadline is not specified reliably here; it remains unmapped.",
+        "Recovery does not imply the whole party knows Jake's medical diagnosis or the NCPD conspiracy."
+      ]
+    },
+    {
+      "key": "nocturne-op55n1",
+      "title": "Nocturne Op55N1",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "panam-palmer"
+      ],
+      "synopsis": "V's final calls distinguish a personal farewell from the later request for Aldecaldo help.",
+      "stages": [
+        {
+          "key": "point-of-no-return",
+          "description": "Embers begins the final route; a pre-ending save is a separate earlier timeline.",
+          "sourceIds": [
+            "al-nocturne"
+          ]
+        },
+        {
+          "key": "partner-call",
+          "description": "V can choose a romantic contact for a private call.",
+          "sourceIds": [
+            "al-nocturne",
+            "al-romance"
+          ]
+        },
+        {
+          "key": "help-call",
+          "description": "The actual request to Panam begins the Aldecaldo operation only if chosen.",
+          "sourceIds": [
+            "al-panam"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "aldecaldos.nocturne.partner-call",
+          "description": "Who received V's private farewell.",
+          "topic": "v.final-romance-contact",
+          "outcomes": [
+            {
+              "key": "panam",
+              "description": "Panam was the selected romantic call; she knows the conversation V actually shared.",
+              "affects": [
+                "panam-palmer"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "al-panam",
+                "al-romance"
+              ]
+            },
+            {
+              "key": "other-or-no-call",
+              "description": "A different/no romance call was positively observed; do not invent a private call to Panam.",
+              "affects": [],
+              "knowledge": "private",
+              "sourceIds": [
+                "al-nocturne",
+                "al-romance"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-nocturne",
+            "al-romance",
+            "al-panam"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "No installed quest/scene condition has been verified. Require an observed branch/stage receipt; a missing flag is not a negative outcome."
+          }
+        },
+        {
+          "id": "aldecaldos.nocturne.help",
+          "description": "Was the family actually asked to assault Arasaka?",
+          "topic": "aldecaldos.final-help",
+          "outcomes": [
+            {
+              "key": "called-panam",
+              "description": "V called Panam for the Aldecaldos' help after choosing that plan.",
+              "affects": [
+                "panam-palmer"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "al-panam"
+              ]
+            },
+            {
+              "key": "other-route",
+              "description": "V explicitly selected another route; no nomad assault is established.",
+              "affects": [],
+              "knowledge": "private",
+              "sourceIds": [
+                "al-nocturne"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-nocturne",
+            "al-panam"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Check chosen route and actual call, not simply whether Queen of the Highway is complete. Private discussion with Johnny is not Panam's knowledge."
+          }
+        }
+      ],
+      "sourceIds": [
+        "al-nocturne",
+        "al-panam",
+        "al-romance"
+      ],
+      "uncertainties": [
+        "Eligibility for the Aldecaldo path is not the same as choosing it.",
+        "Romance is not necessary to request family help.",
+        "Reloading the point-of-no-return save must retract finale-derived context even if a reward item remains."
+      ]
+    },
+    {
+      "key": "we-gotta-live-together",
+      "title": "We Gotta Live Together",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "panam-palmer",
+        "saul-bright",
+        "mitch-anderson",
+        "carol-emeka",
+        "cassidy-righter",
+        "bob-sagan",
+        "dakota-smith"
+      ],
+      "synopsis": "The family prepares a dangerous route into Arasaka, helps V contact Alt and welcomes V as one of its own.",
+      "stages": [
+        {
+          "key": "briefing",
+          "description": "Saul, Panam and Mitch explain the construction-site approach.",
+          "sourceIds": [
+            "al-together",
+            "al-ronin"
+          ]
+        },
+        {
+          "key": "net-link",
+          "description": "Dakota and Carol provide the Net connection; the private cyberspace conversation has its own audience.",
+          "sourceIds": [
+            "al-together",
+            "al-carol"
+          ]
+        },
+        {
+          "key": "initiation",
+          "description": "The family formally welcomes V and gives the jacket.",
+          "sourceIds": [
+            "al-together"
+          ]
+        },
+        {
+          "key": "optional-camp",
+          "description": "V may visit veterans, rescued contacts and Cassidy's target practice.",
+          "sourceIds": [
+            "al-together"
+          ]
+        },
+        {
+          "key": "night-with-panam",
+          "description": "Final conversation with Panam precedes the assault; romance modifies intimacy, not the route itself.",
+          "sourceIds": [
+            "al-panam",
+            "al-ronin"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "aldecaldos.together.assault-plan",
+          "description": "Commitment is made at the briefing; reconnaissance is not a completed battle.",
+          "topic": "aldecaldos.arasaka-plan",
+          "outcomes": [
+            {
+              "key": "committed",
+              "description": "The family commits to the tunnel approach, hoping both to help V and improve its own prospects.",
+              "affects": [
+                "panam-palmer",
+                "saul-bright",
+                "mitch-anderson",
+                "carol-emeka",
+                "cassidy-righter",
+                "bob-sagan"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "al-ronin",
+                "al-together"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-ronin",
+            "al-together"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "No installed quest/scene condition has been verified. Require an observed branch/stage receipt; a missing flag is not a negative outcome."
+          }
+        },
+        {
+          "id": "aldecaldos.together.alt-link",
+          "description": "A completed Net connection does not grant operators Alt's private knowledge.",
+          "topic": "v.alt-contact-at-camp",
+          "outcomes": [
+            {
+              "key": "completed",
+              "description": "Carol and Dakota supplied access and dealt with the neural/equipment consequences. V's private conversation must be separately disclosed.",
+              "affects": [
+                "carol-emeka",
+                "dakota-smith"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "al-carol",
+                "al-ronin"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-carol",
+            "al-ronin"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "No installed quest/scene condition has been verified. Require an observed branch/stage receipt; a missing flag is not a negative outcome."
+          }
+        },
+        {
+          "id": "aldecaldos.together.initiation",
+          "description": "V's formal entry into the family.",
+          "topic": "v.aldecaldo-membership",
+          "outcomes": [
+            {
+              "key": "initiated",
+              "description": "Saul and Panam welcome V as family in the ceremony.",
+              "affects": [
+                "panam-palmer",
+                "saul-bright",
+                "mitch-anderson",
+                "carol-emeka",
+                "cassidy-righter",
+                "bob-sagan"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "al-together"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-together"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Use ceremony completion, not ownership of the jacket, which can outlive the ending branch."
+          }
+        },
+        {
+          "id": "aldecaldos.together.shooting",
+          "description": "Cassidy's optional bottle challenge.",
+          "topic": "cassidy.target-practice",
+          "outcomes": [
+            {
+              "key": "won",
+              "description": "V completed the winning result and Cassidy offered Amnesty.",
+              "affects": [
+                "cassidy-righter"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "al-together"
+              ]
+            },
+            {
+              "key": "lost",
+              "description": "V took part without the winning result; no gift is implied.",
+              "affects": [
+                "cassidy-righter"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "al-together"
+              ]
+            },
+            {
+              "key": "not-played",
+              "description": "An observed skipped/closed optional activity is not a loss and creates no shared challenge memory.",
+              "affects": [],
+              "knowledge": "shared-journal",
+              "sourceIds": [
+                "al-together"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-together"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "The guide gives a score threshold, but native success/failure receipt is required. Do not infer from current inventory."
+          }
+        },
+        {
+          "id": "aldecaldos.together.returning-contacts",
+          "description": "Which previously helped people were actually encountered in camp.",
+          "topic": "aldecaldos.rescued-contacts",
+          "outcomes": [
+            {
+              "key": "jake-present",
+              "description": "The actual camp encounter shows Jake alive and able to play guitar after successful treatment.",
+              "affects": [
+                "bob-sagan"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "al-together",
+                "al-fortunate"
+              ]
+            },
+            {
+              "key": "ben-present",
+              "description": "An observed encounter shows Benedict at camp after the rescue chain.",
+              "affects": [],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "al-together"
+              ]
+            },
+            {
+              "key": "bruce-present",
+              "description": "An observed encounter shows Bruce with the Aldecaldos after his extraction.",
+              "affects": [
+                "dakota-smith"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "al-together",
+                "al-bruce"
+              ]
+            },
+            {
+              "key": "anna-present",
+              "description": "An observed encounter establishes Anna's presence after her nomad-specific recruitment path; no other lifepath is assumed.",
+              "affects": [],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "al-together"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-together",
+            "al-fortunate",
+            "al-bruce"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Each presence is its own receipt and audience. A successful earlier gig alone must not fabricate a camp conversation."
+          }
+        }
+      ],
+      "sourceIds": [
+        "al-together",
+        "al-ronin",
+        "al-carol",
+        "al-panam"
+      ],
+      "uncertainties": [
+        "Not all camp dialogue is mandatory or heard by every person at camp.",
+        "The group knows an assault is planned; nobody knows its eventual casualties yet.",
+        "The Net operators' damaged hardware is not evidence they were told V's entire medical prognosis."
+      ]
+    },
+    {
+      "key": "forward-to-death",
+      "title": "Forward to Death",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "panam-palmer",
+        "saul-bright",
+        "mitch-anderson",
+        "carol-emeka",
+        "cassidy-righter",
+        "bob-sagan"
+      ],
+      "synopsis": "The Aldecaldos attack the construction site, suffer losses and open the way into the tunnels.",
+      "stages": [
+        {
+          "key": "recon-and-rollout",
+          "description": "V and Panam prepare the Basilisk and the convoy moves on the construction site.",
+          "sourceIds": [
+            "al-star-guide",
+            "al-ronin"
+          ]
+        },
+        {
+          "key": "assault-losses",
+          "description": "The attack includes the deaths of Bob and Teddy; these are route consequences, not generic camp facts.",
+          "sourceIds": [
+            "al-ronin",
+            "al-cassidy"
+          ]
+        },
+        {
+          "key": "drill-support",
+          "description": "Mitch and Carol work on the tunnel machinery while the team fights off resistance.",
+          "sourceIds": [
+            "al-carol",
+            "al-star-guide"
+          ]
+        },
+        {
+          "key": "breach",
+          "description": "The gate and tunnel are opened; the infiltration team separates from outside defenders.",
+          "sourceIds": [
+            "al-star-guide",
+            "al-carol"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "aldecaldos.forward.casualties",
+          "description": "Which losses have actually occurred on the chosen assault route.",
+          "topic": "aldecaldos.assault-casualties",
+          "outcomes": [
+            {
+              "key": "bob-and-teddy-dead",
+              "description": "Bob and Teddy are lost during the operation. Outside survivors know through their participation; Bob's own continuity ends rather than generating posthumous recollection.",
+              "affects": [
+                "panam-palmer",
+                "saul-bright",
+                "mitch-anderson",
+                "carol-emeka",
+                "cassidy-righter",
+                "bob-sagan"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "al-ronin",
+                "al-cassidy"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-ronin",
+            "al-cassidy"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Use scene/death-stage receipts, not a summoned entity health value. Knowledge timing can differ for radio listeners and off-site Dakota."
+          }
+        },
+        {
+          "id": "aldecaldos.forward.breach",
+          "description": "The operation reaches the tunnel and teams separate.",
+          "topic": "aldecaldos.construction-breach",
+          "outcomes": [
+            {
+              "key": "opened",
+              "description": "The tunnel approach is opened. Carol and Cassidy remain with outside defense while the infiltrators move on.",
+              "affects": [
+                "panam-palmer",
+                "saul-bright",
+                "mitch-anderson",
+                "carol-emeka",
+                "cassidy-righter"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "al-star-guide",
+                "al-carol"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-star-guide",
+            "al-carol"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "No installed quest/scene condition has been verified. Require an observed branch/stage receipt; a missing flag is not a negative outcome."
+          }
+        }
+      ],
+      "sourceIds": [
+        "al-star-guide",
+        "al-ronin",
+        "al-carol",
+        "al-cassidy"
+      ],
+      "uncertainties": [
+        "The source transcript has spelling/transcription defects; extract exact scene receipts before runtime enabling.",
+        "Do not turn the family into witnesses of everything V sees inside Arasaka.",
+        "A pre-finale save restores Bob/Teddy chronology even if the player personally remembers this ending."
+      ]
+    },
+    {
+      "key": "belly-of-the-beast",
+      "title": "Belly of the Beast",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "panam-palmer",
+        "saul-bright",
+        "mitch-anderson",
+        "adam-smasher"
+      ],
+      "synopsis": "V, Panam and Saul approach Mikoshi through Arasaka's foundations while Mitch returns to help the family outside.",
+      "stages": [
+        {
+          "key": "mitch-returns",
+          "description": "Mitch takes the Basilisk back alone despite concerns about its neural load.",
+          "sourceIds": [
+            "al-mitch",
+            "al-belly-guide"
+          ]
+        },
+        {
+          "key": "drill",
+          "description": "The drill opens the route through the foundations.",
+          "sourceIds": [
+            "al-belly-guide"
+          ]
+        },
+        {
+          "key": "alt-installed",
+          "description": "Alt gains access to the facility, with consequences seen by the infiltrators.",
+          "sourceIds": [
+            "al-belly-guide"
+          ]
+        },
+        {
+          "key": "smasher-ambush",
+          "description": "Smasher kills Saul and V fights through to Mikoshi.",
+          "sourceIds": [
+            "al-star-guide"
+          ]
+        },
+        {
+          "key": "connection",
+          "description": "V reaches the access point; the private Changes sequence follows.",
+          "sourceIds": [
+            "al-changes"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "aldecaldos.belly.mitch-return",
+          "description": "Mitch's return is a committed act, not a free choice to bring him to Smasher.",
+          "topic": "mitch.solo-basilisk",
+          "outcomes": [
+            {
+              "key": "returned-outside",
+              "description": "Mitch returns to aid the outside team; Panam and V can remember the risk but cannot yet certify his eventual recovery.",
+              "affects": [
+                "panam-palmer",
+                "mitch-anderson",
+                "saul-bright"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "al-mitch",
+                "al-belly-guide"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-mitch",
+            "al-belly-guide"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "No installed quest/scene condition has been verified. Require an observed branch/stage receipt; a missing flag is not a negative outcome."
+          }
+        },
+        {
+          "id": "aldecaldos.belly.alt-casualties",
+          "description": "Who witnessed the immediate facility effects of giving Alt access.",
+          "topic": "aldecaldos.alt-cost",
+          "outcomes": [
+            {
+              "key": "witnessed",
+              "description": "Panam and V see that Alt's intervention kills people beyond armed opposition; this can complicate their view of the plan.",
+              "affects": [
+                "panam-palmer",
+                "saul-bright"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "al-belly-guide"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-belly-guide"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Map actual scene participants; do not grant the same eyewitness account to Carol or Dakota merely because they helped earlier."
+          }
+        },
+        {
+          "id": "aldecaldos.belly.saul",
+          "description": "Saul's scripted fate in the ambush.",
+          "topic": "saul.survival",
+          "outcomes": [
+            {
+              "key": "killed-by-smasher",
+              "description": "Saul is killed by Smasher. Panam witnesses the loss; a later summoned Saul model cannot prove survival.",
+              "affects": [
+                "panam-palmer",
+                "saul-bright"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "al-star-guide"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-star-guide"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Branch and death-scene gates both required. This must not leak into a different finale, a pre-ending reload, or a candidate unconfirmed assault."
+          }
+        },
+        {
+          "id": "aldecaldos.belly.mikoshi-reached",
+          "description": "Connection is not yet the final body choice.",
+          "topic": "v.mikoshi-access",
+          "outcomes": [
+            {
+              "key": "connected",
+              "description": "V reaches the access point; Panam can know that, not the private conclusion inside.",
+              "affects": [
+                "panam-palmer"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "al-belly-guide",
+                "al-changes"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-belly-guide",
+            "al-changes"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "No installed quest/scene condition has been verified. Require an observed branch/stage receipt; a missing flag is not a negative outcome."
+          }
+        }
+      ],
+      "sourceIds": [
+        "al-mitch",
+        "al-belly-guide",
+        "al-star-guide",
+        "al-changes"
+      ],
+      "uncertainties": [
+        "Whether Smasher is executed after defeat is separate and belongs to a broader finale map; do not fabricate Panam's exact response here.",
+        "Mitch's later survival is learned in the subsequent branch, not guaranteed in dialogue at the moment he leaves.",
+        "A dispatched mod companion outside the quest scene is not automatically a canonical scene participant."
+      ]
+    },
+    {
+      "key": "changes",
+      "title": "Changes",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "panam-palmer",
+        "johnny-silverhand"
+      ],
+      "synopsis": "The private Mikoshi choice determines whether V returns and the Aldecaldo epilogue can follow.",
+      "stages": [
+        {
+          "key": "diagnosis",
+          "description": "Alt explains the consequences of separating the engrams to V and Johnny.",
+          "sourceIds": [
+            "al-changes"
+          ]
+        },
+        {
+          "key": "body-choice",
+          "description": "The final body decision selects V's return or Johnny's continuation.",
+          "sourceIds": [
+            "al-changes"
+          ]
+        },
+        {
+          "key": "route-result",
+          "description": "V returning after the Aldecaldo assault leads to All Along the Watchtower; Johnny continuing leads to New Dawn Fades.",
+          "sourceIds": [
+            "al-changes"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "aldecaldos.changes.body",
+          "description": "Who continues in V's body after the Aldecaldo route.",
+          "topic": "v.body-continuity",
+          "outcomes": [
+            {
+              "key": "v-returned",
+              "description": "V returns. Panam can subsequently meet V again, but details of the prognosis remain V's private information until shared.",
+              "affects": [
+                "panam-palmer"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "al-changes"
+              ]
+            },
+            {
+              "key": "johnny-returned",
+              "description": "Johnny continues in the body. Do not treat companions' suspicions or messages as omniscient proof they observed the cyberspace choice.",
+              "affects": [],
+              "knowledge": "private",
+              "sourceIds": [
+                "al-changes"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-changes"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Require the actual body outcome and preceding route. The knowledge field describes who may receive it, not authorization to broadcast a private event."
+          }
+        }
+      ],
+      "sourceIds": [
+        "al-changes"
+      ],
+      "uncertainties": [
+        "The family is not in cyberspace.",
+        "Do not automatically copy the exact six-month diagnosis into every character's dynamic context.",
+        "Reloading an earlier branch invalidates both body outcomes for that active timeline."
+      ]
+    },
+    {
+      "key": "all-along-the-watchtower",
+      "title": "All Along the Watchtower",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "panam-palmer",
+        "mitch-anderson",
+        "carol-emeka",
+        "cassidy-righter",
+        "judy-alvarez",
+        "river-ward",
+        "kerry-eurodyne"
+      ],
+      "synopsis": "V and the surviving nomads prepare to leave Night City, using contacts and a border route while V's future remains uncertain.",
+      "stages": [
+        {
+          "key": "dam",
+          "description": "Panam and V discuss leaving and seeking help through the family's contacts.",
+          "sourceIds": [
+            "al-watchtower"
+          ]
+        },
+        {
+          "key": "departure-camp",
+          "description": "Mitch, Carol and Cassidy prepare; a selected partner may be present.",
+          "sourceIds": [
+            "al-watchtower"
+          ]
+        },
+        {
+          "key": "partner",
+          "description": "The selected romantic partner's choice matters independently of the raid's success.",
+          "sourceIds": [
+            "al-watchtower"
+          ]
+        },
+        {
+          "key": "crossing",
+          "description": "The group uses a tunnel and diversions to leave.",
+          "sourceIds": [
+            "al-watchtower"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "aldecaldos.watchtower.departure",
+          "description": "The departure progresses from an intention to an accomplished crossing.",
+          "topic": "aldecaldos.departure",
+          "outcomes": [
+            {
+              "key": "planned",
+              "description": "The family plans to leave for Arizona and seek help; this is hope, not proof a cure exists.",
+              "affects": [
+                "panam-palmer",
+                "mitch-anderson",
+                "carol-emeka",
+                "cassidy-righter"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "al-watchtower"
+              ]
+            },
+            {
+              "key": "crossed",
+              "description": "The depicted border crossing has occurred; the future search for a cure remains unresolved.",
+              "affects": [
+                "panam-palmer",
+                "mitch-anderson",
+                "carol-emeka",
+                "cassidy-righter"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "al-watchtower"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-watchtower"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "No installed quest/scene condition has been verified. Require an observed branch/stage receipt; a missing flag is not a negative outcome."
+          }
+        },
+        {
+          "id": "aldecaldos.watchtower.partner",
+          "description": "Which selected relationship branch actually appears at departure.",
+          "topic": "v.star-partner",
+          "outcomes": [
+            {
+              "key": "panam-together",
+              "description": "The established Panam romance continues with the departure.",
+              "affects": [
+                "panam-palmer"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "al-panam",
+                "al-watchtower"
+              ]
+            },
+            {
+              "key": "judy-leaves",
+              "description": "Judy chooses to leave with V; Carol brought her to the camp.",
+              "affects": [
+                "judy-alvarez",
+                "carol-emeka"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "al-watchtower",
+                "al-carol"
+              ]
+            },
+            {
+              "key": "river-stays",
+              "description": "River remains in Night City for his family; do not write a memory of him traveling with the nomads.",
+              "affects": [
+                "river-ward"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "al-watchtower"
+              ]
+            },
+            {
+              "key": "kerry-stays",
+              "description": "Kerry remains in Night City; do not write a memory of him joining the crossing.",
+              "affects": [
+                "kerry-eurodyne"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "al-watchtower"
+              ]
+            },
+            {
+              "key": "no-partner-scene",
+              "description": "No partner meeting was established; Panam's leadership presence is not evidence of romance.",
+              "affects": [],
+              "knowledge": "shared-journal",
+              "sourceIds": [
+                "al-romance",
+                "al-watchtower"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-watchtower",
+            "al-panam",
+            "al-carol",
+            "al-romance"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "No installed quest/scene condition has been verified. Require an observed branch/stage receipt; a missing flag is not a negative outcome."
+          }
+        },
+        {
+          "id": "aldecaldos.watchtower.mitch-recovery",
+          "description": "Mitch's survival and recovery become current knowledge here.",
+          "topic": "mitch.post-assault-health",
+          "outcomes": [
+            {
+              "key": "recovered-enough-to-travel",
+              "description": "Mitch survived the solo Basilisk strain and is present for departure after a period of recovery.",
+              "affects": [
+                "panam-palmer",
+                "mitch-anderson",
+                "carol-emeka",
+                "cassidy-righter"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "al-mitch",
+                "al-watchtower"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-mitch",
+            "al-watchtower"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "No installed quest/scene condition has been verified. Require an observed branch/stage receipt; a missing flag is not a negative outcome."
+          }
+        }
+      ],
+      "sourceIds": [
+        "al-watchtower",
+        "al-mitch",
+        "al-carol",
+        "al-panam",
+        "al-romance"
+      ],
+      "uncertainties": [
+        "The ending does not show a successful cure.",
+        "Dates beyond the source's rough intervening weeks must not be invented.",
+        "Judy's arrival and River/Kerry's farewells are different audience scopes; the whole group need not know every private reason."
+      ]
+    },
+    {
+      "key": "path-of-glory",
+      "title": "Path of Glory",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "panam-palmer"
+      ],
+      "synopsis": "If selected as V's established partner, Panam confronts the tension between her family's departure and V staying in Night City.",
+      "stages": [
+        {
+          "key": "partner-scene",
+          "description": "The selected romance determines who appears in the private penthouse scene.",
+          "sourceIds": [
+            "al-romance",
+            "al-panam"
+          ]
+        },
+        {
+          "key": "parting",
+          "description": "Panam intends to leave with the family while V remains for another ambition.",
+          "sourceIds": [
+            "al-panam"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "aldecaldos.sun.parting",
+          "description": "Record the actual parting without pretending every source agrees about its long-term label.",
+          "topic": "panam.sun-parting",
+          "outcomes": [
+            {
+              "key": "different-roads",
+              "description": "Panam and V part over different immediate plans; do not invent either a guaranteed reunion or a uniform explicit breakup beyond the observed dialogue.",
+              "affects": [
+                "panam-palmer"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "al-panam",
+                "al-romance"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-panam",
+            "al-romance"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "No installed quest/scene condition has been verified. Require an observed branch/stage receipt; a missing flag is not a negative outcome."
+          }
+        }
+      ],
+      "sourceIds": [
+        "al-panam",
+        "al-romance"
+      ],
+      "uncertainties": [
+        "Some summaries label the Sun outcome ambiguous and others call it a breakup. Preserve evidenced conversation, not a synthesized definitive relationship status.",
+        "Panam's private scene is conditional on the relationship/final call, not on simply knowing her."
+      ]
+    },
+    {
+      "key": "where-is-my-mind",
+      "title": "Where Is My Mind?",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "panam-palmer"
+      ],
+      "synopsis": "A call from V in the Arasaka orbital clinic can expose distress to Panam; she does not witness the treatment.",
+      "stages": [
+        {
+          "key": "clinic-contact",
+          "description": "V may call Panam from orbit; romance changes the conversation.",
+          "sourceIds": [
+            "al-panam"
+          ]
+        },
+        {
+          "key": "return-or-contract",
+          "description": "V's later Arasaka decision is private unless communicated.",
+          "sourceIds": [
+            "al-panam"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "aldecaldos.devil.panam-call",
+          "description": "Only the actual call gives Panam its disclosed information.",
+          "topic": "panam.orbital-call",
+          "outcomes": [
+            {
+              "key": "called-platonic",
+              "description": "Panam receives V's call without the romance variant; do not upgrade her understanding to a complete medical briefing.",
+              "affects": [
+                "panam-palmer"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "al-panam"
+              ]
+            },
+            {
+              "key": "called-romantic",
+              "description": "The established romantic branch supplies its own concern and invitation to return; it is not proof of treatment success.",
+              "affects": [
+                "panam-palmer"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "al-panam"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-panam"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "No installed quest/scene condition has been verified. Require an observed branch/stage receipt; a missing flag is not a negative outcome."
+          }
+        }
+      ],
+      "sourceIds": [
+        "al-panam"
+      ],
+      "uncertainties": [
+        "V's sign/refuse decision belongs to the Arasaka map and remains unknown to Panam unless shared.",
+        "Call receipt, ignored repeat calls, and actual spoken disclosures need native scene evidence.",
+        "No claim that Panam can contact or override Arasaka's doctors is supported."
+      ]
+    },
+    {
+      "key": "new-dawn-fades",
+      "title": "New Dawn Fades",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "panam-palmer",
+        "johnny-silverhand"
+      ],
+      "synopsis": "Johnny's continuation can leave people from V's life with messages and unresolved interpretations rather than a shared explanation.",
+      "stages": [
+        {
+          "key": "johnny-continues",
+          "description": "Johnny continues after the body decision; outsiders were not witnesses to the private choice.",
+          "sourceIds": [
+            "al-changes"
+          ]
+        },
+        {
+          "key": "messages",
+          "description": "Partner status changes the messages associated with the ending.",
+          "sourceIds": [
+            "al-panam",
+            "al-romance"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "aldecaldos.temperance.panam-message",
+          "description": "Use an observed message variant rather than assigning universal knowledge to Panam.",
+          "topic": "panam.temperance-response",
+          "outcomes": [
+            {
+              "key": "romantic-message-observed",
+              "description": "The romantic reaction, if actually recorded, may express anger or a belief about Johnny; beliefs are not proof she witnessed the body decision.",
+              "affects": [
+                "panam-palmer"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "al-panam"
+              ]
+            },
+            {
+              "key": "platonic-update-observed",
+              "description": "The nonromantic update does not establish that Panam understands what happened to V.",
+              "affects": [
+                "panam-palmer"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "al-panam"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-panam"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact ending message contents must be extracted before generating specific accusation wording. No unconditional automatic memory from merely completing Changes."
+          }
+        }
+      ],
+      "sourceIds": [
+        "al-changes",
+        "al-panam",
+        "al-romance"
+      ],
+      "uncertainties": [
+        "The consulted character summary says the romantic message differs but is incomplete in the returned section; do not author a verbatim or detailed inferred accusation.",
+        "The mod must distinguish speaking to V in an earlier save from Johnny after this finale."
+      ]
+    },
+    {
+      "key": "things-done-changed",
+      "title": "Things Done Changed",
+      "category": "main",
+      "game": "phantom-liberty",
+      "nativeIds": [],
+      "characters": [
+        "panam-palmer",
+        "mitch-anderson"
+      ],
+      "synopsis": "In the Phantom Liberty Tower epilogue, V returns after two years and finds that earlier relationships have changed.",
+      "stages": [
+        {
+          "key": "awakening",
+          "description": "V wakes in 2079 after the two-year absence.",
+          "sourceIds": [
+            "al-tower"
+          ]
+        },
+        {
+          "key": "panam-call",
+          "description": "Panam does not answer V's call.",
+          "sourceIds": [
+            "al-tower"
+          ]
+        },
+        {
+          "key": "mitch-message",
+          "description": "Mitch asks V to leave her alone rather than keep calling.",
+          "sourceIds": [
+            "al-tower"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "aldecaldos.tower.contact",
+          "description": "This branch establishes an unavailable relationship, not a theory explaining Panam's fate.",
+          "topic": "panam.tower-contact",
+          "outcomes": [
+            {
+              "key": "unanswered",
+              "description": "V's call goes unanswered. That alone proves neither death nor a specific private reason.",
+              "affects": [
+                "panam-palmer"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "al-tower"
+              ]
+            },
+            {
+              "key": "mitch-boundary-message",
+              "description": "Mitch says Panam does not want contact and asks V not to keep trying; if they were romantically involved, their prior relationship is no longer active.",
+              "affects": [
+                "mitch-anderson",
+                "panam-palmer"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "al-tower"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-tower"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "2079 ending stage and actual call/message receipt required. Never propagate this state into a pre-surgery 2077 save."
+          }
+        }
+      ],
+      "sourceIds": [
+        "al-tower"
+      ],
+      "uncertainties": [
+        "No supported claim establishes that Panam died or that Mitch is lying.",
+        "Mitch knows what he conveys; the exact private circumstances behind Panam's boundary are not given.",
+        "The absence is two years in this branch, not a real-world time difference since the user last launched the game."
+      ]
+    },
+    {
+      "key": "black-steel-in-the-hour-of-chaos",
+      "title": "Black Steel In The Hour of Chaos",
+      "category": "main",
+      "game": "phantom-liberty",
+      "nativeIds": [],
+      "characters": [
+        "carol-emeka"
+      ],
+      "synopsis": "V may seek Carol's help locating a MaxTac convoy; she limits her involvement to protect the family.",
+      "stages": [
+        {
+          "key": "request",
+          "description": "The appropriate route in Phantom Liberty presents a need for a netrunner.",
+          "sourceIds": [
+            "al-blacksteel"
+          ]
+        },
+        {
+          "key": "carol-declines",
+          "description": "Carol refuses the breach because of the exposure it creates for her people.",
+          "sourceIds": [
+            "al-blacksteel-guide"
+          ]
+        },
+        {
+          "key": "gift",
+          "description": "She can offer equipment despite refusing the hack; another netrunner still supplies the convoy data.",
+          "sourceIds": [
+            "al-blacksteel"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "aldecaldos.blacksteel.carol-call",
+          "description": "Her refusal and willingness to help in a narrower way coexist.",
+          "topic": "carol.maxtac-boundary",
+          "outcomes": [
+            {
+              "key": "declined-offered-gift",
+              "description": "Carol declines to obtain the MaxTac data but offers material support.",
+              "affects": [
+                "carol-emeka"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "al-blacksteel",
+                "al-blacksteel-guide"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-blacksteel",
+            "al-blacksteel-guide"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "No installed quest/scene condition has been verified. Require an observed branch/stage receipt; a missing flag is not a negative outcome."
+          }
+        },
+        {
+          "id": "aldecaldos.blacksteel.gift",
+          "description": "The offer, selection and actual collection are separate.",
+          "topic": "carol.maxtac-gift",
+          "outcomes": [
+            {
+              "key": "offered",
+              "description": "A gift is offered, with exact item unresolved until the choice is captured.",
+              "affects": [
+                "carol-emeka"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "al-blacksteel"
+              ]
+            },
+            {
+              "key": "collected",
+              "description": "V collected the selected gift; identify its real item from inventory/quest evidence rather than guessing from a guide.",
+              "affects": [
+                "carol-emeka"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "al-blacksteel"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-blacksteel"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "No installed quest/scene condition has been verified. Require an observed branch/stage receipt; a missing flag is not a negative outcome."
+          }
+        }
+      ],
+      "sourceIds": [
+        "al-blacksteel",
+        "al-blacksteel-guide"
+      ],
+      "uncertainties": [
+        "Guides conflict on whether Life During Wartime or later Panam progress unlocks Carol's option. Mapping is intentionally withheld.",
+        "Her assistance does not make her a witness to MaxTac combat or Cynosure.",
+        "No particular weapon, cyberware or quickhack is assumed from the generic gift offer."
+      ]
+    },
+    {
+      "key": "gig-dancing-on-a-minefield",
+      "title": "Gig: Dancing on a Minefield",
+      "category": "gig",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "dakota-smith"
+      ],
+      "synopsis": "Dakota wants a stranded smuggling vehicle for the routes stored in its navigation data.",
+      "stages": [
+        {
+          "key": "briefing",
+          "description": "The request establishes the vehicle's value and the minefield hazard, not the smuggler's exact cause of death.",
+          "sourceIds": [
+            "al-minefield"
+          ]
+        },
+        {
+          "key": "recovery",
+          "description": "V finds and extracts the vehicle; an optional body examination can add information privately.",
+          "sourceIds": [
+            "al-minefield"
+          ]
+        },
+        {
+          "key": "delivery",
+          "description": "The vehicle reaches Dakota's garage.",
+          "sourceIds": [
+            "al-minefield"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "aldecaldos.minefield.vehicle",
+          "description": "Recovery is complete only with actual delivery.",
+          "topic": "dakota.smuggling-route-recovery",
+          "outcomes": [
+            {
+              "key": "delivered",
+              "description": "Dakota received the requested vehicle and route data.",
+              "affects": [
+                "dakota-smith"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "al-minefield"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-minefield"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "No installed quest conditions verified. Require delivery/branch completion plus the appropriate character's communication receipt; hidden actions are not automatically shared."
+          }
+        },
+        {
+          "id": "aldecaldos.minefield.body",
+          "description": "Optional investigation is not part of every successful completion.",
+          "topic": "dakota.minefield-investigation",
+          "outcomes": [
+            {
+              "key": "examined",
+              "description": "V examined the body; no exact cause or identity is authored here without the inspected shard/scene.",
+              "affects": [],
+              "knowledge": "private",
+              "sourceIds": [
+                "al-minefield"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-minefield"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "No installed quest conditions verified. Require delivery/branch completion plus the appropriate character's communication receipt; hidden actions are not automatically shared."
+          }
+        }
+      ],
+      "sourceIds": [
+        "al-minefield"
+      ],
+      "uncertainties": [
+        "Patch 2.0 added a chase; older guides may omit it. Do not remember a chase unless it occurred.",
+        "No medical cause of the smuggler's death is established by Dakota's speculative briefing."
+      ]
+    },
+    {
+      "key": "gig-flying-drugs",
+      "title": "Gig: Flying Drugs",
+      "category": "gig",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "dakota-smith"
+      ],
+      "synopsis": "Dakota asks V to stop whoever is intercepting her associate's delivery drones.",
+      "stages": [
+        {
+          "key": "signal",
+          "description": "A tracked drone leads to Union Railroad Station.",
+          "sourceIds": [
+            "al-flying"
+          ]
+        },
+        {
+          "key": "cause",
+          "description": "The antenna's interference is identified through evidence or inspection.",
+          "sourceIds": [
+            "al-flying"
+          ]
+        },
+        {
+          "key": "removal",
+          "description": "V disables the equipment and leaves.",
+          "sourceIds": [
+            "al-flying"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "aldecaldos.flying.antenna",
+          "description": "The threat-removal result is independent of the player's method.",
+          "topic": "dakota.delivery-drones",
+          "outcomes": [
+            {
+              "key": "disabled",
+              "description": "The interception antenna was disabled, removing this identified threat to Mosquito's deliveries.",
+              "affects": [
+                "dakota-smith"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "al-flying"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-flying"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "No installed quest conditions verified. Require delivery/branch completion plus the appropriate character's communication receipt; hidden actions are not automatically shared."
+          }
+        },
+        {
+          "id": "aldecaldos.flying.method",
+          "description": "Preserve the method only if the actual action or closeout establishes it.",
+          "topic": "dakota.antenna-method",
+          "outcomes": [
+            {
+              "key": "power-cut",
+              "description": "V cut power rather than destroying the antenna.",
+              "affects": [],
+              "knowledge": "private",
+              "sourceIds": [
+                "al-flying"
+              ]
+            },
+            {
+              "key": "destroyed",
+              "description": "V destroyed the antenna; this alone does not specify the weapon or every collateral casualty.",
+              "affects": [],
+              "knowledge": "private",
+              "sourceIds": [
+                "al-flying"
+              ]
+            },
+            {
+              "key": "remote-overload",
+              "description": "The remote overload method has a distinct reported closeout; only that evidenced response can make it Dakota's knowledge.",
+              "affects": [
+                "dakota-smith"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "al-flying"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-flying"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "No installed quest conditions verified. Require delivery/branch completion plus the appropriate character's communication receipt; hidden actions are not automatically shared."
+          }
+        }
+      ],
+      "sourceIds": [
+        "al-flying"
+      ],
+      "uncertainties": [
+        "Attribute checks in the source are version-specific; do not use them as proof of what happened.",
+        "A disabled antenna is not a guarantee all future shipments arrive safely."
+      ]
+    },
+    {
+      "key": "gig-big-petes-got-big-problems",
+      "title": "Gig: Big Pete's Got Big Problems",
+      "category": "gig",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "dakota-smith"
+      ],
+      "synopsis": "Dakota's obligation to contacts puts Wraith mechanic Big Pete in V's path; removal can mean killing him or allowing him to leave.",
+      "stages": [
+        {
+          "key": "briefing",
+          "description": "The target and Dakota's obligation are stated.",
+          "sourceIds": [
+            "al-pete"
+          ]
+        },
+        {
+          "key": "garage",
+          "description": "V reaches Pete in the guarded garage; optional correspondence supplies background.",
+          "sourceIds": [
+            "al-pete"
+          ]
+        },
+        {
+          "key": "plea",
+          "description": "Pete offers money and departure in exchange for being spared.",
+          "sourceIds": [
+            "al-pete"
+          ]
+        },
+        {
+          "key": "closeout",
+          "description": "Dakota reacts to the actual result.",
+          "sourceIds": [
+            "al-pete"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "aldecaldos.pete.resolution",
+          "description": "Lethal and nonlethal resolutions have distinct meanings.",
+          "topic": "dakota.big-pete",
+          "outcomes": [
+            {
+              "key": "killed",
+              "description": "Pete was killed and the contract closed on that basis.",
+              "affects": [
+                "dakota-smith"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "al-pete"
+              ]
+            },
+            {
+              "key": "spared-paid",
+              "description": "Pete was spared, paid V and promised to leave; Dakota accepts the problem's removal.",
+              "affects": [
+                "dakota-smith"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "al-pete"
+              ]
+            },
+            {
+              "key": "spared-unpaid",
+              "description": "Pete was spared without V accepting his money and promised to leave.",
+              "affects": [
+                "dakota-smith"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "al-pete"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-pete"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "The response to the contract can inform Dakota. A private bribe amount or unseen correspondence still requires disclosure and must not leak to all companions."
+          }
+        },
+        {
+          "id": "aldecaldos.pete.tiny-mike",
+          "description": "A cross-gig acquaintance is a separate knowledge gate.",
+          "topic": "big-pete.tiny-mike-link",
+          "outcomes": [
+            {
+              "key": "recognized",
+              "description": "Pete recognizes V's earlier help to Tiny Mike when that encounter occurs.",
+              "affects": [],
+              "knowledge": "participant",
+              "sourceIds": [
+                "al-pete"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-pete"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "No installed quest conditions verified. Require delivery/branch completion plus the appropriate character's communication receipt; hidden actions are not automatically shared."
+          }
+        }
+      ],
+      "sourceIds": [
+        "al-pete"
+      ],
+      "uncertainties": [
+        "No evidence here confirms where Pete ultimately settles after promising to leave.",
+        "Incapacitation and transport variants are not fully enumerated in the inspected source; do not coerce them into death.",
+        "Hidden correspondence about money is not Dakota's eyewitness knowledge."
+      ]
+    },
+    {
+      "key": "gig-no-fixers",
+      "title": "Gig: No Fixers",
+      "category": "gig",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "dakota-smith",
+        "iris-tanner"
+      ],
+      "synopsis": "V rescues independent techie Iris Tanner from the Wraiths; recovering her vehicle affects the rescue's reception.",
+      "stages": [
+        {
+          "key": "distress",
+          "description": "Iris's improvised radio SOS reaches Dakota.",
+          "sourceIds": [
+            "al-nofixers"
+          ]
+        },
+        {
+          "key": "contact",
+          "description": "V finds Iris alive and hears her vehicle request.",
+          "sourceIds": [
+            "al-nofixers"
+          ]
+        },
+        {
+          "key": "extraction",
+          "description": "V chooses whether to retrieve Iris's own van.",
+          "sourceIds": [
+            "al-nofixers"
+          ]
+        },
+        {
+          "key": "garage",
+          "description": "Dakota and Iris discuss the result at the garage.",
+          "sourceIds": [
+            "al-iris"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "aldecaldos.nofixers.rescue",
+          "description": "Iris's safety and the return of her equipment are distinct results.",
+          "topic": "iris.rescue",
+          "outcomes": [
+            {
+              "key": "delivered-with-van",
+              "description": "Iris reached Dakota with her vehicle and equipment; V earned the additional goodwill/reward path.",
+              "affects": [
+                "dakota-smith",
+                "iris-tanner"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "al-nofixers",
+                "al-iris"
+              ]
+            },
+            {
+              "key": "delivered-without-van",
+              "description": "Iris reached Dakota but her vehicle was left behind; Dakota still pays while both women express dissatisfaction.",
+              "affects": [
+                "dakota-smith",
+                "iris-tanner"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "al-nofixers",
+                "al-iris"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-nofixers",
+            "al-iris"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "No installed quest conditions verified. Require delivery/branch completion plus the appropriate character's communication receipt; hidden actions are not automatically shared."
+          }
+        },
+        {
+          "id": "aldecaldos.nofixers.followup",
+          "description": "A promised extra reward is not automatically collected.",
+          "topic": "iris.rescue-reward",
+          "outcomes": [
+            {
+              "key": "message-received",
+              "description": "Iris's follow-up reports an additional reward; do not invent its collection or an enduring employment contract.",
+              "affects": [
+                "iris-tanner"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "al-iris"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-iris"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "No installed quest conditions verified. Require delivery/branch completion plus the appropriate character's communication receipt; hidden actions are not automatically shared."
+          }
+        }
+      ],
+      "sourceIds": [
+        "al-nofixers",
+        "al-iris"
+      ],
+      "uncertainties": [
+        "Rescuing Iris does not make her a permanent member of V's party or an enthusiastic employee of Dakota.",
+        "Vehicle absence after despawn is not proof V abandoned it.",
+        "A copied Iris model before the rescue cannot know V already saved her."
+      ]
+    },
+    {
+      "key": "gig-trevors-last-ride",
+      "title": "Gig: Trevor's Last Ride",
+      "category": "gig",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "dakota-smith"
+      ],
+      "synopsis": "Dakota arranges the return of Trevor's remains to his relatives, whose purpose is burial rather than revenge.",
+      "stages": [
+        {
+          "key": "family-request",
+          "description": "The family requests recovery; Dakota suspects the outcome from the attacked vehicle.",
+          "sourceIds": [
+            "al-trevor"
+          ]
+        },
+        {
+          "key": "identification",
+          "description": "V locates and identifies Trevor's body.",
+          "sourceIds": [
+            "al-trevor"
+          ]
+        },
+        {
+          "key": "handoff",
+          "description": "The remains are placed in the recovery vehicle.",
+          "sourceIds": [
+            "al-trevor"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "aldecaldos.trevor.remains",
+          "description": "Identification and return have separate emotional meanings.",
+          "topic": "trevor.remains",
+          "outcomes": [
+            {
+              "key": "identified",
+              "description": "V identified Trevor's remains; the body has not yet necessarily reached its intended recovery handoff.",
+              "affects": [],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "al-trevor"
+              ]
+            },
+            {
+              "key": "delivered",
+              "description": "The body was recovered for Trevor's relatives to bury.",
+              "affects": [
+                "dakota-smith"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "al-trevor"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-trevor"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "No installed quest conditions verified. Require delivery/branch completion plus the appropriate character's communication receipt; hidden actions are not automatically shared."
+          }
+        }
+      ],
+      "sourceIds": [
+        "al-trevor"
+      ],
+      "uncertainties": [
+        "This is not a branch where Trevor is rescued alive.",
+        "Deaths among Wraith guards are not automatically desired revenge by Trevor's parents.",
+        "Family kinship to specific playable companions is not established."
+      ]
+    },
+    {
+      "key": "gig-mia",
+      "title": "Gig: MIA",
+      "category": "gig",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "dakota-smith"
+      ],
+      "synopsis": "A compromised extraction jeopardizes Dakota's promise to Benedict McAdams.",
+      "stages": [
+        {
+          "key": "missing-driver",
+          "description": "Dakota reports the route deviation and tracks Ben's implant.",
+          "sourceIds": [
+            "al-mia"
+          ]
+        },
+        {
+          "key": "betrayal-evidence",
+          "description": "V discovers Jason holding Ben for Militech.",
+          "sourceIds": [
+            "al-mia"
+          ]
+        },
+        {
+          "key": "rescue",
+          "description": "V reaches Ben and arranges transport.",
+          "sourceIds": [
+            "al-mia"
+          ]
+        },
+        {
+          "key": "handoff",
+          "description": "Ben leaves with the replacement driver Starkey.",
+          "sourceIds": [
+            "al-mia"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "aldecaldos.mia.betrayal",
+          "description": "Suspicion becomes a supported finding only after evidence is obtained.",
+          "topic": "jason.wildriver-betrayal",
+          "outcomes": [
+            {
+              "key": "confirmed",
+              "description": "V learned that Jason had sold out Ben to Militech; Dakota can know the finding when the job communicates it.",
+              "affects": [
+                "dakota-smith"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "al-mia"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-mia"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "No installed quest conditions verified. Require delivery/branch completion plus the appropriate character's communication receipt; hidden actions are not automatically shared."
+          }
+        },
+        {
+          "id": "aldecaldos.mia.jason",
+          "description": "Jason's fate is not determined merely by rescuing Ben.",
+          "topic": "jason.wildriver-fate",
+          "outcomes": [
+            {
+              "key": "killed",
+              "description": "V killed Jason during the rescue.",
+              "affects": [],
+              "knowledge": "private",
+              "sourceIds": [
+                "al-mia"
+              ]
+            },
+            {
+              "key": "incapacitated",
+              "description": "V incapacitated Jason without a confirmed death.",
+              "affects": [],
+              "knowledge": "private",
+              "sourceIds": [
+                "al-mia"
+              ]
+            },
+            {
+              "key": "avoided",
+              "description": "V extracted Ben without neutralizing Jason.",
+              "affects": [],
+              "knowledge": "private",
+              "sourceIds": [
+                "al-mia"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-mia"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Do not publish hidden combat details to Dakota or the clan without a report or witnessed involvement. Live entity absence is not a death receipt."
+          }
+        },
+        {
+          "id": "aldecaldos.mia.extraction",
+          "description": "The promised safe handoff actually took place.",
+          "topic": "ben.extraction",
+          "outcomes": [
+            {
+              "key": "delivered",
+              "description": "Ben was handed to Starkey, fulfilling the replacement extraction.",
+              "affects": [
+                "dakota-smith"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "al-mia"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-mia"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "No installed quest conditions verified. Require delivery/branch completion plus the appropriate character's communication receipt; hidden actions are not automatically shared."
+          }
+        }
+      ],
+      "sourceIds": [
+        "al-mia"
+      ],
+      "uncertainties": [
+        "The later camp encounter is separate from the driver handoff.",
+        "The political background is client-sensitive; do not blurt an assassination briefing into unrelated group chat.",
+        "No blanket death inference from Jason no longer being present at the house."
+      ]
+    },
+    {
+      "key": "gig-sparring-partner",
+      "title": "Gig: Sparring Partner",
+      "category": "gig",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "dakota-smith"
+      ],
+      "synopsis": "Dakota wants salvageable training software to help a promising Badlands boxer.",
+      "stages": [
+        {
+          "key": "briefing",
+          "description": "The request concerns training resources rather than an immediate boxing match.",
+          "sourceIds": [
+            "al-sparring"
+          ]
+        },
+        {
+          "key": "landfill",
+          "description": "V finds the broken training bot and removes its shard.",
+          "sourceIds": [
+            "al-sparring"
+          ]
+        },
+        {
+          "key": "drop-point",
+          "description": "The software reaches the requested handoff.",
+          "sourceIds": [
+            "al-sparring"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "aldecaldos.sparring.software",
+          "description": "A recovered shard is not yet delivery.",
+          "topic": "red-joe.training-software",
+          "outcomes": [
+            {
+              "key": "recovered",
+              "description": "V recovered the bot's software; the job has not necessarily been handed in.",
+              "affects": [],
+              "knowledge": "private",
+              "sourceIds": [
+                "al-sparring"
+              ]
+            },
+            {
+              "key": "delivered",
+              "description": "The software was delivered for Red Joe's training.",
+              "affects": [
+                "dakota-smith"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "al-sparring"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-sparring"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "No installed quest conditions verified. Require delivery/branch completion plus the appropriate character's communication receipt; hidden actions are not automatically shared."
+          }
+        }
+      ],
+      "sourceIds": [
+        "al-sparring"
+      ],
+      "uncertainties": [
+        "The inspected walkthrough is incomplete about entry, purchase and stealth variants, so none is invented.",
+        "No later professional title or tournament victory for Red Joe is established."
+      ]
+    },
+    {
+      "key": "gig-goodbye-night-city",
+      "title": "Gig: Goodbye, Night City",
+      "category": "gig",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "dakota-smith"
+      ],
+      "synopsis": "Archibald asks Dakota to help his detained friend Bruce escape Militech border custody.",
+      "stages": [
+        {
+          "key": "briefing",
+          "description": "Dakota explains the friendship and asks for a quiet extraction.",
+          "sourceIds": [
+            "al-goodbye"
+          ]
+        },
+        {
+          "key": "detention",
+          "description": "V locates Bruce in the compound.",
+          "sourceIds": [
+            "al-goodbye"
+          ]
+        },
+        {
+          "key": "escape",
+          "description": "V escorts him out while a no-personnel-killed condition is tracked separately.",
+          "sourceIds": [
+            "al-goodbye"
+          ]
+        },
+        {
+          "key": "handoff",
+          "description": "Bruce meets Archie at the extraction point.",
+          "sourceIds": [
+            "al-goodbye"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "aldecaldos.goodbye.extraction",
+          "description": "Bruce actually reaches the client handoff.",
+          "topic": "bruce.rescue",
+          "outcomes": [
+            {
+              "key": "delivered",
+              "description": "Bruce reached Archie after escaping detention.",
+              "affects": [
+                "dakota-smith"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "al-goodbye"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-goodbye"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "No installed quest conditions verified. Require delivery/branch completion plus the appropriate character's communication receipt; hidden actions are not automatically shared."
+          }
+        },
+        {
+          "id": "aldecaldos.goodbye.casualties",
+          "description": "The optional casualty requirement is distinct from being undetected.",
+          "topic": "bruce.rescue-collateral",
+          "outcomes": [
+            {
+              "key": "no-personnel-killed",
+              "description": "The game's no-kill objective completed; drone destruction is not automatically a personnel death.",
+              "affects": [
+                "dakota-smith"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "al-goodbye"
+              ]
+            },
+            {
+              "key": "personnel-killed",
+              "description": "The no-kill condition failed due to personnel deaths; do not claim a clean bonus.",
+              "affects": [
+                "dakota-smith"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "al-goodbye"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-goodbye"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Use actual optional-objective result, not only alarm/combat state. Source notes some body disposal is lethal even if the initial takedown was not."
+          }
+        },
+        {
+          "id": "aldecaldos.goodbye.future-membership",
+          "description": "Bruce's later affiliation requires an actual later encounter.",
+          "topic": "bruce.aldecaldo-membership",
+          "outcomes": [
+            {
+              "key": "seen-at-camp",
+              "description": "Bruce is encountered with the family in the chosen Aldecaldo finale; do not assume this immediately at extraction.",
+              "affects": [
+                "dakota-smith"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "al-bruce",
+                "al-together"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-bruce",
+            "al-together"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "No installed quest conditions verified. Require delivery/branch completion plus the appropriate character's communication receipt; hidden actions are not automatically shared."
+          }
+        }
+      ],
+      "sourceIds": [
+        "al-goodbye",
+        "al-bruce"
+      ],
+      "uncertainties": [
+        "A successful rescue does not imply Militech never noticed.",
+        "Archie's corporate job does not make every Militech employee a friend.",
+        "No specific post-crossing home or future work is established."
+      ]
+    },
+    {
+      "key": "gig-radar-love",
+      "title": "Gig: Radar Love",
+      "category": "gig",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "dakota-smith"
+      ],
+      "synopsis": "Dakota seeks a Militech radar prototype so the Aldecaldos can study how to counter surveillance of their transports.",
+      "stages": [
+        {
+          "key": "briefing",
+          "description": "The prototype threatens routes; Dakota requests the mobile unit.",
+          "sourceIds": [
+            "al-radar"
+          ]
+        },
+        {
+          "key": "acquisition",
+          "description": "V obtains the radar vehicle from the Militech outpost.",
+          "sourceIds": [
+            "al-radar"
+          ]
+        },
+        {
+          "key": "garage-delivery",
+          "description": "The unit reaches Dakota's garage.",
+          "sourceIds": [
+            "al-radar"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "aldecaldos.radar.prototype",
+          "description": "Acquisition, delivery and a working countermeasure must not be collapsed.",
+          "topic": "aldecaldos.radar-prototype",
+          "outcomes": [
+            {
+              "key": "acquired",
+              "description": "V has obtained the prototype but has not necessarily delivered it.",
+              "affects": [],
+              "knowledge": "private",
+              "sourceIds": [
+                "al-radar"
+              ]
+            },
+            {
+              "key": "delivered",
+              "description": "Dakota received the P9D/2.161 unit for analysis.",
+              "affects": [
+                "dakota-smith"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "al-radar"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-radar"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "No installed quest conditions verified. Require delivery/branch completion plus the appropriate character's communication receipt; hidden actions are not automatically shared."
+          }
+        }
+      ],
+      "sourceIds": [
+        "al-radar"
+      ],
+      "uncertainties": [
+        "The source disagrees with itself on the motel name; do not use the label as native identity.",
+        "No inspected source confirms a completed countermeasure after the delivery, so do not make all nomad travel magically invisible.",
+        "Route and casualties remain unmapped optional details."
+      ]
+    },
+    {
+      "key": "every-grain-of-sand",
+      "title": "Every Grain of Sand",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "dakota-smith"
+      ],
+      "synopsis": "Dakota recognizes V's completed Badlands contracts with a vehicle reward.",
+      "stages": [
+        {
+          "key": "recognition",
+          "description": "The actual message acknowledges completion of her gig set.",
+          "sourceIds": [
+            "al-reward"
+          ]
+        },
+        {
+          "key": "collection",
+          "description": "V collects the Saguaro at the Megabuilding H10 garage.",
+          "sourceIds": [
+            "al-reward"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "aldecaldos.reward.recognition",
+          "description": "The reward offer and collection are separate.",
+          "topic": "dakota.contract-series-complete",
+          "outcomes": [
+            {
+              "key": "offered",
+              "description": "Dakota has sent the thank-you and reward offer after her required gigs.",
+              "affects": [
+                "dakota-smith"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "al-reward"
+              ]
+            },
+            {
+              "key": "collected",
+              "description": "V has collected the offered Thorton Mackinaw Saguaro.",
+              "affects": [
+                "dakota-smith"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "al-reward"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "al-reward"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Do not infer all individual optional gig choices from the aggregate reward. Vehicle ownership acquired elsewhere is not proof of this quest."
+          }
+        }
+      ],
+      "sourceIds": [
+        "al-reward"
+      ],
+      "uncertainties": [
+        "Introduced in patch 1.5; old save migration and version-specific prerequisite behavior need inspection.",
+        "Completing Dakota's gig set is not completion of every Badlands scanner activity or every game job."
+      ]
+    }
+  ]
+}

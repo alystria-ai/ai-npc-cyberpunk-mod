@@ -1,0 +1,3416 @@
+{
+  "version": 1,
+  "id": "cyberpunk-native-silverhand",
+  "revision": 1,
+  "gameVersions": [
+    "2.31"
+  ],
+  "profileKeys": [
+    "johnny-silverhand",
+    "rogue-amendiares",
+    "kerry-eurodyne",
+    "spider-murphy",
+    "santiago",
+    "thompson",
+    "adam-smasher",
+    "nancy-hartley"
+  ],
+  "sources": [
+    {
+      "id": "silverhand-native.sq028-07-trashy-beach-scene",
+      "kind": "native",
+      "locator": "base\\quest\\side_quests\\sq028\\scenes\\sq028_07_trashy_beach.scene",
+      "title": "Installed Cyberpunk 2077 2.31 sq028_07_trashy_beach.scene"
+    },
+    {
+      "id": "native-story.silverhand-boat",
+      "url": "https://www.powerpyx.com/cyberpunk-2077-boat-drinks-walkthrough/",
+      "title": "Boat Drinks — PowerPyx",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Cruise; destruction; intimacy; beach commitment",
+      "notes": "Body inspected. Some guides disagree on mandatory vandalism/dialogue choices; the romance commitment must be an explicit verified outcome."
+    },
+    {
+      "id": "native-story.silverhand-kerry-romance",
+      "url": "https://www.pcgamer.com/cyberpunk-2077-kerry-eurodyne-romance/",
+      "title": "How to romance Kerry Eurodyne — PC Gamer",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Boat Drinks and Off the Leash",
+      "notes": "Article inspected; separates terrace kiss from final commitment and notes native masculine body/voice eligibility."
+    },
+    {
+      "id": "silverhand-native.sq011-08b-denny-henry-scene",
+      "kind": "native",
+      "locator": "base\\quest\\side_quests\\sq011\\scenes\\sq011_08b_denny_henry.scene",
+      "title": "Installed Cyberpunk 2077 2.31 sq011_08b_denny_henry.scene"
+    },
+    {
+      "id": "native-story.silverhand-second",
+      "url": "https://www.pcgamer.com/cyberpunk-2077-second-conflict-dum-dum-denny-or-henry/",
+      "title": "Second Conflict: Dum Dum, Denny or Henry — PC Gamer",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Totentanz leadership variants; band-member choice",
+      "notes": "Indexed walkthrough inspected; cross-checked against game transcript and Game8. Do not infer leadership from a single absent death flag."
+    },
+    {
+      "id": "native-story.silverhand-transcript",
+      "url": "https://arasakas-ronin.netlify.app/",
+      "title": "Cyberpunk 2077 transcript mirror supplied by user",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Love Like Fire; Never Fade Away; Chippin' In; Holdin' On; Second Conflict",
+      "notes": "Community transcription inspected in named sections. Branch placeholders and incomplete lines occur. Used for delivery and short branch corroboration, not as proof all branches or native variables were extracted."
+    },
+    {
+      "id": "silverhand-native.sq017-18-premiere-scene",
+      "kind": "native",
+      "locator": "base\\quest\\side_quests\\sq017\\scenes\\sq017_18_premiere.scene",
+      "title": "Installed Cyberpunk 2077 2.31 sq017_18_premiere.scene"
+    },
+    {
+      "id": "native-story.silverhand-leash",
+      "url": "https://www.powerpyx.com/cyberpunk-2077-off-the-leash-walkthrough/",
+      "title": "Off the Leash — PowerPyx",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Dark Matter; collaboration state; terrace",
+      "notes": "Body inspected. Its suggestion that the terrace kiss is mandatory conflicts with other guides; record the kiss independently, never equate it with an established partnership."
+    },
+    {
+      "id": "silverhand-native.sq017-10-us-crack-intro-scene",
+      "kind": "native",
+      "locator": "base\\quest\\side_quests\\sq017\\scenes\\sq017_10_us_crack_intro.scene",
+      "title": "Installed Cyberpunk 2077 2.31 sq017_10_us_crack_intro.scene"
+    },
+    {
+      "id": "native-story.silverhand-uscracks",
+      "url": "https://www.powerpyx.com/cyberpunk-2077-i-dont-wanna-hear-it-walkthrough/",
+      "title": "I Don't Wanna Hear It — PowerPyx",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Backstage confrontation; peaceful versus threats",
+      "notes": "Walkthrough body inspected. Published for the launch game; timing, attribute thresholds and unlock conditions require current native corroboration."
+    },
+    {
+      "id": "silverhand-native.sq028-03-beach-questphase",
+      "kind": "native",
+      "locator": "base\\quest\\side_quests\\sq028\\phases\\sq028_03_beach.questphase",
+      "title": "Installed Cyberpunk 2077 2.31 sq028_03_beach.questphase"
+    },
+    {
+      "id": "silverhand-native.sq011-denny-questphase",
+      "kind": "native",
+      "locator": "base\\quest\\side_quests\\sq011\\phases\\sq011_denny.questphase",
+      "title": "Installed Cyberpunk 2077 2.31 sq011_denny.questphase"
+    },
+    {
+      "id": "silverhand-native.sq017-02c-club-attack-questphase",
+      "kind": "native",
+      "locator": "base\\quest\\side_quests\\sq017\\phases\\sq017_02c_club_attack.questphase",
+      "title": "Installed Cyberpunk 2077 2.31 sq017_02c_club_attack.questphase"
+    },
+    {
+      "id": "silverhand-native.sq017-03b-premiere-concert-questphase",
+      "kind": "native",
+      "locator": "base\\quest\\side_quests\\sq017\\phases\\sq017_03b_premiere_concert.questphase",
+      "title": "Installed Cyberpunk 2077 2.31 sq017_03b_premiere_concert.questphase"
+    },
+    {
+      "id": "silverhand-native.sq011-concert-questphase",
+      "kind": "native",
+      "locator": "base\\quest\\side_quests\\sq011\\phases\\sq011_concert.questphase",
+      "title": "Installed Cyberpunk 2077 2.31 sq011_concert.questphase"
+    },
+    {
+      "id": "native-story.silverhand-supreme",
+      "url": "https://www.powerpyx.com/cyberpunk-2077-a-like-supreme-walkthrough/",
+      "title": "A Like Supreme — PowerPyx",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Reunion performance",
+      "notes": "Page metadata inspected; performance details checked in transcript. Native lineup and exact guest presence require capture."
+    },
+    {
+      "id": "silverhand-native.q116-01-adam-smasher-scene",
+      "kind": "native",
+      "locator": "base\\quest\\main_quests\\part1\\q116\\scenes\\q116_01_adam_smasher.scene",
+      "title": "Installed Cyberpunk 2077 2.31 q116_01_adam_smasher.scene"
+    },
+    {
+      "id": "native-story.silverhand-knockin",
+      "url": "https://cyberpunk.fandom.com/wiki/Knockin%27_on_Heaven%27s_Door",
+      "title": "Knockin' on Heaven's Door — Cyberpunk Wiki",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Arasaka assault objectives; Smasher; Mikoshi",
+      "notes": "Search-indexed page content inspected. Direct browsing was restricted; no claim of a fresh full-page scrape."
+    },
+    {
+      "id": "silverhand-native.sq031-04-grayson-scene",
+      "kind": "native",
+      "locator": "base\\quest\\side_quests\\sq031\\scenes\\sq031_04_grayson.scene",
+      "title": "Installed Cyberpunk 2077 2.31 sq031_04_grayson.scene"
+    },
+    {
+      "id": "native-story.silverhand-chippin",
+      "url": "https://www.powerpyx.com/cyberpunk-2077-chippin-in-walkthrough/",
+      "title": "Chippin' In — PowerPyx",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Grayson; Porsche retrieval; oil-field conversation",
+      "notes": "Search-indexed body inspected after direct fetch timeouts. Exact oil-field predicate requires separate native evidence; car remains obtainable after killing Grayson."
+    },
+    {
+      "id": "silverhand-native.sq031-bushidox-questphase",
+      "kind": "native",
+      "locator": "base\\quest\\side_quests\\sq031\\phases\\sq031_bushidox.questphase",
+      "title": "Installed Cyberpunk 2077 2.31 sq031_bushidox.questphase"
+    },
+    {
+      "id": "native-story.silverhand-blistering",
+      "url": "https://www.gamepressure.com/cyberpunk-2077/blistering-love-rogue-johnny/zee027",
+      "title": "Blistering Love — Gamepressure",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Drive-in date and kiss",
+      "notes": "Search-indexed walkthrough inspected. Date concerns Johnny and Rogue; it does not establish a V–Rogue romance."
+    },
+    {
+      "id": "silverhand-native.sq031-08-movie-scene",
+      "kind": "native",
+      "locator": "base\\quest\\side_quests\\sq031\\scenes\\sq031_08_movie.scene",
+      "title": "Installed Cyberpunk 2077 2.31 sq031_08_movie.scene"
+    },
+    {
+      "id": "native-story.silverhand-rogue-romance",
+      "url": "https://www.pcgamer.com/all-cyberpunk-2077-romance-options-nudity/",
+      "title": "Cyberpunk 2077 romances — PC Gamer",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Rogue subsection",
+      "notes": "Rogue subsection inspected; corroborates brief interrupted intimacy and absence of a lasting romance with V."
+    }
+  ],
+  "evidence": [
+    {
+      "id": "silverhand-native.beach-committed",
+      "sourceId": "silverhand-native.sq028-07-trashy-beach-scene",
+      "kind": "native",
+      "locator": "Boat Drinks beach: choice node 59 ordinal 0 -> response section 60 -> writer 66. Scene English screenplay and actor joins establish accepting continued partnership. Positive historical outcome only; no claim that an ongoing relationship survives later breakups.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+        "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sq028_kerry_relationship",
+          "/value": 1,
+          "/setExactValue": 0
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/15/Data",
+          "expectedType": "scnChoiceNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/16/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/30"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/189"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/102"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/actors/0"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/playerActors/0"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/24/Data",
+          "expectedType": "scnQuestNode"
+        }
+      ]
+    },
+    {
+      "id": "silverhand-native.beach-declined",
+      "sourceId": "silverhand-native.sq028-07-trashy-beach-scene",
+      "kind": "native",
+      "locator": "Boat Drinks beach: choice node 59 ordinal 1 -> response section 61 -> writer 118. Scene English screenplay and actor joins establish explicitly treating the outing as one-off. Positive historical outcome only; no claim that an ongoing relationship survives later breakups.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+        "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/32/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sq028_kerry_dislike",
+          "/value": 1,
+          "/setExactValue": 0
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/15/Data",
+          "expectedType": "scnChoiceNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/17/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/33"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/190"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/111"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/actors/0"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/playerActors/0"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/24/Data",
+          "expectedType": "scnQuestNode"
+        }
+      ]
+    },
+    {
+      "id": "silverhand-native.lineup-denny",
+      "sourceId": "silverhand-native.sq011-08b-denny-henry-scene",
+      "kind": "native",
+      "locator": "Second Conflict: English choice node 261 ordinal 0 directly reaches writer 425. Kerry and Johnny scene actors are bound to their spawn sets; player is V. This establishes the chosen reunion performer, not whether the concert later happened or the excluded member became an enemy.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_08b_denny_henry.scene.json",
+        "assetSha256": "43f62deb4160dc6b09a8d5be53882669920ab6db781e473e6b57b3c21263f226",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/49/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sq011_denny_samurai",
+          "/value": 1,
+          "/setExactValue": 0
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_08b_denny_henry.scene.json",
+          "assetSha256": "43f62deb4160dc6b09a8d5be53882669920ab6db781e473e6b57b3c21263f226",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/24/Data",
+          "expectedType": "scnChoiceNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_08b_denny_henry.scene.json",
+          "assetSha256": "43f62deb4160dc6b09a8d5be53882669920ab6db781e473e6b57b3c21263f226",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/options/0"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_08b_denny_henry.scene.json",
+          "assetSha256": "43f62deb4160dc6b09a8d5be53882669920ab6db781e473e6b57b3c21263f226",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/337"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_08b_denny_henry.scene.json",
+          "assetSha256": "43f62deb4160dc6b09a8d5be53882669920ab6db781e473e6b57b3c21263f226",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/391"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_08b_denny_henry.scene.json",
+          "assetSha256": "43f62deb4160dc6b09a8d5be53882669920ab6db781e473e6b57b3c21263f226",
+          "jsonPointer": "/Data/RootChunk/actors/0"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_08b_denny_henry.scene.json",
+          "assetSha256": "43f62deb4160dc6b09a8d5be53882669920ab6db781e473e6b57b3c21263f226",
+          "jsonPointer": "/Data/RootChunk/actors/2"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_08b_denny_henry.scene.json",
+          "assetSha256": "43f62deb4160dc6b09a8d5be53882669920ab6db781e473e6b57b3c21263f226",
+          "jsonPointer": "/Data/RootChunk/playerActors/0"
+        }
+      ]
+    },
+    {
+      "id": "silverhand-native.lineup-henry",
+      "sourceId": "silverhand-native.sq011-08b-denny-henry-scene",
+      "kind": "native",
+      "locator": "Second Conflict: English choice node 261 ordinal 1 directly reaches writer 428. Kerry and Johnny scene actors are bound to their spawn sets; player is V. This establishes the chosen reunion performer, not whether the concert later happened or the excluded member became an enemy.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_08b_denny_henry.scene.json",
+        "assetSha256": "43f62deb4160dc6b09a8d5be53882669920ab6db781e473e6b57b3c21263f226",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/50/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sq011_henry_samurai",
+          "/value": 1,
+          "/setExactValue": 0
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_08b_denny_henry.scene.json",
+          "assetSha256": "43f62deb4160dc6b09a8d5be53882669920ab6db781e473e6b57b3c21263f226",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/24/Data",
+          "expectedType": "scnChoiceNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_08b_denny_henry.scene.json",
+          "assetSha256": "43f62deb4160dc6b09a8d5be53882669920ab6db781e473e6b57b3c21263f226",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/options/1"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_08b_denny_henry.scene.json",
+          "assetSha256": "43f62deb4160dc6b09a8d5be53882669920ab6db781e473e6b57b3c21263f226",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/338"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_08b_denny_henry.scene.json",
+          "assetSha256": "43f62deb4160dc6b09a8d5be53882669920ab6db781e473e6b57b3c21263f226",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/395"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_08b_denny_henry.scene.json",
+          "assetSha256": "43f62deb4160dc6b09a8d5be53882669920ab6db781e473e6b57b3c21263f226",
+          "jsonPointer": "/Data/RootChunk/actors/0"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_08b_denny_henry.scene.json",
+          "assetSha256": "43f62deb4160dc6b09a8d5be53882669920ab6db781e473e6b57b3c21263f226",
+          "jsonPointer": "/Data/RootChunk/actors/2"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_08b_denny_henry.scene.json",
+          "assetSha256": "43f62deb4160dc6b09a8d5be53882669920ab6db781e473e6b57b3c21263f226",
+          "jsonPointer": "/Data/RootChunk/playerActors/0"
+        }
+      ]
+    },
+    {
+      "id": "silverhand-native.terrace-kiss",
+      "sourceId": "silverhand-native.sq017-18-premiere-scene",
+      "kind": "native",
+      "locator": "Off the Leash: choice 204 kiss options -> sections 462/465 -> eligibility branch 474 -> actual kiss section 212 -> output stamp (2,3) -> writer 208. Non-kiss choice 204 ordinal 2 goes to section 468 instead. Eligibility alone is not consent; only the positive outcome writer qualifies.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/silverhand-uscracks/raw/base/base/quest/side_quests/sq017/scenes/sq017_18_premiere.scene.json",
+        "assetSha256": "6d8ff01c80f80ba6fa9a4d210a8b88a8458df9ae0a94360cbe68e59fcf0a1caa",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/35/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sq017_kerry_kiss",
+          "/value": 1,
+          "/setExactValue": 0
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/silverhand-uscracks/raw/base/base/quest/side_quests/sq017/scenes/sq017_18_premiere.scene.json",
+          "assetSha256": "6d8ff01c80f80ba6fa9a4d210a8b88a8458df9ae0a94360cbe68e59fcf0a1caa",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/32/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-uscracks/raw/base/base/quest/side_quests/sq017/scenes/sq017_18_premiere.scene.json",
+          "assetSha256": "6d8ff01c80f80ba6fa9a4d210a8b88a8458df9ae0a94360cbe68e59fcf0a1caa",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/95/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-uscracks/raw/base/base/quest/side_quests/sq017/scenes/sq017_18_premiere.scene.json",
+          "assetSha256": "6d8ff01c80f80ba6fa9a4d210a8b88a8458df9ae0a94360cbe68e59fcf0a1caa",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/96/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-uscracks/raw/base/base/quest/side_quests/sq017/scenes/sq017_18_premiere.scene.json",
+          "assetSha256": "6d8ff01c80f80ba6fa9a4d210a8b88a8458df9ae0a94360cbe68e59fcf0a1caa",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/98/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-uscracks/raw/base/base/quest/side_quests/sq017/scenes/sq017_18_premiere.scene.json",
+          "assetSha256": "6d8ff01c80f80ba6fa9a4d210a8b88a8458df9ae0a94360cbe68e59fcf0a1caa",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/99/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-uscracks/raw/base/base/quest/side_quests/sq017/scenes/sq017_18_premiere.scene.json",
+          "assetSha256": "6d8ff01c80f80ba6fa9a4d210a8b88a8458df9ae0a94360cbe68e59fcf0a1caa",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/38/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-uscracks/raw/base/base/quest/side_quests/sq017/scenes/sq017_18_premiere.scene.json",
+          "assetSha256": "6d8ff01c80f80ba6fa9a4d210a8b88a8458df9ae0a94360cbe68e59fcf0a1caa",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/options/0"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-uscracks/raw/base/base/quest/side_quests/sq017/scenes/sq017_18_premiere.scene.json",
+          "assetSha256": "6d8ff01c80f80ba6fa9a4d210a8b88a8458df9ae0a94360cbe68e59fcf0a1caa",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/546"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-uscracks/raw/base/base/quest/side_quests/sq017/scenes/sq017_18_premiere.scene.json",
+          "assetSha256": "6d8ff01c80f80ba6fa9a4d210a8b88a8458df9ae0a94360cbe68e59fcf0a1caa",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/606"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-uscracks/raw/base/base/quest/side_quests/sq017/scenes/sq017_18_premiere.scene.json",
+          "assetSha256": "6d8ff01c80f80ba6fa9a4d210a8b88a8458df9ae0a94360cbe68e59fcf0a1caa",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/172"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-uscracks/raw/base/base/quest/side_quests/sq017/scenes/sq017_18_premiere.scene.json",
+          "assetSha256": "6d8ff01c80f80ba6fa9a4d210a8b88a8458df9ae0a94360cbe68e59fcf0a1caa",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/692"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-uscracks/raw/base/base/quest/side_quests/sq017/scenes/sq017_18_premiere.scene.json",
+          "assetSha256": "6d8ff01c80f80ba6fa9a4d210a8b88a8458df9ae0a94360cbe68e59fcf0a1caa",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/536"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-uscracks/raw/base/base/quest/side_quests/sq017/scenes/sq017_18_premiere.scene.json",
+          "assetSha256": "6d8ff01c80f80ba6fa9a4d210a8b88a8458df9ae0a94360cbe68e59fcf0a1caa",
+          "jsonPointer": "/Data/RootChunk/actors/0"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-uscracks/raw/base/base/quest/side_quests/sq017/scenes/sq017_18_premiere.scene.json",
+          "assetSha256": "6d8ff01c80f80ba6fa9a4d210a8b88a8458df9ae0a94360cbe68e59fcf0a1caa",
+          "jsonPointer": "/Data/RootChunk/playerActors/0"
+        }
+      ]
+    },
+    {
+      "id": "silverhand-native.backstage-threatened",
+      "sourceId": "silverhand-native.sq017-10-us-crack-intro-scene",
+      "kind": "native",
+      "locator": "Threat accumulation is checked at nodes 355/366 (>=2), which reaches coercion section 362: cancellation and withdrawal of the cover under pressure. Its output reaches trigger 482, departure section 485, then writer 378. The final no-deal bit is used, never a single roughness increment.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/silverhand-uscracks/raw/base/base/quest/side_quests/sq017/scenes/sq017_10_us_crack_intro.scene.json",
+        "assetSha256": "b4b55ee1eac2f0511a431373c01eb80412a622cf22c3c1c435c706687a5c76ce",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/30/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sq017_us_cracks_no_deal",
+          "/value": 1,
+          "/setExactValue": 1
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/silverhand-uscracks/raw/base/base/quest/side_quests/sq017/scenes/sq017_10_us_crack_intro.scene.json",
+          "assetSha256": "b4b55ee1eac2f0511a431373c01eb80412a622cf22c3c1c435c706687a5c76ce",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/22/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-uscracks/raw/base/base/quest/side_quests/sq017/scenes/sq017_10_us_crack_intro.scene.json",
+          "assetSha256": "b4b55ee1eac2f0511a431373c01eb80412a622cf22c3c1c435c706687a5c76ce",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/27/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-uscracks/raw/base/base/quest/side_quests/sq017/scenes/sq017_10_us_crack_intro.scene.json",
+          "assetSha256": "b4b55ee1eac2f0511a431373c01eb80412a622cf22c3c1c435c706687a5c76ce",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/25/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-uscracks/raw/base/base/quest/side_quests/sq017/scenes/sq017_10_us_crack_intro.scene.json",
+          "assetSha256": "b4b55ee1eac2f0511a431373c01eb80412a622cf22c3c1c435c706687a5c76ce",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/45/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-uscracks/raw/base/base/quest/side_quests/sq017/scenes/sq017_10_us_crack_intro.scene.json",
+          "assetSha256": "b4b55ee1eac2f0511a431373c01eb80412a622cf22c3c1c435c706687a5c76ce",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/46/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-uscracks/raw/base/base/quest/side_quests/sq017/scenes/sq017_10_us_crack_intro.scene.json",
+          "assetSha256": "b4b55ee1eac2f0511a431373c01eb80412a622cf22c3c1c435c706687a5c76ce",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/48"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-uscracks/raw/base/base/quest/side_quests/sq017/scenes/sq017_10_us_crack_intro.scene.json",
+          "assetSha256": "b4b55ee1eac2f0511a431373c01eb80412a622cf22c3c1c435c706687a5c76ce",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/264"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-uscracks/raw/base/base/quest/side_quests/sq017/scenes/sq017_10_us_crack_intro.scene.json",
+          "assetSha256": "b4b55ee1eac2f0511a431373c01eb80412a622cf22c3c1c435c706687a5c76ce",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/149"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-uscracks/raw/base/base/quest/side_quests/sq017/scenes/sq017_10_us_crack_intro.scene.json",
+          "assetSha256": "b4b55ee1eac2f0511a431373c01eb80412a622cf22c3c1c435c706687a5c76ce",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/49"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-uscracks/raw/base/base/quest/side_quests/sq017/scenes/sq017_10_us_crack_intro.scene.json",
+          "assetSha256": "b4b55ee1eac2f0511a431373c01eb80412a622cf22c3c1c435c706687a5c76ce",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/267"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-uscracks/raw/base/base/quest/side_quests/sq017/scenes/sq017_10_us_crack_intro.scene.json",
+          "assetSha256": "b4b55ee1eac2f0511a431373c01eb80412a622cf22c3c1c435c706687a5c76ce",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/152"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-uscracks/raw/base/base/quest/side_quests/sq017/scenes/sq017_10_us_crack_intro.scene.json",
+          "assetSha256": "b4b55ee1eac2f0511a431373c01eb80412a622cf22c3c1c435c706687a5c76ce",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/50"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-uscracks/raw/base/base/quest/side_quests/sq017/scenes/sq017_10_us_crack_intro.scene.json",
+          "assetSha256": "b4b55ee1eac2f0511a431373c01eb80412a622cf22c3c1c435c706687a5c76ce",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/268"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-uscracks/raw/base/base/quest/side_quests/sq017/scenes/sq017_10_us_crack_intro.scene.json",
+          "assetSha256": "b4b55ee1eac2f0511a431373c01eb80412a622cf22c3c1c435c706687a5c76ce",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/155"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-uscracks/raw/base/base/quest/side_quests/sq017/scenes/sq017_10_us_crack_intro.scene.json",
+          "assetSha256": "b4b55ee1eac2f0511a431373c01eb80412a622cf22c3c1c435c706687a5c76ce",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/52"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-uscracks/raw/base/base/quest/side_quests/sq017/scenes/sq017_10_us_crack_intro.scene.json",
+          "assetSha256": "b4b55ee1eac2f0511a431373c01eb80412a622cf22c3c1c435c706687a5c76ce",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/270"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-uscracks/raw/base/base/quest/side_quests/sq017/scenes/sq017_10_us_crack_intro.scene.json",
+          "assetSha256": "b4b55ee1eac2f0511a431373c01eb80412a622cf22c3c1c435c706687a5c76ce",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/163"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-uscracks/raw/base/base/quest/side_quests/sq017/scenes/sq017_10_us_crack_intro.scene.json",
+          "assetSha256": "b4b55ee1eac2f0511a431373c01eb80412a622cf22c3c1c435c706687a5c76ce",
+          "jsonPointer": "/Data/RootChunk/actors/0"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-uscracks/raw/base/base/quest/side_quests/sq017/scenes/sq017_10_us_crack_intro.scene.json",
+          "assetSha256": "b4b55ee1eac2f0511a431373c01eb80412a622cf22c3c1c435c706687a5c76ce",
+          "jsonPointer": "/Data/RootChunk/playerActors/0"
+        }
+      ]
+    },
+    {
+      "id": "silverhand-native.backstage-reconciled",
+      "sourceId": "silverhand-native.sq017-10-us-crack-intro-scene",
+      "kind": "native",
+      "locator": "Section 122 contains Kerry accepting Us Cracks and their forgiving response. Its photo request leads to choice 583; choosing to join the photo reaches writer 547. The selfie bit is used only as a sufficient positive marker that reconciliation already happened, not proof the photo has been taken. Friendly outcomes without this photo choice remain unknown.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/silverhand-uscracks/raw/base/base/quest/side_quests/sq017/scenes/sq017_10_us_crack_intro.scene.json",
+        "assetSha256": "b4b55ee1eac2f0511a431373c01eb80412a622cf22c3c1c435c706687a5c76ce",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/53/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sq017_selfie",
+          "/value": 1,
+          "/setExactValue": 1
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/silverhand-uscracks/raw/base/base/quest/side_quests/sq017/scenes/sq017_10_us_crack_intro.scene.json",
+          "assetSha256": "b4b55ee1eac2f0511a431373c01eb80412a622cf22c3c1c435c706687a5c76ce",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-uscracks/raw/base/base/quest/side_quests/sq017/scenes/sq017_10_us_crack_intro.scene.json",
+          "assetSha256": "b4b55ee1eac2f0511a431373c01eb80412a622cf22c3c1c435c706687a5c76ce",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/56/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-uscracks/raw/base/base/quest/side_quests/sq017/scenes/sq017_10_us_crack_intro.scene.json",
+          "assetSha256": "b4b55ee1eac2f0511a431373c01eb80412a622cf22c3c1c435c706687a5c76ce",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/17"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-uscracks/raw/base/base/quest/side_quests/sq017/scenes/sq017_10_us_crack_intro.scene.json",
+          "assetSha256": "b4b55ee1eac2f0511a431373c01eb80412a622cf22c3c1c435c706687a5c76ce",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/229"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-uscracks/raw/base/base/quest/side_quests/sq017/scenes/sq017_10_us_crack_intro.scene.json",
+          "assetSha256": "b4b55ee1eac2f0511a431373c01eb80412a622cf22c3c1c435c706687a5c76ce",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/53"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-uscracks/raw/base/base/quest/side_quests/sq017/scenes/sq017_10_us_crack_intro.scene.json",
+          "assetSha256": "b4b55ee1eac2f0511a431373c01eb80412a622cf22c3c1c435c706687a5c76ce",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/18"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-uscracks/raw/base/base/quest/side_quests/sq017/scenes/sq017_10_us_crack_intro.scene.json",
+          "assetSha256": "b4b55ee1eac2f0511a431373c01eb80412a622cf22c3c1c435c706687a5c76ce",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/230"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-uscracks/raw/base/base/quest/side_quests/sq017/scenes/sq017_10_us_crack_intro.scene.json",
+          "assetSha256": "b4b55ee1eac2f0511a431373c01eb80412a622cf22c3c1c435c706687a5c76ce",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/56"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-uscracks/raw/base/base/quest/side_quests/sq017/scenes/sq017_10_us_crack_intro.scene.json",
+          "assetSha256": "b4b55ee1eac2f0511a431373c01eb80412a622cf22c3c1c435c706687a5c76ce",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/20"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-uscracks/raw/base/base/quest/side_quests/sq017/scenes/sq017_10_us_crack_intro.scene.json",
+          "assetSha256": "b4b55ee1eac2f0511a431373c01eb80412a622cf22c3c1c435c706687a5c76ce",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/244"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-uscracks/raw/base/base/quest/side_quests/sq017/scenes/sq017_10_us_crack_intro.scene.json",
+          "assetSha256": "b4b55ee1eac2f0511a431373c01eb80412a622cf22c3c1c435c706687a5c76ce",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/62"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-uscracks/raw/base/base/quest/side_quests/sq017/scenes/sq017_10_us_crack_intro.scene.json",
+          "assetSha256": "b4b55ee1eac2f0511a431373c01eb80412a622cf22c3c1c435c706687a5c76ce",
+          "jsonPointer": "/Data/RootChunk/actors/0"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-uscracks/raw/base/base/quest/side_quests/sq017/scenes/sq017_10_us_crack_intro.scene.json",
+          "assetSha256": "b4b55ee1eac2f0511a431373c01eb80412a622cf22c3c1c435c706687a5c76ce",
+          "jsonPointer": "/Data/RootChunk/playerActors/0"
+        }
+      ]
+    },
+    {
+      "id": "silverhand-native.invocation-beach",
+      "sourceId": "silverhand-native.sq028-03-beach-questphase",
+      "kind": "native",
+      "locator": "Production questphase scene invocation and connected input sockets, plus exact scene entry selector. Resource-parent chain reaches cyberpunk2077.quest; the chain is structural provenance, not a claim that every player has executed it. Local scene path is audited separately in outcome evidence. Test/preview inputs without a connected production edge do not establish an outcome.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "raw/base/base/quest/side_quests/sq028/phases/sq028_03_beach.questphase.json",
+        "assetSha256": "4c90253133590384fe9460796de9952bcd1692739a81005dcaa4a4a305d5d8d7",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data",
+        "expectedType": "questSceneNodeDefinition"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq028/phases/sq028_03_beach.questphase.json",
+          "assetSha256": "4c90253133590384fe9460796de9952bcd1692739a81005dcaa4a4a305d5d8d7",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/0/Data/sockets/1/Data/connections/0/Data",
+          "expectedType": "graphGraphConnectionDefinition"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/entryPoints/0",
+          "expectedType": "scnEntryPoint"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/0/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/57/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/72/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/29/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/47/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/68/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/67/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/50/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/24/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq028/scenes/sq028_07_trashy_beach.scene.json",
+          "assetSha256": "1bb663aabc3292a2789b1bc6e8c2ce20ff81242a9b2d66c91ecf4a97bd2c2cbe",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/14/Data"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq028/sq028.questphase.json",
+          "assetSha256": "048e782bb7151adea2597cb3d0886d37e089bd73fcb71ab2be1f7d6139649b5c",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sidequests.questphase.json",
+          "assetSha256": "1cf2fc2ba3b538f7496fddf09ff319602f54f6785a925ba36ad3c9b90020f000",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/7/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.questphase.json",
+          "assetSha256": "78d8afd0784575216b090f003610ca973be9d1781bab948c9e4dc12006d750b2",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/7/Data/phaseGraph/Data/nodes/4/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.quest.json",
+          "assetSha256": "b14f15d20e6723b97cf4afe260546c5c6e93c84856c47372fbbb8377b640f449",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data/phaseResource"
+        }
+      ]
+    },
+    {
+      "id": "silverhand-native.invocation-lineup",
+      "sourceId": "silverhand-native.sq011-denny-questphase",
+      "kind": "native",
+      "locator": "Production questphase scene invocation and connected input sockets, plus exact scene entry selector. Resource-parent chain reaches cyberpunk2077.quest; the chain is structural provenance, not a claim that every player has executed it. Local scene path is audited separately in outcome evidence. Test/preview inputs without a connected production edge do not establish an outcome.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "raw/base/base/quest/side_quests/sq011/phases/sq011_denny.questphase.json",
+        "assetSha256": "f43183d4e703b83a7d792a122f951da7ddb8b7cd22156aa88071ac9dbaef6acc",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data",
+        "expectedType": "questSceneNodeDefinition"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq011/phases/sq011_denny.questphase.json",
+          "assetSha256": "f43183d4e703b83a7d792a122f951da7ddb8b7cd22156aa88071ac9dbaef6acc",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/sockets/1/Data/connections/0/Data",
+          "expectedType": "graphGraphConnectionDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq011/phases/sq011_denny.questphase.json",
+          "assetSha256": "f43183d4e703b83a7d792a122f951da7ddb8b7cd22156aa88071ac9dbaef6acc",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/sockets/5/Data/connections/0/Data",
+          "expectedType": "graphGraphConnectionDefinition"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_08b_denny_henry.scene.json",
+          "assetSha256": "43f62deb4160dc6b09a8d5be53882669920ab6db781e473e6b57b3c21263f226",
+          "jsonPointer": "/Data/RootChunk/entryPoints/0",
+          "expectedType": "scnEntryPoint"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_08b_denny_henry.scene.json",
+          "assetSha256": "43f62deb4160dc6b09a8d5be53882669920ab6db781e473e6b57b3c21263f226",
+          "jsonPointer": "/Data/RootChunk/entryPoints/1",
+          "expectedType": "scnEntryPoint"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_08b_denny_henry.scene.json",
+          "assetSha256": "43f62deb4160dc6b09a8d5be53882669920ab6db781e473e6b57b3c21263f226",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/1/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_08b_denny_henry.scene.json",
+          "assetSha256": "43f62deb4160dc6b09a8d5be53882669920ab6db781e473e6b57b3c21263f226",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/156/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_08b_denny_henry.scene.json",
+          "assetSha256": "43f62deb4160dc6b09a8d5be53882669920ab6db781e473e6b57b3c21263f226",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_08b_denny_henry.scene.json",
+          "assetSha256": "43f62deb4160dc6b09a8d5be53882669920ab6db781e473e6b57b3c21263f226",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/363/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_08b_denny_henry.scene.json",
+          "assetSha256": "43f62deb4160dc6b09a8d5be53882669920ab6db781e473e6b57b3c21263f226",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_08b_denny_henry.scene.json",
+          "assetSha256": "43f62deb4160dc6b09a8d5be53882669920ab6db781e473e6b57b3c21263f226",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/383/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_08b_denny_henry.scene.json",
+          "assetSha256": "43f62deb4160dc6b09a8d5be53882669920ab6db781e473e6b57b3c21263f226",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/9/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_08b_denny_henry.scene.json",
+          "assetSha256": "43f62deb4160dc6b09a8d5be53882669920ab6db781e473e6b57b3c21263f226",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_08b_denny_henry.scene.json",
+          "assetSha256": "43f62deb4160dc6b09a8d5be53882669920ab6db781e473e6b57b3c21263f226",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/85/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_08b_denny_henry.scene.json",
+          "assetSha256": "43f62deb4160dc6b09a8d5be53882669920ab6db781e473e6b57b3c21263f226",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_08b_denny_henry.scene.json",
+          "assetSha256": "43f62deb4160dc6b09a8d5be53882669920ab6db781e473e6b57b3c21263f226",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/21/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_08b_denny_henry.scene.json",
+          "assetSha256": "43f62deb4160dc6b09a8d5be53882669920ab6db781e473e6b57b3c21263f226",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/22/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_08b_denny_henry.scene.json",
+          "assetSha256": "43f62deb4160dc6b09a8d5be53882669920ab6db781e473e6b57b3c21263f226",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/191/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_08b_denny_henry.scene.json",
+          "assetSha256": "43f62deb4160dc6b09a8d5be53882669920ab6db781e473e6b57b3c21263f226",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/201/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_08b_denny_henry.scene.json",
+          "assetSha256": "43f62deb4160dc6b09a8d5be53882669920ab6db781e473e6b57b3c21263f226",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_08b_denny_henry.scene.json",
+          "assetSha256": "43f62deb4160dc6b09a8d5be53882669920ab6db781e473e6b57b3c21263f226",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/23/Data"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq011/sq011.questphase.json",
+          "assetSha256": "29e0464772f77576914bebcc2134146335877963c4f5f3b4839735188a41c9a3",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/9/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sidequests.questphase.json",
+          "assetSha256": "1cf2fc2ba3b538f7496fddf09ff319602f54f6785a925ba36ad3c9b90020f000",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.questphase.json",
+          "assetSha256": "78d8afd0784575216b090f003610ca973be9d1781bab948c9e4dc12006d750b2",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/7/Data/phaseGraph/Data/nodes/4/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.quest.json",
+          "assetSha256": "b14f15d20e6723b97cf4afe260546c5c6e93c84856c47372fbbb8377b640f449",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data/phaseResource"
+        }
+      ]
+    },
+    {
+      "id": "silverhand-native.invocation-backstage",
+      "sourceId": "silverhand-native.sq017-02c-club-attack-questphase",
+      "kind": "native",
+      "locator": "Production questphase scene invocation and connected input sockets, plus exact scene entry selector. Resource-parent chain reaches cyberpunk2077.quest; the chain is structural provenance, not a claim that every player has executed it. Local scene path is audited separately in outcome evidence. Test/preview inputs without a connected production edge do not establish an outcome.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "raw/base/base/quest/side_quests/sq017/phases/sq017_02c_club_attack.questphase.json",
+        "assetSha256": "10876269aa34a467391a5bdf7ba64912db5eb86a6ddaa1217c7abd94c4bc73eb",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data",
+        "expectedType": "questSceneNodeDefinition"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq017/phases/sq017_02c_club_attack.questphase.json",
+          "assetSha256": "10876269aa34a467391a5bdf7ba64912db5eb86a6ddaa1217c7abd94c4bc73eb",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/sockets/5/Data/connections/2/Data",
+          "expectedType": "graphGraphConnectionDefinition"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-uscracks/raw/base/base/quest/side_quests/sq017/scenes/sq017_10_us_crack_intro.scene.json",
+          "assetSha256": "b4b55ee1eac2f0511a431373c01eb80412a622cf22c3c1c435c706687a5c76ce",
+          "jsonPointer": "/Data/RootChunk/entryPoints/0",
+          "expectedType": "scnEntryPoint"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq017/sq017.questphase.json",
+          "assetSha256": "1be5976a66e2736a49a408ed7e84b715353635220b090930c56ff35408050f34",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseGraph/Data/nodes/4/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sidequests.questphase.json",
+          "assetSha256": "1cf2fc2ba3b538f7496fddf09ff319602f54f6785a925ba36ad3c9b90020f000",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/6/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.questphase.json",
+          "assetSha256": "78d8afd0784575216b090f003610ca973be9d1781bab948c9e4dc12006d750b2",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/7/Data/phaseGraph/Data/nodes/4/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.quest.json",
+          "assetSha256": "b14f15d20e6723b97cf4afe260546c5c6e93c84856c47372fbbb8377b640f449",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data/phaseResource"
+        }
+      ]
+    },
+    {
+      "id": "silverhand-native.invocation-terrace",
+      "sourceId": "silverhand-native.sq017-03b-premiere-concert-questphase",
+      "kind": "native",
+      "locator": "Production questphase scene invocation and connected input sockets, plus exact scene entry selector. Resource-parent chain reaches cyberpunk2077.quest; the chain is structural provenance, not a claim that every player has executed it. Local scene path is audited separately in outcome evidence. Test/preview inputs without a connected production edge do not establish an outcome.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "raw/base/base/quest/side_quests/sq017/phases/sq017_03b_premiere_concert.questphase.json",
+        "assetSha256": "588d11c5c4048f6f51b391fced01e186b4e82176220b1ae87f284b993ea69007",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data",
+        "expectedType": "questSceneNodeDefinition"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq017/phases/sq017_03b_premiere_concert.questphase.json",
+          "assetSha256": "588d11c5c4048f6f51b391fced01e186b4e82176220b1ae87f284b993ea69007",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/sockets/1/Data/connections/0/Data",
+          "expectedType": "graphGraphConnectionDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq017/phases/sq017_03b_premiere_concert.questphase.json",
+          "assetSha256": "588d11c5c4048f6f51b391fced01e186b4e82176220b1ae87f284b993ea69007",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/sockets/6/Data/connections/0/Data",
+          "expectedType": "graphGraphConnectionDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq017/phases/sq017_03b_premiere_concert.questphase.json",
+          "assetSha256": "588d11c5c4048f6f51b391fced01e186b4e82176220b1ae87f284b993ea69007",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/sockets/7/Data/connections/0/Data",
+          "expectedType": "graphGraphConnectionDefinition"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-uscracks/raw/base/base/quest/side_quests/sq017/scenes/sq017_18_premiere.scene.json",
+          "assetSha256": "6d8ff01c80f80ba6fa9a4d210a8b88a8458df9ae0a94360cbe68e59fcf0a1caa",
+          "jsonPointer": "/Data/RootChunk/entryPoints/0",
+          "expectedType": "scnEntryPoint"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq017/sq017.questphase.json",
+          "assetSha256": "1be5976a66e2736a49a408ed7e84b715353635220b090930c56ff35408050f34",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/3/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sidequests.questphase.json",
+          "assetSha256": "1cf2fc2ba3b538f7496fddf09ff319602f54f6785a925ba36ad3c9b90020f000",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/6/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.questphase.json",
+          "assetSha256": "78d8afd0784575216b090f003610ca973be9d1781bab948c9e4dc12006d750b2",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/7/Data/phaseGraph/Data/nodes/4/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.quest.json",
+          "assetSha256": "b14f15d20e6723b97cf4afe260546c5c6e93c84856c47372fbbb8377b640f449",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data/phaseResource"
+        }
+      ]
+    },
+    {
+      "id": "silverhand-native.reunion-performance",
+      "sourceId": "silverhand-native.sq011-concert-questphase",
+      "kind": "native",
+      "locator": "A Like Supreme production phase: scene117 to_concert -> scene246 concert_starts; scene246 concert_ends -> scene117 after_concert; final scene117 out -> reward125 -> checkpoint119 -> cleanup122, where node9 increments the concert-complete fact. Scene performance1364 ->2180 -> crowd-end4582 ->42 ->185 -> end5551, followed by postconcert dialogue explicitly discussing the performed gig. Preview entry points are not connected by this production phase.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "raw/base/base/quest/side_quests/sq011/phases/sq011_concert.questphase.json",
+        "assetSha256": "4c23d1a289ec13305a977f9ea5a84c7f6833fe15c8322bd72d6fa87b6c0dffd0",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/7/Data/phaseGraph/Data/nodes/8/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sq031_samurai_concert_done",
+          "/value": 1,
+          "/setExactValue": 0
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq011/sq011.questphase.json",
+          "assetSha256": "29e0464772f77576914bebcc2134146335877963c4f5f3b4839735188a41c9a3",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sidequests.questphase.json",
+          "assetSha256": "1cf2fc2ba3b538f7496fddf09ff319602f54f6785a925ba36ad3c9b90020f000",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.questphase.json",
+          "assetSha256": "78d8afd0784575216b090f003610ca973be9d1781bab948c9e4dc12006d750b2",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/7/Data/phaseGraph/Data/nodes/4/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.quest.json",
+          "assetSha256": "b14f15d20e6723b97cf4afe260546c5c6e93c84856c47372fbbb8377b640f449",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq011/phases/sq011_concert.questphase.json",
+          "assetSha256": "4c23d1a289ec13305a977f9ea5a84c7f6833fe15c8322bd72d6fa87b6c0dffd0",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq011/phases/sq011_concert.questphase.json",
+          "assetSha256": "4c23d1a289ec13305a977f9ea5a84c7f6833fe15c8322bd72d6fa87b6c0dffd0",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/58/Data"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq011/phases/sq011_concert.questphase.json",
+          "assetSha256": "4c23d1a289ec13305a977f9ea5a84c7f6833fe15c8322bd72d6fa87b6c0dffd0",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/8/Data"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq011/phases/sq011_concert.questphase.json",
+          "assetSha256": "4c23d1a289ec13305a977f9ea5a84c7f6833fe15c8322bd72d6fa87b6c0dffd0",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/6/Data"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq011/phases/sq011_concert.questphase.json",
+          "assetSha256": "4c23d1a289ec13305a977f9ea5a84c7f6833fe15c8322bd72d6fa87b6c0dffd0",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/7/Data"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq011/phases/sq011_concert.questphase.json",
+          "assetSha256": "4c23d1a289ec13305a977f9ea5a84c7f6833fe15c8322bd72d6fa87b6c0dffd0",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/sockets/4/Data/connections/0/Data",
+          "expectedType": "graphGraphConnectionDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq011/phases/sq011_concert.questphase.json",
+          "assetSha256": "4c23d1a289ec13305a977f9ea5a84c7f6833fe15c8322bd72d6fa87b6c0dffd0",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/sockets/11/Data/connections/0/Data",
+          "expectedType": "graphGraphConnectionDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq011/phases/sq011_concert.questphase.json",
+          "assetSha256": "4c23d1a289ec13305a977f9ea5a84c7f6833fe15c8322bd72d6fa87b6c0dffd0",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/sockets/13/Data/connections/0/Data",
+          "expectedType": "graphGraphConnectionDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq011/phases/sq011_concert.questphase.json",
+          "assetSha256": "4c23d1a289ec13305a977f9ea5a84c7f6833fe15c8322bd72d6fa87b6c0dffd0",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/sockets/14/Data/connections/0/Data",
+          "expectedType": "graphGraphConnectionDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq011/phases/sq011_concert.questphase.json",
+          "assetSha256": "4c23d1a289ec13305a977f9ea5a84c7f6833fe15c8322bd72d6fa87b6c0dffd0",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/6/Data/sockets/1/Data/connections/0/Data",
+          "expectedType": "graphGraphConnectionDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq011/phases/sq011_concert.questphase.json",
+          "assetSha256": "4c23d1a289ec13305a977f9ea5a84c7f6833fe15c8322bd72d6fa87b6c0dffd0",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/6/Data/sockets/2/Data/connections/0/Data",
+          "expectedType": "graphGraphConnectionDefinition"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_10_concert.scene.json",
+          "assetSha256": "cbdae241c5cc5bff475fa8c709c91b8f5bbe4a45022608c52842a76aa7e3be94",
+          "jsonPointer": "/Data/RootChunk/entryPoints/3"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_10_concert.scene.json",
+          "assetSha256": "cbdae241c5cc5bff475fa8c709c91b8f5bbe4a45022608c52842a76aa7e3be94",
+          "jsonPointer": "/Data/RootChunk/entryPoints/9"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_10_concert.scene.json",
+          "assetSha256": "cbdae241c5cc5bff475fa8c709c91b8f5bbe4a45022608c52842a76aa7e3be94",
+          "jsonPointer": "/Data/RootChunk/entryPoints/10"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_10_concert.scene.json",
+          "assetSha256": "cbdae241c5cc5bff475fa8c709c91b8f5bbe4a45022608c52842a76aa7e3be94",
+          "jsonPointer": "/Data/RootChunk/exitPoints/0"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_10_concert.scene.json",
+          "assetSha256": "cbdae241c5cc5bff475fa8c709c91b8f5bbe4a45022608c52842a76aa7e3be94",
+          "jsonPointer": "/Data/RootChunk/exitPoints/1"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_10_concert.scene.json",
+          "assetSha256": "cbdae241c5cc5bff475fa8c709c91b8f5bbe4a45022608c52842a76aa7e3be94",
+          "jsonPointer": "/Data/RootChunk/exitPoints/2"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_10_concert.scene.json",
+          "assetSha256": "cbdae241c5cc5bff475fa8c709c91b8f5bbe4a45022608c52842a76aa7e3be94",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/101/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_10_concert.scene.json",
+          "assetSha256": "cbdae241c5cc5bff475fa8c709c91b8f5bbe4a45022608c52842a76aa7e3be94",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/252/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_10_concert.scene.json",
+          "assetSha256": "cbdae241c5cc5bff475fa8c709c91b8f5bbe4a45022608c52842a76aa7e3be94",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/623/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_10_concert.scene.json",
+          "assetSha256": "cbdae241c5cc5bff475fa8c709c91b8f5bbe4a45022608c52842a76aa7e3be94",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/0/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_10_concert.scene.json",
+          "assetSha256": "cbdae241c5cc5bff475fa8c709c91b8f5bbe4a45022608c52842a76aa7e3be94",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_10_concert.scene.json",
+          "assetSha256": "cbdae241c5cc5bff475fa8c709c91b8f5bbe4a45022608c52842a76aa7e3be94",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/797/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_10_concert.scene.json",
+          "assetSha256": "cbdae241c5cc5bff475fa8c709c91b8f5bbe4a45022608c52842a76aa7e3be94",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/122/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_10_concert.scene.json",
+          "assetSha256": "cbdae241c5cc5bff475fa8c709c91b8f5bbe4a45022608c52842a76aa7e3be94",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/270/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_10_concert.scene.json",
+          "assetSha256": "cbdae241c5cc5bff475fa8c709c91b8f5bbe4a45022608c52842a76aa7e3be94",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/148/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_10_concert.scene.json",
+          "assetSha256": "cbdae241c5cc5bff475fa8c709c91b8f5bbe4a45022608c52842a76aa7e3be94",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/349/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_10_concert.scene.json",
+          "assetSha256": "cbdae241c5cc5bff475fa8c709c91b8f5bbe4a45022608c52842a76aa7e3be94",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/790/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_10_concert.scene.json",
+          "assetSha256": "cbdae241c5cc5bff475fa8c709c91b8f5bbe4a45022608c52842a76aa7e3be94",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/11/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_10_concert.scene.json",
+          "assetSha256": "cbdae241c5cc5bff475fa8c709c91b8f5bbe4a45022608c52842a76aa7e3be94",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/120"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_10_concert.scene.json",
+          "assetSha256": "cbdae241c5cc5bff475fa8c709c91b8f5bbe4a45022608c52842a76aa7e3be94",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/726"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_10_concert.scene.json",
+          "assetSha256": "cbdae241c5cc5bff475fa8c709c91b8f5bbe4a45022608c52842a76aa7e3be94",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/374"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_10_concert.scene.json",
+          "assetSha256": "cbdae241c5cc5bff475fa8c709c91b8f5bbe4a45022608c52842a76aa7e3be94",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/121"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_10_concert.scene.json",
+          "assetSha256": "cbdae241c5cc5bff475fa8c709c91b8f5bbe4a45022608c52842a76aa7e3be94",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/727"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_10_concert.scene.json",
+          "assetSha256": "cbdae241c5cc5bff475fa8c709c91b8f5bbe4a45022608c52842a76aa7e3be94",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/378"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_10_concert.scene.json",
+          "assetSha256": "cbdae241c5cc5bff475fa8c709c91b8f5bbe4a45022608c52842a76aa7e3be94",
+          "jsonPointer": "/Data/RootChunk/actors/0"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_10_concert.scene.json",
+          "assetSha256": "cbdae241c5cc5bff475fa8c709c91b8f5bbe4a45022608c52842a76aa7e3be94",
+          "jsonPointer": "/Data/RootChunk/actors/1"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_10_concert.scene.json",
+          "assetSha256": "cbdae241c5cc5bff475fa8c709c91b8f5bbe4a45022608c52842a76aa7e3be94",
+          "jsonPointer": "/Data/RootChunk/actors/3"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_10_concert.scene.json",
+          "assetSha256": "cbdae241c5cc5bff475fa8c709c91b8f5bbe4a45022608c52842a76aa7e3be94",
+          "jsonPointer": "/Data/RootChunk/playerActors/1"
+        }
+      ]
+    },
+    {
+      "id": "silverhand-native.rogue-death",
+      "sourceId": "silverhand-native.q116-01-adam-smasher-scene",
+      "kind": "native",
+      "locator": "Rogue-route boss cinematic 515 emits socket (2,16) to node758, which addresses #rogue with ragdoll activation, then exact death writer416. The same cinematic addresses Rogue from possessed-player actor9. Death meaning is independently established by the postfight scene: possessed-player actor7 states Smasher killed Rogue, and Smasher actor4 acknowledges it in section237. Ragdoll alone is not treated as death. Only Johnny may use this outcome; spawning a Rogue copy does not make her a posthumous witness.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/main_quests/part1/q116/scenes/q116_01_adam_smasher.scene.json",
+        "assetSha256": "7642406d5e724bfd0fa1c662a7934507d68364a022157291aa9492c92f751eb1",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/25/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "q116_rogue_dead",
+          "/value": 1,
+          "/setExactValue": 1
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/main_quests/part1/q116/scenes/q116_01_adam_smasher.scene.json",
+          "assetSha256": "7642406d5e724bfd0fa1c662a7934507d68364a022157291aa9492c92f751eb1",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/34/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/main_quests/part1/q116/scenes/q116_01_adam_smasher.scene.json",
+          "assetSha256": "7642406d5e724bfd0fa1c662a7934507d68364a022157291aa9492c92f751eb1",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/32/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/main_quests/part1/q116/scenes/q116_01_adam_smasher.scene.json",
+          "assetSha256": "7642406d5e724bfd0fa1c662a7934507d68364a022157291aa9492c92f751eb1",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/29/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/main_quests/part1/q116/scenes/q116_01_adam_smasher.scene.json",
+          "assetSha256": "7642406d5e724bfd0fa1c662a7934507d68364a022157291aa9492c92f751eb1",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/67/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/main_quests/part1/q116/scenes/q116_01_adam_smasher.scene.json",
+          "assetSha256": "7642406d5e724bfd0fa1c662a7934507d68364a022157291aa9492c92f751eb1",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/9/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/main_quests/part1/q116/scenes/q116_01_adam_smasher.scene.json",
+          "assetSha256": "7642406d5e724bfd0fa1c662a7934507d68364a022157291aa9492c92f751eb1",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/5"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/main_quests/part1/q116/scenes/q116_01_adam_smasher.scene.json",
+          "assetSha256": "7642406d5e724bfd0fa1c662a7934507d68364a022157291aa9492c92f751eb1",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/69"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/main_quests/part1/q116/scenes/q116_01_adam_smasher.scene.json",
+          "assetSha256": "7642406d5e724bfd0fa1c662a7934507d68364a022157291aa9492c92f751eb1",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/17"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/main_quests/part1/q116/scenes/q116_01_adam_smasher.scene.json",
+          "assetSha256": "7642406d5e724bfd0fa1c662a7934507d68364a022157291aa9492c92f751eb1",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/6"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/main_quests/part1/q116/scenes/q116_01_adam_smasher.scene.json",
+          "assetSha256": "7642406d5e724bfd0fa1c662a7934507d68364a022157291aa9492c92f751eb1",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/73"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/main_quests/part1/q116/scenes/q116_01_adam_smasher.scene.json",
+          "assetSha256": "7642406d5e724bfd0fa1c662a7934507d68364a022157291aa9492c92f751eb1",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/20"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/main_quests/part1/q116/scenes/q116_01_adam_smasher.scene.json",
+          "assetSha256": "7642406d5e724bfd0fa1c662a7934507d68364a022157291aa9492c92f751eb1",
+          "jsonPointer": "/Data/RootChunk/actors/0"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/main_quests/part1/q116/scenes/q116_01_adam_smasher.scene.json",
+          "assetSha256": "7642406d5e724bfd0fa1c662a7934507d68364a022157291aa9492c92f751eb1",
+          "jsonPointer": "/Data/RootChunk/actors/1"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/main_quests/part1/q116/scenes/q116_01_adam_smasher.scene.json",
+          "assetSha256": "7642406d5e724bfd0fa1c662a7934507d68364a022157291aa9492c92f751eb1",
+          "jsonPointer": "/Data/RootChunk/playerActors/1"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/main_quests/part1/q116/scenes/q116_01_adam_smasher.scene.json",
+          "assetSha256": "7642406d5e724bfd0fa1c662a7934507d68364a022157291aa9492c92f751eb1",
+          "jsonPointer": "/Data/RootChunk/entryPoints/0"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/main_quests/part1/q116/scenes/q116_03b_after_bossfight.scene.json",
+          "assetSha256": "ab7fd4a0d8dd6e6223df7db328daeb4dd0a7820e6b331f6db173023fbcee05c7",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/main_quests/part1/q116/scenes/q116_03b_after_bossfight.scene.json",
+          "assetSha256": "ab7fd4a0d8dd6e6223df7db328daeb4dd0a7820e6b331f6db173023fbcee05c7",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/16/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/main_quests/part1/q116/scenes/q116_03b_after_bossfight.scene.json",
+          "assetSha256": "ab7fd4a0d8dd6e6223df7db328daeb4dd0a7820e6b331f6db173023fbcee05c7",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/29"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/main_quests/part1/q116/scenes/q116_03b_after_bossfight.scene.json",
+          "assetSha256": "ab7fd4a0d8dd6e6223df7db328daeb4dd0a7820e6b331f6db173023fbcee05c7",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/204"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/main_quests/part1/q116/scenes/q116_03b_after_bossfight.scene.json",
+          "assetSha256": "ab7fd4a0d8dd6e6223df7db328daeb4dd0a7820e6b331f6db173023fbcee05c7",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/73"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/main_quests/part1/q116/scenes/q116_03b_after_bossfight.scene.json",
+          "assetSha256": "ab7fd4a0d8dd6e6223df7db328daeb4dd0a7820e6b331f6db173023fbcee05c7",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/49"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/main_quests/part1/q116/scenes/q116_03b_after_bossfight.scene.json",
+          "assetSha256": "ab7fd4a0d8dd6e6223df7db328daeb4dd0a7820e6b331f6db173023fbcee05c7",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/215"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/main_quests/part1/q116/scenes/q116_03b_after_bossfight.scene.json",
+          "assetSha256": "ab7fd4a0d8dd6e6223df7db328daeb4dd0a7820e6b331f6db173023fbcee05c7",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/134"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/main_quests/part1/q116/scenes/q116_03b_after_bossfight.scene.json",
+          "assetSha256": "ab7fd4a0d8dd6e6223df7db328daeb4dd0a7820e6b331f6db173023fbcee05c7",
+          "jsonPointer": "/Data/RootChunk/playerActors/1"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/part1/q116/q116_mikoshi.questphase.json",
+          "assetSha256": "2330712e14e1fe52c80f3236e0a4ee1e5f82c323f8d03b7d2e8dbc53921bc872",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/part1/act_1.questphase.json",
+          "assetSha256": "3259983b6e1a5e1127fc580d34d1b3f2c53619e4db09047791603a785c10c661",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/8/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.questphase.json",
+          "assetSha256": "78d8afd0784575216b090f003610ca973be9d1781bab948c9e4dc12006d750b2",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.quest.json",
+          "assetSha256": "b14f15d20e6723b97cf4afe260546c5c6e93c84856c47372fbbb8377b640f449",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/part1/q116/phases/q116_smasher.questphase.json",
+          "assetSha256": "700dfdcc4a345553fb48dcb3e6b7053e67770e3862c0d0571f77e244f90da3ca",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data",
+          "expectedType": "questSceneNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/part1/q116/phases/q116_smasher.questphase.json",
+          "assetSha256": "700dfdcc4a345553fb48dcb3e6b7053e67770e3862c0d0571f77e244f90da3ca",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/10/Data",
+          "expectedType": "questSceneNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/part1/q116/phases/q116_smasher.questphase.json",
+          "assetSha256": "700dfdcc4a345553fb48dcb3e6b7053e67770e3862c0d0571f77e244f90da3ca",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/11/Data",
+          "expectedType": "questSceneNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/part1/q116/phases/q116_smasher.questphase.json",
+          "assetSha256": "700dfdcc4a345553fb48dcb3e6b7053e67770e3862c0d0571f77e244f90da3ca",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/sockets/1/Data/connections/0/Data",
+          "expectedType": "graphGraphConnectionDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/part1/q116/phases/q116_smasher.questphase.json",
+          "assetSha256": "700dfdcc4a345553fb48dcb3e6b7053e67770e3862c0d0571f77e244f90da3ca",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/sockets/1/Data/connections/0/Data/source/Data/connections/0/Data/destination/Data/connections/1/Data/source/Data/connections/1/Data",
+          "expectedType": "graphGraphConnectionDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/part1/q116/phases/q116_smasher.questphase.json",
+          "assetSha256": "700dfdcc4a345553fb48dcb3e6b7053e67770e3862c0d0571f77e244f90da3ca",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/10/Data/sockets/1/Data/connections/0/Data",
+          "expectedType": "graphGraphConnectionDefinition"
+        }
+      ]
+    },
+    {
+      "id": "silverhand-native.grayson-spared",
+      "sourceId": "silverhand-native.sq031-04-grayson-scene",
+      "kind": "native",
+      "locator": "Choice133 ordinal1 is the localized put-weapon-away mercy choice, directly writing1923 before section135 confirms the decision. Historical mercy at this confrontation only; not evidence of continued survival or later Porsche ownership.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq031/scenes/sq031_04_grayson.scene.json",
+        "assetSha256": "9d1a6b6da1f7ebff5df647329af8a92eb6026b1022a40995055aa0588d84f54e",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/207/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sq031_04_grayson_alive",
+          "/value": 1,
+          "/setExactValue": 1
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq031/sq031.questphase.json",
+          "assetSha256": "94beda33aa89990fee79225f2394fbe40762746ac14ff63026cef6dc642608ee",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sidequests.questphase.json",
+          "assetSha256": "1cf2fc2ba3b538f7496fddf09ff319602f54f6785a925ba36ad3c9b90020f000",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.questphase.json",
+          "assetSha256": "78d8afd0784575216b090f003610ca973be9d1781bab948c9e4dc12006d750b2",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/7/Data/phaseGraph/Data/nodes/4/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.quest.json",
+          "assetSha256": "b14f15d20e6723b97cf4afe260546c5c6e93c84856c47372fbbb8377b640f449",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq031/phases/sq031_adam.questphase.json",
+          "assetSha256": "8e48ee6c2b7e3bd3c30dfa2127e88f6b077ca54982ae2785e01250f5d291c4d0",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/3/Data",
+          "expectedType": "questSceneNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq031/phases/sq031_adam.questphase.json",
+          "assetSha256": "8e48ee6c2b7e3bd3c30dfa2127e88f6b077ca54982ae2785e01250f5d291c4d0",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/3/Data/sockets/1/Data/connections/0/Data",
+          "expectedType": "graphGraphConnectionDefinition"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq031/scenes/sq031_04_grayson.scene.json",
+          "assetSha256": "9d1a6b6da1f7ebff5df647329af8a92eb6026b1022a40995055aa0588d84f54e",
+          "jsonPointer": "/Data/RootChunk/entryPoints/0"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq031/scenes/sq031_04_grayson.scene.json",
+          "assetSha256": "9d1a6b6da1f7ebff5df647329af8a92eb6026b1022a40995055aa0588d84f54e",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data",
+          "expectedType": "scnChoiceNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq031/scenes/sq031_04_grayson.scene.json",
+          "assetSha256": "9d1a6b6da1f7ebff5df647329af8a92eb6026b1022a40995055aa0588d84f54e",
+          "jsonPointer": "/Data/RootChunk/actors/1"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq031/scenes/sq031_04_grayson.scene.json",
+          "assetSha256": "9d1a6b6da1f7ebff5df647329af8a92eb6026b1022a40995055aa0588d84f54e",
+          "jsonPointer": "/Data/RootChunk/actors/2"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq031/scenes/sq031_04_grayson.scene.json",
+          "assetSha256": "9d1a6b6da1f7ebff5df647329af8a92eb6026b1022a40995055aa0588d84f54e",
+          "jsonPointer": "/Data/RootChunk/playerActors/0"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq031/scenes/sq031_04_grayson.scene.json",
+          "assetSha256": "9d1a6b6da1f7ebff5df647329af8a92eb6026b1022a40995055aa0588d84f54e",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq031/scenes/sq031_04_grayson.scene.json",
+          "assetSha256": "9d1a6b6da1f7ebff5df647329af8a92eb6026b1022a40995055aa0588d84f54e",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/options/1"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq031/scenes/sq031_04_grayson.scene.json",
+          "assetSha256": "9d1a6b6da1f7ebff5df647329af8a92eb6026b1022a40995055aa0588d84f54e",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/368"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq031/scenes/sq031_04_grayson.scene.json",
+          "assetSha256": "9d1a6b6da1f7ebff5df647329af8a92eb6026b1022a40995055aa0588d84f54e",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/452"
+        }
+      ]
+    },
+    {
+      "id": "silverhand-native.grayson-killed",
+      "sourceId": "silverhand-native.sq031-04-grayson-scene",
+      "kind": "native",
+      "locator": "Choice133 ordinal0 takes the armed branch. Node335 accepts killed/defeated/unconscious and node3650 accepts a player hit, but neither alone proves death. Their XOR3653 proceeds through explicit questCharacterManagerCombat_Kill node3655 targeting #grayson with skipDefeatedState=1, then cut-control1659 normal output0 -> tier2680 -> writer337. Knockout writer3783 is separate; cut outputs are not normal execution paths.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq031/scenes/sq031_04_grayson.scene.json",
+        "assetSha256": "9d1a6b6da1f7ebff5df647329af8a92eb6026b1022a40995055aa0588d84f54e",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/14/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sq031_grayson_killed",
+          "/value": 1,
+          "/setExactValue": 0
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq031/sq031.questphase.json",
+          "assetSha256": "94beda33aa89990fee79225f2394fbe40762746ac14ff63026cef6dc642608ee",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sidequests.questphase.json",
+          "assetSha256": "1cf2fc2ba3b538f7496fddf09ff319602f54f6785a925ba36ad3c9b90020f000",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.questphase.json",
+          "assetSha256": "78d8afd0784575216b090f003610ca973be9d1781bab948c9e4dc12006d750b2",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/7/Data/phaseGraph/Data/nodes/4/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.quest.json",
+          "assetSha256": "b14f15d20e6723b97cf4afe260546c5c6e93c84856c47372fbbb8377b640f449",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq031/phases/sq031_adam.questphase.json",
+          "assetSha256": "8e48ee6c2b7e3bd3c30dfa2127e88f6b077ca54982ae2785e01250f5d291c4d0",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/3/Data",
+          "expectedType": "questSceneNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq031/phases/sq031_adam.questphase.json",
+          "assetSha256": "8e48ee6c2b7e3bd3c30dfa2127e88f6b077ca54982ae2785e01250f5d291c4d0",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/3/Data/sockets/1/Data/connections/0/Data",
+          "expectedType": "graphGraphConnectionDefinition"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq031/scenes/sq031_04_grayson.scene.json",
+          "assetSha256": "9d1a6b6da1f7ebff5df647329af8a92eb6026b1022a40995055aa0588d84f54e",
+          "jsonPointer": "/Data/RootChunk/entryPoints/0"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq031/scenes/sq031_04_grayson.scene.json",
+          "assetSha256": "9d1a6b6da1f7ebff5df647329af8a92eb6026b1022a40995055aa0588d84f54e",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data",
+          "expectedType": "scnChoiceNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq031/scenes/sq031_04_grayson.scene.json",
+          "assetSha256": "9d1a6b6da1f7ebff5df647329af8a92eb6026b1022a40995055aa0588d84f54e",
+          "jsonPointer": "/Data/RootChunk/actors/1"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq031/scenes/sq031_04_grayson.scene.json",
+          "assetSha256": "9d1a6b6da1f7ebff5df647329af8a92eb6026b1022a40995055aa0588d84f54e",
+          "jsonPointer": "/Data/RootChunk/actors/2"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq031/scenes/sq031_04_grayson.scene.json",
+          "assetSha256": "9d1a6b6da1f7ebff5df647329af8a92eb6026b1022a40995055aa0588d84f54e",
+          "jsonPointer": "/Data/RootChunk/playerActors/0"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq031/scenes/sq031_04_grayson.scene.json",
+          "assetSha256": "9d1a6b6da1f7ebff5df647329af8a92eb6026b1022a40995055aa0588d84f54e",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/473/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq031/scenes/sq031_04_grayson.scene.json",
+          "assetSha256": "9d1a6b6da1f7ebff5df647329af8a92eb6026b1022a40995055aa0588d84f54e",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/446/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq031/scenes/sq031_04_grayson.scene.json",
+          "assetSha256": "9d1a6b6da1f7ebff5df647329af8a92eb6026b1022a40995055aa0588d84f54e",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/447/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq031/scenes/sq031_04_grayson.scene.json",
+          "assetSha256": "9d1a6b6da1f7ebff5df647329af8a92eb6026b1022a40995055aa0588d84f54e",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq031/scenes/sq031_04_grayson.scene.json",
+          "assetSha256": "9d1a6b6da1f7ebff5df647329af8a92eb6026b1022a40995055aa0588d84f54e",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/12/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq031/scenes/sq031_04_grayson.scene.json",
+          "assetSha256": "9d1a6b6da1f7ebff5df647329af8a92eb6026b1022a40995055aa0588d84f54e",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/495/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq031/scenes/sq031_04_grayson.scene.json",
+          "assetSha256": "9d1a6b6da1f7ebff5df647329af8a92eb6026b1022a40995055aa0588d84f54e",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/496/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq031/scenes/sq031_04_grayson.scene.json",
+          "assetSha256": "9d1a6b6da1f7ebff5df647329af8a92eb6026b1022a40995055aa0588d84f54e",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/497/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq031/scenes/sq031_04_grayson.scene.json",
+          "assetSha256": "9d1a6b6da1f7ebff5df647329af8a92eb6026b1022a40995055aa0588d84f54e",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/154/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq031/scenes/sq031_04_grayson.scene.json",
+          "assetSha256": "9d1a6b6da1f7ebff5df647329af8a92eb6026b1022a40995055aa0588d84f54e",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/327/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq031/scenes/sq031_04_grayson.scene.json",
+          "assetSha256": "9d1a6b6da1f7ebff5df647329af8a92eb6026b1022a40995055aa0588d84f54e",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/options/0"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq031/scenes/sq031_04_grayson.scene.json",
+          "assetSha256": "9d1a6b6da1f7ebff5df647329af8a92eb6026b1022a40995055aa0588d84f54e",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/367"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq031/scenes/sq031_04_grayson.scene.json",
+          "assetSha256": "9d1a6b6da1f7ebff5df647329af8a92eb6026b1022a40995055aa0588d84f54e",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/448"
+        }
+      ]
+    },
+    {
+      "id": "silverhand-native.movie-completed",
+      "sourceId": "silverhand-native.sq031-bushidox-questphase",
+      "kind": "native",
+      "locator": "Production sq031_bushidox invokes movie scene401 through sq031_08_movie_in. Its sole movie_out return leads reward411, checkpoint409 and cleanup406; the connected In1 cleanup chain reaches node17 and increments sq031_rogue_date_done. Scene200 is the actual exit after the post-outing V/Johnny exchange. Actor and screenplay joins establish Rogue and Johnny, with Johnny using V body during the outing. This proves a concluded outing, not intimacy or a current V/Rogue relationship.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "raw/base/base/quest/side_quests/sq031/phases/sq031_bushidox.questphase.json",
+        "assetSha256": "49e3a6656aacb91df9f7a07c12ed12586c3df7de0da7e0d0b2e2e0b75489d2c0",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/13/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sq031_rogue_date_done",
+          "/value": 1,
+          "/setExactValue": 0
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq031/phases/sq031_bushidox.questphase.json",
+          "assetSha256": "49e3a6656aacb91df9f7a07c12ed12586c3df7de0da7e0d0b2e2e0b75489d2c0",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/0/Data",
+          "expectedType": "questSceneNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq031/phases/sq031_bushidox.questphase.json",
+          "assetSha256": "49e3a6656aacb91df9f7a07c12ed12586c3df7de0da7e0d0b2e2e0b75489d2c0",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/8/Data",
+          "expectedType": "questRewardManagerNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq031/phases/sq031_bushidox.questphase.json",
+          "assetSha256": "49e3a6656aacb91df9f7a07c12ed12586c3df7de0da7e0d0b2e2e0b75489d2c0",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/0/Data",
+          "expectedType": "questInputNodeDefinition"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/entryPoints/2"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/exitPoints/0"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/actors/0",
+          "expectedType": "scnActorDef"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/actors/1",
+          "expectedType": "scnActorDef"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/playerActors/0",
+          "expectedType": "scnPlayerActorDef"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq031/phases/sq031_bushidox.questphase.json",
+          "assetSha256": "49e3a6656aacb91df9f7a07c12ed12586c3df7de0da7e0d0b2e2e0b75489d2c0",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/0/Data/sockets/1/Data/connections/0/Data",
+          "expectedType": "graphGraphConnectionDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq031/phases/sq031_bushidox.questphase.json",
+          "assetSha256": "49e3a6656aacb91df9f7a07c12ed12586c3df7de0da7e0d0b2e2e0b75489d2c0",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/0/Data/sockets/2/Data/connections/0/Data",
+          "expectedType": "graphGraphConnectionDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq031/phases/sq031_bushidox.questphase.json",
+          "assetSha256": "49e3a6656aacb91df9f7a07c12ed12586c3df7de0da7e0d0b2e2e0b75489d2c0",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/sockets/0/Data/connections/0/Data",
+          "expectedType": "graphGraphConnectionDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq031/phases/sq031_bushidox.questphase.json",
+          "assetSha256": "49e3a6656aacb91df9f7a07c12ed12586c3df7de0da7e0d0b2e2e0b75489d2c0",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/7/Data/sockets/1/Data/connections/0/Data",
+          "expectedType": "graphGraphConnectionDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq031/phases/sq031_bushidox.questphase.json",
+          "assetSha256": "49e3a6656aacb91df9f7a07c12ed12586c3df7de0da7e0d0b2e2e0b75489d2c0",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/0/Data/sockets/1/Data/connections/0/Data",
+          "expectedType": "graphGraphConnectionDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq031/phases/sq031_bushidox.questphase.json",
+          "assetSha256": "49e3a6656aacb91df9f7a07c12ed12586c3df7de0da7e0d0b2e2e0b75489d2c0",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/2/Data/sockets/2/Data/connections/0/Data",
+          "expectedType": "graphGraphConnectionDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq031/phases/sq031_bushidox.questphase.json",
+          "assetSha256": "49e3a6656aacb91df9f7a07c12ed12586c3df7de0da7e0d0b2e2e0b75489d2c0",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/3/Data/sockets/1/Data/connections/0/Data",
+          "expectedType": "graphGraphConnectionDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq031/phases/sq031_bushidox.questphase.json",
+          "assetSha256": "49e3a6656aacb91df9f7a07c12ed12586c3df7de0da7e0d0b2e2e0b75489d2c0",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/3/Data/sockets/2/Data/connections/0/Data",
+          "expectedType": "graphGraphConnectionDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq031/phases/sq031_bushidox.questphase.json",
+          "assetSha256": "49e3a6656aacb91df9f7a07c12ed12586c3df7de0da7e0d0b2e2e0b75489d2c0",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/4/Data/sockets/2/Data/connections/0/Data",
+          "expectedType": "graphGraphConnectionDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq031/phases/sq031_bushidox.questphase.json",
+          "assetSha256": "49e3a6656aacb91df9f7a07c12ed12586c3df7de0da7e0d0b2e2e0b75489d2c0",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/5/Data/sockets/2/Data/connections/0/Data",
+          "expectedType": "graphGraphConnectionDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq031/phases/sq031_bushidox.questphase.json",
+          "assetSha256": "49e3a6656aacb91df9f7a07c12ed12586c3df7de0da7e0d0b2e2e0b75489d2c0",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/6/Data/sockets/1/Data/connections/0/Data",
+          "expectedType": "graphGraphConnectionDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq031/phases/sq031_bushidox.questphase.json",
+          "assetSha256": "49e3a6656aacb91df9f7a07c12ed12586c3df7de0da7e0d0b2e2e0b75489d2c0",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/6/Data/sockets/2/Data/connections/0/Data",
+          "expectedType": "graphGraphConnectionDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq031/phases/sq031_bushidox.questphase.json",
+          "assetSha256": "49e3a6656aacb91df9f7a07c12ed12586c3df7de0da7e0d0b2e2e0b75489d2c0",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/7/Data/sockets/2/Data/connections/0/Data",
+          "expectedType": "graphGraphConnectionDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq031/phases/sq031_bushidox.questphase.json",
+          "assetSha256": "49e3a6656aacb91df9f7a07c12ed12586c3df7de0da7e0d0b2e2e0b75489d2c0",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/8/Data/sockets/1/Data/connections/0/Data",
+          "expectedType": "graphGraphConnectionDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq031/phases/sq031_bushidox.questphase.json",
+          "assetSha256": "49e3a6656aacb91df9f7a07c12ed12586c3df7de0da7e0d0b2e2e0b75489d2c0",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/8/Data/sockets/2/Data/connections/0/Data",
+          "expectedType": "graphGraphConnectionDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq031/phases/sq031_bushidox.questphase.json",
+          "assetSha256": "49e3a6656aacb91df9f7a07c12ed12586c3df7de0da7e0d0b2e2e0b75489d2c0",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/9/Data/sockets/1/Data/connections/0/Data",
+          "expectedType": "graphGraphConnectionDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq031/phases/sq031_bushidox.questphase.json",
+          "assetSha256": "49e3a6656aacb91df9f7a07c12ed12586c3df7de0da7e0d0b2e2e0b75489d2c0",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/9/Data/sockets/2/Data/connections/0/Data",
+          "expectedType": "graphGraphConnectionDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq031/phases/sq031_bushidox.questphase.json",
+          "assetSha256": "49e3a6656aacb91df9f7a07c12ed12586c3df7de0da7e0d0b2e2e0b75489d2c0",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/11/Data/sockets/1/Data/connections/0/Data",
+          "expectedType": "graphGraphConnectionDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq031/phases/sq031_bushidox.questphase.json",
+          "assetSha256": "49e3a6656aacb91df9f7a07c12ed12586c3df7de0da7e0d0b2e2e0b75489d2c0",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/13/Data/sockets/1/Data/connections/0/Data",
+          "expectedType": "graphGraphConnectionDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq031/sq031.questphase.json",
+          "assetSha256": "94beda33aa89990fee79225f2394fbe40762746ac14ff63026cef6dc642608ee",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sidequests.questphase.json",
+          "assetSha256": "1cf2fc2ba3b538f7496fddf09ff319602f54f6785a925ba36ad3c9b90020f000",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.questphase.json",
+          "assetSha256": "78d8afd0784575216b090f003610ca973be9d1781bab948c9e4dc12006d750b2",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/7/Data/phaseGraph/Data/nodes/4/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.quest.json",
+          "assetSha256": "b14f15d20e6723b97cf4afe260546c5c6e93c84856c47372fbbb8377b640f449",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data/phaseResource"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data",
+          "expectedType": "scnStartNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/34/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/48/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/52/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/37/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/139/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/40/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/42/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/68/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/168/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/69/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/72/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/67/Data",
+          "expectedType": "scnDeletionMarkerNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/66/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/1/Data",
+          "expectedType": "scnEndNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/61"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/352"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/185"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/62"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/353"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/188"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/74"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/372"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/224"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/67"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/357"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/203"
+        }
+      ]
+    },
+    {
+      "id": "silverhand-native.movie-intimacy",
+      "sourceId": "silverhand-native.sq031-08-movie-scene",
+      "kind": "native",
+      "locator": "Normal movie entry296 reaches kiss choice658 or censorship alternative950. Ordinal0 starts cinematic662 or1463 through1015/1145/1457. Their timed (2,1) output writes721 and proceeds to Rogue refusal670; every reply672 merges into her explanation/departure684. Johnny is player actor2 (V_Posessed), Rogue actor1. Runtime also requires completed-date evidence, so the intermediate marker cannot announce refusal before the scene ends. Neither current partnership nor V/Rogue romance is inferred.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+        "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/32/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sq031_rogue_lover",
+          "/value": 1,
+          "/setExactValue": 0
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/entryPoints/2"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/actors/1",
+          "expectedType": "scnActorDef"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/playerActors/0",
+          "expectedType": "scnPlayerActorDef"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data",
+          "expectedType": "scnStartNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/73/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/113/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/114/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/83/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data",
+          "expectedType": "scnChoiceNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data",
+          "expectedType": "scnChoiceNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/137/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/9/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data",
+          "expectedType": "scnChoiceNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/14/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/15/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/16/Data",
+          "expectedType": "scnChoiceNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/17/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/23/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/70/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data",
+          "expectedType": "scnChoiceNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/71/Data",
+          "expectedType": "scnChoiceNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/84/Data",
+          "expectedType": "scnHubNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/103/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/140/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/22/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/141/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/32/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/24/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/25/Data",
+          "expectedType": "scnChoiceNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/28/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/29/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/30/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/31/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/53/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/54/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/options/11"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/325"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/339"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/43"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/334"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/131"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/45"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/335"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/137"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/46"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/336"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/140"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/58"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/349"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/176"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/59"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/350"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/179"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/22/Data/events/14/Data",
+          "expectedType": "scneventsSocket"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/22/Data/events/22/Data",
+          "expectedType": "scneventsSocket"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/22/Data/events/53/Data",
+          "expectedType": "scneventsSocket"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/22/Data/events/58/Data",
+          "expectedType": "scneventsSocket"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/22/Data/events/59/Data",
+          "expectedType": "scneventsSocket"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/141/Data/events/9/Data",
+          "expectedType": "scneventsSocket"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/141/Data/events/17/Data",
+          "expectedType": "scneventsSocket"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/141/Data/events/33/Data",
+          "expectedType": "scneventsSocket"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/141/Data/events/35/Data",
+          "expectedType": "scneventsSocket"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/141/Data/events/36/Data",
+          "expectedType": "scneventsSocket"
+        }
+      ]
+    }
+  ],
+  "factAllowlist": {
+    "sq028_kerry_relationship": {
+      "evidenceRefs": [
+        "silverhand-native.beach-committed"
+      ]
+    },
+    "sq028_kerry_dislike": {
+      "evidenceRefs": [
+        "silverhand-native.beach-declined"
+      ]
+    },
+    "sq011_denny_samurai": {
+      "evidenceRefs": [
+        "silverhand-native.reunion-performance",
+        "silverhand-native.lineup-denny",
+        "silverhand-native.invocation-lineup"
+      ]
+    },
+    "sq011_henry_samurai": {
+      "evidenceRefs": [
+        "silverhand-native.reunion-performance",
+        "silverhand-native.lineup-henry",
+        "silverhand-native.invocation-lineup"
+      ]
+    },
+    "sq017_kerry_kiss": {
+      "evidenceRefs": [
+        "silverhand-native.terrace-kiss"
+      ]
+    },
+    "sq017_us_cracks_no_deal": {
+      "evidenceRefs": [
+        "silverhand-native.backstage-threatened"
+      ]
+    },
+    "sq017_selfie": {
+      "evidenceRefs": [
+        "silverhand-native.backstage-reconciled"
+      ]
+    },
+    "sq031_samurai_concert_done": {
+      "evidenceRefs": [
+        "silverhand-native.reunion-performance",
+        "silverhand-native.lineup-henry",
+        "silverhand-native.invocation-lineup"
+      ]
+    },
+    "q116_rogue_dead": {
+      "evidenceRefs": [
+        "silverhand-native.rogue-death"
+      ]
+    },
+    "sq031_04_grayson_alive": {
+      "evidenceRefs": [
+        "silverhand-native.grayson-spared"
+      ]
+    },
+    "sq031_grayson_killed": {
+      "evidenceRefs": [
+        "silverhand-native.grayson-killed"
+      ]
+    },
+    "sq031_rogue_date_done": {
+      "evidenceRefs": [
+        "silverhand-native.movie-completed",
+        "silverhand-native.movie-intimacy"
+      ]
+    },
+    "sq031_rogue_lover": {
+      "evidenceRefs": [
+        "silverhand-native.movie-completed",
+        "silverhand-native.movie-intimacy"
+      ]
+    }
+  },
+  "journalAllowlist": {},
+  "rules": [
+    {
+      "id": "silverhand.beach-committed",
+      "revision": 1,
+      "questKey": "boat-drinks",
+      "topic": "kerry.v.relationship",
+      "outcome": "committed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "relationship",
+      "priority": 9,
+      "stable": true,
+      "statement": "This save establishes that after the yacht outing, V and Kerry agreed on the beach to continue their relationship.",
+      "sourceIds": [
+        "native-story.silverhand-boat",
+        "native-story.silverhand-kerry-romance"
+      ],
+      "evidenceRefs": [
+        "silverhand-native.beach-committed",
+        "silverhand-native.invocation-beach"
+      ],
+      "audience": {
+        "speakers": [
+          "kerry-eurodyne"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "kerry-eurodyne"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "sq028_kerry_relationship",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.beach-commitment",
+          "outcomeKey": "committed"
+        }
+      ]
+    },
+    {
+      "id": "silverhand.beach-declined",
+      "revision": 1,
+      "questKey": "boat-drinks",
+      "topic": "kerry.v.relationship",
+      "outcome": "declined",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "relationship",
+      "priority": 9,
+      "stable": true,
+      "statement": "This save establishes that after the yacht outing, V told Kerry it was a one-off rather than the beginning of an ongoing relationship.",
+      "sourceIds": [
+        "native-story.silverhand-boat",
+        "native-story.silverhand-kerry-romance"
+      ],
+      "evidenceRefs": [
+        "silverhand-native.beach-declined",
+        "silverhand-native.invocation-beach"
+      ],
+      "audience": {
+        "speakers": [
+          "kerry-eurodyne"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "kerry-eurodyne"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "sq028_kerry_dislike",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.beach-commitment",
+          "outcomeKey": "declined"
+        }
+      ]
+    },
+    {
+      "id": "silverhand.lineup-denny",
+      "revision": 1,
+      "questKey": "second-conflict",
+      "topic": "samurai.reunion.lineup",
+      "outcome": "denny",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "For the planned Samurai reunion, this save establishes that V selected Denny when Denny and Henry refused to play together. That choice does not establish that the concert has taken place.",
+      "sourceIds": [
+        "native-story.silverhand-second",
+        "native-story.silverhand-transcript"
+      ],
+      "evidenceRefs": [
+        "silverhand-native.lineup-denny",
+        "silverhand-native.invocation-lineup"
+      ],
+      "audience": {
+        "speakers": [
+          "johnny-silverhand",
+          "kerry-eurodyne"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "johnny-silverhand",
+          "kerry-eurodyne"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "sq011_denny_samurai",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.reunion-lineup",
+          "outcomeKey": "denny"
+        }
+      ]
+    },
+    {
+      "id": "silverhand.lineup-henry",
+      "revision": 1,
+      "questKey": "second-conflict",
+      "topic": "samurai.reunion.lineup",
+      "outcome": "henry",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "For the planned Samurai reunion, this save establishes that V selected Henry when Denny and Henry refused to play together. That choice does not establish that the concert has taken place.",
+      "sourceIds": [
+        "native-story.silverhand-second",
+        "native-story.silverhand-transcript"
+      ],
+      "evidenceRefs": [
+        "silverhand-native.lineup-henry",
+        "silverhand-native.invocation-lineup"
+      ],
+      "audience": {
+        "speakers": [
+          "johnny-silverhand",
+          "kerry-eurodyne"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "johnny-silverhand",
+          "kerry-eurodyne"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "sq011_henry_samurai",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.reunion-lineup",
+          "outcomeKey": "henry"
+        }
+      ]
+    },
+    {
+      "id": "silverhand.terrace-kissed",
+      "revision": 1,
+      "questKey": "off-the-leash",
+      "topic": "kerry.v.terrace-intimacy",
+      "outcome": "kissed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "relationship",
+      "priority": 8,
+      "stable": true,
+      "statement": "This save establishes that V and Kerry shared a kiss on the Dark Matter terrace. The kiss alone does not establish an ongoing relationship.",
+      "sourceIds": [
+        "native-story.silverhand-leash",
+        "native-story.silverhand-kerry-romance"
+      ],
+      "evidenceRefs": [
+        "silverhand-native.terrace-kiss",
+        "silverhand-native.invocation-terrace"
+      ],
+      "audience": {
+        "speakers": [
+          "kerry-eurodyne"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "kerry-eurodyne"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "sq017_kerry_kiss",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.terrace-kiss",
+          "outcomeKey": "kissed"
+        }
+      ]
+    },
+    {
+      "id": "silverhand.backstage-threatened",
+      "revision": 1,
+      "questKey": "i-dont-wanna-hear-it",
+      "topic": "kerry.uscracks.resolution",
+      "outcome": "threatened",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "This save establishes that the backstage confrontation ended with Kerry and V pressuring Us Cracks to cancel the show and abandon the cover, rather than reconciling.",
+      "sourceIds": [
+        "native-story.silverhand-uscracks",
+        "native-story.silverhand-transcript"
+      ],
+      "evidenceRefs": [
+        "silverhand-native.backstage-threatened",
+        "silverhand-native.invocation-backstage"
+      ],
+      "audience": {
+        "speakers": [
+          "kerry-eurodyne"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "kerry-eurodyne"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "sq017_us_cracks_no_deal",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.backstage-resolution",
+          "outcomeKey": "threatened"
+        }
+      ]
+    },
+    {
+      "id": "silverhand.backstage-reconciled",
+      "revision": 1,
+      "questKey": "i-dont-wanna-hear-it",
+      "topic": "kerry.uscracks.resolution",
+      "outcome": "reconciled",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "This save establishes that the backstage confrontation ended in reconciliation: Kerry accepted Us Cracks after the manager-driven misunderstanding came to light.",
+      "sourceIds": [
+        "native-story.silverhand-uscracks",
+        "native-story.silverhand-transcript"
+      ],
+      "evidenceRefs": [
+        "silverhand-native.backstage-reconciled",
+        "silverhand-native.invocation-backstage"
+      ],
+      "audience": {
+        "speakers": [
+          "kerry-eurodyne"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "kerry-eurodyne"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "sq017_selfie",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.backstage-resolution",
+          "outcomeKey": "reconciled"
+        }
+      ]
+    },
+    {
+      "id": "silverhand.reunion-performed",
+      "revision": 1,
+      "questKey": "a-like-supreme",
+      "topic": "samurai.reunion.performance",
+      "outcome": "performed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "quest",
+      "priority": 8,
+      "stable": true,
+      "statement": "The Samurai reunion concert has taken place in this save, with V on stage alongside Kerry and the reunion musicians, including Nancy.",
+      "sourceIds": [
+        "native-story.silverhand-supreme",
+        "native-story.silverhand-transcript"
+      ],
+      "evidenceRefs": [
+        "silverhand-native.reunion-performance"
+      ],
+      "audience": {
+        "speakers": [
+          "johnny-silverhand",
+          "kerry-eurodyne",
+          "nancy-hartley"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "johnny-silverhand",
+          "kerry-eurodyne",
+          "nancy-hartley"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "sq031_samurai_concert_done",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.reunion-performance",
+          "outcomeKey": "performed"
+        }
+      ]
+    },
+    {
+      "id": "silverhand.lineup-denny-nancy",
+      "revision": 1,
+      "questKey": "second-conflict",
+      "topic": "samurai.reunion.lineup",
+      "outcome": "denny",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "In this save, Denny performed in the completed Samurai reunion that Nancy helped organize.",
+      "sourceIds": [
+        "native-story.silverhand-second",
+        "native-story.silverhand-supreme",
+        "native-story.silverhand-transcript"
+      ],
+      "evidenceRefs": [
+        "silverhand-native.reunion-performance",
+        "silverhand-native.lineup-denny",
+        "silverhand-native.invocation-lineup"
+      ],
+      "audience": {
+        "speakers": [
+          "nancy-hartley"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "nancy-hartley"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "sq011_denny_samurai",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "sq031_samurai_concert_done",
+            "op": "gte",
+            "value": 1
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.reunion-lineup",
+          "outcomeKey": "denny"
+        }
+      ]
+    },
+    {
+      "id": "silverhand.lineup-henry-nancy",
+      "revision": 1,
+      "questKey": "second-conflict",
+      "topic": "samurai.reunion.lineup",
+      "outcome": "henry",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "In this save, Henry performed in the completed Samurai reunion that Nancy helped organize.",
+      "sourceIds": [
+        "native-story.silverhand-second",
+        "native-story.silverhand-supreme",
+        "native-story.silverhand-transcript"
+      ],
+      "evidenceRefs": [
+        "silverhand-native.reunion-performance",
+        "silverhand-native.lineup-henry",
+        "silverhand-native.invocation-lineup"
+      ],
+      "audience": {
+        "speakers": [
+          "nancy-hartley"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "nancy-hartley"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "sq011_henry_samurai",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "sq031_samurai_concert_done",
+            "op": "gte",
+            "value": 1
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.reunion-lineup",
+          "outcomeKey": "henry"
+        }
+      ]
+    },
+    {
+      "id": "silverhand.rogue-killed",
+      "revision": 1,
+      "questKey": "knockin-on-heavens-door",
+      "topic": "rogue.fate",
+      "outcome": "killed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 10,
+      "stable": true,
+      "statement": "In this save's assault on Arasaka with Rogue, Adam Smasher killed Rogue during the confrontation before Mikoshi. Johnny witnessed her sacrifice while controlling V's body.",
+      "sourceIds": [
+        "native-story.silverhand-knockin",
+        "native-story.silverhand-transcript"
+      ],
+      "evidenceRefs": [
+        "silverhand-native.rogue-death"
+      ],
+      "audience": {
+        "speakers": [
+          "johnny-silverhand"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "johnny-silverhand"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "q116_rogue_dead",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.rogue-fate",
+          "outcomeKey": "killed"
+        }
+      ],
+      "exclusiveGroups": [
+        {
+          "id": "ending.assault-route",
+          "outcome": "rogue"
+        }
+      ]
+    },
+    {
+      "id": "silverhand.grayson-spared",
+      "revision": 1,
+      "questKey": "chippin-in",
+      "topic": "grayson.fate",
+      "outcome": "spared",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "This save establishes that during the Ebunike confrontation, V chose to lower the weapon and spare Grayson.",
+      "sourceIds": [
+        "native-story.silverhand-chippin",
+        "native-story.silverhand-transcript"
+      ],
+      "evidenceRefs": [
+        "silverhand-native.grayson-spared"
+      ],
+      "audience": {
+        "speakers": [
+          "johnny-silverhand"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "johnny-silverhand"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "sq031_04_grayson_alive",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.grayson-fate",
+          "outcomeKey": "spared"
+        }
+      ]
+    },
+    {
+      "id": "silverhand.grayson-killed",
+      "revision": 1,
+      "questKey": "chippin-in",
+      "topic": "grayson.fate",
+      "outcome": "killed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "This save establishes that Grayson was killed during V's confrontation with him at the Ebunike.",
+      "sourceIds": [
+        "native-story.silverhand-chippin",
+        "native-story.silverhand-transcript"
+      ],
+      "evidenceRefs": [
+        "silverhand-native.grayson-killed"
+      ],
+      "audience": {
+        "speakers": [
+          "johnny-silverhand"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "johnny-silverhand"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "sq031_grayson_killed",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.grayson-fate",
+          "outcomeKey": "killed"
+        }
+      ]
+    },
+    {
+      "id": "silverhand.movie-completed",
+      "revision": 1,
+      "questKey": "blistering-love",
+      "topic": "johnny.rogue.drive-in",
+      "outcome": "completed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "relationship",
+      "priority": 7,
+      "stable": true,
+      "statement": "The drive-in outing with Rogue has concluded in this save. Johnny attended using V's body, and control returned to V afterward.",
+      "sourceIds": [
+        "native-story.silverhand-blistering"
+      ],
+      "evidenceRefs": [
+        "silverhand-native.movie-completed"
+      ],
+      "audience": {
+        "speakers": [
+          "johnny-silverhand",
+          "rogue-amendiares"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "johnny-silverhand",
+          "rogue-amendiares"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "sq031_rogue_date_done",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.date-completed",
+          "outcomeKey": "completed"
+        }
+      ]
+    },
+    {
+      "id": "silverhand.movie-intimacy-interrupted",
+      "revision": 1,
+      "questKey": "blistering-love",
+      "topic": "johnny.rogue.drive-in-intimacy",
+      "outcome": "interrupted",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "relationship",
+      "priority": 8,
+      "stable": true,
+      "statement": "During the completed drive-in outing, Johnny and Rogue began an intimate moment, but Rogue stopped it and explained that she could not return to their old relationship. Johnny was using V's body; this was not a V/Rogue partnership.",
+      "sourceIds": [
+        "native-story.silverhand-blistering",
+        "native-story.silverhand-rogue-romance"
+      ],
+      "evidenceRefs": [
+        "silverhand-native.movie-completed",
+        "silverhand-native.movie-intimacy"
+      ],
+      "audience": {
+        "speakers": [
+          "johnny-silverhand",
+          "rogue-amendiares"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "johnny-silverhand",
+          "rogue-amendiares"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "sq031_rogue_date_done",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "sq031_rogue_lover",
+            "op": "gte",
+            "value": 1
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.drive-in-intimacy",
+          "outcomeKey": "interrupted"
+        }
+      ]
+    }
+  ]
+}

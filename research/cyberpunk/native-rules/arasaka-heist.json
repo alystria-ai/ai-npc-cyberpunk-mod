@@ -1,0 +1,2922 @@
+{
+  "version": 1,
+  "id": "cyberpunk-native-arasaka-heist",
+  "revision": 1,
+  "gameVersions": [
+    "2.31"
+  ],
+  "profileKeys": [
+    "hanako-arasaka",
+    "takemura",
+    "yorinobu-arasaka",
+    "arthur-jenkins",
+    "frank-nostra",
+    "meredith-stout",
+    "dexter-deshawn",
+    "placide",
+    "t-bug"
+  ],
+  "sources": [
+    {
+      "id": "ahe-native-assets",
+      "kind": "native",
+      "locator": "Installed Cyberpunk 2077 2.31 release quest/scene assets, exact archive winners and binary SHA-256 recorded by research/cyberpunk/cache/game inventories; evidence points to individual native nodes."
+    },
+    {
+      "id": "ahe-meredith",
+      "kind": "community",
+      "url": "https://cyberpunk.fandom.com/wiki/Meredith_Stout"
+    },
+    {
+      "id": "ahe-mind",
+      "kind": "community",
+      "url": "https://cyberpunk.fandom.com/wiki/Where_is_My_Mind%3F"
+    },
+    {
+      "id": "ahe-mind-guide",
+      "kind": "community",
+      "url": "https://gamefaqs.gamespot.com/pc/672376-cyberpunk-2077/faqs/79161/where-is-my-mind"
+    },
+    {
+      "id": "ahe-pickup",
+      "kind": "community",
+      "url": "https://cyberpunk.fandom.com/wiki/The_Pickup"
+    },
+    {
+      "id": "ahe-pickup-guide",
+      "kind": "community",
+      "url": "https://www.powerpyx.com/cyberpunk-2077-the-pickup-walkthrough/"
+    },
+    {
+      "id": "ahe-transmission",
+      "kind": "community",
+      "url": "https://cyberpunk.fandom.com/wiki/Transmission"
+    },
+    {
+      "id": "ahe-venus",
+      "kind": "community",
+      "url": "https://cyberpunk.fandom.com/wiki/Venus_in_Furs"
+    },
+    {
+      "id": "ahe-walk-line",
+      "kind": "community",
+      "url": "https://cyberpunk.fandom.com/wiki/I_Walk_the_Line"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "ahe-native.chip-accepted",
+      "sourceId": "ahe-native-assets",
+      "kind": "native",
+      "locator": "q003_01a_militech choice node 1351 option 0 (or warned-choice 2869 option 0) reaches hub2617 and handover section1844. Its output name2/ordinal0 writes q003_militech_chip +1 at node2752. English choice and two handover lines bind the transaction to Meredith actor1. This is acceptance at the initial meeting, not the later chip state.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
+        "assetSha256": "273bc29a9cc23f202771fb4fe2f23234f7b7c81923ead6ef83df274438ef6393",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/49/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
+          "assetSha256": "273bc29a9cc23f202771fb4fe2f23234f7b7c81923ead6ef83df274438ef6393",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data",
+          "expectedType": "scnChoiceNode"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
+          "assetSha256": "273bc29a9cc23f202771fb4fe2f23234f7b7c81923ead6ef83df274438ef6393",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/64/Data",
+          "expectedType": "scnChoiceNode"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
+          "assetSha256": "273bc29a9cc23f202771fb4fe2f23234f7b7c81923ead6ef83df274438ef6393",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/42/Data",
+          "expectedType": "scnHubNode"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
+          "assetSha256": "273bc29a9cc23f202771fb4fe2f23234f7b7c81923ead6ef83df274438ef6393",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
+          "assetSha256": "273bc29a9cc23f202771fb4fe2f23234f7b7c81923ead6ef83df274438ef6393",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/256",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
+          "assetSha256": "273bc29a9cc23f202771fb4fe2f23234f7b7c81923ead6ef83df274438ef6393",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/257",
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
+          "assetSha256": "273bc29a9cc23f202771fb4fe2f23234f7b7c81923ead6ef83df274438ef6393",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/94",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
+          "assetSha256": "273bc29a9cc23f202771fb4fe2f23234f7b7c81923ead6ef83df274438ef6393",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/313",
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
+          "assetSha256": "273bc29a9cc23f202771fb4fe2f23234f7b7c81923ead6ef83df274438ef6393",
+          "jsonPointer": "/Data/RootChunk/actors/1",
+          "expectedType": "scnActorDef"
+        },
+        {
+          "jsonPath": "scene-evidence/release-root/raw/base/base/quest/cyberpunk2077.gamedef.json",
+          "assetSha256": "3bc1e3a75a1ba9dc582b8c7736a758899001cd15424ed79e1654de8b8ca41bbd",
+          "jsonPointer": "/Data/RootChunk/mainQuests/0/Data/questFile"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.quest.json",
+          "assetSha256": "b14f15d20e6723b97cf4afe260546c5c6e93c84856c47372fbbb8377b640f449",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.questphase.json",
+          "assetSha256": "78d8afd0784575216b090f003610ca973be9d1781bab948c9e4dc12006d750b2",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/prologue/prologue.questphase.json",
+          "assetSha256": "cd8da62bb121d4910018f3775a8dde0e926f215a974251ce61dee5bd77c78bf8",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/prologue/q003/q003.questphase.json",
+          "assetSha256": "17381eca9d97f8b47626d6901084b0db5c5c7f5ebe79567b950436a7188b1f07",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/prologue/q003/phases/q003_militech.questphase.json",
+          "assetSha256": "6db153a9e0c739e9e50d240cbfa1e04e86c7181b41d9811863babc2d7dc86d97",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/7/Data",
+          "expectedType": "questSceneNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "ahe-native.chip-declined",
+      "sourceId": "ahe-native-assets",
+      "kind": "native",
+      "locator": "Initial meeting choices1351/option2 and2869/option1 converge on refusal section2735 and writer2737 (q003_militech_refused +1); a distance-abandonment route also writes it. Therefore the meaning is declining/abandoning the offer, not a claim that V spoke one exact refusal line.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
+        "assetSha256": "273bc29a9cc23f202771fb4fe2f23234f7b7c81923ead6ef83df274438ef6393",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/48/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
+          "assetSha256": "273bc29a9cc23f202771fb4fe2f23234f7b7c81923ead6ef83df274438ef6393",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/47/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
+          "assetSha256": "273bc29a9cc23f202771fb4fe2f23234f7b7c81923ead6ef83df274438ef6393",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data",
+          "expectedType": "scnChoiceNode"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
+          "assetSha256": "273bc29a9cc23f202771fb4fe2f23234f7b7c81923ead6ef83df274438ef6393",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/64/Data",
+          "expectedType": "scnChoiceNode"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
+          "assetSha256": "273bc29a9cc23f202771fb4fe2f23234f7b7c81923ead6ef83df274438ef6393",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/91/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
+          "assetSha256": "273bc29a9cc23f202771fb4fe2f23234f7b7c81923ead6ef83df274438ef6393",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/214/Data",
+          "expectedType": "scnHubNode"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
+          "assetSha256": "273bc29a9cc23f202771fb4fe2f23234f7b7c81923ead6ef83df274438ef6393",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/264",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
+          "assetSha256": "273bc29a9cc23f202771fb4fe2f23234f7b7c81923ead6ef83df274438ef6393",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/291",
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
+          "assetSha256": "273bc29a9cc23f202771fb4fe2f23234f7b7c81923ead6ef83df274438ef6393",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/329",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
+          "assetSha256": "273bc29a9cc23f202771fb4fe2f23234f7b7c81923ead6ef83df274438ef6393",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/320",
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
+          "assetSha256": "273bc29a9cc23f202771fb4fe2f23234f7b7c81923ead6ef83df274438ef6393",
+          "jsonPointer": "/Data/RootChunk/actors/1",
+          "expectedType": "scnActorDef"
+        },
+        {
+          "jsonPath": "scene-evidence/release-root/raw/base/base/quest/cyberpunk2077.gamedef.json",
+          "assetSha256": "3bc1e3a75a1ba9dc582b8c7736a758899001cd15424ed79e1654de8b8ca41bbd",
+          "jsonPointer": "/Data/RootChunk/mainQuests/0/Data/questFile"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.quest.json",
+          "assetSha256": "b14f15d20e6723b97cf4afe260546c5c6e93c84856c47372fbbb8377b640f449",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.questphase.json",
+          "assetSha256": "78d8afd0784575216b090f003610ca973be9d1781bab948c9e4dc12006d750b2",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/prologue/prologue.questphase.json",
+          "assetSha256": "cd8da62bb121d4910018f3775a8dde0e926f215a974251ce61dee5bd77c78bf8",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/prologue/q003/q003.questphase.json",
+          "assetSha256": "17381eca9d97f8b47626d6901084b0db5c5c7f5ebe79567b950436a7188b1f07",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/prologue/q003/phases/q003_militech.questphase.json",
+          "assetSha256": "6db153a9e0c739e9e50d240cbfa1e04e86c7181b41d9811863babc2d7dc86d97",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/7/Data",
+          "expectedType": "questSceneNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "ahe-native.stout-encounter",
+      "sourceId": "ahe-native-assets",
+      "kind": "native",
+      "locator": "q003_08_stout writer2288 sets q003_stout_sex_done=1 after the outro chain. Node1767 waits for q003_07a_stout_sex_closer to exit; nodes1393/1743 restore/deactivate encounter state, nodes1993/2005 release restrictions,1697 ends the outro mix,1376 restores gameplay, then2288 writes completion. Meredith is the encounter actor. Cat and Johnny support entries in this resource are not treated as participants.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_08_stout.scene.json",
+        "assetSha256": "a96bcf1f8dafc993697631faaf9c1908986bb928a2db425766bdd6e5f9839184",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/142/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_08_stout.scene.json",
+          "assetSha256": "a96bcf1f8dafc993697631faaf9c1908986bb928a2db425766bdd6e5f9839184",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/1/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_08_stout.scene.json",
+          "assetSha256": "a96bcf1f8dafc993697631faaf9c1908986bb928a2db425766bdd6e5f9839184",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/47/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_08_stout.scene.json",
+          "assetSha256": "a96bcf1f8dafc993697631faaf9c1908986bb928a2db425766bdd6e5f9839184",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/109/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_08_stout.scene.json",
+          "assetSha256": "a96bcf1f8dafc993697631faaf9c1908986bb928a2db425766bdd6e5f9839184",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/105/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_08_stout.scene.json",
+          "assetSha256": "a96bcf1f8dafc993697631faaf9c1908986bb928a2db425766bdd6e5f9839184",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/57/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_08_stout.scene.json",
+          "assetSha256": "a96bcf1f8dafc993697631faaf9c1908986bb928a2db425766bdd6e5f9839184",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/45/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_08_stout.scene.json",
+          "assetSha256": "a96bcf1f8dafc993697631faaf9c1908986bb928a2db425766bdd6e5f9839184",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/44/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_08_stout.scene.json",
+          "assetSha256": "a96bcf1f8dafc993697631faaf9c1908986bb928a2db425766bdd6e5f9839184",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/111/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_08_stout.scene.json",
+          "assetSha256": "a96bcf1f8dafc993697631faaf9c1908986bb928a2db425766bdd6e5f9839184",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/56/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_08_stout.scene.json",
+          "assetSha256": "a96bcf1f8dafc993697631faaf9c1908986bb928a2db425766bdd6e5f9839184",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/141/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_08_stout.scene.json",
+          "assetSha256": "a96bcf1f8dafc993697631faaf9c1908986bb928a2db425766bdd6e5f9839184",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_08_stout.scene.json",
+          "assetSha256": "a96bcf1f8dafc993697631faaf9c1908986bb928a2db425766bdd6e5f9839184",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/58/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_08_stout.scene.json",
+          "assetSha256": "a96bcf1f8dafc993697631faaf9c1908986bb928a2db425766bdd6e5f9839184",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/78/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_08_stout.scene.json",
+          "assetSha256": "a96bcf1f8dafc993697631faaf9c1908986bb928a2db425766bdd6e5f9839184",
+          "jsonPointer": "/Data/RootChunk/actors/0",
+          "expectedType": "scnActorDef"
+        },
+        {
+          "jsonPath": "scene-evidence/release-root/raw/base/base/quest/cyberpunk2077.gamedef.json",
+          "assetSha256": "3bc1e3a75a1ba9dc582b8c7736a758899001cd15424ed79e1654de8b8ca41bbd",
+          "jsonPointer": "/Data/RootChunk/mainQuests/0/Data/questFile"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.quest.json",
+          "assetSha256": "b14f15d20e6723b97cf4afe260546c5c6e93c84856c47372fbbb8377b640f449",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.questphase.json",
+          "assetSha256": "78d8afd0784575216b090f003610ca973be9d1781bab948c9e4dc12006d750b2",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/7/Data/phaseGraph/Data/nodes/2/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/additional_game_elements.questphase.json",
+          "assetSha256": "c67fb292f88384f3f31e8242fc374e8b7afe5553588333c61f6eaec2c1e0b7eb",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/persistent_content.questphase.json",
+          "assetSha256": "7e702dfe44e84719576d6bed8d87f3bda383e308cb45c85fe34de9cc4ca62189",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/3/Data/phaseGraph/Data/nodes/2/Data/phaseGraph/Data/nodes/1/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/prologue/q003/phases/q003_stout.questphase.json",
+          "assetSha256": "15c36254f3dcdf65064d6dd50de2d88f1d3f4c2e9a3ff90e2cdd3af3046e0293",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data",
+          "expectedType": "questSceneNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "ahe-native.netwatch-accepted",
+      "sourceId": "ahe-native-assets",
+      "kind": "native",
+      "locator": "q110_08a_agent section659 gives the agent’s terms; choice671 option0 reaches hub4117 and exact writer712(q110_08a_netwatch_deal=1). A later callback writer547 adds1 to the same outcome. Both writers are positive acceptance, not proof the agent’s promises were fulfilled. EP1/mq055 initialization also establishes this save-history outcome; it is not proof the human selected the option during play. Private knowledge in this lane additionally requires V’s exact disclosure receipt.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
+        "assetSha256": "42ad02dacfb0b208a5d41f13d9a59b4c6c532a69dd67eb56c3d473483d92e903",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/51/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
+          "assetSha256": "42ad02dacfb0b208a5d41f13d9a59b4c6c532a69dd67eb56c3d473483d92e903",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/479/Data",
+          "expectedType": "scnHubNode"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
+          "assetSha256": "42ad02dacfb0b208a5d41f13d9a59b4c6c532a69dd67eb56c3d473483d92e903",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data",
+          "expectedType": "scnChoiceNode"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
+          "assetSha256": "42ad02dacfb0b208a5d41f13d9a59b4c6c532a69dd67eb56c3d473483d92e903",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/40/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
+          "assetSha256": "42ad02dacfb0b208a5d41f13d9a59b4c6c532a69dd67eb56c3d473483d92e903",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/31/Data/questNode/Data/type/Data",
+          "expectedType": "questSetVar_NodeType"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
+          "assetSha256": "42ad02dacfb0b208a5d41f13d9a59b4c6c532a69dd67eb56c3d473483d92e903",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/597",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
+          "assetSha256": "42ad02dacfb0b208a5d41f13d9a59b4c6c532a69dd67eb56c3d473483d92e903",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/539",
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
+          "assetSha256": "42ad02dacfb0b208a5d41f13d9a59b4c6c532a69dd67eb56c3d473483d92e903",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/88",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
+          "assetSha256": "42ad02dacfb0b208a5d41f13d9a59b4c6c532a69dd67eb56c3d473483d92e903",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/537",
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
+          "assetSha256": "42ad02dacfb0b208a5d41f13d9a59b4c6c532a69dd67eb56c3d473483d92e903",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/94",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
+          "assetSha256": "42ad02dacfb0b208a5d41f13d9a59b4c6c532a69dd67eb56c3d473483d92e903",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/538",
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
+          "assetSha256": "42ad02dacfb0b208a5d41f13d9a59b4c6c532a69dd67eb56c3d473483d92e903",
+          "jsonPointer": "/Data/RootChunk/actors/1",
+          "expectedType": "scnActorDef"
+        },
+        {
+          "jsonPath": "scene-evidence/release-root/raw/base/base/quest/cyberpunk2077.gamedef.json",
+          "assetSha256": "3bc1e3a75a1ba9dc582b8c7736a758899001cd15424ed79e1654de8b8ca41bbd",
+          "jsonPointer": "/Data/RootChunk/mainQuests/0/Data/questFile"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.quest.json",
+          "assetSha256": "b14f15d20e6723b97cf4afe260546c5c6e93c84856c47372fbbb8377b640f449",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.questphase.json",
+          "assetSha256": "78d8afd0784575216b090f003610ca973be9d1781bab948c9e4dc12006d750b2",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/part1/act_1.questphase.json",
+          "assetSha256": "3259983b6e1a5e1127fc580d34d1b3f2c53619e4db09047791603a785c10c661",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/part1/q110/q110.questphase.json",
+          "assetSha256": "c8f21cc79aeaf6ce0420fbb2b225d364e77fe796ee4734db9b0ffd279d1c68a0",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/8/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/part1/q110/phases/q110_06_mall.questphase.json",
+          "assetSha256": "c97a8f683205bbcab4561fdee61796dc31570c32a46c4e59e14af222609babc0",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/part1/q110/phases/q110_06_inside_mall.questphase.json",
+          "assetSha256": "c86f1e77f8d348d6ee32f65f9aecaef2d63044c2cdfb08262494dbc698f8993e",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/26/Data/phaseGraph/Data/nodes/2/Data",
+          "expectedType": "questSceneNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/part1/q110/phases/q110_06_inside_mall.questphase.json",
+          "assetSha256": "c86f1e77f8d348d6ee32f65f9aecaef2d63044c2cdfb08262494dbc698f8993e",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/26/Data/phaseGraph/Data/nodes/0/Data",
+          "expectedType": "questInputNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/part1/q110/phases/q110_06_inside_mall.questphase.json",
+          "assetSha256": "c86f1e77f8d348d6ee32f65f9aecaef2d63044c2cdfb08262494dbc698f8993e",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/26/Data/phaseGraph/Data/nodes/11/Data",
+          "expectedType": "questGameManagerNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/minor_quests/mq055/mq055.quest.json",
+          "assetSha256": "e240ece14eba3138d2fc1500895b8866a02f0bfa0c69b5b10faf59c92ce08a86",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/47/Data/type/Data",
+          "expectedType": "questSetVar_NodeType"
+        },
+        {
+          "jsonPath": "raw/ep1/ep1/quest/ep1.questphase.json",
+          "assetSha256": "f8049a61235f36685b50d60da0e78b3de7640bc6f324e14b77d7601fdf0e9c57",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/17/Data/phaseGraph/Data/nodes/47/Data/type/Data",
+          "expectedType": "questSetVar_NodeType"
+        },
+        {
+          "jsonPath": "raw/ep1/ep1/quest/ep1.questphase.json",
+          "assetSha256": "f8049a61235f36685b50d60da0e78b3de7640bc6f324e14b77d7601fdf0e9c57",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/10/Data/phaseGraph/Data/nodes/51/Data/type/Data",
+          "expectedType": "questSetVar_NodeType"
+        }
+      ]
+    },
+    {
+      "id": "ahe-native.placide-virus-warning",
+      "sourceId": "ahe-native-assets",
+      "kind": "native",
+      "locator": "q110_08a_agent diagnostic choices1263 and2429 precede section2434, which explains the repeated fake diagnostic result and writes q110_08a_virus +1 through output name2/ordinal0 at node966. The preceding warning/diagnostic scene is inspected. This is evidence the agent exposed the malware deception, not proof V accepted his deal or publicly disclosed it.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
+        "assetSha256": "42ad02dacfb0b208a5d41f13d9a59b4c6c532a69dd67eb56c3d473483d92e903",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/67/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
+          "assetSha256": "42ad02dacfb0b208a5d41f13d9a59b4c6c532a69dd67eb56c3d473483d92e903",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/223/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
+          "assetSha256": "42ad02dacfb0b208a5d41f13d9a59b4c6c532a69dd67eb56c3d473483d92e903",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/222/Data",
+          "expectedType": "scnChoiceNode"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
+          "assetSha256": "42ad02dacfb0b208a5d41f13d9a59b4c6c532a69dd67eb56c3d473483d92e903",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/110/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
+          "assetSha256": "42ad02dacfb0b208a5d41f13d9a59b4c6c532a69dd67eb56c3d473483d92e903",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/111/Data",
+          "expectedType": "scnChoiceNode"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
+          "assetSha256": "42ad02dacfb0b208a5d41f13d9a59b4c6c532a69dd67eb56c3d473483d92e903",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/55/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
+          "assetSha256": "42ad02dacfb0b208a5d41f13d9a59b4c6c532a69dd67eb56c3d473483d92e903",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/56/Data",
+          "expectedType": "scnChoiceNode"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
+          "assetSha256": "42ad02dacfb0b208a5d41f13d9a59b4c6c532a69dd67eb56c3d473483d92e903",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/163",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
+          "assetSha256": "42ad02dacfb0b208a5d41f13d9a59b4c6c532a69dd67eb56c3d473483d92e903",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/550",
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
+          "assetSha256": "42ad02dacfb0b208a5d41f13d9a59b4c6c532a69dd67eb56c3d473483d92e903",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/484",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
+          "assetSha256": "42ad02dacfb0b208a5d41f13d9a59b4c6c532a69dd67eb56c3d473483d92e903",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/656",
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
+          "assetSha256": "42ad02dacfb0b208a5d41f13d9a59b4c6c532a69dd67eb56c3d473483d92e903",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/699",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
+          "assetSha256": "42ad02dacfb0b208a5d41f13d9a59b4c6c532a69dd67eb56c3d473483d92e903",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/702",
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/release-root/raw/base/base/quest/cyberpunk2077.gamedef.json",
+          "assetSha256": "3bc1e3a75a1ba9dc582b8c7736a758899001cd15424ed79e1654de8b8ca41bbd",
+          "jsonPointer": "/Data/RootChunk/mainQuests/0/Data/questFile"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.quest.json",
+          "assetSha256": "b14f15d20e6723b97cf4afe260546c5c6e93c84856c47372fbbb8377b640f449",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.questphase.json",
+          "assetSha256": "78d8afd0784575216b090f003610ca973be9d1781bab948c9e4dc12006d750b2",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/part1/act_1.questphase.json",
+          "assetSha256": "3259983b6e1a5e1127fc580d34d1b3f2c53619e4db09047791603a785c10c661",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/part1/q110/q110.questphase.json",
+          "assetSha256": "c8f21cc79aeaf6ce0420fbb2b225d364e77fe796ee4734db9b0ffd279d1c68a0",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/8/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/part1/q110/phases/q110_06_mall.questphase.json",
+          "assetSha256": "c97a8f683205bbcab4561fdee61796dc31570c32a46c4e59e14af222609babc0",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/part1/q110/phases/q110_06_inside_mall.questphase.json",
+          "assetSha256": "c86f1e77f8d348d6ee32f65f9aecaef2d63044c2cdfb08262494dbc698f8993e",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/26/Data/phaseGraph/Data/nodes/2/Data",
+          "expectedType": "questSceneNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/part1/q110/phases/q110_06_inside_mall.questphase.json",
+          "assetSha256": "c86f1e77f8d348d6ee32f65f9aecaef2d63044c2cdfb08262494dbc698f8993e",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/26/Data/phaseGraph/Data/nodes/0/Data",
+          "expectedType": "questInputNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/part1/q110/phases/q110_06_inside_mall.questphase.json",
+          "assetSha256": "c86f1e77f8d348d6ee32f65f9aecaef2d63044c2cdfb08262494dbc698f8993e",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/26/Data/phaseGraph/Data/nodes/11/Data",
+          "expectedType": "questGameManagerNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "ahe-native.alt-contact",
+      "sourceId": "ahe-native-assets",
+      "kind": "native",
+      "locator": "q110_14_alt section1022 contains V/Alt agreement and contact-channel exchange. The NetWatch-dependent branch1028 reaches sections714 or735; either section’s event output writes q110_made_contact_with_alt +1 at1027. This establishes contact on both routes. EP1/mq055 may initialize equivalent save history; neither shortcut nor fact alone grants another character private knowledge of the encounter.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_14_alt.scene.json",
+        "assetSha256": "e9f18b5a26beb061f6e8822b76b53f310867c90218e59eed181ab211bce3398f",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/52/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_14_alt.scene.json",
+          "assetSha256": "e9f18b5a26beb061f6e8822b76b53f310867c90218e59eed181ab211bce3398f",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/50/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_14_alt.scene.json",
+          "assetSha256": "e9f18b5a26beb061f6e8822b76b53f310867c90218e59eed181ab211bce3398f",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/53/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_14_alt.scene.json",
+          "assetSha256": "e9f18b5a26beb061f6e8822b76b53f310867c90218e59eed181ab211bce3398f",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_14_alt.scene.json",
+          "assetSha256": "e9f18b5a26beb061f6e8822b76b53f310867c90218e59eed181ab211bce3398f",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_14_alt.scene.json",
+          "assetSha256": "e9f18b5a26beb061f6e8822b76b53f310867c90218e59eed181ab211bce3398f",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/333",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_14_alt.scene.json",
+          "assetSha256": "e9f18b5a26beb061f6e8822b76b53f310867c90218e59eed181ab211bce3398f",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/483",
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_14_alt.scene.json",
+          "assetSha256": "e9f18b5a26beb061f6e8822b76b53f310867c90218e59eed181ab211bce3398f",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/340",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_14_alt.scene.json",
+          "assetSha256": "e9f18b5a26beb061f6e8822b76b53f310867c90218e59eed181ab211bce3398f",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/485",
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_14_alt.scene.json",
+          "assetSha256": "e9f18b5a26beb061f6e8822b76b53f310867c90218e59eed181ab211bce3398f",
+          "jsonPointer": "/Data/RootChunk/actors/0",
+          "expectedType": "scnActorDef"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_14_alt.scene.json",
+          "assetSha256": "e9f18b5a26beb061f6e8822b76b53f310867c90218e59eed181ab211bce3398f",
+          "jsonPointer": "/Data/RootChunk/actors/1",
+          "expectedType": "scnActorDef"
+        },
+        {
+          "jsonPath": "scene-evidence/release-root/raw/base/base/quest/cyberpunk2077.gamedef.json",
+          "assetSha256": "3bc1e3a75a1ba9dc582b8c7736a758899001cd15424ed79e1654de8b8ca41bbd",
+          "jsonPointer": "/Data/RootChunk/mainQuests/0/Data/questFile"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.quest.json",
+          "assetSha256": "b14f15d20e6723b97cf4afe260546c5c6e93c84856c47372fbbb8377b640f449",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.questphase.json",
+          "assetSha256": "78d8afd0784575216b090f003610ca973be9d1781bab948c9e4dc12006d750b2",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/part1/act_1.questphase.json",
+          "assetSha256": "3259983b6e1a5e1127fc580d34d1b3f2c53619e4db09047791603a785c10c661",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/17/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/part1/q110/q110b.questphase.json",
+          "assetSha256": "ece2c94dab2e65f76abb765dcb8d228d49753bf75b86917006b35677cc1b6ce4",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/part1/q110/phases/q110_11_alt.questphase.json",
+          "assetSha256": "45a27b85e0bb41c31cdbebfdacd35df2a3a0d486ea6532d7e0f96dddb2fcee86",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data",
+          "expectedType": "questSceneNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/minor_quests/mq055/mq055.quest.json",
+          "assetSha256": "e240ece14eba3138d2fc1500895b8866a02f0bfa0c69b5b10faf59c92ce08a86",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/74/Data/type/Data",
+          "expectedType": "questSetVar_NodeType"
+        },
+        {
+          "jsonPath": "raw/ep1/ep1/quest/ep1.questphase.json",
+          "assetSha256": "f8049a61235f36685b50d60da0e78b3de7640bc6f324e14b77d7601fdf0e9c57",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/17/Data/phaseGraph/Data/nodes/78/Data/type/Data",
+          "expectedType": "questSetVar_NodeType"
+        },
+        {
+          "jsonPath": "raw/ep1/ep1/quest/ep1.questphase.json",
+          "assetSha256": "f8049a61235f36685b50d60da0e78b3de7640bc6f324e14b77d7601fdf0e9c57",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/10/Data/phaseGraph/Data/nodes/95/Data/type/Data",
+          "expectedType": "questSetVar_NodeType"
+        }
+      ]
+    },
+    {
+      "id": "ahe-native.contract-signed",
+      "sourceId": "ahe-native-assets",
+      "kind": "native",
+      "locator": "Both orbital visitor scenes expose the same final decision. Hellman choice2038 and Takemura choice154 option0 directly set q201_ice=1; option1 directly sets q201_earth=1. The exact English localized options and outgoing socket destinations were joined to the writers. The rule does not infer which visitor appeared or that an eventual replacement body exists.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/epilogue/q201/scenes/q201_07_cabin_day_30.scene.json",
+        "assetSha256": "33bbd8b3fdaf99bd4ccb92ba6380a2ddd481b3b6b037588a93b3cb39b4d0e87c",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/84/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/epilogue/q201/scenes/q201_08_cabin_day_30_takemura.scene.json",
+          "assetSha256": "5d75485510d52645b29f26614e542fad4bddf810566e83fd909b160fdec292bd",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/84/Data/questNode/Data/type/Data",
+          "expectedType": "questSetVar_NodeType"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/epilogue/q201/scenes/q201_07_cabin_day_30.scene.json",
+          "assetSha256": "33bbd8b3fdaf99bd4ccb92ba6380a2ddd481b3b6b037588a93b3cb39b4d0e87c",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/40/Data",
+          "expectedType": "scnChoiceNode"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/epilogue/q201/scenes/q201_08_cabin_day_30_takemura.scene.json",
+          "assetSha256": "5d75485510d52645b29f26614e542fad4bddf810566e83fd909b160fdec292bd",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/61/Data",
+          "expectedType": "scnChoiceNode"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/epilogue/q201/scenes/q201_07_cabin_day_30.scene.json",
+          "assetSha256": "33bbd8b3fdaf99bd4ccb92ba6380a2ddd481b3b6b037588a93b3cb39b4d0e87c",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/474",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/epilogue/q201/scenes/q201_07_cabin_day_30.scene.json",
+          "assetSha256": "33bbd8b3fdaf99bd4ccb92ba6380a2ddd481b3b6b037588a93b3cb39b4d0e87c",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/460",
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/epilogue/q201/scenes/q201_08_cabin_day_30_takemura.scene.json",
+          "assetSha256": "5d75485510d52645b29f26614e542fad4bddf810566e83fd909b160fdec292bd",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/469",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/epilogue/q201/scenes/q201_08_cabin_day_30_takemura.scene.json",
+          "assetSha256": "5d75485510d52645b29f26614e542fad4bddf810566e83fd909b160fdec292bd",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/452",
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/release-root/raw/base/base/quest/cyberpunk2077.gamedef.json",
+          "assetSha256": "3bc1e3a75a1ba9dc582b8c7736a758899001cd15424ed79e1654de8b8ca41bbd",
+          "jsonPointer": "/Data/RootChunk/mainQuests/0/Data/questFile"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.quest.json",
+          "assetSha256": "b14f15d20e6723b97cf4afe260546c5c6e93c84856c47372fbbb8377b640f449",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.questphase.json",
+          "assetSha256": "78d8afd0784575216b090f003610ca973be9d1781bab948c9e4dc12006d750b2",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/epilogue/epilogue.questphase.json",
+          "assetSha256": "14d13d2633772dde34b8e29308f148bd34b3f10ad3af72407d89e891a0036caa",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/0/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/epilogue/q201/q201_heir.questphase.json",
+          "assetSha256": "49f6ec39f8a5c064e6949085bd08226dea1f4226b69e91d4881948065bf1de43",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/11/Data/phaseGraph/Data/nodes/2/Data",
+          "expectedType": "questSceneNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/epilogue/q201/q201_heir.questphase.json",
+          "assetSha256": "49f6ec39f8a5c064e6949085bd08226dea1f4226b69e91d4881948065bf1de43",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/11/Data/phaseGraph/Data/nodes/12/Data",
+          "expectedType": "questSceneNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "ahe-native.contract-refused",
+      "sourceId": "ahe-native-assets",
+      "kind": "native",
+      "locator": "Both orbital visitor scenes expose the same final decision. Hellman choice2038 and Takemura choice154 option0 directly set q201_ice=1; option1 directly sets q201_earth=1. The exact English localized options and outgoing socket destinations were joined to the writers. The rule does not infer which visitor appeared or that an eventual replacement body exists.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/epilogue/q201/scenes/q201_07_cabin_day_30.scene.json",
+        "assetSha256": "33bbd8b3fdaf99bd4ccb92ba6380a2ddd481b3b6b037588a93b3cb39b4d0e87c",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/85/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/epilogue/q201/scenes/q201_08_cabin_day_30_takemura.scene.json",
+          "assetSha256": "5d75485510d52645b29f26614e542fad4bddf810566e83fd909b160fdec292bd",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/85/Data/questNode/Data/type/Data",
+          "expectedType": "questSetVar_NodeType"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/epilogue/q201/scenes/q201_07_cabin_day_30.scene.json",
+          "assetSha256": "33bbd8b3fdaf99bd4ccb92ba6380a2ddd481b3b6b037588a93b3cb39b4d0e87c",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/40/Data",
+          "expectedType": "scnChoiceNode"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/epilogue/q201/scenes/q201_08_cabin_day_30_takemura.scene.json",
+          "assetSha256": "5d75485510d52645b29f26614e542fad4bddf810566e83fd909b160fdec292bd",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/61/Data",
+          "expectedType": "scnChoiceNode"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/epilogue/q201/scenes/q201_07_cabin_day_30.scene.json",
+          "assetSha256": "33bbd8b3fdaf99bd4ccb92ba6380a2ddd481b3b6b037588a93b3cb39b4d0e87c",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/478",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/epilogue/q201/scenes/q201_07_cabin_day_30.scene.json",
+          "assetSha256": "33bbd8b3fdaf99bd4ccb92ba6380a2ddd481b3b6b037588a93b3cb39b4d0e87c",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/461",
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/epilogue/q201/scenes/q201_08_cabin_day_30_takemura.scene.json",
+          "assetSha256": "5d75485510d52645b29f26614e542fad4bddf810566e83fd909b160fdec292bd",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/473",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/epilogue/q201/scenes/q201_08_cabin_day_30_takemura.scene.json",
+          "assetSha256": "5d75485510d52645b29f26614e542fad4bddf810566e83fd909b160fdec292bd",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/453",
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/release-root/raw/base/base/quest/cyberpunk2077.gamedef.json",
+          "assetSha256": "3bc1e3a75a1ba9dc582b8c7736a758899001cd15424ed79e1654de8b8ca41bbd",
+          "jsonPointer": "/Data/RootChunk/mainQuests/0/Data/questFile"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.quest.json",
+          "assetSha256": "b14f15d20e6723b97cf4afe260546c5c6e93c84856c47372fbbb8377b640f449",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.questphase.json",
+          "assetSha256": "78d8afd0784575216b090f003610ca973be9d1781bab948c9e4dc12006d750b2",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/epilogue/epilogue.questphase.json",
+          "assetSha256": "14d13d2633772dde34b8e29308f148bd34b3f10ad3af72407d89e891a0036caa",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/0/Data/phaseResource"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/epilogue/q201/q201_heir.questphase.json",
+          "assetSha256": "49f6ec39f8a5c064e6949085bd08226dea1f4226b69e91d4881948065bf1de43",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/11/Data/phaseGraph/Data/nodes/2/Data",
+          "expectedType": "questSceneNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/epilogue/q201/q201_heir.questphase.json",
+          "assetSha256": "49f6ec39f8a5c064e6949085bd08226dea1f4226b69e91d4881948065bf1de43",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/11/Data/phaseGraph/Data/nodes/12/Data",
+          "expectedType": "questSceneNodeDefinition"
+        }
+      ]
+    }
+  ],
+  "factAllowlist": {
+    "q003_militech_chip": {
+      "evidenceRefs": [
+        "ahe-native.chip-accepted"
+      ]
+    },
+    "q003_militech_refused": {
+      "evidenceRefs": [
+        "ahe-native.chip-declined"
+      ]
+    },
+    "q003_stout_sex_done": {
+      "evidenceRefs": [
+        "ahe-native.stout-encounter"
+      ]
+    },
+    "q110_08a_netwatch_deal": {
+      "evidenceRefs": [
+        "ahe-native.netwatch-accepted"
+      ]
+    },
+    "q110_08a_virus": {
+      "evidenceRefs": [
+        "ahe-native.placide-virus-warning"
+      ]
+    },
+    "q110_made_contact_with_alt": {
+      "evidenceRefs": [
+        "ahe-native.alt-contact"
+      ]
+    },
+    "q201_ice": {
+      "evidenceRefs": [
+        "ahe-native.contract-signed"
+      ]
+    },
+    "q201_earth": {
+      "evidenceRefs": [
+        "ahe-native.contract-refused"
+      ]
+    }
+  },
+  "journalAllowlist": {},
+  "rules": [
+    {
+      "id": "ahe-native.chip-accepted",
+      "revision": 1,
+      "questKey": "the-pickup",
+      "topic": "pickup.credchip.acceptance",
+      "outcome": "accepted-intact",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "V accepted Meredith Stout’s Militech credchip at their initial meeting. Its malware was still present at handover; this history says nothing about later cleaning, copying, payment, or who won the Militech investigation.",
+      "sourceIds": [
+        "ahe-pickup",
+        "ahe-pickup-guide"
+      ],
+      "evidenceRefs": [
+        "ahe-native.chip-accepted"
+      ],
+      "audience": {
+        "speakers": [
+          "meredith-stout"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "meredith-stout"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "q003_militech_chip",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.militech-chip",
+          "outcomeKey": "accepted-intact"
+        }
+      ]
+    },
+    {
+      "id": "ahe-native.chip-declined",
+      "revision": 1,
+      "questKey": "the-pickup",
+      "topic": "pickup.credchip.acceptance",
+      "outcome": "declined",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "V declined or abandoned Meredith Stout’s credchip offer at the initial meeting. No particular spoken refusal, later factory payment, or winner of the Militech investigation follows from that.",
+      "sourceIds": [
+        "ahe-pickup",
+        "ahe-pickup-guide"
+      ],
+      "evidenceRefs": [
+        "ahe-native.chip-declined"
+      ],
+      "audience": {
+        "speakers": [
+          "meredith-stout"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "meredith-stout"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "q003_militech_refused",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.militech-chip",
+          "outcomeKey": "declined"
+        }
+      ]
+    },
+    {
+      "id": "ahe-native.stout-encounter",
+      "revision": 1,
+      "questKey": "venus-in-furs",
+      "topic": "meredith.intimacy",
+      "outcome": "completed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "relationship",
+      "priority": 7,
+      "stable": true,
+      "statement": "V and Meredith Stout completed their private motel encounter. It was an optional intimate meeting; it does not establish an ongoing romance, exclusivity, or a promise of another meeting.",
+      "sourceIds": [
+        "ahe-venus",
+        "ahe-meredith"
+      ],
+      "evidenceRefs": [
+        "ahe-native.stout-encounter"
+      ],
+      "audience": {
+        "speakers": [
+          "meredith-stout"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "meredith-stout"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "q003_stout_sex_done",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.stout-encounter",
+          "outcomeKey": "completed"
+        }
+      ]
+    },
+    {
+      "id": "ahe-native.netwatch-accepted",
+      "revision": 1,
+      "questKey": "i-walk-the-line",
+      "topic": "voodoo.netwatch.choice",
+      "outcome": "accepted",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "The current save establishes that V accepted the NetWatch agent’s arrangement in the Grand Imperial Mall: let the agent leave with his data in exchange for removing the Voodoo Boys’ virus and releasing their trapped netrunners. Those were the offered terms, not a guarantee of later safety. V has disclosed this private history to the present listener.",
+      "sourceIds": [
+        "ahe-walk-line"
+      ],
+      "evidenceRefs": [
+        "ahe-native.netwatch-accepted"
+      ],
+      "audience": {
+        "speakers": [
+          "hanako-arasaka",
+          "takemura",
+          "yorinobu-arasaka",
+          "arthur-jenkins",
+          "frank-nostra",
+          "meredith-stout",
+          "dexter-deshawn",
+          "placide",
+          "t-bug"
+        ],
+        "perspective": "told-by-v",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "hanako-arasaka",
+          "takemura",
+          "yorinobu-arasaka",
+          "arthur-jenkins",
+          "frank-nostra",
+          "meredith-stout",
+          "dexter-deshawn",
+          "placide",
+          "t-bug"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "q110_08a_netwatch_deal",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.netwatch-choice",
+          "outcomeKey": "accepted"
+        }
+      ]
+    },
+    {
+      "id": "ahe-native.placide-virus-warning",
+      "revision": 1,
+      "questKey": "i-walk-the-line",
+      "topic": "placide.malware.warning",
+      "outcome": "warned-by-agent",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "The NetWatch agent warned V about the Voodoo Boys’ malware and demonstrated that V’s diagnostic was repeating a forged result. This does not establish whether V accepted the NetWatch bargain. V has disclosed the warning to the present listener.",
+      "sourceIds": [
+        "ahe-walk-line"
+      ],
+      "evidenceRefs": [
+        "ahe-native.placide-virus-warning"
+      ],
+      "audience": {
+        "speakers": [
+          "hanako-arasaka",
+          "takemura",
+          "yorinobu-arasaka",
+          "arthur-jenkins",
+          "frank-nostra",
+          "meredith-stout",
+          "dexter-deshawn",
+          "placide",
+          "t-bug"
+        ],
+        "perspective": "told-by-v",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "hanako-arasaka",
+          "takemura",
+          "yorinobu-arasaka",
+          "arthur-jenkins",
+          "frank-nostra",
+          "meredith-stout",
+          "dexter-deshawn",
+          "placide",
+          "t-bug"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "q110_08a_virus",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.placide-malware-warning",
+          "outcomeKey": "warned-by-agent"
+        }
+      ]
+    },
+    {
+      "id": "ahe-native.alt-contact",
+      "revision": 1,
+      "questKey": "transmission",
+      "topic": "v.alt.contact",
+      "outcome": "met",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "The current save establishes that V and Johnny made contact with Alt beyond the Blackwall. Alt discussed a route into Mikoshi and supplied a way to contact her. This does not establish that Hanako, Placide, or another outsider witnessed it, nor any later ending outcome. V has disclosed this history to the present listener.",
+      "sourceIds": [
+        "ahe-transmission"
+      ],
+      "evidenceRefs": [
+        "ahe-native.alt-contact"
+      ],
+      "audience": {
+        "speakers": [
+          "hanako-arasaka",
+          "takemura",
+          "yorinobu-arasaka",
+          "arthur-jenkins",
+          "frank-nostra",
+          "meredith-stout",
+          "dexter-deshawn",
+          "placide",
+          "t-bug"
+        ],
+        "perspective": "told-by-v",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "hanako-arasaka",
+          "takemura",
+          "yorinobu-arasaka",
+          "arthur-jenkins",
+          "frank-nostra",
+          "meredith-stout",
+          "dexter-deshawn",
+          "placide",
+          "t-bug"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "q110_made_contact_with_alt",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.alt-contact",
+          "outcomeKey": "met"
+        }
+      ]
+    },
+    {
+      "id": "ahe-native.contract-signed",
+      "revision": 1,
+      "questKey": "where-is-my-mind",
+      "topic": "v.secure-your-soul",
+      "outcome": "signed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "V signed the Secure Your Soul contract in the Arasaka orbital clinic, agreeing to digitization and storage while awaiting a suitable body. No future restoration or cure is established. V has disclosed this decision to the present listener.",
+      "sourceIds": [
+        "ahe-mind",
+        "ahe-mind-guide"
+      ],
+      "evidenceRefs": [
+        "ahe-native.contract-signed"
+      ],
+      "audience": {
+        "speakers": [
+          "hanako-arasaka",
+          "takemura",
+          "yorinobu-arasaka",
+          "arthur-jenkins",
+          "frank-nostra",
+          "meredith-stout",
+          "dexter-deshawn",
+          "placide",
+          "t-bug"
+        ],
+        "perspective": "told-by-v",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "hanako-arasaka",
+          "takemura",
+          "yorinobu-arasaka",
+          "arthur-jenkins",
+          "frank-nostra",
+          "meredith-stout",
+          "dexter-deshawn",
+          "placide",
+          "t-bug"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "q201_ice",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.secure-your-soul",
+          "outcomeKey": "signed"
+        }
+      ],
+      "exclusiveGroups": [
+        {
+          "id": "ending.assault-route",
+          "outcome": "arasaka"
+        }
+      ]
+    },
+    {
+      "id": "ahe-native.contract-refused",
+      "revision": 1,
+      "questKey": "where-is-my-mind",
+      "topic": "v.secure-your-soul",
+      "outcome": "refused",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "V refused to sign the Secure Your Soul contract in the Arasaka orbital clinic and chose to return to Earth. This does not establish a later cure, date of death, or another ending. V has disclosed this decision to the present listener.",
+      "sourceIds": [
+        "ahe-mind",
+        "ahe-mind-guide"
+      ],
+      "evidenceRefs": [
+        "ahe-native.contract-refused"
+      ],
+      "audience": {
+        "speakers": [
+          "hanako-arasaka",
+          "takemura",
+          "yorinobu-arasaka",
+          "arthur-jenkins",
+          "frank-nostra",
+          "meredith-stout",
+          "dexter-deshawn",
+          "placide",
+          "t-bug"
+        ],
+        "perspective": "told-by-v",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "hanako-arasaka",
+          "takemura",
+          "yorinobu-arasaka",
+          "arthur-jenkins",
+          "frank-nostra",
+          "meredith-stout",
+          "dexter-deshawn",
+          "placide",
+          "t-bug"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "q201_earth",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.secure-your-soul",
+          "outcomeKey": "refused"
+        }
+      ],
+      "exclusiveGroups": [
+        {
+          "id": "ending.assault-route",
+          "outcome": "arasaka"
+        }
+      ]
+    },
+    {
+      "id": "ahe-unmapped.corpo-career.corpo",
+      "status": "unmapped",
+      "questKey": "the-corpo-rat",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.corpo-career",
+          "outcomeKey": "corpo"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.corpo-career.other-lifepath",
+      "status": "unmapped",
+      "questKey": "the-corpo-rat",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.corpo-career",
+          "outcomeKey": "other-lifepath"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.frank-prologue.completed",
+      "status": "unmapped",
+      "questKey": "the-corpo-rat",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.frank-prologue",
+          "outcomeKey": "completed"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.frank-prologue.brief-or-skipped",
+      "status": "unmapped",
+      "questKey": "the-corpo-rat",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.frank-prologue",
+          "outcomeKey": "brief-or-skipped"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.jenkins-order.received",
+      "status": "unmapped",
+      "questKey": "the-corpo-rat",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.jenkins-order",
+          "outcomeKey": "received"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.corpo-termination.dismissed",
+      "status": "unmapped",
+      "questKey": "the-corpo-rat",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.corpo-termination",
+          "outcomeKey": "dismissed"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.war-pigs-lure.message-only",
+      "status": "unmapped",
+      "questKey": "war-pigs",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.war-pigs-lure",
+          "outcomeKey": "message-only"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.war-pigs-lure.confronted",
+      "status": "unmapped",
+      "questKey": "war-pigs",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.war-pigs-lure",
+          "outcomeKey": "confronted"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.frank-fate.walked-away",
+      "status": "unmapped",
+      "questKey": "war-pigs",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.frank-fate",
+          "outcomeKey": "walked-away"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.frank-fate.incapacitated",
+      "status": "unmapped",
+      "questKey": "war-pigs",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.frank-fate",
+          "outcomeKey": "incapacitated"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.frank-fate.killed",
+      "status": "unmapped",
+      "questKey": "war-pigs",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.frank-fate",
+          "outcomeKey": "killed"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.frank-fate.self-inflicted-death",
+      "status": "unmapped",
+      "questKey": "war-pigs",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.frank-fate",
+          "outcomeKey": "self-inflicted-death"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.dex-contract.briefed",
+      "status": "unmapped",
+      "questKey": "the-ride",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.dex-contract",
+          "outcomeKey": "briefed"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.suite-intel.storage-found",
+      "status": "unmapped",
+      "questKey": "the-information",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.suite-intel",
+          "outcomeKey": "storage-found"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.suite-security.security-scanned",
+      "status": "unmapped",
+      "questKey": "the-information",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.suite-security",
+          "outcomeKey": "security-scanned"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.evelyn-offer.heard",
+      "status": "unmapped",
+      "questKey": "the-information",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.evelyn-offer",
+          "outcomeKey": "heard"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.stout-meeting.met",
+      "status": "unmapped",
+      "questKey": "the-pickup",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.stout-meeting",
+          "outcomeKey": "met"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.stout-meeting.not-met",
+      "status": "unmapped",
+      "questKey": "the-pickup",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.stout-meeting",
+          "outcomeKey": "not-met"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.militech-chip-cleaned.malware-removed",
+      "status": "unmapped",
+      "questKey": "the-pickup",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.militech-chip-cleaned",
+          "outcomeKey": "malware-removed"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.militech-chip-copied.malware-copied",
+      "status": "unmapped",
+      "questKey": "the-pickup",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.militech-chip-copied",
+          "outcomeKey": "malware-copied"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.royce-negotiation.paid-personal",
+      "status": "unmapped",
+      "questKey": "the-pickup",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.royce-negotiation",
+          "outcomeKey": "paid-personal"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.royce-negotiation.paid-militech-unsafe",
+      "status": "unmapped",
+      "questKey": "the-pickup",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.royce-negotiation",
+          "outcomeKey": "paid-militech-unsafe"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.royce-negotiation.paid-clean-or-warned",
+      "status": "unmapped",
+      "questKey": "the-pickup",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.royce-negotiation",
+          "outcomeKey": "paid-clean-or-warned"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.royce-negotiation.attacked",
+      "status": "unmapped",
+      "questKey": "the-pickup",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.royce-negotiation",
+          "outcomeKey": "attacked"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.pickup-conflict.peaceful",
+      "status": "unmapped",
+      "questKey": "the-pickup",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.pickup-conflict",
+          "outcomeKey": "peaceful"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.pickup-conflict.fought-maelstrom",
+      "status": "unmapped",
+      "questKey": "the-pickup",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.pickup-conflict",
+          "outcomeKey": "fought-maelstrom"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.pickup-conflict.fought-militech",
+      "status": "unmapped",
+      "questKey": "the-pickup",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.pickup-conflict",
+          "outcomeKey": "fought-militech"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.flathead-possession.secured",
+      "status": "unmapped",
+      "questKey": "the-pickup",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.flathead-possession",
+          "outcomeKey": "secured"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.royce-fate.alive",
+      "status": "unmapped",
+      "questKey": "the-pickup",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.royce-fate",
+          "outcomeKey": "alive"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.royce-fate.killed-by-v",
+      "status": "unmapped",
+      "questKey": "the-pickup",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.royce-fate",
+          "outcomeKey": "killed-by-v"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.royce-fate.killed-by-militech",
+      "status": "unmapped",
+      "questKey": "the-pickup",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.royce-fate",
+          "outcomeKey": "killed-by-militech"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.royce-fate.incapacitated",
+      "status": "unmapped",
+      "questKey": "the-pickup",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.royce-fate",
+          "outcomeKey": "incapacitated"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.brick-fate.rescued",
+      "status": "unmapped",
+      "questKey": "the-pickup",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.brick-fate",
+          "outcomeKey": "rescued"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.brick-fate.trap-killed",
+      "status": "unmapped",
+      "questKey": "the-pickup",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.brick-fate",
+          "outcomeKey": "trap-killed"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.brick-fate.left-unrescued",
+      "status": "unmapped",
+      "questKey": "the-pickup",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.brick-fate",
+          "outcomeKey": "left-unrescued"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.dumdum-fate.alive",
+      "status": "unmapped",
+      "questKey": "the-pickup",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.dumdum-fate",
+          "outcomeKey": "alive"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.dumdum-fate.killed",
+      "status": "unmapped",
+      "questKey": "the-pickup",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.dumdum-fate",
+          "outcomeKey": "killed"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.dumdum-fate.incapacitated",
+      "status": "unmapped",
+      "questKey": "the-pickup",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.dumdum-fate",
+          "outcomeKey": "incapacitated"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.gilchrist-evidence.read",
+      "status": "unmapped",
+      "questKey": "the-pickup",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.gilchrist-evidence",
+          "outcomeKey": "read"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.gilchrist-stout-disclosure.told-stout",
+      "status": "unmapped",
+      "questKey": "the-pickup",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.gilchrist-stout-disclosure",
+          "outcomeKey": "told-stout"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.gilchrist-confrontation.confronted-gilchrist",
+      "status": "unmapped",
+      "questKey": "the-pickup",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.gilchrist-confrontation",
+          "outcomeKey": "confronted-gilchrist"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.pickup-gate-contact.stout",
+      "status": "unmapped",
+      "questKey": "the-pickup",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.pickup-gate-contact",
+          "outcomeKey": "stout"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.pickup-gate-contact.gilchrist",
+      "status": "unmapped",
+      "questKey": "the-pickup",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.pickup-gate-contact",
+          "outcomeKey": "gilchrist"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.pickup-gate-contact.no-meeting",
+      "status": "unmapped",
+      "questKey": "the-pickup",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.pickup-gate-contact",
+          "outcomeKey": "no-meeting"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.stout-invitation.received",
+      "status": "unmapped",
+      "questKey": "venus-in-furs",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.stout-invitation",
+          "outcomeKey": "received"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.stout-invitation-response.accepted",
+      "status": "unmapped",
+      "questKey": "venus-in-furs",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.stout-invitation-response",
+          "outcomeKey": "accepted"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.stout-encounter.not-established",
+      "status": "unmapped",
+      "questKey": "venus-in-furs",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.stout-encounter",
+          "outcomeKey": "not-established"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.report-evelyn.disclosed",
+      "status": "unmapped",
+      "questKey": "the-heist",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.report-evelyn",
+          "outcomeKey": "disclosed"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.report-evelyn.withheld",
+      "status": "unmapped",
+      "questKey": "the-heist",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.report-evelyn",
+          "outcomeKey": "withheld"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.heist-cut.thirty",
+      "status": "unmapped",
+      "questKey": "the-heist",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.heist-cut",
+          "outcomeKey": "thirty"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.heist-cut.thirty-five",
+      "status": "unmapped",
+      "questKey": "the-heist",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.heist-cut",
+          "outcomeKey": "thirty-five"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.heist-cut.forty",
+      "status": "unmapped",
+      "questKey": "the-heist",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.heist-cut",
+          "outcomeKey": "forty"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.saburo-killing.witnessed",
+      "status": "unmapped",
+      "questKey": "the-heist",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.saburo-killing",
+          "outcomeKey": "witnessed"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.bug-loss.connection-lost",
+      "status": "unmapped",
+      "questKey": "the-heist",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.bug-loss",
+          "outcomeKey": "connection-lost"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.bug-death-report.death-reported",
+      "status": "unmapped",
+      "questKey": "the-heist",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.bug-death-report",
+          "outcomeKey": "death-reported"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.jackie-body.family",
+      "status": "unmapped",
+      "questKey": "the-heist",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.jackie-body",
+          "outcomeKey": "family"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.jackie-body.viktor",
+      "status": "unmapped",
+      "questKey": "the-heist",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.jackie-body",
+          "outcomeKey": "viktor"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.jackie-body.wait",
+      "status": "unmapped",
+      "questKey": "the-heist",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.jackie-body",
+          "outcomeKey": "wait"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.dex-betrayal.shot-v",
+      "status": "unmapped",
+      "questKey": "the-heist",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.dex-betrayal",
+          "outcomeKey": "shot-v"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.dex-betrayal.not-reached",
+      "status": "unmapped",
+      "questKey": "the-heist",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.dex-betrayal",
+          "outcomeKey": "not-reached"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.takemura-rescue.rescued",
+      "status": "unmapped",
+      "questKey": "playing-for-time",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.takemura-rescue",
+          "outcomeKey": "rescued"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.takemura-alliance.agreed",
+      "status": "unmapped",
+      "questKey": "playing-for-time",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.takemura-alliance",
+          "outcomeKey": "agreed"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.oda-refusal.refused",
+      "status": "unmapped",
+      "questKey": "down-on-the-street",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.oda-refusal",
+          "outcomeKey": "refused"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.takemura-ride.together",
+      "status": "unmapped",
+      "questKey": "down-on-the-street",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.takemura-ride",
+          "outcomeKey": "together"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.takemura-ride.separate",
+      "status": "unmapped",
+      "questKey": "down-on-the-street",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.takemura-ride",
+          "outcomeKey": "separate"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.takemura-recon.joined",
+      "status": "unmapped",
+      "questKey": "gimme-danger",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.takemura-recon",
+          "outcomeKey": "joined"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.takemura-recon.declined",
+      "status": "unmapped",
+      "questKey": "gimme-danger",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.takemura-recon",
+          "outcomeKey": "declined"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.takemura-background-shared.childhood-discussed",
+      "status": "unmapped",
+      "questKey": "gimme-danger",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.takemura-background-shared",
+          "outcomeKey": "childhood-discussed"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.takemura-background-shared.not-established",
+      "status": "unmapped",
+      "questKey": "gimme-danger",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.takemura-background-shared",
+          "outcomeKey": "not-established"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.jackie-capture-disclosed.told",
+      "status": "unmapped",
+      "questKey": "gimme-danger",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.jackie-capture-disclosed",
+          "outcomeKey": "told"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.float-compromised.infected",
+      "status": "unmapped",
+      "questKey": "gimme-danger",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.float-compromised",
+          "outcomeKey": "infected"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.parade-threats.cleared",
+      "status": "unmapped",
+      "questKey": "play-it-safe",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.parade-threats",
+          "outcomeKey": "cleared"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.oda-fate.spared",
+      "status": "unmapped",
+      "questKey": "play-it-safe",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.oda-fate",
+          "outcomeKey": "spared"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.oda-fate.killed",
+      "status": "unmapped",
+      "questKey": "play-it-safe",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.oda-fate",
+          "outcomeKey": "killed"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.hanako-abduction.taken",
+      "status": "unmapped",
+      "questKey": "play-it-safe",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.hanako-abduction",
+          "outcomeKey": "taken"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.hanako-testimony.heard",
+      "status": "unmapped",
+      "questKey": "search-and-destroy",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.hanako-testimony",
+          "outcomeKey": "heard"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.takemura-fate.rescued",
+      "status": "unmapped",
+      "questKey": "search-and-destroy",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.takemura-fate",
+          "outcomeKey": "rescued"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.takemura-fate.left-behind",
+      "status": "unmapped",
+      "questKey": "search-and-destroy",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.takemura-fate",
+          "outcomeKey": "left-behind"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.hanako-proxy-disclosure.hellman",
+      "status": "unmapped",
+      "questKey": "search-and-destroy",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.hanako-proxy-disclosure",
+          "outcomeKey": "hellman"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.hanako-alt-disclosure.alt",
+      "status": "unmapped",
+      "questKey": "search-and-destroy",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.hanako-alt-disclosure",
+          "outcomeKey": "alt"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.hanako-relic-disclosure.limited",
+      "status": "unmapped",
+      "questKey": "search-and-destroy",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.hanako-relic-disclosure",
+          "outcomeKey": "limited"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.placide-deal.briefed",
+      "status": "unmapped",
+      "questKey": "map-tann-pelen",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.placide-deal",
+          "outcomeKey": "briefed"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.netwatch-choice.rejected",
+      "status": "unmapped",
+      "questKey": "i-walk-the-line",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.netwatch-choice",
+          "outcomeKey": "rejected"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.placide-malware.payload-survived",
+      "status": "unmapped",
+      "questKey": "i-walk-the-line",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.placide-malware",
+          "outcomeKey": "payload-survived"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.mall-return.returned",
+      "status": "unmapped",
+      "questKey": "i-walk-the-line",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.mall-return",
+          "outcomeKey": "returned"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.voodoo-runners.survived",
+      "status": "unmapped",
+      "questKey": "transmission",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.voodoo-runners",
+          "outcomeKey": "survived"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.voodoo-runners.flatlined",
+      "status": "unmapped",
+      "questKey": "transmission",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.voodoo-runners",
+          "outcomeKey": "flatlined"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.crypt-exit.peaceful",
+      "status": "unmapped",
+      "questKey": "transmission",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.crypt-exit",
+          "outcomeKey": "peaceful"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.crypt-exit.v-attacked",
+      "status": "unmapped",
+      "questKey": "transmission",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.crypt-exit",
+          "outcomeKey": "v-attacked"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.crypt-exit.netwatch-hostility",
+      "status": "unmapped",
+      "questKey": "transmission",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.crypt-exit",
+          "outcomeKey": "netwatch-hostility"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.placide-fate.alive-peace",
+      "status": "unmapped",
+      "questKey": "transmission",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.placide-fate",
+          "outcomeKey": "alive-peace"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.placide-fate.incapacitated",
+      "status": "unmapped",
+      "questKey": "transmission",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.placide-fate",
+          "outcomeKey": "incapacitated"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.placide-fate.killed",
+      "status": "unmapped",
+      "questKey": "transmission",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.placide-fate",
+          "outcomeKey": "killed"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.hanako-offer.heard",
+      "status": "unmapped",
+      "questKey": "nocturne-op55n1",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.hanako-offer",
+          "outcomeKey": "heard"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.ending-route.hanako",
+      "status": "unmapped",
+      "questKey": "nocturne-op55n1",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.ending-route",
+          "outcomeKey": "hanako"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.ending-route.other-route",
+      "status": "unmapped",
+      "questKey": "nocturne-op55n1",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.ending-route",
+          "outcomeKey": "other-route"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.hanako-extracted.rescued",
+      "status": "unmapped",
+      "questKey": "last-caress",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.hanako-extracted",
+          "outcomeKey": "rescued"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.devil-takemura-presence.present",
+      "status": "unmapped",
+      "questKey": "last-caress",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.devil-takemura-presence",
+          "outcomeKey": "present"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.devil-takemura-presence.absent",
+      "status": "unmapped",
+      "questKey": "last-caress",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.devil-takemura-presence",
+          "outcomeKey": "absent"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.saburo-construct.seen",
+      "status": "unmapped",
+      "questKey": "totalimmortal",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.saburo-construct",
+          "outcomeKey": "seen"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.jackie-construct.encountered",
+      "status": "unmapped",
+      "questKey": "totalimmortal",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.jackie-construct",
+          "outcomeKey": "encountered"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.jackie-construct.not-encountered",
+      "status": "unmapped",
+      "questKey": "totalimmortal",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.jackie-construct",
+          "outcomeKey": "not-encountered"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.board-testimony.given",
+      "status": "unmapped",
+      "questKey": "totalimmortal",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.board-testimony",
+          "outcomeKey": "given"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.smasher-fate.spared",
+      "status": "unmapped",
+      "questKey": "totalimmortal",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.smasher-fate",
+          "outcomeKey": "spared"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.smasher-fate.killed",
+      "status": "unmapped",
+      "questKey": "totalimmortal",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.smasher-fate",
+          "outcomeKey": "killed"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.yorinobu-confronted.heard",
+      "status": "unmapped",
+      "questKey": "totalimmortal",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.yorinobu-confronted",
+          "outcomeKey": "heard"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.takemura-assistance.accepted",
+      "status": "unmapped",
+      "questKey": "totalimmortal",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.takemura-assistance",
+          "outcomeKey": "accepted"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.takemura-assistance.declined",
+      "status": "unmapped",
+      "questKey": "totalimmortal",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.takemura-assistance",
+          "outcomeKey": "declined"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.arasaka-treatment.prognosis-given",
+      "status": "unmapped",
+      "questKey": "where-is-my-mind",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.arasaka-treatment",
+          "outcomeKey": "prognosis-given"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.orbital-visitor.takemura",
+      "status": "unmapped",
+      "questKey": "where-is-my-mind",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.orbital-visitor",
+          "outcomeKey": "takemura"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.orbital-visitor.hellman",
+      "status": "unmapped",
+      "questKey": "where-is-my-mind",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.orbital-visitor",
+          "outcomeKey": "hellman"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.maelstrom-leadership.brick",
+      "status": "unmapped",
+      "questKey": "second-conflict",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.maelstrom-leadership",
+          "outcomeKey": "brick"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.maelstrom-leadership.royce",
+      "status": "unmapped",
+      "questKey": "second-conflict",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.maelstrom-leadership",
+          "outcomeKey": "royce"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.maelstrom-leadership.patricia",
+      "status": "unmapped",
+      "questKey": "second-conflict",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.maelstrom-leadership",
+          "outcomeKey": "patricia"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.bug-gift.received",
+      "status": "unmapped",
+      "questKey": "the-gift",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.bug-gift",
+          "outcomeKey": "received"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    },
+    {
+      "id": "ahe-unmapped.dorsett-extraction.completed",
+      "status": "unmapped",
+      "questKey": "the-rescue",
+      "narrativeLinks": [
+        {
+          "decisionId": "arasaka-heist.dorsett-extraction",
+          "outcomeKey": "completed"
+        }
+      ],
+      "notes": "Research outcome retained for coverage; no executable native condition is asserted. See native-reviews/arasaka-heist.md for inspected candidates, semantic ambiguities and remaining source gaps."
+    }
+  ]
+}

@@ -3,7 +3,7 @@ import {createHash} from 'node:crypto';
 const LIMIT = Object.freeze({snapshotBytes: 256 * 1024, packBytes: 4 * 1024 * 1024,
   profiles: 256, sources: 2048, evidence: 4096, inventory: 4096, rules: 2048,
   observations: 512, activeQuests: 32, disclosures: 128, nodes: 128, depth: 8,
-  children: 16, events: 64, errors: 64, traces: 128, context: 12000});
+  children: 16, exclusiveGroups: 8, events: 64, errors: 64, traces: 128, context: 12000});
 const EXECUTABLE = new Set(['source-verified', 'live-verified']);
 const STATUSES = new Set(['unmapped', 'candidate', ...EXECUTABLE, 'disabled']);
 const PERSPECTIVES = new Set(['public', 'shared-journal', 'participant', 'witnessed', 'told-by-v', 'private']);
@@ -237,6 +237,16 @@ function preparePack(value) {
       && rule.evidenceRefs.some(id => evidence.get(id)?.kind === 'live'))) {
       fail('missing-live-evidence', path);
     }
+    if (rule.exclusiveGroups !== undefined) {
+      const groups = rule.exclusiveGroups;
+      if (!Array.isArray(groups) || groups.length > LIMIT.exclusiveGroups
+        || groups.some(group => !plain(group) || Object.keys(group).length !== 2
+          || !Object.hasOwn(group, 'id') || !Object.hasOwn(group, 'outcome')
+          || !identifier(group.id) || !identifier(group.outcome))
+        || new Set(groups.map(group => group?.id)).size !== groups.length) {
+        fail('invalid-exclusive-groups', path);
+      }
+    }
     const audience = rule.audience, open = ['public', 'shared-journal'].includes(audience?.perspective);
     if (!plain(audience) || !PERSPECTIVES.has(audience.perspective)
       || !stringList(audience.channels, 3, channel => CHANNELS.has(channel), 1)
@@ -308,8 +318,9 @@ function rank(rule, snapshot, profileKey, query) {
 
 function eventFor(row, snapshot, prepared, profileKey) {
   const rule = row.rule, identity = {...snapshot.identity};
+  const audience = [...snapshot.audience.profileKeys].sort();
   const digest = createHash('sha256').update(JSON.stringify([identity.userId, identity.playthroughId,
-    identity.branchId, profileKey, rule.topic, rule.outcome])).digest('hex').slice(0, 32);
+    identity.branchId, profileKey, rule.topic, rule.outcome, snapshot.audience.channel, audience])).digest('hex').slice(0, 32);
   const observed = [...row.evaluation.evidence];
   if (rule.audience.perspective === 'told-by-v') {
     const receipt = snapshot.disclosures.find(item => item.topic === rule.topic && item.outcome === rule.outcome && item.to.includes(profileKey));
@@ -319,8 +330,8 @@ function eventFor(row, snapshot, prepared, profileKey) {
   const uniqueEvidence = [...new Map(observed.map(item => [JSON.stringify(item), item])).values()];
   return {version: 1, state: 'candidate', eventId: `world-${digest}`, factId: rule.topic, topic: rule.topic,
     outcome: rule.outcome, questKey: rule.questKey, kind: 'decision', text: rule.statement,
-    characterKey: profileKey, profileKey, knownBy: [profileKey], audience: [...snapshot.audience.profileKeys].sort(),
-    witnessedBy: ['participant', 'witnessed'].includes(rule.audience.perspective) ? [profileKey] : [],
+    characterKey: profileKey, profileKey, knownBy: [profileKey], audience,
+    witnessedBy: rule.audience.perspective === 'witnessed' ? [profileKey] : [],
     perspective: rule.audience.perspective,
     visibility: ['public', 'shared-journal'].includes(rule.audience.perspective)
       && rule.audience.recipients === 'all' && rule.audience.channels.includes('group') ? 'group-safe' : 'private',
@@ -337,7 +348,8 @@ export function resolveKnowledge({pack, snapshot, profileKey, query, maxChars = 
   const budget = Number.isSafeInteger(maxChars) && maxChars >= 0 ? Math.min(maxChars, LIMIT.context) : 6000;
   const prepared = preparePack(pack), current = parseWorldSnapshot(snapshot);
   const diagnostics = {status: 'ready', errors: [...prepared.errors], counts: {evaluated: 0, true: 0, false: 0,
-    unknown: 0, outsideAudience: 0, conflicted: 0, selected: 0, omitted: 0}, conflicts: [], rules: [], contextChars: 0};
+    unknown: 0, outsideAudience: 0, conflicted: 0, selected: 0, omitted: 0}, conflicts: [],
+    exclusiveGroupConflicts: [], rules: [], contextChars: 0};
   const trace = (rule, status) => { if (diagnostics.rules.length < LIMIT.traces) diagnostics.rules.push({ruleId: rule.id, status}); };
   const invalid = reason => {
     diagnostics.status = reason;
@@ -353,7 +365,7 @@ export function resolveKnowledge({pack, snapshot, profileKey, query, maxChars = 
   if (!current.audience.profileKeys.includes(profileKey)
     || !current.audience.profileKeys.every(key => prepared.profiles.has(key))) return invalid('wrong-audience');
 
-  const matches = [], topics = new Map();
+  const matches = [], topics = new Map(), groups = new Map();
   for (const rule of prepared.rules) {
     if (!rule.gameVersions.includes(current.gameVersion)) continue;
     const evaluation = evaluate(rule.condition, current, prepared);
@@ -364,6 +376,12 @@ export function resolveKnowledge({pack, snapshot, profileKey, query, maxChars = 
     const outcomes = topics.get(rule.topic);
     if (!outcomes.has(rule.outcome)) outcomes.set(rule.outcome, []);
     outcomes.get(rule.outcome).push(rule.id);
+    for (const group of rule.exclusiveGroups ?? []) {
+      if (!groups.has(group.id)) groups.set(group.id, new Map());
+      const groupOutcomes = groups.get(group.id);
+      if (!groupOutcomes.has(group.outcome)) groupOutcomes.set(group.outcome, []);
+      groupOutcomes.get(group.outcome).push(rule.id);
+    }
     matches.push({rule, evaluation});
   }
   const conflicts = new Set();
@@ -372,9 +390,17 @@ export function resolveKnowledge({pack, snapshot, profileKey, query, maxChars = 
     if (diagnostics.conflicts.length < LIMIT.traces) diagnostics.conflicts.push({topic,
       outcomes: [...outcomes.keys()].sort(), ruleIds: [...outcomes.values()].flat().sort().slice(0, LIMIT.traces)});
   }
+  const conflictingGroups = new Set();
+  for (const [id, outcomes] of groups) if (outcomes.size > 1) {
+    conflictingGroups.add(id);
+    if (diagnostics.exclusiveGroupConflicts.length < LIMIT.traces) diagnostics.exclusiveGroupConflicts.push({id,
+      outcomes: [...outcomes.keys()].sort(), ruleIds: [...outcomes.values()].flat().sort().slice(0, LIMIT.traces)});
+  }
   const candidates = [], queryTerms = words(query);
   for (const row of matches) {
-    if (conflicts.has(row.rule.topic)) { diagnostics.counts.conflicted += 1; trace(row.rule, 'conflict'); continue; }
+    if (conflicts.has(row.rule.topic) || (row.rule.exclusiveGroups ?? []).some(group => conflictingGroups.has(group.id))) {
+      diagnostics.counts.conflicted += 1; trace(row.rule, 'conflict'); continue;
+    }
     if (!permitted(row.rule, current, profileKey)) { diagnostics.counts.outsideAudience += 1; trace(row.rule, 'outside-audience'); continue; }
     candidates.push({...row, score: rank(row.rule, current, profileKey, queryTerms)});
   }

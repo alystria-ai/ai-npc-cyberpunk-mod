@@ -1,0 +1,4008 @@
+{
+  "version": 1,
+  "lane": "arasaka-heist",
+  "sources": [
+    {
+      "id": "ahe-brick",
+      "url": "https://cyberpunk.fandom.com/wiki/Declan_Griffin",
+      "title": "Brick — Cyberpunk Wiki",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Rescue; Totentanz consequences",
+      "notes": "Indexed source text inspected; direct Fandom page retrieval is blocked by robots.txt. Canonical URL retained. Narrative reference only; native condition semantics are not established."
+    },
+    {
+      "id": "ahe-bug",
+      "url": "https://cyberpunk.fandom.com/wiki/T-Bug",
+      "title": "T-Bug — Cyberpunk Wiki",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Biography; database; development distinction from cinematic trailer",
+      "notes": "Indexed source text inspected; direct Fandom page retrieval is blocked by robots.txt. Canonical URL retained. Narrative reference only; native condition semantics are not established."
+    },
+    {
+      "id": "ahe-corpo",
+      "url": "https://cyberpunk.fandom.com/wiki/The_Corpo-Rat",
+      "title": "The Corpo-Rat — Cyberpunk Wiki",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Walkthrough; lifepath restriction; Jenkins commission",
+      "notes": "Indexed source text inspected; direct Fandom page retrieval is blocked by robots.txt. Canonical URL retained. Narrative reference only; native condition semantics are not established."
+    },
+    {
+      "id": "ahe-corpo-guide",
+      "url": "https://www.gamepressure.com/cyberpunk-2077/the-corpo-rat/z2de81",
+      "title": "The Corpo-Rat walkthrough — Gamepressure",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Go to Jenkins; terminal; Lizzie’s Bar",
+      "notes": "Public walkthrough inspected, including optional office interaction. Launch-era instructions; numerical checks are not mapped to the installed game."
+    },
+    {
+      "id": "ahe-devil-guide",
+      "url": "https://www.powerpyx.com/cyberpunk-2077-endings-guide-all-endings/",
+      "title": "Cyberpunk 2077 endings — PowerPyx",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "The Devil: visitor, contract and point-of-no-return return",
+      "notes": "Opened public guide inspected. Only narrow outcome corroboration used; its broad claim that other choices never matter is not adopted."
+    },
+    {
+      "id": "ahe-dex",
+      "url": "https://cyberpunk.fandom.com/wiki/Dexter_DeShawn",
+      "title": "Dexter DeShawn — Cyberpunk Wiki",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Biography; database; heist aftermath",
+      "notes": "Indexed source text inspected; direct Fandom page retrieval is blocked by robots.txt. Canonical URL retained. Narrative reference only; native condition semantics are not established."
+    },
+    {
+      "id": "ahe-dex-choice",
+      "url": "https://www.pcgamer.com/cyberpunk-2077-dex-or-evelyn-cut-out/",
+      "title": "Dex or Evelyn choice — PC Gamer",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Negotiation outcomes",
+      "notes": "Indexed article inspected. Supports promised cuts and non-branching heist result; no promise is treated as received payment."
+    },
+    {
+      "id": "ahe-down-street",
+      "url": "https://www.powerpyx.com/cyberpunk-2077-down-on-the-street-walkthrough/",
+      "title": "Down on the Street walkthrough — PowerPyx",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Oda meeting, van ride, Wakako briefing",
+      "notes": "Public walkthrough inspected; distinguishes convergent replies from optional shared travel."
+    },
+    {
+      "id": "ahe-dumdum",
+      "url": "https://cyberpunk.fandom.com/wiki/Dum_Dum",
+      "title": "Dum Dum — Cyberpunk Wiki",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "The Pickup; notes about version-dependent survival",
+      "notes": "Indexed source text inspected; direct Fandom page retrieval is blocked by robots.txt. Canonical URL retained. Narrative reference only; native condition semantics are not established."
+    },
+    {
+      "id": "ahe-frank",
+      "url": "https://cyberpunk.fandom.com/wiki/Frank_Nostra",
+      "title": "Frank Nostra — Cyberpunk Wiki",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Biography: Icefall, Cargo, conditional War Pigs outcomes",
+      "notes": "Indexed source text inspected; direct Fandom page retrieval is blocked by robots.txt. Canonical URL retained. Narrative reference only; native condition semantics are not established."
+    },
+    {
+      "id": "ahe-gift",
+      "url": "https://cyberpunk.fandom.com/wiki/The_Gift",
+      "title": "The Gift — Cyberpunk Wiki",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Yoko and T-Bug's quickhack gift",
+      "notes": "Indexed text inspected; patch-sensitive tutorial mechanics require native evidence."
+    },
+    {
+      "id": "ahe-gimme",
+      "url": "https://www.powerpyx.com/cyberpunk-2077-gimme-danger-walkthrough/",
+      "title": "Gimme Danger walkthrough — PowerPyx",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Reconnaissance choice; rooftop conversation; infiltration",
+      "notes": "Public walkthrough inspected. Launch-era numeric attribute values are not used. Optional dialogue presence does not prove player chose every topic."
+    },
+    {
+      "id": "ahe-gimme-game8",
+      "url": "https://game8.co/games/Cyberpunk-2077/archives/Quests-Gimme-Danger",
+      "title": "Gimme Danger — Game8",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Reconnaissance and Jackie information",
+      "notes": "Indexed passage inspected; supports conditional discussion of Jackie after body sent to Viktor."
+    },
+    {
+      "id": "ahe-heist",
+      "url": "https://cyberpunk.fandom.com/wiki/The_Heist",
+      "title": "The Heist — Cyberpunk Wiki",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Briefing; payout negotiation; escape objectives",
+      "notes": "Indexed source text inspected; direct Fandom page retrieval is blocked by robots.txt. Canonical URL retained. Narrative reference only; native condition semantics are not established."
+    },
+    {
+      "id": "ahe-information",
+      "url": "https://cyberpunk.fandom.com/wiki/The_Information",
+      "title": "The Information — Cyberpunk Wiki",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Walkthrough; BD objectives; T-Bug access",
+      "notes": "Indexed source text inspected; direct Fandom page retrieval is blocked by robots.txt. Canonical URL retained. Narrative reference only; native condition semantics are not established."
+    },
+    {
+      "id": "ahe-jackie",
+      "url": "https://cyberpunk.fandom.com/wiki/Jackie_Welles",
+      "title": "Jackie Welles — Cyberpunk Wiki",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "The fate of Jackie’s body",
+      "notes": "Indexed branch text inspected: family or waiting leads to family; Viktor leads to Arasaka seizure. Conflicts with an older Game8 waiting-branch guide, noted rather than silently merged."
+    },
+    {
+      "id": "ahe-konpeki",
+      "url": "https://cyberpunk.fandom.com/wiki/Konpeki_Plaza",
+      "title": "Konpeki Plaza — Cyberpunk Wiki",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "2077 heist history",
+      "notes": "Indexed source text inspected; direct Fandom page retrieval is blocked by robots.txt. Canonical URL retained. Narrative reference only; native condition semantics are not established."
+    },
+    {
+      "id": "ahe-last-caress",
+      "url": "https://cyberpunk.fandom.com/wiki/Last_Caress",
+      "title": "Last Caress — Cyberpunk Wiki",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Route gate; estate objectives",
+      "notes": "Indexed source text inspected; direct Fandom page retrieval is blocked by robots.txt. Canonical URL retained. Narrative reference only; native condition semantics are not established."
+    },
+    {
+      "id": "ahe-map",
+      "url": "https://cyberpunk.fandom.com/wiki/M%27ap_Tann_P%C3%A8len",
+      "title": "M’ap Tann Pèlen — Cyberpunk Wiki",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Hands introduction; Placide meeting objectives",
+      "notes": "Indexed source text inspected; direct Fandom page retrieval is blocked by robots.txt. Canonical URL retained. Narrative reference only; native condition semantics are not established."
+    },
+    {
+      "id": "ahe-meredith",
+      "url": "https://cyberpunk.fandom.com/wiki/Meredith_Stout",
+      "title": "Meredith Stout — Cyberpunk Wiki",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Biography; The Pickup and Venus in Furs branches",
+      "notes": "Indexed source text inspected; direct Fandom page retrieval is blocked by robots.txt. Canonical URL retained. Narrative reference only; native condition semantics are not established."
+    },
+    {
+      "id": "ahe-michiko",
+      "url": "https://cyberpunk.fandom.com/wiki/Michiko_Sanderson",
+      "title": "Michiko Sanderson — Cyberpunk Wiki",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "2077 board meeting conditional",
+      "notes": "Indexed source text inspected; direct Fandom page retrieval is blocked by robots.txt. Canonical URL retained. Narrative reference only; native condition semantics are not established."
+    },
+    {
+      "id": "ahe-mind",
+      "url": "https://cyberpunk.fandom.com/wiki/Where_is_My_Mind%3F",
+      "title": "Where is My Mind? — Cyberpunk Wiki",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Orbital tests; visitor dependency; contract decisions",
+      "notes": "Indexed source text inspected; direct Fandom page retrieval is blocked by robots.txt. Canonical URL retained. Narrative reference only; native condition semantics are not established."
+    },
+    {
+      "id": "ahe-mind-guide",
+      "url": "https://gamefaqs.gamespot.com/pc/672376-cyberpunk-2077/faqs/79161/where-is-my-mind",
+      "title": "Where Is My Mind? — GameFAQs",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Orbital clinic, broadcast, tests, Takemura and contract",
+      "notes": "Indexed guide inspected after direct retrieval failed. Author opinions are excluded."
+    },
+    {
+      "id": "ahe-nocturne",
+      "url": "https://cyberpunk.fandom.com/wiki/Nocturne_Op55N1",
+      "title": "Nocturne Op55N1 — Cyberpunk Wiki",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Objectives; point of no return; route availability notes",
+      "notes": "Indexed source text inspected; direct Fandom page retrieval is blocked by robots.txt. Canonical URL retained. Narrative reference only; native condition semantics are not established."
+    },
+    {
+      "id": "ahe-nocturne-fr",
+      "url": "https://cyberpunk.fandom.com/fr/wiki/Nocturne_Op55N1",
+      "title": "Nocturne Op55N1 — French Cyberpunk Wiki",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Embers conversation",
+      "notes": "Indexed French walkthrough inspected and independently paraphrased in English."
+    },
+    {
+      "id": "ahe-oda",
+      "url": "https://cyberpunk.fandom.com/wiki/Sandayu_Oda",
+      "title": "Sandayu Oda — Cyberpunk Wiki",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Early life; secret meeting; Play It Safe; ending",
+      "notes": "Indexed source inspected; says ending appearance also requires Takemura survival, unlike abbreviated mission note."
+    },
+    {
+      "id": "ahe-pickup",
+      "url": "https://cyberpunk.fandom.com/wiki/The_Pickup",
+      "title": "The Pickup — Cyberpunk Wiki",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Walkthrough paths; chip breach; optional Brick rescue; notes",
+      "notes": "Indexed source inspected. Page explicitly requests cleanup and further verification; flags a Body-takedown/Gilchrist exception. Outcomes are modeled independently instead of guessed from one choice."
+    },
+    {
+      "id": "ahe-pickup-gamesradar",
+      "url": "https://www.gamesradar.com/cyberpunk-2077-the-pickup-mission-walkthrough/",
+      "title": "The Pickup choices — GamesRadar",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Optional Stout meeting; credchip",
+      "notes": "Indexed article inspected for the optional Militech contact and offered chip."
+    },
+    {
+      "id": "ahe-pickup-pcgamesn",
+      "url": "https://www.pcgamesn.com/cyberpunk-2077/the-pickup-walkthrough",
+      "title": "The Pickup walkthrough — PCGamesN",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Chip, Royce and Militech branches",
+      "notes": "Indexed article inspected; broad outcome descriptions differ in edge cases from other guides."
+    },
+    {
+      "id": "ahe-placide",
+      "url": "https://cyberpunk.fandom.com/wiki/Placide",
+      "title": "Placide — Cyberpunk Wiki",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Early life; 2077; database; note on limited knowledge of the Relic",
+      "notes": "Indexed source text inspected; direct Fandom page retrieval is blocked by robots.txt. Canonical URL retained. Narrative reference only; native condition semantics are not established."
+    },
+    {
+      "id": "ahe-play-safe",
+      "url": "https://www.powerpyx.com/cyberpunk-2077-play-it-safe-walkthrough/",
+      "title": "Play It Safe walkthrough — PowerPyx",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Snipers; Oda; access point; escape",
+      "notes": "Public walkthrough inspected. Combat/loadout advice is outdated and unused; only story order and spare/kill distinction retained."
+    },
+    {
+      "id": "ahe-playing",
+      "url": "https://cyberpunk.fandom.com/wiki/Playing_for_Time",
+      "title": "Playing for Time — Cyberpunk Wiki",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Landfill and assassination attempt; objectives",
+      "notes": "Indexed source text inspected; direct Fandom page retrieval is blocked by robots.txt. Canonical URL retained. Narrative reference only; native condition semantics are not established."
+    },
+    {
+      "id": "ahe-rescue",
+      "url": "https://cyberpunk.fandom.com/wiki/The_Rescue",
+      "title": "The Rescue — Cyberpunk Wiki",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Walkthrough and objectives: Sandra extraction and T-Bug support",
+      "notes": "Indexed text inspected; direct access robots-blocked. Page native IDs are not accepted without graph proof."
+    },
+    {
+      "id": "ahe-ride",
+      "url": "https://cyberpunk.fandom.com/wiki/The_Ride",
+      "title": "The Ride — Cyberpunk Wiki",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Walkthrough; lead order note",
+      "notes": "Indexed source text inspected; direct Fandom page retrieval is blocked by robots.txt. Canonical URL retained. Narrative reference only; native condition semantics are not established."
+    },
+    {
+      "id": "ahe-romance",
+      "url": "https://cyberpunk.fandom.com/wiki/Cyberpunk_2077_Romance",
+      "title": "Cyberpunk 2077 Romance — Cyberpunk Wiki",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Romantic encounters: Meredith Stout",
+      "notes": "Indexed table inspected; chip-acceptance description differs from Venus in Furs article. Encounter remains gated by the actual invitation."
+    },
+    {
+      "id": "ahe-ronin",
+      "url": "https://arasakas-ronin.netlify.app/",
+      "title": "Cyberpunk 2077 — community transcript mirror",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "The Heist briefing; Gimme Danger recon; Search and Destroy proxy/calls. Cached text SHA256 5fee5b2e1afccdb80fb25186077bc4c0f140daf668fdc956e255e0a64e0b0499",
+      "notes": "Selected web passages and source collector's inert local cache inspected. Corpo/Nomad portions are TODO, text has encoding damage, and branch annotations are incomplete. Original paraphrases only; exact native branching requires separate proof."
+    },
+    {
+      "id": "ahe-royce",
+      "url": "https://cyberpunk.fandom.com/wiki/Simon_Randall",
+      "title": "Royce — Cyberpunk Wiki",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Biography: The Pickup branches",
+      "notes": "Indexed source text inspected; direct Fandom page retrieval is blocked by robots.txt. Canonical URL retained. Narrative reference only; native condition semantics are not established."
+    },
+    {
+      "id": "ahe-search-destroy",
+      "url": "https://cyberpunk.fandom.com/wiki/Search_and_Destroy",
+      "title": "Search and Destroy — Cyberpunk Wiki",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Apartment 303; assault; optional Takemura rescue; proxy visit",
+      "notes": "Indexed source text inspected; direct Fandom page retrieval is blocked by robots.txt. Canonical URL retained. Narrative reference only; native condition semantics are not established."
+    },
+    {
+      "id": "ahe-second-conflict",
+      "url": "https://cyberpunk.fandom.com/wiki/Second_Conflict_%28quest%29",
+      "title": "Second Conflict — Cyberpunk Wiki",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Totentanz leadership branches",
+      "notes": "Indexed source inspected. Article says some walkthrough details are incorrect; later leadership needs explicit observed outcome, not survival guesses. Only Maelstrom consequences are covered in this lane."
+    },
+    {
+      "id": "ahe-takemura",
+      "url": "https://cyberpunk.fandom.com/wiki/Goro_Takemura",
+      "title": "Goro Takemura — Cyberpunk Wiki",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Early life; 2077 branches; database entry; developer notes",
+      "notes": "Indexed source text inspected; direct Fandom page retrieval is blocked by robots.txt. Canonical URL retained. Narrative reference only; native condition semantics are not established."
+    },
+    {
+      "id": "ahe-ti",
+      "url": "https://cyberpunk.fandom.com/wiki/Ti_Neptune",
+      "title": "Ti Neptune — Cyberpunk Wiki",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "NetWatch stasis; Alt outcomes",
+      "notes": "Indexed source text inspected; direct Fandom page retrieval is blocked by robots.txt. Canonical URL retained. Narrative reference only; native condition semantics are not established."
+    },
+    {
+      "id": "ahe-total",
+      "url": "https://cyberpunk.fandom.com/wiki/Totalimmortal",
+      "title": "Totalimmortal — Cyberpunk Wiki",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Objectives; Oda note; board assault",
+      "notes": "Indexed source text inspected; direct Fandom page retrieval is blocked by robots.txt. Canonical URL retained. Narrative reference only; native condition semantics are not established."
+    },
+    {
+      "id": "ahe-total-gamefaqs",
+      "url": "https://gamefaqs.gamespot.com/pc/672376-cyberpunk-2077/faqs/79161/totalimmortal",
+      "title": "Totalimmortal walkthrough — GameFAQs",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Smasher; Yorinobu confrontation",
+      "notes": "Indexed guide inspected. Guide opinions about mercy and difficulty are not adopted."
+    },
+    {
+      "id": "ahe-total-guide",
+      "url": "https://www.gamepressure.com/cyberpunk-2077/totalimmortal/z0dfdb",
+      "title": "Totalimmortal walkthrough — Gamepressure",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Mikoshi; Jackie; board testimony; Takemura help",
+      "notes": "Public walkthrough inspected. Encountered construct and corporate claims are not treated as proof of a cure."
+    },
+    {
+      "id": "ahe-transmission",
+      "url": "https://cyberpunk.fandom.com/wiki/Transmission",
+      "title": "Transmission — Cyberpunk Wiki",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Blackwall encounter; NetWatch/Voodoo Boys outcomes",
+      "notes": "Indexed source text inspected; direct Fandom page retrieval is blocked by robots.txt. Canonical URL retained. Narrative reference only; native condition semantics are not established."
+    },
+    {
+      "id": "ahe-venus",
+      "url": "https://cyberpunk.fandom.com/wiki/Venus_in_Furs",
+      "title": "Venus in Furs — Cyberpunk Wiki",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Walkthrough; aftermath",
+      "notes": "Indexed source text inspected; direct Fandom page retrieval is blocked by robots.txt. Canonical URL retained. Narrative reference only; native condition semantics are not established."
+    },
+    {
+      "id": "ahe-walk-line",
+      "url": "https://cyberpunk.fandom.com/wiki/I_Walk_the_Line",
+      "title": "I Walk the Line — Cyberpunk Wiki",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Mall infiltration; cinema; return; ranyon note",
+      "notes": "Indexed source text inspected; direct Fandom page retrieval is blocked by robots.txt. Canonical URL retained. Narrative reference only; native condition semantics are not established."
+    },
+    {
+      "id": "ahe-war-pigs",
+      "url": "https://cyberpunk.fandom.com/wiki/War_Pigs",
+      "title": "War Pigs — Cyberpunk Wiki",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Walkthrough; notes on prologue dialogue prerequisite",
+      "notes": "Indexed source text inspected; direct Fandom page retrieval is blocked by robots.txt. Canonical URL retained. Narrative reference only; native condition semantics are not established."
+    },
+    {
+      "id": "ahe-war-pigs-guide",
+      "url": "https://segmentnext.com/cyberpunk-2077-war-pigs/",
+      "title": "War Pigs walkthrough — SegmentNext",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Deal with Frank, lines 39–50",
+      "notes": "Public article inspected. Contradicts the wiki on the dialogue prerequisite for a peaceful outcome; neither is treated as native branch evidence."
+    }
+  ],
+  "quests": [
+    {
+      "key": "the-corpo-rat",
+      "title": "The Corpo-Rat",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "arthur-jenkins",
+        "frank-nostra",
+        "jackie-welles",
+        "life-coach"
+      ],
+      "synopsis": "Corpo V is drawn into a departmental power struggle.",
+      "stages": [
+        {
+          "key": "office",
+          "description": "Arasaka counterintelligence office and Jenkins briefing.",
+          "sourceIds": [
+            "ahe-corpo"
+          ]
+        },
+        {
+          "key": "lizzies",
+          "description": "Jackie meeting and corporate intervention.",
+          "sourceIds": [
+            "ahe-corpo-guide"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "arasaka-heist.corpo-career",
+          "description": "Establish V’s actual lifepath, not a role inferred from clothes.",
+          "topic": "v.origin.arasaka",
+          "outcomes": [
+            {
+              "key": "corpo",
+              "description": "V worked in Jenkins’ department.",
+              "affects": [
+                "arthur-jenkins",
+                "frank-nostra"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-corpo"
+              ]
+            },
+            {
+              "key": "other-lifepath",
+              "description": "Do not invent prior employment or office friendship.",
+              "affects": [
+                "arthur-jenkins",
+                "frank-nostra"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-corpo"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-corpo"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Requires versioned native graph/journal evidence, a reached-stage gate, and a complete current-save observation. No fact name or zero value is interpreted as an outcome."
+          }
+        },
+        {
+          "id": "arasaka-heist.frank-prologue",
+          "description": "Track the optional office conversation separately from shared employment.",
+          "topic": "frank.prologue.conversation",
+          "outcomes": [
+            {
+              "key": "completed",
+              "description": "V and Frank caught up at the office.",
+              "affects": [
+                "frank-nostra"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-frank",
+                "ahe-war-pigs"
+              ]
+            },
+            {
+              "key": "brief-or-skipped",
+              "description": "No completed reunion conversation is established.",
+              "affects": [
+                "frank-nostra"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-frank",
+                "ahe-war-pigs"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-frank",
+            "ahe-war-pigs"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Exact dialogue completion semantics disputed; do not equate this research outcome with peaceful War Pigs eligibility."
+          }
+        },
+        {
+          "id": "arasaka-heist.jenkins-order",
+          "description": "Record the assassination commission only once delivered.",
+          "topic": "jenkins.abernathy.commission",
+          "outcomes": [
+            {
+              "key": "received",
+              "description": "Jenkins handed V compromising information and cash to remove Abernathy.",
+              "affects": [
+                "arthur-jenkins"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-corpo"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-corpo"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Requires versioned native graph/journal evidence, a reached-stage gate, and a complete current-save observation. No fact name or zero value is interpreted as an outcome."
+          }
+        },
+        {
+          "id": "arasaka-heist.corpo-termination",
+          "description": "Record the completed Lizzie’s intervention.",
+          "topic": "v.arasaka.termination",
+          "outcomes": [
+            {
+              "key": "dismissed",
+              "description": "Arasaka withdrew V’s status; Jackie helped V survive the confrontation.",
+              "affects": [
+                "jackie-welles"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "ahe-corpo-guide"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-corpo-guide"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Requires versioned native graph/journal evidence, a reached-stage gate, and a complete current-save observation. No fact name or zero value is interpreted as an outcome."
+          }
+        }
+      ],
+      "sourceIds": [
+        "ahe-corpo",
+        "ahe-corpo-guide",
+        "ahe-frank",
+        "ahe-war-pigs"
+      ],
+      "uncertainties": [
+        "Jenkins’ account of the Osaka rivalry is a partisan account. His later execution is not witnessed by V in the office.",
+        "The Ronin mirror has no Corpo transcript. V’s optional advice to office colleagues is not mapped here."
+      ]
+    },
+    {
+      "key": "war-pigs",
+      "title": "War Pigs",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "frank-nostra",
+        "johnny-silverhand"
+      ],
+      "synopsis": "A supposed posthumous message draws Corpo V into Frank’s desperate attempt to regain corporate standing.",
+      "stages": [
+        {
+          "key": "message",
+          "description": "Recorded message and meeting coordinates received.",
+          "sourceIds": [
+            "ahe-war-pigs"
+          ]
+        },
+        {
+          "key": "ambush",
+          "description": "The briefcase is empty; Frank is alive and confronts V.",
+          "sourceIds": [
+            "ahe-war-pigs-guide"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "arasaka-heist.war-pigs-lure",
+          "description": "Distinguish receipt of a claim from discovering its deception.",
+          "topic": "frank.deadmans-trigger",
+          "outcomes": [
+            {
+              "key": "message-only",
+              "description": "Frank’s message claims he died; death remains unverified.",
+              "affects": [
+                "frank-nostra"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "ahe-war-pigs"
+              ]
+            },
+            {
+              "key": "confronted",
+              "description": "V found Frank alive at the empty case.",
+              "affects": [
+                "frank-nostra",
+                "johnny-silverhand"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-war-pigs"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-war-pigs"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Requires versioned native graph/journal evidence, a reached-stage gate, and a complete current-save observation. No fact name or zero value is interpreted as an outcome."
+          }
+        },
+        {
+          "id": "arasaka-heist.frank-fate",
+          "description": "Use explicit aftermath, not quest completion or looted Apparition alone.",
+          "topic": "frank.fate",
+          "outcomes": [
+            {
+              "key": "walked-away",
+              "description": "Frank abandoned the ambush and left alive.",
+              "affects": [
+                "frank-nostra"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-frank",
+                "ahe-war-pigs",
+                "ahe-war-pigs-guide"
+              ]
+            },
+            {
+              "key": "incapacitated",
+              "description": "V defeated Frank nonlethally; recovery and later plans are unknown.",
+              "affects": [
+                "frank-nostra"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-frank",
+                "ahe-war-pigs",
+                "ahe-war-pigs-guide"
+              ]
+            },
+            {
+              "key": "killed",
+              "description": "V killed Frank in the confrontation.",
+              "affects": [
+                "frank-nostra"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-frank",
+                "ahe-war-pigs",
+                "ahe-war-pigs-guide"
+              ]
+            },
+            {
+              "key": "self-inflicted-death",
+              "description": "The dialogue ended in Frank’s suicide; do not infer from a generic dead flag.",
+              "affects": [
+                "frank-nostra"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-frank",
+                "ahe-war-pigs",
+                "ahe-war-pigs-guide"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-frank",
+            "ahe-war-pigs",
+            "ahe-war-pigs-guide"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Requires versioned native graph/journal evidence, a reached-stage gate, and a complete current-save observation. No fact name or zero value is interpreted as an outcome."
+          }
+        }
+      ],
+      "sourceIds": [
+        "ahe-frank",
+        "ahe-war-pigs",
+        "ahe-war-pigs-guide"
+      ],
+      "uncertainties": [
+        "Wiki requires exhausting the prologue conversation for peace; SegmentNext describes another peaceful route without it. Needs native branching proof.",
+        "Frank’s biography includes suicide; abbreviated mission walkthroughs omit it. Keep that outcome unmapped until scene evidence confirms it.",
+        "Apparition possession is not a reliable death or conversation flag."
+      ]
+    },
+    {
+      "key": "the-ride",
+      "title": "The Ride",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "dexter-deshawn",
+        "jackie-welles"
+      ],
+      "synopsis": "Dex briefs V on stealing the Relic and the preparation leads.",
+      "stages": [
+        {
+          "key": "briefing",
+          "description": "Dex’s car meeting.",
+          "sourceIds": [
+            "ahe-ride"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "arasaka-heist.dex-contract",
+          "description": "Track the completed introductory briefing.",
+          "topic": "dex.relic.contract",
+          "outcomes": [
+            {
+              "key": "briefed",
+              "description": "V knows Dex’s Relic proposal and the Evelyn/Maelstrom leads.",
+              "affects": [
+                "dexter-deshawn"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-ride"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-ride"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Requires versioned native graph/journal evidence, a reached-stage gate, and a complete current-save observation. No fact name or zero value is interpreted as an outcome."
+          }
+        }
+      ],
+      "sourceIds": [
+        "ahe-ride"
+      ],
+      "uncertainties": [
+        "Lead order is not a loyalty choice; both preparations remain necessary. Dex does not know every private client negotiation."
+      ]
+    },
+    {
+      "key": "the-information",
+      "title": "The Information",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "dexter-deshawn",
+        "evelyn-parker",
+        "judy-alvarez",
+        "t-bug",
+        "yorinobu-arasaka"
+      ],
+      "synopsis": "Evelyn’s recording supplies access and storage intelligence for the Relic job.",
+      "stages": [
+        {
+          "key": "client",
+          "description": "V meets Evelyn privately.",
+          "sourceIds": [
+            "ahe-information"
+          ]
+        },
+        {
+          "key": "braindance",
+          "description": "Judy provides the recorded suite; T-Bug joins the technical analysis.",
+          "sourceIds": [
+            "ahe-information"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "arasaka-heist.suite-intel",
+          "description": "Record the Relic storage clue found.",
+          "topic": "heist.suite.storage",
+          "outcomes": [
+            {
+              "key": "storage-found",
+              "description": "Relic storage has been located in the suite recording.",
+              "affects": [
+                "evelyn-parker",
+                "judy-alvarez",
+                "t-bug"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-information"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-information"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Does not imply optional security examination. Requires exact native branch and reached-stage evidence; missing/zero reads do not prove alternatives."
+          }
+        },
+        {
+          "id": "arasaka-heist.suite-security",
+          "description": "Record optional security analysis separately.",
+          "topic": "heist.suite.security",
+          "outcomes": [
+            {
+              "key": "security-scanned",
+              "description": "Optional security details were examined.",
+              "affects": [
+                "evelyn-parker",
+                "judy-alvarez",
+                "t-bug"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-information"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-information"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Requires the optional scan. Requires exact native branch and reached-stage evidence; missing/zero reads do not prove alternatives."
+          }
+        },
+        {
+          "id": "arasaka-heist.evelyn-offer",
+          "description": "Distinguish hearing Evelyn’s bypass proposal from informing Dex.",
+          "topic": "evelyn.dex-bypass.offer",
+          "outcomes": [
+            {
+              "key": "heard",
+              "description": "Evelyn privately proposed excluding Dex.",
+              "affects": [
+                "evelyn-parker"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "ahe-dex-choice"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-dex-choice"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Requires versioned native graph/journal evidence, a reached-stage gate, and a complete current-save observation. No fact name or zero value is interpreted as an outcome."
+          }
+        }
+      ],
+      "sourceIds": [
+        "ahe-information",
+        "ahe-dex-choice"
+      ],
+      "uncertainties": [
+        "Do not grant Dex access to the private bypass proposal until separately disclosed.",
+        "Yorinobu is present in a recording, not a live participant in V’s planning; being recorded does not tell him what V learned."
+      ]
+    },
+    {
+      "key": "the-pickup",
+      "title": "The Pickup",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "meredith-stout",
+        "dexter-deshawn",
+        "jackie-welles"
+      ],
+      "synopsis": "Retrieve the Flathead amid a Maelstrom leadership change and Militech’s internal investigation.",
+      "stages": [
+        {
+          "key": "stout",
+          "description": "Optional Militech meeting.",
+          "sourceIds": [
+            "ahe-pickup-gamesradar"
+          ]
+        },
+        {
+          "key": "deal",
+          "description": "Dum Dum demonstration and Royce negotiation.",
+          "sourceIds": [
+            "ahe-pickup"
+          ]
+        },
+        {
+          "key": "escape",
+          "description": "Factory exit and surviving contact.",
+          "sourceIds": [
+            "ahe-pickup-pcgamesn"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "arasaka-heist.stout-meeting",
+          "description": "Record whether V actually met Stout.",
+          "topic": "meredith.meeting",
+          "outcomes": [
+            {
+              "key": "met",
+              "description": "Stout interrogated V and discussed the convoy.",
+              "affects": [
+                "meredith-stout"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-pickup-gamesradar"
+              ]
+            },
+            {
+              "key": "not-met",
+              "description": "Stout and V have no meeting established.",
+              "affects": [
+                "meredith-stout"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-pickup-gamesradar"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-pickup-gamesradar"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Requires versioned native graph/journal evidence, a reached-stage gate, and a complete current-save observation. No fact name or zero value is interpreted as an outcome."
+          }
+        },
+        {
+          "id": "arasaka-heist.militech-chip",
+          "description": "Track the initial handover or refusal.",
+          "topic": "pickup.credchip.acceptance",
+          "outcomes": [
+            {
+              "key": "declined",
+              "description": "V declined the chip.",
+              "affects": [
+                "meredith-stout"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-pickup"
+              ]
+            },
+            {
+              "key": "accepted-intact",
+              "description": "V accepted it with malware intact.",
+              "affects": [
+                "meredith-stout"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-pickup"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-pickup"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Not the later malware state or factory outcome. Requires exact native branch and reached-stage evidence; missing/zero reads do not prove alternatives."
+          }
+        },
+        {
+          "id": "arasaka-heist.militech-chip-cleaned",
+          "description": "Record removal of the malware.",
+          "topic": "pickup.credchip.cleaned",
+          "outcomes": [
+            {
+              "key": "malware-removed",
+              "description": "V removed the malware.",
+              "affects": [],
+              "knowledge": "private",
+              "sourceIds": [
+                "ahe-pickup"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-pickup"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Proximity does not reveal V's internal hacking interface. Requires exact native branch and reached-stage evidence; missing/zero reads do not prove alternatives."
+          }
+        },
+        {
+          "id": "arasaka-heist.militech-chip-copied",
+          "description": "Record copying the malware separately.",
+          "topic": "pickup.credchip.copied",
+          "outcomes": [
+            {
+              "key": "malware-copied",
+              "description": "V copied its daemon; this does not establish removal.",
+              "affects": [],
+              "knowledge": "private",
+              "sourceIds": [
+                "ahe-pickup"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-pickup"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Copying and cleaning may coexist. Requires exact native branch and reached-stage evidence; missing/zero reads do not prove alternatives."
+          }
+        },
+        {
+          "id": "arasaka-heist.royce-negotiation",
+          "description": "Record V’s observed deal or interruption.",
+          "topic": "pickup.negotiation",
+          "outcomes": [
+            {
+              "key": "paid-personal",
+              "description": "V paid with personal funds.",
+              "affects": [
+                "jackie-welles"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-pickup-pcgamesn"
+              ]
+            },
+            {
+              "key": "paid-militech-unsafe",
+              "description": "V used the compromised chip without warning Royce.",
+              "affects": [
+                "jackie-welles"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-pickup-pcgamesn"
+              ]
+            },
+            {
+              "key": "paid-clean-or-warned",
+              "description": "Payment was cleaned or Royce was warned.",
+              "affects": [
+                "jackie-welles"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-pickup-pcgamesn"
+              ]
+            },
+            {
+              "key": "attacked",
+              "description": "Negotiations ended in an attack.",
+              "affects": [
+                "jackie-welles"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-pickup-pcgamesn"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-pickup-pcgamesn"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Requires versioned native graph/journal evidence, a reached-stage gate, and a complete current-save observation. No fact name or zero value is interpreted as an outcome."
+          }
+        },
+        {
+          "id": "arasaka-heist.pickup-conflict",
+          "description": "Keep actual factory allegiance separate from payment.",
+          "topic": "pickup.conflict",
+          "outcomes": [
+            {
+              "key": "peaceful",
+              "description": "The Flathead transaction ended without a factory fight.",
+              "affects": [
+                "jackie-welles"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-pickup",
+                "ahe-pickup-pcgamesn"
+              ]
+            },
+            {
+              "key": "fought-maelstrom",
+              "description": "V fought Maelstrom.",
+              "affects": [
+                "jackie-welles"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-pickup",
+                "ahe-pickup-pcgamesn"
+              ]
+            },
+            {
+              "key": "fought-militech",
+              "description": "V fought the Militech assault.",
+              "affects": [
+                "jackie-welles"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-pickup",
+                "ahe-pickup-pcgamesn"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-pickup",
+            "ahe-pickup-pcgamesn"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Requires versioned native graph/journal evidence, a reached-stage gate, and a complete current-save observation. No fact name or zero value is interpreted as an outcome."
+          }
+        },
+        {
+          "id": "arasaka-heist.flathead-possession",
+          "description": "Record a successful recovery.",
+          "topic": "heist.flathead",
+          "outcomes": [
+            {
+              "key": "secured",
+              "description": "V obtained the Flathead for Dex’s job.",
+              "affects": [
+                "dexter-deshawn",
+                "jackie-welles"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "ahe-ride",
+                "ahe-pickup"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-ride",
+            "ahe-pickup"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Requires versioned native graph/journal evidence, a reached-stage gate, and a complete current-save observation. No fact name or zero value is interpreted as an outcome."
+          }
+        },
+        {
+          "id": "arasaka-heist.royce-fate",
+          "description": "Resolve Royce independently of Brick and Dum Dum.",
+          "topic": "maelstrom.royce.fate",
+          "outcomes": [
+            {
+              "key": "alive",
+              "description": "Royce survived the factory outcome.",
+              "affects": [
+                "jackie-welles"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "ahe-royce"
+              ]
+            },
+            {
+              "key": "killed-by-v",
+              "description": "V killed Royce.",
+              "affects": [
+                "jackie-welles"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "ahe-royce"
+              ]
+            },
+            {
+              "key": "killed-by-militech",
+              "description": "Militech killed Royce after V bypassed him.",
+              "affects": [
+                "jackie-welles"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "ahe-royce"
+              ]
+            },
+            {
+              "key": "incapacitated",
+              "description": "Royce was neutralized nonlethally; later leadership needs separate evidence.",
+              "affects": [
+                "jackie-welles"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "ahe-royce"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-royce"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Nonlethal survival and offscreen Militech death require independent evidence; never derive either from missing kill event."
+          }
+        },
+        {
+          "id": "arasaka-heist.brick-fate",
+          "description": "Record rescue and lethal trap outcomes explicitly.",
+          "topic": "maelstrom.brick.fate",
+          "outcomes": [
+            {
+              "key": "rescued",
+              "description": "V released Brick and neutralized the trap.",
+              "affects": [
+                "jackie-welles"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "ahe-brick"
+              ]
+            },
+            {
+              "key": "trap-killed",
+              "description": "Brick died in the trap.",
+              "affects": [
+                "jackie-welles"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "ahe-brick"
+              ]
+            },
+            {
+              "key": "left-unrescued",
+              "description": "V left without a confirmed rescue.",
+              "affects": [
+                "jackie-welles"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "ahe-brick"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-brick"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Requires versioned native graph/journal evidence, a reached-stage gate, and a complete current-save observation. No fact name or zero value is interpreted as an outcome."
+          }
+        },
+        {
+          "id": "arasaka-heist.dumdum-fate",
+          "description": "Track Dum Dum separately.",
+          "topic": "maelstrom.dumdum.fate",
+          "outcomes": [
+            {
+              "key": "alive",
+              "description": "Dum Dum survived.",
+              "affects": [
+                "jackie-welles"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "ahe-dumdum"
+              ]
+            },
+            {
+              "key": "killed",
+              "description": "Dum Dum died.",
+              "affects": [
+                "jackie-welles"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "ahe-dumdum"
+              ]
+            },
+            {
+              "key": "incapacitated",
+              "description": "Dum Dum was left incapacitated; eventual survival is unresolved.",
+              "affects": [
+                "jackie-welles"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "ahe-dumdum"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-dumdum"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Historical patches changed certain Royce/Dum Dum combinations; current graph evidence required."
+          }
+        },
+        {
+          "id": "arasaka-heist.gilchrist-evidence",
+          "description": "Record discovery of the convoy correspondence.",
+          "topic": "militech.leak.evidence-read",
+          "outcomes": [
+            {
+              "key": "read",
+              "description": "V found the convoy correspondence.",
+              "affects": [],
+              "knowledge": "private",
+              "sourceIds": [
+                "ahe-pickup"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-pickup"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Reading is not disclosure. Requires exact native branch and reached-stage evidence; missing/zero reads do not prove alternatives."
+          }
+        },
+        {
+          "id": "arasaka-heist.gilchrist-stout-disclosure",
+          "description": "Record the actual disclosure to Stout.",
+          "topic": "militech.leak.stout-disclosure",
+          "outcomes": [
+            {
+              "key": "told-stout",
+              "description": "V gave relevant leak information to Stout.",
+              "affects": [
+                "meredith-stout"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-pickup"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-pickup"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Requires the dialogue and its lifepath gate. Requires exact native branch and reached-stage evidence; missing/zero reads do not prove alternatives."
+          }
+        },
+        {
+          "id": "arasaka-heist.gilchrist-confrontation",
+          "description": "Record confronting Gilchrist.",
+          "topic": "militech.leak.confrontation",
+          "outcomes": [
+            {
+              "key": "confronted-gilchrist",
+              "description": "V confronted Gilchrist about the leak.",
+              "affects": [
+                "jackie-welles"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "ahe-pickup"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-pickup"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Not implied by reading the correspondence. Requires exact native branch and reached-stage evidence; missing/zero reads do not prove alternatives."
+          }
+        },
+        {
+          "id": "arasaka-heist.pickup-gate-contact",
+          "description": "Use the actual gate meeting for Militech winner, never one inferred payment choice.",
+          "topic": "militech.investigation.winner",
+          "outcomes": [
+            {
+              "key": "stout",
+              "description": "Stout met V after the factory.",
+              "affects": [
+                "meredith-stout",
+                "jackie-welles"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-pickup",
+                "ahe-meredith"
+              ]
+            },
+            {
+              "key": "gilchrist",
+              "description": "Gilchrist met V after the factory.",
+              "affects": [
+                "jackie-welles"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-pickup",
+                "ahe-meredith"
+              ]
+            },
+            {
+              "key": "no-meeting",
+              "description": "No Militech gate meeting occurred.",
+              "affects": [
+                "jackie-welles"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-pickup",
+                "ahe-meredith"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-pickup",
+            "ahe-meredith"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Community sources disagree on chip-declined and Body-takedown edge cases. Require actual contact/scene completion; do not automatically assert Stout’s death from absence."
+          }
+        }
+      ],
+      "sourceIds": [
+        "ahe-pickup",
+        "ahe-pickup-gamesradar",
+        "ahe-pickup-pcgamesn",
+        "ahe-royce",
+        "ahe-brick",
+        "ahe-dumdum",
+        "ahe-meredith",
+        "ahe-ride"
+      ],
+      "uncertainties": [
+        "Royce, Brick, Dum Dum, factory allegiance and Militech victor are independent variables.",
+        "A discovered letter is not automatically known to Stout, Dex or the whole party.",
+        "Temporary player death/failed attempt is not a persistent quest-memory branch.",
+        "No claim of exhaustive 2.31 dialogue prerequisites; source contradictions are deliberately unresolved."
+      ]
+    },
+    {
+      "key": "venus-in-furs",
+      "title": "Venus in Furs",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "meredith-stout"
+      ],
+      "synopsis": "A private invitation can follow Stout’s successful investigation.",
+      "stages": [
+        {
+          "key": "invitation",
+          "description": "Stout’s message is received.",
+          "sourceIds": [
+            "ahe-venus"
+          ]
+        },
+        {
+          "key": "motel",
+          "description": "Optional private meeting.",
+          "sourceIds": [
+            "ahe-venus"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "arasaka-heist.stout-invitation",
+          "description": "Record Stout's delivered invitation.",
+          "topic": "meredith.invitation.received",
+          "outcomes": [
+            {
+              "key": "received",
+              "description": "Stout invited V to the motel.",
+              "affects": [
+                "meredith-stout"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "ahe-venus"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-venus"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Do not reconstruct eligibility from a simplified chip formula. Requires exact native branch and reached-stage evidence; missing/zero reads do not prove alternatives."
+          }
+        },
+        {
+          "id": "arasaka-heist.stout-invitation-response",
+          "description": "Record V accepting the invitation.",
+          "topic": "meredith.invitation.accepted",
+          "outcomes": [
+            {
+              "key": "accepted",
+              "description": "V agreed to the meeting.",
+              "affects": [
+                "meredith-stout"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "ahe-venus"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-venus"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Acceptance does not complete the encounter. Requires exact native branch and reached-stage evidence; missing/zero reads do not prove alternatives."
+          }
+        },
+        {
+          "id": "arasaka-heist.stout-encounter",
+          "description": "An encounter is not an ongoing romance.",
+          "topic": "meredith.intimacy",
+          "outcomes": [
+            {
+              "key": "completed",
+              "description": "V and Stout shared the optional private encounter.",
+              "affects": [
+                "meredith-stout"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "ahe-venus",
+                "ahe-romance"
+              ]
+            },
+            {
+              "key": "not-established",
+              "description": "No completed encounter is established.",
+              "affects": [
+                "meredith-stout"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "ahe-venus",
+                "ahe-romance"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-venus",
+            "ahe-romance"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Requires versioned native graph/journal evidence, a reached-stage gate, and a complete current-save observation. No fact name or zero value is interpreted as an outcome."
+          }
+        }
+      ],
+      "sourceIds": [
+        "ahe-venus",
+        "ahe-romance"
+      ],
+      "uncertainties": [
+        "Do not infer commitment, exclusivity, new missions or gender restrictions from this encounter."
+      ]
+    },
+    {
+      "key": "the-heist",
+      "title": "The Heist",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "dexter-deshawn",
+        "t-bug",
+        "jackie-welles",
+        "yorinobu-arasaka",
+        "takemura",
+        "evelyn-parker"
+      ],
+      "synopsis": "The prepared theft collides with a family confrontation inside Konpeki Plaza.",
+      "stages": [
+        {
+          "key": "briefing",
+          "description": "Afterlife plan and negotiation.",
+          "sourceIds": [
+            "ahe-heist"
+          ]
+        },
+        {
+          "key": "suite",
+          "description": "Flathead access and Relic retrieval.",
+          "sourceIds": [
+            "ahe-konpeki"
+          ]
+        },
+        {
+          "key": "escape",
+          "description": "Lockdown, injury and escape.",
+          "sourceIds": [
+            "ahe-konpeki"
+          ]
+        },
+        {
+          "key": "motel",
+          "description": "V reports to Dex.",
+          "sourceIds": [
+            "ahe-dex"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "arasaka-heist.report-evelyn",
+          "description": "Record exactly whether Dex was told of the bypass proposal.",
+          "topic": "dex.evelyn.disclosure",
+          "outcomes": [
+            {
+              "key": "disclosed",
+              "description": "V told Dex about Evelyn’s private proposal.",
+              "affects": [
+                "dexter-deshawn",
+                "t-bug",
+                "jackie-welles"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-dex-choice"
+              ]
+            },
+            {
+              "key": "withheld",
+              "description": "Dex was not told during the briefing.",
+              "affects": [
+                "dexter-deshawn"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "ahe-dex-choice"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-dex-choice"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Requires versioned native graph/journal evidence, a reached-stage gate, and a complete current-save observation. No fact name or zero value is interpreted as an outcome."
+          }
+        },
+        {
+          "id": "arasaka-heist.heist-cut",
+          "description": "A negotiated percentage is a promise, not received income.",
+          "topic": "heist.promised-cut",
+          "outcomes": [
+            {
+              "key": "thirty",
+              "description": "Thirty percent was agreed.",
+              "affects": [
+                "dexter-deshawn",
+                "jackie-welles",
+                "t-bug"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-heist"
+              ]
+            },
+            {
+              "key": "thirty-five",
+              "description": "The promised cut rose to thirty-five percent.",
+              "affects": [
+                "dexter-deshawn",
+                "jackie-welles",
+                "t-bug"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-heist"
+              ]
+            },
+            {
+              "key": "forty",
+              "description": "Dex promised forty percent after disclosure.",
+              "affects": [
+                "dexter-deshawn",
+                "jackie-welles",
+                "t-bug"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-heist"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-heist"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Requires versioned native graph/journal evidence, a reached-stage gate, and a complete current-save observation. No fact name or zero value is interpreted as an outcome."
+          }
+        },
+        {
+          "id": "arasaka-heist.saburo-killing",
+          "description": "Gate the hidden witness scene and subsequent claims.",
+          "topic": "saburo.konpeki.death",
+          "outcomes": [
+            {
+              "key": "witnessed",
+              "description": "V and Jackie witnessed Yorinobu kill Saburo.",
+              "affects": [
+                "yorinobu-arasaka",
+                "jackie-welles"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "ahe-konpeki"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-konpeki"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Takemura and Hanako were not witnesses in the hiding place. Their beliefs need their own later disclosure gates."
+          }
+        },
+        {
+          "id": "arasaka-heist.bug-loss",
+          "description": "Record contact loss in lockdown.",
+          "topic": "tbug.heist.contact",
+          "outcomes": [
+            {
+              "key": "connection-lost",
+              "description": "T-Bug’s connection failed during lockdown.",
+              "affects": [
+                "t-bug",
+                "jackie-welles"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "ahe-konpeki",
+                "ahe-bug"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-konpeki",
+            "ahe-bug"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. A timeline boundary, not a witnessed offsite death mechanism. Requires exact native branch and reached-stage evidence; missing/zero reads do not prove alternatives."
+          }
+        },
+        {
+          "id": "arasaka-heist.bug-death-report",
+          "description": "Record the credible subsequent report.",
+          "topic": "tbug.death.report",
+          "outcomes": [
+            {
+              "key": "death-reported",
+              "description": "A later credible report established T-Bug’s death.",
+              "affects": [],
+              "knowledge": "private",
+              "sourceIds": [
+                "ahe-konpeki",
+                "ahe-bug"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-konpeki",
+            "ahe-bug"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. V's received information cannot give a summoned T-Bug postmortem autobiography. Requires exact native branch and reached-stage evidence; missing/zero reads do not prove alternatives."
+          }
+        },
+        {
+          "id": "arasaka-heist.jackie-body",
+          "description": "Keep the chosen destination and later consequences separate.",
+          "topic": "jackie.body.destination",
+          "outcomes": [
+            {
+              "key": "family",
+              "description": "V sent Jackie’s body to his family.",
+              "affects": [
+                "jackie-welles",
+                "mama-welles"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "ahe-jackie"
+              ]
+            },
+            {
+              "key": "viktor",
+              "description": "V sent Jackie’s body to Viktor.",
+              "affects": [
+                "jackie-welles",
+                "viktor-vektor"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "ahe-jackie"
+              ]
+            },
+            {
+              "key": "wait",
+              "description": "V asked Delamain to wait; the source records eventual family delivery.",
+              "affects": [
+                "jackie-welles",
+                "mama-welles"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "ahe-jackie"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-jackie"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. The chosen wait instruction and eventual delivery need distinct native evidence; no automatic reconstruction from item inventory."
+          }
+        },
+        {
+          "id": "arasaka-heist.dex-betrayal",
+          "description": "Gate the motel attack.",
+          "topic": "dex.betrayal",
+          "outcomes": [
+            {
+              "key": "shot-v",
+              "description": "Dex shot V after the failed heist.",
+              "affects": [
+                "dexter-deshawn"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-dex"
+              ]
+            },
+            {
+              "key": "not-reached",
+              "description": "No motel confrontation is established.",
+              "affects": [
+                "dexter-deshawn"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-dex"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-dex"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Requires versioned native graph/journal evidence, a reached-stage gate, and a complete current-save observation. No fact name or zero value is interpreted as an outcome."
+          }
+        }
+      ],
+      "sourceIds": [
+        "ahe-heist",
+        "ahe-dex-choice",
+        "ahe-konpeki",
+        "ahe-dex",
+        "ahe-jackie",
+        "ahe-bug"
+      ],
+      "uncertainties": [
+        "No validated choice saves Jackie or T-Bug in the released base story. Cinematic trailers are not alternative canonical branches.",
+        "Waiting-body descriptions differ across guides; prefer explicit destination and delivered-body evidence.",
+        "Stolen room items and optional rooftop loot do not prove V’s moral stance or conversation knowledge."
+      ]
+    },
+    {
+      "key": "playing-for-time",
+      "title": "Playing for Time",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "takemura",
+        "dexter-deshawn",
+        "viktor-vektor",
+        "johnny-silverhand"
+      ],
+      "synopsis": "Takemura finds V, then both become targets; survival enables a conditional working relationship.",
+      "stages": [
+        {
+          "key": "landfill",
+          "description": "Takemura and Dex locate V.",
+          "sourceIds": [
+            "ahe-playing"
+          ]
+        },
+        {
+          "key": "diner",
+          "description": "V and Takemura discuss their interests.",
+          "sourceIds": [
+            "ahe-takemura"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "arasaka-heist.takemura-rescue",
+          "description": "Record the landfill and escape event.",
+          "topic": "takemura.v.rescue",
+          "outcomes": [
+            {
+              "key": "rescued",
+              "description": "Takemura killed Dex, recovered V and survived the attack with V’s help.",
+              "affects": [
+                "takemura"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-playing"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-playing"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Requires versioned native graph/journal evidence, a reached-stage gate, and a complete current-save observation. No fact name or zero value is interpreted as an outcome."
+          }
+        },
+        {
+          "id": "arasaka-heist.takemura-alliance",
+          "description": "Shared purpose is not unconditional political loyalty.",
+          "topic": "takemura.v.alliance",
+          "outcomes": [
+            {
+              "key": "agreed",
+              "description": "V and Takemura began cooperating on Saburo’s murder and the Relic problem.",
+              "affects": [
+                "takemura"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-takemura"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-takemura"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Requires versioned native graph/journal evidence, a reached-stage gate, and a complete current-save observation. No fact name or zero value is interpreted as an outcome."
+          }
+        }
+      ],
+      "sourceIds": [
+        "ahe-playing",
+        "ahe-takemura"
+      ],
+      "uncertainties": [
+        "Takemura’s initial suspicion and later cooperation must not collapse into a lifelong friendship."
+      ]
+    },
+    {
+      "key": "down-on-the-street",
+      "title": "Down on the Street",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "takemura",
+        "wakako-okada"
+      ],
+      "synopsis": "A failed approach to Oda redirects the investigation toward the parade.",
+      "stages": [
+        {
+          "key": "oda",
+          "description": "Secret dockside meeting.",
+          "sourceIds": [
+            "ahe-down-street"
+          ]
+        },
+        {
+          "key": "wakako",
+          "description": "Wakako provides parade intelligence.",
+          "sourceIds": [
+            "ahe-down-street"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "arasaka-heist.oda-refusal",
+          "description": "Track the convergent meeting result.",
+          "topic": "oda.cooperation",
+          "outcomes": [
+            {
+              "key": "refused",
+              "description": "Oda refused assistance and warned V and Takemura.",
+              "affects": [
+                "takemura"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-oda"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-oda"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Requires versioned native graph/journal evidence, a reached-stage gate, and a complete current-save observation. No fact name or zero value is interpreted as an outcome."
+          }
+        },
+        {
+          "id": "arasaka-heist.takemura-ride",
+          "description": "Shared travel is a small personal memory, not a quest allegiance.",
+          "topic": "takemura.jigjig.ride",
+          "outcomes": [
+            {
+              "key": "together",
+              "description": "V rode to Jig-Jig Street with Takemura.",
+              "affects": [
+                "takemura"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-down-street"
+              ]
+            },
+            {
+              "key": "separate",
+              "description": "V travelled separately.",
+              "affects": [
+                "takemura"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-down-street"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-down-street"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Requires versioned native graph/journal evidence, a reached-stage gate, and a complete current-save observation. No fact name or zero value is interpreted as an outcome."
+          }
+        }
+      ],
+      "sourceIds": [
+        "ahe-down-street",
+        "ahe-oda"
+      ],
+      "uncertainties": [
+        "Optional dialogue tone does not change Oda’s refusal. Individual disclosed facts require topic-specific observations."
+      ]
+    },
+    {
+      "key": "gimme-danger",
+      "title": "Gimme Danger",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "takemura"
+      ],
+      "synopsis": "Prepare parade access, with optional reconnaissance that permits a more personal conversation.",
+      "stages": [
+        {
+          "key": "security",
+          "description": "Security-room compromise.",
+          "sourceIds": [
+            "ahe-gimme"
+          ]
+        },
+        {
+          "key": "recon",
+          "description": "Optional shared reconnaissance.",
+          "sourceIds": [
+            "ahe-gimme"
+          ]
+        },
+        {
+          "key": "float",
+          "description": "Warehouse intrusion and float infection.",
+          "sourceIds": [
+            "ahe-gimme"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "arasaka-heist.takemura-recon",
+          "description": "Record whether the rooftop time was shared.",
+          "topic": "takemura.recon",
+          "outcomes": [
+            {
+              "key": "joined",
+              "description": "V accompanied Takemura during reconnaissance.",
+              "affects": [
+                "takemura"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-gimme"
+              ]
+            },
+            {
+              "key": "declined",
+              "description": "Takemura performed reconnaissance alone.",
+              "affects": [
+                "takemura"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-gimme"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-gimme"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Requires versioned native graph/journal evidence, a reached-stage gate, and a complete current-save observation. No fact name or zero value is interpreted as an outcome."
+          }
+        },
+        {
+          "id": "arasaka-heist.takemura-background-shared",
+          "description": "A shared scene does not prove all optional topics were discussed.",
+          "topic": "takemura.background.disclosed",
+          "outcomes": [
+            {
+              "key": "childhood-discussed",
+              "description": "Takemura shared his childhood and recruitment history with V.",
+              "affects": [
+                "takemura"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "ahe-gimme"
+              ]
+            },
+            {
+              "key": "not-established",
+              "description": "No childhood disclosure is established.",
+              "affects": [
+                "takemura"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "ahe-gimme"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-gimme"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Requires versioned native graph/journal evidence, a reached-stage gate, and a complete current-save observation. No fact name or zero value is interpreted as an outcome."
+          }
+        },
+        {
+          "id": "arasaka-heist.jackie-capture-disclosed",
+          "description": "Gate the upsetting information separately from body destination.",
+          "topic": "jackie.arasaka-capture.disclosed",
+          "outcomes": [
+            {
+              "key": "told",
+              "description": "Takemura told V what Arasaka did with Jackie’s body.",
+              "affects": [
+                "takemura",
+                "jackie-welles"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "ahe-gimme-game8",
+                "ahe-jackie"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-gimme-game8",
+            "ahe-jackie"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Requires versioned native graph/journal evidence, a reached-stage gate, and a complete current-save observation. No fact name or zero value is interpreted as an outcome."
+          }
+        },
+        {
+          "id": "arasaka-heist.float-compromised",
+          "description": "Record completed parade preparation.",
+          "topic": "parade.float.access",
+          "outcomes": [
+            {
+              "key": "infected",
+              "description": "V compromised the float’s system and withdrew.",
+              "affects": [
+                "takemura"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-gimme"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-gimme"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Requires versioned native graph/journal evidence, a reached-stage gate, and a complete current-save observation. No fact name or zero value is interpreted as an outcome."
+          }
+        }
+      ],
+      "sourceIds": [
+        "ahe-gimme",
+        "ahe-gimme-game8",
+        "ahe-jackie"
+      ],
+      "uncertainties": [
+        "Recon dialogue improves familiarity but does not make Takemura renounce Arasaka.",
+        "Do not serialize every possible childhood topic solely because the recon quest completed.",
+        "Corpo guard/van/stealth infiltration alternatives need native evidence before storing as player behavior."
+      ]
+    },
+    {
+      "key": "play-it-safe",
+      "title": "Play It Safe",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "takemura",
+        "hanako-arasaka"
+      ],
+      "synopsis": "V clears threats while Takemura attempts to reach Hanako’s float.",
+      "stages": [
+        {
+          "key": "route",
+          "description": "Snipers and netrunner access.",
+          "sourceIds": [
+            "ahe-play-safe"
+          ]
+        },
+        {
+          "key": "oda",
+          "description": "Oda intercepts V.",
+          "sourceIds": [
+            "ahe-play-safe"
+          ]
+        },
+        {
+          "key": "float",
+          "description": "Takemura reaches Hanako.",
+          "sourceIds": [
+            "ahe-play-safe"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "arasaka-heist.parade-threats",
+          "description": "Track completed operational progress.",
+          "topic": "parade.route.cleared",
+          "outcomes": [
+            {
+              "key": "cleared",
+              "description": "V cleared the sniper route and reached the netrunner.",
+              "affects": [
+                "takemura"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-play-safe"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-play-safe"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Requires versioned native graph/journal evidence, a reached-stage gate, and a complete current-save observation. No fact name or zero value is interpreted as an outcome."
+          }
+        },
+        {
+          "id": "arasaka-heist.oda-fate",
+          "description": "Defeat and execution are distinct.",
+          "topic": "oda.fate",
+          "outcomes": [
+            {
+              "key": "spared",
+              "description": "V left defeated Oda alive.",
+              "affects": [
+                "takemura",
+                "hanako-arasaka"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "ahe-play-safe",
+                "ahe-oda"
+              ]
+            },
+            {
+              "key": "killed",
+              "description": "V killed Oda after the fight.",
+              "affects": [
+                "takemura",
+                "hanako-arasaka"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "ahe-play-safe",
+                "ahe-oda"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-play-safe",
+            "ahe-oda"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Takemura hears/observes through the operation; Hanako needs her own report. Do not infer death from boss defeat."
+          }
+        },
+        {
+          "id": "arasaka-heist.hanako-abduction",
+          "description": "Track the changed relationship caused by the float incident.",
+          "topic": "hanako.abduction",
+          "outcomes": [
+            {
+              "key": "taken",
+              "description": "Takemura forcibly took Hanako from the parade.",
+              "affects": [
+                "takemura",
+                "hanako-arasaka"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-search-destroy",
+                "ahe-play-safe"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-search-destroy",
+            "ahe-play-safe"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Requires versioned native graph/journal evidence, a reached-stage gate, and a complete current-save observation. No fact name or zero value is interpreted as an outcome."
+          }
+        }
+      ],
+      "sourceIds": [
+        "ahe-play-safe",
+        "ahe-oda",
+        "ahe-search-destroy"
+      ],
+      "uncertainties": [
+        "Hanako’s subsequent cooperation does not retrospectively make the abduction consensual."
+      ]
+    },
+    {
+      "key": "search-and-destroy",
+      "title": "Search and Destroy",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "takemura",
+        "hanako-arasaka",
+        "adam-smasher"
+      ],
+      "synopsis": "The hideout confrontation becomes an assault, an optional rescue and a remote negotiation.",
+      "stages": [
+        {
+          "key": "testimony",
+          "description": "V gives Hanako the witness account.",
+          "sourceIds": [
+            "ahe-search-destroy"
+          ]
+        },
+        {
+          "key": "assault",
+          "description": "Arasaka attacks; V can return for Takemura.",
+          "sourceIds": [
+            "ahe-search-destroy"
+          ]
+        },
+        {
+          "key": "proxy",
+          "description": "Hanako contacts V through a proxy.",
+          "sourceIds": [
+            "ahe-search-destroy"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "arasaka-heist.hanako-testimony",
+          "description": "Track receipt of V’s account, not omniscient belief.",
+          "topic": "hanako.konpeki.testimony",
+          "outcomes": [
+            {
+              "key": "heard",
+              "description": "Hanako heard V accuse Yorinobu of killing Saburo.",
+              "affects": [
+                "hanako-arasaka",
+                "takemura"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-search-destroy"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-search-destroy"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Requires versioned native graph/journal evidence, a reached-stage gate, and a complete current-save observation. No fact name or zero value is interpreted as an outcome."
+          }
+        },
+        {
+          "id": "arasaka-heist.takemura-fate",
+          "description": "Require actual escape or completed abandonment branch.",
+          "topic": "takemura.fate",
+          "outcomes": [
+            {
+              "key": "rescued",
+              "description": "V returned for Takemura and both escaped.",
+              "affects": [
+                "takemura"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-search-destroy"
+              ]
+            },
+            {
+              "key": "left-behind",
+              "description": "V escaped without rescuing Takemura; the story branch treats him as lost.",
+              "affects": [
+                "takemura"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "ahe-search-destroy"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-search-destroy"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. No death inference from absence of a rescue fact before the quest is resolved. Spawned copies do not override this branch."
+          }
+        },
+        {
+          "id": "arasaka-heist.hanako-proxy-disclosure",
+          "description": "Record Hellman information given to the proxy.",
+          "topic": "hanako.relic.hellman-disclosure",
+          "outcomes": [
+            {
+              "key": "hellman",
+              "description": "V disclosed the Hellman lead.",
+              "affects": [
+                "hanako-arasaka"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-ronin"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-ronin"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Independent of Alt information; transcript order labels are not native prerequisites. Requires exact native branch and reached-stage evidence; missing/zero reads do not prove alternatives."
+          }
+        },
+        {
+          "id": "arasaka-heist.hanako-alt-disclosure",
+          "description": "Record Alt contact given to the proxy.",
+          "topic": "hanako.relic.alt-disclosure",
+          "outcomes": [
+            {
+              "key": "alt",
+              "description": "V disclosed contact with Alt.",
+              "affects": [
+                "hanako-arasaka"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-ronin"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-ronin"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Does not reveal the whole private Alt conversation. Requires exact native branch and reached-stage evidence; missing/zero reads do not prove alternatives."
+          }
+        },
+        {
+          "id": "arasaka-heist.hanako-relic-disclosure",
+          "description": "Record the Relic predicament given to Hanako.",
+          "topic": "hanako.relic.predicament",
+          "outcomes": [
+            {
+              "key": "limited",
+              "description": "V explained the Relic predicament through the proxy.",
+              "affects": [
+                "hanako-arasaka"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-ronin"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-ronin"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Can coexist with further disclosures; does not establish their absence. Requires exact native branch and reached-stage evidence; missing/zero reads do not prove alternatives."
+          }
+        }
+      ],
+      "sourceIds": [
+        "ahe-search-destroy",
+        "ahe-ronin"
+      ],
+      "uncertainties": [
+        "Do not treat the transcript’s pre-/post-I Walk the Line labels as verified native gates for the Alt disclosure.",
+        "Hanako’s proxy can know less than V’s complete journal."
+      ]
+    },
+    {
+      "key": "map-tann-pelen",
+      "title": "M’ap Tann Pèlen",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "placide",
+        "mr-hands"
+      ],
+      "synopsis": "Hands arranges a tightly controlled approach to the Voodoo Boys.",
+      "stages": [
+        {
+          "key": "contact",
+          "description": "Church and butcher-shop introduction.",
+          "sourceIds": [
+            "ahe-map"
+          ]
+        },
+        {
+          "key": "briefing",
+          "description": "Placide assigns the mall job.",
+          "sourceIds": [
+            "ahe-map"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "arasaka-heist.placide-deal",
+          "description": "Track the actual introduction and brief.",
+          "topic": "placide.v.contract",
+          "outcomes": [
+            {
+              "key": "briefed",
+              "description": "Placide made V the outside operative for the mall task.",
+              "affects": [
+                "placide"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-map"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-map"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Requires versioned native graph/journal evidence, a reached-stage gate, and a complete current-save observation. No fact name or zero value is interpreted as an outcome."
+          }
+        }
+      ],
+      "sourceIds": [
+        "ahe-map"
+      ],
+      "uncertainties": [
+        "Placide’s limited access to Brigitte’s plans is important; do not give him knowledge of the full Konpeki commission."
+      ]
+    },
+    {
+      "key": "i-walk-the-line",
+      "title": "I Walk the Line",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "placide"
+      ],
+      "synopsis": "The mall operation exposes competing attempts to use V against NetWatch and the Voodoo Boys.",
+      "stages": [
+        {
+          "key": "mall",
+          "description": "Animals and surveillance-van investigation.",
+          "sourceIds": [
+            "ahe-walk-line"
+          ]
+        },
+        {
+          "key": "agent",
+          "description": "V reaches the NetWatch agent.",
+          "sourceIds": [
+            "ahe-walk-line"
+          ]
+        },
+        {
+          "key": "return",
+          "description": "V returns alive.",
+          "sourceIds": [
+            "ahe-walk-line"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "arasaka-heist.netwatch-choice",
+          "description": "Track the choice and installed network exposure.",
+          "topic": "voodoo.netwatch.choice",
+          "outcomes": [
+            {
+              "key": "accepted",
+              "description": "V accepted the agent’s deal.",
+              "affects": [
+                "placide"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "ahe-transmission",
+                "ahe-walk-line"
+              ]
+            },
+            {
+              "key": "rejected",
+              "description": "V acted against the agent under Placide’s plan.",
+              "affects": [
+                "placide"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-transmission",
+                "ahe-walk-line"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-transmission",
+            "ahe-walk-line"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Requires versioned native graph/journal evidence, a reached-stage gate, and a complete current-save observation. No fact name or zero value is interpreted as an outcome."
+          }
+        },
+        {
+          "id": "arasaka-heist.placide-malware-warning",
+          "description": "Record the agent's warning to V.",
+          "topic": "placide.malware.warning",
+          "outcomes": [
+            {
+              "key": "warned-by-agent",
+              "description": "The agent told V about Placide’s malware.",
+              "affects": [],
+              "knowledge": "private",
+              "sourceIds": [
+                "ahe-placide"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-placide"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. An attributed claim; Placide did not automatically hear the private exchange. Requires exact native branch and reached-stage evidence; missing/zero reads do not prove alternatives."
+          }
+        },
+        {
+          "id": "arasaka-heist.placide-malware",
+          "description": "Record survival of the payload separately.",
+          "topic": "placide.malware.survived",
+          "outcomes": [
+            {
+              "key": "payload-survived",
+              "description": "V survived the attack produced by Placide’s plan.",
+              "affects": [
+                "placide"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-placide"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-placide"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Placide learns of survival upon the witnessed return or a verified report. Requires exact native branch and reached-stage evidence; missing/zero reads do not prove alternatives."
+          }
+        },
+        {
+          "id": "arasaka-heist.mall-return",
+          "description": "Track Placide seeing the surviving operative.",
+          "topic": "placide.v.return",
+          "outcomes": [
+            {
+              "key": "returned",
+              "description": "Placide encountered V alive after the mall mission.",
+              "affects": [
+                "placide"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-walk-line"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-walk-line"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Requires versioned native graph/journal evidence, a reached-stage gate, and a complete current-save observation. No fact name or zero value is interpreted as an outcome."
+          }
+        }
+      ],
+      "sourceIds": [
+        "ahe-walk-line",
+        "ahe-transmission",
+        "ahe-placide"
+      ],
+      "uncertainties": [
+        "Accepting NetWatch’s deal is not consent to all later deaths.",
+        "Sasquatch bypass/kill, optional evidence on the agent’s computer and details of NetWatch casualties remain gaps.",
+        "Placide is not automatically privy to the agent’s private conversation with V."
+      ]
+    },
+    {
+      "key": "transmission",
+      "title": "Transmission",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "placide",
+        "johnny-silverhand"
+      ],
+      "synopsis": "Brigitte uses the Relic connection to reach Alt; prior network choices affect the crypt’s aftermath.",
+      "stages": [
+        {
+          "key": "blackwall",
+          "description": "Connection through the Voodoo Boys’ facility.",
+          "sourceIds": [
+            "ahe-transmission"
+          ]
+        },
+        {
+          "key": "aftermath",
+          "description": "Return to the physical crypt.",
+          "sourceIds": [
+            "ahe-transmission"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "arasaka-heist.alt-contact",
+          "description": "Track contact without treating Johnny’s memory as an objective history.",
+          "topic": "v.alt.contact",
+          "outcomes": [
+            {
+              "key": "met",
+              "description": "V and Johnny spoke to Alt beyond the Blackwall.",
+              "affects": [
+                "johnny-silverhand"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "ahe-transmission"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-transmission"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Requires versioned native graph/journal evidence, a reached-stage gate, and a complete current-save observation. No fact name or zero value is interpreted as an outcome."
+          }
+        },
+        {
+          "id": "arasaka-heist.voodoo-runners",
+          "description": "Record the actual runners’ outcome.",
+          "topic": "voodoo.crypt.runners",
+          "outcomes": [
+            {
+              "key": "survived",
+              "description": "Brigitte and the participating runners survived the net encounter.",
+              "affects": [
+                "placide"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "ahe-transmission",
+                "ahe-ti"
+              ]
+            },
+            {
+              "key": "flatlined",
+              "description": "The participating runners were flatlined during NetWatch’s trace and Alt’s response.",
+              "affects": [
+                "placide"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "ahe-transmission",
+                "ahe-ti"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-transmission",
+            "ahe-ti"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Requires versioned native graph/journal evidence, a reached-stage gate, and a complete current-save observation. No fact name or zero value is interpreted as an outcome."
+          }
+        },
+        {
+          "id": "arasaka-heist.crypt-exit",
+          "description": "Separate a peaceful departure from V choosing retaliation and from unavoidable hostility.",
+          "topic": "voodoo.v.departure",
+          "outcomes": [
+            {
+              "key": "peaceful",
+              "description": "V left without attacking the surviving Voodoo Boys.",
+              "affects": [
+                "placide"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-transmission"
+              ]
+            },
+            {
+              "key": "v-attacked",
+              "description": "V initiated violence after the surviving runners returned.",
+              "affects": [
+                "placide"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-transmission"
+              ]
+            },
+            {
+              "key": "netwatch-hostility",
+              "description": "V faced hostile Voodoo Boys after the NetWatch-linked deaths.",
+              "affects": [
+                "placide"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-transmission"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-transmission"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Requires versioned native graph/journal evidence, a reached-stage gate, and a complete current-save observation. No fact name or zero value is interpreted as an outcome."
+          }
+        },
+        {
+          "id": "arasaka-heist.placide-fate",
+          "description": "Require lethal/nonlethal result, not combat completion alone.",
+          "topic": "placide.fate",
+          "outcomes": [
+            {
+              "key": "alive-peace",
+              "description": "Placide was left alive without a fight.",
+              "affects": [
+                "placide"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-placide",
+                "ahe-transmission"
+              ]
+            },
+            {
+              "key": "incapacitated",
+              "description": "V defeated Placide without confirmed death.",
+              "affects": [
+                "placide"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-placide",
+                "ahe-transmission"
+              ]
+            },
+            {
+              "key": "killed",
+              "description": "Placide was killed during the escape.",
+              "affects": [
+                "placide"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-placide",
+                "ahe-transmission"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-placide",
+            "ahe-transmission"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Requires versioned native graph/journal evidence, a reached-stage gate, and a complete current-save observation. No fact name or zero value is interpreted as an outcome."
+          }
+        }
+      ],
+      "sourceIds": [
+        "ahe-transmission",
+        "ahe-ti",
+        "ahe-placide"
+      ],
+      "uncertainties": [
+        "No automatic knowledge transfer of Alt’s private exchange to Placide or all companions.",
+        "Bargaining with Alt does not establish that she cured V, nor that every Voodoo Boy crossed the Blackwall permanently."
+      ]
+    },
+    {
+      "key": "nocturne-op55n1",
+      "title": "Nocturne Op55N1",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "hanako-arasaka",
+        "takemura",
+        "johnny-silverhand"
+      ],
+      "synopsis": "Hanako makes an offer; V later chooses how to pursue the endgame.",
+      "stages": [
+        {
+          "key": "embers",
+          "description": "Hanako presents the exchange at Embers.",
+          "sourceIds": [
+            "ahe-nocturne-fr"
+          ]
+        },
+        {
+          "key": "rooftop",
+          "description": "V decides which available route to pursue.",
+          "sourceIds": [
+            "ahe-nocturne"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "arasaka-heist.hanako-offer",
+          "description": "Separate hearing an offer from accepting it.",
+          "topic": "hanako.help.offer",
+          "outcomes": [
+            {
+              "key": "heard",
+              "description": "Hanako offered help with the Relic in return for testimony.",
+              "affects": [
+                "hanako-arasaka"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-nocturne-fr"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-nocturne-fr"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Embers offer only; commitment uses the separate ending-route decision."
+          }
+        },
+        {
+          "id": "arasaka-heist.ending-route",
+          "description": "Track only a committed route, not availability.",
+          "topic": "v.ending.route",
+          "outcomes": [
+            {
+              "key": "hanako",
+              "description": "V chose Hanako’s Arasaka route.",
+              "affects": [
+                "hanako-arasaka",
+                "takemura"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-nocturne"
+              ]
+            },
+            {
+              "key": "other-route",
+              "description": "V committed to a different available plan.",
+              "affects": [
+                "hanako-arasaka",
+                "takemura"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "ahe-nocturne"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-nocturne"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Parent ending lane owns individual non-Arasaka routes and prerequisites. Do not derive rejection from a quest still waiting at Embers."
+          }
+        }
+      ],
+      "sourceIds": [
+        "ahe-nocturne",
+        "ahe-nocturne-fr"
+      ],
+      "uncertainties": [
+        "Point-of-no-return autosave restoration starts a different effective branch: later ending memories must not leak back.",
+        "Takemura’s hostile ending message is not proof he subsequently died; actual recorded message and chronology required."
+      ]
+    },
+    {
+      "key": "last-caress",
+      "title": "Last Caress",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "hanako-arasaka",
+        "takemura"
+      ],
+      "synopsis": "Extract Hanako from the estate after V chooses her route.",
+      "stages": [
+        {
+          "key": "estate",
+          "description": "Guards hold Hanako at the estate.",
+          "sourceIds": [
+            "ahe-last-caress"
+          ]
+        },
+        {
+          "key": "av",
+          "description": "The party departs for Arasaka Tower.",
+          "sourceIds": [
+            "ahe-last-caress"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "arasaka-heist.hanako-extracted",
+          "description": "Record successful extraction.",
+          "topic": "hanako.estate.extraction",
+          "outcomes": [
+            {
+              "key": "rescued",
+              "description": "V freed Hanako and joined the flight to the tower.",
+              "affects": [
+                "hanako-arasaka"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-last-caress"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-last-caress"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Requires versioned native graph/journal evidence, a reached-stage gate, and a complete current-save observation. No fact name or zero value is interpreted as an outcome."
+          }
+        },
+        {
+          "id": "arasaka-heist.devil-takemura-presence",
+          "description": "A saved Takemura can join; never invent his participation.",
+          "topic": "takemura.devil.participation",
+          "outcomes": [
+            {
+              "key": "present",
+              "description": "Takemura participated in Hanako’s extraction.",
+              "affects": [
+                "takemura",
+                "hanako-arasaka"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-total",
+                "ahe-last-caress"
+              ]
+            },
+            {
+              "key": "absent",
+              "description": "Hellman accompanied V without Takemura.",
+              "affects": [
+                "hanako-arasaka"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-total",
+                "ahe-last-caress"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-total",
+            "ahe-last-caress"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Requires versioned native graph/journal evidence, a reached-stage gate, and a complete current-save observation. No fact name or zero value is interpreted as an outcome."
+          }
+        }
+      ],
+      "sourceIds": [
+        "ahe-last-caress",
+        "ahe-total"
+      ],
+      "uncertainties": [
+        "Presence at the extraction needs runtime evidence in addition to saved-state eligibility.",
+        "Guard deception, combat approach and optional Abernathy news remain separate unmapped details."
+      ]
+    },
+    {
+      "key": "totalimmortal",
+      "title": "Totalimmortal",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "hanako-arasaka",
+        "takemura",
+        "yorinobu-arasaka",
+        "adam-smasher",
+        "jackie-welles"
+      ],
+      "synopsis": "The family struggle reaches Mikoshi, the boardroom and Yorinobu’s office.",
+      "stages": [
+        {
+          "key": "mikoshi",
+          "description": "Hanako reveals Saburo’s stored construct.",
+          "sourceIds": [
+            "ahe-total-guide"
+          ]
+        },
+        {
+          "key": "board",
+          "description": "Testimony and the violent interruption.",
+          "sourceIds": [
+            "ahe-total",
+            "ahe-michiko"
+          ]
+        },
+        {
+          "key": "office",
+          "description": "Smasher confrontation and Yorinobu audience.",
+          "sourceIds": [
+            "ahe-total-gamefaqs"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "arasaka-heist.saburo-construct",
+          "description": "Keep discovery and previously secret corporate knowledge scoped.",
+          "topic": "saburo.engram.revealed",
+          "outcomes": [
+            {
+              "key": "seen",
+              "description": "V met Saburo’s engram with Hanako.",
+              "affects": [
+                "hanako-arasaka"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-total-guide"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-total-guide"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Requires versioned native graph/journal evidence, a reached-stage gate, and a complete current-save observation. No fact name or zero value is interpreted as an outcome."
+          }
+        },
+        {
+          "id": "arasaka-heist.jackie-construct",
+          "description": "Distinguish an offered or available interaction from experiencing it.",
+          "topic": "jackie.construct.encounter",
+          "outcomes": [
+            {
+              "key": "encountered",
+              "description": "V spoke to the incomplete construct of Jackie.",
+              "affects": [
+                "hanako-arasaka",
+                "jackie-welles"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "ahe-total-guide",
+                "ahe-jackie"
+              ]
+            },
+            {
+              "key": "not-encountered",
+              "description": "No construct conversation is established.",
+              "affects": [
+                "hanako-arasaka",
+                "jackie-welles"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "ahe-total-guide",
+                "ahe-jackie"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-total-guide",
+            "ahe-jackie"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Body-to-Viktor prerequisite alone does not prove V chose to speak with the construct. A spawned Jackie is not automatically this construct."
+          }
+        },
+        {
+          "id": "arasaka-heist.board-testimony",
+          "description": "Track actual testimony and interrupted corporate proceedings.",
+          "topic": "arasaka.board.testimony",
+          "outcomes": [
+            {
+              "key": "given",
+              "description": "V testified; Saburo’s construct backed Hanako before the armed attack.",
+              "affects": [
+                "hanako-arasaka"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "ahe-michiko"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-michiko"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Requires versioned native graph/journal evidence, a reached-stage gate, and a complete current-save observation. No fact name or zero value is interpreted as an outcome."
+          }
+        },
+        {
+          "id": "arasaka-heist.smasher-fate",
+          "description": "Boss defeat is not execution.",
+          "topic": "adam-smasher.fate",
+          "outcomes": [
+            {
+              "key": "spared",
+              "description": "V left defeated Smasher without executing him.",
+              "affects": [
+                "adam-smasher",
+                "takemura"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "ahe-total",
+                "ahe-total-gamefaqs"
+              ]
+            },
+            {
+              "key": "killed",
+              "description": "V executed Smasher.",
+              "affects": [
+                "adam-smasher",
+                "takemura"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "ahe-total",
+                "ahe-total-gamefaqs"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-total",
+            "ahe-total-gamefaqs"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Takemura is only a witness when present; do not enable through route name alone."
+          }
+        },
+        {
+          "id": "arasaka-heist.yorinobu-confronted",
+          "description": "Do not turn dialogue into an invented option to spare or kill Yorinobu.",
+          "topic": "yorinobu.final.confrontation",
+          "outcomes": [
+            {
+              "key": "heard",
+              "description": "V heard Yorinobu explain his opposition to Saburo; Hanako then took charge of him.",
+              "affects": [
+                "yorinobu-arasaka",
+                "hanako-arasaka"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-total-gamefaqs"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-total-gamefaqs"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Requires versioned native graph/journal evidence, a reached-stage gate, and a complete current-save observation. No fact name or zero value is interpreted as an outcome."
+          }
+        },
+        {
+          "id": "arasaka-heist.takemura-assistance",
+          "description": "Participation in the assault is a specific shared event.",
+          "topic": "takemura.tower.assistance",
+          "outcomes": [
+            {
+              "key": "accepted",
+              "description": "V accepted Takemura’s help in the tower.",
+              "affects": [
+                "takemura"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-total-guide"
+              ]
+            },
+            {
+              "key": "declined",
+              "description": "V proceeded without his offered assistance.",
+              "affects": [
+                "takemura"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-total-guide"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-total-guide"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Requires versioned native graph/journal evidence, a reached-stage gate, and a complete current-save observation. No fact name or zero value is interpreted as an outcome."
+          }
+        }
+      ],
+      "sourceIds": [
+        "ahe-total",
+        "ahe-total-guide",
+        "ahe-total-gamefaqs",
+        "ahe-michiko",
+        "ahe-jackie",
+        "ahe-oda"
+      ],
+      "uncertainties": [
+        "Oda’s abbreviated mission note only names sparing him; his biography also requires Takemura surviving. Use actual appearance or verified conjunction.",
+        "Yorinobu’s private office explanation is not heard by Takemura waiting outside. Hanako arriving afterward did not necessarily hear every preceding line.",
+        "No cure is established by winning the tower fight."
+      ]
+    },
+    {
+      "key": "where-is-my-mind",
+      "title": "Where is My Mind?",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "hanako-arasaka",
+        "takemura",
+        "johnny-silverhand"
+      ],
+      "synopsis": "Arasaka’s treatment leads to an uncertain prognosis and a final contract choice.",
+      "stages": [
+        {
+          "key": "treatment",
+          "description": "Relic removal, orbital recovery and repeated tests.",
+          "sourceIds": [
+            "ahe-mind"
+          ]
+        },
+        {
+          "key": "decision",
+          "description": "A visitor presents Secure Your Soul terms.",
+          "sourceIds": [
+            "ahe-mind"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "arasaka-heist.arasaka-treatment",
+          "description": "Track what V was medically told, not a guaranteed future lifespan.",
+          "topic": "v.arasaka.treatment",
+          "outcomes": [
+            {
+              "key": "prognosis-given",
+              "description": "The clinic reported treatment had not reversed the underlying damage.",
+              "affects": [
+                "hanako-arasaka",
+                "takemura"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "ahe-mind"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-mind"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Requires versioned native graph/journal evidence, a reached-stage gate, and a complete current-save observation. No fact name or zero value is interpreted as an outcome."
+          }
+        },
+        {
+          "id": "arasaka-heist.orbital-visitor",
+          "description": "Record who actually delivered the offer.",
+          "topic": "v.orbital.visitor",
+          "outcomes": [
+            {
+              "key": "takemura",
+              "description": "Takemura presented the contract.",
+              "affects": [
+                "takemura"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-devil-guide"
+              ]
+            },
+            {
+              "key": "hellman",
+              "description": "Hellman presented the contract.",
+              "affects": [],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "ahe-devil-guide"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-devil-guide",
+            "ahe-mind-guide"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Requires versioned native graph/journal evidence, a reached-stage gate, and a complete current-save observation. No fact name or zero value is interpreted as an outcome."
+          }
+        },
+        {
+          "id": "arasaka-heist.secure-your-soul",
+          "description": "Separate accepting the contract from a hypothetical successful future restoration.",
+          "topic": "v.secure-your-soul",
+          "outcomes": [
+            {
+              "key": "signed",
+              "description": "V agreed to digitization and storage pending a suitable body.",
+              "affects": [
+                "takemura",
+                "hanako-arasaka"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "ahe-devil-guide"
+              ]
+            },
+            {
+              "key": "refused",
+              "description": "V declined and chose to return to Earth.",
+              "affects": [
+                "takemura",
+                "hanako-arasaka"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "ahe-devil-guide"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-devil-guide",
+            "ahe-mind-guide"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Requires versioned native graph/journal evidence, a reached-stage gate, and a complete current-save observation. No fact name or zero value is interpreted as an outcome."
+          }
+        }
+      ],
+      "sourceIds": [
+        "ahe-mind",
+        "ahe-devil-guide",
+        "ahe-mind-guide"
+      ],
+      "uncertainties": [
+        "Both outcomes retain uncertainty about V’s future. The contract does not confirm eventual resurrection.",
+        "Only a present Takemura directly witnesses signature/refusal. Hanako needs a justified report.",
+        "End-credit calls and Saburo’s public return require distinct provenance and are not exhaustively mapped here."
+      ]
+    },
+    {
+      "key": "second-conflict",
+      "title": "Second Conflict",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "nancy-hartley",
+        "johnny-silverhand"
+      ],
+      "synopsis": "The Totentanz visit can reveal delayed consequences of The Pickup.",
+      "stages": [
+        {
+          "key": "totentanz",
+          "description": "Nancy’s Maelstrom interview.",
+          "sourceIds": [
+            "ahe-second-conflict"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "arasaka-heist.maelstrom-leadership",
+          "description": "Read the encountered leadership, not a simplified rescue/kill formula.",
+          "topic": "maelstrom.totentanz.leader",
+          "outcomes": [
+            {
+              "key": "brick",
+              "description": "Brick holds authority during the visit.",
+              "affects": [
+                "nancy-hartley",
+                "johnny-silverhand"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "ahe-second-conflict",
+                "ahe-brick",
+                "ahe-royce"
+              ]
+            },
+            {
+              "key": "royce",
+              "description": "Royce holds authority during the visit.",
+              "affects": [
+                "nancy-hartley",
+                "johnny-silverhand"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "ahe-second-conflict",
+                "ahe-brick",
+                "ahe-royce"
+              ]
+            },
+            {
+              "key": "patricia",
+              "description": "Patricia’s group receives V.",
+              "affects": [
+                "nancy-hartley",
+                "johnny-silverhand"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "ahe-second-conflict",
+                "ahe-brick",
+                "ahe-royce"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-second-conflict",
+            "ahe-brick",
+            "ahe-royce"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Requires versioned native graph/journal evidence, a reached-stage gate, and a complete current-save observation. No fact name or zero value is interpreted as an outcome."
+          }
+        }
+      ],
+      "sourceIds": [
+        "ahe-second-conflict",
+        "ahe-brick",
+        "ahe-royce"
+      ],
+      "uncertainties": [
+        "Other lane covers the band decision. This lane tracks only delayed Maelstrom consequences.",
+        "Brick rescue and Royce survival can coexist; do not model those as mutually exclusive."
+      ]
+    },
+    {
+      "key": "the-gift",
+      "title": "The Gift",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "t-bug"
+      ],
+      "synopsis": "T-Bug arranges useful equipment through Yoko.",
+      "stages": [
+        {
+          "key": "pickup",
+          "description": "V visits Yoko’s store.",
+          "sourceIds": [
+            "ahe-gift"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "arasaka-heist.bug-gift",
+          "description": "Record reception separately from knowing the vendor.",
+          "topic": "tbug.gift",
+          "outcomes": [
+            {
+              "key": "received",
+              "description": "V collected the item T-Bug left with Yoko.",
+              "affects": [
+                "t-bug"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "ahe-gift"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-gift"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Requires versioned native graph/journal evidence, a reached-stage gate, and a complete current-save observation. No fact name or zero value is interpreted as an outcome."
+          }
+        }
+      ],
+      "sourceIds": [
+        "ahe-gift"
+      ],
+      "uncertainties": [
+        "Item names and tutorial mechanics have changed across patches; native inventory evidence needed."
+      ]
+    },
+    {
+      "key": "the-rescue",
+      "title": "The Rescue",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "t-bug",
+        "jackie-welles",
+        "sandra-dorsett"
+      ],
+      "synopsis": "T-Bug supports V and Jackie remotely on the Dorsett rescue.",
+      "stages": [
+        {
+          "key": "operation",
+          "description": "Remote technical assistance.",
+          "sourceIds": [
+            "ahe-rescue"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "arasaka-heist.dorsett-extraction",
+          "description": "Record the completed shared job.",
+          "topic": "dorsett.extraction",
+          "outcomes": [
+            {
+              "key": "completed",
+              "description": "V and Jackie recovered Sandra with T-Bug’s support.",
+              "affects": [
+                "t-bug",
+                "jackie-welles"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "ahe-rescue"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "ahe-rescue"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Unmapped. Requires versioned native graph/journal evidence, a reached-stage gate, and a complete current-save observation. No fact name or zero value is interpreted as an outcome."
+          }
+        }
+      ],
+      "sourceIds": [
+        "ahe-rescue"
+      ],
+      "uncertainties": [
+        "Sandra’s confidential databank contents are not exposed by participating in the rescue."
+      ]
+    }
+  ]
+}

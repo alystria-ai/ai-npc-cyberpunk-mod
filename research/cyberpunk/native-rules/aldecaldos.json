@@ -1,0 +1,4394 @@
+{
+  "version": 1,
+  "id": "cyberpunk-aldecaldos-native",
+  "revision": 1,
+  "gameVersions": [
+    "2.31"
+  ],
+  "profileKeys": [
+    "panam-palmer",
+    "saul-bright",
+    "mitch-anderson",
+    "carol-emeka",
+    "cassidy-righter",
+    "bob-sagan",
+    "dakota-smith"
+  ],
+  "sources": [
+    {
+      "id": "al-ghost",
+      "url": "https://cyberpunk.fandom.com/wiki/Ghost_Town",
+      "title": "Ghost Town",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Walkthrough; Notes",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    },
+    {
+      "id": "al-panam",
+      "url": "https://cyberpunk.fandom.com/wiki/Panam_Palmer",
+      "title": "Panam Palmer",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Biography; Database Entry; Romancing Panam / Optional Prelude / Endings; Notes",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    },
+    {
+      "id": "al-lightning",
+      "url": "https://www.powerpyx.com/cyberpunk-2077-lightning-breaks-walkthrough/",
+      "title": "Lightning Breaks Walkthrough",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Objectives / Satwave power plant",
+      "notes": "Indexed walkthrough objective material consulted; baseline launch-era guide. Timings, prices and skill thresholds are not treated as current executable rules."
+    },
+    {
+      "id": "al-mitch",
+      "url": "https://cyberpunk.fandom.com/wiki/Mitch_Anderson",
+      "title": "Mitch Anderson",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Biography; Database Entry; Associated Quests",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    },
+    {
+      "id": "al-ronin",
+      "url": "https://arasakas-ronin.netlify.app/",
+      "title": "Cyberpunk 2077 transcript backup",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Ghost Town through Queen of the Highway; We Gotta Live Together; Forward to Death; Belly of the Beast; All Along the Watchtower",
+      "notes": "Readable transcript consulted for speaker cadence, participation and differing camp attitudes. Incomplete fan transcription of game dialogue with transcription errors and selected branches; no native fact names and no exhaustive branch coverage. No dialogue is reproduced in the authored samples."
+    },
+    {
+      "id": "al-wartime",
+      "url": "https://cyberpunk.fandom.com/wiki/Life_During_Wartime",
+      "title": "Life During Wartime",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Walkthrough / abandoning Panam; Objectives; Notes",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    },
+    {
+      "id": "al-riders",
+      "url": "https://cyberpunk.fandom.com/wiki/Riders_on_the_Storm",
+      "title": "Riders on the Storm",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Objective; Quest Chain; Walkthrough / shelter",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    },
+    {
+      "id": "al-saul",
+      "url": "https://cyberpunk.fandom.com/wiki/Saul_Bright",
+      "title": "Saul Bright",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Biography; 2077; Database Entry; References to correspondence",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    },
+    {
+      "id": "al-carol",
+      "url": "https://cyberpunk.fandom.com/wiki/Carol_Emeka",
+      "title": "Carol Emeka",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Biography; Database Entry; Notes",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    },
+    {
+      "id": "al-riders-failure",
+      "url": "https://www.powerpyx.com/cyberpunk-2077-trophy-guide-roadmap/",
+      "title": "Cyberpunk 2077 Trophy Guide and Roadmap",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Life of the Road / missable Panam side jobs",
+      "notes": "Indexed guide documents a possible abandonment-and-delay failure. Conflicting community timer descriptions are not converted into a guessed 24-hour runtime condition."
+    },
+    {
+      "id": "al-fly",
+      "url": "https://cyberpunk.fandom.com/wiki/I%27ll_Fly_Away",
+      "title": "I'll Fly Away",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Walkthrough; Notes",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    },
+    {
+      "id": "al-friends",
+      "url": "https://cyberpunk.fandom.com/wiki/With_a_Little_Help_from_My_Friends",
+      "title": "With a Little Help from My Friends",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Walkthrough / decline, report to Saul, assist; Objectives",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    },
+    {
+      "id": "al-queen",
+      "url": "https://cyberpunk.fandom.com/wiki/Queen_of_the_Highway",
+      "title": "Queen of the Highway",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Walkthrough; Notes / Nash",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    },
+    {
+      "id": "al-gun",
+      "url": "https://cyberpunk.fandom.com/wiki/Gun_Music",
+      "title": "Gun Music",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Walkthrough; Objectives; Notes",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    },
+    {
+      "id": "al-cassidy",
+      "url": "https://cyberpunk.fandom.com/wiki/Cassidy_Righter",
+      "title": "Cassidy Righter",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Biography; Associated Quests; Notes",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    },
+    {
+      "id": "al-fortunate",
+      "url": "https://cyberpunk.fandom.com/wiki/Fortunate_Son",
+      "title": "Fortunate Son",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Walkthrough; Notes / malware, doctor spared, delay",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    },
+    {
+      "id": "al-members",
+      "url": "https://cyberpunk.fandom.com/wiki/Aldecaldos_Members",
+      "title": "Aldecaldos Members",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Bob Sagan; Jake Scooter; Trevor Brass; Bruce Welby; Mitch Anderson",
+      "notes": "Indexed roster entries consulted. Bob's dedicated English page did not expose substantive biography; no invented birth date, kinship or medical qualification supplied."
+    },
+    {
+      "id": "al-nocturne",
+      "url": "https://cyberpunk.fandom.com/wiki/Nocturne_Op55N1",
+      "title": "Nocturne Op55N1",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Objectives; Notes / point of no return",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    },
+    {
+      "id": "al-romance",
+      "url": "https://cyberpunk.fandom.com/wiki/Cyberpunk_2077_Romance",
+      "title": "Cyberpunk 2077 Romance",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Endings / selected final romance call",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    },
+    {
+      "id": "al-together",
+      "url": "https://cyberpunk.fandom.com/wiki/We_Gotta_Live_Together",
+      "title": "We Gotta Live Together",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Walkthrough / optional nomads, target practice; Objectives",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    },
+    {
+      "id": "al-bruce",
+      "url": "https://cyberpunk.fandom.com/wiki/Bruce_Welby",
+      "title": "Bruce Welby",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Biography / rescue and later camp appearance",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    },
+    {
+      "id": "al-star-guide",
+      "url": "https://www.trueachievements.com/game/Cyberpunk-2077/walkthrough/25",
+      "title": "Act 3 - The Star Ending",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Forward to Death; Belly of the Beast",
+      "notes": "Indexed walkthrough consulted to corroborate route sequence and Saul's scripted death. No version-specific combat-balance advice is retained."
+    },
+    {
+      "id": "al-belly-guide",
+      "url": "https://gamefaqs.gamespot.com/pc/672376-cyberpunk-2077/faqs/79161/belly-of-the-beast",
+      "title": "Belly of the Beast",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Journey to Mikoshi; control room; Adam Smasher",
+      "notes": "Indexed guide inspected for Mitch's return being non-branching and Panam/Saul's on-site perspective. March 2021 guide; it conflates Changes into Belly of the Beast, corrected here using the separate Changes entry."
+    },
+    {
+      "id": "al-changes",
+      "url": "https://cyberpunk.fandom.com/wiki/Changes",
+      "title": "Changes",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Walkthrough / body choice and route-dependent epilogues",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    },
+    {
+      "id": "al-watchtower",
+      "url": "https://cyberpunk.fandom.com/wiki/All_Along_the_Watchtower",
+      "title": "All Along the Watchtower",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Walkthrough; Notes / partner variants",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    },
+    {
+      "id": "al-tower",
+      "url": "https://cyberpunk.fandom.com/wiki/Things_Done_Changed",
+      "title": "Things Done Changed",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Walkthrough / 2079 and Panam call",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    },
+    {
+      "id": "al-blacksteel",
+      "url": "https://cyberpunk.fandom.com/wiki/Black_Steel_In_The_Hour_of_Chaos",
+      "title": "Black Steel In The Hour of Chaos",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Walkthrough / Carol; Objectives / gift",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    },
+    {
+      "id": "al-blacksteel-guide",
+      "url": "https://vulkk.com/2024/01/18/cyberpunk-2077-black-steel-in-the-hour-of-chaos-guide/",
+      "title": "Black Steel in the Hour of Chaos Guide",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Carol Emeka",
+      "notes": "Indexed explanation of Carol refusing to expose her family to MaxTac retaliation; prerequisite differs between guides, so exact unlock condition remains unresolved."
+    },
+    {
+      "id": "al-minefield",
+      "url": "https://cyberpunk.fandom.com/wiki/Gig%3A_Dancing_on_a_Minefield",
+      "title": "Gig: Dancing on a Minefield",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Walkthrough; Journal Entry; Objectives; Changelog",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    },
+    {
+      "id": "al-flying",
+      "url": "https://cyberpunk.fandom.com/wiki/Gig%3A_Flying_Drugs",
+      "title": "Gig: Flying Drugs",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Walkthrough; Journal Entry; Objectives",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    },
+    {
+      "id": "al-pete",
+      "url": "https://cyberpunk.fandom.com/wiki/Gig%3A_Big_Pete%27s_Got_Big_Problems",
+      "title": "Gig: Big Pete's Got Big Problems",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Walkthrough / bribe accepted or declined, death; Notes",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    },
+    {
+      "id": "al-nofixers",
+      "url": "https://cyberpunk.fandom.com/wiki/Gig%3A_No_Fixers",
+      "title": "Gig: No Fixers",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Walkthrough / own van; Journal Entry; Objectives",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    },
+    {
+      "id": "al-iris",
+      "url": "https://cyberpunk.fandom.com/wiki/Iris_Tanner",
+      "title": "Iris Tanner",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Biography / rescue vehicle; Database Entry",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    },
+    {
+      "id": "al-trevor",
+      "url": "https://cyberpunk.fandom.com/wiki/Gig%3A_Trevor%27s_Last_Ride",
+      "title": "Gig: Trevor's Last Ride",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Objective; Journal Entry; Objectives",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    },
+    {
+      "id": "al-mia",
+      "url": "https://cyberpunk.fandom.com/wiki/Gig%3A_MIA",
+      "title": "Gig: MIA",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Walkthrough; Journal Entry; Objectives",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    },
+    {
+      "id": "al-sparring",
+      "url": "https://cyberpunk.fandom.com/wiki/Gig%3A_Sparring_Partner",
+      "title": "Gig: Sparring Partner",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Journal Entry; Objectives",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    },
+    {
+      "id": "al-goodbye",
+      "url": "https://cyberpunk.fandom.com/wiki/Gig%3A_Goodbye%2C_Night_City",
+      "title": "Gig: Goodbye, Night City",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Journal Entry; Objectives; Notes / nonlethal bonus",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    },
+    {
+      "id": "al-radar",
+      "url": "https://cyberpunk.fandom.com/wiki/Gig%3A_Radar_Love",
+      "title": "Gig: Radar Love",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Walkthrough; Journal Entry; Objectives",
+      "notes": "Indexed page text consulted. Infobox calls the motel Lone Star while walkthrough calls it Sunshine; objective model P9D/2.161 is consistent. Geographic naming is not used as runtime evidence."
+    },
+    {
+      "id": "al-reward",
+      "url": "https://cyberpunk.fandom.com/wiki/Every_Grain_of_Sand",
+      "title": "Every Grain of Sand",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Walkthrough; List of Prerequisites; Objectives",
+      "notes": "Indexed page text consulted through web search. Direct page fetch was blocked by robots/access restrictions; no bypass attempted. Lore interpretation, not native runtime evidence."
+    },
+    {
+      "id": "al-native-e64406b9dfc5",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\cyberpunk2077.gamedef",
+      "title": "base\\quest\\cyberpunk2077.gamedef",
+      "assetSha256": "3bc1e3a75a1ba9dc582b8c7736a758899001cd15424ed79e1654de8b8ca41bbd",
+      "archiveEntrySha1": "c40a7bbd40d8dde883ca808455b33eeb6b9a86b4"
+    },
+    {
+      "id": "al-native-10dd443e5e1a",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\side_quests\\sidequests.questphase",
+      "title": "base\\quest\\side_quests\\sidequests.questphase",
+      "assetSha256": "1cf2fc2ba3b538f7496fddf09ff319602f54f6785a925ba36ad3c9b90020f000",
+      "archiveEntrySha1": "0890ef97fd951ba660284008c221df154bfe9aea"
+    },
+    {
+      "id": "al-native-49ecde873c1e",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\side_quests\\sq027\\sq027_queen_of_the_highway.questphase",
+      "title": "base\\quest\\side_quests\\sq027\\sq027_queen_of_the_highway.questphase",
+      "assetSha256": "16d6a1fb4a730858dd43e605ca30b36d6b702e4d950f7a51f75c4964830843a4",
+      "archiveEntrySha1": "03bef356e175b0c60dbe2ad93e72788cbc073f91"
+    },
+    {
+      "id": "al-native-52a1eea38bcd",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\side_quests\\sq027\\scenes\\sq027_06_panzer.scene",
+      "title": "base\\quest\\side_quests\\sq027\\scenes\\sq027_06_panzer.scene",
+      "assetSha256": "2e9029faf8b8c8efe612d97bc5ffe7b900a79235e3237c0b9b087bad4ceae68d",
+      "archiveEntrySha1": "0dbed14cd85e255a37554a7e06b0d6a340c6138e"
+    },
+    {
+      "id": "al-native-ab6036fbd935",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\side_quests\\sq027\\scenes\\sq027_09_new_camp_wakeup.scene",
+      "title": "base\\quest\\side_quests\\sq027\\scenes\\sq027_09_new_camp_wakeup.scene",
+      "assetSha256": "5cca608d7a3162d361705447d24bce7b1de3257968241a0889505771abd8686f",
+      "archiveEntrySha1": "030cf27c7c3c90a629bbb03aab7492981277df65"
+    },
+    {
+      "id": "al-native-529279a5332f",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\side_quests\\sq004\\phases\\subphases\\sq004_follower.questphase",
+      "title": "base\\quest\\side_quests\\sq004\\phases\\subphases\\sq004_follower.questphase",
+      "assetSha256": "4c3d4530ac45d916591cd0181186431d330397f72dfb9acdb220d82e932c365e",
+      "archiveEntrySha1": "9e8667c9c4a064146bdb72ea96af5f24c7f210a9"
+    },
+    {
+      "id": "al-native-7a2c0ebdcd70",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\part1\\q114\\scenes\\q114_04_initiation.scene",
+      "title": "base\\quest\\main_quests\\part1\\q114\\scenes\\q114_04_initiation.scene",
+      "assetSha256": "f0e16b6381105b24cdd6104d201ca63f46ea410b5a7e5bd1f1a001dc7f4ff9ea",
+      "archiveEntrySha1": "946a485408b8f76256f58078c64ff79d32716239"
+    },
+    {
+      "id": "al-native-e2d266fea3d5",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\part1\\q116\\scenes\\q116_01_adam_smasher.scene",
+      "title": "base\\quest\\main_quests\\part1\\q116\\scenes\\q116_01_adam_smasher.scene",
+      "assetSha256": "7642406d5e724bfd0fa1c662a7934507d68364a022157291aa9492c92f751eb1",
+      "archiveEntrySha1": "d06b80efb4563e038e02a65050975294961fd7e1"
+    },
+    {
+      "id": "al-native-6a3bd50a2573",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\open_world\\street_stories\\badlands\\inland_avenue\\sts_bls_ina_03\\phases\\sts_bls_ina_03_ow.questphase",
+      "title": "base\\open_world\\street_stories\\badlands\\inland_avenue\\sts_bls_ina_03\\phases\\sts_bls_ina_03_ow.questphase",
+      "assetSha256": "6bb14405a47df8f6e5426603b5213aee31ae0fe4c6c8647f6be8cbfcbf50606c",
+      "archiveEntrySha1": "515c0ab0ae57b55955f4224fcf9f9f377ee06ff7"
+    },
+    {
+      "id": "al-native-864b3bb71c59",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\open_world\\street_stories\\badlands\\inland_avenue\\sts_bls_ina_07\\phases\\sts_bls_ina_07_ow.questphase",
+      "title": "base\\open_world\\street_stories\\badlands\\inland_avenue\\sts_bls_ina_07\\phases\\sts_bls_ina_07_ow.questphase",
+      "assetSha256": "d3a5ac392c4394252a67ccb3dd5fcd8b2e4dd5258d23a249bffb02d1dcf1b665",
+      "archiveEntrySha1": "7c97f90d253e284518c4906d3166b46d9f6c2783"
+    },
+    {
+      "id": "al-native-2966bd07a7c2",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\open_world\\street_stories\\badlands\\inland_avenue\\sts_bls_ina_08\\phases\\sts_bls_ina_08_openworld.questphase",
+      "title": "base\\open_world\\street_stories\\badlands\\inland_avenue\\sts_bls_ina_08\\phases\\sts_bls_ina_08_openworld.questphase",
+      "assetSha256": "ba1a21c40cbd604d5043b6d1777b3ae5d650f718c2dc704ec065f1988e83f2b3",
+      "archiveEntrySha1": "9f4e939143b9ce1250ba71f313163a6a50ad241d"
+    },
+    {
+      "id": "al-native-645a09e0199f",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\open_world\\street_stories\\badlands\\inland_avenue\\sts_bls_ina_11\\phases\\sts_bls_ina_11_ow.questphase",
+      "title": "base\\open_world\\street_stories\\badlands\\inland_avenue\\sts_bls_ina_11\\phases\\sts_bls_ina_11_ow.questphase",
+      "assetSha256": "29d8433565851ec81cca926706c8fa6c158b42c40406cb1e2944637b7eacf9e3",
+      "archiveEntrySha1": "0e0cb66234a496551856d8dc778d44790f6d9246"
+    },
+    {
+      "id": "al-native-0a77bc18e8ee",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\open_world\\street_stories\\badlands\\inland_avenue\\sts_bls_ina_06\\phases\\sts_bls_ina_06_ow.questphase",
+      "title": "base\\open_world\\street_stories\\badlands\\inland_avenue\\sts_bls_ina_06\\phases\\sts_bls_ina_06_ow.questphase",
+      "assetSha256": "aab1417681cd56664e9f7f52d64e2bfbf18cf0b72f9c8ce515bf85953f57b9d4",
+      "archiveEntrySha1": "c7e5e563313e5ca773da2417b27b99625f66a5d1"
+    },
+    {
+      "id": "al-native-3de537eb9fc3",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\open_world\\street_stories\\badlands\\inland_avenue\\sts_bls_ina_09\\phases\\sts_bls_ina_09_openworld.questphase",
+      "title": "base\\open_world\\street_stories\\badlands\\inland_avenue\\sts_bls_ina_09\\phases\\sts_bls_ina_09_openworld.questphase",
+      "assetSha256": "b039103c7f35abecc17c1871fc5187a86521dcb7e58059312a7d273fa3a4e54a",
+      "archiveEntrySha1": "d06e79f9c6b7b75c75657a9d8f4928cb245583b2"
+    },
+    {
+      "id": "al-native-60653222e24c",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\open_world\\street_stories\\badlands\\inland_avenue\\sts_bls_ina_05\\phases\\sts_bls_ina_05_openworld_phase.questphase",
+      "title": "base\\open_world\\street_stories\\badlands\\inland_avenue\\sts_bls_ina_05\\phases\\sts_bls_ina_05_openworld_phase.questphase",
+      "assetSha256": "8defa3b841a70bfde5c4570abd9d53a1a3f2b303efc9bc9880a9cc3a4b2e19b1",
+      "archiveEntrySha1": "617e466b5659c2c2ff8009c5af3e1872a8965f61"
+    },
+    {
+      "id": "al-native-06f911abc204",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\open_world\\street_stories\\badlands\\inland_avenue\\sts_bls_ina_04\\phases\\sts_bls_ina_04_openworld.questphase",
+      "title": "base\\open_world\\street_stories\\badlands\\inland_avenue\\sts_bls_ina_04\\phases\\sts_bls_ina_04_openworld.questphase",
+      "assetSha256": "01420ab38e1a3ee402e29110822c04046ba7e7d83872cd45ad36177bc539efa3",
+      "archiveEntrySha1": "11c45117806cae6160b6dce0d0a1a02475053923"
+    },
+    {
+      "id": "al-native-42d385783367",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\side_quests\\sq027\\phases\\sq027_04_return.questphase",
+      "title": "base\\quest\\side_quests\\sq027\\phases\\sq027_04_return.questphase",
+      "assetSha256": "b293578da9558df5fc72df00448ae80ac65b4a39dd0747fcd6c476ed2c897e1a",
+      "archiveEntrySha1": "75740628c8b438883b7702727a57673f152ac3a2"
+    },
+    {
+      "id": "al-native-aa837c48cecf",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\side_quests\\sq027\\scenes\\sq027_08_camp_saved.scene",
+      "title": "base\\quest\\side_quests\\sq027\\scenes\\sq027_08_camp_saved.scene",
+      "assetSha256": "6c5d4682e491207dd70d1aea022b31df8206388decb3534b6cafa95b2300c967",
+      "archiveEntrySha1": "977b67e41564200f57baf6e96d55000756d15316"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "al-native.release-entry",
+      "sourceId": "al-native-e64406b9dfc5",
+      "kind": "native",
+      "locator": "Release gsmGameDefinition -> cyberpunk2077.quest -> cyberpunk2077.questphase; production graph entry, distinct from standalone debugging quests.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/release-root/raw/base/base/quest/cyberpunk2077.gamedef.json",
+        "assetSha256": "3bc1e3a75a1ba9dc582b8c7736a758899001cd15424ed79e1654de8b8ca41bbd",
+        "jsonPointer": "/Data/RootChunk/mainQuests/0/Data",
+        "expectedType": "gsmMainQuest"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.quest.json",
+          "assetSha256": "b14f15d20e6723b97cf4afe260546c5c6e93c84856c47372fbbb8377b640f449",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.questphase.json",
+          "assetSha256": "78d8afd0784575216b090f003610ca973be9d1781bab948c9e4dc12006d750b2",
+          "jsonPointer": "/Data/RootChunk/graph/Data",
+          "expectedType": "questGraphDefinition"
+        }
+      ]
+    },
+    {
+      "id": "al-native.sidequest-entry",
+      "sourceId": "al-native-10dd443e5e1a",
+      "kind": "native",
+      "locator": "sidequests IDs43/46 launch sq004/sq027; ID190 sq004_done >=1 joins normal Riders exit via hub191; delay125 then sq027 In1.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "raw/base/base/quest/side_quests/sidequests.questphase.json",
+        "assetSha256": "1cf2fc2ba3b538f7496fddf09ff319602f54f6785a925ba36ad3c9b90020f000",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/9/Data",
+        "expectedType": "questPhaseNodeDefinition"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sidequests.questphase.json",
+          "assetSha256": "1cf2fc2ba3b538f7496fddf09ff319602f54f6785a925ba36ad3c9b90020f000",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/10/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sidequests.questphase.json",
+          "assetSha256": "1cf2fc2ba3b538f7496fddf09ff319602f54f6785a925ba36ad3c9b90020f000",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/32/Data",
+          "expectedType": "questPauseConditionNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sidequests.questphase.json",
+          "assetSha256": "1cf2fc2ba3b538f7496fddf09ff319602f54f6785a925ba36ad3c9b90020f000",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/61/Data",
+          "expectedType": "questConditionNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sidequests.questphase.json",
+          "assetSha256": "1cf2fc2ba3b538f7496fddf09ff319602f54f6785a925ba36ad3c9b90020f000",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/62/Data",
+          "expectedType": "questLogicalHubNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.questphase.json",
+          "assetSha256": "78d8afd0784575216b090f003610ca973be9d1781bab948c9e4dc12006d750b2",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/7/Data/phaseGraph/Data/nodes/4/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.quest.json",
+          "assetSha256": "b14f15d20e6723b97cf4afe260546c5c6e93c84856c47372fbbb8377b640f449",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "al-native.report-to-saul",
+      "sourceId": "al-native-49ecde873c1e",
+      "kind": "native",
+      "locator": "sq027 whistleblowing: native choice12 -> disclosure33 -> Saul section13; ratted_out + approach join49 -> objective51 Succeeded -> exact sq027_panam_ratted_out=1 at26 -> betrayal reward21.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "raw/base/base/quest/side_quests/sq027/sq027_queen_of_the_highway.questphase.json",
+        "assetSha256": "16d6a1fb4a730858dd43e605ca30b36d6b702e4d950f7a51f75c4964830843a4",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/25/Data/phaseGraph/Data/nodes/9/Data",
+        "expectedType": "questFactsDBManagerNodeDefinition"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq027/sq027_queen_of_the_highway.questphase.json",
+          "assetSha256": "16d6a1fb4a730858dd43e605ca30b36d6b702e4d950f7a51f75c4964830843a4",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/25/Data/phaseGraph/Data/nodes/2/Data",
+          "expectedType": "questSceneNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq027/sq027_queen_of_the_highway.questphase.json",
+          "assetSha256": "16d6a1fb4a730858dd43e605ca30b36d6b702e4d950f7a51f75c4964830843a4",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/25/Data/phaseGraph/Data/nodes/18/Data",
+          "expectedType": "questLogicalAndNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq027/sq027_queen_of_the_highway.questphase.json",
+          "assetSha256": "16d6a1fb4a730858dd43e605ca30b36d6b702e4d950f7a51f75c4964830843a4",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/25/Data/phaseGraph/Data/nodes/19/Data",
+          "expectedType": "questJournalNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq027/sq027_queen_of_the_highway.questphase.json",
+          "assetSha256": "16d6a1fb4a730858dd43e605ca30b36d6b702e4d950f7a51f75c4964830843a4",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/25/Data/phaseGraph/Data/nodes/6/Data",
+          "expectedType": "questRewardManagerNodeDefinition"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-native/raw/base/base/quest/side_quests/sq027/scenes/sq027_03_saul_whistleblowing.scene.json",
+          "assetSha256": "7c02ac7cd644aeab9ca19a80a3e533288fd454c2af8699c86f8224acfb401120",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data",
+          "expectedType": "scnChoiceNode"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-native/raw/base/base/quest/side_quests/sq027/scenes/sq027_03_saul_whistleblowing.scene.json",
+          "assetSha256": "7c02ac7cd644aeab9ca19a80a3e533288fd454c2af8699c86f8224acfb401120",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-native/raw/base/base/quest/side_quests/sq027/scenes/sq027_03_saul_whistleblowing.scene.json",
+          "assetSha256": "7c02ac7cd644aeab9ca19a80a3e533288fd454c2af8699c86f8224acfb401120",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq027/sq027_queen_of_the_highway.questphase.json",
+          "assetSha256": "16d6a1fb4a730858dd43e605ca30b36d6b702e4d950f7a51f75c4964830843a4",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/25/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "al-native.basilisk-intimacy",
+      "sourceId": "al-native-52a1eea38bcd",
+      "kind": "native",
+      "locator": "sq027_06_panzer choice879 affirmative -> exact sq027_panzer_sex=1 at891; accepted cinematic route converges1498 -> exact sq027_panam_lover=1 at1184. Refusal is a separate option.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq027/scenes/sq027_06_panzer.scene.json",
+        "assetSha256": "2e9029faf8b8c8efe612d97bc5ffe7b900a79235e3237c0b9b087bad4ceae68d",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/82/Data",
+        "expectedType": "scnQuestNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq027/scenes/sq027_06_panzer.scene.json",
+          "assetSha256": "2e9029faf8b8c8efe612d97bc5ffe7b900a79235e3237c0b9b087bad4ceae68d",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/125/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq027/scenes/sq027_06_panzer.scene.json",
+          "assetSha256": "2e9029faf8b8c8efe612d97bc5ffe7b900a79235e3237c0b9b087bad4ceae68d",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/80/Data",
+          "expectedType": "scnChoiceNode"
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq027/scenes/sq027_06_panzer.scene.json",
+          "assetSha256": "2e9029faf8b8c8efe612d97bc5ffe7b900a79235e3237c0b9b087bad4ceae68d",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/145/Data",
+          "expectedType": "scnHubNode"
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq027/scenes/sq027_06_panzer.scene.json",
+          "assetSha256": "2e9029faf8b8c8efe612d97bc5ffe7b900a79235e3237c0b9b087bad4ceae68d",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/521/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq027/scenes/sq027_06_panzer.scene.json",
+          "assetSha256": "2e9029faf8b8c8efe612d97bc5ffe7b900a79235e3237c0b9b087bad4ceae68d",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/options/11",
+          "expectedType": "scnscreenplayChoiceOption"
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq027/scenes/sq027_06_panzer.scene.json",
+          "assetSha256": "2e9029faf8b8c8efe612d97bc5ffe7b900a79235e3237c0b9b087bad4ceae68d",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/options/12",
+          "expectedType": "scnscreenplayChoiceOption"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq027/phases/sq027_04_hovertank.questphase.json",
+          "assetSha256": "17e0c1d582a78ecd3b3f2b014d0344ccf3493cd180eab120180e6b58bdff29fe",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/11/Data",
+          "expectedType": "questSceneNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq027/sq027_queen_of_the_highway.questphase.json",
+          "assetSha256": "16d6a1fb4a730858dd43e605ca30b36d6b702e4d950f7a51f75c4964830843a4",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/21/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sidequests.questphase.json",
+          "assetSha256": "1cf2fc2ba3b538f7496fddf09ff319602f54f6785a925ba36ad3c9b90020f000",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/10/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.questphase.json",
+          "assetSha256": "78d8afd0784575216b090f003610ca973be9d1781bab948c9e4dc12006d750b2",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/7/Data/phaseGraph/Data/nodes/4/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.quest.json",
+          "assetSha256": "b14f15d20e6723b97cf4afe260546c5c6e93c84856c47372fbbb8377b640f449",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "al-native.panam-relic-disclosure",
+      "sourceId": "al-native-ab6036fbd935",
+      "kind": "native",
+      "locator": "sq027 wakeup explanation choices -> section615 -> exact sq027_panam_knows_about_chip=1 at1004; production new-camp phase invokes wakeup scene27.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq027/scenes/sq027_09_new_camp_wakeup.scene.json",
+        "assetSha256": "5cca608d7a3162d361705447d24bce7b1de3257968241a0889505771abd8686f",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/53/Data",
+        "expectedType": "scnQuestNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq027/scenes/sq027_09_new_camp_wakeup.scene.json",
+          "assetSha256": "5cca608d7a3162d361705447d24bce7b1de3257968241a0889505771abd8686f",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/26/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq027/scenes/sq027_09_new_camp_wakeup.scene.json",
+          "assetSha256": "5cca608d7a3162d361705447d24bce7b1de3257968241a0889505771abd8686f",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/27/Data",
+          "expectedType": "scnChoiceNode"
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq027/scenes/sq027_09_new_camp_wakeup.scene.json",
+          "assetSha256": "5cca608d7a3162d361705447d24bce7b1de3257968241a0889505771abd8686f",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/28/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq027/scenes/sq027_09_new_camp_wakeup.scene.json",
+          "assetSha256": "5cca608d7a3162d361705447d24bce7b1de3257968241a0889505771abd8686f",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/29/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq027/scenes/sq027_09_new_camp_wakeup.scene.json",
+          "assetSha256": "5cca608d7a3162d361705447d24bce7b1de3257968241a0889505771abd8686f",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/41",
+          "expectedType": "scnscreenplayDialogLine"
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq027/scenes/sq027_09_new_camp_wakeup.scene.json",
+          "assetSha256": "5cca608d7a3162d361705447d24bce7b1de3257968241a0889505771abd8686f",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/42",
+          "expectedType": "scnscreenplayDialogLine"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq027/sq027_queen_of_the_highway.questphase.json",
+          "assetSha256": "16d6a1fb4a730858dd43e605ca30b36d6b702e4d950f7a51f75c4964830843a4",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/28/Data/phaseGraph/Data/nodes/3/Data",
+          "expectedType": "questSceneNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq027/sq027_queen_of_the_highway.questphase.json",
+          "assetSha256": "16d6a1fb4a730858dd43e605ca30b36d6b702e4d950f7a51f75c4964830843a4",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/28/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "al-native.saul-rescue",
+      "sourceId": "al-native-529279a5332f",
+      "kind": "native",
+      "locator": "sq004 free-Saul scene starts follower63 -> exact rescued flag19 and free-Saul reward20; farm morning-after scene245 -> quest246 Succeeded.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "raw/base/base/quest/side_quests/sq004/phases/subphases/sq004_follower.questphase.json",
+        "assetSha256": "4c3d4530ac45d916591cd0181186431d330397f72dfb9acdb220d82e932c365e",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data",
+        "expectedType": "questFactsDBManagerNodeDefinition"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq004/phases/subphases/sq004_follower.questphase.json",
+          "assetSha256": "4c3d4530ac45d916591cd0181186431d330397f72dfb9acdb220d82e932c365e",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data",
+          "expectedType": "questRewardManagerNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq004/phases/sq004_03_raffen_shiv_camp.questphase.json",
+          "assetSha256": "e7e9b06c72237a4812b40ffff7fa9a28a9fe21107a8f07214b6f6e7918a4e67b",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/12/Data",
+          "expectedType": "questSceneNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq004/phases/sq004_03_raffen_shiv_camp.questphase.json",
+          "assetSha256": "e7e9b06c72237a4812b40ffff7fa9a28a9fe21107a8f07214b6f6e7918a4e67b",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/13/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq004/phases/sq004_05_farm.questphase.json",
+          "assetSha256": "f128a4f4a7e1ba39511bf32b9b0a2ced1e4a79c8e93433c4ef84c3e3130df30e",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/7/Data",
+          "expectedType": "questSceneNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq004/phases/sq004_05_farm.questphase.json",
+          "assetSha256": "f128a4f4a7e1ba39511bf32b9b0a2ced1e4a79c8e93433c4ef84c3e3130df30e",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/8/Data",
+          "expectedType": "questJournalNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/5/Data/entries/45/Data",
+          "expectedType": "gameJournalQuest"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq004/sq004_riders_on_the_storm.questphase.json",
+          "assetSha256": "156c2b19eea1f8a5ebc17fbadde609b6772d32d9560acc5a76724f4212d10537",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/12/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sidequests.questphase.json",
+          "assetSha256": "1cf2fc2ba3b538f7496fddf09ff319602f54f6785a925ba36ad3c9b90020f000",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/9/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.questphase.json",
+          "assetSha256": "78d8afd0784575216b090f003610ca973be9d1781bab948c9e4dc12006d750b2",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/7/Data/phaseGraph/Data/nodes/4/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.quest.json",
+          "assetSha256": "b14f15d20e6723b97cf4afe260546c5c6e93c84856c47372fbbb8377b640f449",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "al-native.v-initiated",
+      "sourceId": "al-native-7a2c0ebdcd70",
+      "kind": "native",
+      "locator": "q114 initiation section555 welcomes V -> node703 input ordinal3 (Succeeded) on take_part_in_initiation; exact cooked objective selector.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/aldecaldos-native/raw/base/base/quest/main_quests/part1/q114/scenes/q114_04_initiation.scene.json",
+        "assetSha256": "f0e16b6381105b24cdd6104d201ca63f46ea410b5a7e5bd1f1a001dc7f4ff9ea",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/39/Data",
+        "expectedType": "scnQuestNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/aldecaldos-native/raw/base/base/quest/main_quests/part1/q114/scenes/q114_04_initiation.scene.json",
+          "assetSha256": "f0e16b6381105b24cdd6104d201ca63f46ea410b5a7e5bd1f1a001dc7f4ff9ea",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/17/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-native/raw/base/base/quest/main_quests/part1/q114/scenes/q114_04_initiation.scene.json",
+          "assetSha256": "f0e16b6381105b24cdd6104d201ca63f46ea410b5a7e5bd1f1a001dc7f4ff9ea",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/39/Data/isockMappings/3",
+          "expectedType": "CName"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-native/raw/base/base/quest/main_quests/part1/q114/scenes/q114_04_initiation.scene.json",
+          "assetSha256": "f0e16b6381105b24cdd6104d201ca63f46ea410b5a7e5bd1f1a001dc7f4ff9ea",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/28",
+          "expectedType": "scnscreenplayDialogLine"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-native/raw/base/base/quest/main_quests/part1/q114/scenes/q114_04_initiation.scene.json",
+          "assetSha256": "f0e16b6381105b24cdd6104d201ca63f46ea410b5a7e5bd1f1a001dc7f4ff9ea",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/62",
+          "expectedType": "scnscreenplayDialogLine"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/part1/q114/phases/q114_preparations.questphase.json",
+          "assetSha256": "91dd573bf2ed8396243018e1176daecc5d51fcc1e879614e917a1f5fe6393dad",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/2/Data",
+          "expectedType": "questSceneNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/0/Data/entries/5/Data/entries/1/Data/entries/10/Data",
+          "expectedType": "gameJournalQuestObjective"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/part1/q114/phases/q114_01_main_nomad_camp.questphase.json",
+          "assetSha256": "3d6269715eba9ad769e52b3c87f51a464a52894e4a7b10c5c5d058bb62f8cabd",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/9/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/part1/q114/q114_nomads.questphase.json",
+          "assetSha256": "1a9d9891ca41a9a2171ae1bb4b3cf3fdab1f42b30899ea52f1f1cce62f66faa6",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/0/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/part1/act_1.questphase.json",
+          "assetSha256": "3259983b6e1a5e1127fc580d34d1b3f2c53619e4db09047791603a785c10c661",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/7/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.questphase.json",
+          "assetSha256": "78d8afd0784575216b090f003610ca973be9d1781bab948c9e4dc12006d750b2",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.quest.json",
+          "assetSha256": "b14f15d20e6723b97cf4afe260546c5c6e93c84856c47372fbbb8377b640f449",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "al-native.saul-killed",
+      "sourceId": "al-native-e2d266fea3d5",
+      "kind": "native",
+      "locator": "q116 production bossfight entry -> gate interaction621 -> condition544 q114_done>0 True -> Panam/Saul cinematic345/347 -> fatal section538 -> Saul ragdoll755 -> q116_saul_dead=1 at415.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/main_quests/part1/q116/scenes/q116_01_adam_smasher.scene.json",
+        "assetSha256": "7642406d5e724bfd0fa1c662a7934507d68364a022157291aa9492c92f751eb1",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/24/Data",
+        "expectedType": "scnQuestNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/main_quests/part1/q116/scenes/q116_01_adam_smasher.scene.json",
+          "assetSha256": "7642406d5e724bfd0fa1c662a7934507d68364a022157291aa9492c92f751eb1",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/34/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/main_quests/part1/q116/scenes/q116_01_adam_smasher.scene.json",
+          "assetSha256": "7642406d5e724bfd0fa1c662a7934507d68364a022157291aa9492c92f751eb1",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/main_quests/part1/q116/scenes/q116_01_adam_smasher.scene.json",
+          "assetSha256": "7642406d5e724bfd0fa1c662a7934507d68364a022157291aa9492c92f751eb1",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/14/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/main_quests/part1/q116/scenes/q116_01_adam_smasher.scene.json",
+          "assetSha256": "7642406d5e724bfd0fa1c662a7934507d68364a022157291aa9492c92f751eb1",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/33/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/main_quests/part1/q116/scenes/q116_01_adam_smasher.scene.json",
+          "assetSha256": "7642406d5e724bfd0fa1c662a7934507d68364a022157291aa9492c92f751eb1",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/66/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/main_quests/part1/q116/scenes/q116_01_adam_smasher.scene.json",
+          "assetSha256": "7642406d5e724bfd0fa1c662a7934507d68364a022157291aa9492c92f751eb1",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/165/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/main_quests/part1/q116/scenes/q116_01_adam_smasher.scene.json",
+          "assetSha256": "7642406d5e724bfd0fa1c662a7934507d68364a022157291aa9492c92f751eb1",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/38",
+          "expectedType": "scnscreenplayDialogLine"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/main_quests/part1/q116/scenes/q116_01_adam_smasher.scene.json",
+          "assetSha256": "7642406d5e724bfd0fa1c662a7934507d68364a022157291aa9492c92f751eb1",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/33/Data/events/37/Data",
+          "expectedType": "scnPlaySkAnimEvent"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/main_quests/part1/q116/scenes/q116_01_adam_smasher.scene.json",
+          "assetSha256": "7642406d5e724bfd0fa1c662a7934507d68364a022157291aa9492c92f751eb1",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/33/Data/events/56/Data",
+          "expectedType": "scneventsSocket"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/part1/q116/phases/q116_smasher.questphase.json",
+          "assetSha256": "700dfdcc4a345553fb48dcb3e6b7053e67770e3862c0d0571f77e244f90da3ca",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data",
+          "expectedType": "questSceneNodeDefinition"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/main_quests/part1/q116/scenes/q116_03b_after_bossfight.scene.json",
+          "assetSha256": "ab7fd4a0d8dd6e6223df7db328daeb4dd0a7820e6b331f6db173023fbcee05c7",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/14/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/main_quests/part1/q116/scenes/q116_03b_after_bossfight.scene.json",
+          "assetSha256": "ab7fd4a0d8dd6e6223df7db328daeb4dd0a7820e6b331f6db173023fbcee05c7",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/37",
+          "expectedType": "scnscreenplayDialogLine"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/main_quests/part1/q116/scenes/q116_03b_after_bossfight.scene.json",
+          "assetSha256": "ab7fd4a0d8dd6e6223df7db328daeb4dd0a7820e6b331f6db173023fbcee05c7",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/38",
+          "expectedType": "scnscreenplayDialogLine"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/main_quests/part1/q116/scenes/q116_03b_after_bossfight.scene.json",
+          "assetSha256": "ab7fd4a0d8dd6e6223df7db328daeb4dd0a7820e6b331f6db173023fbcee05c7",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/39",
+          "expectedType": "scnscreenplayDialogLine"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/main_quests/part1/q116/scenes/q116_03b_after_bossfight.scene.json",
+          "assetSha256": "ab7fd4a0d8dd6e6223df7db328daeb4dd0a7820e6b331f6db173023fbcee05c7",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/199",
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/main_quests/part1/q116/scenes/q116_03b_after_bossfight.scene.json",
+          "assetSha256": "ab7fd4a0d8dd6e6223df7db328daeb4dd0a7820e6b331f6db173023fbcee05c7",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/104",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/main_quests/part1/q116/scenes/q116_03b_after_bossfight.scene.json",
+          "assetSha256": "ab7fd4a0d8dd6e6223df7db328daeb4dd0a7820e6b331f6db173023fbcee05c7",
+          "jsonPointer": "/Data/RootChunk/playerActors/0",
+          "expectedType": "scnPlayerActorDef"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/part1/q116/q116_mikoshi.questphase.json",
+          "assetSha256": "2330712e14e1fe52c80f3236e0a4ee1e5f82c323f8d03b7d2e8dbc53921bc872",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/part1/act_1.questphase.json",
+          "assetSha256": "3259983b6e1a5e1127fc580d34d1b3f2c53619e4db09047791603a785c10c661",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/8/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.questphase.json",
+          "assetSha256": "78d8afd0784575216b090f003610ca973be9d1781bab948c9e4dc12006d750b2",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.quest.json",
+          "assetSha256": "b14f15d20e6723b97cf4afe260546c5c6e93c84856c47372fbbb8377b640f449",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "al-native.dakota-flying-drugs",
+      "sourceId": "al-native-6a3bd50a2573",
+      "kind": "native",
+      "locator": "Flying Drugs debrief/rejected-call Dakota message -> normal/pacifist completion reward -> exact ina_03_finished=1 at cleanup12; success and shortcut antenna routes converge.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_03/phases/sts_bls_ina_03_ow.questphase.json",
+        "assetSha256": "6bb14405a47df8f6e5426603b5213aee31ae0fe4c6c8647f6be8cbfcbf50606c",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/6/Data",
+        "expectedType": "questFactsDBManagerNodeDefinition"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_03/phases/sts_bls_ina_03_ow.questphase.json",
+          "assetSha256": "6bb14405a47df8f6e5426603b5213aee31ae0fe4c6c8647f6be8cbfcbf50606c",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/15/Data",
+          "expectedType": "questRewardManagerNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_03/phases/sts_bls_ina_03_ow.questphase.json",
+          "assetSha256": "6bb14405a47df8f6e5426603b5213aee31ae0fe4c6c8647f6be8cbfcbf50606c",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/20/Data",
+          "expectedType": "questRewardManagerNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_03/phases/sts_bls_ina_03_ow.questphase.json",
+          "assetSha256": "6bb14405a47df8f6e5426603b5213aee31ae0fe4c6c8647f6be8cbfcbf50606c",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/23/Data",
+          "expectedType": "questSceneNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_03/phases/sts_bls_ina_03_ow.questphase.json",
+          "assetSha256": "6bb14405a47df8f6e5426603b5213aee31ae0fe4c6c8647f6be8cbfcbf50606c",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/31/Data",
+          "expectedType": "questJournalNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_03/phases/sts_bls_ina_03_ow.questphase.json",
+          "assetSha256": "6bb14405a47df8f6e5426603b5213aee31ae0fe4c6c8647f6be8cbfcbf50606c",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/32/Data",
+          "expectedType": "questJournalNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_inland_avenue.questphase.json",
+          "assetSha256": "e215e4341352aa7460fdaca790e8cc2062525c48406aa29d03e794d644e2b05d",
+          "jsonPointer": "/Data/RootChunk/inplacePhases/22"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/sts_badlands.questphase.json",
+          "assetSha256": "fb9340cf9f4dff369e3cdf8c4eb597cf9c1377ec0a1a2e757057b25e803b3636",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/street_stories.questphase.json",
+          "assetSha256": "4172328c26c01edd9d20bc79c6c89d6255e452cab40307d6278c490eb2637e1b",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/phases/open_world_content.questphase.json",
+          "assetSha256": "130e66e8c0125338a1eabe7b6e71e789e3a9926f28b384e662a1c79527ef1571",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/additional_game_elements.questphase.json",
+          "assetSha256": "c67fb292f88384f3f31e8242fc374e8b7afe5553588333c61f6eaec2c1e0b7eb",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.questphase.json",
+          "assetSha256": "78d8afd0784575216b090f003610ca973be9d1781bab948c9e4dc12006d750b2",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/7/Data/phaseGraph/Data/nodes/2/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.quest.json",
+          "assetSha256": "b14f15d20e6723b97cf4afe260546c5c6e93c84856c47372fbbb8377b640f449",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "al-native.dakota-minefield",
+      "sourceId": "al-native-864b3bb71c59",
+      "kind": "native",
+      "locator": "Dancing on a Minefield objective11.Out1 -> completion reward17 -> cleanup13.In1 -> ina_07_finished=1; failed input bypasses writer.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_07/phases/sts_bls_ina_07_ow.questphase.json",
+        "assetSha256": "d3a5ac392c4394252a67ccb3dd5fcd8b2e4dd5258d23a249bffb02d1dcf1b665",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data",
+        "expectedType": "questRewardManagerNodeDefinition"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_07/phases/sts_bls_ina_07_ow.questphase.json",
+          "assetSha256": "d3a5ac392c4394252a67ccb3dd5fcd8b2e4dd5258d23a249bffb02d1dcf1b665",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_07/phases/sts_bls_ina_07_ow.questphase.json",
+          "assetSha256": "d3a5ac392c4394252a67ccb3dd5fcd8b2e4dd5258d23a249bffb02d1dcf1b665",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_07/phases/sts_bls_ina_07_ow.questphase.json",
+          "assetSha256": "d3a5ac392c4394252a67ccb3dd5fcd8b2e4dd5258d23a249bffb02d1dcf1b665",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/2/Data",
+          "expectedType": "questFactsDBManagerNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_07/phases/sts_bls_ina_07_ow.questphase.json",
+          "assetSha256": "d3a5ac392c4394252a67ccb3dd5fcd8b2e4dd5258d23a249bffb02d1dcf1b665",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/10/Data",
+          "expectedType": "questInputNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_inland_avenue.questphase.json",
+          "assetSha256": "e215e4341352aa7460fdaca790e8cc2062525c48406aa29d03e794d644e2b05d",
+          "jsonPointer": "/Data/RootChunk/inplacePhases/5"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/sts_badlands.questphase.json",
+          "assetSha256": "fb9340cf9f4dff369e3cdf8c4eb597cf9c1377ec0a1a2e757057b25e803b3636",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/street_stories.questphase.json",
+          "assetSha256": "4172328c26c01edd9d20bc79c6c89d6255e452cab40307d6278c490eb2637e1b",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/phases/open_world_content.questphase.json",
+          "assetSha256": "130e66e8c0125338a1eabe7b6e71e789e3a9926f28b384e662a1c79527ef1571",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/additional_game_elements.questphase.json",
+          "assetSha256": "c67fb292f88384f3f31e8242fc374e8b7afe5553588333c61f6eaec2c1e0b7eb",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.questphase.json",
+          "assetSha256": "78d8afd0784575216b090f003610ca973be9d1781bab948c9e4dc12006d750b2",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/7/Data/phaseGraph/Data/nodes/2/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.quest.json",
+          "assetSha256": "b14f15d20e6723b97cf4afe260546c5c6e93c84856c47372fbbb8377b640f449",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "al-native.dakota-trevor",
+      "sourceId": "al-native-2966bd07a7c2",
+      "kind": "native",
+      "locator": "Trevor recovery debrief23 or Dakota message39 -> completion reward8 -> spawn token6 -> ina_08_finished +=1 at24; failure29 bypasses write.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_08/phases/sts_bls_ina_08_openworld.questphase.json",
+        "assetSha256": "ba1a21c40cbd604d5043b6d1777b3ae5d650f718c2dc704ec065f1988e83f2b3",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/15/Data",
+        "expectedType": "questFactsDBManagerNodeDefinition"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_08/phases/sts_bls_ina_08_openworld.questphase.json",
+          "assetSha256": "ba1a21c40cbd604d5043b6d1777b3ae5d650f718c2dc704ec065f1988e83f2b3",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/14/Data",
+          "expectedType": "questSceneNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_08/phases/sts_bls_ina_08_openworld.questphase.json",
+          "assetSha256": "ba1a21c40cbd604d5043b6d1777b3ae5d650f718c2dc704ec065f1988e83f2b3",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/28/Data",
+          "expectedType": "questJournalNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_08/phases/sts_bls_ina_08_openworld.questphase.json",
+          "assetSha256": "ba1a21c40cbd604d5043b6d1777b3ae5d650f718c2dc704ec065f1988e83f2b3",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/8/Data",
+          "expectedType": "questRewardManagerNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_08/phases/sts_bls_ina_08_openworld.questphase.json",
+          "assetSha256": "ba1a21c40cbd604d5043b6d1777b3ae5d650f718c2dc704ec065f1988e83f2b3",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/20/Data",
+          "expectedType": "questGameManagerNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_inland_avenue.questphase.json",
+          "assetSha256": "e215e4341352aa7460fdaca790e8cc2062525c48406aa29d03e794d644e2b05d",
+          "jsonPointer": "/Data/RootChunk/inplacePhases/1"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/sts_badlands.questphase.json",
+          "assetSha256": "fb9340cf9f4dff369e3cdf8c4eb597cf9c1377ec0a1a2e757057b25e803b3636",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/street_stories.questphase.json",
+          "assetSha256": "4172328c26c01edd9d20bc79c6c89d6255e452cab40307d6278c490eb2637e1b",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/phases/open_world_content.questphase.json",
+          "assetSha256": "130e66e8c0125338a1eabe7b6e71e789e3a9926f28b384e662a1c79527ef1571",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/additional_game_elements.questphase.json",
+          "assetSha256": "c67fb292f88384f3f31e8242fc374e8b7afe5553588333c61f6eaec2c1e0b7eb",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.questphase.json",
+          "assetSha256": "78d8afd0784575216b090f003610ca973be9d1781bab948c9e4dc12006d750b2",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/7/Data/phaseGraph/Data/nodes/2/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.quest.json",
+          "assetSha256": "b14f15d20e6723b97cf4afe260546c5c6e93c84856c47372fbbb8377b640f449",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "al-native.dakota-sparring",
+      "sourceId": "al-native-645a09e0199f",
+      "kind": "native",
+      "locator": "Sparring Partner 118.Out -> deliver_chip objective30 Succeeded -> full quest31 Succeeded -> exact ina_11_finished=1 at83.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_11/phases/sts_bls_ina_11_ow.questphase.json",
+        "assetSha256": "29d8433565851ec81cca926706c8fa6c158b42c40406cb1e2944637b7eacf9e3",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/30/Data",
+        "expectedType": "questFactsDBManagerNodeDefinition"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_11/phases/sts_bls_ina_11_ow.questphase.json",
+          "assetSha256": "29d8433565851ec81cca926706c8fa6c158b42c40406cb1e2944637b7eacf9e3",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/9/Data",
+          "expectedType": "questJournalNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_11/phases/sts_bls_ina_11_ow.questphase.json",
+          "assetSha256": "29d8433565851ec81cca926706c8fa6c158b42c40406cb1e2944637b7eacf9e3",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/10/Data",
+          "expectedType": "questJournalNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_11/phases/sts_bls_ina_11_ow.questphase.json",
+          "assetSha256": "29d8433565851ec81cca926706c8fa6c158b42c40406cb1e2944637b7eacf9e3",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/41/Data",
+          "expectedType": "questPauseConditionNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_inland_avenue.questphase.json",
+          "assetSha256": "e215e4341352aa7460fdaca790e8cc2062525c48406aa29d03e794d644e2b05d",
+          "jsonPointer": "/Data/RootChunk/inplacePhases/2"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/sts_badlands.questphase.json",
+          "assetSha256": "fb9340cf9f4dff369e3cdf8c4eb597cf9c1377ec0a1a2e757057b25e803b3636",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/street_stories.questphase.json",
+          "assetSha256": "4172328c26c01edd9d20bc79c6c89d6255e452cab40307d6278c490eb2637e1b",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/phases/open_world_content.questphase.json",
+          "assetSha256": "130e66e8c0125338a1eabe7b6e71e789e3a9926f28b384e662a1c79527ef1571",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/additional_game_elements.questphase.json",
+          "assetSha256": "c67fb292f88384f3f31e8242fc374e8b7afe5553588333c61f6eaec2c1e0b7eb",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.questphase.json",
+          "assetSha256": "78d8afd0784575216b090f003610ca973be9d1781bab948c9e4dc12006d750b2",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/7/Data/phaseGraph/Data/nodes/2/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.quest.json",
+          "assetSha256": "b14f15d20e6723b97cf4afe260546c5c6e93c84856c47372fbbb8377b640f449",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "al-native.dakota-iris-with-van",
+      "sourceId": "al-native-0a77bc18e8ee",
+      "kind": "native",
+      "locator": "No Fixers vehicle delivery writes ina_06_car_delivered +=1 -> garage objective60 Succeeded; success branches write iris_hired and finished; car test198 uses >0.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/phases/sts_bls_ina_06_ow.questphase.json",
+        "assetSha256": "aab1417681cd56664e9f7f52d64e2bfbf18cf0b72f9c8ce515bf85953f57b9d4",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/31/Data/phaseGraph/Data/nodes/12/Data",
+        "expectedType": "questFactsDBManagerNodeDefinition"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/phases/sts_bls_ina_06_ow.questphase.json",
+          "assetSha256": "aab1417681cd56664e9f7f52d64e2bfbf18cf0b72f9c8ce515bf85953f57b9d4",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/31/Data/phaseGraph/Data/nodes/11/Data",
+          "expectedType": "questVehicleNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/phases/sts_bls_ina_06_ow.questphase.json",
+          "assetSha256": "aab1417681cd56664e9f7f52d64e2bfbf18cf0b72f9c8ce515bf85953f57b9d4",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/31/Data/phaseGraph/Data/nodes/19/Data",
+          "expectedType": "questJournalNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/phases/sts_bls_ina_06_ow.questphase.json",
+          "assetSha256": "aab1417681cd56664e9f7f52d64e2bfbf18cf0b72f9c8ce515bf85953f57b9d4",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/73/Data",
+          "expectedType": "questConditionNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/phases/sts_bls_ina_06_ow.questphase.json",
+          "assetSha256": "aab1417681cd56664e9f7f52d64e2bfbf18cf0b72f9c8ce515bf85953f57b9d4",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/72/Data",
+          "expectedType": "questFactsDBManagerNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/phases/sts_bls_ina_06_ow.questphase.json",
+          "assetSha256": "aab1417681cd56664e9f7f52d64e2bfbf18cf0b72f9c8ce515bf85953f57b9d4",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/88/Data",
+          "expectedType": "questFactsDBManagerNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/phases/sts_bls_ina_06_ow.questphase.json",
+          "assetSha256": "aab1417681cd56664e9f7f52d64e2bfbf18cf0b72f9c8ce515bf85953f57b9d4",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/70/Data",
+          "expectedType": "questFactsDBManagerNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/phases/sts_bls_ina_06_ow.questphase.json",
+          "assetSha256": "aab1417681cd56664e9f7f52d64e2bfbf18cf0b72f9c8ce515bf85953f57b9d4",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/87/Data",
+          "expectedType": "questFactsDBManagerNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/phases/sts_bls_ina_06_ow.questphase.json",
+          "assetSha256": "aab1417681cd56664e9f7f52d64e2bfbf18cf0b72f9c8ce515bf85953f57b9d4",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/90/Data",
+          "expectedType": "questRewardManagerNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/phases/sts_bls_ina_06_ow.questphase.json",
+          "assetSha256": "aab1417681cd56664e9f7f52d64e2bfbf18cf0b72f9c8ce515bf85953f57b9d4",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/75/Data",
+          "expectedType": "questJournalNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/phases/sts_bls_ina_06_ow.questphase.json",
+          "assetSha256": "aab1417681cd56664e9f7f52d64e2bfbf18cf0b72f9c8ce515bf85953f57b9d4",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/7/Data",
+          "expectedType": "questJournalNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/phases/sts_bls_ina_06_ow.questphase.json",
+          "assetSha256": "aab1417681cd56664e9f7f52d64e2bfbf18cf0b72f9c8ce515bf85953f57b9d4",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/66/Data",
+          "expectedType": "questJournalNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/phases/sts_bls_ina_06_ow.questphase.json",
+          "assetSha256": "aab1417681cd56664e9f7f52d64e2bfbf18cf0b72f9c8ce515bf85953f57b9d4",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/112/Data",
+          "expectedType": "questPauseConditionNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_inland_avenue.questphase.json",
+          "assetSha256": "e215e4341352aa7460fdaca790e8cc2062525c48406aa29d03e794d644e2b05d",
+          "jsonPointer": "/Data/RootChunk/inplacePhases/23"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/sts_badlands.questphase.json",
+          "assetSha256": "fb9340cf9f4dff369e3cdf8c4eb597cf9c1377ec0a1a2e757057b25e803b3636",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/street_stories.questphase.json",
+          "assetSha256": "4172328c26c01edd9d20bc79c6c89d6255e452cab40307d6278c490eb2637e1b",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/phases/open_world_content.questphase.json",
+          "assetSha256": "130e66e8c0125338a1eabe7b6e71e789e3a9926f28b384e662a1c79527ef1571",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/additional_game_elements.questphase.json",
+          "assetSha256": "c67fb292f88384f3f31e8242fc374e8b7afe5553588333c61f6eaec2c1e0b7eb",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.questphase.json",
+          "assetSha256": "78d8afd0784575216b090f003610ca973be9d1781bab948c9e4dc12006d750b2",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/7/Data/phaseGraph/Data/nodes/2/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.quest.json",
+          "assetSha256": "b14f15d20e6723b97cf4afe260546c5c6e93c84856c47372fbbb8377b640f449",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "al-native.dakota-ben-delivery",
+      "sourceId": "al-native-3de537eb9fc3",
+      "kind": "native",
+      "locator": "MIA complete quest75/174 Succeeded ->191 -> ina_09_finished +=1 at166; arrival receipt153 after left-car wait296 and before meeting-nomad scene133.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_09/phases/sts_bls_ina_09_openworld.questphase.json",
+        "assetSha256": "b039103c7f35abecc17c1871fc5187a86521dcb7e58059312a7d273fa3a4e54a",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseGraph/Data/nodes/34/Data",
+        "expectedType": "questFactsDBManagerNodeDefinition"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_09/phases/sts_bls_ina_09_openworld.questphase.json",
+          "assetSha256": "b039103c7f35abecc17c1871fc5187a86521dcb7e58059312a7d273fa3a4e54a",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseGraph/Data/nodes/54/Data",
+          "expectedType": "questFactsDBManagerNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_09/phases/sts_bls_ina_09_openworld.questphase.json",
+          "assetSha256": "b039103c7f35abecc17c1871fc5187a86521dcb7e58059312a7d273fa3a4e54a",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseGraph/Data/nodes/7/Data",
+          "expectedType": "questJournalNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_09/phases/sts_bls_ina_09_openworld.questphase.json",
+          "assetSha256": "b039103c7f35abecc17c1871fc5187a86521dcb7e58059312a7d273fa3a4e54a",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseGraph/Data/nodes/42/Data",
+          "expectedType": "questJournalNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_09/phases/sts_bls_ina_09_openworld.questphase.json",
+          "assetSha256": "b039103c7f35abecc17c1871fc5187a86521dcb7e58059312a7d273fa3a4e54a",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data/phaseGraph/Data/nodes/1/Data/phaseGraph/Data/nodes/11/Data",
+          "expectedType": "questFactsDBManagerNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_09/phases/sts_bls_ina_09_openworld.questphase.json",
+          "assetSha256": "b039103c7f35abecc17c1871fc5187a86521dcb7e58059312a7d273fa3a4e54a",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data/phaseGraph/Data/nodes/1/Data/phaseGraph/Data/nodes/59/Data",
+          "expectedType": "questPauseConditionNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_09/phases/sts_bls_ina_09_openworld.questphase.json",
+          "assetSha256": "b039103c7f35abecc17c1871fc5187a86521dcb7e58059312a7d273fa3a4e54a",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data/phaseGraph/Data/nodes/1/Data/phaseGraph/Data/nodes/10/Data",
+          "expectedType": "questSceneNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_09/phases/sts_bls_ina_09_openworld.questphase.json",
+          "assetSha256": "b039103c7f35abecc17c1871fc5187a86521dcb7e58059312a7d273fa3a4e54a",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data/phaseGraph/Data/nodes/1/Data/phaseGraph/Data/nodes/62/Data",
+          "expectedType": "questVehicleNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_09/phases/sts_bls_ina_09_openworld.questphase.json",
+          "assetSha256": "b039103c7f35abecc17c1871fc5187a86521dcb7e58059312a7d273fa3a4e54a",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseGraph/Data/nodes/90/Data",
+          "expectedType": "questPauseConditionNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_09/phases/sts_bls_ina_09_openworld.questphase.json",
+          "assetSha256": "b039103c7f35abecc17c1871fc5187a86521dcb7e58059312a7d273fa3a4e54a",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseGraph/Data/nodes/95/Data",
+          "expectedType": "questFactsDBManagerNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_09/phases/sts_bls_ina_09_openworld.questphase.json",
+          "assetSha256": "b039103c7f35abecc17c1871fc5187a86521dcb7e58059312a7d273fa3a4e54a",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseGraph/Data/nodes/97/Data",
+          "expectedType": "questFactsDBManagerNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_09/phases/sts_bls_ina_09_openworld.questphase.json",
+          "assetSha256": "b039103c7f35abecc17c1871fc5187a86521dcb7e58059312a7d273fa3a4e54a",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseGraph/Data/nodes/88/Data",
+          "expectedType": "questConditionNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_inland_avenue.questphase.json",
+          "assetSha256": "e215e4341352aa7460fdaca790e8cc2062525c48406aa29d03e794d644e2b05d",
+          "jsonPointer": "/Data/RootChunk/inplacePhases/26"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/sts_badlands.questphase.json",
+          "assetSha256": "fb9340cf9f4dff369e3cdf8c4eb597cf9c1377ec0a1a2e757057b25e803b3636",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/street_stories.questphase.json",
+          "assetSha256": "4172328c26c01edd9d20bc79c6c89d6255e452cab40307d6278c490eb2637e1b",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/phases/open_world_content.questphase.json",
+          "assetSha256": "130e66e8c0125338a1eabe7b6e71e789e3a9926f28b384e662a1c79527ef1571",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/additional_game_elements.questphase.json",
+          "assetSha256": "c67fb292f88384f3f31e8242fc374e8b7afe5553588333c61f6eaec2c1e0b7eb",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.questphase.json",
+          "assetSha256": "78d8afd0784575216b090f003610ca973be9d1781bab948c9e4dc12006d750b2",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/7/Data/phaseGraph/Data/nodes/2/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.quest.json",
+          "assetSha256": "b14f15d20e6723b97cf4afe260546c5c6e93c84856c47372fbbb8377b640f449",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "al-native.dakota-bruce-delivery",
+      "sourceId": "al-native-60653222e24c",
+      "kind": "native",
+      "locator": "Goodbye, Night City quest168 Succeeded -> ina_05_done +=1 at290; Archibald handover scene10.end -> ina_05_archi_talk_ended +=1 at32.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_05/phases/sts_bls_ina_05_openworld_phase.questphase.json",
+        "assetSha256": "8defa3b841a70bfde5c4570abd9d53a1a3f2b303efc9bc9880a9cc3a4b2e19b1",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseGraph/Data/nodes/50/Data",
+        "expectedType": "questFactsDBManagerNodeDefinition"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_05/phases/sts_bls_ina_05_openworld_phase.questphase.json",
+          "assetSha256": "8defa3b841a70bfde5c4570abd9d53a1a3f2b303efc9bc9880a9cc3a4b2e19b1",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseGraph/Data/nodes/13/Data",
+          "expectedType": "questJournalNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_05/phases/sts_bls_ina_05_openworld_phase.questphase.json",
+          "assetSha256": "8defa3b841a70bfde5c4570abd9d53a1a3f2b303efc9bc9880a9cc3a4b2e19b1",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseGraph/Data/nodes/75/Data",
+          "expectedType": "questJournalNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_05/phases/sts_bls_ina_05_openworld_phase.questphase.json",
+          "assetSha256": "8defa3b841a70bfde5c4570abd9d53a1a3f2b303efc9bc9880a9cc3a4b2e19b1",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/12/Data",
+          "expectedType": "questFactsDBManagerNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_05/phases/sts_bls_ina_05_openworld_phase.questphase.json",
+          "assetSha256": "8defa3b841a70bfde5c4570abd9d53a1a3f2b303efc9bc9880a9cc3a4b2e19b1",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/3/Data",
+          "expectedType": "questSceneNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_05/phases/sts_bls_ina_05_openworld_phase.questphase.json",
+          "assetSha256": "8defa3b841a70bfde5c4570abd9d53a1a3f2b303efc9bc9880a9cc3a4b2e19b1",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/2/Data",
+          "expectedType": "questPauseConditionNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_05/phases/sts_bls_ina_05_openworld_phase.questphase.json",
+          "assetSha256": "8defa3b841a70bfde5c4570abd9d53a1a3f2b303efc9bc9880a9cc3a4b2e19b1",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/4/Data",
+          "expectedType": "questPauseConditionNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_inland_avenue.questphase.json",
+          "assetSha256": "e215e4341352aa7460fdaca790e8cc2062525c48406aa29d03e794d644e2b05d",
+          "jsonPointer": "/Data/RootChunk/inplacePhases/8"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/sts_badlands.questphase.json",
+          "assetSha256": "fb9340cf9f4dff369e3cdf8c4eb597cf9c1377ec0a1a2e757057b25e803b3636",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/street_stories.questphase.json",
+          "assetSha256": "4172328c26c01edd9d20bc79c6c89d6255e452cab40307d6278c490eb2637e1b",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/phases/open_world_content.questphase.json",
+          "assetSha256": "130e66e8c0125338a1eabe7b6e71e789e3a9926f28b384e662a1c79527ef1571",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/additional_game_elements.questphase.json",
+          "assetSha256": "c67fb292f88384f3f31e8242fc374e8b7afe5553588333c61f6eaec2c1e0b7eb",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.questphase.json",
+          "assetSha256": "78d8afd0784575216b090f003610ca973be9d1781bab948c9e4dc12006d750b2",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/7/Data/phaseGraph/Data/nodes/2/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.quest.json",
+          "assetSha256": "b14f15d20e6723b97cf4afe260546c5c6e93c84856c47372fbbb8377b640f449",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "al-native.dakota-radar-delivery",
+      "sourceId": "al-native-06f911abc204",
+      "kind": "native",
+      "locator": "Radar Love car-inside-workshop condition295 -> cut297 -> deliver_car148 Succeeded; unmount/completion flow -> quest152 Succeeded. ina_04_finished also follows failure and is rejected.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_04/phases/sts_bls_ina_04_openworld.questphase.json",
+        "assetSha256": "01420ab38e1a3ee402e29110822c04046ba7e7d83872cd45ad36177bc539efa3",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/60/Data",
+        "expectedType": "questPauseConditionNodeDefinition"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_04/phases/sts_bls_ina_04_openworld.questphase.json",
+          "assetSha256": "01420ab38e1a3ee402e29110822c04046ba7e7d83872cd45ad36177bc539efa3",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/62/Data",
+          "expectedType": "questCutControlNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_04/phases/sts_bls_ina_04_openworld.questphase.json",
+          "assetSha256": "01420ab38e1a3ee402e29110822c04046ba7e7d83872cd45ad36177bc539efa3",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/12/Data",
+          "expectedType": "questJournalNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_04/phases/sts_bls_ina_04_openworld.questphase.json",
+          "assetSha256": "01420ab38e1a3ee402e29110822c04046ba7e7d83872cd45ad36177bc539efa3",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/14/Data",
+          "expectedType": "questJournalNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_04/phases/sts_bls_ina_04_openworld.questphase.json",
+          "assetSha256": "01420ab38e1a3ee402e29110822c04046ba7e7d83872cd45ad36177bc539efa3",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/68/Data",
+          "expectedType": "questPauseConditionNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_04/phases/sts_bls_ina_04_openworld.questphase.json",
+          "assetSha256": "01420ab38e1a3ee402e29110822c04046ba7e7d83872cd45ad36177bc539efa3",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/70/Data",
+          "expectedType": "questJournalNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_04/phases/sts_bls_ina_04_openworld.questphase.json",
+          "assetSha256": "01420ab38e1a3ee402e29110822c04046ba7e7d83872cd45ad36177bc539efa3",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/27/Data",
+          "expectedType": "questFactsDBManagerNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_04/phases/sts_bls_ina_04_openworld.questphase.json",
+          "assetSha256": "01420ab38e1a3ee402e29110822c04046ba7e7d83872cd45ad36177bc539efa3",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/2/Data",
+          "expectedType": "questJournalNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/6/Data/entries/0/Data/entries/0/Data/entries/6/Data/entries/0/Data/entries/2/Data",
+          "expectedType": "gameJournalQuestObjective"
+        },
+        {
+          "jsonPath": "raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/6/Data/entries/0/Data/entries/0/Data/entries/6/Data",
+          "expectedType": "gameJournalQuest"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_inland_avenue.questphase.json",
+          "assetSha256": "e215e4341352aa7460fdaca790e8cc2062525c48406aa29d03e794d644e2b05d",
+          "jsonPointer": "/Data/RootChunk/inplacePhases/21"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/badlands/sts_badlands.questphase.json",
+          "assetSha256": "fb9340cf9f4dff369e3cdf8c4eb597cf9c1377ec0a1a2e757057b25e803b3636",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/street_stories/street_stories.questphase.json",
+          "assetSha256": "4172328c26c01edd9d20bc79c6c89d6255e452cab40307d6278c490eb2637e1b",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/open_world/phases/open_world_content.questphase.json",
+          "assetSha256": "130e66e8c0125338a1eabe7b6e71e789e3a9926f28b384e662a1c79527ef1571",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/additional_game_elements.questphase.json",
+          "assetSha256": "c67fb292f88384f3f31e8242fc374e8b7afe5553588333c61f6eaec2c1e0b7eb",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.questphase.json",
+          "assetSha256": "78d8afd0784575216b090f003610ca973be9d1781bab948c9e4dc12006d750b2",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/7/Data/phaseGraph/Data/nodes/2/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.quest.json",
+          "assetSha256": "b14f15d20e6723b97cf4afe260546c5c6e93c84856c47372fbbb8377b640f449",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "al-native.convoy-secured",
+      "sourceId": "al-native-42d385783367",
+      "kind": "native",
+      "locator": "sq027 transport-delivered scene: Panam identifies the Basilisk to Saul; scene_over_out -> traffic reset6 -> exact sq027_convoy_hit_done=1 at5.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "raw/base/base/quest/side_quests/sq027/phases/sq027_04_return.questphase.json",
+        "assetSha256": "b293578da9558df5fc72df00448ae80ac65b4a39dd0747fcd6c476ed2c897e1a",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/12/Data/phaseGraph/Data/nodes/5/Data",
+        "expectedType": "questFactsDBManagerNodeDefinition"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq027/phases/sq027_04_return.questphase.json",
+          "assetSha256": "b293578da9558df5fc72df00448ae80ac65b4a39dd0747fcd6c476ed2c897e1a",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/12/Data/phaseGraph/Data/nodes/4/Data",
+          "expectedType": "questSceneNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq027/phases/sq027_04_return.questphase.json",
+          "assetSha256": "b293578da9558df5fc72df00448ae80ac65b4a39dd0747fcd6c476ed2c897e1a",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/12/Data/phaseGraph/Data/nodes/6/Data",
+          "expectedType": "questFactsDBManagerNodeDefinition"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-outcomes/raw/base/base/quest/side_quests/sq027/scenes/sq027_05a_transport_delivered.scene.json",
+          "assetSha256": "07de58be6e6be0cbce17a082dc610f1df8043d525ab01dc7060ad15e213a90e6",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/25/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-outcomes/raw/base/base/quest/side_quests/sq027/scenes/sq027_05a_transport_delivered.scene.json",
+          "assetSha256": "07de58be6e6be0cbce17a082dc610f1df8043d525ab01dc7060ad15e213a90e6",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/79/Data",
+          "expectedType": "scnEndNode"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-outcomes/raw/base/base/quest/side_quests/sq027/scenes/sq027_05a_transport_delivered.scene.json",
+          "assetSha256": "07de58be6e6be0cbce17a082dc610f1df8043d525ab01dc7060ad15e213a90e6",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/25",
+          "expectedType": "scnscreenplayDialogLine"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-outcomes/raw/base/base/quest/side_quests/sq027/scenes/sq027_05a_transport_delivered.scene.json",
+          "assetSha256": "07de58be6e6be0cbce17a082dc610f1df8043d525ab01dc7060ad15e213a90e6",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/35",
+          "expectedType": "scnscreenplayDialogLine"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-outcomes/raw/base/base/quest/side_quests/sq027/scenes/sq027_05a_transport_delivered.scene.json",
+          "assetSha256": "07de58be6e6be0cbce17a082dc610f1df8043d525ab01dc7060ad15e213a90e6",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/37",
+          "expectedType": "scnscreenplayDialogLine"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq027/sq027_queen_of_the_highway.questphase.json",
+          "assetSha256": "16d6a1fb4a730858dd43e605ca30b36d6b702e4d950f7a51f75c4964830843a4",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/8/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sidequests.questphase.json",
+          "assetSha256": "1cf2fc2ba3b538f7496fddf09ff319602f54f6785a925ba36ad3c9b90020f000",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/10/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.questphase.json",
+          "assetSha256": "78d8afd0784575216b090f003610ca973be9d1781bab948c9e4dc12006d750b2",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/7/Data/phaseGraph/Data/nodes/4/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.quest.json",
+          "assetSha256": "b14f15d20e6723b97cf4afe260546c5c6e93c84856c47372fbbb8377b640f449",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "al-native.panam-co-leader",
+      "sourceId": "al-native-aa837c48cecf",
+      "kind": "native",
+      "locator": "Camp-saved section277: Saul announces Panam as co-leader at9.176s; socket2/4 at52.618s -> journal871 input3(Succeeded) for meet_with_saul.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/aldecaldos-outcomes/raw/base/base/quest/side_quests/sq027/scenes/sq027_08_camp_saved.scene.json",
+        "assetSha256": "6c5d4682e491207dd70d1aea022b31df8206388decb3534b6cafa95b2300c967",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/53/Data",
+        "expectedType": "scnQuestNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/aldecaldos-outcomes/raw/base/base/quest/side_quests/sq027/scenes/sq027_08_camp_saved.scene.json",
+          "assetSha256": "6c5d4682e491207dd70d1aea022b31df8206388decb3534b6cafa95b2300c967",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-outcomes/raw/base/base/quest/side_quests/sq027/scenes/sq027_08_camp_saved.scene.json",
+          "assetSha256": "6c5d4682e491207dd70d1aea022b31df8206388decb3534b6cafa95b2300c967",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/28/Data",
+          "expectedType": "scnDialogLineEvent"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-outcomes/raw/base/base/quest/side_quests/sq027/scenes/sq027_08_camp_saved.scene.json",
+          "assetSha256": "6c5d4682e491207dd70d1aea022b31df8206388decb3534b6cafa95b2300c967",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/99/Data",
+          "expectedType": "scneventsSocket"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-outcomes/raw/base/base/quest/side_quests/sq027/scenes/sq027_08_camp_saved.scene.json",
+          "assetSha256": "6c5d4682e491207dd70d1aea022b31df8206388decb3534b6cafa95b2300c967",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/53/Data/isockMappings/3",
+          "expectedType": "CName"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-outcomes/raw/base/base/quest/side_quests/sq027/scenes/sq027_08_camp_saved.scene.json",
+          "assetSha256": "6c5d4682e491207dd70d1aea022b31df8206388decb3534b6cafa95b2300c967",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/7",
+          "expectedType": "scnscreenplayDialogLine"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq027/phases/sq027_05_camp_attack.questphase.json",
+          "assetSha256": "c0f5c808a8cc647417afc039d379cf5f249d3e2979b120100cf76c04e7b77c6b",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/2/Data",
+          "expectedType": "questSceneNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/5/Data/entries/9/Data/entries/1/Data/entries/6/Data",
+          "expectedType": "gameJournalQuestObjective"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq027/sq027_queen_of_the_highway.questphase.json",
+          "assetSha256": "16d6a1fb4a730858dd43e605ca30b36d6b702e4d950f7a51f75c4964830843a4",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/10/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sidequests.questphase.json",
+          "assetSha256": "1cf2fc2ba3b538f7496fddf09ff319602f54f6785a925ba36ad3c9b90020f000",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/10/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.questphase.json",
+          "assetSha256": "78d8afd0784575216b090f003610ca973be9d1781bab948c9e4dc12006d750b2",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/7/Data/phaseGraph/Data/nodes/4/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.quest.json",
+          "assetSha256": "b14f15d20e6723b97cf4afe260546c5c6e93c84856c47372fbbb8377b640f449",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        }
+      ]
+    }
+  ],
+  "factAllowlist": {
+    "sq027_panam_ratted_out": {
+      "evidenceRefs": [
+        "al-native.report-to-saul"
+      ]
+    },
+    "sq027_panzer_sex": {
+      "evidenceRefs": [
+        "al-native.basilisk-intimacy"
+      ]
+    },
+    "sq027_panam_lover": {
+      "evidenceRefs": [
+        "al-native.basilisk-intimacy"
+      ]
+    },
+    "sq027_panam_knows_about_chip": {
+      "evidenceRefs": [
+        "al-native.panam-relic-disclosure"
+      ]
+    },
+    "sq004_saul_rescued": {
+      "evidenceRefs": [
+        "al-native.saul-rescue"
+      ]
+    },
+    "q116_saul_dead": {
+      "evidenceRefs": [
+        "al-native.saul-killed"
+      ]
+    },
+    "ina_03_finished": {
+      "evidenceRefs": [
+        "al-native.dakota-flying-drugs"
+      ]
+    },
+    "ina_07_finished": {
+      "evidenceRefs": [
+        "al-native.dakota-minefield"
+      ]
+    },
+    "ina_08_finished": {
+      "evidenceRefs": [
+        "al-native.dakota-trevor"
+      ]
+    },
+    "ina_11_finished": {
+      "evidenceRefs": [
+        "al-native.dakota-sparring"
+      ]
+    },
+    "ina_06_car_delivered": {
+      "evidenceRefs": [
+        "al-native.dakota-iris-with-van"
+      ]
+    },
+    "ina_06_iris_hired": {
+      "evidenceRefs": [
+        "al-native.dakota-iris-with-van"
+      ]
+    },
+    "ina_06_finished": {
+      "evidenceRefs": [
+        "al-native.dakota-iris-with-van"
+      ]
+    },
+    "ina_09_finished": {
+      "evidenceRefs": [
+        "al-native.dakota-ben-delivery"
+      ]
+    },
+    "ina_09_arrived_to_nomad": {
+      "evidenceRefs": [
+        "al-native.dakota-ben-delivery"
+      ]
+    },
+    "ina_05_done": {
+      "evidenceRefs": [
+        "al-native.dakota-bruce-delivery"
+      ]
+    },
+    "ina_05_archi_talk_ended": {
+      "evidenceRefs": [
+        "al-native.dakota-bruce-delivery"
+      ]
+    },
+    "sq027_convoy_hit_done": {
+      "evidenceRefs": [
+        "al-native.convoy-secured"
+      ]
+    }
+  },
+  "journalAllowlist": {
+    "aldecaldos.riders.completed": {
+      "questKey": "riders-on-the-storm",
+      "nativePath": "quests/side_quest/sq004_riders_on_the_storm",
+      "nativeClass": "gameJournalQuest",
+      "evidenceRefs": [
+        "al-native.saul-rescue"
+      ]
+    },
+    "aldecaldos.initiation.completed": {
+      "questKey": "we-gotta-live-together",
+      "nativePath": "quests/main_quest/act_01/q114_01_nomad_initiation/preparations/take_part_in_initiation",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "al-native.v-initiated"
+      ]
+    },
+    "aldecaldos.radar.delivery": {
+      "questKey": "gig-radar-love",
+      "nativePath": "quests/street_stories/badlands/inland_avenue/sts_bls_ina_04/retrieve_the_van/deliver_car",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "al-native.dakota-radar-delivery"
+      ]
+    },
+    "aldecaldos.radar.completed": {
+      "questKey": "gig-radar-love",
+      "nativePath": "quests/street_stories/badlands/inland_avenue/sts_bls_ina_04",
+      "nativeClass": "gameJournalQuest",
+      "evidenceRefs": [
+        "al-native.dakota-radar-delivery"
+      ]
+    },
+    "aldecaldos.panam.leadership": {
+      "questKey": "queen-of-the-highway",
+      "nativePath": "quests/side_quest/sq027_02_raffen_shiv_attack/05_camp_attack/02a_meet_with_saul",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "al-native.panam-co-leader"
+      ]
+    }
+  },
+  "rules": [
+    {
+      "id": "aldecaldos.native.panam-plan-disclosed",
+      "revision": 1,
+      "questKey": "with-a-little-help-from-my-friends",
+      "topic": "aldecaldos.panam-plan-disclosed",
+      "outcome": "reported-saul",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 9,
+      "stable": true,
+      "statement": "V told Saul that Panam and the veterans planned to steal a Militech Basilisk convoy behind his back. Saul learned the plan from V.",
+      "sourceIds": [
+        "al-friends",
+        "al-saul"
+      ],
+      "evidenceRefs": [
+        "al-native.release-entry",
+        "al-native.sidequest-entry",
+        "al-native.report-to-saul"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.friends.loyalty",
+          "outcomeKey": "reported-saul"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "saul-bright"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "saul-bright"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "sq027_panam_ratted_out",
+        "op": "eq",
+        "value": 1
+      },
+      "exclusiveGroups": [
+        {
+          "id": "aldecaldos.sq027-route",
+          "outcome": "betrayed"
+        }
+      ]
+    },
+    {
+      "id": "aldecaldos.native.panam-basilisk-intimacy",
+      "revision": 1,
+      "questKey": "queen-of-the-highway",
+      "topic": "aldecaldos.panam-basilisk-intimacy",
+      "outcome": "romanced",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "relationship",
+      "priority": 9,
+      "stable": true,
+      "statement": "V accepted Panam's invitation to share an intimate experience through the Basilisk's sensory link, and the two became lovers.",
+      "sourceIds": [
+        "al-queen",
+        "al-panam"
+      ],
+      "evidenceRefs": [
+        "al-native.release-entry",
+        "al-native.sidequest-entry",
+        "al-native.basilisk-intimacy"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.queen.romance",
+          "outcomeKey": "romanced"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "panam-palmer"
+        ],
+        "perspective": "private",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "panam-palmer"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "sq027_panzer_sex",
+            "op": "eq",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "sq027_panam_lover",
+            "op": "eq",
+            "value": 1
+          }
+        ]
+      },
+      "exclusiveGroups": [
+        {
+          "id": "aldecaldos.sq027-route",
+          "outcome": "assisted"
+        }
+      ]
+    },
+    {
+      "id": "aldecaldos.native.panam-relic-explanation",
+      "revision": 1,
+      "questKey": "queen-of-the-highway",
+      "topic": "aldecaldos.panam-relic-explanation",
+      "outcome": "explained-panam",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "relationship",
+      "priority": 9,
+      "stable": true,
+      "statement": "V explained to Panam that a biochip and the personality construct inside it are harming V and threatening V's life. Panam knows this is why V is trying to survive.",
+      "sourceIds": [
+        "al-queen",
+        "al-panam"
+      ],
+      "evidenceRefs": [
+        "al-native.release-entry",
+        "al-native.sidequest-entry",
+        "al-native.panam-relic-disclosure"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.queen.relic-disclosure",
+          "outcomeKey": "explained-panam"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "panam-palmer"
+        ],
+        "perspective": "private",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "panam-palmer"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "sq027_panam_knows_about_chip",
+        "op": "eq",
+        "value": 1
+      },
+      "exclusiveGroups": [
+        {
+          "id": "aldecaldos.sq027-route",
+          "outcome": "assisted"
+        }
+      ]
+    },
+    {
+      "id": "aldecaldos.native.saul-riders-rescue",
+      "revision": 1,
+      "questKey": "riders-on-the-storm",
+      "topic": "aldecaldos.saul-riders-rescue",
+      "outcome": "rescued",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "quest",
+      "priority": 8,
+      "stable": true,
+      "statement": "V helped free Saul from the Raffen Shiv. The rescue and escape through the storm were completed, and Saul survived to shelter at the farmhouse.",
+      "sourceIds": [
+        "al-riders",
+        "al-saul"
+      ],
+      "evidenceRefs": [
+        "al-native.release-entry",
+        "al-native.sidequest-entry",
+        "al-native.saul-rescue"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.riders.rescue",
+          "outcomeKey": "rescued"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "saul-bright"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "saul-bright"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "sq004_saul_rescued",
+            "op": "eq",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "aldecaldos.riders.completed",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      }
+    },
+    {
+      "id": "aldecaldos.native.v-aldecaldo-initiation",
+      "revision": 1,
+      "questKey": "we-gotta-live-together",
+      "topic": "aldecaldos.v-aldecaldo-initiation",
+      "outcome": "initiated",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "relationship",
+      "priority": 9,
+      "stable": true,
+      "statement": "Saul and Panam formally welcomed V into the Aldecaldos. V received the clan jacket as a member of the family before the assault.",
+      "sourceIds": [
+        "al-together",
+        "al-ronin"
+      ],
+      "evidenceRefs": [
+        "al-native.release-entry",
+        "al-native.v-initiated"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.together.initiation",
+          "outcomeKey": "initiated"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "panam-palmer",
+          "saul-bright"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone",
+          "group"
+        ],
+        "recipients": [
+          "v",
+          "panam-palmer",
+          "saul-bright"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "aldecaldos.initiation.completed",
+        "op": "eq",
+        "value": "succeeded"
+      },
+      "exclusiveGroups": [
+        {
+          "id": "ending.assault-route",
+          "outcome": "aldecaldos"
+        }
+      ]
+    },
+    {
+      "id": "aldecaldos.native.saul-smasher-death",
+      "revision": 1,
+      "questKey": "belly-of-the-beast",
+      "topic": "aldecaldos.saul-smasher-death",
+      "outcome": "killed-by-smasher",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "quest",
+      "priority": 10,
+      "stable": true,
+      "statement": "During the Aldecaldo assault inside Arasaka, Adam Smasher killed Saul in front of V and Panam. Panam witnessed Saul's death.",
+      "sourceIds": [
+        "al-belly-guide",
+        "al-saul",
+        "al-panam"
+      ],
+      "evidenceRefs": [
+        "al-native.release-entry",
+        "al-native.saul-killed"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.belly.saul",
+          "outcomeKey": "killed-by-smasher"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "panam-palmer"
+        ],
+        "perspective": "witnessed",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "panam-palmer"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "q116_saul_dead",
+        "op": "eq",
+        "value": 1
+      },
+      "exclusiveGroups": [
+        {
+          "id": "ending.assault-route",
+          "outcome": "aldecaldos"
+        }
+      ]
+    },
+    {
+      "id": "aldecaldos.native.dakota-antenna-disabled",
+      "revision": 1,
+      "questKey": "gig-flying-drugs",
+      "topic": "aldecaldos.dakota-antenna-disabled",
+      "outcome": "disabled",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "quest",
+      "priority": 7,
+      "stable": true,
+      "statement": "Dakota's Flying Drugs contract was completed: the interference antenna was disabled, clearing the obstruction to the smuggling drones.",
+      "sourceIds": [
+        "al-flying"
+      ],
+      "evidenceRefs": [
+        "al-native.release-entry",
+        "al-native.dakota-flying-drugs"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.flying.antenna",
+          "outcomeKey": "disabled"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "dakota-smith"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "dakota-smith"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "ina_03_finished",
+        "op": "eq",
+        "value": 1
+      }
+    },
+    {
+      "id": "aldecaldos.native.dakota-minefield-delivery",
+      "revision": 1,
+      "questKey": "gig-dancing-on-a-minefield",
+      "topic": "aldecaldos.dakota-minefield-delivery",
+      "outcome": "delivered",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "quest",
+      "priority": 7,
+      "stable": true,
+      "statement": "V completed Dakota's Dancing on a Minefield job and delivered the recovered vehicle from the minefield.",
+      "sourceIds": [
+        "al-minefield"
+      ],
+      "evidenceRefs": [
+        "al-native.release-entry",
+        "al-native.dakota-minefield"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.minefield.vehicle",
+          "outcomeKey": "delivered"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "dakota-smith"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "dakota-smith"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "ina_07_finished",
+        "op": "eq",
+        "value": 1
+      }
+    },
+    {
+      "id": "aldecaldos.native.dakota-trevor-returned",
+      "revision": 1,
+      "questKey": "gig-trevors-last-ride",
+      "topic": "aldecaldos.dakota-trevor-returned",
+      "outcome": "delivered",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "quest",
+      "priority": 7,
+      "stable": true,
+      "statement": "Trevor's remains were recovered and handed over through Dakota's arranged transport, completing Trevor's Last Ride.",
+      "sourceIds": [
+        "al-trevor"
+      ],
+      "evidenceRefs": [
+        "al-native.release-entry",
+        "al-native.dakota-trevor"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.trevor.remains",
+          "outcomeKey": "delivered"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "dakota-smith"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "dakota-smith"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "ina_08_finished",
+        "op": "gte",
+        "value": 1
+      }
+    },
+    {
+      "id": "aldecaldos.native.dakota-sparring-delivered",
+      "revision": 1,
+      "questKey": "gig-sparring-partner",
+      "topic": "aldecaldos.dakota-sparring-delivered",
+      "outcome": "delivered",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "quest",
+      "priority": 7,
+      "stable": true,
+      "statement": "The requested training software was delivered for Dakota's Sparring Partner contract.",
+      "sourceIds": [
+        "al-sparring"
+      ],
+      "evidenceRefs": [
+        "al-native.release-entry",
+        "al-native.dakota-sparring"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.sparring.software",
+          "outcomeKey": "delivered"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "dakota-smith"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "dakota-smith"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "ina_11_finished",
+        "op": "eq",
+        "value": 1
+      }
+    },
+    {
+      "id": "aldecaldos.native.dakota-iris-van-delivery",
+      "revision": 1,
+      "questKey": "gig-no-fixers",
+      "topic": "aldecaldos.dakota-iris-van-delivery",
+      "outcome": "delivered-with-van",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "quest",
+      "priority": 7,
+      "stable": true,
+      "statement": "Iris Tanner was rescued for Dakota's No Fixers contract, and Iris's van was delivered as well.",
+      "sourceIds": [
+        "al-nofixers",
+        "al-iris"
+      ],
+      "evidenceRefs": [
+        "al-native.release-entry",
+        "al-native.dakota-iris-with-van"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.nofixers.rescue",
+          "outcomeKey": "delivered-with-van"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "dakota-smith"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "dakota-smith"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "ina_06_car_delivered",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "ina_06_iris_hired",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "ina_06_finished",
+            "op": "gte",
+            "value": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "aldecaldos.native.dakota-ben-returned",
+      "revision": 1,
+      "questKey": "gig-mia",
+      "topic": "aldecaldos.dakota-ben-returned",
+      "outcome": "delivered",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "quest",
+      "priority": 7,
+      "stable": true,
+      "statement": "Benedict McAdams was extracted and delivered to his nomad contact, completing Dakota's MIA contract.",
+      "sourceIds": [
+        "al-mia"
+      ],
+      "evidenceRefs": [
+        "al-native.release-entry",
+        "al-native.dakota-ben-delivery"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.mia.extraction",
+          "outcomeKey": "delivered"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "dakota-smith"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "dakota-smith"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "ina_09_finished",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "ina_09_arrived_to_nomad",
+            "op": "gte",
+            "value": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "aldecaldos.native.dakota-bruce-returned",
+      "revision": 1,
+      "questKey": "gig-goodbye-night-city",
+      "topic": "aldecaldos.dakota-bruce-returned",
+      "outcome": "delivered",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "quest",
+      "priority": 7,
+      "stable": true,
+      "statement": "Bruce was rescued from the detention camp and handed over to Archibald, completing Dakota's Goodbye, Night City contract.",
+      "sourceIds": [
+        "al-goodbye"
+      ],
+      "evidenceRefs": [
+        "al-native.release-entry",
+        "al-native.dakota-bruce-delivery"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.goodbye.extraction",
+          "outcomeKey": "delivered"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "dakota-smith"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "dakota-smith"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "ina_05_done",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "ina_05_archi_talk_ended",
+            "op": "gte",
+            "value": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": "aldecaldos.native.dakota-radar-delivered",
+      "revision": 1,
+      "questKey": "gig-radar-love",
+      "topic": "aldecaldos.dakota-radar-delivered",
+      "outcome": "delivered",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "quest",
+      "priority": 7,
+      "stable": true,
+      "statement": "The mobile Militech radar prototype was brought to Dakota's workshop, and the Radar Love contract was completed.",
+      "sourceIds": [
+        "al-radar"
+      ],
+      "evidenceRefs": [
+        "al-native.release-entry",
+        "al-native.dakota-radar-delivery"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.radar.prototype",
+          "outcomeKey": "delivered"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "dakota-smith"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "dakota-smith"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "journal",
+            "key": "aldecaldos.radar.delivery",
+            "op": "eq",
+            "value": "succeeded"
+          },
+          {
+            "type": "journal",
+            "key": "aldecaldos.radar.completed",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      }
+    },
+    {
+      "id": "aldecaldos.native.basilisk-convoy-secured",
+      "revision": 1,
+      "questKey": "with-a-little-help-from-my-friends",
+      "topic": "aldecaldos.basilisk-convoy-secured",
+      "outcome": "secured",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "quest",
+      "priority": 7,
+      "stable": true,
+      "statement": "The Militech convoy operation brought a Basilisk back to the Aldecaldo camp. Panam presented it to Saul and the clan kept it for assembly.",
+      "sourceIds": [
+        "al-friends",
+        "al-ronin"
+      ],
+      "evidenceRefs": [
+        "al-native.release-entry",
+        "al-native.sidequest-entry",
+        "al-native.convoy-secured"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.friends.convoy",
+          "outcomeKey": "secured"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "panam-palmer",
+          "saul-bright"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone",
+          "group"
+        ],
+        "recipients": [
+          "v",
+          "panam-palmer",
+          "saul-bright"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "sq027_convoy_hit_done",
+        "op": "eq",
+        "value": 1
+      },
+      "exclusiveGroups": [
+        {
+          "id": "aldecaldos.sq027-route",
+          "outcome": "assisted"
+        }
+      ]
+    },
+    {
+      "id": "aldecaldos.native.panam-saul-co-leadership",
+      "revision": 1,
+      "questKey": "queen-of-the-highway",
+      "topic": "aldecaldos.panam-saul-co-leadership",
+      "outcome": "co-leaders",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "relationship",
+      "priority": 9,
+      "stable": true,
+      "statement": "After the camp was saved, Saul announced that Panam would lead the Aldecaldo family alongside him. Panam became his co-leader.",
+      "sourceIds": [
+        "al-queen",
+        "al-panam",
+        "al-saul"
+      ],
+      "evidenceRefs": [
+        "al-native.release-entry",
+        "al-native.sidequest-entry",
+        "al-native.panam-co-leader"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.queen.leadership",
+          "outcomeKey": "co-leaders"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "panam-palmer",
+          "saul-bright"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone",
+          "group"
+        ],
+        "recipients": [
+          "v",
+          "panam-palmer",
+          "saul-bright"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "aldecaldos.panam.leadership",
+        "op": "eq",
+        "value": "succeeded"
+      },
+      "exclusiveGroups": [
+        {
+          "id": "aldecaldos.sq027-route",
+          "outcome": "assisted"
+        }
+      ]
+    },
+    {
+      "id": "aldecaldos.unmapped.ghost.camp-help.gear-only",
+      "status": "unmapped",
+      "questKey": "ghost-town",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.ghost.camp-help",
+          "outcomeKey": "gear-only"
+        }
+      ],
+      "reason": "The truck/gear retrieval is researched in the narrative map, but the reached q103 request branch and recipient knowledge have not been native-reviewed."
+    },
+    {
+      "id": "aldecaldos.unmapped.ghost.truck.recovered-and-delivered",
+      "status": "unmapped",
+      "questKey": "ghost-town",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.ghost.truck",
+          "outcomeKey": "recovered-and-delivered"
+        }
+      ],
+      "reason": "No reviewed delivery receipt is authored for the recovered truck and merchandise; a quest title or generic q103 completion would not distinguish this stage."
+    },
+    {
+      "id": "aldecaldos.unmapped.ghost.nash.helped",
+      "status": "unmapped",
+      "questKey": "ghost-town",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.ghost.nash",
+          "outcomeKey": "helped"
+        }
+      ],
+      "reason": "The help-versus-decline choice and resulting Nash fate need the actual reached q103 scene branch. A named death flag alone cannot distinguish this decision."
+    },
+    {
+      "id": "aldecaldos.unmapped.ghost.nash.declined",
+      "status": "unmapped",
+      "questKey": "ghost-town",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.ghost.nash",
+          "outcomeKey": "declined"
+        }
+      ],
+      "reason": "The help-versus-decline choice and resulting Nash fate need the actual reached q103 scene branch. A named death flag alone cannot distinguish this decision."
+    },
+    {
+      "id": "aldecaldos.unmapped.ghost.motel.shared-room",
+      "status": "unmapped",
+      "questKey": "ghost-town",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.ghost.motel",
+          "outcomeKey": "shared-room"
+        }
+      ],
+      "reason": "Shared room and flirting are separate private choices. No exact affirmative choice receipt has been reviewed for either; silence cannot imply rejection."
+    },
+    {
+      "id": "aldecaldos.unmapped.ghost.motel.flirted",
+      "status": "unmapped",
+      "questKey": "ghost-town",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.ghost.motel",
+          "outcomeKey": "flirted"
+        }
+      ],
+      "reason": "Shared room and flirting are separate private choices. No exact affirmative choice receipt has been reviewed for either; silence cannot imply rejection."
+    },
+    {
+      "id": "aldecaldos.unmapped.lightning.av.downed",
+      "status": "unmapped",
+      "questKey": "lightning-breaks",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.lightning.av",
+          "outcomeKey": "downed"
+        }
+      ],
+      "reason": "The AV takedown stage is sourced in the narrative map, but its native completed objective and who witnessed it are not mapped here."
+    },
+    {
+      "id": "aldecaldos.unmapped.wartime.mitch-rescue.v-helped",
+      "status": "unmapped",
+      "questKey": "life-during-wartime",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.wartime.mitch-rescue",
+          "outcomeKey": "v-helped"
+        }
+      ],
+      "reason": "A generic rescued/survived state cannot distinguish V assisting Mitch from Panam doing it herself. Exact q104 branch receipt is pending."
+    },
+    {
+      "id": "aldecaldos.unmapped.wartime.mitch-rescue.panam-alone",
+      "status": "unmapped",
+      "questKey": "life-during-wartime",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.wartime.mitch-rescue",
+          "outcomeKey": "panam-alone"
+        }
+      ],
+      "reason": "A generic rescued/survived state cannot distinguish V assisting Mitch from Panam doing it herself. Exact q104 branch receipt is pending."
+    },
+    {
+      "id": "aldecaldos.unmapped.wartime.loss.confirmed",
+      "status": "unmapped",
+      "questKey": "life-during-wartime",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.wartime.loss",
+          "outcomeKey": "confirmed"
+        }
+      ],
+      "reason": "Scorpion and other Aldecaldo losses require native lethal consequence plus recipient knowledge; this is not inferred from q104 progress or the Scorpion figurine flag."
+    },
+    {
+      "id": "aldecaldos.unmapped.wartime.pilot-information.pilot-told",
+      "status": "unmapped",
+      "questKey": "life-during-wartime",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.wartime.pilot-information",
+          "outcomeKey": "pilot-told"
+        }
+      ],
+      "reason": "The pilot conversation and tracking alternative are different knowledge acquisition routes; their positive branch receipts are not reviewed."
+    },
+    {
+      "id": "aldecaldos.unmapped.wartime.pilot-information.tracks-followed",
+      "status": "unmapped",
+      "questKey": "life-during-wartime",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.wartime.pilot-information",
+          "outcomeKey": "tracks-followed"
+        }
+      ],
+      "reason": "The pilot conversation and tracking alternative are different knowledge acquisition routes; their positive branch receipts are not reviewed."
+    },
+    {
+      "id": "aldecaldos.unmapped.wartime.hellman-captured.captured",
+      "status": "unmapped",
+      "questKey": "life-during-wartime",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.wartime.hellman-captured",
+          "outcomeKey": "captured"
+        }
+      ],
+      "reason": "No reviewed Hellman-capture receipt and Panam/Mitch knowledge boundary is authored in this lane."
+    },
+    {
+      "id": "aldecaldos.unmapped.riders.briefing.briefed",
+      "status": "unmapped",
+      "questKey": "riders-on-the-storm",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.riders.briefing",
+          "outcomeKey": "briefed"
+        }
+      ],
+      "reason": "Saul rescue completion does not establish which optional briefing V listened to. The camp briefing scene has not been mapped."
+    },
+    {
+      "id": "aldecaldos.unmapped.riders.rescue.failed",
+      "status": "unmapped",
+      "questKey": "riders-on-the-storm",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.riders.rescue",
+          "outcomeKey": "failed"
+        }
+      ],
+      "reason": "The success has a positive rescued flag plus completed revealed journal guard. A failed rescue needs its own explicit failed branch/state; missing success is unknown."
+    },
+    {
+      "id": "aldecaldos.unmapped.riders.extraction-method.unnoticed",
+      "status": "unmapped",
+      "questKey": "riders-on-the-storm",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.riders.extraction-method",
+          "outcomeKey": "unnoticed"
+        }
+      ],
+      "reason": "Neither rescued=1 nor full quest success distinguishes unnoticed extraction from pursuit. No positive route-specific receipt is reviewed."
+    },
+    {
+      "id": "aldecaldos.unmapped.riders.extraction-method.pursued",
+      "status": "unmapped",
+      "questKey": "riders-on-the-storm",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.riders.extraction-method",
+          "outcomeKey": "pursued"
+        }
+      ],
+      "reason": "Neither rescued=1 nor full quest success distinguishes unnoticed extraction from pursuit. No positive route-specific receipt is reviewed."
+    },
+    {
+      "id": "aldecaldos.unmapped.riders.farmhouse.supported-panam",
+      "status": "unmapped",
+      "questKey": "riders-on-the-storm",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.riders.farmhouse",
+          "outcomeKey": "supported-panam"
+        }
+      ],
+      "reason": "Supporting Panam, supporting Saul, and no established position require exact dialogue selection evidence; successful rescue does not reveal the choice."
+    },
+    {
+      "id": "aldecaldos.unmapped.riders.farmhouse.supported-saul",
+      "status": "unmapped",
+      "questKey": "riders-on-the-storm",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.riders.farmhouse",
+          "outcomeKey": "supported-saul"
+        }
+      ],
+      "reason": "Supporting Panam, supporting Saul, and no established position require exact dialogue selection evidence; successful rescue does not reveal the choice."
+    },
+    {
+      "id": "aldecaldos.unmapped.riders.farmhouse.not-established",
+      "status": "unmapped",
+      "questKey": "riders-on-the-storm",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.riders.farmhouse",
+          "outcomeKey": "not-established"
+        }
+      ],
+      "reason": "Supporting Panam, supporting Saul, and no established position require exact dialogue selection evidence; successful rescue does not reveal the choice."
+    },
+    {
+      "id": "aldecaldos.unmapped.riders.private-affection.affection-expressed",
+      "status": "unmapped",
+      "questKey": "riders-on-the-storm",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.riders.private-affection",
+          "outcomeKey": "affection-expressed"
+        }
+      ],
+      "reason": "The farmhouse affection choice is private and cannot be inferred from eventual Basilisk romance. Its individual receipt remains unreviewed."
+    },
+    {
+      "id": "aldecaldos.unmapped.fly.farewell.attended",
+      "status": "unmapped",
+      "questKey": "ill-fly-away",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.fly.farewell",
+          "outcomeKey": "attended"
+        }
+      ],
+      "reason": "mq001_scorpion_placed refers to placing the decorative figure, not the funeral. Generic mq001_done also has alternate/debug writers. The farewell versus missed-event native route remains unresolved."
+    },
+    {
+      "id": "aldecaldos.unmapped.fly.farewell.missed",
+      "status": "unmapped",
+      "questKey": "ill-fly-away",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.fly.farewell",
+          "outcomeKey": "missed"
+        }
+      ],
+      "reason": "mq001_scorpion_placed refers to placing the decorative figure, not the funeral. Generic mq001_done also has alternate/debug writers. The farewell versus missed-event native route remains unresolved."
+    },
+    {
+      "id": "aldecaldos.unmapped.friends.loyalty.assisted",
+      "status": "unmapped",
+      "questKey": "with-a-little-help-from-my-friends",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.friends.loyalty",
+          "outcomeKey": "assisted"
+        }
+      ],
+      "reason": "The Saul-report branch is verified. Assisted and initially declined need their own entered conversation branches; later successful convoy delivery is not used to reconstruct V's original answer."
+    },
+    {
+      "id": "aldecaldos.unmapped.friends.loyalty.declined-initially",
+      "status": "unmapped",
+      "questKey": "with-a-little-help-from-my-friends",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.friends.loyalty",
+          "outcomeKey": "declined-initially"
+        }
+      ],
+      "reason": "The Saul-report branch is verified. Assisted and initially declined need their own entered conversation branches; later successful convoy delivery is not used to reconstruct V's original answer."
+    },
+    {
+      "id": "aldecaldos.unmapped.friends.railway.activated",
+      "status": "unmapped",
+      "questKey": "with-a-little-help-from-my-friends",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.friends.railway",
+          "outcomeKey": "activated"
+        }
+      ],
+      "reason": "Control-tower and locomotive objectives were not reviewed deeply enough to infer which activation V performed."
+    },
+    {
+      "id": "aldecaldos.unmapped.friends.tower-talk.personal-support",
+      "status": "unmapped",
+      "questKey": "with-a-little-help-from-my-friends",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.friends.tower-talk",
+          "outcomeKey": "personal-support"
+        }
+      ],
+      "reason": "Personal motives and job-focused replies are private selection branches; convoy success supplies neither exact answer."
+    },
+    {
+      "id": "aldecaldos.unmapped.friends.tower-talk.job-focused",
+      "status": "unmapped",
+      "questKey": "with-a-little-help-from-my-friends",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.friends.tower-talk",
+          "outcomeKey": "job-focused"
+        }
+      ],
+      "reason": "Personal motives and job-focused replies are private selection branches; convoy success supplies neither exact answer."
+    },
+    {
+      "id": "aldecaldos.unmapped.friends.campfire.heard",
+      "status": "unmapped",
+      "questKey": "with-a-little-help-from-my-friends",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.friends.campfire",
+          "outcomeKey": "heard"
+        }
+      ],
+      "reason": "A convoy completion is not evidence V heard every optional campfire conversation. The exact listening/branch receipt is unreviewed."
+    },
+    {
+      "id": "aldecaldos.unmapped.queen.basilisk-test.completed",
+      "status": "unmapped",
+      "questKey": "queen-of-the-highway",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.queen.basilisk-test",
+          "outcomeKey": "completed"
+        }
+      ],
+      "reason": "The intimacy and leadership mappings do not separately expose completed movement/weapons training. Exact test completion receipt remains unreviewed."
+    },
+    {
+      "id": "aldecaldos.unmapped.queen.romance.platonic",
+      "status": "unmapped",
+      "questKey": "queen-of-the-highway",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.queen.romance",
+          "outcomeKey": "platonic"
+        }
+      ],
+      "reason": "Only affirmative intimacy followed by the lover receipt is verified. Missing/zero lover data cannot authorize a platonic/refused narrative."
+    },
+    {
+      "id": "aldecaldos.unmapped.queen.defense.repelled",
+      "status": "unmapped",
+      "questKey": "queen-of-the-highway",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.queen.defense",
+          "outcomeKey": "repelled"
+        }
+      ],
+      "reason": "The reached camp-saved dialogue supports its leadership outcome. A standalone combat outcome covering all defenders and possible failure/cleanup routes has not been authored."
+    },
+    {
+      "id": "aldecaldos.unmapped.queen.nash.encountered",
+      "status": "unmapped",
+      "questKey": "queen-of-the-highway",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.queen.nash",
+          "outcomeKey": "encountered"
+        }
+      ],
+      "reason": "Nash's later appearance depends on the earlier optional encounter and survival. No verified native compound predicate is authored."
+    },
+    {
+      "id": "aldecaldos.unmapped.queen.relic-disclosure.collapse-witnessed",
+      "status": "unmapped",
+      "questKey": "queen-of-the-highway",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.queen.relic-disclosure",
+          "outcomeKey": "collapse-witnessed"
+        }
+      ],
+      "reason": "The explanation to Panam is verified. A separate witnessed-collapse-only state is not inferred from absent explanation or generic quest completion."
+    },
+    {
+      "id": "aldecaldos.unmapped.queen.policy.contract-ended",
+      "status": "unmapped",
+      "questKey": "queen-of-the-highway",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.queen.policy",
+          "outcomeKey": "contract-ended"
+        }
+      ],
+      "reason": "The co-leader scene does not itself establish termination of the Biotechnica agreement. Saul's relevant correspondence and state must be mapped separately."
+    },
+    {
+      "id": "aldecaldos.unmapped.gun.deal.intimidated",
+      "status": "unmapped",
+      "questKey": "gun-music",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.gun.deal",
+          "outcomeKey": "intimidated"
+        }
+      ],
+      "reason": "Scavenger deal resolution needs distinct intimidation, firefight, and abandonment receipts, plus Carol/Cassidy knowledge. None has a verified native predicate in this pack."
+    },
+    {
+      "id": "aldecaldos.unmapped.gun.deal.firefight",
+      "status": "unmapped",
+      "questKey": "gun-music",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.gun.deal",
+          "outcomeKey": "firefight"
+        }
+      ],
+      "reason": "Scavenger deal resolution needs distinct intimidation, firefight, and abandonment receipts, plus Carol/Cassidy knowledge. None has a verified native predicate in this pack."
+    },
+    {
+      "id": "aldecaldos.unmapped.gun.deal.abandoned",
+      "status": "unmapped",
+      "questKey": "gun-music",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.gun.deal",
+          "outcomeKey": "abandoned"
+        }
+      ],
+      "reason": "Scavenger deal resolution needs distinct intimidation, firefight, and abandonment receipts, plus Carol/Cassidy knowledge. None has a verified native predicate in this pack."
+    },
+    {
+      "id": "aldecaldos.unmapped.gun.panam-message.received",
+      "status": "unmapped",
+      "questKey": "gun-music",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.gun.panam-message",
+          "outcomeKey": "received"
+        }
+      ],
+      "reason": "A later Panam message requires actual delivery/revealed-message evidence; resolving the deal does not prove its receipt."
+    },
+    {
+      "id": "aldecaldos.unmapped.fortunate.request.accepted",
+      "status": "unmapped",
+      "questKey": "fortunate-son",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.fortunate.request",
+          "outcomeKey": "accepted"
+        }
+      ],
+      "reason": "The request to help Jake requires an entered request/conversation stage. Static Bob/Jake familiarity is not used as injury or acceptance evidence."
+    },
+    {
+      "id": "aldecaldos.unmapped.fortunate.malware.discovered",
+      "status": "unmapped",
+      "questKey": "fortunate-son",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.fortunate.malware",
+          "outcomeKey": "discovered"
+        }
+      ],
+      "reason": "Finding the infected implant is a knowledge event separate from collecting or delivering the item; no positive discovery branch has been native-reviewed."
+    },
+    {
+      "id": "aldecaldos.unmapped.fortunate.malware.not-discovered",
+      "status": "unmapped",
+      "questKey": "fortunate-son",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.fortunate.malware",
+          "outcomeKey": "not-discovered"
+        }
+      ],
+      "reason": "Finding the infected implant is a knowledge event separate from collecting or delivering the item; no positive discovery branch has been native-reviewed."
+    },
+    {
+      "id": "aldecaldos.unmapped.fortunate.implant.delivered-informed",
+      "status": "unmapped",
+      "questKey": "fortunate-son",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.fortunate.implant",
+          "outcomeKey": "delivered-informed"
+        }
+      ],
+      "reason": "Informed versus uninformed delivery requires affirmative disclosure evidence. An absent warning flag is not known ignorance."
+    },
+    {
+      "id": "aldecaldos.unmapped.fortunate.implant.delivered-uninformed",
+      "status": "unmapped",
+      "questKey": "fortunate-son",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.fortunate.implant",
+          "outcomeKey": "delivered-uninformed"
+        }
+      ],
+      "reason": "Informed versus uninformed delivery requires affirmative disclosure evidence. An absent warning flag is not known ignorance."
+    },
+    {
+      "id": "aldecaldos.unmapped.fortunate.result.recovered",
+      "status": "unmapped",
+      "questKey": "fortunate-son",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.fortunate.result",
+          "outcomeKey": "recovered"
+        }
+      ],
+      "reason": "Jake's recovered/dead outcomes need explicit consequence branches and Bob's knowledge. A passed timer or quest completion alone is not enough."
+    },
+    {
+      "id": "aldecaldos.unmapped.fortunate.result.died",
+      "status": "unmapped",
+      "questKey": "fortunate-son",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.fortunate.result",
+          "outcomeKey": "died"
+        }
+      ],
+      "reason": "Jake's recovered/dead outcomes need explicit consequence branches and Bob's knowledge. A passed timer or quest completion alone is not enough."
+    },
+    {
+      "id": "aldecaldos.unmapped.nocturne.partner-call.panam",
+      "status": "unmapped",
+      "questKey": "nocturne-op55n1",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.nocturne.partner-call",
+          "outcomeKey": "panam"
+        }
+      ],
+      "reason": "Partner-call routing requires the actual selected recipient and branch-local call completion; active romance is not proof that V called Panam."
+    },
+    {
+      "id": "aldecaldos.unmapped.nocturne.partner-call.other-or-no-call",
+      "status": "unmapped",
+      "questKey": "nocturne-op55n1",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.nocturne.partner-call",
+          "outcomeKey": "other-or-no-call"
+        }
+      ],
+      "reason": "Partner-call routing requires the actual selected recipient and branch-local call completion; active romance is not proof that V called Panam."
+    },
+    {
+      "id": "aldecaldos.unmapped.nocturne.help.called-panam",
+      "status": "unmapped",
+      "questKey": "nocturne-op55n1",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.nocturne.help",
+          "outcomeKey": "called-panam"
+        }
+      ],
+      "reason": "Choosing the Aldecaldo plan needs the rooftop choice/call branch. This pack instead maps later completed initiation and does not backfill the original selection."
+    },
+    {
+      "id": "aldecaldos.unmapped.nocturne.help.other-route",
+      "status": "unmapped",
+      "questKey": "nocturne-op55n1",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.nocturne.help",
+          "outcomeKey": "other-route"
+        }
+      ],
+      "reason": "Choosing the Aldecaldo plan needs the rooftop choice/call branch. This pack instead maps later completed initiation and does not backfill the original selection."
+    },
+    {
+      "id": "aldecaldos.unmapped.together.assault-plan.committed",
+      "status": "unmapped",
+      "questKey": "we-gotta-live-together",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.together.assault-plan",
+          "outcomeKey": "committed"
+        }
+      ],
+      "reason": "The plan discussion/commitment is not reconstructed from a later ending flag. Its entered choice or completed objective remains unmapped."
+    },
+    {
+      "id": "aldecaldos.unmapped.together.alt-link.completed",
+      "status": "unmapped",
+      "questKey": "we-gotta-live-together",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.together.alt-link",
+          "outcomeKey": "completed"
+        }
+      ],
+      "reason": "Dakota and Carol's net link to Alt requires the specific completed netrunning conversation and participant scope; q114 started is insufficient."
+    },
+    {
+      "id": "aldecaldos.unmapped.together.shooting.won",
+      "status": "unmapped",
+      "questKey": "we-gotta-live-together",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.together.shooting",
+          "outcomeKey": "won"
+        }
+      ],
+      "reason": "Cassidy shooting competition win/loss/nonparticipation needs positive outcome receipts. Missing score or prize data must not mean the challenge was skipped."
+    },
+    {
+      "id": "aldecaldos.unmapped.together.shooting.lost",
+      "status": "unmapped",
+      "questKey": "we-gotta-live-together",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.together.shooting",
+          "outcomeKey": "lost"
+        }
+      ],
+      "reason": "Cassidy shooting competition win/loss/nonparticipation needs positive outcome receipts. Missing score or prize data must not mean the challenge was skipped."
+    },
+    {
+      "id": "aldecaldos.unmapped.together.shooting.not-played",
+      "status": "unmapped",
+      "questKey": "we-gotta-live-together",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.together.shooting",
+          "outcomeKey": "not-played"
+        }
+      ],
+      "reason": "Cassidy shooting competition win/loss/nonparticipation needs positive outcome receipts. Missing score or prize data must not mean the challenge was skipped."
+    },
+    {
+      "id": "aldecaldos.unmapped.together.returning-contacts.jake-present",
+      "status": "unmapped",
+      "questKey": "we-gotta-live-together",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.together.returning-contacts",
+          "outcomeKey": "jake-present"
+        }
+      ],
+      "reason": "Earlier gig success does not prove a named rescued person is present in this ending camp; exact returned community branch and recipient knowledge are unreviewed."
+    },
+    {
+      "id": "aldecaldos.unmapped.together.returning-contacts.ben-present",
+      "status": "unmapped",
+      "questKey": "we-gotta-live-together",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.together.returning-contacts",
+          "outcomeKey": "ben-present"
+        }
+      ],
+      "reason": "Earlier gig success does not prove a named rescued person is present in this ending camp; exact returned community branch and recipient knowledge are unreviewed."
+    },
+    {
+      "id": "aldecaldos.unmapped.together.returning-contacts.bruce-present",
+      "status": "unmapped",
+      "questKey": "we-gotta-live-together",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.together.returning-contacts",
+          "outcomeKey": "bruce-present"
+        }
+      ],
+      "reason": "Earlier gig success does not prove a named rescued person is present in this ending camp; exact returned community branch and recipient knowledge are unreviewed."
+    },
+    {
+      "id": "aldecaldos.unmapped.together.returning-contacts.anna-present",
+      "status": "unmapped",
+      "questKey": "we-gotta-live-together",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.together.returning-contacts",
+          "outcomeKey": "anna-present"
+        }
+      ],
+      "reason": "Earlier gig success does not prove a named rescued person is present in this ending camp; exact returned community branch and recipient knowledge are unreviewed."
+    },
+    {
+      "id": "aldecaldos.unmapped.forward.casualties.bob-and-teddy-dead",
+      "status": "unmapped",
+      "questKey": "forward-to-death",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.forward.casualties",
+          "outcomeKey": "bob-and-teddy-dead"
+        }
+      ],
+      "reason": "Bob/Teddy casualties require lethal branch and audience evidence. Fact names, de-spawns and combat defeat cannot establish death."
+    },
+    {
+      "id": "aldecaldos.unmapped.forward.breach.opened",
+      "status": "unmapped",
+      "questKey": "forward-to-death",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.forward.breach",
+          "outcomeKey": "opened"
+        }
+      ],
+      "reason": "No exact tunnel breach completed objective and actor knowledge predicate is authored; generic q114 completion is intentionally not substituted."
+    },
+    {
+      "id": "aldecaldos.unmapped.belly.mitch-return.returned-outside",
+      "status": "unmapped",
+      "questKey": "belly-of-the-beast",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.belly.mitch-return",
+          "outcomeKey": "returned-outside"
+        }
+      ],
+      "reason": "Mitch returning to the outside fight needs the reached decision/consequence, not merely absence from the boss room."
+    },
+    {
+      "id": "aldecaldos.unmapped.belly.alt-casualties.witnessed",
+      "status": "unmapped",
+      "questKey": "belly-of-the-beast",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.belly.alt-casualties",
+          "outcomeKey": "witnessed"
+        }
+      ],
+      "reason": "Alt's security intervention and its victims require a specific reached scene and witness restriction. Smasher/Saul state says nothing about them."
+    },
+    {
+      "id": "aldecaldos.unmapped.belly.mikoshi-reached.connected",
+      "status": "unmapped",
+      "questKey": "belly-of-the-beast",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.belly.mikoshi-reached",
+          "outcomeKey": "connected"
+        }
+      ],
+      "reason": "Connecting to Mikoshi is downstream of the boss fight and needs its own verified objective/scene, not Saul's death alone."
+    },
+    {
+      "id": "aldecaldos.unmapped.changes.body.v-returned",
+      "status": "unmapped",
+      "questKey": "changes",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.changes.body",
+          "outcomeKey": "v-returned"
+        }
+      ],
+      "reason": "Who returns to V's body requires the final Mikoshi choice. Earlier Aldecaldo assistance, romance and Saul's death cannot choose between V and Johnny."
+    },
+    {
+      "id": "aldecaldos.unmapped.changes.body.johnny-returned",
+      "status": "unmapped",
+      "questKey": "changes",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.changes.body",
+          "outcomeKey": "johnny-returned"
+        }
+      ],
+      "reason": "Who returns to V's body requires the final Mikoshi choice. Earlier Aldecaldo assistance, romance and Saul's death cannot choose between V and Johnny."
+    },
+    {
+      "id": "aldecaldos.unmapped.watchtower.departure.planned",
+      "status": "unmapped",
+      "questKey": "all-along-the-watchtower",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.watchtower.departure",
+          "outcomeKey": "planned"
+        }
+      ],
+      "reason": "Planned departure and actual border crossing are distinct ending stages; neither is inferred from selecting Aldecaldo help."
+    },
+    {
+      "id": "aldecaldos.unmapped.watchtower.departure.crossed",
+      "status": "unmapped",
+      "questKey": "all-along-the-watchtower",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.watchtower.departure",
+          "outcomeKey": "crossed"
+        }
+      ],
+      "reason": "Planned departure and actual border crossing are distinct ending stages; neither is inferred from selecting Aldecaldo help."
+    },
+    {
+      "id": "aldecaldos.unmapped.watchtower.partner.panam-together",
+      "status": "unmapped",
+      "questKey": "all-along-the-watchtower",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.watchtower.partner",
+          "outcomeKey": "panam-together"
+        }
+      ],
+      "reason": "Panam/Judy accompanying V, River/Kerry staying and no partner scene require actual relationship/ending combinations. No absent flag selects a default partner branch."
+    },
+    {
+      "id": "aldecaldos.unmapped.watchtower.partner.judy-leaves",
+      "status": "unmapped",
+      "questKey": "all-along-the-watchtower",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.watchtower.partner",
+          "outcomeKey": "judy-leaves"
+        }
+      ],
+      "reason": "Panam/Judy accompanying V, River/Kerry staying and no partner scene require actual relationship/ending combinations. No absent flag selects a default partner branch."
+    },
+    {
+      "id": "aldecaldos.unmapped.watchtower.partner.river-stays",
+      "status": "unmapped",
+      "questKey": "all-along-the-watchtower",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.watchtower.partner",
+          "outcomeKey": "river-stays"
+        }
+      ],
+      "reason": "Panam/Judy accompanying V, River/Kerry staying and no partner scene require actual relationship/ending combinations. No absent flag selects a default partner branch."
+    },
+    {
+      "id": "aldecaldos.unmapped.watchtower.partner.kerry-stays",
+      "status": "unmapped",
+      "questKey": "all-along-the-watchtower",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.watchtower.partner",
+          "outcomeKey": "kerry-stays"
+        }
+      ],
+      "reason": "Panam/Judy accompanying V, River/Kerry staying and no partner scene require actual relationship/ending combinations. No absent flag selects a default partner branch."
+    },
+    {
+      "id": "aldecaldos.unmapped.watchtower.partner.no-partner-scene",
+      "status": "unmapped",
+      "questKey": "all-along-the-watchtower",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.watchtower.partner",
+          "outcomeKey": "no-partner-scene"
+        }
+      ],
+      "reason": "Panam/Judy accompanying V, River/Kerry staying and no partner scene require actual relationship/ending combinations. No absent flag selects a default partner branch."
+    },
+    {
+      "id": "aldecaldos.unmapped.watchtower.mitch-recovery.recovered-enough-to-travel",
+      "status": "unmapped",
+      "questKey": "all-along-the-watchtower",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.watchtower.mitch-recovery",
+          "outcomeKey": "recovered-enough-to-travel"
+        }
+      ],
+      "reason": "Mitch's surviving/recovered travel state needs the epilogue scene; surviving an earlier quest is not sufficient."
+    },
+    {
+      "id": "aldecaldos.unmapped.sun.parting.different-roads",
+      "status": "unmapped",
+      "questKey": "path-of-glory",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.sun.parting",
+          "outcomeKey": "different-roads"
+        }
+      ],
+      "reason": "Panam's City/Sun parting is ending-specific and requires the entered romantic dialogue branch; no such rule is authored."
+    },
+    {
+      "id": "aldecaldos.unmapped.devil.panam-call.called-platonic",
+      "status": "unmapped",
+      "questKey": "where-is-my-mind",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.devil.panam-call",
+          "outcomeKey": "called-platonic"
+        }
+      ],
+      "reason": "The station call and its platonic/romantic branches require the selected call and explicit conversation state; generic romance or Arasaka ending cannot imply contact."
+    },
+    {
+      "id": "aldecaldos.unmapped.devil.panam-call.called-romantic",
+      "status": "unmapped",
+      "questKey": "where-is-my-mind",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.devil.panam-call",
+          "outcomeKey": "called-romantic"
+        }
+      ],
+      "reason": "The station call and its platonic/romantic branches require the selected call and explicit conversation state; generic romance or Arasaka ending cannot imply contact."
+    },
+    {
+      "id": "aldecaldos.unmapped.temperance.panam-message.romantic-message-observed",
+      "status": "unmapped",
+      "questKey": "new-dawn-fades",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.temperance.panam-message",
+          "outcomeKey": "romantic-message-observed"
+        }
+      ],
+      "reason": "Panam's credits update/threat requires the exact observed message branch, including whose body returned; it is not known to other characters automatically."
+    },
+    {
+      "id": "aldecaldos.unmapped.temperance.panam-message.platonic-update-observed",
+      "status": "unmapped",
+      "questKey": "new-dawn-fades",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.temperance.panam-message",
+          "outcomeKey": "platonic-update-observed"
+        }
+      ],
+      "reason": "Panam's credits update/threat requires the exact observed message branch, including whose body returned; it is not known to other characters automatically."
+    },
+    {
+      "id": "aldecaldos.unmapped.tower.contact.unanswered",
+      "status": "unmapped",
+      "questKey": "things-done-changed",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.tower.contact",
+          "outcomeKey": "unanswered"
+        }
+      ],
+      "reason": "Unanswered Panam contact and Mitch's later boundary message need distinct EP1 call/receipt state. Absence from the game world does not establish deliberate refusal."
+    },
+    {
+      "id": "aldecaldos.unmapped.tower.contact.mitch-boundary-message",
+      "status": "unmapped",
+      "questKey": "things-done-changed",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.tower.contact",
+          "outcomeKey": "mitch-boundary-message"
+        }
+      ],
+      "reason": "Unanswered Panam contact and Mitch's later boundary message need distinct EP1 call/receipt state. Absence from the game world does not establish deliberate refusal."
+    },
+    {
+      "id": "aldecaldos.unmapped.blacksteel.carol-call.declined-offered-gift",
+      "status": "unmapped",
+      "questKey": "black-steel-in-the-hour-of-chaos",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.blacksteel.carol-call",
+          "outcomeKey": "declined-offered-gift"
+        }
+      ],
+      "reason": "Carol's declined tracker help/gift offer is a private call branch in Phantom Liberty; a clan affiliation is not evidence the call happened."
+    },
+    {
+      "id": "aldecaldos.unmapped.blacksteel.gift.offered",
+      "status": "unmapped",
+      "questKey": "black-steel-in-the-hour-of-chaos",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.blacksteel.gift",
+          "outcomeKey": "offered"
+        }
+      ],
+      "reason": "Offered and collected gift states are distinct. No item possession or shared inventory fact is used to invent a personal gift interaction."
+    },
+    {
+      "id": "aldecaldos.unmapped.blacksteel.gift.collected",
+      "status": "unmapped",
+      "questKey": "black-steel-in-the-hour-of-chaos",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.blacksteel.gift",
+          "outcomeKey": "collected"
+        }
+      ],
+      "reason": "Offered and collected gift states are distinct. No item possession or shared inventory fact is used to invent a personal gift interaction."
+    },
+    {
+      "id": "aldecaldos.unmapped.minefield.body.examined",
+      "status": "unmapped",
+      "questKey": "gig-dancing-on-a-minefield",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.minefield.body",
+          "outcomeKey": "examined"
+        }
+      ],
+      "reason": "Returning the vehicle does not establish V examined the corpse or learned all associated details."
+    },
+    {
+      "id": "aldecaldos.unmapped.flying.method.power-cut",
+      "status": "unmapped",
+      "questKey": "gig-flying-drugs",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.flying.method",
+          "outcomeKey": "power-cut"
+        }
+      ],
+      "reason": "The common disabled-antenna receipt merges multiple methods. No method-specific completed branch is reviewed."
+    },
+    {
+      "id": "aldecaldos.unmapped.flying.method.destroyed",
+      "status": "unmapped",
+      "questKey": "gig-flying-drugs",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.flying.method",
+          "outcomeKey": "destroyed"
+        }
+      ],
+      "reason": "The common disabled-antenna receipt merges multiple methods. No method-specific completed branch is reviewed."
+    },
+    {
+      "id": "aldecaldos.unmapped.flying.method.remote-overload",
+      "status": "unmapped",
+      "questKey": "gig-flying-drugs",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.flying.method",
+          "outcomeKey": "remote-overload"
+        }
+      ],
+      "reason": "The common disabled-antenna receipt merges multiple methods. No method-specific completed branch is reviewed."
+    },
+    {
+      "id": "aldecaldos.unmapped.pete.resolution.killed",
+      "status": "unmapped",
+      "questKey": "gig-big-petes-got-big-problems",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.pete.resolution",
+          "outcomeKey": "killed"
+        }
+      ],
+      "reason": "ina_02_big_pete_dead is written from a condition accepting killed, defeated OR unconscious. It cannot prove killed. Spare/pay/no-pay original scene branches have not been verified; a bugfix spared writer alone is insufficient."
+    },
+    {
+      "id": "aldecaldos.unmapped.pete.resolution.spared-paid",
+      "status": "unmapped",
+      "questKey": "gig-big-petes-got-big-problems",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.pete.resolution",
+          "outcomeKey": "spared-paid"
+        }
+      ],
+      "reason": "ina_02_big_pete_dead is written from a condition accepting killed, defeated OR unconscious. It cannot prove killed. Spare/pay/no-pay original scene branches have not been verified; a bugfix spared writer alone is insufficient."
+    },
+    {
+      "id": "aldecaldos.unmapped.pete.resolution.spared-unpaid",
+      "status": "unmapped",
+      "questKey": "gig-big-petes-got-big-problems",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.pete.resolution",
+          "outcomeKey": "spared-unpaid"
+        }
+      ],
+      "reason": "ina_02_big_pete_dead is written from a condition accepting killed, defeated OR unconscious. It cannot prove killed. Spare/pay/no-pay original scene branches have not been verified; a bugfix spared writer alone is insufficient."
+    },
+    {
+      "id": "aldecaldos.unmapped.pete.tiny-mike.recognized",
+      "status": "unmapped",
+      "questKey": "gig-big-petes-got-big-problems",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.pete.tiny-mike",
+          "outcomeKey": "recognized"
+        }
+      ],
+      "reason": "Recognition of Pete's connection to Tiny Mike is dialogue knowledge, not established by neutralizing or sparing Pete."
+    },
+    {
+      "id": "aldecaldos.unmapped.nofixers.rescue.delivered-without-van",
+      "status": "unmapped",
+      "questKey": "gig-no-fixers",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.nofixers.rescue",
+          "outcomeKey": "delivered-without-van"
+        }
+      ],
+      "reason": "With-van rescue has three positive receipts. Without-van rescue requires explicit alternate delivery evidence; a missing/zero car receipt does not qualify."
+    },
+    {
+      "id": "aldecaldos.unmapped.nofixers.followup.message-received",
+      "status": "unmapped",
+      "questKey": "gig-no-fixers",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.nofixers.followup",
+          "outcomeKey": "message-received"
+        }
+      ],
+      "reason": "The later Iris message requires a delivered/revealed message predicate, not just hired/finished flags."
+    },
+    {
+      "id": "aldecaldos.unmapped.trevor.remains.identified",
+      "status": "unmapped",
+      "questKey": "gig-trevors-last-ride",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.trevor.remains",
+          "outcomeKey": "identified"
+        }
+      ],
+      "reason": "Delivery is verified. Mere identification has no separate reviewed knowledge receipt and must not be backfilled for arbitrary speakers."
+    },
+    {
+      "id": "aldecaldos.unmapped.mia.betrayal.confirmed",
+      "status": "unmapped",
+      "questKey": "gig-mia",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.mia.betrayal",
+          "outcomeKey": "confirmed"
+        }
+      ],
+      "reason": "Ben's rescue and arrival do not prove V or Dakota acquired Jason's betrayal details. Exact discovery/disclosure branch is unreviewed."
+    },
+    {
+      "id": "aldecaldos.unmapped.mia.jason.killed",
+      "status": "unmapped",
+      "questKey": "gig-mia",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.mia.jason",
+          "outcomeKey": "killed"
+        }
+      ],
+      "reason": "Jason killed, incapacitated and avoided require distinct native effects. Generic combat/cleanup and names ending in dead do not distinguish them."
+    },
+    {
+      "id": "aldecaldos.unmapped.mia.jason.incapacitated",
+      "status": "unmapped",
+      "questKey": "gig-mia",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.mia.jason",
+          "outcomeKey": "incapacitated"
+        }
+      ],
+      "reason": "Jason killed, incapacitated and avoided require distinct native effects. Generic combat/cleanup and names ending in dead do not distinguish them."
+    },
+    {
+      "id": "aldecaldos.unmapped.mia.jason.avoided",
+      "status": "unmapped",
+      "questKey": "gig-mia",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.mia.jason",
+          "outcomeKey": "avoided"
+        }
+      ],
+      "reason": "Jason killed, incapacitated and avoided require distinct native effects. Generic combat/cleanup and names ending in dead do not distinguish them."
+    },
+    {
+      "id": "aldecaldos.unmapped.sparring.software.recovered",
+      "status": "unmapped",
+      "questKey": "gig-sparring-partner",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.sparring.software",
+          "outcomeKey": "recovered"
+        }
+      ],
+      "reason": "Delivery is verified; acquisition method/payment and mere recovery are not reconstructed from the final receipt."
+    },
+    {
+      "id": "aldecaldos.unmapped.goodbye.casualties.no-personnel-killed",
+      "status": "unmapped",
+      "questKey": "gig-goodbye-night-city",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.goodbye.casualties",
+          "outcomeKey": "no-personnel-killed"
+        }
+      ],
+      "reason": "No-personnel-killed requires independent zero presence or a positive nonlethal receipt; missing ina_05_optional_failed is not proof. The killed branch also needs exact native semantics."
+    },
+    {
+      "id": "aldecaldos.unmapped.goodbye.casualties.personnel-killed",
+      "status": "unmapped",
+      "questKey": "gig-goodbye-night-city",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.goodbye.casualties",
+          "outcomeKey": "personnel-killed"
+        }
+      ],
+      "reason": "No-personnel-killed requires independent zero presence or a positive nonlethal receipt; missing ina_05_optional_failed is not proof. The killed branch also needs exact native semantics."
+    },
+    {
+      "id": "aldecaldos.unmapped.goodbye.future-membership.seen-at-camp",
+      "status": "unmapped",
+      "questKey": "gig-goodbye-night-city",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.goodbye.future-membership",
+          "outcomeKey": "seen-at-camp"
+        }
+      ],
+      "reason": "Successful Bruce handover is not evidence of a later ending-camp encounter."
+    },
+    {
+      "id": "aldecaldos.unmapped.radar.prototype.acquired",
+      "status": "unmapped",
+      "questKey": "gig-radar-love",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.radar.prototype",
+          "outcomeKey": "acquired"
+        }
+      ],
+      "reason": "Delivery uses two revealed succeeded journal selectors because ina_04_finished also fires on failure. Acquisition alone remains unmapped rather than reusing that unsafe flag."
+    },
+    {
+      "id": "aldecaldos.unmapped.reward.recognition.offered",
+      "status": "unmapped",
+      "questKey": "every-grain-of-sand",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.reward.recognition",
+          "outcomeKey": "offered"
+        }
+      ],
+      "reason": "Dakota's full-gig reward offer and actual collection need separate reward-system/message/item receipts. Finishing a subset of gigs proves neither."
+    },
+    {
+      "id": "aldecaldos.unmapped.reward.recognition.collected",
+      "status": "unmapped",
+      "questKey": "every-grain-of-sand",
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.reward.recognition",
+          "outcomeKey": "collected"
+        }
+      ],
+      "reason": "Dakota's full-gig reward offer and actual collection need separate reward-system/message/item receipts. Finishing a subset of gigs proves neither."
+    }
+  ]
+}

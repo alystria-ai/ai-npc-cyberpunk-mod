@@ -120,17 +120,30 @@ export function buildProfiles(roster, dossiers) {
     const dossier = byKey.get(old.key);
     if (!dossier) throw Error(`Missing dossier ${old.key}`);
     const backstory = [dossier.profile.backstory.trim(),
+      ...(dossier.knowledge.background.length ? ['ESTABLISHED BACKGROUND\n' + [...new Set(dossier.knowledge.background)].join('\n')] : []),
+      ...(dossier.relationships.length ? ['ESTABLISHED RELATIONSHIPS\n'
+        + dossier.relationships.map(row => `${row.withKey}: ${row.baseline}`).join('\n')] : []),
       'KNOWLEDGE AND CURRENT SAVE\nUse verified current-save context for decisions and relationship state. '
         + 'Current game state overrides conflicting memories. Summoning a copy establishes no quest outcome, survival, romance or prior meeting. '
-        + 'When asked about unknown events, acknowledge the uncertainty. Do not volunteer private secrets without a relevant, justified reason.',
+        + 'When asked about unknown events, acknowledge the uncertainty. Your background is your own knowledge, not proof that V or the other listeners know your secrets. '
+        + 'Keep private motives, covert identities and confidences private unless verified context establishes disclosure to this audience. '
+        + 'A group invitation or direct question alone does not establish that disclosure.',
       'KNOWLEDGE LIMITS\n' + dossier.knowledge.unknown.join('\n'),
       `[CyberpunkConvai profile v2:${old.key}]`].join('\n\n');
     const speakingStyleDescription = [dossier.profile.speakingStyleDescription.trim(),
       'Speak naturally to V, usually in one or two sentences unless asked for detail. '
         + 'No stage directions or markdown. Dialogue samples are original delivery examples, not memories. '
         + 'In a group, only the final scheduled speaker may ask V a follow-up. Never reveal private conversation history to a group.'].join('\n\n');
-    return {...old, backstory, speakingStyleDescription,
-      speakingStyleSampleDialogues: dossier.profile.speakingStyleSampleDialogues.map(line => `${old.name}: ${line}`).join('\n\n'),
+    const {sampleDialogue: retiredExamples, speakingRules: retiredStyle, relationships: retiredRelationships, ...preserved} = old;
+    return {...preserved, kind: dossier.kind, summary: dossier.profile.backstory.trim(), backstory, speakingStyleDescription,
+      // Several researched examples include an original V prompt and the
+      // character's answer. Preserve those roles instead of attributing V to
+      // the companion with an extra prefix.
+      speakingStyleSampleDialogues: dossier.profile.speakingStyleSampleDialogues.map(line => {
+        const sample = line.trim();
+        const named = [old.name, ...(old.aliases || [])].some(name => sample.startsWith(`${name}: `));
+        return /^V:\s/u.test(sample) || named ? sample : `${old.name}: ${sample}`;
+      }).join('\n\n'),
       profileRevision: 4, backstoryWords: backstory.split(/\s+/).length,
       researchRevision: fingerprint(dossier), researchPath: `research/cyberpunk/dossiers/${old.key}.json`,
       sources: dossier.sources, uncertainty: dossier.uncertainties};

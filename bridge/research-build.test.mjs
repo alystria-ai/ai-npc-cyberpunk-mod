@@ -74,6 +74,12 @@ test('profile update preserves model and voice while separating style, samples a
   assert.match(payload.speaking_style_sample_dialogues, /Original delivery example 5/);
   assert.match(payload.backstory, /\[CyberpunkConvai profile v2:judy\]$/);
   assert.deepEqual(profile.records, ['Character.judy']);
+  input.dossiers[0].profile.speakingStyleSampleDialogues[0] = 'V: Are you busy?\nJudy: Got a minute. Make it count.';
+  const paired = buildProfiles(input.roster, input.dossiers)[0].speakingStyleSampleDialogues;
+  assert.match(paired, /^V: Are you busy\?/);
+  assert.doesNotMatch(paired, /Judy: V:/);
+  input.dossiers[0].profile.speakingStyleSampleDialogues[0] = 'Good news: we made it.';
+  assert.match(buildProfiles(input.roster, input.dossiers)[0].speakingStyleSampleDialogues, /^Judy: Good news: we made it\./);
 });
 
 test('malformed outcomes report validation errors rather than crash or claim full coverage', () => {

@@ -68,6 +68,19 @@ test('native world tokens survive parsing for request-generation binding without
   }
 });
 
+test('journal aliases preserve exact captured identity without inventing a numeric hash', () => {
+  const input = pack([rule({condition: {type: 'journal', key: 'the-choice.completed', op: 'eq', value: 'succeeded'}})]);
+  input.journalAllowlist['the-choice.completed'] = {questKey: 'the-choice', evidenceRefs: ['native-branch'],
+    nativePath: 'quests/side_quest/the_choice', nativeClass: 'gameJournalQuest'};
+  const observed = observation('succeeded', {revealed: true, questKey: 'the-choice'});
+  const known = resolve({pack: input, snapshot: snapshot({journal: {'the-choice.completed': observed}})});
+  assert.equal(known.events.length, 1);
+  assert.equal(known.events[0].evidence[0].key, 'the-choice.completed');
+  const wrongKey = resolve({pack: input, snapshot: snapshot({journal: {'123': observed}})});
+  assert.equal(wrongKey.events.length, 0);
+  assert.equal(wrongKey.diagnostics.counts.unknown, 1);
+});
+
 test('missing, explicit unknown, absent and ambiguous zero never qualify as a false choice', () => {
   const zero = rule({condition: {...condition('choice_a', 0), guard: stage}});
   for (const row of [undefined, {status: 'unknown'}, observation(0), observation(0, {present: false}), observation(0, {present: 'unknown'})]) {
@@ -173,6 +186,39 @@ test('conflicting outcomes suppress a topic across character audiences, without 
   assert.equal(duplicate.events.length, 1); assert.equal(factsIn(duplicate).length, 1);
 });
 
+test('reviewed exclusive groups preserve compatible facets and suppress cross-topic contradictions before audience filtering', () => {
+  const assisted = {id: 'quest.route', outcome: 'assisted'};
+  const rows = [rule({topic: 'convoy.joined', exclusiveGroups: [assisted]}),
+    rule({id: 'quest.disclosure', topic: 'character.disclosure', exclusiveGroups: [assisted]}),
+    rule({id: 'quest.betrayal', topic: 'private.betrayal', statement: 'PRIVATE OPPOSING ROUTE',
+      condition: condition('choice_b'), exclusiveGroups: [{id: 'quest.route', outcome: 'betrayed'}],
+      audience: {speakers: ['panam-palmer'], recipients: ['v', 'panam-palmer'], channels: ['private'], perspective: 'private'}})];
+  const compatible = resolve({pack: pack(rows)});
+  assert.equal(compatible.events.length, 2);
+  assert.deepEqual(compatible.diagnostics.exclusiveGroupConflicts, []);
+  assert.deepEqual(factsIn(compatible).map(row => row.topic).sort(), ['character.disclosure', 'convoy.joined']);
+  const missingOpposite = resolve({pack: pack(rows), snapshot: snapshot({facts: {choice_a: observation(1)}})});
+  assert.equal(missingOpposite.events.length, 2);
+  const conflicting = resolve({pack: pack(rows), snapshot: snapshot({facts: {choice_a: observation(1), choice_b: observation(1)}})});
+  assert.equal(conflicting.events.length, 0);
+  assert.equal(factsIn(conflicting).length, 0);
+  assert.deepEqual(conflicting.diagnostics.conflicts, []);
+  assert.deepEqual(conflicting.diagnostics.exclusiveGroupConflicts[0].outcomes, ['assisted', 'betrayed']);
+  assert.equal(conflicting.diagnostics.counts.conflicted, 3);
+  assert.doesNotMatch(conflicting.context, /PRIVATE OPPOSING ROUTE|first route/);
+});
+
+test('exclusive group declarations are bounded exact records, not executable expressions or duplicate claims', () => {
+  const group = {id: 'quest.route', outcome: 'assisted'};
+  for (const exclusiveGroups of [null, {}, 'route', [null], [group, group], [{id: 'quest.route'}],
+    [{...group, outcome: ['assisted']}], [{...group, id: 'x'.repeat(161)}], [{...group, ignore: true}],
+    Array.from({length: 9}, (_, i) => ({id: `group-${i}`, outcome: 'one'}))]) {
+    assert.equal(validateKnowledgePack(pack([rule({exclusiveGroups})])).ok, false, JSON.stringify(exclusiveGroups));
+  }
+  assert.equal(validateKnowledgePack(pack([rule({exclusiveGroups: []})])).ok, true);
+  assert.equal(validateKnowledgePack(pack([rule({exclusiveGroups: [group, {id: 'other.route', outcome: 'compatible'}]})])).ok, true);
+});
+
 test('private character knowledge is not disclosed to an accidental group or a wrong speaker', () => {
   assert.equal(resolve({profileKey: 'unknown-profile'}).diagnostics.status, 'unknown-profile');
   assert.equal(resolve({profileKey: 'panam-palmer'}).diagnostics.status, 'wrong-audience');
@@ -199,6 +245,16 @@ test('shared journal and public information never fabricate witnessing', () => {
   assert.deepEqual(group.events[0].audience, ['judy-alvarez', 'panam-palmer']);
   assert.deepEqual(group.events[0].knownBy, ['judy-alvarez']);
   assert.ok(!group.events[0].audience.includes('johnny-silverhand'));
+});
+
+test('participation does not imply conscious witnessing; explicit reviewed witness perspective does', () => {
+  const participant = resolve();
+  assert.deepEqual(participant.events[0].knownBy, ['judy-alvarez']);
+  assert.deepEqual(participant.events[0].witnessedBy, []);
+  const witnessed = resolve({pack: pack([rule({audience: {...rule().audience, perspective: 'witnessed'}})])});
+  assert.deepEqual(witnessed.events[0].knownBy, ['judy-alvarez']);
+  assert.deepEqual(witnessed.events[0].witnessedBy, ['judy-alvarez']);
+  assert.match(factsIn(witnessed)[0].knowledgeOrigin, /verified witness/);
 });
 
 test('told-by-V requires a matching per-character receipt and carries its evidence', () => {
@@ -248,6 +304,22 @@ test('event IDs ignore timestamps, input order, copy count, query and pack revis
     const changed = resolve({snapshot: snapshot({identity: {...snapshot().identity, [field]: 'different-id'}})});
     assert.notEqual(changed.events[0].eventId, base);
   }
+});
+
+test('event IDs bind the channel and exact audience, while audience ordering is immaterial', () => {
+  const input = pack([rule({audience: {speakers: 'all', recipients: 'all', perspective: 'shared-journal',
+    channels: ['private', 'group', 'phone']}})]);
+  const event = (channel, profileKeys) => resolve({pack: input,
+    snapshot: snapshot({audience: {channel, profileKeys}})}).events[0];
+  const first = event('group', ['judy-alvarez', 'panam-palmer']);
+  const reordered = event('group', ['panam-palmer', 'judy-alvarez']);
+  const differentParty = event('group', ['judy-alvarez', 'johnny-silverhand']);
+  assert.equal(first.eventId, reordered.eventId);
+  assert.notEqual(first.eventId, differentParty.eventId);
+  assert.deepEqual(first.audience, ['judy-alvarez', 'panam-palmer']);
+  assert.deepEqual(differentParty.audience, ['johnny-silverhand', 'judy-alvarez']);
+  assert.notEqual(event('private', ['judy-alvarez']).eventId, event('phone', ['judy-alvarez']).eventId);
+  assert.notEqual(event('group', ['judy-alvarez']).eventId, event('private', ['judy-alvarez']).eventId);
 });
 
 test('hard budget preserves complete JSON and ranks active quests and relationships over filler', () => {

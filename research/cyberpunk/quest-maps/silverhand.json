@@ -1,0 +1,5190 @@
+{
+  "version": 1,
+  "lane": "silverhand",
+  "sources": [
+    {
+      "id": "silverhand-johnny",
+      "url": "https://cyberpunk.fandom.com/wiki/Johnny_Silverhand",
+      "title": "Johnny Silverhand — Cyberpunk Wiki",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Biography; relationships; notes",
+      "notes": "Search-indexed page content inspected. Direct browsing was restricted; no claim of a fresh full-page scrape."
+    },
+    {
+      "id": "silverhand-rogue",
+      "url": "https://cyberpunk.fandom.com/wiki/Rogue_Amendiares",
+      "title": "Rogue Amendiares — Cyberpunk Wiki",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "2013 and 2077 biography; official-artbook excerpts; conditional endings",
+      "notes": "Search-indexed page content inspected. Direct browsing was restricted; no claim of a fresh full-page scrape."
+    },
+    {
+      "id": "silverhand-kerry",
+      "url": "https://cyberpunk.fandom.com/wiki/Kerry_Eurodyne",
+      "title": "Kerry Eurodyne — Cyberpunk Wiki",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Biography; in-game database; family; 2079; notes",
+      "notes": "Search-indexed page content inspected. Direct browsing was restricted; no claim of a fresh full-page scrape."
+    },
+    {
+      "id": "silverhand-spider",
+      "url": "https://cyberpunk.fandom.com/wiki/Spider_Murphy",
+      "title": "Spider Murphy — Cyberpunk Wiki",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "2000s–2020s biography; netrunning methods; notes",
+      "notes": "Search-indexed page content inspected. Direct browsing was restricted; no claim of a fresh full-page scrape."
+    },
+    {
+      "id": "silverhand-santiago",
+      "url": "https://cyberpunk.fandom.com/wiki/Nomad_Santiago",
+      "title": "Nomad Santiago — Cyberpunk Wiki",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Biography; 2013 appearance; Trace parentage uncertainty",
+      "notes": "Search-indexed page content inspected. Direct browsing was restricted; no claim of a fresh full-page scrape."
+    },
+    {
+      "id": "silverhand-trace",
+      "url": "https://cyberpunk.fandom.com/wiki/Trace_Santiago",
+      "title": "Trace Santiago — Cyberpunk Wiki",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Early life; notes on parentage",
+      "notes": "Search-indexed page content inspected. Direct browsing was restricted; no claim of a fresh full-page scrape."
+    },
+    {
+      "id": "silverhand-nancy",
+      "url": "https://cyberpunk.fandom.com/wiki/Bes_Isis",
+      "title": "Bes Isis — Cyberpunk Wiki",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Biography; Network 54; Samurai; family",
+      "notes": "Search-indexed page content inspected. Direct browsing was restricted; no claim of a fresh full-page scrape."
+    },
+    {
+      "id": "silverhand-smash",
+      "url": "https://cyberpunk.fandom.com/wiki/Adam_Smasher",
+      "title": "Adam Smasher — Cyberpunk Wiki",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Early life; Arasaka employment; Fourth Corporate War; 2077",
+      "notes": "Search-indexed page content inspected. Direct browsing was restricted; no claim of a fresh full-page scrape."
+    },
+    {
+      "id": "silverhand-louise",
+      "url": "https://cyberpunk.fandom.com/wiki/Louise_Nordin_Eurodyne",
+      "title": "Louise Nordin Eurodyne — Cyberpunk Wiki",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Biography; family; references to Holdin' On and Kerry computers",
+      "notes": "Search-indexed page content inspected. Direct browsing was restricted; no claim of a fresh full-page scrape."
+    },
+    {
+      "id": "silverhand-bartmoss",
+      "url": "https://cyberpunk.fandom.com/wiki/Rache_Bartmoss",
+      "title": "Rache Bartmoss — Cyberpunk Wiki",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Spider correspondence; DataKrash",
+      "notes": "Search-indexed page content inspected. Direct browsing was restricted; no claim of a fresh full-page scrape."
+    },
+    {
+      "id": "silverhand-thompson-fr",
+      "url": "https://cyberpunk.fandom.com/fr/wiki/Thompson",
+      "title": "Thompson — Wiki Cyberpunk (French)",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Introductory character description",
+      "notes": "Search-indexed excerpt inspected; independently translated meaning: WNS reporter who suspects Arasaka in his wife's death. The perpetrator is not established."
+    },
+    {
+      "id": "silverhand-thompson-rtg",
+      "url": "https://rtalsoriangames.com/wp-content/uploads/2022/07/RTG-CPR-DLC-CollectingtheRandom.pdf",
+      "title": "Collecting the Random — R. Talsorian Games",
+      "kind": "official",
+      "accessed": "2026-09-30",
+      "locator": "Multiclass roles: Media/Solo, the Thompson",
+      "notes": "Publisher PDF text inspected; establishes an armed reporter tradition named after Thompson and the 2010s Arasaka Riot. It does not establish his complete biography."
+    },
+    {
+      "id": "silverhand-transcript",
+      "url": "https://arasakas-ronin.netlify.app/",
+      "title": "Cyberpunk 2077 transcript mirror supplied by user",
+      "kind": "transcript",
+      "accessed": "2026-09-30",
+      "locator": "Love Like Fire; Never Fade Away; Chippin' In; Holdin' On; Second Conflict",
+      "notes": "Community transcription inspected in named sections. Branch placeholders and incomplete lines occur. Used for delivery and short branch corroboration, not as proof all branches or native variables were extracted."
+    },
+    {
+      "id": "silverhand-love",
+      "url": "https://www.powerpyx.com/cyberpunk-2077-love-like-fire-walkthrough/",
+      "title": "Love Like Fire — PowerPyx",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Linear 2023 flashback; Kerry; Spider; rooftop",
+      "notes": "Search-indexed walkthrough body inspected; direct page fetch restricted. Gameplay completion records viewing a memory, not changing 2023 history."
+    },
+    {
+      "id": "silverhand-never",
+      "url": "https://cyberpunk.fandom.com/wiki/Never_Fade_Away_%28quest%29",
+      "title": "Never Fade Away (quest) — Cyberpunk Wiki",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "2013 memory; rescue; final scene; Notes",
+      "notes": "Search-indexed walkthrough and notes inspected. Distinguish this game quest from the tabletop adventure with a similar title."
+    },
+    {
+      "id": "silverhand-transmission",
+      "url": "https://www.powerpyx.com/cyberpunk-2077-transmission-walkthrough/",
+      "title": "Transmission — PowerPyx",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Memory extraction; Alt; return to Voodoo Boys",
+      "notes": "Walkthrough body inspected. Published for the launch game; timing, attribute thresholds and unlock conditions require current native corroboration."
+    },
+    {
+      "id": "silverhand-tapeworm",
+      "url": "https://www.powerpyx.com/cyberpunk-2077-tapeworm-walkthrough/",
+      "title": "Tapeworm — PowerPyx",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Pistis Sophia; dog tags",
+      "notes": "Walkthrough body inspected. Its fixed mission-order framing is not reliable for all branching Act 2 completion orders."
+    },
+    {
+      "id": "silverhand-ghost",
+      "url": "https://www.powerpyx.com/cyberpunk-2077-ghost-town-walkthrough/",
+      "title": "Ghost Town — PowerPyx",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Rogue's fee; Hellman lead; Panam referral; Nash detour",
+      "notes": "Walkthrough body inspected. Published for the launch game; timing, attribute thresholds and unlock conditions require current native corroboration."
+    },
+    {
+      "id": "silverhand-chippin",
+      "url": "https://www.powerpyx.com/cyberpunk-2077-chippin-in-walkthrough/",
+      "title": "Chippin' In — PowerPyx",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Grayson; Porsche retrieval; oil-field conversation",
+      "notes": "Search-indexed body inspected after direct fetch timeouts. Exact oil-field predicate requires separate native evidence; car remains obtainable after killing Grayson."
+    },
+    {
+      "id": "silverhand-chippin-wiki",
+      "url": "https://cyberpunk.fandom.com/wiki/Chippin%27_In_%28quest%29",
+      "title": "Chippin' In (quest) — Cyberpunk Wiki",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Grayson's account; Smasher; secret ending",
+      "notes": "Search-indexed page content inspected. Direct browsing was restricted; no claim of a fresh full-page scrape."
+    },
+    {
+      "id": "silverhand-blistering",
+      "url": "https://www.gamepressure.com/cyberpunk-2077/blistering-love-rogue-johnny/zee027",
+      "title": "Blistering Love — Gamepressure",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Drive-in date and kiss",
+      "notes": "Search-indexed walkthrough inspected. Date concerns Johnny and Rogue; it does not establish a V–Rogue romance."
+    },
+    {
+      "id": "silverhand-rogue-romance",
+      "url": "https://www.pcgamer.com/all-cyberpunk-2077-romance-options-nudity/",
+      "title": "Cyberpunk 2077 romances — PC Gamer",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Rogue subsection",
+      "notes": "Rogue subsection inspected; corroborates brief interrupted intimacy and absence of a lasting romance with V."
+    },
+    {
+      "id": "silverhand-holdin",
+      "url": "https://www.powerpyx.com/cyberpunk-2077-holdin-on-walkthrough/",
+      "title": "Holdin' On — PowerPyx",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Kerry villa; identification; reunion setup",
+      "notes": "Page metadata fetched; detailed identification dialogue independently checked in the user-supplied transcript. Treat this reference as a quest-title/order pointer."
+    },
+    {
+      "id": "silverhand-second",
+      "url": "https://www.pcgamer.com/cyberpunk-2077-second-conflict-dum-dum-denny-or-henry/",
+      "title": "Second Conflict: Dum Dum, Denny or Henry — PC Gamer",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Totentanz leadership variants; band-member choice",
+      "notes": "Indexed walkthrough inspected; cross-checked against game transcript and Game8. Do not infer leadership from a single absent death flag."
+    },
+    {
+      "id": "silverhand-second-data",
+      "url": "https://game8.co/games/Cyberpunk-2077/archives/Quests-Second-Conflict",
+      "title": "Second Conflict — Game8",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Brick/Royce/Patricia paths; Nancy's data; Denny or Henry",
+      "notes": "Indexed walkthrough inspected; Nancy's recording retrieval is separate from extraction."
+    },
+    {
+      "id": "silverhand-supreme",
+      "url": "https://www.powerpyx.com/cyberpunk-2077-a-like-supreme-walkthrough/",
+      "title": "A Like Supreme — PowerPyx",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Reunion performance",
+      "notes": "Page metadata inspected; performance details checked in transcript. Native lineup and exact guest presence require capture."
+    },
+    {
+      "id": "silverhand-rebel",
+      "url": "https://www.powerpyx.com/cyberpunk-2077-rebel-rebel-walkthrough/",
+      "title": "Rebel! Rebel! — PowerPyx",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Van sabotage; police escape; diner; abandonment warning",
+      "notes": "Walkthrough body inspected. Published for the launch game; timing, attribute thresholds and unlock conditions require current native corroboration."
+    },
+    {
+      "id": "silverhand-uscracks",
+      "url": "https://www.powerpyx.com/cyberpunk-2077-i-dont-wanna-hear-it-walkthrough/",
+      "title": "I Don't Wanna Hear It — PowerPyx",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Backstage confrontation; peaceful versus threats",
+      "notes": "Walkthrough body inspected. Published for the launch game; timing, attribute thresholds and unlock conditions require current native corroboration."
+    },
+    {
+      "id": "silverhand-leash",
+      "url": "https://www.powerpyx.com/cyberpunk-2077-off-the-leash-walkthrough/",
+      "title": "Off the Leash — PowerPyx",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Dark Matter; collaboration state; terrace",
+      "notes": "Body inspected. Its suggestion that the terrace kiss is mandatory conflicts with other guides; record the kiss independently, never equate it with an established partnership."
+    },
+    {
+      "id": "silverhand-boat",
+      "url": "https://www.powerpyx.com/cyberpunk-2077-boat-drinks-walkthrough/",
+      "title": "Boat Drinks — PowerPyx",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Cruise; destruction; intimacy; beach commitment",
+      "notes": "Body inspected. Some guides disagree on mandatory vandalism/dialogue choices; the romance commitment must be an explicit verified outcome."
+    },
+    {
+      "id": "silverhand-kerry-romance",
+      "url": "https://www.pcgamer.com/cyberpunk-2077-kerry-eurodyne-romance/",
+      "title": "How to romance Kerry Eurodyne — PC Gamer",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Boat Drinks and Off the Leash",
+      "notes": "Article inspected; separates terrace kiss from final commitment and notes native masculine body/voice eligibility."
+    },
+    {
+      "id": "silverhand-killing",
+      "url": "https://www.powerpyx.com/cyberpunk-2077-killing-in-the-name-walkthrough/",
+      "title": "Killing in the Name — PowerPyx",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Router sequence; fortuneteller; Nancy report",
+      "notes": "Body inspected. Comments dispute the simplified coupling of machine modification and Nancy disclosure; represent them as separate decisions pending native audit."
+    },
+    {
+      "id": "silverhand-family",
+      "url": "https://www.powerpyx.com/cyberpunk-2077-family-heirloom-gig-walkthrough/",
+      "title": "Family Heirloom — PowerPyx",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Rogue briefing; Dan; recording versus car",
+      "notes": "Indexed walkthrough body inspected. Published unlock thresholds may be outdated; not runtime conditions."
+    },
+    {
+      "id": "silverhand-psychofan",
+      "url": "https://www.powerpyx.com/cyberpunk-2077-psychofan-gig-walkthrough/",
+      "title": "Psychofan — PowerPyx",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Padre contract; Slayton apartment; guitar drop",
+      "notes": "Walkthrough body inspected. Published for the launch game; timing, attribute thresholds and unlock conditions require current native corroboration."
+    },
+    {
+      "id": "silverhand-buck",
+      "url": "https://int-ent.de/2020/12/cyberpunk-2077-the-ballad-of-buck-ravers-walkthrough/",
+      "title": "The Ballad of Buck Ravers — int.ent",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Street musician; former Rainbow Cadenza; Karim",
+      "notes": "German walkthrough excerpt inspected and paraphrased; no attributed dialogue is reproduced."
+    },
+    {
+      "id": "silverhand-nocturne",
+      "url": "https://www.powerpyx.com/cyberpunk-2077-nocturne-op55n1-walkthrough/",
+      "title": "Nocturne Op55N1 — PowerPyx",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Embers; clinic; rooftop; point of no return",
+      "notes": "Body inspected. Launch-era guide omits Phantom Liberty route; never infer route availability from this source alone."
+    },
+    {
+      "id": "silverhand-bell",
+      "url": "https://cyberpunk.fandom.com/wiki/For_Whom_the_Bell_Tolls",
+      "title": "For Whom the Bell Tolls — Cyberpunk Wiki",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Afterlife preparations; Alt dive; AV",
+      "notes": "Search-indexed page content inspected. Direct browsing was restricted; no claim of a fresh full-page scrape."
+    },
+    {
+      "id": "silverhand-knockin",
+      "url": "https://cyberpunk.fandom.com/wiki/Knockin%27_on_Heaven%27s_Door",
+      "title": "Knockin' on Heaven's Door — Cyberpunk Wiki",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Arasaka assault objectives; Smasher; Mikoshi",
+      "notes": "Search-indexed page content inspected. Direct browsing was restricted; no claim of a fresh full-page scrape."
+    },
+    {
+      "id": "silverhand-changes",
+      "url": "https://cyberpunk.fandom.com/wiki/Changes",
+      "title": "Changes — Cyberpunk Wiki",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Route-dependent viewpoint; Jackie memory; bodily choice",
+      "notes": "Search-indexed full walkthrough inspected. The controlling viewpoint changes what crossing the bridge means; map the beneficiary, not the animation."
+    },
+    {
+      "id": "silverhand-reaper",
+      "url": "https://cyberpunk.fandom.com/wiki/Cyberpunk_2077_Endings",
+      "title": "Cyberpunk 2077 endings — Cyberpunk Wiki",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Secret route; oil-field choices; solo assault; Rogue survival",
+      "notes": "Search-indexed page content inspected. Direct browsing was restricted; no claim of a fresh full-page scrape."
+    },
+    {
+      "id": "silverhand-reaper-corroboration",
+      "url": "https://www.gamespot.com/articles/cyberpunk-2077-how-to-unlock-the-secret-ending-dont-fear-the-reaper/1100-6485655/",
+      "title": "How to unlock Don't Fear the Reaper — GameSpot",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Oil-field dialogue rather than percentage",
+      "notes": "Indexed explanation inspected; corroborates that a generic relationship percentage is not an adequate unlock predicate."
+    },
+    {
+      "id": "silverhand-glory",
+      "url": "https://cyberpunk.fandom.com/wiki/Path_of_Glory",
+      "title": "Path of Glory — Cyberpunk Wiki",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Partner sendoff; living Rogue after solo route; Crystal Palace",
+      "notes": "Search-indexed page content inspected. Direct browsing was restricted; no claim of a fresh full-page scrape."
+    },
+    {
+      "id": "silverhand-dawn",
+      "url": "https://cyberpunk.fandom.com/wiki/New_Dawn_Fades",
+      "title": "New Dawn Fades — Cyberpunk Wiki",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Johnny embodied; Steve; memorials; bus departure",
+      "notes": "Search-indexed page content inspected. Direct browsing was restricted; no claim of a fresh full-page scrape."
+    },
+    {
+      "id": "silverhand-forever",
+      "url": "https://www.gamepressure.com/cyberpunk-2077/who-wants-to-live-forever/z010f8a",
+      "title": "Who Wants to Live Forever — Gamepressure",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Reed surgery route and departure",
+      "notes": "Indexed walkthrough inspected. Surgery offer, acceptance, departure and completed removal are separate stages."
+    },
+    {
+      "id": "silverhand-tower",
+      "url": "https://game8.co/games/Cyberpunk-2077/archives/Quests-Things-Done-Changed",
+      "title": "Things Done Changed — Game8",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Kerry call and post-surgery Night City",
+      "notes": "Indexed walkthrough excerpt inspected; Kerry is touring and offers later contact. Do not frame absence as definite rejection."
+    },
+    {
+      "id": "silverhand-pl-overview",
+      "url": "https://en.wikipedia.org/wiki/Cyberpunk_2077%3A_Phantom_Liberty",
+      "title": "Cyberpunk 2077: Phantom Liberty — Wikipedia",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Plot: cure ending",
+      "notes": "Plot summary inspected; confirms two-year coma, engram erasure and combat-implant limitation, not causation beyond stated surgery complications."
+    },
+    {
+      "id": "silverhand-belly",
+      "url": "https://cyberpunk.fandom.com/wiki/Belly_of_the_Beast",
+      "title": "Belly of the Beast",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Indexed objectives and notes",
+      "notes": "Inspected indexed quest body: Aldecaldo tower route, Smasher, Mikoshi access and post-ending token. Native branch facts not verified."
+    },
+    {
+      "id": "silverhand-saul",
+      "url": "https://cyberpunk.fandom.com/wiki/Saul_Bright",
+      "title": "Saul Bright",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Indexed 2077 ending history",
+      "notes": "Inspected indexed narrative for the Aldecaldo tower confrontation. Saul's route-dependent fate is not baseline biography."
+    },
+    {
+      "id": "silverhand-total",
+      "url": "https://game8.co/games/Cyberpunk-2077/archives/Quests-Totalimmortal",
+      "title": "Totalimmortal Walkthrough and Rewards",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Indexed main-job walkthrough",
+      "notes": "Inspected indexed objective sequence for Smasher confrontation before Yorinobu. Native facts not inspected."
+    },
+    {
+      "id": "silverhand-mind",
+      "url": "https://game8.co/games/Cyberpunk-2077/archives/Quests-Where-Is-My-Mind",
+      "title": "Where Is My Mind? Walkthrough and Rewards",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Indexed walkthrough and choices",
+      "notes": "Inspected orbital tests, optional calls and contract branches. Guide's survival guarantee is not adopted; official in-world prognosis is not a guaranteed future."
+    },
+    {
+      "id": "silverhand-mind-alt",
+      "url": "https://video-game-guide-walkthrough.supersoluce.com/solution/cyberpunk-2077-guide-walkthrough/cyberpunk-2077-main-jobs/cyberpunk-2077-epilogue/where-is-my-mind/",
+      "title": "Where Is My Mind? — Game of Guides",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Ending 1-A, Ending 1-B and Alternative Unfoldings",
+      "notes": "Inspected full indexed text: contract or Earth, Takemura if alive otherwise Hellman. Guide wording about the soul is interpretation, not settled metaphysics."
+    },
+    {
+      "id": "silverhand-hangover",
+      "url": "https://cyberpunk.fandom.com/wiki/Gig%3A_Nasty_Hangover",
+      "title": "Gig: Nasty Hangover",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Objectives and Notes",
+      "notes": "Inspected indexed full objectives: Karl protected or killed; agent credit acceptance separately causes Johnny's disapproval. Page access restrictions prevent claiming a direct full-page fetch."
+    },
+    {
+      "id": "silverhand-hot",
+      "url": "https://www.powerpyx.com/cyberpunk-2077-hot-merchandise-gig-walkthrough/",
+      "title": "Cyberpunk 2077 Hot Merchandise Gig Walkthrough",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Walkthrough and Journal",
+      "notes": "Inspected indexed full text: Rogue's brief, Rebeca Price, lethal or unconscious delivery. Old numerical unlock/reward values are not used as live predicates."
+    },
+    {
+      "id": "silverhand-hot-wiki",
+      "url": "https://cyberpunk.fandom.com/wiki/Gig%3A_Hot_Merchandise",
+      "title": "Gig: Hot Merchandise",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Indexed objectives",
+      "notes": "Inspected indexed lethal/nonlethal transport branch. Native quest identifiers are intentionally not adopted from wiki shorthand."
+    },
+    {
+      "id": "silverhand-union",
+      "url": "https://www.powerpyx.com/cyberpunk-2077-the-union-strikes-back-gig-walkthrough/",
+      "title": "Cyberpunk 2077 The Union Strikes Back Gig Walkthrough",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Walkthrough and Journal",
+      "notes": "Inspected indexed full narrative: Rogue's intervention for workers, C-Team and Vic Vega. Main walkthrough does not resolve all nonlethal variants."
+    },
+    {
+      "id": "silverhand-union-branches",
+      "url": "https://cyberpunk.fandom.com/wiki/Gig%3A_The_Union_Strikes_Back",
+      "title": "Gig: The Union Strikes Back",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Objectives and Notes",
+      "notes": "Inspected indexed body: unconscious transport, killing and collateral-sensitive Rogue response. Native confirmation remains necessary."
+    },
+    {
+      "id": "silverhand-playing",
+      "url": "https://cyberpunk.fandom.com/wiki/Playing_for_Time",
+      "title": "Playing for Time",
+      "locator": "Walkthrough and objectives",
+      "notes": "Indexed full text inspected for clinic diagnosis, hostile apartment encounter and diner cooperation. Relic symptoms and prognosis are knowledge acquired in-stage, not absolute permanent truth.",
+      "kind": "community",
+      "accessed": "2026-09-30"
+    },
+    {
+      "id": "silverhand-metal",
+      "url": "https://cyberpunk.fandom.com/wiki/A_Cool_Metal_Fire",
+      "title": "A Cool Metal Fire",
+      "locator": "Walkthrough, objectives and rewards",
+      "notes": "Indexed full text inspected: nested within Chippin' In, Johnny's temporary body control, two tattoo choices and Grayson/Ebunike lead. Item possession alone does not prove how it was acquired.",
+      "kind": "community",
+      "accessed": "2026-09-30"
+    },
+    {
+      "id": "silverhand-total-mercy",
+      "url": "https://www.gamepressure.com/cyberpunk-2077/totalimmortal/z0dfdb",
+      "title": "Cyberpunk 2077: Totalimmortal walkthrough",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Third phase of the fight; post-defeat choice",
+      "notes": "Inspected indexed passage explicitly distinguishing Smasher's defeat from the option to kill or spare him. Outdated combat numbers are not adopted."
+    }
+  ],
+  "quests": [
+    {
+      "key": "love-like-fire",
+      "title": "Love Like Fire",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "johnny-silverhand",
+        "rogue-amendiares",
+        "spider-murphy",
+        "thompson",
+        "kerry-eurodyne",
+        "adam-smasher"
+      ],
+      "synopsis": "V experiences Johnny's recollection of the 2023 tower assault.",
+      "stages": [
+        {
+          "key": "departure",
+          "description": "The remembered performance and departure establish Johnny's older associates.",
+          "sourceIds": [
+            "silverhand-love",
+            "silverhand-johnny",
+            "silverhand-transcript"
+          ]
+        },
+        {
+          "key": "tower",
+          "description": "The recollection depicts the assault, technical support and Smasher confrontation.",
+          "sourceIds": [
+            "silverhand-love",
+            "silverhand-johnny",
+            "silverhand-transcript"
+          ]
+        },
+        {
+          "key": "capture",
+          "description": "The memory concludes with capture and interrogation as Johnny remembers them.",
+          "sourceIds": [
+            "silverhand-love",
+            "silverhand-johnny",
+            "silverhand-transcript"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "silverhand.memory-2023",
+          "description": "Has V experienced this particular recollection?",
+          "topic": "johnny.memory.2023",
+          "outcomes": [
+            {
+              "key": "experienced",
+              "description": "The flashback was experienced; its content is a subjective engram account.",
+              "affects": [
+                "johnny-silverhand",
+                "v"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "silverhand-love",
+                "silverhand-johnny"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-love",
+            "silverhand-johnny"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Requires a stage-gated native branch audit in the installed game. Missing facts and zero values remain unknown; no rule is enabled."
+          }
+        },
+        {
+          "id": "silverhand.kerry-farewell-tone",
+          "description": "What did the remembered departure communicate to Kerry?",
+          "topic": "johnny.kerry.old-farewell",
+          "outcomes": [
+            {
+              "key": "encouraging",
+              "description": "Johnny encouraged Kerry to develop independently.",
+              "affects": [
+                "johnny-silverhand",
+                "kerry-eurodyne"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-transcript"
+              ]
+            },
+            {
+              "key": "dismissive",
+              "description": "Johnny's remembered reply dismissed Kerry instead.",
+              "affects": [
+                "johnny-silverhand",
+                "kerry-eurodyne"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-transcript"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-transcript"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact dialogue variants require transcript-to-native-scene review; do not infer from present friendship or a later repeated line."
+          }
+        }
+      ],
+      "sourceIds": [
+        "silverhand-love",
+        "silverhand-johnny",
+        "silverhand-transcript"
+      ],
+      "uncertainties": [
+        "The shown events are not a neutral historical recording. Preserve conflicts with tabletop history and later testimony.",
+        "Do not make a spawned historical character inherit V's observation; audience and persona-era gates are separate."
+      ]
+    },
+    {
+      "key": "playing-for-time",
+      "title": "Playing for Time",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "johnny-silverhand"
+      ],
+      "synopsis": "After the failed heist, V receives a diagnosis and begins an involuntary coexistence with Johnny.",
+      "stages": [
+        {
+          "key": "clinic",
+          "description": "Viktor explains the Relic's threat and the limits of his treatment.",
+          "sourceIds": [
+            "silverhand-playing"
+          ]
+        },
+        {
+          "key": "apartment",
+          "description": "The first direct encounter with Johnny is hostile.",
+          "sourceIds": [
+            "silverhand-playing"
+          ]
+        },
+        {
+          "key": "diner",
+          "description": "After Takemura's proposal, Johnny argues for practical cooperation and Rogue as a lead.",
+          "sourceIds": [
+            "silverhand-playing"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "silverhand.relic-diagnosis",
+          "description": "Has V heard Viktor's initial diagnosis?",
+          "topic": "v.relic.initial-diagnosis",
+          "outcomes": [
+            {
+              "key": "heard",
+              "description": "V knows the engram threatens their identity and that Viktor cannot reverse it.",
+              "affects": [
+                "v",
+                "johnny-silverhand"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-playing"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-playing"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Requires a stage-gated native branch audit in the installed game. Missing facts and zero values remain unknown; no rule is enabled."
+          }
+        },
+        {
+          "id": "silverhand.diner-cooperation",
+          "description": "Has Johnny proposed working together?",
+          "topic": "johnny.v.initial-cooperation",
+          "outcomes": [
+            {
+              "key": "proposed",
+              "description": "Johnny recognizes their shared predicament; this is not established friendship.",
+              "affects": [
+                "johnny-silverhand",
+                "v"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-playing"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-playing"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Requires a stage-gated native branch audit in the installed game. Missing facts and zero values remain unknown; no rule is enabled."
+          }
+        }
+      ],
+      "sourceIds": [
+        "silverhand-playing"
+      ],
+      "uncertainties": [
+        "Symptoms and a medical estimate are not a countdown computed from free-roam game time.",
+        "Other companions do not learn the diagnosis merely because this quest completed."
+      ]
+    },
+    {
+      "key": "never-fade-away",
+      "title": "Never Fade Away",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "johnny-silverhand",
+        "rogue-amendiares",
+        "santiago",
+        "thompson",
+        "kerry-eurodyne"
+      ],
+      "synopsis": "Inside the Transmission sequence, V sees Johnny's recollection of Alt's abduction and the attempted rescue.",
+      "stages": [
+        {
+          "key": "abduction",
+          "description": "The recollection establishes that Alt was the intended target.",
+          "sourceIds": [
+            "silverhand-never",
+            "silverhand-transcript"
+          ]
+        },
+        {
+          "key": "rescue",
+          "description": "Rogue, Santiago and Thompson assist Johnny's attempt.",
+          "sourceIds": [
+            "silverhand-never",
+            "silverhand-transcript"
+          ]
+        },
+        {
+          "key": "aftermath",
+          "description": "Johnny's actions at Alt's connection and his attack on Thompson are shown through his memory.",
+          "sourceIds": [
+            "silverhand-never",
+            "silverhand-transcript"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "silverhand.memory-2013",
+          "description": "Has V witnessed the 2013 recollection?",
+          "topic": "johnny.memory.2013",
+          "outcomes": [
+            {
+              "key": "experienced",
+              "description": "The memory was experienced; do not present it as an objective verdict on Alt's fate.",
+              "affects": [
+                "johnny-silverhand",
+                "v"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "silverhand-never",
+                "silverhand-transcript"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-never",
+            "silverhand-transcript"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Requires a stage-gated native branch audit in the installed game. Missing facts and zero values remain unknown; no rule is enabled."
+          }
+        }
+      ],
+      "sourceIds": [
+        "silverhand-never",
+        "silverhand-transcript"
+      ],
+      "uncertainties": [
+        "This displayed quest is distinct from the tabletop story of the same name.",
+        "Alt's later account complicates Johnny's version; completion does not establish that Johnny intentionally saved or killed her."
+      ]
+    },
+    {
+      "key": "transmission",
+      "title": "Transmission",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "johnny-silverhand"
+      ],
+      "synopsis": "V and the Voodoo Boys seek the digital Alt; the prior NetWatch decision changes the return from cyberspace.",
+      "stages": [
+        {
+          "key": "net",
+          "description": "The search exposes Johnny's older recollection.",
+          "sourceIds": [
+            "silverhand-transmission"
+          ]
+        },
+        {
+          "key": "alt",
+          "description": "V establishes contact and hears the Mikoshi proposal.",
+          "sourceIds": [
+            "silverhand-transmission"
+          ]
+        },
+        {
+          "key": "return",
+          "description": "The Voodoo Boys' survival and the exit depend on prior choices and V's response.",
+          "sourceIds": [
+            "silverhand-transmission"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "silverhand.alt-contact",
+          "description": "Was contact with the entity identifying as Alt established?",
+          "topic": "johnny.alt.digital-contact",
+          "outcomes": [
+            {
+              "key": "contact-established",
+              "description": "V and Johnny heard Alt's account and proposed Mikoshi intervention.",
+              "affects": [
+                "v",
+                "johnny-silverhand"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-transmission"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-transmission"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Requires a stage-gated native branch audit in the installed game. Missing facts and zero values remain unknown; no rule is enabled."
+          }
+        },
+        {
+          "id": "silverhand.voodoo-outcome",
+          "description": "What outcome occurred on leaving cyberspace?",
+          "topic": "transmission.voodoo-boys",
+          "outcomes": [
+            {
+              "key": "netwatch-purge",
+              "description": "The prior NetWatch arrangement resulted in the netrunners' deaths.",
+              "affects": [
+                "v",
+                "johnny-silverhand"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "silverhand-transmission"
+              ]
+            },
+            {
+              "key": "peaceful-departure",
+              "description": "With the netrunners alive, V left without attacking them.",
+              "affects": [
+                "v",
+                "johnny-silverhand"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-transmission"
+              ]
+            },
+            {
+              "key": "v-initiated-fight",
+              "description": "V chose violence after returning to living netrunners.",
+              "affects": [
+                "v",
+                "johnny-silverhand"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-transmission"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-transmission"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Audit both the preceding NetWatch choice and the post-Net dialogue/combat outcome. A hostile Placide encounter alone does not identify the branch."
+          }
+        }
+      ],
+      "sourceIds": [
+        "silverhand-transmission"
+      ],
+      "uncertainties": [
+        "The entity's continuity with human Alt is a philosophical dispute, not a boolean fact.",
+        "No separate Placide lethal/nonlethal conclusion is mapped without its own evidence."
+      ]
+    },
+    {
+      "key": "tapeworm",
+      "title": "Tapeworm",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "johnny-silverhand"
+      ],
+      "synopsis": "A series of conversations reframes V and Johnny's relationship and leads to the Pistis Sophia discussion.",
+      "stages": [
+        {
+          "key": "conversations",
+          "description": "Individual talks occur around the Act 2 investigations.",
+          "sourceIds": [
+            "silverhand-tapeworm"
+          ]
+        },
+        {
+          "key": "hotel",
+          "description": "Johnny revisits personal history and offers V his dog tags.",
+          "sourceIds": [
+            "silverhand-tapeworm"
+          ]
+        },
+        {
+          "key": "request",
+          "description": "He proposes temporarily taking control to involve Rogue.",
+          "sourceIds": [
+            "silverhand-tapeworm"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "silverhand.dog-tags",
+          "description": "Did V receive the personal token in the hotel scene?",
+          "topic": "johnny.v.dog-tags",
+          "outcomes": [
+            {
+              "key": "received",
+              "description": "Johnny entrusted V with his dog tags.",
+              "affects": [
+                "johnny-silverhand",
+                "v"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-tapeworm"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-tapeworm"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Requires a stage-gated native branch audit in the installed game. Missing facts and zero values remain unknown; no rule is enabled."
+          }
+        },
+        {
+          "id": "silverhand.rogue-control-agreement",
+          "description": "How did V answer the proposed temporary handover?",
+          "topic": "johnny.v.rogue-handover-consent",
+          "outcomes": [
+            {
+              "key": "agreed",
+              "description": "V agreed to the proposed Rogue-related handover; consent remains scoped to that occasion.",
+              "affects": [
+                "johnny-silverhand",
+                "v"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "silverhand-tapeworm"
+              ]
+            },
+            {
+              "key": "declined",
+              "description": "V declined at that conversation; later changed consent must remain possible.",
+              "affects": [
+                "johnny-silverhand",
+                "v"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "silverhand-tapeworm"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-tapeworm"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Inspect precise dialogue branches; no refusal is inferred from a missing Chippin' In entry."
+          }
+        }
+      ],
+      "sourceIds": [
+        "silverhand-tapeworm"
+      ],
+      "uncertainties": [
+        "Guide sequences reflect one play order; do not hard-code one Act 2 investigation order.",
+        "A received item is not a universal trust score, especially with inventory mods."
+      ]
+    },
+    {
+      "key": "ghost-town",
+      "title": "Ghost Town",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "rogue-amendiares",
+        "johnny-silverhand"
+      ],
+      "synopsis": "Rogue provides V a paid lead to Hellman and introduces Panam's help.",
+      "stages": [
+        {
+          "key": "commission",
+          "description": "V arranges and pays for Rogue's information.",
+          "sourceIds": [
+            "silverhand-ghost"
+          ]
+        },
+        {
+          "key": "recovery",
+          "description": "V helps Panam recover her vehicle and cargo.",
+          "sourceIds": [
+            "silverhand-ghost"
+          ]
+        },
+        {
+          "key": "detour",
+          "description": "Panam's proposed retaliation can be accepted or refused.",
+          "sourceIds": [
+            "silverhand-ghost"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "silverhand.rogue-commission",
+          "description": "Was Rogue paid and her briefing delivered?",
+          "topic": "rogue.v.hellman-commission",
+          "outcomes": [
+            {
+              "key": "paid-and-briefed",
+              "description": "Rogue supplied the Hellman lead and Panam introduction.",
+              "affects": [
+                "rogue-amendiares",
+                "v",
+                "johnny-silverhand"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-ghost"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-ghost"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Requires a stage-gated native branch audit in the installed game. Missing facts and zero values remain unknown; no rule is enabled."
+          }
+        },
+        {
+          "id": "silverhand.nash-detour",
+          "description": "Did V support Panam's retaliation?",
+          "topic": "panam.nash-retaliation",
+          "outcomes": [
+            {
+              "key": "assisted",
+              "description": "V took the Nash detour with Panam.",
+              "affects": [
+                "v",
+                "johnny-silverhand",
+                "panam-palmer"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-ghost"
+              ]
+            },
+            {
+              "key": "declined",
+              "description": "V refused the detour at that point.",
+              "affects": [
+                "v",
+                "johnny-silverhand",
+                "panam-palmer"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-ghost"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-ghost"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Requires a stage-gated native branch audit in the installed game. Missing facts and zero values remain unknown; no rule is enabled."
+          }
+        }
+      ],
+      "sourceIds": [
+        "silverhand-ghost"
+      ],
+      "uncertainties": [
+        "Rogue did not personally witness every action with Panam. Disclosures and reported job results are distinct.",
+        "This job does not itself establish Hellman's capture or a Panam romance."
+      ]
+    },
+    {
+      "key": "a-cool-metal-fire",
+      "title": "A Cool Metal Fire",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "johnny-silverhand",
+        "rogue-amendiares"
+      ],
+      "synopsis": "Johnny's temporary control becomes an excessive night out that nevertheless produces a dockside lead.",
+      "stages": [
+        {
+          "key": "handover",
+          "description": "Johnny takes temporary control during Chippin' In.",
+          "sourceIds": [
+            "silverhand-metal"
+          ]
+        },
+        {
+          "key": "leads",
+          "description": "Cassius and Ruby connect the search to Grayson and Ebunike.",
+          "sourceIds": [
+            "silverhand-metal"
+          ]
+        },
+        {
+          "key": "return",
+          "description": "The body returns to V after the bender.",
+          "sourceIds": [
+            "silverhand-metal"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "silverhand.bender-handover",
+          "description": "Did this temporary handover occur?",
+          "topic": "johnny.v.bender-control",
+          "outcomes": [
+            {
+              "key": "completed",
+              "description": "Johnny used V's body for the night and returned it.",
+              "affects": [
+                "johnny-silverhand",
+                "v"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "silverhand-metal"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-metal"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Requires a stage-gated native branch audit in the installed game. Missing facts and zero values remain unknown; no rule is enabled."
+          }
+        },
+        {
+          "id": "silverhand.bender-tattoo",
+          "description": "Which tattoo did Johnny choose on this occasion?",
+          "topic": "johnny.v.bender-tattoo",
+          "outcomes": [
+            {
+              "key": "johnnys-special",
+              "description": "The Johnny's Special option was chosen.",
+              "affects": [
+                "johnny-silverhand",
+                "v"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "silverhand-metal"
+              ]
+            },
+            {
+              "key": "together-forever",
+              "description": "The Together Forever option was chosen.",
+              "affects": [
+                "johnny-silverhand",
+                "v"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "silverhand-metal"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-metal"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Audit the choice event, not just equipped or owned tattoo items."
+          }
+        },
+        {
+          "id": "silverhand.ebunike-lead",
+          "description": "Was the lead obtained?",
+          "topic": "johnny.smasher.ebunike-lead",
+          "outcomes": [
+            {
+              "key": "obtained",
+              "description": "The search acquired the Ebunike lead via Ruby.",
+              "affects": [
+                "johnny-silverhand",
+                "v"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-metal"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-metal"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Requires a stage-gated native branch audit in the installed game. Missing facts and zero values remain unknown; no rule is enabled."
+          }
+        }
+      ],
+      "sourceIds": [
+        "silverhand-metal"
+      ],
+      "uncertainties": [
+        "It is nested in Chippin' In; do not double-count one handover as two separate nights.",
+        "Dialogue, drinking and pill variants are not exhaustively mapped. They do not imply standing consent to future control."
+      ]
+    },
+    {
+      "key": "chippin-in",
+      "title": "Chippin' In",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "johnny-silverhand",
+        "rogue-amendiares",
+        "adam-smasher"
+      ],
+      "synopsis": "Rogue and V trace Smasher's associate before V and Johnny confront what remains of Johnny's legacy.",
+      "stages": [
+        {
+          "key": "docks",
+          "description": "The Ebunike search reaches Grayson.",
+          "sourceIds": [
+            "silverhand-chippin",
+            "silverhand-chippin-wiki",
+            "silverhand-reaper-corroboration"
+          ]
+        },
+        {
+          "key": "interrogation",
+          "description": "Grayson supplies information and Johnny's former pistol.",
+          "sourceIds": [
+            "silverhand-chippin",
+            "silverhand-chippin-wiki",
+            "silverhand-reaper-corroboration"
+          ]
+        },
+        {
+          "key": "oilfield",
+          "description": "V and Johnny discuss the claimed burial site and their relationship.",
+          "sourceIds": [
+            "silverhand-chippin",
+            "silverhand-chippin-wiki",
+            "silverhand-reaper-corroboration"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "silverhand.grayson-interrogation",
+          "description": "Was Grayson's account heard?",
+          "topic": "johnny.smasher.grayson-report",
+          "outcomes": [
+            {
+              "key": "heard",
+              "description": "Grayson's claims about Smasher and Johnny's remains were heard; they remain attributed claims.",
+              "affects": [
+                "johnny-silverhand",
+                "rogue-amendiares",
+                "v"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "silverhand-chippin-wiki"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-chippin-wiki"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Requires a stage-gated native branch audit in the installed game. Missing facts and zero values remain unknown; no rule is enabled."
+          }
+        },
+        {
+          "id": "silverhand.grayson-fate",
+          "description": "How did V resolve Grayson's immediate fate?",
+          "topic": "grayson.fate",
+          "outcomes": [
+            {
+              "key": "spared",
+              "description": "V spared Grayson during the confrontation.",
+              "affects": [
+                "johnny-silverhand",
+                "v"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "silverhand-chippin"
+              ]
+            },
+            {
+              "key": "killed",
+              "description": "V killed Grayson during the confrontation.",
+              "affects": [
+                "johnny-silverhand",
+                "v"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "silverhand-chippin"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-chippin"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Requires a stage-gated native branch audit in the installed game. Missing facts and zero values remain unknown; no rule is enabled."
+          }
+        },
+        {
+          "id": "silverhand.porsche-recovery",
+          "description": "Did V independently recover Johnny's car?",
+          "topic": "johnny.possessions.porsche",
+          "outcomes": [
+            {
+              "key": "recovered",
+              "description": "Johnny's car was recovered from its container.",
+              "affects": [
+                "johnny-silverhand",
+                "v"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-chippin-wiki"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-chippin-wiki"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Recovery can follow either Grayson fate. Do not equate sparing him with having the car."
+          }
+        },
+        {
+          "id": "silverhand.oilfield-reconciliation",
+          "description": "Did V establish the specific second-chance understanding?",
+          "topic": "johnny.v.oilfield-reconciliation",
+          "outcomes": [
+            {
+              "key": "second-chance",
+              "description": "The exact reconciliation conversation established a second chance.",
+              "affects": [
+                "johnny-silverhand",
+                "v"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "silverhand-chippin-wiki",
+                "silverhand-reaper-corroboration"
+              ]
+            },
+            {
+              "key": "other-conversation",
+              "description": "The completed oilfield conversation did not establish that exact branch.",
+              "affects": [
+                "johnny-silverhand",
+                "v"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "silverhand-chippin-wiki"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-chippin-wiki",
+            "silverhand-reaper-corroboration"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Needs exact dialogue-path evidence. Relationship percentage, quest completion and a missing flag cannot decide this."
+          }
+        },
+        {
+          "id": "silverhand.rogue-date-invitation",
+          "description": "Was the follow-up date arranged?",
+          "topic": "johnny.rogue.date-arranged",
+          "outcomes": [
+            {
+              "key": "arranged",
+              "description": "V helped arrange Johnny's outing with Rogue.",
+              "affects": [
+                "johnny-silverhand",
+                "rogue-amendiares",
+                "v"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-chippin"
+              ]
+            },
+            {
+              "key": "declined",
+              "description": "V explicitly declined that follow-up at the relevant choice.",
+              "affects": [
+                "johnny-silverhand",
+                "v"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "silverhand-chippin"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-chippin"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Requires a stage-gated native branch audit in the installed game. Missing facts and zero values remain unknown; no rule is enabled."
+          }
+        }
+      ],
+      "sourceIds": [
+        "silverhand-chippin",
+        "silverhand-chippin-wiki",
+        "silverhand-reaper-corroboration"
+      ],
+      "uncertainties": [
+        "Guide descriptions of secret-ending requirements have changed and sometimes rely on an inaccurate percentage heuristic.",
+        "Grayson's burial account is not forensic verification.",
+        "A later Rogue date is not proof V and Rogue are romantically involved.",
+        "Rogue leaves the confrontation before all of V's optional follow-up decisions; do not automatically grant her eyewitness knowledge of Grayson's final fate or the car retrieval."
+      ]
+    },
+    {
+      "key": "blistering-love",
+      "title": "Blistering Love",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "johnny-silverhand",
+        "rogue-amendiares"
+      ],
+      "synopsis": "Johnny uses V's body for a drive-in outing with Rogue.",
+      "stages": [
+        {
+          "key": "pickup",
+          "description": "Rogue joins the arranged outing.",
+          "sourceIds": [
+            "silverhand-blistering",
+            "silverhand-rogue-romance"
+          ]
+        },
+        {
+          "key": "drive-in",
+          "description": "Johnny and Rogue revisit their history during the film.",
+          "sourceIds": [
+            "silverhand-blistering",
+            "silverhand-rogue-romance"
+          ]
+        },
+        {
+          "key": "return",
+          "description": "The outing ends and control returns to V.",
+          "sourceIds": [
+            "silverhand-blistering",
+            "silverhand-rogue-romance"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "silverhand.date-completed",
+          "description": "Did the drive-in outing conclude?",
+          "topic": "johnny.rogue.drive-in",
+          "outcomes": [
+            {
+              "key": "completed",
+              "description": "The outing occurred and ended.",
+              "affects": [
+                "johnny-silverhand",
+                "rogue-amendiares",
+                "v"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-blistering"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-blistering"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Requires a stage-gated native branch audit in the installed game. Missing facts and zero values remain unknown; no rule is enabled."
+          }
+        },
+        {
+          "id": "silverhand.drive-in-intimacy",
+          "description": "What intimate interaction actually occurred?",
+          "topic": "johnny.rogue.drive-in-intimacy",
+          "outcomes": [
+            {
+              "key": "interrupted",
+              "description": "An intimate moment began but Rogue stopped it.",
+              "affects": [
+                "johnny-silverhand",
+                "rogue-amendiares"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "silverhand-blistering",
+                "silverhand-rogue-romance"
+              ]
+            },
+            {
+              "key": "not-initiated",
+              "description": "The scene concluded without initiating the kiss.",
+              "affects": [
+                "johnny-silverhand",
+                "rogue-amendiares"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "silverhand-blistering"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-blistering",
+            "silverhand-rogue-romance"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Requires a stage-gated native branch audit in the installed game. Missing facts and zero values remain unknown; no rule is enabled."
+          }
+        }
+      ],
+      "sourceIds": [
+        "silverhand-blistering",
+        "silverhand-rogue-romance"
+      ],
+      "uncertainties": [
+        "Johnny is the social actor using V's body. Do not create a persistent V/Rogue romance from this outing.",
+        "Private intimacy is not automatically shared with other companions."
+      ]
+    },
+    {
+      "key": "holdin-on",
+      "title": "Holdin' On",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "johnny-silverhand",
+        "kerry-eurodyne"
+      ],
+      "synopsis": "Johnny visits Kerry through V and proposes a one-off reunion.",
+      "stages": [
+        {
+          "key": "villa",
+          "description": "The visit reaches Kerry at his home.",
+          "sourceIds": [
+            "silverhand-holdin",
+            "silverhand-transcript"
+          ]
+        },
+        {
+          "key": "recognition",
+          "description": "Playing and shared recollection persuade Kerry that Johnny is present.",
+          "sourceIds": [
+            "silverhand-holdin",
+            "silverhand-transcript"
+          ]
+        },
+        {
+          "key": "plan",
+          "description": "Kerry and Johnny discuss reconnecting with the band.",
+          "sourceIds": [
+            "silverhand-holdin",
+            "silverhand-transcript"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "silverhand.identity-revealed",
+          "description": "Did Kerry recognize Johnny within V?",
+          "topic": "kerry.johnny.recognition",
+          "outcomes": [
+            {
+              "key": "recognized",
+              "description": "Kerry accepted Johnny's identity in the encounter.",
+              "affects": [
+                "kerry-eurodyne",
+                "johnny-silverhand",
+                "v"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-transcript",
+                "silverhand-holdin"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-transcript",
+            "silverhand-holdin"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Requires a stage-gated native branch audit in the installed game. Missing facts and zero values remain unknown; no rule is enabled."
+          }
+        },
+        {
+          "id": "silverhand.reunion-proposal",
+          "description": "Was the reunion proposal made?",
+          "topic": "samurai.reunion.proposed",
+          "outcomes": [
+            {
+              "key": "proposed",
+              "description": "A reunion was proposed; nobody has performed it yet.",
+              "affects": [
+                "kerry-eurodyne",
+                "johnny-silverhand",
+                "v"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-transcript"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-transcript"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Requires a stage-gated native branch audit in the installed game. Missing facts and zero values remain unknown; no rule is enabled."
+          }
+        }
+      ],
+      "sourceIds": [
+        "silverhand-holdin",
+        "silverhand-transcript"
+      ],
+      "uncertainties": [
+        "The inspected PowerPyx index establishes the quest page but detailed scene support here is the branch-selective transcript.",
+        "Kerry recognizing Johnny does not mean he immediately knows V personally or is romantically interested."
+      ]
+    },
+    {
+      "key": "second-conflict",
+      "title": "Second Conflict",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "johnny-silverhand",
+        "kerry-eurodyne",
+        "nancy-hartley"
+      ],
+      "synopsis": "V recovers Nancy from Totentanz and resolves which estranged bandmate will join the reunion.",
+      "stages": [
+        {
+          "key": "totentanz",
+          "description": "Earlier Maelstrom outcomes determine the leadership encounter.",
+          "sourceIds": [
+            "silverhand-second",
+            "silverhand-second-data"
+          ]
+        },
+        {
+          "key": "nancy",
+          "description": "The escape and recovery of her reporting data are separate accomplishments.",
+          "sourceIds": [
+            "silverhand-second",
+            "silverhand-second-data"
+          ]
+        },
+        {
+          "key": "lineup",
+          "description": "The dispute between Denny and Henry forces a choice for the performance.",
+          "sourceIds": [
+            "silverhand-second",
+            "silverhand-second-data"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "silverhand.totentanz-leadership",
+          "description": "Who is actually in charge at the encounter?",
+          "topic": "maelstrom.totentanz.leadership",
+          "outcomes": [
+            {
+              "key": "royce",
+              "description": "Royce's group controls the encounter, with surviving associates subject to their own earlier outcomes.",
+              "affects": [
+                "nancy-hartley",
+                "v",
+                "johnny-silverhand"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "silverhand-second"
+              ]
+            },
+            {
+              "key": "brick",
+              "description": "Brick's return creates a favorable route out.",
+              "affects": [
+                "nancy-hartley",
+                "v",
+                "johnny-silverhand"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "silverhand-second"
+              ]
+            },
+            {
+              "key": "patricia",
+              "description": "Patricia's leadership produces the hostile encounter described in this route.",
+              "affects": [
+                "nancy-hartley",
+                "v",
+                "johnny-silverhand"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "silverhand-second"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-second"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Requires relevant prior Pickup outcomes plus the actual encounter. Do not infer a leader from one actor's absence."
+          }
+        },
+        {
+          "id": "silverhand.nancy-data",
+          "description": "Was Nancy's investigation data recovered?",
+          "topic": "nancy.totentanz.reporting-data",
+          "outcomes": [
+            {
+              "key": "recovered",
+              "description": "Nancy retained or recovered the reporting data through the chosen escape route.",
+              "affects": [
+                "nancy-hartley",
+                "v"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-second-data"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-second-data"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Requires a stage-gated native branch audit in the installed game. Missing facts and zero values remain unknown; no rule is enabled."
+          }
+        },
+        {
+          "id": "silverhand.nancy-extraction",
+          "description": "Did Nancy leave the dangerous encounter safely?",
+          "topic": "nancy.totentanz.extraction",
+          "outcomes": [
+            {
+              "key": "safe",
+              "description": "Nancy was safely extracted.",
+              "affects": [
+                "nancy-hartley",
+                "v",
+                "johnny-silverhand"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-second",
+                "silverhand-second-data"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-second",
+            "silverhand-second-data"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Requires a stage-gated native branch audit in the installed game. Missing facts and zero values remain unknown; no rule is enabled."
+          }
+        },
+        {
+          "id": "silverhand.reunion-lineup",
+          "description": "Which of the incompatible bandmates was selected?",
+          "topic": "samurai.reunion.lineup",
+          "outcomes": [
+            {
+              "key": "denny",
+              "description": "Denny was selected for the reunion performance.",
+              "affects": [
+                "nancy-hartley",
+                "kerry-eurodyne",
+                "johnny-silverhand",
+                "v"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-second"
+              ]
+            },
+            {
+              "key": "henry",
+              "description": "Henry was selected for the reunion performance.",
+              "affects": [
+                "nancy-hartley",
+                "kerry-eurodyne",
+                "johnny-silverhand",
+                "v"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-second"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-second"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Requires a stage-gated native branch audit in the installed game. Missing facts and zero values remain unknown; no rule is enabled."
+          }
+        }
+      ],
+      "sourceIds": [
+        "silverhand-second",
+        "silverhand-second-data"
+      ],
+      "uncertainties": [
+        "A later reporting award requires its own observed follow-up; it is not granted by data recovery alone.",
+        "The reunion choice excludes a performer for this concert, not permanently from every relationship.",
+        "Safe extraction does not prove a bloodless route."
+      ]
+    },
+    {
+      "key": "a-like-supreme",
+      "title": "A Like Supreme",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "johnny-silverhand",
+        "kerry-eurodyne",
+        "nancy-hartley"
+      ],
+      "synopsis": "The surviving former bandmates assemble at the Red Dirt for the planned performance.",
+      "stages": [
+        {
+          "key": "invitation",
+          "description": "Nancy confirms the event is ready.",
+          "sourceIds": [
+            "silverhand-supreme",
+            "silverhand-transcript"
+          ]
+        },
+        {
+          "key": "performance",
+          "description": "Johnny temporarily plays through V with the selected lineup.",
+          "sourceIds": [
+            "silverhand-supreme",
+            "silverhand-transcript"
+          ]
+        },
+        {
+          "key": "after-show",
+          "description": "The temporary reunion ends and Kerry gives V Archangel.",
+          "sourceIds": [
+            "silverhand-supreme",
+            "silverhand-transcript"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "silverhand.reunion-performance",
+          "description": "Did the performance actually happen?",
+          "topic": "samurai.reunion.performance",
+          "outcomes": [
+            {
+              "key": "performed",
+              "description": "The one-off reunion was performed with the recorded Second Conflict lineup.",
+              "affects": [
+                "johnny-silverhand",
+                "kerry-eurodyne",
+                "nancy-hartley",
+                "v"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-supreme",
+                "silverhand-transcript"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-supreme",
+            "silverhand-transcript"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Requires a stage-gated native branch audit in the installed game. Missing facts and zero values remain unknown; no rule is enabled."
+          }
+        },
+        {
+          "id": "silverhand.archangel-gift",
+          "description": "Was Kerry's gift received at the after-show interaction?",
+          "topic": "kerry.v.archangel-gift",
+          "outcomes": [
+            {
+              "key": "received",
+              "description": "Kerry gave V Archangel following the reunion.",
+              "affects": [
+                "kerry-eurodyne",
+                "v"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-transcript"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-transcript"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Requires a stage-gated native branch audit in the installed game. Missing facts and zero values remain unknown; no rule is enabled."
+          }
+        }
+      ],
+      "sourceIds": [
+        "silverhand-supreme",
+        "silverhand-transcript"
+      ],
+      "uncertainties": [
+        "The event does not establish a permanent Samurai reformation.",
+        "The page index was available; detailed scene evidence is the community transcript. Exact reward and performance triggers need native audit."
+      ]
+    },
+    {
+      "key": "rebel-rebel",
+      "title": "Rebel! Rebel!",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "kerry-eurodyne",
+        "johnny-silverhand"
+      ],
+      "synopsis": "Kerry enlists V in sabotaging equipment associated with Us Cracks before following up over coffee.",
+      "stages": [
+        {
+          "key": "sabotage",
+          "description": "Kerry and V intercept and destroy the equipment.",
+          "sourceIds": [
+            "silverhand-rebel"
+          ]
+        },
+        {
+          "key": "escape",
+          "description": "They leave the police response behind.",
+          "sourceIds": [
+            "silverhand-rebel"
+          ]
+        },
+        {
+          "key": "coffee",
+          "description": "The follow-through preserves or breaks the chain toward the backstage encounter.",
+          "sourceIds": [
+            "silverhand-rebel"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "silverhand.sabotage",
+          "description": "Did the planned sabotage occur?",
+          "topic": "kerry.uscracks.sabotage",
+          "outcomes": [
+            {
+              "key": "completed",
+              "description": "The equipment sabotage occurred with Kerry.",
+              "affects": [
+                "kerry-eurodyne",
+                "v",
+                "johnny-silverhand"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-rebel"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-rebel"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact stage and branch conditions require native audit. Unknown is preserved; no rule is enabled."
+          }
+        },
+        {
+          "id": "silverhand.diner-followthrough",
+          "description": "Did V follow through on the agreed coffee meeting?",
+          "topic": "kerry.v.diner-followthrough",
+          "outcomes": [
+            {
+              "key": "completed",
+              "description": "V completed the diner follow-up with Kerry.",
+              "affects": [
+                "kerry-eurodyne",
+                "v"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-rebel"
+              ]
+            },
+            {
+              "key": "abandoned",
+              "description": "V agreed to the follow-up but then abandoned it, triggering the documented failure route.",
+              "affects": [
+                "kerry-eurodyne",
+                "v"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-rebel"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-rebel"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "A missing later Kerry quest is not failure evidence. Audit the actual abandonment/failure transition."
+          }
+        }
+      ],
+      "sourceIds": [
+        "silverhand-rebel"
+      ],
+      "uncertainties": [
+        "Police evasion and exact timer behavior depend on stage; a free-roam delay is not itself abandonment.",
+        "Helping Kerry sabotage equipment does not establish romantic consent."
+      ]
+    },
+    {
+      "key": "i-dont-wanna-hear-it",
+      "title": "I Don't Wanna Hear It",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "kerry-eurodyne",
+        "johnny-silverhand",
+        "blue-moon",
+        "red-menace",
+        "purple-force"
+      ],
+      "synopsis": "At Riot, V mediates Kerry's confrontation with Us Cracks.",
+      "stages": [
+        {
+          "key": "access",
+          "description": "V and Kerry gain backstage access by an available route.",
+          "sourceIds": [
+            "silverhand-uscracks"
+          ]
+        },
+        {
+          "key": "confrontation",
+          "description": "The dispute exposes mismatched assumptions about the cover arrangement.",
+          "sourceIds": [
+            "silverhand-uscracks"
+          ]
+        },
+        {
+          "key": "resolution",
+          "description": "V can support reconciliation or escalate the threat.",
+          "sourceIds": [
+            "silverhand-uscracks"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "silverhand.backstage-resolution",
+          "description": "How was the confrontation resolved?",
+          "topic": "kerry.uscracks.resolution",
+          "outcomes": [
+            {
+              "key": "reconciled",
+              "description": "The parties reconciled after learning how the arrangement had been represented.",
+              "affects": [
+                "kerry-eurodyne",
+                "blue-moon",
+                "red-menace",
+                "purple-force",
+                "v",
+                "johnny-silverhand"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-uscracks"
+              ]
+            },
+            {
+              "key": "threatened",
+              "description": "The confrontation ended with threats rather than reconciliation.",
+              "affects": [
+                "kerry-eurodyne",
+                "blue-moon",
+                "red-menace",
+                "purple-force",
+                "v",
+                "johnny-silverhand"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-uscracks"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-uscracks"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact stage and branch conditions require native audit. Unknown is preserved; no rule is enabled."
+          }
+        },
+        {
+          "id": "silverhand.uscracks-photo",
+          "description": "Did V join the optional photograph?",
+          "topic": "v.uscracks.photo",
+          "outcomes": [
+            {
+              "key": "taken",
+              "description": "The optional friendly photograph occurred.",
+              "affects": [
+                "kerry-eurodyne",
+                "blue-moon",
+                "red-menace",
+                "purple-force",
+                "v"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-uscracks"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-uscracks"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact stage and branch conditions require native audit. Unknown is preserved; no rule is enabled."
+          }
+        }
+      ],
+      "sourceIds": [
+        "silverhand-uscracks"
+      ],
+      "uncertainties": [
+        "Friendly access to Blue Moon's later quest is not knowledge of her stalker's identity or survival.",
+        "Backstage entry method and dialogue tone are distinct from the final reconciliation outcome."
+      ]
+    },
+    {
+      "key": "off-the-leash",
+      "title": "Off the Leash",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "kerry-eurodyne",
+        "johnny-silverhand",
+        "blue-moon",
+        "red-menace",
+        "purple-force"
+      ],
+      "synopsis": "V attends Kerry's Dark Matter event and can share a more personal terrace conversation.",
+      "stages": [
+        {
+          "key": "event",
+          "description": "The public appearance reflects the prior Us Cracks resolution.",
+          "sourceIds": [
+            "silverhand-leash",
+            "silverhand-kerry-romance"
+          ]
+        },
+        {
+          "key": "terrace",
+          "description": "Kerry speaks privately with V about success and dissatisfaction.",
+          "sourceIds": [
+            "silverhand-leash",
+            "silverhand-kerry-romance"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "silverhand.collaboration-event",
+          "description": "Did V attend the reconciled collaboration event?",
+          "topic": "kerry.uscracks.collaboration-event",
+          "outcomes": [
+            {
+              "key": "present",
+              "description": "V attended the event with the reconciled collaboration context.",
+              "affects": [
+                "kerry-eurodyne",
+                "v"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-leash"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-leash"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Audit prior reconciliation and the event's actual cast. Do not assume the same presentation after the hostile backstage branch."
+          }
+        },
+        {
+          "id": "silverhand.terrace-kiss",
+          "description": "Did the optional kiss occur?",
+          "topic": "kerry.v.terrace-intimacy",
+          "outcomes": [
+            {
+              "key": "kissed",
+              "description": "Kerry and V shared the optional terrace kiss.",
+              "affects": [
+                "kerry-eurodyne",
+                "v"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "silverhand-leash",
+                "silverhand-kerry-romance"
+              ]
+            },
+            {
+              "key": "not-kissed",
+              "description": "The terrace scene concluded without that kiss.",
+              "affects": [
+                "kerry-eurodyne",
+                "v"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "silverhand-leash"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-leash",
+            "silverhand-kerry-romance"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact stage and branch conditions require native audit. Unknown is preserved; no rule is enabled."
+          }
+        }
+      ],
+      "sourceIds": [
+        "silverhand-leash",
+        "silverhand-kerry-romance"
+      ],
+      "uncertainties": [
+        "Guides conflict about which earlier flirt options are mandatory for later romance. Track what occurred; do not turn a guide checklist into a predicate.",
+        "A kiss is not the later commitment decision."
+      ]
+    },
+    {
+      "key": "boat-drinks",
+      "title": "Boat Drinks",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "kerry-eurodyne",
+        "johnny-silverhand"
+      ],
+      "synopsis": "Kerry takes V out on a yacht; destruction, intimacy and commitment are separate stages of the outing.",
+      "stages": [
+        {
+          "key": "invitation",
+          "description": "V accepts the outing and boards.",
+          "sourceIds": [
+            "silverhand-boat",
+            "silverhand-kerry-romance"
+          ]
+        },
+        {
+          "key": "yacht",
+          "description": "Kerry's destructive release can develop into an intimate encounter.",
+          "sourceIds": [
+            "silverhand-boat",
+            "silverhand-kerry-romance"
+          ]
+        },
+        {
+          "key": "shore",
+          "description": "The final conversation can establish or decline an ongoing relationship.",
+          "sourceIds": [
+            "silverhand-boat",
+            "silverhand-kerry-romance"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "silverhand.yacht-outcome",
+          "description": "Did the destructive outing complete?",
+          "topic": "kerry.yacht.outcome",
+          "outcomes": [
+            {
+              "key": "destroyed",
+              "description": "The yacht was destroyed during the outing.",
+              "affects": [
+                "kerry-eurodyne",
+                "v"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-boat"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-boat"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact stage and branch conditions require native audit. Unknown is preserved; no rule is enabled."
+          }
+        },
+        {
+          "id": "silverhand.yacht-intimacy",
+          "description": "Did the private intimate encounter occur?",
+          "topic": "kerry.v.yacht-intimacy",
+          "outcomes": [
+            {
+              "key": "occurred",
+              "description": "Kerry and V had the intimate yacht encounter.",
+              "affects": [
+                "kerry-eurodyne",
+                "v"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "silverhand-boat",
+                "silverhand-kerry-romance"
+              ]
+            },
+            {
+              "key": "not-occurred",
+              "description": "The relevant completed scene contains no intimate encounter.",
+              "affects": [
+                "kerry-eurodyne",
+                "v"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "silverhand-boat"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-boat",
+            "silverhand-kerry-romance"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Requires actual scene evidence and native romance eligibility. Never infer from sexual orientation alone."
+          }
+        },
+        {
+          "id": "silverhand.beach-commitment",
+          "description": "What relationship decision followed on shore?",
+          "topic": "kerry.v.relationship",
+          "outcomes": [
+            {
+              "key": "committed",
+              "description": "Kerry and V chose an ongoing romantic relationship.",
+              "affects": [
+                "kerry-eurodyne",
+                "v"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "silverhand-boat",
+                "silverhand-kerry-romance"
+              ]
+            },
+            {
+              "key": "declined",
+              "description": "V declined an ongoing romantic commitment in the shore conversation.",
+              "affects": [
+                "kerry-eurodyne",
+                "v"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "silverhand-boat",
+                "silverhand-kerry-romance"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-boat",
+            "silverhand-kerry-romance"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact stage and branch conditions require native audit. Unknown is preserved; no rule is enabled."
+          }
+        }
+      ],
+      "sourceIds": [
+        "silverhand-boat",
+        "silverhand-kerry-romance"
+      ],
+      "uncertainties": [
+        "Game romance eligibility and Kerry's canonical bisexuality are different concepts.",
+        "Refusing boarding, ending the outing early and failed-scene variants need additional native review; neither commitment outcome is inferred from quest absence.",
+        "Private details are not automatically party conversation topics."
+      ]
+    },
+    {
+      "key": "killing-in-the-name",
+      "title": "Killing in the Name",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "johnny-silverhand",
+        "nancy-hartley"
+      ],
+      "synopsis": "Nancy's lead sends V along a signal trail that ends at the source of Swedenborg's messages.",
+      "stages": [
+        {
+          "key": "lead",
+          "description": "Nancy supplies the investigation lead when available.",
+          "sourceIds": [
+            "silverhand-killing"
+          ]
+        },
+        {
+          "key": "routers",
+          "description": "V follows the chain of relays.",
+          "sourceIds": [
+            "silverhand-killing"
+          ]
+        },
+        {
+          "key": "source",
+          "description": "The trail reaches a manipulated fortune-telling machine.",
+          "sourceIds": [
+            "silverhand-killing"
+          ]
+        },
+        {
+          "key": "report",
+          "description": "V decides both what to do with it and what to tell Nancy.",
+          "sourceIds": [
+            "silverhand-killing"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "silverhand.swedenborg-discovery",
+          "description": "Did V identify the source?",
+          "topic": "swedenborg.identity",
+          "outcomes": [
+            {
+              "key": "bot-identified",
+              "description": "The supposed voice was traced to a manipulated machine.",
+              "affects": [
+                "v",
+                "johnny-silverhand"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "silverhand-killing"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-killing"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact stage and branch conditions require native audit. Unknown is preserved; no rule is enabled."
+          }
+        },
+        {
+          "id": "silverhand.swedenborg-machine",
+          "description": "What happened to the discovered machine?",
+          "topic": "swedenborg.machine-state",
+          "outcomes": [
+            {
+              "key": "left-running",
+              "description": "V left the current machine operation intact.",
+              "affects": [
+                "v",
+                "johnny-silverhand"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-killing"
+              ]
+            },
+            {
+              "key": "disconnected",
+              "description": "V disconnected the operation.",
+              "affects": [
+                "v",
+                "johnny-silverhand"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-killing"
+              ]
+            },
+            {
+              "key": "altered",
+              "description": "V altered the algorithm.",
+              "affects": [
+                "v",
+                "johnny-silverhand"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-killing"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-killing"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact stage and branch conditions require native audit. Unknown is preserved; no rule is enabled."
+          }
+        },
+        {
+          "id": "silverhand.nancy-disclosure",
+          "description": "What did V tell Nancy about the source?",
+          "topic": "nancy.swedenborg.disclosure",
+          "outcomes": [
+            {
+              "key": "truth",
+              "description": "V told Nancy the discovered source was a machine.",
+              "affects": [
+                "nancy-hartley",
+                "v"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "silverhand-killing"
+              ]
+            },
+            {
+              "key": "withheld",
+              "description": "V withheld the actual machine discovery in the report.",
+              "affects": [
+                "nancy-hartley",
+                "v"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "silverhand-killing"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-killing"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Keep report choice separate from machine alteration. The inspected walkthrough and reader reports disagree about coupling; verify native scenes before mapping."
+          }
+        }
+      ],
+      "sourceIds": [
+        "silverhand-killing"
+      ],
+      "uncertainties": [
+        "No current Intelligence threshold is hard-coded from an older guide.",
+        "Nancy's knowledge depends on the report; she does not automatically receive V's discoveries.",
+        "Johnny's approval of a joke is not a global friendship state."
+      ]
+    },
+    {
+      "key": "the-ballad-of-buck-ravers",
+      "title": "The Ballad of Buck Ravers",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "johnny-silverhand"
+      ],
+      "synopsis": "A street performance prompts V and Johnny to revisit the physical remains of the old music scene.",
+      "stages": [
+        {
+          "key": "musician",
+          "description": "V and Johnny discuss the street musician.",
+          "sourceIds": [
+            "silverhand-buck"
+          ]
+        },
+        {
+          "key": "old-venue",
+          "description": "They find what replaced the Rainbow Cadenza.",
+          "sourceIds": [
+            "silverhand-buck"
+          ]
+        },
+        {
+          "key": "collector",
+          "description": "Karim represents the collector's version of Samurai's legacy.",
+          "sourceIds": [
+            "silverhand-buck"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "silverhand.buck-ravers-visit",
+          "description": "Did V visit the old venue and collector?",
+          "topic": "johnny.legacy.rainbow-cadenza",
+          "outcomes": [
+            {
+              "key": "visited",
+              "description": "V saw the changed venue and met the Samurai collector.",
+              "affects": [
+                "v",
+                "johnny-silverhand"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-buck"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-buck"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact stage and branch conditions require native audit. Unknown is preserved; no rule is enabled."
+          }
+        }
+      ],
+      "sourceIds": [
+        "silverhand-buck"
+      ],
+      "uncertainties": [
+        "This establishes a local encounter, not a purchase, universal fan opinion or new friendship.",
+        "Optional historical dialogue checks and shop inventory variants have not been exhaustively audited."
+      ]
+    },
+    {
+      "key": "psychofan",
+      "title": "Gig: Psychofan",
+      "category": "gig",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "johnny-silverhand",
+        "kerry-eurodyne"
+      ],
+      "synopsis": "Padre contracts V to retrieve Kerry's guitar from a collector's apartment.",
+      "stages": [
+        {
+          "key": "apartment",
+          "description": "V enters the collector's space.",
+          "sourceIds": [
+            "silverhand-psychofan"
+          ]
+        },
+        {
+          "key": "guitar",
+          "description": "The guitar is recovered.",
+          "sourceIds": [
+            "silverhand-psychofan"
+          ]
+        },
+        {
+          "key": "delivery",
+          "description": "V delivers the contracted item.",
+          "sourceIds": [
+            "silverhand-psychofan"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "silverhand.psychofan-guitar",
+          "description": "Was the contracted guitar delivered?",
+          "topic": "kerry.possessions.psychofan",
+          "outcomes": [
+            {
+              "key": "delivered",
+              "description": "V delivered the guitar under Padre's contract.",
+              "affects": [
+                "v",
+                "johnny-silverhand"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-psychofan"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-psychofan"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact stage and branch conditions require native audit. Unknown is preserved; no rule is enabled."
+          }
+        },
+        {
+          "id": "silverhand.psychofan-pants",
+          "description": "Did V separately recover Johnny's clothing?",
+          "topic": "johnny.possessions.psychofan-pants",
+          "outcomes": [
+            {
+              "key": "recovered",
+              "description": "V recovered the optional clothing item in this location.",
+              "affects": [
+                "v",
+                "johnny-silverhand"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-psychofan"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-psychofan"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Needs acquisition provenance; inventory ownership alone is insufficient."
+          }
+        }
+      ],
+      "sourceIds": [
+        "silverhand-psychofan"
+      ],
+      "uncertainties": [
+        "Kerry is not automatically the client or recipient, nor does he learn of the retrieval without disclosure.",
+        "The optional clothing pickup and contracted guitar delivery are independent."
+      ]
+    },
+    {
+      "key": "family-heirloom",
+      "title": "Gig: Family Heirloom",
+      "category": "gig",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "rogue-amendiares",
+        "johnny-silverhand",
+        "nancy-hartley"
+      ],
+      "synopsis": "Rogue asks V to recover a bootleg recording for Nancy's son Dan, with the lost car an optional recovery.",
+      "stages": [
+        {
+          "key": "garage",
+          "description": "The search locates Dan's property.",
+          "sourceIds": [
+            "silverhand-family"
+          ]
+        },
+        {
+          "key": "recording",
+          "description": "V retrieves the recording.",
+          "sourceIds": [
+            "silverhand-family"
+          ]
+        },
+        {
+          "key": "delivery",
+          "description": "The recording and optional vehicle can be returned separately.",
+          "sourceIds": [
+            "silverhand-family"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "silverhand.recording-delivery",
+          "description": "Was Dan's recording returned?",
+          "topic": "nancy.dan.recording",
+          "outcomes": [
+            {
+              "key": "delivered",
+              "description": "Dan received the recovered recording.",
+              "affects": [
+                "v",
+                "rogue-amendiares",
+                "johnny-silverhand"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-family"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-family"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact stage and branch conditions require native audit. Unknown is preserved; no rule is enabled."
+          }
+        },
+        {
+          "id": "silverhand.family-car",
+          "description": "Was Dan's car also returned?",
+          "topic": "nancy.dan.car",
+          "outcomes": [
+            {
+              "key": "returned",
+              "description": "V returned the optional car as well.",
+              "affects": [
+                "v",
+                "rogue-amendiares",
+                "johnny-silverhand"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-family"
+              ]
+            },
+            {
+              "key": "not-returned",
+              "description": "The gig concluded without the optional car delivery.",
+              "affects": [
+                "v",
+                "rogue-amendiares",
+                "johnny-silverhand"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-family"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-family"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact stage and branch conditions require native audit. Unknown is preserved; no rule is enabled."
+          }
+        },
+        {
+          "id": "silverhand.family-shoes",
+          "description": "Were Johnny's optional shoes recovered here?",
+          "topic": "johnny.possessions.family-shoes",
+          "outcomes": [
+            {
+              "key": "recovered",
+              "description": "V acquired the optional shoes from this location.",
+              "affects": [
+                "v",
+                "johnny-silverhand"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-family"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-family"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact stage and branch conditions require native audit. Unknown is preserved; no rule is enabled."
+          }
+        }
+      ],
+      "sourceIds": [
+        "silverhand-family"
+      ],
+      "uncertainties": [
+        "Nancy is not present. Her son receiving a recording is not proof she was told or that family tensions were resolved.",
+        "Optional item acquisition cannot identify the whole gig outcome by itself."
+      ]
+    },
+    {
+      "key": "hot-merchandise",
+      "title": "Gig: Hot Merchandise",
+      "category": "gig",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "rogue-amendiares"
+      ],
+      "synopsis": "Rogue targets Rebeca Price's trade in compromised Militech equipment.",
+      "stages": [
+        {
+          "key": "brief",
+          "description": "Rogue explains the risk of corporate retaliation.",
+          "sourceIds": [
+            "silverhand-hot",
+            "silverhand-hot-wiki"
+          ]
+        },
+        {
+          "key": "data-inc",
+          "description": "V reaches Rebeca behind the guarded business.",
+          "sourceIds": [
+            "silverhand-hot",
+            "silverhand-hot-wiki"
+          ]
+        },
+        {
+          "key": "resolution",
+          "description": "The target can be killed or delivered unconscious.",
+          "sourceIds": [
+            "silverhand-hot",
+            "silverhand-hot-wiki"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "silverhand.rebeca-price-fate",
+          "description": "How was Rebeca neutralized?",
+          "topic": "rogue.hot-merchandise.target",
+          "outcomes": [
+            {
+              "key": "killed",
+              "description": "Rebeca was killed during the contract.",
+              "affects": [
+                "v",
+                "rogue-amendiares"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-hot"
+              ]
+            },
+            {
+              "key": "delivered-alive",
+              "description": "Rebeca was neutralized nonlethally and delivered to the arranged transport.",
+              "affects": [
+                "v",
+                "rogue-amendiares"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-hot",
+                "silverhand-hot-wiki"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-hot",
+            "silverhand-hot-wiki"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact stage and branch conditions require native audit. Unknown is preserved; no rule is enabled."
+          }
+        }
+      ],
+      "sourceIds": [
+        "silverhand-hot",
+        "silverhand-hot-wiki"
+      ],
+      "uncertainties": [
+        "Rogue's stated motive is managing fallout; do not invent a direct Militech employment contract.",
+        "An unconscious target is not yet successful delivery, and combat incapacitation is not a verified death."
+      ]
+    },
+    {
+      "key": "the-union-strikes-back",
+      "title": "Gig: The Union Strikes Back",
+      "category": "gig",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "rogue-amendiares"
+      ],
+      "synopsis": "Rogue intervenes against Vic Vega and C-Team's intimidation of workers.",
+      "stages": [
+        {
+          "key": "brief",
+          "description": "The contract concerns violence against the community.",
+          "sourceIds": [
+            "silverhand-union",
+            "silverhand-union-branches"
+          ]
+        },
+        {
+          "key": "c-team",
+          "description": "V reaches the target.",
+          "sourceIds": [
+            "silverhand-union",
+            "silverhand-union-branches"
+          ]
+        },
+        {
+          "key": "assessment",
+          "description": "Target fate and collateral affect the result separately.",
+          "sourceIds": [
+            "silverhand-union",
+            "silverhand-union-branches"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "silverhand.vic-vega-fate",
+          "description": "What happened to the target?",
+          "topic": "rogue.union.target",
+          "outcomes": [
+            {
+              "key": "killed",
+              "description": "Vic Vega was killed.",
+              "affects": [
+                "v",
+                "rogue-amendiares"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-union",
+                "silverhand-union-branches"
+              ]
+            },
+            {
+              "key": "delivered-alive",
+              "description": "Vic Vega was delivered unconscious to the arranged transport.",
+              "affects": [
+                "v",
+                "rogue-amendiares"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-union-branches"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-union",
+            "silverhand-union-branches"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact stage and branch conditions require native audit. Unknown is preserved; no rule is enabled."
+          }
+        },
+        {
+          "id": "silverhand.union-collateral",
+          "description": "What collateral did the completed job establish?",
+          "topic": "rogue.union.collateral",
+          "outcomes": [
+            {
+              "key": "no-other-kills",
+              "description": "The completed route spared others and earned Rogue's favorable assessment.",
+              "affects": [
+                "v",
+                "rogue-amendiares"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-union-branches"
+              ]
+            },
+            {
+              "key": "others-killed",
+              "description": "Other people were killed during the job.",
+              "affects": [
+                "v",
+                "rogue-amendiares"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-union-branches"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-union-branches"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Needs the actual job evaluation; global kill counts or absence of alerts cannot prove the clean branch."
+          }
+        }
+      ],
+      "sourceIds": [
+        "silverhand-union",
+        "silverhand-union-branches"
+      ],
+      "uncertainties": [
+        "This intervention shows a specific choice by Rogue, not proof that every contract she offers is altruistic.",
+        "Nonlethal delivery and collateral-free completion are independent."
+      ]
+    },
+    {
+      "key": "nasty-hangover",
+      "title": "Gig: Nasty Hangover",
+      "category": "gig",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "rogue-amendiares",
+        "johnny-silverhand"
+      ],
+      "synopsis": "A stolen corporate shard leads to a confrontation between Karl Ginsky and Kang Tao.",
+      "stages": [
+        {
+          "key": "recovery",
+          "description": "V retrieves the shard from the 6th Street warehouse.",
+          "sourceIds": [
+            "silverhand-hangover"
+          ]
+        },
+        {
+          "key": "meeting",
+          "description": "Kang Tao interrupts the return to Karl.",
+          "sourceIds": [
+            "silverhand-hangover"
+          ]
+        },
+        {
+          "key": "choice",
+          "description": "V can protect Karl or allow the agents to kill him.",
+          "sourceIds": [
+            "silverhand-hangover"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "silverhand.karl-ginsky-fate",
+          "description": "What happened at the confrontation?",
+          "topic": "rogue.nasty-hangover.karl",
+          "outcomes": [
+            {
+              "key": "saved",
+              "description": "V defeated the agents and Karl survived the encounter.",
+              "affects": [
+                "v",
+                "johnny-silverhand",
+                "rogue-amendiares"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-hangover"
+              ]
+            },
+            {
+              "key": "killed",
+              "description": "V allowed Kang Tao to kill Karl.",
+              "affects": [
+                "v",
+                "johnny-silverhand",
+                "rogue-amendiares"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-hangover"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-hangover"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact stage and branch conditions require native audit. Unknown is preserved; no rule is enabled."
+          }
+        },
+        {
+          "id": "silverhand.kang-tao-payment",
+          "description": "Did V actually take the agents' offered payment?",
+          "topic": "johnny.v.kang-tao-payment",
+          "outcomes": [
+            {
+              "key": "accepted",
+              "description": "V took the agents' credit chip, prompting Johnny's disapproval.",
+              "affects": [
+                "v",
+                "johnny-silverhand"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "silverhand-hangover"
+              ]
+            },
+            {
+              "key": "not-accepted",
+              "description": "The confrontation concluded without V accepting that chip.",
+              "affects": [
+                "v",
+                "johnny-silverhand"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "silverhand-hangover"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-hangover"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Chip being dropped is not chip being accepted. Require actual pickup and source context or the final evaluated branch."
+          }
+        }
+      ],
+      "sourceIds": [
+        "silverhand-hangover"
+      ],
+      "uncertainties": [
+        "Karl survival and agent-payment acceptance must not share a single binary outcome.",
+        "Rogue knows reported contract results; she is not an eyewitness to every spoken exchange."
+      ]
+    },
+    {
+      "key": "nocturne-op55n1",
+      "title": "Nocturne Op55N1",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "johnny-silverhand",
+        "rogue-amendiares",
+        "kerry-eurodyne"
+      ],
+      "synopsis": "After Embers, V evaluates the available final approaches on the rooftop.",
+      "stages": [
+        {
+          "key": "embers",
+          "description": "Hanako presents the Arasaka proposition.",
+          "sourceIds": [
+            "silverhand-nocturne",
+            "silverhand-reaper-corroboration",
+            "silverhand-forever",
+            "silverhand-kerry-romance"
+          ]
+        },
+        {
+          "key": "rooftop",
+          "description": "V and Johnny weigh routes actually available in this save.",
+          "sourceIds": [
+            "silverhand-nocturne",
+            "silverhand-reaper-corroboration",
+            "silverhand-forever",
+            "silverhand-kerry-romance"
+          ]
+        },
+        {
+          "key": "commitment",
+          "description": "A chosen route requires explicit commitment beyond merely seeing its dialogue option.",
+          "sourceIds": [
+            "silverhand-nocturne",
+            "silverhand-reaper-corroboration",
+            "silverhand-forever",
+            "silverhand-kerry-romance"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "silverhand.final-route",
+          "description": "Which route was explicitly committed to?",
+          "topic": "v.final-route",
+          "outcomes": [
+            {
+              "key": "arasaka",
+              "description": "V committed to Hanako's plan.",
+              "affects": [
+                "v",
+                "johnny-silverhand"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "silverhand-nocturne"
+              ]
+            },
+            {
+              "key": "aldecaldos",
+              "description": "V called for Panam's help on the qualified route.",
+              "affects": [
+                "v",
+                "johnny-silverhand",
+                "panam-palmer"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-nocturne"
+              ]
+            },
+            {
+              "key": "rogue",
+              "description": "V entrusted the qualified assault to Johnny and Rogue.",
+              "affects": [
+                "v",
+                "johnny-silverhand",
+                "rogue-amendiares"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-nocturne"
+              ]
+            },
+            {
+              "key": "solo",
+              "description": "V accepted Johnny's separate solo-assault proposal.",
+              "affects": [
+                "v",
+                "johnny-silverhand"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "silverhand-reaper-corroboration"
+              ]
+            },
+            {
+              "key": "suicide",
+              "description": "V chose and carried through the rooftop suicide branch.",
+              "affects": [
+                "v",
+                "johnny-silverhand"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "silverhand-nocturne"
+              ]
+            },
+            {
+              "key": "nusa",
+              "description": "V committed to the qualified NUSA surgery route.",
+              "affects": [
+                "v",
+                "johnny-silverhand"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "silverhand-forever"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-nocturne",
+            "silverhand-reaper-corroboration",
+            "silverhand-forever"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Requires native route, stage and branch evidence. An ending reward in a returned pre-Embers save is not proof that this event happened in its timeline."
+          }
+        },
+        {
+          "id": "silverhand.rooftop-kerry-call",
+          "description": "Was Kerry the person actually called?",
+          "topic": "kerry.v.rooftop-call",
+          "outcomes": [
+            {
+              "key": "called",
+              "description": "V called Kerry before the commitment.",
+              "affects": [
+                "kerry-eurodyne",
+                "v"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "silverhand-kerry-romance"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-kerry-romance"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Requires native route, stage and branch evidence. An ending reward in a returned pre-Embers save is not proof that this event happened in its timeline."
+          }
+        }
+      ],
+      "sourceIds": [
+        "silverhand-nocturne",
+        "silverhand-reaper-corroboration",
+        "silverhand-forever",
+        "silverhand-kerry-romance"
+      ],
+      "uncertainties": [
+        "Route availability, highlighted dialogue, accepted plan and completed ending are four distinct states.",
+        "Do not derive the solo route from a friendship percentage or from waiting without the required oilfield branch.",
+        "A credits sequence followed by loading an older save must not contaminate that save's memories."
+      ]
+    },
+    {
+      "key": "for-whom-the-bell-tolls",
+      "title": "For Whom the Bell Tolls",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "johnny-silverhand",
+        "rogue-amendiares"
+      ],
+      "synopsis": "With V's temporary consent, Johnny secures Rogue's involvement and prepares the tower assault.",
+      "stages": [
+        {
+          "key": "afterlife",
+          "description": "Johnny approaches Rogue through V.",
+          "sourceIds": [
+            "silverhand-bell"
+          ]
+        },
+        {
+          "key": "preparation",
+          "description": "The team gathers equipment and assistance.",
+          "sourceIds": [
+            "silverhand-bell"
+          ]
+        },
+        {
+          "key": "departure",
+          "description": "They depart for the attack.",
+          "sourceIds": [
+            "silverhand-bell"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "silverhand.assault-commitment",
+          "description": "Did Rogue commit to joining Johnny's assault?",
+          "topic": "rogue.johnny.final-assault",
+          "outcomes": [
+            {
+              "key": "committed",
+              "description": "Rogue agreed to take part and prepared the assault with Johnny.",
+              "affects": [
+                "rogue-amendiares",
+                "johnny-silverhand",
+                "v"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-bell"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-bell"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Requires native route, stage and branch evidence. An ending reward in a returned pre-Embers save is not proof that this event happened in its timeline."
+          }
+        },
+        {
+          "id": "silverhand.rogue-farewell-call",
+          "description": "Was the private family farewell observed?",
+          "topic": "rogue.family.farewell",
+          "outcomes": [
+            {
+              "key": "overheard",
+              "description": "Johnny, controlling V, overheard the family farewell; its private content is not public knowledge.",
+              "affects": [
+                "rogue-amendiares",
+                "johnny-silverhand",
+                "v"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "silverhand-bell"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-bell"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Requires native route, stage and branch evidence. An ending reward in a returned pre-Embers save is not proof that this event happened in its timeline."
+          }
+        }
+      ],
+      "sourceIds": [
+        "silverhand-bell"
+      ],
+      "uncertainties": [
+        "Rogue's family call does not identify her son's mother/father beyond what is actually said.",
+        "Preparing an assault does not authorize the later death outcome."
+      ]
+    },
+    {
+      "key": "knockin-on-heavens-door",
+      "title": "Knockin' on Heaven's Door",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "johnny-silverhand",
+        "rogue-amendiares",
+        "adam-smasher"
+      ],
+      "synopsis": "The Rogue assault enters the tower, brings Alt into the system and reaches Smasher before Mikoshi.",
+      "stages": [
+        {
+          "key": "arrival",
+          "description": "The damaged approach separates the group near the tower garden.",
+          "sourceIds": [
+            "silverhand-knockin"
+          ]
+        },
+        {
+          "key": "network",
+          "description": "The team reconnects and advances toward Mikoshi.",
+          "sourceIds": [
+            "silverhand-knockin"
+          ]
+        },
+        {
+          "key": "smasher",
+          "description": "The confrontation kills Rogue before Smasher is defeated.",
+          "sourceIds": [
+            "silverhand-knockin"
+          ]
+        },
+        {
+          "key": "mikoshi",
+          "description": "The survivor reaches the access point.",
+          "sourceIds": [
+            "silverhand-knockin"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "silverhand.weyland-recovery",
+          "description": "Was Weyland recovered during this route?",
+          "topic": "weyland.rogue-assault.recovery",
+          "outcomes": [
+            {
+              "key": "recovered",
+              "description": "Weyland was recovered after the landing.",
+              "affects": [
+                "johnny-silverhand",
+                "rogue-amendiares",
+                "v"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-knockin"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-knockin"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Do not infer Weyland's death from skipping the player rescue objective; Rogue's intervention can differ."
+          }
+        },
+        {
+          "id": "silverhand.rogue-fate",
+          "description": "Did Rogue's fatal Smasher confrontation occur?",
+          "topic": "rogue.fate",
+          "outcomes": [
+            {
+              "key": "killed",
+              "description": "Rogue died in the confrontation with Smasher.",
+              "affects": [
+                "johnny-silverhand",
+                "rogue-amendiares",
+                "adam-smasher",
+                "v"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "silverhand-knockin"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-knockin"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Requires native route, stage and branch evidence. An ending reward in a returned pre-Embers save is not proof that this event happened in its timeline."
+          }
+        },
+        {
+          "id": "silverhand.rogue-route-smasher-fate",
+          "description": "What happened after Smasher was defeated?",
+          "topic": "smasher.fate",
+          "outcomes": [
+            {
+              "key": "killed",
+              "description": "The defeated Smasher was explicitly finished.",
+              "affects": [
+                "johnny-silverhand",
+                "adam-smasher",
+                "v"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-knockin"
+              ]
+            },
+            {
+              "key": "spared",
+              "description": "The defeated Smasher was left alive at the decision.",
+              "affects": [
+                "johnny-silverhand",
+                "adam-smasher",
+                "v"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-knockin"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-knockin"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Audit defeat, optional dialogue and the finishing action separately. A boss-health threshold is not a death predicate."
+          }
+        }
+      ],
+      "sourceIds": [
+        "silverhand-knockin"
+      ],
+      "uncertainties": [
+        "Do not apply Rogue's death to the solo, Arasaka or Aldecaldo route.",
+        "A spawned Rogue after this branch is a mod copy, not proof the story death was reversed.",
+        "Optional terminal interactions and all Weyland path variations are not exhaustively mapped."
+      ]
+    },
+    {
+      "key": "dont-fear-the-reaper",
+      "title": "(Don't Fear) The Reaper",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "johnny-silverhand",
+        "adam-smasher",
+        "rogue-amendiares"
+      ],
+      "synopsis": "V and Johnny attempt a direct assault without sending their friends into the tower.",
+      "stages": [
+        {
+          "key": "offer",
+          "description": "The special rooftop proposal becomes available only on its qualified dialogue path.",
+          "sourceIds": [
+            "silverhand-reaper",
+            "silverhand-reaper-corroboration"
+          ]
+        },
+        {
+          "key": "assault",
+          "description": "V enters and fights through the tower.",
+          "sourceIds": [
+            "silverhand-reaper",
+            "silverhand-reaper-corroboration"
+          ]
+        },
+        {
+          "key": "access",
+          "description": "Surviving the Smasher encounter allows access to Mikoshi.",
+          "sourceIds": [
+            "silverhand-reaper",
+            "silverhand-reaper-corroboration"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "silverhand.solo-assault-result",
+          "description": "How did the actual assault conclude?",
+          "topic": "v.solo-assault.result",
+          "outcomes": [
+            {
+              "key": "reached-mikoshi",
+              "description": "V reached Mikoshi without Rogue participating in the attack.",
+              "affects": [
+                "v",
+                "johnny-silverhand"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-reaper"
+              ]
+            },
+            {
+              "key": "fatal-failure",
+              "description": "The assault ended in V's death and the failure credits.",
+              "affects": [
+                "v",
+                "johnny-silverhand"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-reaper"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-reaper"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Requires native route, stage and branch evidence. An ending reward in a returned pre-Embers save is not proof that this event happened in its timeline."
+          }
+        },
+        {
+          "id": "silverhand.solo-route-smasher-fate",
+          "description": "What was Smasher's final state on this route?",
+          "topic": "smasher.fate",
+          "outcomes": [
+            {
+              "key": "killed",
+              "description": "V explicitly killed the defeated Smasher.",
+              "affects": [
+                "v",
+                "johnny-silverhand",
+                "adam-smasher"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-reaper"
+              ]
+            },
+            {
+              "key": "spared",
+              "description": "V left the defeated Smasher alive at the decision.",
+              "affects": [
+                "v",
+                "johnny-silverhand",
+                "adam-smasher"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-reaper"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-reaper"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Outcome candidates require exact native finishing-action evidence; the inspected ending overview establishes route, not a universal kill."
+          }
+        }
+      ],
+      "sourceIds": [
+        "silverhand-reaper",
+        "silverhand-reaper-corroboration"
+      ],
+      "uncertainties": [
+        "The secret route uses specific Chippin' In dialogue, not a reliable displayed percentage threshold.",
+        "Successful access has not yet chosen who keeps the body.",
+        "Fatal-failure credits do not persist as a lived event after restoring an earlier save."
+      ]
+    },
+    {
+      "key": "belly-of-the-beast",
+      "title": "Belly of the Beast",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "johnny-silverhand",
+        "adam-smasher",
+        "santiago",
+        "panam-palmer",
+        "saul-bright"
+      ],
+      "synopsis": "V, Panam and Saul enter through the foundations and reach Mikoshi after the Smasher encounter.",
+      "stages": [
+        {
+          "key": "tunnel",
+          "description": "The group advances through the underground approach.",
+          "sourceIds": [
+            "silverhand-belly",
+            "silverhand-saul"
+          ]
+        },
+        {
+          "key": "network",
+          "description": "Alt's intervention opens the route and causes casualties.",
+          "sourceIds": [
+            "silverhand-belly",
+            "silverhand-saul"
+          ]
+        },
+        {
+          "key": "smasher",
+          "description": "Saul is killed before V and Panam overcome Smasher.",
+          "sourceIds": [
+            "silverhand-belly",
+            "silverhand-saul"
+          ]
+        },
+        {
+          "key": "access",
+          "description": "V reaches Mikoshi and the subsequent body decision.",
+          "sourceIds": [
+            "silverhand-belly",
+            "silverhand-saul"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "silverhand.saul-fate",
+          "description": "Did Saul's fatal tower confrontation occur?",
+          "topic": "saul.fate",
+          "outcomes": [
+            {
+              "key": "killed",
+              "description": "Smasher killed Saul during this route's confrontation.",
+              "affects": [
+                "v",
+                "panam-palmer",
+                "adam-smasher",
+                "johnny-silverhand"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "silverhand-saul",
+                "silverhand-belly"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-saul",
+            "silverhand-belly"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Requires native route, stage and branch evidence. An ending reward in a returned pre-Embers save is not proof that this event happened in its timeline."
+          }
+        },
+        {
+          "id": "silverhand.aldecaldo-route-smasher-fate",
+          "description": "What happened after Smasher's defeat on this route?",
+          "topic": "smasher.fate",
+          "outcomes": [
+            {
+              "key": "killed",
+              "description": "V explicitly finished Smasher.",
+              "affects": [
+                "v",
+                "panam-palmer",
+                "johnny-silverhand",
+                "adam-smasher"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-belly"
+              ]
+            },
+            {
+              "key": "spared",
+              "description": "V left defeated Smasher alive at that decision.",
+              "affects": [
+                "v",
+                "panam-palmer",
+                "johnny-silverhand",
+                "adam-smasher"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-belly"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-belly"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Requires native finishing action; the quest title or token acquisition cannot settle fate."
+          }
+        },
+        {
+          "id": "silverhand.aldecaldo-mikoshi",
+          "description": "Did V reach the access point?",
+          "topic": "v.aldecaldo-assault.mikoshi",
+          "outcomes": [
+            {
+              "key": "reached",
+              "description": "V reached Mikoshi with the Aldecaldo assault route established.",
+              "affects": [
+                "v",
+                "johnny-silverhand",
+                "panam-palmer"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-belly"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-belly"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Requires native route, stage and branch evidence. An ending reward in a returned pre-Embers save is not proof that this event happened in its timeline."
+          }
+        }
+      ],
+      "sourceIds": [
+        "silverhand-belly",
+        "silverhand-saul"
+      ],
+      "uncertainties": [
+        "Santiago's link is retrospective told-by-V cultural relevance; he is not a participant.",
+        "Saul's death is separate from earlier Bob/Teddy casualties and from the later body decision.",
+        "A token carried back to a pre-ending save does not establish that Saul is now dead in that timeline."
+      ]
+    },
+    {
+      "key": "totalimmortal",
+      "title": "Totalimmortal",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "johnny-silverhand",
+        "adam-smasher"
+      ],
+      "synopsis": "V helps Hanako confront the corporate coup and fights Smasher before reaching Yorinobu.",
+      "stages": [
+        {
+          "key": "board",
+          "description": "V testifies during Hanako's intervention and encounters Saburo's engram.",
+          "sourceIds": [
+            "silverhand-total",
+            "silverhand-total-mercy",
+            "silverhand-mind-alt"
+          ]
+        },
+        {
+          "key": "assault",
+          "description": "V pushes through Yorinobu's forces, with surviving allies varying by earlier decisions.",
+          "sourceIds": [
+            "silverhand-total",
+            "silverhand-total-mercy",
+            "silverhand-mind-alt"
+          ]
+        },
+        {
+          "key": "smasher",
+          "description": "V defeats Smasher and can decide whether to finish him.",
+          "sourceIds": [
+            "silverhand-total",
+            "silverhand-total-mercy",
+            "silverhand-mind-alt"
+          ]
+        },
+        {
+          "key": "yorinobu",
+          "description": "Hanako takes charge after V's final encounter with Yorinobu.",
+          "sourceIds": [
+            "silverhand-total",
+            "silverhand-total-mercy",
+            "silverhand-mind-alt"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "silverhand.arasaka-route-smasher-fate",
+          "description": "What happened after Smasher was defeated on the Arasaka route?",
+          "topic": "smasher.fate",
+          "outcomes": [
+            {
+              "key": "killed",
+              "description": "V explicitly killed the defeated Smasher.",
+              "affects": [
+                "v",
+                "adam-smasher"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-total-mercy"
+              ]
+            },
+            {
+              "key": "spared",
+              "description": "V left the defeated Smasher alive at the decision.",
+              "affects": [
+                "v",
+                "adam-smasher"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-total-mercy"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-total-mercy"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Requires native route, stage and branch evidence. An ending reward in a returned pre-Embers save is not proof that this event happened in its timeline."
+          }
+        },
+        {
+          "id": "silverhand.arasaka-assault-companion",
+          "description": "Was Takemura actually present as an ally?",
+          "topic": "takemura.arasaka-assault",
+          "outcomes": [
+            {
+              "key": "present",
+              "description": "Takemura survived the earlier rescue and participated in this assault.",
+              "affects": [
+                "v",
+                "goro-takemura"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-mind-alt",
+                "silverhand-total"
+              ]
+            },
+            {
+              "key": "absent",
+              "description": "The completed assault took place without Takemura as an ally.",
+              "affects": [
+                "v"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "silverhand-total"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-total",
+            "silverhand-mind-alt"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Cross-check Search and Destroy and actual scene actors; absence alone does not prove death."
+          }
+        },
+        {
+          "id": "silverhand.yorinobu-confronted",
+          "description": "Did V reach the final confrontation?",
+          "topic": "v.arasaka.yorinobu-confrontation",
+          "outcomes": [
+            {
+              "key": "completed",
+              "description": "V reached Yorinobu and subsequently left with Hellman for treatment.",
+              "affects": [
+                "v"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-total"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-total"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Requires native route, stage and branch evidence. An ending reward in a returned pre-Embers save is not proof that this event happened in its timeline."
+          }
+        }
+      ],
+      "sourceIds": [
+        "silverhand-total",
+        "silverhand-total-mercy",
+        "silverhand-mind-alt"
+      ],
+      "uncertainties": [
+        "Johnny is suppressed through much of this route; do not give him a normal companion eyewitness stream for every encounter.",
+        "The guide's boss statistics predate later balancing and are irrelevant to this lore map.",
+        "Oda's survival and exact participation need cross-lane native evidence."
+      ]
+    },
+    {
+      "key": "where-is-my-mind",
+      "title": "Where Is My Mind?",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "johnny-silverhand",
+        "kerry-eurodyne"
+      ],
+      "synopsis": "After Johnny's farewell, V endures orbital testing and receives Arasaka's final offer.",
+      "stages": [
+        {
+          "key": "farewell",
+          "description": "V has the final encounter with Johnny before the treatment sequence.",
+          "sourceIds": [
+            "silverhand-mind",
+            "silverhand-mind-alt"
+          ]
+        },
+        {
+          "key": "tests",
+          "description": "V is subjected to repeated examinations and can make limited calls.",
+          "sourceIds": [
+            "silverhand-mind",
+            "silverhand-mind-alt"
+          ]
+        },
+        {
+          "key": "offer",
+          "description": "Takemura or Hellman presents the prognosis and contract.",
+          "sourceIds": [
+            "silverhand-mind",
+            "silverhand-mind-alt"
+          ]
+        },
+        {
+          "key": "choice",
+          "description": "V chooses digital storage or a return to Earth.",
+          "sourceIds": [
+            "silverhand-mind",
+            "silverhand-mind-alt"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "silverhand.orbital-contract",
+          "description": "What did V choose after the prognosis?",
+          "topic": "v.arasaka.contract",
+          "outcomes": [
+            {
+              "key": "signed",
+              "description": "V agreed to Arasaka's digital-storage contract.",
+              "affects": [
+                "v"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "silverhand-mind",
+                "silverhand-mind-alt"
+              ]
+            },
+            {
+              "key": "earth",
+              "description": "V refused the contract and chose to return to Earth.",
+              "affects": [
+                "v"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "silverhand-mind",
+                "silverhand-mind-alt"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-mind",
+            "silverhand-mind-alt"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Requires native route, stage and branch evidence. An ending reward in a returned pre-Embers save is not proof that this event happened in its timeline."
+          }
+        },
+        {
+          "id": "silverhand.orbital-envoy",
+          "description": "Who actually delivered the offer?",
+          "topic": "v.arasaka.orbital-envoy",
+          "outcomes": [
+            {
+              "key": "takemura",
+              "description": "Takemura delivered the offer after surviving the earlier story.",
+              "affects": [
+                "v",
+                "goro-takemura"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-mind-alt"
+              ]
+            },
+            {
+              "key": "hellman",
+              "description": "Hellman delivered the offer in Takemura's absence.",
+              "affects": [
+                "v",
+                "anders-hellman"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-mind-alt"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-mind-alt"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Requires native route, stage and branch evidence. An ending reward in a returned pre-Embers save is not proof that this event happened in its timeline."
+          }
+        },
+        {
+          "id": "silverhand.orbital-kerry-call",
+          "description": "Was Kerry actually reached during the optional call sequence?",
+          "topic": "kerry.v.orbital-call",
+          "outcomes": [
+            {
+              "key": "spoke",
+              "description": "V and Kerry spoke through the restored communications link.",
+              "affects": [
+                "kerry-eurodyne",
+                "v"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "silverhand-mind"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-mind"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "The general call sequence is documented; exact Kerry availability/dialogue needs native scene evidence. Do not infer it from a romance flag alone."
+          }
+        }
+      ],
+      "sourceIds": [
+        "silverhand-mind",
+        "silverhand-mind-alt"
+      ],
+      "uncertainties": [
+        "A storage contract does not guarantee a compatible future body, rescue, immortality or consciousness continuity.",
+        "Treat the limited lifespan as an in-world prognosis, not an observed death.",
+        "Johnny's farewell occurs before V learns the later testing and contract details."
+      ]
+    },
+    {
+      "key": "changes",
+      "title": "Changes",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "johnny-silverhand",
+        "rogue-amendiares",
+        "kerry-eurodyne"
+      ],
+      "synopsis": "At Mikoshi, Alt separates V and Johnny and explains the cost of deciding who returns to the body.",
+      "stages": [
+        {
+          "key": "separation",
+          "description": "The two identities are separated in cyberspace.",
+          "sourceIds": [
+            "silverhand-changes"
+          ]
+        },
+        {
+          "key": "prognosis",
+          "description": "Alt describes why V's return would remain medically limited.",
+          "sourceIds": [
+            "silverhand-changes"
+          ]
+        },
+        {
+          "key": "decision",
+          "description": "The current viewpoint character chooses who returns.",
+          "sourceIds": [
+            "silverhand-changes"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "silverhand.body-beneficiary",
+          "description": "Who was actually chosen to keep the body?",
+          "topic": "v.johnny.body-beneficiary",
+          "outcomes": [
+            {
+              "key": "v",
+              "description": "V returns to the body; Johnny goes with Alt.",
+              "affects": [
+                "v",
+                "johnny-silverhand"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-changes"
+              ]
+            },
+            {
+              "key": "johnny",
+              "description": "Johnny returns in V's body; V goes with Alt.",
+              "affects": [
+                "v",
+                "johnny-silverhand"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-changes"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-changes"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "CRITICAL: bridge/well meanings depend on viewpoint. V-controlled bridge gives Johnny the body; Johnny-controlled bridge gives V the body. Record beneficiary, route and actor, not a raw interaction label."
+          }
+        },
+        {
+          "id": "silverhand.mikoshi-jackie",
+          "description": "What private Jackie-related encounter occurred before the decision?",
+          "topic": "v.jackie.mikoshi-encounter",
+          "outcomes": [
+            {
+              "key": "engram",
+              "description": "The conditional Jackie engram encounter occurred.",
+              "affects": [
+                "v"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "silverhand-changes"
+              ]
+            },
+            {
+              "key": "pendant",
+              "description": "The alternate pendant-associated sequence occurred.",
+              "affects": [
+                "v"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "silverhand-changes"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-changes"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Requires the earlier body-delivery outcome plus the actual scene. Jackie item ownership is not a sufficient gate."
+          }
+        }
+      ],
+      "sourceIds": [
+        "silverhand-changes"
+      ],
+      "uncertainties": [
+        "This quest spans different approaches and viewpoints; semantic outcomes must normalize them without losing route provenance.",
+        "Do not present Soulkiller's metaphysical continuity as settled fact.",
+        "Rogue and Kerry are affected by the result but do not automatically witness the private Mikoshi decision."
+      ]
+    },
+    {
+      "key": "path-of-glory",
+      "title": "Path of Glory",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "johnny-silverhand",
+        "rogue-amendiares",
+        "kerry-eurodyne"
+      ],
+      "synopsis": "V occupies the Afterlife legend role and prepares another high-risk job.",
+      "stages": [
+        {
+          "key": "home",
+          "description": "A relationship-dependent morning establishes who is present.",
+          "sourceIds": [
+            "silverhand-glory",
+            "silverhand-kerry-romance"
+          ]
+        },
+        {
+          "key": "afterlife",
+          "description": "The club's scene depends on whether Rogue survived the chosen assault.",
+          "sourceIds": [
+            "silverhand-glory",
+            "silverhand-kerry-romance"
+          ]
+        },
+        {
+          "key": "job",
+          "description": "Mr. Blue Eyes supplies the Crystal Palace proposition.",
+          "sourceIds": [
+            "silverhand-glory",
+            "silverhand-kerry-romance"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "silverhand.rogue-afterlife",
+          "description": "Was living Rogue present in this epilogue?",
+          "topic": "rogue.sun.presence",
+          "outcomes": [
+            {
+              "key": "alive-after-solo",
+              "description": "Rogue remained alive because V took the solo route and appears in the corresponding Afterlife scene.",
+              "affects": [
+                "rogue-amendiares",
+                "v"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-glory"
+              ]
+            },
+            {
+              "key": "absent-after-death",
+              "description": "Rogue is absent after her death in her assault route.",
+              "affects": [
+                "v"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "silverhand-glory"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-glory"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Requires native route, stage and branch evidence. An ending reward in a returned pre-Embers save is not proof that this event happened in its timeline."
+          }
+        },
+        {
+          "id": "silverhand.kerry-sendoff",
+          "description": "Did Kerry participate in the relationship-dependent morning?",
+          "topic": "kerry.v.sun-sendoff",
+          "outcomes": [
+            {
+              "key": "present",
+              "description": "Kerry shared the morning and discussed V's future in the selected relationship branch.",
+              "affects": [
+                "kerry-eurodyne",
+                "v"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "silverhand-glory",
+                "silverhand-kerry-romance"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-glory",
+            "silverhand-kerry-romance"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Requires native route, stage and branch evidence. An ending reward in a returned pre-Embers save is not proof that this event happened in its timeline."
+          }
+        },
+        {
+          "id": "silverhand.crystal-palace-job",
+          "description": "What stage of the proposed job was reached?",
+          "topic": "v.crystal-palace.job",
+          "outcomes": [
+            {
+              "key": "departed",
+              "description": "V departed for the proposed Crystal Palace operation.",
+              "affects": [
+                "v"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "silverhand-glory"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-glory"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Requires native route, stage and branch evidence. An ending reward in a returned pre-Embers save is not proof that this event happened in its timeline."
+          }
+        }
+      ],
+      "sourceIds": [
+        "silverhand-glory",
+        "silverhand-kerry-romance"
+      ],
+      "uncertainties": [
+        "Departure is not success, cure or survival; those outcomes are not shown.",
+        "Kerry's supportive words are an expressed intention, not evidence of a guaranteed future.",
+        "A romance or an owned penthouse-looking mod asset cannot establish this ending."
+      ]
+    },
+    {
+      "key": "new-dawn-fades",
+      "title": "New Dawn Fades",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "johnny-silverhand",
+        "rogue-amendiares"
+      ],
+      "synopsis": "Johnny lives in V's body, spends time with Steve and leaves Night City after saying goodbye.",
+      "stages": [
+        {
+          "key": "steve",
+          "description": "Johnny helps the young neighbor and visits the guitar shop.",
+          "sourceIds": [
+            "silverhand-dawn"
+          ]
+        },
+        {
+          "key": "memorial",
+          "description": "He visits memorials appropriate to this route.",
+          "sourceIds": [
+            "silverhand-dawn"
+          ]
+        },
+        {
+          "key": "departure",
+          "description": "He leaves the city.",
+          "sourceIds": [
+            "silverhand-dawn"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "silverhand.temperance-guitar",
+          "description": "Was the gift left for Steve?",
+          "topic": "johnny.steve.guitar",
+          "outcomes": [
+            {
+              "key": "given",
+              "description": "Johnny provided Steve with the guitar.",
+              "affects": [
+                "johnny-silverhand",
+                "steve"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-dawn"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-dawn"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Requires native route, stage and branch evidence. An ending reward in a returned pre-Embers save is not proof that this event happened in its timeline."
+          }
+        },
+        {
+          "id": "silverhand.temperance-memorials",
+          "description": "Which route-dependent remembrance occurred?",
+          "topic": "johnny.temperance.memorial",
+          "outcomes": [
+            {
+              "key": "v-only",
+              "description": "The sequence remembered V without a deceased-Rogue memorial.",
+              "affects": [
+                "johnny-silverhand"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "silverhand-dawn"
+              ]
+            },
+            {
+              "key": "v-and-rogue",
+              "description": "The sequence also remembered Rogue after her verified death.",
+              "affects": [
+                "johnny-silverhand"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "silverhand-dawn"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-dawn"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Rogue's death and the actual visit are separate gates. Do not memorialize Rogue after a solo or Aldecaldo approach."
+          }
+        },
+        {
+          "id": "silverhand.departure",
+          "description": "Did Johnny leave Night City?",
+          "topic": "johnny.temperance.departure",
+          "outcomes": [
+            {
+              "key": "left-city",
+              "description": "Johnny departed in V's body after this epilogue.",
+              "affects": [
+                "johnny-silverhand"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-dawn"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-dawn"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Requires native route, stage and branch evidence. An ending reward in a returned pre-Embers save is not proof that this event happened in its timeline."
+          }
+        }
+      ],
+      "sourceIds": [
+        "silverhand-dawn"
+      ],
+      "uncertainties": [
+        "A duplicate summoned Johnny is not proof the Relic still resides in V after this ending.",
+        "The meaning of V's loss remains different from a confirmed ordinary bodily death; preserve the Mikoshi context.",
+        "Do not invent a subsequent destination, new career or permanent reform."
+      ]
+    },
+    {
+      "key": "who-wants-to-live-forever",
+      "title": "Who Wants to Live Forever",
+      "category": "main",
+      "game": "phantom-liberty",
+      "nativeIds": [],
+      "characters": [
+        "johnny-silverhand"
+      ],
+      "synopsis": "An eligible V can accept Reed's NUSA surgery arrangement and say goodbye to Johnny.",
+      "stages": [
+        {
+          "key": "offer",
+          "description": "The preceding Songbird outcome and agreement make the treatment available.",
+          "sourceIds": [
+            "silverhand-forever"
+          ]
+        },
+        {
+          "key": "decision",
+          "description": "V can delay or commit to the departure.",
+          "sourceIds": [
+            "silverhand-forever"
+          ]
+        },
+        {
+          "key": "av",
+          "description": "Boarding commits V to the treatment sequence and Johnny's farewell.",
+          "sourceIds": [
+            "silverhand-forever"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "silverhand.surgery-departure",
+          "description": "What did V actually decide at departure?",
+          "topic": "v.nusa.surgery-departure",
+          "outcomes": [
+            {
+              "key": "boarded",
+              "description": "V boarded for the NUSA treatment.",
+              "affects": [
+                "v",
+                "johnny-silverhand"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-forever"
+              ]
+            },
+            {
+              "key": "postponed",
+              "description": "V explicitly postponed the departure while the option remained open.",
+              "affects": [
+                "v",
+                "johnny-silverhand"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "silverhand-forever"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-forever"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Prior Songbird survival/hand-over and acceptance must be audited with the Phantom Liberty lane. A call or map marker is not boarding."
+          }
+        },
+        {
+          "id": "silverhand.surgery-goodbye",
+          "description": "Which qualitative farewell was observed?",
+          "topic": "johnny.v.surgery-farewell",
+          "outcomes": [
+            {
+              "key": "conciliatory",
+              "description": "The farewell expressed mutual understanding in this scene.",
+              "affects": [
+                "v",
+                "johnny-silverhand"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "silverhand-forever"
+              ]
+            },
+            {
+              "key": "hostile",
+              "description": "The farewell remained hostile or disappointed in this scene.",
+              "affects": [
+                "v",
+                "johnny-silverhand"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "silverhand-forever"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-forever"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "A semantic candidate only: exact native dialogue mapping is required. Do not derive global friendship or a percentage from the tone."
+          }
+        }
+      ],
+      "sourceIds": [
+        "silverhand-forever"
+      ],
+      "uncertainties": [
+        "Boarding does not yet reveal the two-year coma or later implant limitations.",
+        "A goodbye does not automatically disclose V's medical condition to every contact."
+      ]
+    },
+    {
+      "key": "things-done-changed",
+      "title": "Things Done Changed",
+      "category": "main",
+      "game": "phantom-liberty",
+      "nativeIds": [],
+      "characters": [
+        "johnny-silverhand",
+        "kerry-eurodyne",
+        "rogue-amendiares"
+      ],
+      "synopsis": "V wakes after NUSA treatment and discovers the consequences of the missing years.",
+      "stages": [
+        {
+          "key": "awakening",
+          "description": "The treatment removed the engram but left major lasting limitations.",
+          "sourceIds": [
+            "silverhand-tower",
+            "silverhand-pl-overview"
+          ]
+        },
+        {
+          "key": "contacts",
+          "description": "V learns selected contacts' changed circumstances through actual calls.",
+          "sourceIds": [
+            "silverhand-tower",
+            "silverhand-pl-overview"
+          ]
+        },
+        {
+          "key": "return",
+          "description": "V returns to a changed Night City and considers life outside the old mercenary role.",
+          "sourceIds": [
+            "silverhand-tower",
+            "silverhand-pl-overview"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "silverhand.surgery-outcome",
+          "description": "Has V awakened and heard the actual treatment result?",
+          "topic": "v.nusa.surgery-outcome",
+          "outcomes": [
+            {
+              "key": "cured-with-cost",
+              "description": "V learns of the two-year coma, removal of the engram and inability to sustain the former combat-cyberware life.",
+              "affects": [
+                "v"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-tower",
+                "silverhand-pl-overview"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-tower",
+            "silverhand-pl-overview"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Requires native route, stage and branch evidence. An ending reward in a returned pre-Embers save is not proof that this event happened in its timeline."
+          }
+        },
+        {
+          "id": "silverhand.kerry-contact",
+          "description": "Was Kerry reached after the treatment?",
+          "topic": "kerry.v.tower-contact",
+          "outcomes": [
+            {
+              "key": "spoke",
+              "description": "Kerry spoke from his ongoing tour, offering help without an immediate in-person reunion.",
+              "affects": [
+                "v",
+                "kerry-eurodyne"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "silverhand-tower"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-tower"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Requires native route, stage and branch evidence. An ending reward in a returned pre-Embers save is not proof that this event happened in its timeline."
+          }
+        },
+        {
+          "id": "silverhand.tower-return",
+          "description": "Did V complete the return to Night City?",
+          "topic": "v.nusa.return",
+          "outcomes": [
+            {
+              "key": "returned",
+              "description": "V returned and experienced the altered circumstances directly.",
+              "affects": [
+                "v"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "silverhand-tower"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "silverhand-tower"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Requires native route, stage and branch evidence. An ending reward in a returned pre-Embers save is not proof that this event happened in its timeline."
+          }
+        }
+      ],
+      "sourceIds": [
+        "silverhand-tower",
+        "silverhand-pl-overview"
+      ],
+      "uncertainties": [
+        "Johnny is no longer an ongoing eyewitness; any later spawned copy can learn this only through V's account.",
+        "Kerry's availability is not proof that he never cared, nor does his offer guarantee support already delivered.",
+        "Individual phone/video messages, pet custody and every partner's outcome require separate exact branches; this lane does not fabricate them."
+      ]
+    }
+  ]
+}

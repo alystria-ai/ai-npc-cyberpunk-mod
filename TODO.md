@@ -1,5 +1,49 @@
 # Cyberpunk Convai overhaul
 
+## September 30 — deep character knowledge and save-scoped memory
+
+This is the new granular knowledge request, separate from the already accepted
+tracked-objective feature below. Snapshot: generated research reports at
+2026-09-29 22:30 UTC (September 30 locally).
+
+- [x] Create a dedicated `research/cyberpunk/` workspace with repeatable public
+  collection, installed-resource extraction, source manifests and exact evidence
+  references. Blocked/incomplete sources remain recorded; raw caches are ignored.
+- [x] Author all 79 dossiers with individual biographies, speaking styles,
+  original examples, relationships and knowledge limits. Independent review now
+  covers all 79 and all 618 example entries; all 16 findings were corrected.
+  See `research/cyberpunk/PROFILE_CROSS_REVIEW.md` and its city peer review.
+- [x] Cross-reference the current narrative corpus: 253 quest keys, 704 decisions
+  and 1,160 outcomes. Compile 165 source-verified native rules linked to 160
+  outcomes, with 259 artifacts and 3,154 checked pointers. This is source evidence,
+  not confirmation that every rule has run in the game.
+- [ ] Expand the remaining 1,000 explicitly unmapped outcomes. They stay excluded
+  from executable context/memory until exact conditions, narrative meaning and
+  audience are verified. See `research/cyberpunk/generated/native-coverage.json`.
+- [ ] Apply the expanded researched profile content through the three separate
+  Core API fields and verify readback. The earlier completed field-separation
+  repair below is not a claim that this new content has been applied.
+- [ ] Install and live-check the granular context across private, phone, group
+  and microphone routes. Source integration and controlled checks are ready;
+  the earlier read-only 2.31 capture is narrower than full runtime acceptance.
+- [ ] Resolve the native save-identity startup regression. `KnowledgeState.reds`
+  is quarantined and excluded from installers; removing it restored startup and
+  same-save loading. The Codeware native initialization evidence is documented in
+  `research/cyberpunk/SAVE_IDENTITY.md`; no repair or durable restore is claimed.
+- [x] Qualify explicit memory API ownership using a disposable character and
+  separate A/B users. Add/list/get isolation, cross-user HTTP 403, memory cleanup
+  and temporary-character deletion passed. This did not enable production memory.
+- [ ] Enable durable production memory only after native identity, restore and
+  extraction/recall qualification. **Production memory remains OFF.** Automatic
+  extraction and in-game conversational recall are not established by the REST
+  probe. See `research/cyberpunk/MEMORY_QUALIFICATION.md`.
+- [ ] Install and audibly check the new Convai PCM streaming path. Its source and
+  offline byte-preservation/lifecycle checks are ready; it is **not installed**,
+  and no native playback latency or seamlessness result is claimed.
+
+Detailed design, evidence boundaries and remaining steps are in
+`research/cyberpunk/README.md` and `research/cyberpunk/WORK_PLAN.md`.
+
 ## September 29 — current direction
 
 - [ ] September 30: batch reactions to confirmed world loot, default On with an independent MCM setting; combine witnessed loot with the eligible battle closing. Installed and hash-verified at 01:00 IST (`ac609bc`), reply bridge restarted and CET activation confirmed. The user heard Judy's first loot comment; the trace shows one quantity-two receipt, one request after the six-second collection wait and completed playback. Real drink/stack pickup and vehicle-storage event ordering captured; storage returns are nonsilent, so explicit source exclusion is required. 110 standard checks plus the separate installed-MCM integration check pass. Combined battle/loot and Legendary reactions await live acceptance; corpse loot-all and virtual pickup coverage remain unqualified. See `docs/LOOT_REACTIONS.md`.

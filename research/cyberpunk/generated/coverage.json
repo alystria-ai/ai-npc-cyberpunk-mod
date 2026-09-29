@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "builtAt": "2026-09-29T22:40:08.710Z",
+  "profilesExpected": 79,
+  "profilesAuthored": 79,
+  "profilesMissing": [],
+  "questLanes": 8,
+  "questsAuthored": 253,
+  "decisionsAuthored": 704,
+  "outcomesAuthored": 1160,
+  "runtimeQualification": {
+    "unmapped": 704
+  },
+  "nativeMappingComplete": false,
+  "errors": [],
+  "warnings": []
+}

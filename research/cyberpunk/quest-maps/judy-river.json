@@ -1,0 +1,4313 @@
+{
+  "version": 1,
+  "lane": "judy-river",
+  "sources": [
+    {
+      "id": "jr-judy",
+      "url": "https://cyberpunk.fandom.com/wiki/Judy_%C3%81lvarez",
+      "title": "Judy Alvarez",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Biography; database; romance; endings",
+      "notes": "Read via indexed page content on 2026-09-30; direct Fandom access returned a robots restriction. Community interpretation, not native branch evidence."
+    },
+    {
+      "id": "jr-evelyn",
+      "url": "https://cyberpunk.fandom.com/wiki/Evelyn_Parker",
+      "title": "Evelyn Parker",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Biography; database; relationship ambiguity",
+      "notes": "Read via indexed page content on 2026-09-30; direct Fandom access returned a robots restriction. Community interpretation, not native branch evidence."
+    },
+    {
+      "id": "jr-river",
+      "url": "https://cyberpunk.fandom.com/wiki/River_Ward",
+      "title": "River Ward",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Biography; romance; endings",
+      "notes": "Read via indexed page content on 2026-09-30; direct Fandom access returned a robots restriction. Community interpretation, not native branch evidence."
+    },
+    {
+      "id": "jr-joss",
+      "url": "https://cyberpunk.fandom.com/wiki/Joss_Kutcher",
+      "title": "Joss Kutcher",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Biography and family",
+      "notes": "Read via indexed page content on 2026-09-30; direct Fandom access returned a robots restriction. Community interpretation, not native branch evidence."
+    },
+    {
+      "id": "jr-jefferson",
+      "url": "https://cyberpunk.fandom.com/wiki/Jefferson_Peralez",
+      "title": "Jefferson Peralez",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Biography; database; campaign; election aftermath",
+      "notes": "Read via indexed page content on 2026-09-30; direct Fandom access returned a robots restriction. Community interpretation, not native branch evidence."
+    },
+    {
+      "id": "jr-elizabeth",
+      "url": "https://cyberpunk.fandom.com/wiki/Elizabeth_Peralez",
+      "title": "Elizabeth Peralez",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Biography; database",
+      "notes": "Read via indexed page content on 2026-09-30; direct Fandom access returned a robots restriction. Community interpretation, not native branch evidence."
+    },
+    {
+      "id": "jr-elizabeth-computer",
+      "url": "https://cyberpunk.fandom.com/wiki/Elizabeth_Peralez/Computers",
+      "title": "Elizabeth Peralez computers",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Daughter; Judy referral; memory inconsistencies",
+      "notes": "Read via indexed page content on 2026-09-30; direct Fandom access returned a robots restriction. Community interpretation, not native branch evidence."
+    },
+    {
+      "id": "jr-sandra",
+      "url": "https://cyberpunk.fandom.com/wiki/Sandra_Dorsett",
+      "title": "Sandra Dorsett",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Biography; database; Humans of Night City",
+      "notes": "Read via indexed page content on 2026-09-30; direct Fandom access returned a robots restriction. Community interpretation, not native branch evidence."
+    },
+    {
+      "id": "jr-ana",
+      "url": "https://cyberpunk.fandom.com/wiki/Ana_Friedman",
+      "title": "Ana Friedman",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Database entry",
+      "notes": "Read via indexed page content on 2026-09-30; direct Fandom access returned a robots restriction. Community interpretation, not native branch evidence."
+    },
+    {
+      "id": "jr-claire",
+      "url": "https://cyberpunk.fandom.com/wiki/Claire_Russell",
+      "title": "Claire Russell",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Biography; database",
+      "notes": "Read via indexed page content on 2026-09-30; direct Fandom access returned a robots restriction. Community interpretation, not native branch evidence."
+    },
+    {
+      "id": "jr-rescue",
+      "url": "https://cyberpunk.fandom.com/wiki/The_Rescue",
+      "title": "The Rescue",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Walkthrough; medical handover",
+      "notes": "Read via indexed page content on 2026-09-30; direct Fandom access returned a robots restriction. Community interpretation, not native branch evidence."
+    },
+    {
+      "id": "jr-information",
+      "url": "https://cyberpunk.fandom.com/wiki/The_Information",
+      "title": "The Information",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Meeting and analysis objectives",
+      "notes": "Read via indexed page content on 2026-09-30; direct Fandom access returned a robots restriction. Community interpretation, not native branch evidence."
+    },
+    {
+      "id": "jr-automatic",
+      "url": "https://cyberpunk.fandom.com/wiki/Automatic_Love",
+      "title": "Automatic Love",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Woodman alternatives; booth evidence",
+      "notes": "Read via indexed page content on 2026-09-30; direct Fandom access returned a robots restriction. Community interpretation, not native branch evidence."
+    },
+    {
+      "id": "jr-space",
+      "url": "https://cyberpunk.fandom.com/wiki/The_Space_in_Between",
+      "title": "The Space in Between",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Fingers interrogation",
+      "notes": "Read via indexed page content on 2026-09-30; direct Fandom access returned a robots restriction. Community interpretation, not native branch evidence."
+    },
+    {
+      "id": "jr-disasterpiece",
+      "url": "https://cyberpunk.fandom.com/wiki/Disasterpiece",
+      "title": "Disasterpiece",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Search and rescue objectives",
+      "notes": "Read via indexed page content on 2026-09-30; direct Fandom access returned a robots restriction. Community interpretation, not native branch evidence."
+    },
+    {
+      "id": "jr-double",
+      "url": "https://cyberpunk.fandom.com/wiki/Double_Life",
+      "title": "Double Life",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Recovered braindances",
+      "notes": "Read via indexed page content on 2026-09-30; direct Fandom access returned a robots restriction. Community interpretation, not native branch evidence."
+    },
+    {
+      "id": "jr-both",
+      "url": "https://cyberpunk.fandom.com/wiki/Both_Sides%2C_Now",
+      "title": "Both Sides, Now",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Judy call; Evelyn death",
+      "notes": "Read via indexed page content on 2026-09-30; direct Fandom access returned a robots restriction. Community interpretation, not native branch evidence."
+    },
+    {
+      "id": "jr-ex",
+      "url": "https://cyberpunk.fandom.com/wiki/Ex-Factor",
+      "title": "Ex-Factor",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Maiko; Woodman; verification-needed notes",
+      "notes": "Read via indexed page content on 2026-09-30; direct Fandom access returned a robots restriction. Community interpretation, not native branch evidence."
+    },
+    {
+      "id": "jr-revolution",
+      "url": "https://cyberpunk.fandom.com/wiki/Talkin%27_%27bout_a_Revolution",
+      "title": "Talkin' 'bout a Revolution",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Plan; participation; Relic disclosure; stay",
+      "notes": "Read via indexed page content on 2026-09-30; direct Fandom access returned a robots restriction. Community interpretation, not native branch evidence."
+    },
+    {
+      "id": "jr-pisces",
+      "url": "https://cyberpunk.fandom.com/wiki/Pisces",
+      "title": "Pisces",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Payment; Maiko; later Clouds reports",
+      "notes": "Read via indexed page content on 2026-09-30; direct Fandom access returned a robots restriction. Community interpretation, not native branch evidence."
+    },
+    {
+      "id": "jr-pyramid",
+      "url": "https://cyberpunk.fandom.com/wiki/Pyramid_Song",
+      "title": "Pyramid Song",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Dive; romance; friendship; departure",
+      "notes": "Read via indexed page content on 2026-09-30; direct Fandom access returned a robots restriction. Community interpretation, not native branch evidence."
+    },
+    {
+      "id": "jr-law",
+      "url": "https://cyberpunk.fandom.com/wiki/I_Fought_the_Law",
+      "title": "I Fought the Law",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Investigation; BD; coverup; client report",
+      "notes": "Read via indexed page content on 2026-09-30; direct Fandom access returned a robots restriction. Community interpretation, not native branch evidence."
+    },
+    {
+      "id": "jr-dream",
+      "url": "https://cyberpunk.fandom.com/wiki/Dream_On",
+      "title": "Dream On",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Intrusion; van; private meeting; disclosure",
+      "notes": "Read via indexed page content on 2026-09-30; direct Fandom access returned a robots restriction. Community interpretation, not native branch evidence."
+    },
+    {
+      "id": "jr-hunt",
+      "url": "https://cyberpunk.fandom.com/wiki/The_Hunt",
+      "title": "The Hunt",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Clues; right/wrong farm; abandonment; aftermath",
+      "notes": "Read via indexed page content on 2026-09-30; direct Fandom access returned a robots restriction. Community interpretation, not native branch evidence."
+    },
+    {
+      "id": "jr-following",
+      "url": "https://cyberpunk.fandom.com/wiki/Following_the_River",
+      "title": "Following the River",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Dinner; disclosure; romance",
+      "notes": "Read via indexed page content on 2026-09-30; direct Fandom access returned a robots restriction. Community interpretation, not native branch evidence."
+    },
+    {
+      "id": "jr-disclosure",
+      "url": "https://cyberpunk.fandom.com/wiki/Full_Disclosure",
+      "title": "Full Disclosure",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Privacy and response alternatives",
+      "notes": "Read via indexed page content on 2026-09-30; direct Fandom access returned a robots restriction. Community interpretation, not native branch evidence."
+    },
+    {
+      "id": "jr-black-steel",
+      "url": "https://cyberpunk.fandom.com/wiki/Black_Steel_In_The_Hour_of_Chaos",
+      "title": "Black Steel In The Hour of Chaos",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Sandra assistance and Trojan request",
+      "notes": "Read via indexed page content on 2026-09-30; direct Fandom access returned a robots restriction. Community interpretation, not native branch evidence."
+    },
+    {
+      "id": "jr-spy",
+      "url": "https://cyberpunk.fandom.com/wiki/Gig%3A_Spy_in_the_Jungle",
+      "title": "Gig: Spy in the Jungle",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Katya; biomonitor; aftermath",
+      "notes": "Read via indexed page content on 2026-09-30; direct Fandom access returned a robots restriction. Community interpretation, not native branch evidence."
+    },
+    {
+      "id": "jr-show",
+      "url": "https://cyberpunk.fandom.com/wiki/The_Show_Must_Go_On",
+      "title": "The Show Must Go On",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Suppression and Steven report",
+      "notes": "Read via indexed page content on 2026-09-30; direct Fandom access returned a robots restriction. Community interpretation, not native branch evidence."
+    },
+    {
+      "id": "jr-money",
+      "url": "https://cyberpunk.fandom.com/wiki/Money_For_Nothing",
+      "title": "Money For Nothing",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Stash bargain",
+      "notes": "Read via indexed page content on 2026-09-30; direct Fandom access returned a robots restriction. Community interpretation, not native branch evidence."
+    },
+    {
+      "id": "jr-beast",
+      "url": "https://cyberpunk.fandom.com/wiki/The_Beast_In_Me",
+      "title": "The Beast In Me",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Offer; races; confrontation; awards",
+      "notes": "Read via indexed page content on 2026-09-30; direct Fandom access returned a robots restriction. Community interpretation, not native branch evidence."
+    },
+    {
+      "id": "jr-city",
+      "url": "https://cyberpunk.fandom.com/wiki/The_Beast_in_Me%3A_City_Center",
+      "title": "The Beast in Me: City Center",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Vehicle; placement; ride",
+      "notes": "Read via indexed page content on 2026-09-30; direct Fandom access returned a robots restriction. Community interpretation, not native branch evidence."
+    },
+    {
+      "id": "jr-santo",
+      "url": "https://cyberpunk.fandom.com/wiki/The_Beast_in_Me%3A_Santo_Domingo",
+      "title": "The Beast in Me: Santo Domingo",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Claire disclosure; choices; later text",
+      "notes": "Read via indexed page content on 2026-09-30; direct Fandom access returned a robots restriction. Community interpretation, not native branch evidence."
+    },
+    {
+      "id": "jr-big",
+      "url": "https://cyberpunk.fandom.com/wiki/The_Beast_in_Me%3A_The_Big_Race",
+      "title": "The Beast in Me: The Big Race",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Chase versus finish",
+      "notes": "Read via indexed page content on 2026-09-30; direct Fandom access returned a robots restriction. Community interpretation, not native branch evidence."
+    },
+    {
+      "id": "jr-sampson",
+      "url": "https://cyberpunk.fandom.com/wiki/Peter_Sampson",
+      "title": "Peter Sampson",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Disputed crash; mercy conditions",
+      "notes": "Read via indexed page content on 2026-09-30; direct Fandom access returned a robots restriction. Community interpretation, not native branch evidence."
+    },
+    {
+      "id": "jr-cthulhu",
+      "url": "https://cyberpunk.fandom.com/wiki/Quadra_Type-66_%22Cthulhu%22",
+      "title": "Quadra Type-66 Cthulhu",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Award versus purchase; persuasion wording",
+      "notes": "Read via indexed page content on 2026-09-30; direct Fandom access returned a robots restriction. Community interpretation, not native branch evidence."
+    },
+    {
+      "id": "jr-romance",
+      "url": "https://cyberpunk.fandom.com/wiki/Cyberpunk_2077_Romance",
+      "title": "Cyberpunk 2077 Romance",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Eligibility; primary call; endings; hangouts",
+      "notes": "Read via indexed page content on 2026-09-30; direct Fandom access returned a robots restriction. Community interpretation, not native branch evidence."
+    },
+    {
+      "id": "jr-endings",
+      "url": "https://cyberpunk.fandom.com/wiki/Cyberpunk_2077_Endings",
+      "title": "Cyberpunk 2077 Endings",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Character credits messages",
+      "notes": "Read via indexed page content on 2026-09-30; direct Fandom access returned a robots restriction. Community interpretation, not native branch evidence."
+    },
+    {
+      "id": "jr-sun",
+      "url": "https://cyberpunk.fandom.com/wiki/Path_of_Glory",
+      "title": "Path of Glory",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Partner and Claire scenes",
+      "notes": "Read via indexed page content on 2026-09-30; direct Fandom access returned a robots restriction. Community interpretation, not native branch evidence."
+    },
+    {
+      "id": "jr-star",
+      "url": "https://cyberpunk.fandom.com/wiki/All_Along_the_Watchtower",
+      "title": "All Along the Watchtower",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Partner departure",
+      "notes": "Read via indexed page content on 2026-09-30; direct Fandom access returned a robots restriction. Community interpretation, not native branch evidence."
+    },
+    {
+      "id": "jr-tower",
+      "url": "https://cyberpunk.fandom.com/wiki/Things_Done_Changed",
+      "title": "Things Done Changed",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "2079 Judy and River calls",
+      "notes": "Read via indexed page content on 2026-09-30; direct Fandom access returned a robots restriction. Community interpretation, not native branch evidence."
+    },
+    {
+      "id": "jr-badlands",
+      "url": "https://cyberpunk.fandom.com/fr/wiki/The_Beast_in_Me_%3A_Badlands",
+      "title": "The Beast in Me: Badlands (French)",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Vehicle restriction; objectives",
+      "notes": "Read indexed French page; translated facts only."
+    },
+    {
+      "id": "jr-transcript",
+      "url": "https://arasakas-ronin.netlify.app/",
+      "title": "Arasakas Ronin: preserved Game Scripts Wiki transcript",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "The Information lines 764-885; Pisces and Pyramid Song lines 7678-7845",
+      "notes": "Direct page inspected. Partial community-transcribed playthrough, not exhaustive branch evidence. Used for contrasting delivery and knowledge boundaries; no transcript dialogue copied into samples."
+    },
+    {
+      "id": "jr-pyramid-guide",
+      "url": "https://www.powerpyx.com/cyberpunk-2077-pyramid-song-walkthrough/",
+      "title": "PowerPyx: Pyramid Song",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Romance gates and morning commitment",
+      "notes": "Direct guide inspected; corroboration, not native evidence."
+    },
+    {
+      "id": "jr-pisces-guide",
+      "url": "https://game8.co/games/Cyberpunk-2077/archives/Quests-Pisces",
+      "title": "Game8: Pisces",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Maiko and payment",
+      "notes": "Indexed guide content inspected; direct open failed."
+    }
+  ],
+  "quests": [
+    {
+      "key": "the-rescue",
+      "title": "The Rescue",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "sandra-dorsett"
+      ],
+      "synopsis": "V and Jackie recover a missing client with T-Bug's remote support.",
+      "stages": [
+        {
+          "key": "search",
+          "description": "Sandra is the missing client.",
+          "sourceIds": [
+            "jr-rescue"
+          ]
+        },
+        {
+          "key": "medical",
+          "description": "She is found alive with jammed protection.",
+          "sourceIds": [
+            "jr-rescue"
+          ]
+        },
+        {
+          "key": "handover",
+          "description": "Treatment and extraction must be confirmed separately.",
+          "sourceIds": [
+            "jr-rescue"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "judy-river.rescue.medical",
+          "description": "Record treatment and handover.",
+          "topic": "sandra.rescue",
+          "outcomes": [
+            {
+              "key": "found",
+              "description": "Sandra found alive; extraction still unknown.",
+              "affects": [
+                "sandra-dorsett"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "jr-rescue"
+              ]
+            },
+            {
+              "key": "handed-over",
+              "description": "Sandra handed to Trauma Team after jammer removal and emergency treatment.",
+              "affects": [
+                "sandra-dorsett"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "jr-rescue"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-rescue"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact installed-version fact, journal and scene conditions remain unverified. Reached-stage gates are required. Prose outcomes are never runtime-enabled."
+          }
+        }
+      ],
+      "sourceIds": [
+        "jr-rescue"
+      ],
+      "uncertainties": [
+        "Sandra was incapacitated; she cannot narrate all rescue actions as a conscious witness. A summoned copy is not the quest patient."
+      ]
+    },
+    {
+      "key": "the-information",
+      "title": "The Information",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "judy-alvarez",
+        "evelyn-parker"
+      ],
+      "synopsis": "Evelyn offers the heist lead; Judy analyzes the recording.",
+      "stages": [
+        {
+          "key": "briefed",
+          "description": "Meeting Evelyn and meeting Judy are separate acquaintance events.",
+          "sourceIds": [
+            "jr-information",
+            "jr-transcript"
+          ]
+        },
+        {
+          "key": "analysis",
+          "description": "The recording supplies the Relic location and optional security clues.",
+          "sourceIds": [
+            "jr-information",
+            "jr-transcript"
+          ]
+        },
+        {
+          "key": "private-offer",
+          "description": "Evelyn proposes bypassing Dex.",
+          "sourceIds": [
+            "jr-information",
+            "jr-transcript"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "judy-river.information.introductions",
+          "description": "Who met V?",
+          "topic": "heist.introductions",
+          "outcomes": [
+            {
+              "key": "evelyn-met",
+              "description": "Evelyn briefs V.",
+              "affects": [
+                "evelyn-parker"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-information"
+              ]
+            },
+            {
+              "key": "judy-met",
+              "description": "Judy calibrates and assists V.",
+              "affects": [
+                "judy-alvarez"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-information"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-information"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact installed-version fact, journal and scene conditions remain unverified. Reached-stage gates are required. Prose outcomes are never runtime-enabled."
+          }
+        },
+        {
+          "id": "judy-river.information.dex-offer",
+          "description": "Preserve private proposition without inventing betrayal.",
+          "topic": "evelyn.dex_offer",
+          "outcomes": [
+            {
+              "key": "offered",
+              "description": "Evelyn asks V to exclude Dex; Judy is not an audience.",
+              "affects": [
+                "evelyn-parker"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "jr-evelyn"
+              ]
+            },
+            {
+              "key": "disclosed-to-dex",
+              "description": "If V separately told Dex, Dex learns it; Evelyn does not automatically know.",
+              "affects": [
+                "evelyn-parker"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "jr-evelyn"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-evelyn"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact installed-version fact, journal and scene conditions remain unverified. Reached-stage gates are required. Prose outcomes are never runtime-enabled."
+          }
+        }
+      ],
+      "sourceIds": [
+        "jr-information",
+        "jr-transcript"
+      ],
+      "uncertainties": [
+        "Acceptance, deferral and later disclosure require exact The Heist scene evidence. An offer is not a paid deal."
+      ]
+    },
+    {
+      "key": "automatic-love",
+      "title": "Automatic Love",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "judy-alvarez",
+        "evelyn-parker"
+      ],
+      "synopsis": "V follows Evelyn's trail into Clouds.",
+      "stages": [
+        {
+          "key": "judy-lead",
+          "description": "Judy provides a lead.",
+          "sourceIds": [
+            "jr-automatic"
+          ]
+        },
+        {
+          "key": "clouds",
+          "description": "Tom, booth footage and records are distinct sources.",
+          "sourceIds": [
+            "jr-automatic"
+          ]
+        },
+        {
+          "key": "fingers-lead",
+          "description": "The search points toward Fingers.",
+          "sourceIds": [
+            "jr-automatic"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "judy-river.automatic.evidence",
+          "description": "Which optional evidence was actually inspected?",
+          "topic": "evelyn.clouds_evidence",
+          "outcomes": [
+            {
+              "key": "booth-seen",
+              "description": "V saw evidence of a cyberattack; Judy needs a report.",
+              "affects": [
+                "judy-alvarez"
+              ],
+              "knowledge": "shared-journal",
+              "sourceIds": [
+                "jr-automatic"
+              ]
+            },
+            {
+              "key": "tom-story",
+              "description": "Tom relayed the special-clinic story; it is testimony, not verified recovery.",
+              "affects": [
+                "judy-alvarez"
+              ],
+              "knowledge": "shared-journal",
+              "sourceIds": [
+                "jr-automatic"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-automatic"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact installed-version fact, journal and scene conditions remain unverified. Reached-stage gates are required. Prose outcomes are never runtime-enabled."
+          }
+        },
+        {
+          "id": "judy-river.automatic.woodman",
+          "description": "Separate obtaining information from mortality.",
+          "topic": "woodman.encounter",
+          "outcomes": [
+            {
+              "key": "peaceful",
+              "description": "Woodman supplied the Fingers lead.",
+              "affects": [
+                "judy-alvarez"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "jr-automatic"
+              ]
+            },
+            {
+              "key": "defeated",
+              "description": "Woodman was defeated; death is not established.",
+              "affects": [
+                "judy-alvarez"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "jr-automatic"
+              ]
+            },
+            {
+              "key": "killed-confirmed",
+              "description": "Woodman's death is confirmed, excluding a later living confrontation.",
+              "affects": [
+                "judy-alvarez"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "jr-ex"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-automatic",
+            "jr-ex"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact installed-version fact, journal and scene conditions remain unverified. Reached-stage gates are required. Prose outcomes are never runtime-enabled."
+          }
+        }
+      ],
+      "sourceIds": [
+        "jr-automatic"
+      ],
+      "uncertainties": [
+        "Judy was not in every room. The doll session is V-private unless disclosed."
+      ]
+    },
+    {
+      "key": "the-space-in-between",
+      "title": "The Space in Between",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "judy-alvarez",
+        "evelyn-parker"
+      ],
+      "synopsis": "Judy and V question Fingers.",
+      "stages": [
+        {
+          "key": "clinic",
+          "description": "Judy arrives regardless of the optional call.",
+          "sourceIds": [
+            "jr-space"
+          ]
+        },
+        {
+          "key": "testimony",
+          "description": "The questioning yields the next lead.",
+          "sourceIds": [
+            "jr-space"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "judy-river.space.fingers-treatment",
+          "description": "Preserve witnessed conduct only.",
+          "topic": "fingers.interrogation",
+          "outcomes": [
+            {
+              "key": "questioned",
+              "description": "The pair obtained testimony without a verified assault.",
+              "affects": [
+                "judy-alvarez"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-space"
+              ]
+            },
+            {
+              "key": "assault-observed",
+              "description": "An actual observed assault is part of Judy's experience.",
+              "affects": [
+                "judy-alvarez"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-space"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-space"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Source establishes alternative questioning approaches but not complete current-version merchant/combat conditions."
+          }
+        }
+      ],
+      "sourceIds": [
+        "jr-space"
+      ],
+      "uncertainties": [
+        "Absence of assault evidence means unknown, not peaceful. Exact assault/death and vendor consequences need scene evidence."
+      ]
+    },
+    {
+      "key": "disasterpiece",
+      "title": "Disasterpiece",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "judy-alvarez",
+        "evelyn-parker"
+      ],
+      "synopsis": "An illicit recording leads the pair to the studio holding Evelyn.",
+      "stages": [
+        {
+          "key": "xbd",
+          "description": "An XBD lead is acquired.",
+          "sourceIds": [
+            "jr-disasterpiece"
+          ]
+        },
+        {
+          "key": "location",
+          "description": "Analysis identifies the power plant.",
+          "sourceIds": [
+            "jr-disasterpiece"
+          ]
+        },
+        {
+          "key": "rescue",
+          "description": "Judy participates in extraction.",
+          "sourceIds": [
+            "jr-disasterpiece"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "judy-river.disasterpiece.recovery",
+          "description": "Finding is not yet saving.",
+          "topic": "evelyn.recovery",
+          "outcomes": [
+            {
+              "key": "located",
+              "description": "Evelyn located; extraction not established.",
+              "affects": [
+                "judy-alvarez"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-disasterpiece"
+              ]
+            },
+            {
+              "key": "extracted",
+              "description": "Evelyn taken out with Judy's help.",
+              "affects": [
+                "judy-alvarez",
+                "evelyn-parker"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-disasterpiece"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-disasterpiece"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact installed-version fact, journal and scene conditions remain unverified. Reached-stage gates are required. Prose outcomes are never runtime-enabled."
+          }
+        }
+      ],
+      "sourceIds": [
+        "jr-disasterpiece"
+      ],
+      "uncertainties": [
+        "Evelyn is unable to offer coherent testimony at this point. Avoid graphic recitation of abuse."
+      ]
+    },
+    {
+      "key": "double-life",
+      "title": "Double Life",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "judy-alvarez",
+        "evelyn-parker"
+      ],
+      "synopsis": "Judy cares for Evelyn and studies recovered recordings.",
+      "stages": [
+        {
+          "key": "care",
+          "description": "Evelyn rests without answering V.",
+          "sourceIds": [
+            "jr-double"
+          ]
+        },
+        {
+          "key": "first-bd",
+          "description": "The obscured contractor and Pacifica clues are examined.",
+          "sourceIds": [
+            "jr-double"
+          ]
+        },
+        {
+          "key": "second-bd",
+          "description": "Further assignment information is translated.",
+          "sourceIds": [
+            "jr-double"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "judy-river.double.recordings",
+          "description": "Separate evidence from direct participation.",
+          "topic": "evelyn.contract_evidence",
+          "outcomes": [
+            {
+              "key": "vdb-clue",
+              "description": "Clues point to Voodoo Boys; the hidden face is not a verified personal identification.",
+              "affects": [
+                "judy-alvarez"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-double"
+              ]
+            },
+            {
+              "key": "assignment-revealed",
+              "description": "The relevant playback establishes that Evelyn was hired to record the suite.",
+              "affects": [
+                "judy-alvarez"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-double"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-double"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact installed-version fact, journal and scene conditions remain unverified. Reached-stage gates are required. Prose outcomes are never runtime-enabled."
+          }
+        }
+      ],
+      "sourceIds": [
+        "jr-double"
+      ],
+      "uncertainties": [
+        "Do not give Judy all later Pacifica discoveries. Exact translated-line gates remain unmapped."
+      ]
+    },
+    {
+      "key": "both-sides-now",
+      "title": "Both Sides, Now",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "judy-alvarez",
+        "evelyn-parker"
+      ],
+      "synopsis": "Judy calls for help after Evelyn's death.",
+      "stages": [
+        {
+          "key": "call",
+          "description": "Urgent call precedes the disclosed event.",
+          "sourceIds": [
+            "jr-both"
+          ]
+        },
+        {
+          "key": "death",
+          "description": "V learns Evelyn died by suicide.",
+          "sourceIds": [
+            "jr-both"
+          ]
+        },
+        {
+          "key": "support",
+          "description": "V helps with immediate arrangements.",
+          "sourceIds": [
+            "jr-both"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "judy-river.both.evelyn-death",
+          "description": "Activate grief only after the event.",
+          "topic": "evelyn.story_status",
+          "outcomes": [
+            {
+              "key": "death-confirmed",
+              "description": "Judy knows Evelyn has died; V learns this during the job.",
+              "affects": [
+                "judy-alvarez"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-both"
+              ]
+            },
+            {
+              "key": "supported",
+              "description": "V stayed to help Judy afterward.",
+              "affects": [
+                "judy-alvarez"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-both"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-both"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact installed-version fact, journal and scene conditions remain unverified. Reached-stage gates are required. Prose outcomes are never runtime-enabled."
+          }
+        }
+      ],
+      "sourceIds": [
+        "jr-both"
+      ],
+      "uncertainties": [
+        "The native story has no successful prevention branch. Summoned Evelyn is not canonically resurrected and cannot remember dying."
+      ]
+    },
+    {
+      "key": "ex-factor",
+      "title": "Ex-Factor",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "judy-alvarez"
+      ],
+      "synopsis": "Judy seeks Maiko's support and may confront Woodman.",
+      "stages": [
+        {
+          "key": "invitation",
+          "description": "V is asked to help.",
+          "sourceIds": [
+            "jr-ex"
+          ]
+        },
+        {
+          "key": "maiko",
+          "description": "Former partners negotiate.",
+          "sourceIds": [
+            "jr-ex"
+          ]
+        },
+        {
+          "key": "woodman",
+          "description": "Confrontation is optional and requires a surviving Woodman.",
+          "sourceIds": [
+            "jr-ex"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "judy-river.ex.participation",
+          "description": "Track accepting or declining help.",
+          "topic": "judy.clouds_help",
+          "outcomes": [
+            {
+              "key": "helped",
+              "description": "V attended with Judy.",
+              "affects": [
+                "judy-alvarez"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-ex"
+              ]
+            },
+            {
+              "key": "refused",
+              "description": "V declined; later participation is not established.",
+              "affects": [
+                "judy-alvarez"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-ex"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-ex"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact installed-version fact, journal and scene conditions remain unverified. Reached-stage gates are required. Prose outcomes are never runtime-enabled."
+          }
+        },
+        {
+          "id": "judy-river.ex.woodman",
+          "description": "Track encounter and actual resolution.",
+          "topic": "woodman.revenge",
+          "outcomes": [
+            {
+              "key": "not-confronted",
+              "description": "A verified choice avoided confrontation.",
+              "affects": [
+                "judy-alvarez"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-ex"
+              ]
+            },
+            {
+              "key": "confronted",
+              "description": "They confronted Woodman; final fate still unknown.",
+              "affects": [
+                "judy-alvarez"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-ex"
+              ]
+            },
+            {
+              "key": "killed",
+              "description": "His death is confirmed; killer identity requires separate evidence.",
+              "affects": [
+                "judy-alvarez"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-ex"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-ex"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact installed-version fact, journal and scene conditions remain unverified. Reached-stage gates are required. Prose outcomes are never runtime-enabled."
+          }
+        }
+      ],
+      "sourceIds": [
+        "jr-ex"
+      ],
+      "uncertainties": [
+        "Source explicitly marks some Maiko-threat availability conditions unverified. Earlier Woodman death excludes a second living encounter."
+      ]
+    },
+    {
+      "key": "talkin-bout-a-revolution",
+      "title": "Talkin' 'bout a Revolution",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "judy-alvarez"
+      ],
+      "synopsis": "Judy demonstrates temporary combat-chip modifications and proposes a takeover.",
+      "stages": [
+        {
+          "key": "meeting",
+          "description": "Tom demonstrates; Roxanne and Maiko participate.",
+          "sourceIds": [
+            "jr-revolution"
+          ]
+        },
+        {
+          "key": "commitment",
+          "description": "V decides whether to help.",
+          "sourceIds": [
+            "jr-revolution"
+          ]
+        },
+        {
+          "key": "illness",
+          "description": "Relic explanation and overnight care are optional.",
+          "sourceIds": [
+            "jr-revolution"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "judy-river.revolution.commitment",
+          "description": "Track the plan's support.",
+          "topic": "judy.clouds_commitment",
+          "outcomes": [
+            {
+              "key": "accepted",
+              "description": "V agreed to help.",
+              "affects": [
+                "judy-alvarez"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-revolution"
+              ]
+            },
+            {
+              "key": "refused",
+              "description": "V withdrew.",
+              "affects": [
+                "judy-alvarez"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-revolution"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-revolution"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact installed-version fact, journal and scene conditions remain unverified. Reached-stage gates are required. Prose outcomes are never runtime-enabled."
+          }
+        },
+        {
+          "id": "judy-river.revolution.relic-disclosure",
+          "description": "Symptoms are not an explanation.",
+          "topic": "judy.knows_relic",
+          "outcomes": [
+            {
+              "key": "explained",
+              "description": "V explicitly explained the Relic problem.",
+              "affects": [
+                "judy-alvarez"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "jr-revolution"
+              ]
+            },
+            {
+              "key": "symptoms-only",
+              "description": "Judy witnessed illness without verified explanation.",
+              "affects": [
+                "judy-alvarez"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-revolution"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-revolution"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact installed-version fact, journal and scene conditions remain unverified. Reached-stage gates are required. Prose outcomes are never runtime-enabled."
+          }
+        },
+        {
+          "id": "judy-river.revolution.overnight",
+          "description": "Record care without implying romance.",
+          "topic": "judy.overnight_care",
+          "outcomes": [
+            {
+              "key": "stayed",
+              "description": "V rested on Judy's couch; friendship is sufficient.",
+              "affects": [
+                "judy-alvarez"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-revolution"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-revolution"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact installed-version fact, journal and scene conditions remain unverified. Reached-stage gates are required. Prose outcomes are never runtime-enabled."
+          }
+        }
+      ],
+      "sourceIds": [
+        "jr-revolution"
+      ],
+      "uncertainties": [
+        "Job completion does not identify every optional event; separately verify stage and outcome."
+      ]
+    },
+    {
+      "key": "pisces",
+      "title": "Pisces",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "judy-alvarez"
+      ],
+      "synopsis": "The Clouds takeover diverges between Judy's plan and Maiko's management bid.",
+      "stages": [
+        {
+          "key": "infiltration",
+          "description": "V and the dolls act in separate locations.",
+          "sourceIds": [
+            "jr-pisces",
+            "jr-pisces-guide"
+          ]
+        },
+        {
+          "key": "meeting",
+          "description": "Maiko proposes Tyger-backed management.",
+          "sourceIds": [
+            "jr-pisces",
+            "jr-pisces-guide"
+          ]
+        },
+        {
+          "key": "resolution",
+          "description": "Control, payment and survival are independent.",
+          "sourceIds": [
+            "jr-pisces",
+            "jr-pisces-guide"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "judy-river.pisces.control",
+          "description": "Which proposal prevailed?",
+          "topic": "clouds.management",
+          "outcomes": [
+            {
+              "key": "maiko-installed",
+              "description": "V backed Maiko as manager under Tyger protection.",
+              "affects": [
+                "judy-alvarez"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-pisces",
+                "jr-pisces-guide"
+              ]
+            },
+            {
+              "key": "bosses-removed",
+              "description": "V rejected the arrangement and removed the bosses; permanent freedom is not established.",
+              "affects": [
+                "judy-alvarez"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-pisces"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-pisces",
+            "jr-pisces-guide"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact installed-version fact, journal and scene conditions remain unverified. Reached-stage gates are required. Prose outcomes are never runtime-enabled."
+          }
+        },
+        {
+          "id": "judy-river.pisces.payment",
+          "description": "Accepting the plan differs from taking payment.",
+          "topic": "judy.trust_maiko_payment",
+          "outcomes": [
+            {
+              "key": "accepted",
+              "description": "V took Maiko's money; Judy cuts off the later chain.",
+              "affects": [
+                "judy-alvarez"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-pisces"
+              ]
+            },
+            {
+              "key": "refused",
+              "description": "V refused money; disappointment alone is not romance lockout.",
+              "affects": [
+                "judy-alvarez"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-pisces"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-pisces"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact installed-version fact, journal and scene conditions remain unverified. Reached-stage gates are required. Prose outcomes are never runtime-enabled."
+          }
+        },
+        {
+          "id": "judy-river.pisces.maiko-fate",
+          "description": "Distinguish nonlethal defeat from death.",
+          "topic": "maiko.story_status",
+          "outcomes": [
+            {
+              "key": "spared",
+              "description": "Maiko survived.",
+              "affects": [
+                "judy-alvarez"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-judy"
+              ]
+            },
+            {
+              "key": "nonlethal",
+              "description": "Maiko was subdued without death.",
+              "affects": [
+                "judy-alvarez"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-judy"
+              ]
+            },
+            {
+              "key": "killed",
+              "description": "Maiko was killed; Judy is distressed, but this alone is not a permanent romance lockout.",
+              "affects": [
+                "judy-alvarez"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-judy"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-judy"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact installed-version fact, journal and scene conditions remain unverified. Reached-stage gates are required. Prose outcomes are never runtime-enabled."
+          }
+        }
+      ],
+      "sourceIds": [
+        "jr-pisces",
+        "jr-pisces-guide"
+      ],
+      "uncertainties": [
+        "Later Clouds retaliation requires the actual aftermath report; do not preload it from management alone."
+      ]
+    },
+    {
+      "key": "pyramid-song",
+      "title": "Pyramid Song",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "judy-alvarez"
+      ],
+      "synopsis": "A shared dive offers friendship, memory and possible romance.",
+      "stages": [
+        {
+          "key": "invitation",
+          "description": "Judy invites V to Laguna Bend.",
+          "sourceIds": [
+            "jr-pyramid",
+            "jr-pyramid-guide"
+          ]
+        },
+        {
+          "key": "dive",
+          "description": "A linked recording and Relic episode occur.",
+          "sourceIds": [
+            "jr-pyramid",
+            "jr-pyramid-guide"
+          ]
+        },
+        {
+          "key": "bungalow",
+          "description": "V may remain or leave; intimacy is optional.",
+          "sourceIds": [
+            "jr-pyramid",
+            "jr-pyramid-guide"
+          ]
+        },
+        {
+          "key": "morning",
+          "description": "Commitment is an explicit later choice.",
+          "sourceIds": [
+            "jr-pyramid",
+            "jr-pyramid-guide"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "judy-river.pyramid.visit",
+          "description": "Record visit independently of romance.",
+          "topic": "judy.dive_visit",
+          "outcomes": [
+            {
+              "key": "completed",
+              "description": "The dive and safe return occurred.",
+              "affects": [
+                "judy-alvarez"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-pyramid"
+              ]
+            },
+            {
+              "key": "left-while-asleep",
+              "description": "V left while Judy slept; she ended contact.",
+              "affects": [
+                "judy-alvarez"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-pyramid"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-pyramid"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact installed-version fact, journal and scene conditions remain unverified. Reached-stage gates are required. Prose outcomes are never runtime-enabled."
+          }
+        },
+        {
+          "id": "judy-river.pyramid.clouds-aftermath",
+          "description": "Which report was delivered?",
+          "topic": "clouds.aftermath",
+          "outcomes": [
+            {
+              "key": "unchanged-under-maiko",
+              "description": "Judy reported unimproved conditions under Maiko.",
+              "affects": [
+                "judy-alvarez"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-pisces"
+              ]
+            },
+            {
+              "key": "retaliation",
+              "description": "Judy reported Tyger retaliation and Tom's death.",
+              "affects": [
+                "judy-alvarez"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-pisces"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-pisces"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact installed-version fact, journal and scene conditions remain unverified. Reached-stage gates are required. Prose outcomes are never runtime-enabled."
+          }
+        },
+        {
+          "id": "judy-river.pyramid.relationship",
+          "description": "Require explicit choice, not eligibility.",
+          "topic": "judy.relationship",
+          "outcomes": [
+            {
+              "key": "committed",
+              "description": "Eligible V and Judy explicitly chose a continuing relationship after intimacy.",
+              "affects": [
+                "judy-alvarez"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "jr-pyramid-guide",
+                "jr-romance"
+              ]
+            },
+            {
+              "key": "friends",
+              "description": "The visit ended amicably without romance.",
+              "affects": [
+                "judy-alvarez"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-pyramid"
+              ]
+            },
+            {
+              "key": "fling-dismissed",
+              "description": "V dismissed intimacy as temporary; Judy withdrew.",
+              "affects": [
+                "judy-alvarez"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "jr-pyramid"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-pyramid",
+            "jr-pyramid-guide",
+            "jr-romance"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact installed-version fact, journal and scene conditions remain unverified. Reached-stage gates are required. Prose outcomes are never runtime-enabled."
+          }
+        },
+        {
+          "id": "judy-river.pyramid.relic-awareness",
+          "description": "Link revelation requires its scene.",
+          "topic": "judy.knows_relic",
+          "outcomes": [
+            {
+              "key": "link-revelation",
+              "description": "The shared neural experience revealed Johnny in V's head.",
+              "affects": [
+                "judy-alvarez"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "jr-judy"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-judy"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact installed-version fact, journal and scene conditions remain unverified. Reached-stage gates are required. Prose outcomes are never runtime-enabled."
+          }
+        }
+      ],
+      "sourceIds": [
+        "jr-pyramid",
+        "jr-pyramid-guide"
+      ],
+      "uncertainties": [
+        "Unmodded romance requires feminine body and voice; eligibility is not consent. Gifts and later travel messages are separate events."
+      ]
+    },
+    {
+      "key": "i-fought-the-law",
+      "title": "I Fought the Law",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "river-ward",
+        "jefferson-peralez",
+        "elizabeth-peralez"
+      ],
+      "synopsis": "The investigation tests the official account of Rhyne's death.",
+      "stages": [
+        {
+          "key": "contract",
+          "description": "Peralezes commission discreet analysis.",
+          "sourceIds": [
+            "jr-law"
+          ]
+        },
+        {
+          "key": "leads",
+          "description": "River joins; informant and employer offer separate clues.",
+          "sourceIds": [
+            "jr-law"
+          ]
+        },
+        {
+          "key": "club",
+          "description": "Death evidence and coverup evidence are distinct.",
+          "sourceIds": [
+            "jr-law"
+          ]
+        },
+        {
+          "key": "report",
+          "description": "V chooses the client briefing.",
+          "sourceIds": [
+            "jr-law"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "judy-river.law.bd-evidence",
+          "description": "Track optional cause-of-death evidence.",
+          "topic": "rhyne.death_evidence",
+          "outcomes": [
+            {
+              "key": "spiked-wreath-tested",
+              "description": "V tested the dangerous wreath and told River; poisoned BD evidence is established.",
+              "affects": [
+                "river-ward"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-law"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-law"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact installed-version fact, journal and scene conditions remain unverified. Reached-stage gates are required. Prose outcomes are never runtime-enabled."
+          }
+        },
+        {
+          "id": "judy-river.law.coverup",
+          "description": "Coverup does not prove who ordered the killing.",
+          "topic": "rhyne.coverup",
+          "outcomes": [
+            {
+              "key": "han-exposed",
+              "description": "The evidence and confrontation exposed Han's involvement in concealment.",
+              "affects": [
+                "river-ward"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-law"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-law"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact installed-version fact, journal and scene conditions remain unverified. Reached-stage gates are required. Prose outcomes are never runtime-enabled."
+          }
+        },
+        {
+          "id": "judy-river.law.client-report",
+          "description": "Record V's actual report and its uncertainty.",
+          "topic": "peralez.rhyne_briefing",
+          "outcomes": [
+            {
+              "key": "evidence-shared",
+              "description": "Clients received the findings V explicitly reported.",
+              "affects": [
+                "jefferson-peralez",
+                "elizabeth-peralez"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "jr-law"
+              ]
+            },
+            {
+              "key": "withheld",
+              "description": "V withheld findings; private evidence is not available to the clients.",
+              "affects": [
+                "jefferson-peralez",
+                "elizabeth-peralez"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "jr-law"
+              ]
+            },
+            {
+              "key": "holt-blamed",
+              "description": "V blamed Holt; this is an allegation, not proven murder commission.",
+              "affects": [
+                "jefferson-peralez",
+                "elizabeth-peralez"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "jr-law"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-law"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact installed-version fact, journal and scene conditions remain unverified. Reached-stage gates are required. Prose outcomes are never runtime-enabled."
+          }
+        }
+      ],
+      "sourceIds": [
+        "jr-law"
+      ],
+      "uncertainties": [
+        "Judy's referral does not give her the case results. Advice to River is not proof that NCPD reopened the case."
+      ]
+    },
+    {
+      "key": "dream-on",
+      "title": "Dream On",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "jefferson-peralez",
+        "elizabeth-peralez"
+      ],
+      "synopsis": "An intrusion inquiry uncovers manipulated memories and a constrained disclosure choice.",
+      "stages": [
+        {
+          "key": "intrusion",
+          "description": "Jefferson recalls an intruder despite SSI's denial.",
+          "sourceIds": [
+            "jr-dream"
+          ]
+        },
+        {
+          "key": "room",
+          "description": "A hidden surveillance room is found.",
+          "sourceIds": [
+            "jr-dream"
+          ]
+        },
+        {
+          "key": "van",
+          "description": "The transmitter can lead to behavioral-manipulation evidence.",
+          "sourceIds": [
+            "jr-dream"
+          ]
+        },
+        {
+          "key": "private-meeting",
+          "description": "Elizabeth speaks without Jefferson.",
+          "sourceIds": [
+            "jr-dream"
+          ]
+        },
+        {
+          "key": "report",
+          "description": "V decides what Jefferson learns.",
+          "sourceIds": [
+            "jr-dream"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "judy-river.dream.van",
+          "description": "Distinguish incomplete pursuit from recovered data.",
+          "topic": "peralez.manipulation_evidence",
+          "outcomes": [
+            {
+              "key": "lost",
+              "description": "V lost the van; the data revelation is not established.",
+              "affects": [
+                "jefferson-peralez",
+                "elizabeth-peralez"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "jr-dream"
+              ]
+            },
+            {
+              "key": "data-seen",
+              "description": "V accessed manipulation evidence; sharing requires subsequent reports.",
+              "affects": [
+                "jefferson-peralez",
+                "elizabeth-peralez"
+              ],
+              "knowledge": "shared-journal",
+              "sourceIds": [
+                "jr-dream"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-dream"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact installed-version fact, journal and scene conditions remain unverified. Reached-stage gates are required. Prose outcomes are never runtime-enabled."
+          }
+        },
+        {
+          "id": "judy-river.dream.elizabeth-private",
+          "description": "Track her awareness independently.",
+          "topic": "elizabeth.private_disclosure",
+          "outcomes": [
+            {
+              "key": "confided",
+              "description": "Elizabeth described her fears and requested concealment.",
+              "affects": [
+                "elizabeth-peralez"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "jr-dream"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-dream"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact installed-version fact, journal and scene conditions remain unverified. Reached-stage gates are required. Prose outcomes are never runtime-enabled."
+          }
+        },
+        {
+          "id": "judy-river.dream.jefferson-disclosure",
+          "description": "What did Jefferson actually hear?",
+          "topic": "jefferson.manipulation_awareness",
+          "outcomes": [
+            {
+              "key": "truth",
+              "description": "V disclosed the manipulation.",
+              "affects": [
+                "jefferson-peralez"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "jr-dream"
+              ]
+            },
+            {
+              "key": "cover-story",
+              "description": "V supplied the Holt/SSI spying explanation; Jefferson received that account rather than independently verifying its truth.",
+              "affects": [
+                "jefferson-peralez"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "jr-dream"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-dream"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact installed-version fact, journal and scene conditions remain unverified. Reached-stage gates are required. Prose outcomes are never runtime-enabled."
+          }
+        },
+        {
+          "id": "judy-river.dream.later-call",
+          "description": "Require the actual later message.",
+          "topic": "jefferson.after_investigation",
+          "outcomes": [
+            {
+              "key": "suspicious-call",
+              "description": "Jefferson expressed suspicion of Elizabeth; his belief is not proof of her guilt.",
+              "affects": [
+                "jefferson-peralez"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "jr-endings"
+              ]
+            },
+            {
+              "key": "job-offer-call",
+              "description": "Jefferson later offered work following the concealed-truth route.",
+              "affects": [
+                "jefferson-peralez"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "jr-endings"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-endings"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact installed-version fact, journal and scene conditions remain unverified. Reached-stage gates are required. Prose outcomes are never runtime-enabled."
+          }
+        },
+        {
+          "id": "judy-river.dream.election",
+          "description": "Only the actual announcement or later official scene establishes office.",
+          "topic": "jefferson.office",
+          "outcomes": [
+            {
+              "key": "elected",
+              "description": "Jefferson's election has been announced or directly established in the later scene; do not infer it from the investigation ending.",
+              "affects": [
+                "jefferson-peralez",
+                "elizabeth-peralez"
+              ],
+              "knowledge": "public",
+              "sourceIds": [
+                "jr-jefferson"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-jefferson"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Requires exact native stage and outcome evidence; no enabled mapping."
+          }
+        }
+      ],
+      "sourceIds": [
+        "jr-dream"
+      ],
+      "uncertainties": [
+        "The controlling organization and Mr. Blue Eyes' exact role remain unresolved. Sandra's Night Corp evidence is not proof of a common operator. Elizabeth is also a target."
+      ]
+    },
+    {
+      "key": "the-hunt",
+      "title": "The Hunt",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "river-ward",
+        "joss-kutcher"
+      ],
+      "synopsis": "River investigates Randy's disappearance through private records, dreams and a rescue.",
+      "stages": [
+        {
+          "key": "lab",
+          "description": "Yawen and the dream experiment are contacted.",
+          "sourceIds": [
+            "jr-hunt"
+          ]
+        },
+        {
+          "key": "family",
+          "description": "Joss learns the search concerns Randy.",
+          "sourceIds": [
+            "jr-hunt"
+          ]
+        },
+        {
+          "key": "dreams",
+          "description": "Clues or a guess identify a farm.",
+          "sourceIds": [
+            "jr-hunt"
+          ]
+        },
+        {
+          "key": "rescue",
+          "description": "Correct location is not yet completed extraction.",
+          "sourceIds": [
+            "jr-hunt"
+          ]
+        },
+        {
+          "key": "aftermath",
+          "description": "Randy and River survival need actual outcomes.",
+          "sourceIds": [
+            "jr-hunt"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "judy-river.hunt.location",
+          "description": "Keep deduction and guesses distinct.",
+          "topic": "randy.search_location",
+          "outcomes": [
+            {
+              "key": "edgewood-deduced",
+              "description": "Clues identified Edgewood.",
+              "affects": [
+                "river-ward"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-hunt"
+              ]
+            },
+            {
+              "key": "edgewood-guessed",
+              "description": "V selected Edgewood without sufficient clues.",
+              "affects": [
+                "river-ward"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-hunt"
+              ]
+            },
+            {
+              "key": "poppy",
+              "description": "V chose the wrong farm first and reached Randy too late.",
+              "affects": [
+                "river-ward",
+                "joss-kutcher"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-hunt"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-hunt"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact installed-version fact, journal and scene conditions remain unverified. Reached-stage gates are required. Prose outcomes are never runtime-enabled."
+          }
+        },
+        {
+          "id": "judy-river.hunt.rescue",
+          "description": "Success, delay and abandonment are separate.",
+          "topic": "randy.rescue_outcome",
+          "outcomes": [
+            {
+              "key": "saved",
+              "description": "Randy was extracted alive; he still needs hospital care.",
+              "affects": [
+                "river-ward",
+                "joss-kutcher"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-hunt"
+              ]
+            },
+            {
+              "key": "too-late",
+              "description": "Randy died after the wrong-farm delay.",
+              "affects": [
+                "river-ward",
+                "joss-kutcher"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-hunt"
+              ]
+            },
+            {
+              "key": "abandoned",
+              "description": "Abandoning the farm rescue leads to River and Randy dying.",
+              "affects": [
+                "river-ward",
+                "joss-kutcher"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-hunt"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-hunt"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact installed-version fact, journal and scene conditions remain unverified. Reached-stage gates are required. Prose outcomes are never runtime-enabled."
+          }
+        },
+        {
+          "id": "judy-river.hunt.harris-afterward",
+          "description": "A vow is not an execution.",
+          "topic": "river.harris_resolution",
+          "outcomes": [
+            {
+              "key": "vowed",
+              "description": "River voiced a wish to kill Harris.",
+              "affects": [
+                "river-ward"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-hunt"
+              ]
+            },
+            {
+              "key": "spared-after-success",
+              "description": "River later recounted deciding not to execute Harris after a successful rescue.",
+              "affects": [
+                "river-ward"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "jr-river"
+              ]
+            },
+            {
+              "key": "killed-after-failure",
+              "description": "River explicitly reported killing Harris after Randy's death.",
+              "affects": [
+                "river-ward"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "jr-hunt"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-hunt",
+            "jr-river"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact installed-version fact, journal and scene conditions remain unverified. Reached-stage gates are required. Prose outcomes are never runtime-enabled."
+          }
+        },
+        {
+          "id": "judy-river.hunt.joss-briefed",
+          "description": "Joss must receive the kidnapping information before it is her knowledge.",
+          "topic": "joss.randy_investigation",
+          "outcomes": [
+            {
+              "key": "briefed",
+              "description": "River and V explained the suspected kidnapping; Joss permitted the search of Randy's things.",
+              "affects": [
+                "joss-kutcher"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "jr-joss",
+                "jr-hunt"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-joss",
+            "jr-hunt"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Requires exact native stage and outcome evidence; no enabled mapping."
+          }
+        }
+      ],
+      "sourceIds": [
+        "jr-hunt"
+      ],
+      "uncertainties": [
+        "Joss does not witness every lab, dream or farm scene. Exact failure boundaries require native evidence; no future death is presented during an active rescue."
+      ]
+    },
+    {
+      "key": "following-the-river",
+      "title": "Following the River",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "river-ward",
+        "joss-kutcher"
+      ],
+      "synopsis": "Dinner with the family can deepen friendship or establish a romance.",
+      "stages": [
+        {
+          "key": "dinner",
+          "description": "River cooks and the family hosts V.",
+          "sourceIds": [
+            "jr-following",
+            "jr-romance"
+          ]
+        },
+        {
+          "key": "game",
+          "description": "V plays with the children.",
+          "sourceIds": [
+            "jr-following",
+            "jr-romance"
+          ]
+        },
+        {
+          "key": "tower",
+          "description": "Crash is gifted; intimacy remains optional.",
+          "sourceIds": [
+            "jr-following",
+            "jr-romance"
+          ]
+        },
+        {
+          "key": "morning",
+          "description": "Commitment is resolved separately.",
+          "sourceIds": [
+            "jr-following",
+            "jr-romance"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "judy-river.following.parents",
+          "description": "Respect optional personal disclosure.",
+          "topic": "river.parents_disclosure",
+          "outcomes": [
+            {
+              "key": "heard",
+              "description": "River told V about his parents' murder.",
+              "affects": [
+                "river-ward"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "jr-following"
+              ]
+            },
+            {
+              "key": "stopped",
+              "description": "V stopped the difficult discussion; the full account was not heard.",
+              "affects": [
+                "river-ward"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "jr-following"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-following"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact installed-version fact, journal and scene conditions remain unverified. Reached-stage gates are required. Prose outcomes are never runtime-enabled."
+          }
+        },
+        {
+          "id": "judy-river.following.relationship",
+          "description": "Separate friendship, intimacy and commitment.",
+          "topic": "river.relationship",
+          "outcomes": [
+            {
+              "key": "friends",
+              "description": "V and River remained friends.",
+              "affects": [
+                "river-ward"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-following"
+              ]
+            },
+            {
+              "key": "intimate",
+              "description": "Mutual intimacy occurred; commitment is not yet verified.",
+              "affects": [
+                "river-ward"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "jr-river"
+              ]
+            },
+            {
+              "key": "committed",
+              "description": "Morning discussion confirmed the relationship.",
+              "affects": [
+                "river-ward"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "jr-river"
+              ]
+            },
+            {
+              "key": "declined-commitment",
+              "description": "V declined an ongoing romance.",
+              "affects": [
+                "river-ward"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "jr-river"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-following",
+            "jr-river"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact installed-version fact, journal and scene conditions remain unverified. Reached-stage gates are required. Prose outcomes are never runtime-enabled."
+          }
+        },
+        {
+          "id": "judy-river.following.career",
+          "description": "Change profession only after his explanation.",
+          "topic": "river.profession",
+          "outcomes": [
+            {
+              "key": "private-investigator",
+              "description": "River tells V he plans private investigation instead of returning to NCPD.",
+              "affects": [
+                "river-ward"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-river"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-river"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact installed-version fact, journal and scene conditions remain unverified. Reached-stage gates are required. Prose outcomes are never runtime-enabled."
+          }
+        },
+        {
+          "id": "judy-river.following.family-dinner",
+          "description": "Hosting V is an event independent of River's private romance choice.",
+          "topic": "kutcher.family_hospitality",
+          "outcomes": [
+            {
+              "key": "attended",
+              "description": "V attended the family dinner and children's game.",
+              "affects": [
+                "river-ward",
+                "joss-kutcher"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-following"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-following"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Requires exact native stage and outcome evidence; no enabled mapping."
+          }
+        }
+      ],
+      "sourceIds": [
+        "jr-following",
+        "jr-romance"
+      ],
+      "uncertainties": [
+        "River eligibility requires feminine body, not feminine voice. Joss's matchmaking is neither consent nor knowledge of private intimacy."
+      ]
+    },
+    {
+      "key": "full-disclosure",
+      "title": "Full Disclosure",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "sandra-dorsett"
+      ],
+      "synopsis": "Sandra judges V's handling of a sensitive recovered databank.",
+      "stages": [
+        {
+          "key": "contract",
+          "description": "Retrieval and discretion are requested.",
+          "sourceIds": [
+            "jr-disclosure"
+          ]
+        },
+        {
+          "key": "data",
+          "description": "Possession and reading are separate.",
+          "sourceIds": [
+            "jr-disclosure"
+          ]
+        },
+        {
+          "key": "return",
+          "description": "Trust depends on actual dialogue.",
+          "sourceIds": [
+            "jr-disclosure"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "judy-river.disclosure.reading",
+          "description": "Record actual data access.",
+          "topic": "sandra.data_access",
+          "outcomes": [
+            {
+              "key": "unread-return",
+              "description": "V returned the databank unread.",
+              "affects": [
+                "sandra-dorsett"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-disclosure"
+              ]
+            },
+            {
+              "key": "read",
+              "description": "V accessed its contents; Sandra's awareness depends on the conversation.",
+              "affects": [
+                "sandra-dorsett"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "jr-disclosure"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-disclosure"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact installed-version fact, journal and scene conditions remain unverified. Reached-stage gates are required. Prose outcomes are never runtime-enabled."
+          }
+        },
+        {
+          "id": "judy-river.disclosure.response",
+          "description": "Record the return conversation.",
+          "topic": "sandra.trust",
+          "outcomes": [
+            {
+              "key": "lied",
+              "description": "V denied reading despite doing so; Sandra distrusted this.",
+              "affects": [
+                "sandra-dorsett"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-disclosure"
+              ]
+            },
+            {
+              "key": "honest-neutral",
+              "description": "V admitted reading but declined to act on it.",
+              "affects": [
+                "sandra-dorsett"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-disclosure"
+              ]
+            },
+            {
+              "key": "respectful",
+              "description": "V acknowledged her accomplishment and gained trust.",
+              "affects": [
+                "sandra-dorsett"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-disclosure"
+              ]
+            },
+            {
+              "key": "runner-rapport",
+              "description": "Further knowledgeable discussion established runner-to-runner rapport.",
+              "affects": [
+                "sandra-dorsett"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "jr-disclosure"
+              ]
+            },
+            {
+              "key": "blackmail",
+              "description": "V threatened disclosure for gain; Sandra and her defenses became hostile.",
+              "affects": [
+                "sandra-dorsett"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-disclosure"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-disclosure"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact installed-version fact, journal and scene conditions remain unverified. Reached-stage gates are required. Prose outcomes are never runtime-enabled."
+          }
+        },
+        {
+          "id": "judy-river.disclosure.survival",
+          "description": "Hostility is not death.",
+          "topic": "sandra.story_status",
+          "outcomes": [
+            {
+              "key": "alive",
+              "description": "Sandra survives the resolved encounter.",
+              "affects": [
+                "sandra-dorsett"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-disclosure"
+              ]
+            },
+            {
+              "key": "killed",
+              "description": "Sandra's death was separately confirmed.",
+              "affects": [
+                "sandra-dorsett"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-disclosure"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-disclosure"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact installed-version fact, journal and scene conditions remain unverified. Reached-stage gates are required. Prose outcomes are never runtime-enabled."
+          }
+        }
+      ],
+      "sourceIds": [
+        "jr-disclosure"
+      ],
+      "uncertainties": [
+        "Attribute thresholds and payouts are version-sensitive. Private databank evidence is not public knowledge."
+      ]
+    },
+    {
+      "key": "black-steel-in-the-hour-of-chaos",
+      "title": "Black Steel In The Hour of Chaos",
+      "category": "main",
+      "game": "phantom-liberty",
+      "nativeIds": [],
+      "characters": [
+        "sandra-dorsett"
+      ],
+      "synopsis": "Sandra can be one of several convoy-intelligence contacts.",
+      "stages": [
+        {
+          "key": "contact",
+          "description": "Availability depends on earlier trust and survival.",
+          "sourceIds": [
+            "jr-black-steel"
+          ]
+        },
+        {
+          "key": "deal",
+          "description": "Sandra may ask for a Trojan deployment.",
+          "sourceIds": [
+            "jr-black-steel"
+          ]
+        },
+        {
+          "key": "delivery",
+          "description": "Intelligence and favor completion are separate.",
+          "sourceIds": [
+            "jr-black-steel"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "judy-river.black-steel.sandra-contact",
+          "description": "Completion alone does not prove Sandra participated.",
+          "topic": "sandra.convoy_assistance",
+          "outcomes": [
+            {
+              "key": "hired",
+              "description": "V actually arranged Sandra's assistance.",
+              "affects": [
+                "sandra-dorsett"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "jr-black-steel"
+              ]
+            },
+            {
+              "key": "intel-delivered",
+              "description": "Sandra handed over convoy intelligence.",
+              "affects": [
+                "sandra-dorsett"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "jr-black-steel"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-black-steel"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact installed-version fact, journal and scene conditions remain unverified. Reached-stage gates are required. Prose outcomes are never runtime-enabled."
+          }
+        },
+        {
+          "id": "judy-river.black-steel.sandra-favor",
+          "description": "A request is not an upload.",
+          "topic": "sandra.maxtac_favor",
+          "outcomes": [
+            {
+              "key": "requested",
+              "description": "Sandra requested a Trojan deployment.",
+              "affects": [
+                "sandra-dorsett"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "jr-black-steel"
+              ]
+            },
+            {
+              "key": "fulfilled-confirmed",
+              "description": "A separately verified upload fulfilled the request.",
+              "affects": [
+                "sandra-dorsett"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "jr-black-steel"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-black-steel"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "The source describes the request; exact fulfillment semantics remain unavailable."
+          }
+        }
+      ],
+      "sourceIds": [
+        "jr-black-steel"
+      ],
+      "uncertainties": [
+        "Sandra learns her portion, not all Reed/Songbird secrets. Core ambush outcomes belong to the Phantom Liberty lane."
+      ]
+    },
+    {
+      "key": "spy-in-the-jungle",
+      "title": "Gig: Spy in the Jungle",
+      "category": "gig",
+      "game": "phantom-liberty",
+      "nativeIds": [],
+      "characters": [
+        "ana-friedman"
+      ],
+      "synopsis": "An unauthorized search becomes a dispute about Bana's fate and dangerous evidence.",
+      "stages": [
+        {
+          "key": "contract",
+          "description": "Ana and Steven seek Bana after a biomonitor signal.",
+          "sourceIds": [
+            "jr-spy"
+          ]
+        },
+        {
+          "key": "museum",
+          "description": "V reaches the contact beyond Ribakov.",
+          "sourceIds": [
+            "jr-spy"
+          ]
+        },
+        {
+          "key": "katya",
+          "description": "The impersonation and interrogation are revealed.",
+          "sourceIds": [
+            "jr-spy"
+          ]
+        },
+        {
+          "key": "monitor",
+          "description": "V determines the evidence route.",
+          "sourceIds": [
+            "jr-spy"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "judy-river.spy.revelation",
+          "description": "Record Ana's heard revelation and order independently from V's later resolution.",
+          "topic": "ana.katya-revelation-and-order",
+          "outcomes": [
+            {
+              "key": "revelation",
+              "description": "Ana heard the reveal and ordered Katya killed; this is not proof V obeyed.",
+              "affects": [
+                "ana-friedman"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-spy"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-spy"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact installed-version fact, journal and scene conditions remain unverified. Reached-stage gates are required. Prose outcomes are never runtime-enabled."
+          }
+        },
+        {
+          "id": "judy-river.spy.katya",
+          "description": "Record Katya's actually established fate; Ana does not witness V's private resolution.",
+          "topic": "katya.story_status",
+          "outcomes": [
+            {
+              "key": "spared",
+              "description": "V spared Katya; the private bargain is not automatically known to Ana.",
+              "affects": [
+                "ana-friedman"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "jr-spy"
+              ]
+            },
+            {
+              "key": "killed",
+              "description": "Katya's death was actually established.",
+              "affects": [
+                "ana-friedman"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "jr-spy"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-spy"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact installed-version fact, journal and scene conditions remain unverified. Reached-stage gates are required. Prose outcomes are never runtime-enabled."
+          }
+        },
+        {
+          "id": "judy-river.spy.biomonitor",
+          "description": "Mutually exclusive evidence destinations.",
+          "topic": "ana.bana_evidence",
+          "outcomes": [
+            {
+              "key": "delivered-to-ana",
+              "description": "V handed Ana the monitor; she intended public disclosure.",
+              "affects": [
+                "ana-friedman"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-spy"
+              ]
+            },
+            {
+              "key": "destroyed",
+              "description": "V destroyed it during the hotel dispute.",
+              "affects": [
+                "ana-friedman"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-spy"
+              ]
+            },
+            {
+              "key": "drop-point",
+              "description": "V used Steven's drop-point route; his private request is not automatically Ana's knowledge.",
+              "affects": [
+                "ana-friedman"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "jr-spy"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-spy"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact installed-version fact, journal and scene conditions remain unverified. Reached-stage gates are required. Prose outcomes are never runtime-enabled."
+          }
+        },
+        {
+          "id": "judy-river.spy.late-disclosure",
+          "description": "Receive the delayed report before adding consequences.",
+          "topic": "ana.disclosure_aftermath",
+          "outcomes": [
+            {
+              "key": "steven-report",
+              "description": "Steven later reported Ana's extradition and imprisonment, failed deal and bureau consequences; this is his account to V.",
+              "affects": [
+                "ana-friedman"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "jr-spy"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-spy"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact installed-version fact, journal and scene conditions remain unverified. Reached-stage gates are required. Prose outcomes are never runtime-enabled."
+          }
+        }
+      ],
+      "sourceIds": [
+        "jr-spy"
+      ],
+      "uncertainties": [
+        "Katya denies causing Bana's death; retain the attribution. Exact later consequences are not predictable current memories."
+      ]
+    },
+    {
+      "key": "the-show-must-go-on",
+      "title": "The Show Must Go On",
+      "category": "side",
+      "game": "phantom-liberty",
+      "nativeIds": [],
+      "characters": [
+        "ana-friedman"
+      ],
+      "synopsis": "Steven later describes the suppression route's consequences.",
+      "stages": [
+        {
+          "key": "message",
+          "description": "He invites V to meet.",
+          "sourceIds": [
+            "jr-show"
+          ]
+        },
+        {
+          "key": "report",
+          "description": "He reports Ana's dismissal and the progressing deal.",
+          "sourceIds": [
+            "jr-show"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "judy-river.show.steven-report",
+          "description": "Require receiving the report.",
+          "topic": "ana.suppression_aftermath",
+          "outcomes": [
+            {
+              "key": "heard",
+              "description": "V heard Steven say Ana was fired while his career and SovOil deal progressed.",
+              "affects": [
+                "ana-friedman"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "jr-show"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-show"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact installed-version fact, journal and scene conditions remain unverified. Reached-stage gates are required. Prose outcomes are never runtime-enabled."
+          }
+        }
+      ],
+      "sourceIds": [
+        "jr-show"
+      ],
+      "uncertainties": [
+        "Do not silently share V's private meeting with Ana. Her own job status needs current-timeline evidence."
+      ]
+    },
+    {
+      "key": "money-for-nothing",
+      "title": "Money For Nothing",
+      "category": "side",
+      "game": "phantom-liberty",
+      "nativeIds": [],
+      "characters": [
+        "ana-friedman"
+      ],
+      "synopsis": "V may follow Katya's private cache lead.",
+      "stages": [
+        {
+          "key": "bargain",
+          "description": "Katya supplies coordinates.",
+          "sourceIds": [
+            "jr-money"
+          ]
+        },
+        {
+          "key": "collection",
+          "description": "V finds the stash.",
+          "sourceIds": [
+            "jr-money"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "judy-river.money.cache",
+          "description": "The private detour is not Ana's automatic knowledge.",
+          "topic": "katya.stash",
+          "outcomes": [
+            {
+              "key": "collected",
+              "description": "V collected the cache; Ana learns this only if told.",
+              "affects": [
+                "ana-friedman"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "jr-money"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-money"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact installed-version fact, journal and scene conditions remain unverified. Reached-stage gates are required. Prose outcomes are never runtime-enabled."
+          }
+        }
+      ],
+      "sourceIds": [
+        "jr-money"
+      ],
+      "uncertainties": [
+        "Receiving the location does not prove Katya remains alive afterward."
+      ]
+    },
+    {
+      "key": "the-beast-in-me",
+      "title": "The Beast In Me",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "claire-russell"
+      ],
+      "synopsis": "Claire recruits a driver; her private aim emerges later.",
+      "stages": [
+        {
+          "key": "offer",
+          "description": "Claire will shoot while V drives.",
+          "sourceIds": [
+            "jr-beast"
+          ]
+        },
+        {
+          "key": "qualifiers",
+          "description": "Results determine progression.",
+          "sourceIds": [
+            "jr-beast"
+          ]
+        },
+        {
+          "key": "aftermath",
+          "description": "Confrontation, gifts and trust are distinct.",
+          "sourceIds": [
+            "jr-beast"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "judy-river.beast.accept",
+          "description": "Record joining the team.",
+          "topic": "claire.racing_team",
+          "outcomes": [
+            {
+              "key": "accepted",
+              "description": "V agreed to drive.",
+              "affects": [
+                "claire-russell"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-beast"
+              ]
+            },
+            {
+              "key": "refused",
+              "description": "V declined; the job failed.",
+              "affects": [
+                "claire-russell"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-beast"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-beast"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact installed-version fact, journal and scene conditions remain unverified. Reached-stage gates are required. Prose outcomes are never runtime-enabled."
+          }
+        },
+        {
+          "id": "judy-river.beast.sampson-fate",
+          "description": "Persuasion eligibility is not the final result.",
+          "topic": "sampson.story_status",
+          "outcomes": [
+            {
+              "key": "spared",
+              "description": "Claire spared Sampson after the chase.",
+              "affects": [
+                "claire-russell"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-sampson"
+              ]
+            },
+            {
+              "key": "killed",
+              "description": "Claire killed Sampson after the chase.",
+              "affects": [
+                "claire-russell"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-sampson"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-sampson"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact installed-version fact, journal and scene conditions remain unverified. Reached-stage gates are required. Prose outcomes are never runtime-enabled."
+          }
+        },
+        {
+          "id": "judy-river.beast.vehicle-gifts",
+          "description": "Record Claire's actual Beast award; a separate gift may also occur.",
+          "topic": "claire.beast-gift",
+          "outcomes": [
+            {
+              "key": "beast-given",
+              "description": "Claire gave V Beast.",
+              "affects": [
+                "claire-russell"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-beast"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-beast"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact installed-version fact, journal and scene conditions remain unverified. Reached-stage gates are required. Prose outcomes are never runtime-enabled."
+          }
+        },
+        {
+          "id": "judy-river.beast.cthulhu-gift",
+          "description": "Record Sampson's later private gift message, independent of Claire's Beast award.",
+          "topic": "claire.sampson-car-offer",
+          "outcomes": [
+            {
+              "key": "cthulhu-promised",
+              "description": "Sampson later offered his car after surviving.",
+              "affects": [
+                "claire-russell"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "jr-cthulhu"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-cthulhu"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact installed-version fact, journal and scene conditions remain unverified. Reached-stage gates are required. Prose outcomes are never runtime-enabled."
+          }
+        }
+      ],
+      "sourceIds": [
+        "jr-beast"
+      ],
+      "uncertainties": [
+        "No branch is labelled morally correct. A purchased vehicle is not proof of story survival."
+      ]
+    },
+    {
+      "key": "the-beast-in-me-city-center",
+      "title": "The Beast in Me: City Center",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "claire-russell"
+      ],
+      "synopsis": "An individual qualifier, not the whole championship.",
+      "stages": [
+        {
+          "key": "start",
+          "description": "Claire and V entered.",
+          "sourceIds": [
+            "jr-city"
+          ]
+        },
+        {
+          "key": "finish",
+          "description": "Actual placement is distinct from participation.",
+          "sourceIds": [
+            "jr-city"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "judy-river.the-beast-in-me-city-center.placement",
+          "description": "Winning and qualifying differ.",
+          "topic": "claire.race.the-beast-in-me-city-center",
+          "outcomes": [
+            {
+              "key": "won",
+              "description": "They won this qualifier.",
+              "affects": [
+                "claire-russell"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-city"
+              ]
+            },
+            {
+              "key": "qualified",
+              "description": "They placed second or third.",
+              "affects": [
+                "claire-russell"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-city"
+              ]
+            },
+            {
+              "key": "outside-top-three",
+              "description": "Placement outside the qualifying positions was verified.",
+              "affects": [
+                "claire-russell"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-city"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-city"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact installed-version fact, journal and scene conditions remain unverified. Reached-stage gates are required. Prose outcomes are never runtime-enabled."
+          }
+        }
+      ],
+      "sourceIds": [
+        "jr-city"
+      ],
+      "uncertainties": [
+        "Rank persistence needs native evidence. Badlands requires Beast; City Center permits vehicle choice."
+      ]
+    },
+    {
+      "key": "the-beast-in-me-badlands",
+      "title": "The Beast in Me: Badlands",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "claire-russell"
+      ],
+      "synopsis": "An individual qualifier, not the whole championship.",
+      "stages": [
+        {
+          "key": "start",
+          "description": "Claire and V entered.",
+          "sourceIds": [
+            "jr-badlands"
+          ]
+        },
+        {
+          "key": "finish",
+          "description": "Actual placement is distinct from participation.",
+          "sourceIds": [
+            "jr-badlands"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "judy-river.the-beast-in-me-badlands.placement",
+          "description": "Winning and qualifying differ.",
+          "topic": "claire.race.the-beast-in-me-badlands",
+          "outcomes": [
+            {
+              "key": "won",
+              "description": "They won this qualifier.",
+              "affects": [
+                "claire-russell"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-badlands"
+              ]
+            },
+            {
+              "key": "qualified",
+              "description": "They placed second or third.",
+              "affects": [
+                "claire-russell"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-badlands"
+              ]
+            },
+            {
+              "key": "outside-top-three",
+              "description": "Placement outside the qualifying positions was verified.",
+              "affects": [
+                "claire-russell"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-badlands"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-badlands"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact installed-version fact, journal and scene conditions remain unverified. Reached-stage gates are required. Prose outcomes are never runtime-enabled."
+          }
+        }
+      ],
+      "sourceIds": [
+        "jr-badlands"
+      ],
+      "uncertainties": [
+        "Rank persistence needs native evidence. Badlands requires Beast; City Center permits vehicle choice."
+      ]
+    },
+    {
+      "key": "the-beast-in-me-santo-domingo",
+      "title": "The Beast in Me: Santo Domingo",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "claire-russell"
+      ],
+      "synopsis": "Claire discloses her grievance after the qualifier.",
+      "stages": [
+        {
+          "key": "race",
+          "description": "Result precedes private discussion.",
+          "sourceIds": [
+            "jr-santo"
+          ]
+        },
+        {
+          "key": "confession",
+          "description": "She explains the wish to kill Sampson.",
+          "sourceIds": [
+            "jr-santo"
+          ]
+        },
+        {
+          "key": "terms",
+          "description": "V defines the agreement.",
+          "sourceIds": [
+            "jr-santo"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "judy-river.santo.promise",
+          "description": "Record actual commitment.",
+          "topic": "claire.sampson_promise",
+          "outcomes": [
+            {
+              "key": "revenge",
+              "description": "V agreed to help pursue Sampson.",
+              "affects": [
+                "claire-russell"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-santo"
+              ]
+            },
+            {
+              "key": "race-first",
+              "description": "V kept winning as the priority.",
+              "affects": [
+                "claire-russell"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-santo"
+              ]
+            },
+            {
+              "key": "withdrawn",
+              "description": "V withdrew and Claire dismissed V from the team.",
+              "affects": [
+                "claire-russell"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-santo"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-santo"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact installed-version fact, journal and scene conditions remain unverified. Reached-stage gates are required. Prose outcomes are never runtime-enabled."
+          }
+        },
+        {
+          "id": "judy-river.santo.followup",
+          "description": "A promise is not completed mercy.",
+          "topic": "claire.promise_followup",
+          "outcomes": [
+            {
+              "key": "boundary-reaffirmed",
+              "description": "V reaffirmed the earlier agreement in a text.",
+              "affects": [
+                "claire-russell"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-santo"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-santo"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact installed-version fact, journal and scene conditions remain unverified. Reached-stage gates are required. Prose outcomes are never runtime-enabled."
+          }
+        }
+      ],
+      "sourceIds": [
+        "jr-santo"
+      ],
+      "uncertainties": [
+        "Sources differ over exact dialogue/SMS mercy gates. Extract native conditions before enabling any compound rule."
+      ]
+    },
+    {
+      "key": "the-beast-in-me-the-big-race",
+      "title": "The Beast in Me: The Big Race",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "claire-russell"
+      ],
+      "synopsis": "V chooses whether to follow Sampson or finish.",
+      "stages": [
+        {
+          "key": "start",
+          "description": "Claire and Sampson argue.",
+          "sourceIds": [
+            "jr-big"
+          ]
+        },
+        {
+          "key": "split",
+          "description": "Sampson leaves the route.",
+          "sourceIds": [
+            "jr-big"
+          ]
+        },
+        {
+          "key": "result",
+          "description": "Chase and finish lead to different scenes.",
+          "sourceIds": [
+            "jr-big"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "judy-river.big.route",
+          "description": "Which route did V take?",
+          "topic": "claire.final_race_route",
+          "outcomes": [
+            {
+              "key": "pursuit",
+              "description": "V followed Sampson; confrontation outcome remains separate.",
+              "affects": [
+                "claire-russell"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-big"
+              ]
+            },
+            {
+              "key": "finish",
+              "description": "V continued racing; Claire felt betrayed and withdrew bar service.",
+              "affects": [
+                "claire-russell"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-big",
+                "jr-beast"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-big",
+            "jr-beast"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact installed-version fact, journal and scene conditions remain unverified. Reached-stage gates are required. Prose outcomes are never runtime-enabled."
+          }
+        },
+        {
+          "id": "judy-river.big.finish",
+          "description": "Finishing is not necessarily winning.",
+          "topic": "claire.final_race_result",
+          "outcomes": [
+            {
+              "key": "won",
+              "description": "V won the final.",
+              "affects": [
+                "claire-russell"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-big"
+              ]
+            },
+            {
+              "key": "finished-other",
+              "description": "V finished without a verified win.",
+              "affects": [
+                "claire-russell"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-big"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-big"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Exact installed-version fact, journal and scene conditions remain unverified. Reached-stage gates are required. Prose outcomes are never runtime-enabled."
+          }
+        }
+      ],
+      "sourceIds": [
+        "jr-big"
+      ],
+      "uncertainties": [
+        "Claire and Sampson offer conflicting accounts of intent in Dean's crash; preserve both as attributed testimony."
+      ]
+    },
+    {
+      "key": "nocturne-op55n1",
+      "title": "Nocturne Op55N1",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "judy-alvarez",
+        "river-ward"
+      ],
+      "synopsis": "Relationship overlay for the farewell call.",
+      "stages": [
+        {
+          "key": "farewell",
+          "description": "The chosen recipient differs from general relationship eligibility.",
+          "sourceIds": [
+            "jr-romance"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "judy-river.nocturne.partner-call",
+          "description": "Who actually received the farewell?",
+          "topic": "v.primary_ending_partner",
+          "outcomes": [
+            {
+              "key": "judy-called",
+              "description": "V called Judy.",
+              "affects": [
+                "judy-alvarez"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "jr-romance"
+              ]
+            },
+            {
+              "key": "river-called",
+              "description": "V called River.",
+              "affects": [
+                "river-ward"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "jr-romance"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-romance"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Cross-lane relationship overlay. Requires reached epilogue, relationship and recipient/scene evidence. Not runtime-enabled. Ending rewards carried back to a pre-finale save do not establish that future here."
+          }
+        }
+      ],
+      "sourceIds": [
+        "jr-romance"
+      ],
+      "uncertainties": [
+        "Core assault choices are mapped in other lanes. A missing receipt is not proof of rejection."
+      ]
+    },
+    {
+      "key": "all-along-the-watchtower",
+      "title": "All Along the Watchtower",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "judy-alvarez",
+        "river-ward"
+      ],
+      "synopsis": "Partner overlay for leaving Night City.",
+      "stages": [
+        {
+          "key": "camp",
+          "description": "Selected partner meets V.",
+          "sourceIds": [
+            "jr-star"
+          ]
+        },
+        {
+          "key": "departure",
+          "description": "Partners make individual decisions.",
+          "sourceIds": [
+            "jr-star"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "judy-river.star.partner",
+          "description": "Require the selected partner's actual scene.",
+          "topic": "v.star_relationship",
+          "outcomes": [
+            {
+              "key": "judy-leaves-together",
+              "description": "Judy joins V and the Aldecaldos, continuing their relationship.",
+              "affects": [
+                "judy-alvarez"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "jr-star"
+              ]
+            },
+            {
+              "key": "river-stays",
+              "description": "River stays near Joss and the children, parting from V.",
+              "affects": [
+                "river-ward"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "jr-star"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-star"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Cross-lane relationship overlay. Requires reached epilogue, relationship and recipient/scene evidence. Not runtime-enabled. Ending rewards carried back to a pre-finale save do not establish that future here."
+          }
+        }
+      ],
+      "sourceIds": [
+        "jr-star"
+      ],
+      "uncertainties": [
+        "Do not infer a cure or a completed later reunion."
+      ]
+    },
+    {
+      "key": "path-of-glory",
+      "title": "Path of Glory",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "judy-alvarez",
+        "river-ward",
+        "claire-russell"
+      ],
+      "synopsis": "Partner and bartender overlay for V's legend epilogue.",
+      "stages": [
+        {
+          "key": "partner",
+          "description": "Concerns are discussed before V's new job.",
+          "sourceIds": [
+            "jr-sun"
+          ]
+        },
+        {
+          "key": "afterlife",
+          "description": "Claire can give V a sendoff.",
+          "sourceIds": [
+            "jr-sun"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "judy-river.sun.partner",
+          "description": "Record the actual balcony resolution.",
+          "topic": "v.sun_relationship",
+          "outcomes": [
+            {
+              "key": "judy-leaves",
+              "description": "Judy ends the romance and leaves Night City.",
+              "affects": [
+                "judy-alvarez"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "jr-sun"
+              ]
+            },
+            {
+              "key": "river-waits",
+              "description": "River promises to wait for V after the Crystal Palace job.",
+              "affects": [
+                "river-ward"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "jr-sun"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-sun"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Cross-lane relationship overlay. Requires reached epilogue, relationship and recipient/scene evidence. Not runtime-enabled. Ending rewards carried back to a pre-finale save do not establish that future here."
+          }
+        },
+        {
+          "id": "judy-river.sun.claire-sendoff",
+          "description": "The bar scene bounds Claire's knowledge.",
+          "topic": "claire.legend_sendoff",
+          "outcomes": [
+            {
+              "key": "met",
+              "description": "Claire met V before the operation; its success is unknown.",
+              "affects": [
+                "claire-russell"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "jr-sun"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-sun"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Cross-lane relationship overlay. Requires reached epilogue, relationship and recipient/scene evidence. Not runtime-enabled. Ending rewards carried back to a pre-finale save do not establish that future here."
+          }
+        }
+      ],
+      "sourceIds": [
+        "jr-sun"
+      ],
+      "uncertainties": [
+        "Future events must be withdrawn after returning to the earlier open-world save."
+      ]
+    },
+    {
+      "key": "where-is-my-mind",
+      "title": "Where is My Mind?",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "judy-alvarez",
+        "river-ward"
+      ],
+      "synopsis": "Relationship overlay for orbital-clinic calls.",
+      "stages": [
+        {
+          "key": "call",
+          "description": "Recipient and actual reply matter.",
+          "sourceIds": [
+            "jr-romance",
+            "jr-river"
+          ]
+        },
+        {
+          "key": "contract",
+          "description": "Later contract choice is not automatically shared.",
+          "sourceIds": [
+            "jr-romance",
+            "jr-river"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "judy-river.devil.partner-call",
+          "description": "Keep offered help separate from completed rescue.",
+          "topic": "v.devil_relationship",
+          "outcomes": [
+            {
+              "key": "judy-withdraws",
+              "description": "The confirmed romantic branch ends with Judy withdrawing and leaving the city.",
+              "affects": [
+                "judy-alvarez"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "jr-romance"
+              ]
+            },
+            {
+              "key": "river-offers-help",
+              "description": "Romanced River offers help and wants V home; he has not arrived at the clinic.",
+              "affects": [
+                "river-ward"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "jr-river"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-romance",
+            "jr-river"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Cross-lane relationship overlay. Requires reached epilogue, relationship and recipient/scene evidence. Not runtime-enabled. Ending rewards carried back to a pre-finale save do not establish that future here."
+          }
+        }
+      ],
+      "sourceIds": [
+        "jr-romance",
+        "jr-river"
+      ],
+      "uncertainties": [
+        "An unanswered call is not a conversation. V's eventual choice and fate require separate evidence."
+      ]
+    },
+    {
+      "key": "new-dawn-fades",
+      "title": "New Dawn Fades",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "judy-alvarez",
+        "river-ward"
+      ],
+      "synopsis": "Unanswered messages after Johnny's departure.",
+      "stages": [
+        {
+          "key": "messages",
+          "description": "Partners lack a full explanation for V's disappearance.",
+          "sourceIds": [
+            "jr-endings"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "judy-river.temperance.partner-message",
+          "description": "Give speakers uncertainty, not the omniscient explanation.",
+          "topic": "v.temperance_relationship",
+          "outcomes": [
+            {
+              "key": "judy-worried",
+              "description": "A verified message expresses Judy's worry about V's silence.",
+              "affects": [
+                "judy-alvarez"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "jr-endings"
+              ]
+            },
+            {
+              "key": "river-searching",
+              "description": "River's message says he cannot find V.",
+              "affects": [
+                "river-ward"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "jr-endings"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-endings"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Cross-lane relationship overlay. Requires reached epilogue, relationship and recipient/scene evidence. Not runtime-enabled. Ending rewards carried back to a pre-finale save do not establish that future here."
+          }
+        }
+      ],
+      "sourceIds": [
+        "jr-endings"
+      ],
+      "uncertainties": [
+        "Neither automatically knows Johnny has the body or what happened in Mikoshi."
+      ]
+    },
+    {
+      "key": "things-done-changed",
+      "title": "Things Done Changed",
+      "category": "main",
+      "game": "phantom-liberty",
+      "nativeIds": [],
+      "characters": [
+        "judy-alvarez",
+        "river-ward"
+      ],
+      "synopsis": "Relationships after V's two-year coma.",
+      "stages": [
+        {
+          "key": "2079",
+          "description": "The Tower timeline has actually been reached.",
+          "sourceIds": [
+            "jr-tower"
+          ]
+        },
+        {
+          "key": "calls",
+          "description": "Individual replies update V's knowledge.",
+          "sourceIds": [
+            "jr-tower"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "judy-river.tower.judy-call",
+          "description": "Judy's changed life is specific to this future.",
+          "topic": "judy.tower_life",
+          "outcomes": [
+            {
+              "key": "heard",
+              "description": "Judy tells V she lives in Pittsburgh and married Bianca; the old romance is over.",
+              "affects": [
+                "judy-alvarez"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "jr-tower",
+                "jr-romance"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-tower",
+            "jr-romance"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Cross-lane relationship overlay. Requires reached epilogue, relationship and recipient/scene evidence. Not runtime-enabled. Ending rewards carried back to a pre-finale save do not establish that future here."
+          }
+        },
+        {
+          "id": "judy-river.tower.river-call",
+          "description": "Require River's post-coma disclosure.",
+          "topic": "river.tower_life",
+          "outcomes": [
+            {
+              "key": "heard",
+              "description": "River says he sold NCPD intelligence to Trauma Team for Randy's rehab and is ashamed to meet V.",
+              "affects": [
+                "river-ward"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "jr-tower"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-tower"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Cross-lane relationship overlay. Requires reached epilogue, relationship and recipient/scene evidence. Not runtime-enabled. Ending rewards carried back to a pre-finale save do not establish that future here."
+          }
+        }
+      ],
+      "sourceIds": [
+        "jr-tower"
+      ],
+      "uncertainties": [
+        "These memories must never leak into a 2077 save. Call availability depends on surviving and completing earlier relationships."
+      ]
+    },
+    {
+      "key": "i-really-want-to-stay-at-your-house",
+      "title": "I Really Want to Stay at Your House",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "judy-alvarez",
+        "river-ward"
+      ],
+      "synopsis": "A repeatable visit by an established partner.",
+      "stages": [
+        {
+          "key": "invite",
+          "description": "An existing partner accepts.",
+          "sourceIds": [
+            "jr-romance"
+          ]
+        },
+        {
+          "key": "visit",
+          "description": "A particular hangout occurs.",
+          "sourceIds": [
+            "jr-romance"
+          ]
+        },
+        {
+          "key": "leave",
+          "description": "The visit ends.",
+          "sourceIds": [
+            "jr-romance"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "judy-river.hangout.attended",
+          "description": "Use per-visit identity rather than one global memory.",
+          "topic": "v.partner_hangout",
+          "outcomes": [
+            {
+              "key": "judy-visited",
+              "description": "Judy attended this specific visit.",
+              "affects": [
+                "judy-alvarez"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "jr-romance"
+              ]
+            },
+            {
+              "key": "river-visited",
+              "description": "River attended this specific visit.",
+              "affects": [
+                "river-ward"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "jr-romance"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "jr-romance"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Cross-lane relationship overlay. Requires reached epilogue, relationship and recipient/scene evidence. Not runtime-enabled. Ending rewards carried back to a pre-finale save do not establish that future here."
+          }
+        }
+      ],
+      "sourceIds": [
+        "jr-romance"
+      ],
+      "uncertainties": [
+        "Native visit identity, gifts and apartment restrictions remain unverified. Summoning is not a native date."
+      ]
+    }
+  ]
+}

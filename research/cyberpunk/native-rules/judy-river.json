@@ -1,0 +1,2751 @@
+{
+  "version": 1,
+  "id": "judy-river-native",
+  "revision": 1,
+  "gameVersions": [
+    "2.31"
+  ],
+  "profileKeys": [
+    "judy-alvarez",
+    "evelyn-parker",
+    "river-ward",
+    "joss-kutcher",
+    "jefferson-peralez",
+    "elizabeth-peralez",
+    "sandra-dorsett",
+    "ana-friedman",
+    "claire-russell"
+  ],
+  "sources": [
+    {
+      "id": "jr-native-0",
+      "kind": "native",
+      "locator": "base\\quest\\cyberpunk2077.questphase"
+    },
+    {
+      "id": "jr-native-1",
+      "kind": "native",
+      "locator": "base\\quest\\side_quests\\sq006\\scenes\\sq006_07a_final_choice.scene"
+    },
+    {
+      "id": "jr-dream",
+      "url": "https://cyberpunk.fandom.com/wiki/Dream_On",
+      "title": "Dream On",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Intrusion; van; private meeting; disclosure",
+      "notes": "Read via indexed page content on 2026-09-30; direct Fandom access returned a robots restriction. Community interpretation, not native branch evidence."
+    },
+    {
+      "id": "jr-native-2",
+      "kind": "native",
+      "locator": "base\\quest\\side_quests\\sq021\\scenes\\sq021_11_finale.scene"
+    },
+    {
+      "id": "jr-hunt",
+      "url": "https://cyberpunk.fandom.com/wiki/The_Hunt",
+      "title": "The Hunt",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Clues; right/wrong farm; abandonment; aftermath",
+      "notes": "Read via indexed page content on 2026-09-30; direct Fandom access returned a robots restriction. Community interpretation, not native branch evidence."
+    },
+    {
+      "id": "jr-native-3",
+      "kind": "native",
+      "locator": "base\\quest\\side_quests\\sq029\\scenes\\sq029_05_morning_after.scene"
+    },
+    {
+      "id": "jr-following",
+      "url": "https://cyberpunk.fandom.com/wiki/Following_the_River",
+      "title": "Following the River",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Dinner; disclosure; romance",
+      "notes": "Read via indexed page content on 2026-09-30; direct Fandom access returned a robots restriction. Community interpretation, not native branch evidence."
+    },
+    {
+      "id": "jr-river",
+      "url": "https://cyberpunk.fandom.com/wiki/River_Ward",
+      "title": "River Ward",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Biography; romance; endings",
+      "notes": "Read via indexed page content on 2026-09-30; direct Fandom access returned a robots restriction. Community interpretation, not native branch evidence."
+    },
+    {
+      "id": "jr-native-4",
+      "kind": "native",
+      "locator": "base\\quest\\minor_quests\\mq024\\scenes\\mq024_02_meet_sandra.scene"
+    },
+    {
+      "id": "jr-disclosure",
+      "url": "https://cyberpunk.fandom.com/wiki/Full_Disclosure",
+      "title": "Full Disclosure",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Privacy and response alternatives",
+      "notes": "Read via indexed page content on 2026-09-30; direct Fandom access returned a robots restriction. Community interpretation, not native branch evidence."
+    },
+    {
+      "id": "jr-native-5",
+      "kind": "native",
+      "locator": "ep1\\openworld\\street_stories\\sts_ep1_08\\scenes\\sts_ep1_08_target_meeting.scene"
+    },
+    {
+      "id": "jr-spy",
+      "url": "https://cyberpunk.fandom.com/wiki/Gig%3A_Spy_in_the_Jungle",
+      "title": "Gig: Spy in the Jungle",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Katya; biomonitor; aftermath",
+      "notes": "Read via indexed page content on 2026-09-30; direct Fandom access returned a robots restriction. Community interpretation, not native branch evidence."
+    },
+    {
+      "id": "jr-native-6",
+      "kind": "native",
+      "locator": "ep1\\openworld\\street_stories\\sts_ep1_08\\scenes\\sts_ep1_08_client_ending.scene"
+    },
+    {
+      "id": "jr-native-7",
+      "kind": "native",
+      "locator": "base\\quest\\side_quests\\sq026\\phases\\sq026_end.questphase"
+    },
+    {
+      "id": "jr-native-8",
+      "kind": "native",
+      "locator": "base\\quest\\side_quests\\sq026\\scenes\\sq026_13_hiromi.scene"
+    },
+    {
+      "id": "jr-pisces",
+      "url": "https://cyberpunk.fandom.com/wiki/Pisces",
+      "title": "Pisces",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Payment; Maiko; later Clouds reports",
+      "notes": "Read via indexed page content on 2026-09-30; direct Fandom access returned a robots restriction. Community interpretation, not native branch evidence."
+    },
+    {
+      "id": "jr-pisces-guide",
+      "url": "https://game8.co/games/Cyberpunk-2077/archives/Quests-Pisces",
+      "title": "Game8: Pisces",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Maiko and payment",
+      "notes": "Indexed guide content inspected; direct open failed."
+    },
+    {
+      "id": "jr-native-9",
+      "kind": "native",
+      "locator": "base\\quest\\side_quests\\sq026\\phases\\sq026_hiromi_penthouse.questphase"
+    },
+    {
+      "id": "jr-judy",
+      "url": "https://cyberpunk.fandom.com/wiki/Judy_%C3%81lvarez",
+      "title": "Judy Alvarez",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Biography; database; romance; endings",
+      "notes": "Read via indexed page content on 2026-09-30; direct Fandom access returned a robots restriction. Community interpretation, not native branch evidence."
+    },
+    {
+      "id": "jr-native-10",
+      "kind": "native",
+      "locator": "base\\quest\\side_quests\\sq024\\scenes\\sq024_02b_santo_domingo_race_end.scene"
+    },
+    {
+      "id": "jr-santo",
+      "url": "https://cyberpunk.fandom.com/wiki/The_Beast_in_Me%3A_Santo_Domingo",
+      "title": "The Beast in Me: Santo Domingo",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Claire disclosure; choices; later text",
+      "notes": "Read via indexed page content on 2026-09-30; direct Fandom access returned a robots restriction. Community interpretation, not native branch evidence."
+    },
+    {
+      "id": "jr-beast",
+      "url": "https://cyberpunk.fandom.com/wiki/The_Beast_In_Me",
+      "title": "The Beast In Me",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Offer; races; confrontation; awards",
+      "notes": "Read via indexed page content on 2026-09-30; direct Fandom access returned a robots restriction. Community interpretation, not native branch evidence."
+    },
+    {
+      "id": "jr-native-11",
+      "kind": "native",
+      "locator": "base\\journal\\cooked_journal.journal"
+    },
+    {
+      "id": "jr-sampson",
+      "url": "https://cyberpunk.fandom.com/wiki/Peter_Sampson",
+      "title": "Peter Sampson",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Disputed crash; mercy conditions",
+      "notes": "Read via indexed page content on 2026-09-30; direct Fandom access returned a robots restriction. Community interpretation, not native branch evidence."
+    },
+    {
+      "id": "jr-cthulhu",
+      "url": "https://cyberpunk.fandom.com/wiki/Quadra_Type-66_%22Cthulhu%22",
+      "title": "Quadra Type-66 Cthulhu",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Award versus purchase; persuasion wording",
+      "notes": "Read via indexed page content on 2026-09-30; direct Fandom access returned a robots restriction. Community interpretation, not native branch evidence."
+    },
+    {
+      "id": "jr-native-12",
+      "kind": "native",
+      "locator": "base\\quest\\side_quests\\sq024\\scenes\\sq024_05b_trauma_team.scene"
+    },
+    {
+      "id": "jr-big",
+      "url": "https://cyberpunk.fandom.com/wiki/The_Beast_in_Me%3A_The_Big_Race",
+      "title": "The Beast in Me: The Big Race",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Chase versus finish",
+      "notes": "Read via indexed page content on 2026-09-30; direct Fandom access returned a robots restriction. Community interpretation, not native branch evidence."
+    }
+  ],
+  "evidence": [
+    {
+      "id": "jr-native.dream-completed-route",
+      "sourceId": "jr-native-0",
+      "kind": "native",
+      "locator": "Release root Start reaches persistent phase 82, whose sidequest resource points to sq006. sq006 normal success flows lab_chase -> cloak_and_dagger -> conclusion; lab failure exits separately. Conclusion scene node5 final-meeting end -> journal node58 Succeeded -> whole quest journal node11 Succeeded -> reward52 -> done writer51 increment 1.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "raw/base/base/quest/cyberpunk2077.questphase.json",
+        "assetSha256": "78d8afd0784575216b090f003610ca973be9d1781bab948c9e4dc12006d750b2",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/0/Data",
+        "expectedType": "questInputNodeDefinition"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "raw/base/base/quest/cyberpunk2077.questphase.json",
+          "assetSha256": "78d8afd0784575216b090f003610ca973be9d1781bab948c9e4dc12006d750b2",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/7/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sidequests.questphase.json",
+          "assetSha256": "1cf2fc2ba3b538f7496fddf09ff319602f54f6785a925ba36ad3c9b90020f000",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/17/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq006/phases/sq006.questphase.json",
+          "assetSha256": "fc441c05e770f24fb16367c194b39724a9929cf95f9c2bbbf1d6a3caf08cf726",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq006/phases/sq006.questphase.json",
+          "assetSha256": "fc441c05e770f24fb16367c194b39724a9929cf95f9c2bbbf1d6a3caf08cf726",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq006/phases/sq006_conclusion.questphase.json",
+          "assetSha256": "45a7cd0e76c61e6295b65c30d156b466c683b9b73edfddf56b4ef00ac66fe24c",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data",
+          "expectedType": "questSceneNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq006/phases/sq006_conclusion.questphase.json",
+          "assetSha256": "45a7cd0e76c61e6295b65c30d156b466c683b9b73edfddf56b4ef00ac66fe24c",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/18/Data",
+          "expectedType": "questJournalNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq006/phases/sq006_conclusion.questphase.json",
+          "assetSha256": "45a7cd0e76c61e6295b65c30d156b466c683b9b73edfddf56b4ef00ac66fe24c",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data",
+          "expectedType": "questJournalNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq006/phases/sq006_conclusion.questphase.json",
+          "assetSha256": "45a7cd0e76c61e6295b65c30d156b466c683b9b73edfddf56b4ef00ac66fe24c",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/13/Data/type/Data",
+          "expectedType": "questSetVar_NodeType"
+        }
+      ]
+    },
+    {
+      "id": "jr-native.dream-truth",
+      "sourceId": "jr-native-1",
+      "kind": "native",
+      "locator": "Final choice node88 option 0 joins screenplay option 0 and English payload 359; output ordinal 0 directly sets sq006_fact_truth_hurts to/adds 1. The scene identifies Jefferson actor0 and V player actor3; section90 is the disclosure, section92 is withholding. Neither branch establishes the identity of the controller.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq006/scenes/sq006_07a_final_choice.scene.json",
+        "assetSha256": "3526a1624191f8acf79b5034371163dd9f50baa425a6d4be6addaac33fe7db24",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq006/scenes/sq006_07a_final_choice.scene.json",
+          "assetSha256": "3526a1624191f8acf79b5034371163dd9f50baa425a6d4be6addaac33fe7db24",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data",
+          "expectedType": "scnChoiceNode"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq006/scenes/sq006_07a_final_choice.scene.json",
+          "assetSha256": "3526a1624191f8acf79b5034371163dd9f50baa425a6d4be6addaac33fe7db24",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/options/0",
+          "expectedType": "scnscreenplayChoiceOption"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq006/scenes/sq006_07a_final_choice.scene.json",
+          "assetSha256": "3526a1624191f8acf79b5034371163dd9f50baa425a6d4be6addaac33fe7db24",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/359",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq006/scenes/sq006_07a_final_choice.scene.json",
+          "assetSha256": "3526a1624191f8acf79b5034371163dd9f50baa425a6d4be6addaac33fe7db24",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/310",
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq006/scenes/sq006_07a_final_choice.scene.json",
+          "assetSha256": "3526a1624191f8acf79b5034371163dd9f50baa425a6d4be6addaac33fe7db24",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq006/scenes/sq006_07a_final_choice.scene.json",
+          "assetSha256": "3526a1624191f8acf79b5034371163dd9f50baa425a6d4be6addaac33fe7db24",
+          "jsonPointer": "/Data/RootChunk/actors/0",
+          "expectedType": "scnActorDef"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq006/scenes/sq006_07a_final_choice.scene.json",
+          "assetSha256": "3526a1624191f8acf79b5034371163dd9f50baa425a6d4be6addaac33fe7db24",
+          "jsonPointer": "/Data/RootChunk/playerActors/0",
+          "expectedType": "scnPlayerActorDef"
+        }
+      ]
+    },
+    {
+      "id": "jr-native.dream-cover-story",
+      "sourceId": "jr-native-1",
+      "kind": "native",
+      "locator": "Final choice node88 option 1 joins screenplay option 1 and English payload 363; output ordinal 1 directly sets sq006_fact_fake_just_as_good to/adds 1. The scene identifies Jefferson actor0 and V player actor3; section90 is the disclosure, section92 is withholding. Neither branch establishes the identity of the controller.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq006/scenes/sq006_07a_final_choice.scene.json",
+        "assetSha256": "3526a1624191f8acf79b5034371163dd9f50baa425a6d4be6addaac33fe7db24",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/180/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq006/scenes/sq006_07a_final_choice.scene.json",
+          "assetSha256": "3526a1624191f8acf79b5034371163dd9f50baa425a6d4be6addaac33fe7db24",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data",
+          "expectedType": "scnChoiceNode"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq006/scenes/sq006_07a_final_choice.scene.json",
+          "assetSha256": "3526a1624191f8acf79b5034371163dd9f50baa425a6d4be6addaac33fe7db24",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/options/1",
+          "expectedType": "scnscreenplayChoiceOption"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq006/scenes/sq006_07a_final_choice.scene.json",
+          "assetSha256": "3526a1624191f8acf79b5034371163dd9f50baa425a6d4be6addaac33fe7db24",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/363",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq006/scenes/sq006_07a_final_choice.scene.json",
+          "assetSha256": "3526a1624191f8acf79b5034371163dd9f50baa425a6d4be6addaac33fe7db24",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/311",
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq006/scenes/sq006_07a_final_choice.scene.json",
+          "assetSha256": "3526a1624191f8acf79b5034371163dd9f50baa425a6d4be6addaac33fe7db24",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq006/scenes/sq006_07a_final_choice.scene.json",
+          "assetSha256": "3526a1624191f8acf79b5034371163dd9f50baa425a6d4be6addaac33fe7db24",
+          "jsonPointer": "/Data/RootChunk/actors/0",
+          "expectedType": "scnActorDef"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq006/scenes/sq006_07a_final_choice.scene.json",
+          "assetSha256": "3526a1624191f8acf79b5034371163dd9f50baa425a6d4be6addaac33fe7db24",
+          "jsonPointer": "/Data/RootChunk/playerActors/0",
+          "expectedType": "scnPlayerActorDef"
+        }
+      ]
+    },
+    {
+      "id": "jr-native.hunt-rescue-branch",
+      "sourceId": "jr-native-2",
+      "kind": "native",
+      "locator": "Finale choice1450 [Release] -> cut2103 -> condition741 compares sq021_bad_farm_chosen > 0. True sets randy_kaputt=1; false sets randy_saved=1. The release is directed at Randy in the barn; River is scene actor0 with sobchak spawn identity. Later ordinary cleanup sets sq021_done=1 and after good-farm comparison sends the separate Randy-lives message. No rule treats missing bad-farm value as false. Alternate-writer audit: sq021_done is also assigned in finale node2734 after either normal wrap-up or the river_hates_v result; it does not imply affection. The cleanup's separate randy_saved writer is cited explicitly. Only the positive rescued/dead result selects Randy's fate.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq021/scenes/sq021_11_finale.scene.json",
+        "assetSha256": "10100586e576735c5d378a930a6fbceced636174117b4fb42ab51312cff7c9f1",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/242/Data",
+        "expectedType": "scnChoiceNode"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq021/scenes/sq021_11_finale.scene.json",
+          "assetSha256": "10100586e576735c5d378a930a6fbceced636174117b4fb42ab51312cff7c9f1",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/367/Data",
+          "expectedType": "scnCutControlNode"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq021/scenes/sq021_11_finale.scene.json",
+          "assetSha256": "10100586e576735c5d378a930a6fbceced636174117b4fb42ab51312cff7c9f1",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/115/Data/questNode/Data/condition/Data/type/Data",
+          "expectedType": "questVarComparison_ConditionType"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq021/scenes/sq021_11_finale.scene.json",
+          "assetSha256": "10100586e576735c5d378a930a6fbceced636174117b4fb42ab51312cff7c9f1",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/120/Data/questNode/Data/type/Data",
+          "expectedType": "questSetVar_NodeType"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq021/scenes/sq021_11_finale.scene.json",
+          "assetSha256": "10100586e576735c5d378a930a6fbceced636174117b4fb42ab51312cff7c9f1",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/329/Data/questNode/Data/type/Data",
+          "expectedType": "questSetVar_NodeType"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq021/scenes/sq021_11_finale.scene.json",
+          "assetSha256": "10100586e576735c5d378a930a6fbceced636174117b4fb42ab51312cff7c9f1",
+          "jsonPointer": "/Data/RootChunk/actors/0",
+          "expectedType": "scnActorDef"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq021/scenes/sq021_11_finale.scene.json",
+          "assetSha256": "10100586e576735c5d378a930a6fbceced636174117b4fb42ab51312cff7c9f1",
+          "jsonPointer": "/Data/RootChunk/actors/1",
+          "expectedType": "scnActorDef"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq021/scenes/sq021_11_finale.scene.json",
+          "assetSha256": "10100586e576735c5d378a930a6fbceced636174117b4fb42ab51312cff7c9f1",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/options/36",
+          "expectedType": "scnscreenplayChoiceOption"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq021/scenes/sq021_11_finale.scene.json",
+          "assetSha256": "10100586e576735c5d378a930a6fbceced636174117b4fb42ab51312cff7c9f1",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/606",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq021/sq021.questphase.json",
+          "assetSha256": "3d290fcb28740f23ce525331b66da7ef978208d5ea113c1c5acfc3bba49ba44b",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/32/Data/phaseGraph/Data/nodes/9/Data/type/Data",
+          "expectedType": "questSetVar_NodeType"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq021/sq021.questphase.json",
+          "assetSha256": "3d290fcb28740f23ce525331b66da7ef978208d5ea113c1c5acfc3bba49ba44b",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/32/Data/phaseGraph/Data/nodes/10/Data",
+          "expectedType": "questConditionNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq021/sq021.questphase.json",
+          "assetSha256": "3d290fcb28740f23ce525331b66da7ef978208d5ea113c1c5acfc3bba49ba44b",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/32/Data/phaseGraph/Data/nodes/14/Data",
+          "expectedType": "questFactsDBManagerNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq021/sq021.questphase.json",
+          "assetSha256": "3d290fcb28740f23ce525331b66da7ef978208d5ea113c1c5acfc3bba49ba44b",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/32/Data/phaseGraph/Data/nodes/15/Data",
+          "expectedType": "questJournalNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sidequests.questphase.json",
+          "assetSha256": "1cf2fc2ba3b538f7496fddf09ff319602f54f6785a925ba36ad3c9b90020f000",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/15/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq021/sq021.questphase.json",
+          "assetSha256": "3d290fcb28740f23ce525331b66da7ef978208d5ea113c1c5acfc3bba49ba44b",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/14/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq021/sq021.questphase.json",
+          "assetSha256": "3d290fcb28740f23ce525331b66da7ef978208d5ea113c1c5acfc3bba49ba44b",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/32/Data/phaseGraph/Data/nodes/14/Data/type/Data",
+          "expectedType": "questSetVar_NodeType"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq021/scenes/sq021_11_finale.scene.json",
+          "assetSha256": "10100586e576735c5d378a930a6fbceced636174117b4fb42ab51312cff7c9f1",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/412/Data/questNode/Data/type/Data",
+          "expectedType": "questSetVar_NodeType"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq021/scenes/sq021_11_finale.scene.json",
+          "assetSha256": "10100586e576735c5d378a930a6fbceced636174117b4fb42ab51312cff7c9f1",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/380/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq021/scenes/sq021_11_finale.scene.json",
+          "assetSha256": "10100586e576735c5d378a930a6fbceced636174117b4fb42ab51312cff7c9f1",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/381/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq021/scenes/sq021_11_finale.scene.json",
+          "assetSha256": "10100586e576735c5d378a930a6fbceced636174117b4fb42ab51312cff7c9f1",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/133/Data"
+        }
+      ]
+    },
+    {
+      "id": "jr-native.river-commitment",
+      "sourceId": "jr-native-3",
+      "kind": "native",
+      "locator": "Morning choice24 option0 [Kiss] Yes -> wait1894 -> hub468 -> section25, where V and River agree to try a relationship -> node28 writes sq029_river_lover exactly1. River actor0 acquired from sobchak; V is player actor3. Ordinary conclusion cleanup writes sq029_done exactly1. sq021_sobchak_friend is deliberately not used as a refusal/romance inverse: earlier rescue and several refusals also write it. Alternate-writer audit: the isolated q203_legend.quest wrapper increments sq029_done during its explicit q203 chicken-test setup. It is outside the base release reference closure; production uses the .questphase. This completion flag alone is never romance proof.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq029/scenes/sq029_05_morning_after.scene.json",
+        "assetSha256": "5000f6f173b9284043830e51e12a8ca8891129b6d29545138754861574e87e1b",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq029/scenes/sq029_05_morning_after.scene.json",
+          "assetSha256": "5000f6f173b9284043830e51e12a8ca8891129b6d29545138754861574e87e1b",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data",
+          "expectedType": "scnChoiceNode"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq029/scenes/sq029_05_morning_after.scene.json",
+          "assetSha256": "5000f6f173b9284043830e51e12a8ca8891129b6d29545138754861574e87e1b",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/279/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq029/scenes/sq029_05_morning_after.scene.json",
+          "assetSha256": "5000f6f173b9284043830e51e12a8ca8891129b6d29545138754861574e87e1b",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/66/Data",
+          "expectedType": "scnHubNode"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq029/scenes/sq029_05_morning_after.scene.json",
+          "assetSha256": "5000f6f173b9284043830e51e12a8ca8891129b6d29545138754861574e87e1b",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq029/scenes/sq029_05_morning_after.scene.json",
+          "assetSha256": "5000f6f173b9284043830e51e12a8ca8891129b6d29545138754861574e87e1b",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/options/0",
+          "expectedType": "scnscreenplayChoiceOption"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq029/scenes/sq029_05_morning_after.scene.json",
+          "assetSha256": "5000f6f173b9284043830e51e12a8ca8891129b6d29545138754861574e87e1b",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/339",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq029/scenes/sq029_05_morning_after.scene.json",
+          "assetSha256": "5000f6f173b9284043830e51e12a8ca8891129b6d29545138754861574e87e1b",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/32",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq029/scenes/sq029_05_morning_after.scene.json",
+          "assetSha256": "5000f6f173b9284043830e51e12a8ca8891129b6d29545138754861574e87e1b",
+          "jsonPointer": "/Data/RootChunk/actors/0",
+          "expectedType": "scnActorDef"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq029/sq029.questphase.json",
+          "assetSha256": "df46bf27a63435ddead9a0abcae64c4dbfc4965873a8cdd61c8f53ab83fcb683",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq029/phases/sq029_conclusion.questphase.json",
+          "assetSha256": "09e1f25015307ef06ecb598d781d08aa6368d91531ce8ce23b119afeeb35534f",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/34/Data/phaseGraph/Data/nodes/4/Data/type/Data",
+          "expectedType": "questSetVar_NodeType"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sidequests.questphase.json",
+          "assetSha256": "1cf2fc2ba3b538f7496fddf09ff319602f54f6785a925ba36ad3c9b90020f000",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/16/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/epilogue/q203/q203_legend.quest.json",
+          "assetSha256": "e2bbb50b76f0b3a77aefc0a0231c282ce70a263364737d05c38bccc9931e5fc9",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/3/Data/type/Data",
+          "expectedType": "questSetVar_NodeType"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/epilogue/q203/q203_legend.quest.json",
+          "assetSha256": "e2bbb50b76f0b3a77aefc0a0231c282ce70a263364737d05c38bccc9931e5fc9",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data",
+          "expectedType": "questSceneNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/epilogue/q203/q203_legend.quest.json",
+          "assetSha256": "e2bbb50b76f0b3a77aefc0a0231c282ce70a263364737d05c38bccc9931e5fc9",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/type/Data",
+          "expectedType": "questSetVar_NodeType"
+        }
+      ]
+    },
+    {
+      "id": "jr-native.sandra-admission",
+      "sourceId": "jr-native-4",
+      "kind": "native",
+      "locator": "mq024 apartment node10 enters meeting at Start0. Choice12 option1 (English descriptor219/payload234) -> node43 adds 1 to mq024_admit_that_looked. Sandra actor0 hears V actor1; completed cleanup assigns mq024_done=1. Reachable EP1 history presets also establish admission, so the statement describes save-established history without inferring the human selected the answer. Alternate-writer audit: the isolated mq055.quest chicken-test wrapper writes both done/admission in its test setup and is outside the base release reference closure. EP1 has two additional presets: preparation under phase12 and actual Standalone history under phase19; both write done/admission. Thus this rule establishes the save's history, not a human-selected answer or current-session action.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+        "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data",
+          "expectedType": "scnChoiceNode"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/options/3"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/219"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/234"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonPointer": "/Data/RootChunk/actors/0"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonPointer": "/Data/RootChunk/playerActors"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/minor_quests/mq024/phases/mq024_03_sandra_apartment.questphase.json",
+          "assetSha256": "8e1d3a1c258f3f1a38351a60864a70699320215780390ea57b8b0811425ba89a",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/8/Data",
+          "expectedType": "questSceneNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/minor_quests/mq024/phases/mq024_cleanup.questphase.json",
+          "assetSha256": "3ef88ee1cc72b875c9b33c74d36cb2001e1c78506961684667da67afabdc2b94",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/type/Data",
+          "expectedType": "questSetVar_NodeType"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/minor_quests/mq024/phases/mq024_cleanup.questphase.json",
+          "assetSha256": "3ef88ee1cc72b875c9b33c74d36cb2001e1c78506961684667da67afabdc2b94",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data",
+          "expectedType": "questJournalNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/minor_quests/minorquests.questphase.json",
+          "assetSha256": "89e902a6bcc783325642a6dc6d1d856bb144651136c58d423fea6b421efce85a",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/7/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/ep1/ep1/quest/ep1.questphase.json",
+          "assetSha256": "f8049a61235f36685b50d60da0e78b3de7640bc6f324e14b77d7601fdf0e9c57",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/17/Data/phaseGraph/Data/nodes/49/Data"
+        },
+        {
+          "jsonPath": "raw/ep1/ep1/quest/ep1.questphase.json",
+          "assetSha256": "f8049a61235f36685b50d60da0e78b3de7640bc6f324e14b77d7601fdf0e9c57",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/17/Data/phaseGraph/Data/nodes/50/Data"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/minor_quests/mq055/mq055.quest.json",
+          "assetSha256": "e240ece14eba3138d2fc1500895b8866a02f0bfa0c69b5b10faf59c92ce08a86",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/49/Data/type/Data",
+          "expectedType": "questSetVar_NodeType"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/minor_quests/mq055/mq055.quest.json",
+          "assetSha256": "e240ece14eba3138d2fc1500895b8866a02f0bfa0c69b5b10faf59c92ce08a86",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/50/Data/type/Data",
+          "expectedType": "questSetVar_NodeType"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/minor_quests/mq055/mq055.quest.json",
+          "assetSha256": "e240ece14eba3138d2fc1500895b8866a02f0bfa0c69b5b10faf59c92ce08a86",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data",
+          "expectedType": "questSceneNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/ep1/ep1/quest/ep1.questphase.json",
+          "assetSha256": "f8049a61235f36685b50d60da0e78b3de7640bc6f324e14b77d7601fdf0e9c57",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/17/Data/phaseGraph/Data/nodes/49/Data/type/Data",
+          "expectedType": "questSetVar_NodeType"
+        },
+        {
+          "jsonPath": "raw/ep1/ep1/quest/ep1.questphase.json",
+          "assetSha256": "f8049a61235f36685b50d60da0e78b3de7640bc6f324e14b77d7601fdf0e9c57",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/17/Data/phaseGraph/Data/nodes/50/Data/type/Data",
+          "expectedType": "questSetVar_NodeType"
+        },
+        {
+          "jsonPath": "raw/ep1/ep1/quest/ep1.questphase.json",
+          "assetSha256": "f8049a61235f36685b50d60da0e78b3de7640bc6f324e14b77d7601fdf0e9c57",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/10/Data/phaseGraph/Data/nodes/53/Data/type/Data",
+          "expectedType": "questSetVar_NodeType"
+        },
+        {
+          "jsonPath": "raw/ep1/ep1/quest/ep1.questphase.json",
+          "assetSha256": "f8049a61235f36685b50d60da0e78b3de7640bc6f324e14b77d7601fdf0e9c57",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/10/Data/phaseGraph/Data/nodes/54/Data/type/Data",
+          "expectedType": "questSetVar_NodeType"
+        },
+        {
+          "jsonPath": "raw/ep1/ep1/quest/ep1.questphase.json",
+          "assetSha256": "f8049a61235f36685b50d60da0e78b3de7640bc6f324e14b77d7601fdf0e9c57",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/6/Data",
+          "expectedType": "questInputNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/ep1/ep1/quest/ep1.questphase.json",
+          "assetSha256": "f8049a61235f36685b50d60da0e78b3de7640bc6f324e14b77d7601fdf0e9c57",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/10/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "jr-native.sandra-blackmail",
+      "sourceId": "jr-native-4",
+      "kind": "native",
+      "locator": "Meeting choice94 option0 asks for payment to stay silent after section37 threatens a Night Corp tip. It enters section93, then output2 writes mq024_combat_sandra=1 at node416. Exact shipped subtitle entries49,50,51,28 are checked separately where inline wording differs; no survival is inferred from hostility.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+        "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/104/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/35/Data",
+          "expectedType": "scnChoiceNode"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/34/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/16/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/options/12"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/286"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/270"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/37"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/53"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/122"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/176"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonPointer": "/Data/RootChunk/actors/0"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/minor_quests/mq024/phases/mq024_cleanup.questphase.json",
+          "assetSha256": "3ef88ee1cc72b875c9b33c74d36cb2001e1c78506961684667da67afabdc2b94",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/type/Data",
+          "expectedType": "questSetVar_NodeType"
+        },
+        {
+          "jsonPath": "localization/raw/base/base/localization/en-us/subtitles/quest/mq024/mq024_02_meet_sandra.json.json",
+          "assetSha256": "c80862db6f512da39894cb80dc3e10539b11c8023bb0658a95f04432b901f656",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/49",
+          "expectedType": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "jsonPath": "localization/raw/base/base/localization/en-us/subtitles/quest/mq024/mq024_02_meet_sandra.json.json",
+          "assetSha256": "c80862db6f512da39894cb80dc3e10539b11c8023bb0658a95f04432b901f656",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/50",
+          "expectedType": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "jsonPath": "localization/raw/base/base/localization/en-us/subtitles/quest/mq024/mq024_02_meet_sandra.json.json",
+          "assetSha256": "c80862db6f512da39894cb80dc3e10539b11c8023bb0658a95f04432b901f656",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/51",
+          "expectedType": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "jsonPath": "localization/raw/base/base/localization/en-us/subtitles/quest/mq024/mq024_02_meet_sandra.json.json",
+          "assetSha256": "c80862db6f512da39894cb80dc3e10539b11c8023bb0658a95f04432b901f656",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/28",
+          "expectedType": "localizationPersistenceSubtitleEntry"
+        }
+      ]
+    },
+    {
+      "id": "jr-native.ana-revelation",
+      "sourceId": "jr-native-5",
+      "kind": "native",
+      "locator": "Production phase node201 enters the Meeting input. Section1068 has target actor0 describe Bana's captivity and Ana actor2 order V actor4 to kill her; timed output2 reaches node1421, setting ana_gave_kill_order exactly1. This proves the heard allegation/order, not the allegation's truth or V's obedience. Phase nodes312/314 finish the job.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-native/raw/ep1/ep1/openworld/street_stories/sts_ep1_08/scenes/sts_ep1_08_target_meeting.scene.json",
+        "assetSha256": "81142f72b147e1e00ccdb0c897bafe3bc81660633dd38e01c88732227e79de82",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/99/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/ep1/ep1/openworld/street_stories/sts_ep1_08/scenes/sts_ep1_08_target_meeting.scene.json",
+          "assetSha256": "81142f72b147e1e00ccdb0c897bafe3bc81660633dd38e01c88732227e79de82",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/63/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/ep1/ep1/openworld/street_stories/sts_ep1_08/scenes/sts_ep1_08_target_meeting.scene.json",
+          "assetSha256": "81142f72b147e1e00ccdb0c897bafe3bc81660633dd38e01c88732227e79de82",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/41"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/ep1/ep1/openworld/street_stories/sts_ep1_08/scenes/sts_ep1_08_target_meeting.scene.json",
+          "assetSha256": "81142f72b147e1e00ccdb0c897bafe3bc81660633dd38e01c88732227e79de82",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/42"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/ep1/ep1/openworld/street_stories/sts_ep1_08/scenes/sts_ep1_08_target_meeting.scene.json",
+          "assetSha256": "81142f72b147e1e00ccdb0c897bafe3bc81660633dd38e01c88732227e79de82",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/43"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/ep1/ep1/openworld/street_stories/sts_ep1_08/scenes/sts_ep1_08_target_meeting.scene.json",
+          "assetSha256": "81142f72b147e1e00ccdb0c897bafe3bc81660633dd38e01c88732227e79de82",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/330"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/ep1/ep1/openworld/street_stories/sts_ep1_08/scenes/sts_ep1_08_target_meeting.scene.json",
+          "assetSha256": "81142f72b147e1e00ccdb0c897bafe3bc81660633dd38e01c88732227e79de82",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/171"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/ep1/ep1/openworld/street_stories/sts_ep1_08/scenes/sts_ep1_08_target_meeting.scene.json",
+          "assetSha256": "81142f72b147e1e00ccdb0c897bafe3bc81660633dd38e01c88732227e79de82",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/331"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/ep1/ep1/openworld/street_stories/sts_ep1_08/scenes/sts_ep1_08_target_meeting.scene.json",
+          "assetSha256": "81142f72b147e1e00ccdb0c897bafe3bc81660633dd38e01c88732227e79de82",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/175"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/ep1/ep1/openworld/street_stories/sts_ep1_08/scenes/sts_ep1_08_target_meeting.scene.json",
+          "assetSha256": "81142f72b147e1e00ccdb0c897bafe3bc81660633dd38e01c88732227e79de82",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/332"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/ep1/ep1/openworld/street_stories/sts_ep1_08/scenes/sts_ep1_08_target_meeting.scene.json",
+          "assetSha256": "81142f72b147e1e00ccdb0c897bafe3bc81660633dd38e01c88732227e79de82",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/179"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/ep1/ep1/openworld/street_stories/sts_ep1_08/scenes/sts_ep1_08_target_meeting.scene.json",
+          "assetSha256": "81142f72b147e1e00ccdb0c897bafe3bc81660633dd38e01c88732227e79de82",
+          "jsonPointer": "/Data/RootChunk/actors/2"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/ep1/ep1/openworld/street_stories/sts_ep1_08/scenes/sts_ep1_08_target_meeting.scene.json",
+          "assetSha256": "81142f72b147e1e00ccdb0c897bafe3bc81660633dd38e01c88732227e79de82",
+          "jsonPointer": "/Data/RootChunk/playerActors/0"
+        },
+        {
+          "jsonPath": "raw/ep1/ep1/openworld/street_stories/sts_ep1_08/phases/sts_ep1_08_phase.questphase.json",
+          "assetSha256": "53a5ddcc3b7ba81c2315229c9e59f496f43db66f7227e18a48ab7e0b70d3cf6f",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/66/Data",
+          "expectedType": "questSceneNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/ep1/ep1/openworld/street_stories/sts_ep1_08/phases/sts_ep1_08_phase.questphase.json",
+          "assetSha256": "53a5ddcc3b7ba81c2315229c9e59f496f43db66f7227e18a48ab7e0b70d3cf6f",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/97/Data/type/Data",
+          "expectedType": "questSetVar_NodeType"
+        },
+        {
+          "jsonPath": "raw/ep1/ep1/openworld/street_stories/sts_ep1_08/phases/sts_ep1_08_phase.questphase.json",
+          "assetSha256": "53a5ddcc3b7ba81c2315229c9e59f496f43db66f7227e18a48ab7e0b70d3cf6f",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/98/Data/type/Data",
+          "expectedType": "questSetVar_NodeType"
+        },
+        {
+          "jsonPath": "raw/ep1/ep1/openworld/street_stories/ep1_street_stories.questphase.json",
+          "assetSha256": "f713ce495adb6ec64920cac8e1783896ee286678424d01a976b24e744431bb00",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseGraph/Data/nodes/23/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "jr-native.ana-monitor-delivered",
+      "sourceId": "jr-native-6",
+      "kind": "native",
+      "locator": "Client-ending choice483 option0 enters section492 and removes Items.sts_ep1_08_biomonitor_target from V, injects it into Ana at client_com, then sets biomonitor_ana=1 at node652. The alternate leave/timeout sections559/973/983 converge via hub1241, remove the monitor and set the same outcome at node649. These share the monitor left with Ana outcome; they do not prove V clicked the explicit handover option. Ana's distribution plan is in section492; no later outcome is implied.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-native/raw/ep1/ep1/openworld/street_stories/sts_ep1_08/scenes/sts_ep1_08_client_ending.scene.json",
+        "assetSha256": "6fa4dbe1be6237f9c46e2f6377c6c346899a55946022227bdc2ddfb3a111b265",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/32/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/ep1/ep1/openworld/street_stories/sts_ep1_08/scenes/sts_ep1_08_client_ending.scene.json",
+          "assetSha256": "6fa4dbe1be6237f9c46e2f6377c6c346899a55946022227bdc2ddfb3a111b265",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/31/Data/questNode/Data/type/Data",
+          "expectedType": "questSetVar_NodeType"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/ep1/ep1/openworld/street_stories/sts_ep1_08/scenes/sts_ep1_08_client_ending.scene.json",
+          "assetSha256": "6fa4dbe1be6237f9c46e2f6377c6c346899a55946022227bdc2ddfb3a111b265",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data",
+          "expectedType": "scnChoiceNode"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/ep1/ep1/openworld/street_stories/sts_ep1_08/scenes/sts_ep1_08_client_ending.scene.json",
+          "assetSha256": "6fa4dbe1be6237f9c46e2f6377c6c346899a55946022227bdc2ddfb3a111b265",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/ep1/ep1/openworld/street_stories/sts_ep1_08/scenes/sts_ep1_08_client_ending.scene.json",
+          "assetSha256": "6fa4dbe1be6237f9c46e2f6377c6c346899a55946022227bdc2ddfb3a111b265",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/questNode/Data",
+          "expectedType": "questItemManagerNodeDefinition"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/ep1/ep1/openworld/street_stories/sts_ep1_08/scenes/sts_ep1_08_client_ending.scene.json",
+          "assetSha256": "6fa4dbe1be6237f9c46e2f6377c6c346899a55946022227bdc2ddfb3a111b265",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/questNode/Data",
+          "expectedType": "questItemManagerNodeDefinition"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/ep1/ep1/openworld/street_stories/sts_ep1_08/scenes/sts_ep1_08_client_ending.scene.json",
+          "assetSha256": "6fa4dbe1be6237f9c46e2f6377c6c346899a55946022227bdc2ddfb3a111b265",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/25/Data/questNode/Data",
+          "expectedType": "questItemManagerNodeDefinition"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/ep1/ep1/openworld/street_stories/sts_ep1_08/scenes/sts_ep1_08_client_ending.scene.json",
+          "assetSha256": "6fa4dbe1be6237f9c46e2f6377c6c346899a55946022227bdc2ddfb3a111b265",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/151/Data",
+          "expectedType": "scnHubNode"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/ep1/ep1/openworld/street_stories/sts_ep1_08/scenes/sts_ep1_08_client_ending.scene.json",
+          "assetSha256": "6fa4dbe1be6237f9c46e2f6377c6c346899a55946022227bdc2ddfb3a111b265",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/19/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/ep1/ep1/openworld/street_stories/sts_ep1_08/scenes/sts_ep1_08_client_ending.scene.json",
+          "assetSha256": "6fa4dbe1be6237f9c46e2f6377c6c346899a55946022227bdc2ddfb3a111b265",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/94/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/ep1/ep1/openworld/street_stories/sts_ep1_08/scenes/sts_ep1_08_client_ending.scene.json",
+          "assetSha256": "6fa4dbe1be6237f9c46e2f6377c6c346899a55946022227bdc2ddfb3a111b265",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/96/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/ep1/ep1/openworld/street_stories/sts_ep1_08/scenes/sts_ep1_08_client_ending.scene.json",
+          "assetSha256": "6fa4dbe1be6237f9c46e2f6377c6c346899a55946022227bdc2ddfb3a111b265",
+          "jsonPointer": "/Data/RootChunk/actors/0"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/ep1/ep1/openworld/street_stories/sts_ep1_08/scenes/sts_ep1_08_client_ending.scene.json",
+          "assetSha256": "6fa4dbe1be6237f9c46e2f6377c6c346899a55946022227bdc2ddfb3a111b265",
+          "jsonPointer": "/Data/RootChunk/playerActors/0"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/ep1/ep1/openworld/street_stories/sts_ep1_08/scenes/sts_ep1_08_client_ending.scene.json",
+          "assetSha256": "6fa4dbe1be6237f9c46e2f6377c6c346899a55946022227bdc2ddfb3a111b265",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/119"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/ep1/ep1/openworld/street_stories/sts_ep1_08/scenes/sts_ep1_08_client_ending.scene.json",
+          "assetSha256": "6fa4dbe1be6237f9c46e2f6377c6c346899a55946022227bdc2ddfb3a111b265",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/41"
+        },
+        {
+          "jsonPath": "raw/ep1/ep1/openworld/street_stories/sts_ep1_08/phases/sts_ep1_08_phase.questphase.json",
+          "assetSha256": "53a5ddcc3b7ba81c2315229c9e59f496f43db66f7227e18a48ab7e0b70d3cf6f",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/29/Data/phaseGraph/Data/nodes/4/Data",
+          "expectedType": "questSceneNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/ep1/ep1/openworld/street_stories/sts_ep1_08/phases/sts_ep1_08_phase.questphase.json",
+          "assetSha256": "53a5ddcc3b7ba81c2315229c9e59f496f43db66f7227e18a48ab7e0b70d3cf6f",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/98/Data/type/Data",
+          "expectedType": "questSetVar_NodeType"
+        }
+      ]
+    },
+    {
+      "id": "jr-native.pisces-completed-debrief",
+      "sourceId": "jr-native-7",
+      "kind": "native",
+      "locator": "sq026_end phase node7 enters the native Judy debrief through maiko or judy. Completion follows the maiko_done/judy_done or judy_pissed outputs through the Pisces quest Succeeded node, then cleanup40 or41 assigns sq026_04_done=1. It is not the earlier penthouse combat/start flag. Judy's scene actor0 is #judy; player actor1 is V.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "raw/base/base/quest/side_quests/sq026/phases/sq026_end.questphase.json",
+        "assetSha256": "12069ed6e5520b5662f4dcd6a920dab9179faeddc427f6b5c4ede9fd99e34815",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data",
+        "expectedType": "questSceneNodeDefinition"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq026/phases/sq026_end.questphase.json",
+          "assetSha256": "12069ed6e5520b5662f4dcd6a920dab9179faeddc427f6b5c4ede9fd99e34815",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/6/Data",
+          "expectedType": "questJournalNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq026/phases/sq026_end.questphase.json",
+          "assetSha256": "12069ed6e5520b5662f4dcd6a920dab9179faeddc427f6b5c4ede9fd99e34815",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/8/Data",
+          "expectedType": "questJournalNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq026/phases/sq026_end.questphase.json",
+          "assetSha256": "12069ed6e5520b5662f4dcd6a920dab9179faeddc427f6b5c4ede9fd99e34815",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/11/Data/phaseGraph/Data/nodes/18/Data/type/Data",
+          "expectedType": "questSetVar_NodeType"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq026/phases/sq026_end.questphase.json",
+          "assetSha256": "12069ed6e5520b5662f4dcd6a920dab9179faeddc427f6b5c4ede9fd99e34815",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/12/Data/phaseGraph/Data/nodes/18/Data/type/Data",
+          "expectedType": "questSetVar_NodeType"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-outcomes/raw/base/base/quest/side_quests/sq026/scenes/sq026_15_end.scene.json",
+          "assetSha256": "0379d823e4a6c86eaa64ebf11ae3e45a34044c342c443042c0190310a96a0f84",
+          "jsonPointer": "/Data/RootChunk/actors/0"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-outcomes/raw/base/base/quest/side_quests/sq026/scenes/sq026_15_end.scene.json",
+          "assetSha256": "0379d823e4a6c86eaa64ebf11ae3e45a34044c342c443042c0190310a96a0f84",
+          "jsonPointer": "/Data/RootChunk/playerActors/0"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sidequests.questphase.json",
+          "assetSha256": "1cf2fc2ba3b538f7496fddf09ff319602f54f6785a925ba36ad3c9b90020f000",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "jr-native.pisces-maiko-installed",
+      "sourceId": "jr-native-8",
+      "kind": "native",
+      "locator": "Hiromi scene sections474/537 recommend Maiko's management; section540 leads section369 where the bosses accept and node285 writes sq026_side_maiko=1. The maiko debrief starts section24: Judy explicitly challenges V for supporting Maiko; later Pisces cleanup establishes the conversation ended. Exclusive resolution routes: choice466 options0/1/2 and follow-up choice472 options0/1 separate collective/opposition from Maiko management; supporting sections are graph53/54/55/56/68/69/57. Opposition reaches side_judy writer115 or1060, while the management path reaches writer285 and then the separate payment choice.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq026/scenes/sq026_13_hiromi.scene.json",
+        "assetSha256": "aff390a98440a284e68f26cf0e3ff43ec2c1f160f8a4715337c5577668f79048",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq026/scenes/sq026_13_hiromi.scene.json",
+          "assetSha256": "aff390a98440a284e68f26cf0e3ff43ec2c1f160f8a4715337c5577668f79048",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/56/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq026/scenes/sq026_13_hiromi.scene.json",
+          "assetSha256": "aff390a98440a284e68f26cf0e3ff43ec2c1f160f8a4715337c5577668f79048",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/68/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq026/scenes/sq026_13_hiromi.scene.json",
+          "assetSha256": "aff390a98440a284e68f26cf0e3ff43ec2c1f160f8a4715337c5577668f79048",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/69/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq026/scenes/sq026_13_hiromi.scene.json",
+          "assetSha256": "aff390a98440a284e68f26cf0e3ff43ec2c1f160f8a4715337c5577668f79048",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/29/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq026/scenes/sq026_13_hiromi.scene.json",
+          "assetSha256": "aff390a98440a284e68f26cf0e3ff43ec2c1f160f8a4715337c5577668f79048",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/692"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq026/scenes/sq026_13_hiromi.scene.json",
+          "assetSha256": "aff390a98440a284e68f26cf0e3ff43ec2c1f160f8a4715337c5577668f79048",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/285"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq026/scenes/sq026_13_hiromi.scene.json",
+          "assetSha256": "aff390a98440a284e68f26cf0e3ff43ec2c1f160f8a4715337c5577668f79048",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/726"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq026/scenes/sq026_13_hiromi.scene.json",
+          "assetSha256": "aff390a98440a284e68f26cf0e3ff43ec2c1f160f8a4715337c5577668f79048",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/387"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq026/phases/sq026_hiromi_penthouse.questphase.json",
+          "assetSha256": "caaf8cab102da10393fc1d0c01f2dac0a7c1779bb09538a8276c98d731779044",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/11/Data",
+          "expectedType": "questSceneNodeDefinition"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-outcomes/raw/base/base/quest/side_quests/sq026/scenes/sq026_15_end.scene.json",
+          "assetSha256": "0379d823e4a6c86eaa64ebf11ae3e45a34044c342c443042c0190310a96a0f84",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-outcomes/raw/base/base/quest/side_quests/sq026/scenes/sq026_15_end.scene.json",
+          "assetSha256": "0379d823e4a6c86eaa64ebf11ae3e45a34044c342c443042c0190310a96a0f84",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/200"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-outcomes/raw/base/base/quest/side_quests/sq026/scenes/sq026_15_end.scene.json",
+          "assetSha256": "0379d823e4a6c86eaa64ebf11ae3e45a34044c342c443042c0190310a96a0f84",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/6"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq026/scenes/sq026_13_hiromi.scene.json",
+          "assetSha256": "aff390a98440a284e68f26cf0e3ff43ec2c1f160f8a4715337c5577668f79048",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/52/Data",
+          "expectedType": "scnChoiceNode"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq026/scenes/sq026_13_hiromi.scene.json",
+          "assetSha256": "aff390a98440a284e68f26cf0e3ff43ec2c1f160f8a4715337c5577668f79048",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/55/Data",
+          "expectedType": "scnChoiceNode"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq026/scenes/sq026_13_hiromi.scene.json",
+          "assetSha256": "aff390a98440a284e68f26cf0e3ff43ec2c1f160f8a4715337c5577668f79048",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/53/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq026/scenes/sq026_13_hiromi.scene.json",
+          "assetSha256": "aff390a98440a284e68f26cf0e3ff43ec2c1f160f8a4715337c5577668f79048",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/57/Data",
+          "expectedType": "scnSectionNode"
+        }
+      ]
+    },
+    {
+      "id": "jr-native.pisces-payment",
+      "sourceId": "jr-native-8",
+      "kind": "native",
+      "locator": "Hiromi choice360 option0 thanks Maiko, passes section363, then node367 assigns sq026_13_maiko_money=1. Judy debrief condition107 >=1 selects section176 accusing V of taking the money; condition186 >=1 selects section190's loss of trust. The later Pisces completion prevents adding a private penthouse choice to Judy before her debrief.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq026/scenes/sq026_13_hiromi.scene.json",
+        "assetSha256": "aff390a98440a284e68f26cf0e3ff43ec2c1f160f8a4715337c5577668f79048",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/28/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq026/scenes/sq026_13_hiromi.scene.json",
+          "assetSha256": "aff390a98440a284e68f26cf0e3ff43ec2c1f160f8a4715337c5577668f79048",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/25/Data",
+          "expectedType": "scnChoiceNode"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq026/scenes/sq026_13_hiromi.scene.json",
+          "assetSha256": "aff390a98440a284e68f26cf0e3ff43ec2c1f160f8a4715337c5577668f79048",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/26/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq026/scenes/sq026_13_hiromi.scene.json",
+          "assetSha256": "aff390a98440a284e68f26cf0e3ff43ec2c1f160f8a4715337c5577668f79048",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/options/4"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq026/scenes/sq026_13_hiromi.scene.json",
+          "assetSha256": "aff390a98440a284e68f26cf0e3ff43ec2c1f160f8a4715337c5577668f79048",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/630"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq026/scenes/sq026_13_hiromi.scene.json",
+          "assetSha256": "aff390a98440a284e68f26cf0e3ff43ec2c1f160f8a4715337c5577668f79048",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/635"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-outcomes/raw/base/base/quest/side_quests/sq026/scenes/sq026_15_end.scene.json",
+          "assetSha256": "0379d823e4a6c86eaa64ebf11ae3e45a34044c342c443042c0190310a96a0f84",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/25/Data/questNode/Data/condition/Data/type/Data",
+          "expectedType": "questVarComparison_ConditionType"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-outcomes/raw/base/base/quest/side_quests/sq026/scenes/sq026_15_end.scene.json",
+          "assetSha256": "0379d823e4a6c86eaa64ebf11ae3e45a34044c342c443042c0190310a96a0f84",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/33/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-outcomes/raw/base/base/quest/side_quests/sq026/scenes/sq026_15_end.scene.json",
+          "assetSha256": "0379d823e4a6c86eaa64ebf11ae3e45a34044c342c443042c0190310a96a0f84",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/35/Data/questNode/Data/condition/Data/type/Data",
+          "expectedType": "questVarComparison_ConditionType"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-outcomes/raw/base/base/quest/side_quests/sq026/scenes/sq026_15_end.scene.json",
+          "assetSha256": "0379d823e4a6c86eaa64ebf11ae3e45a34044c342c443042c0190310a96a0f84",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/36/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-outcomes/raw/base/base/quest/side_quests/sq026/scenes/sq026_15_end.scene.json",
+          "assetSha256": "0379d823e4a6c86eaa64ebf11ae3e45a34044c342c443042c0190310a96a0f84",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/234"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-outcomes/raw/base/base/quest/side_quests/sq026/scenes/sq026_15_end.scene.json",
+          "assetSha256": "0379d823e4a6c86eaa64ebf11ae3e45a34044c342c443042c0190310a96a0f84",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/139"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-outcomes/raw/base/base/quest/side_quests/sq026/scenes/sq026_15_end.scene.json",
+          "assetSha256": "0379d823e4a6c86eaa64ebf11ae3e45a34044c342c443042c0190310a96a0f84",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/236"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-outcomes/raw/base/base/quest/side_quests/sq026/scenes/sq026_15_end.scene.json",
+          "assetSha256": "0379d823e4a6c86eaa64ebf11ae3e45a34044c342c443042c0190310a96a0f84",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/146"
+        }
+      ]
+    },
+    {
+      "id": "jr-native.pisces-maiko-death",
+      "sourceId": "jr-native-9",
+      "kind": "native",
+      "locator": "Penthouse pause98 targets #maiko with killed=1, unconscious=0, defeated=0; only then node99 writes sq026_maiko_dead=1. This is distinct from the broad combat-end condition in embedded phase83. In the judy debrief input, condition106 >=1 selects section114 where Judy reacts to Maiko's death. Specific Pisces completion proves debrief was resolved.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "raw/base/base/quest/side_quests/sq026/phases/sq026_hiromi_penthouse.questphase.json",
+        "assetSha256": "caaf8cab102da10393fc1d0c01f2dac0a7c1779bb09538a8276c98d731779044",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/48/Data/type/Data",
+        "expectedType": "questSetVar_NodeType"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq026/phases/sq026_hiromi_penthouse.questphase.json",
+          "assetSha256": "caaf8cab102da10393fc1d0c01f2dac0a7c1779bb09538a8276c98d731779044",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/47/Data/condition/Data/type/Data",
+          "expectedType": "questCharacterKilled_ConditionType"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq026/scenes/sq026_13_hiromi.scene.json",
+          "assetSha256": "aff390a98440a284e68f26cf0e3ff43ec2c1f160f8a4715337c5577668f79048",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/questNode/Data/type/Data",
+          "expectedType": "questSetVar_NodeType"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq026/scenes/sq026_13_hiromi.scene.json",
+          "assetSha256": "aff390a98440a284e68f26cf0e3ff43ec2c1f160f8a4715337c5577668f79048",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/117/Data/questNode/Data/type/Data",
+          "expectedType": "questSetVar_NodeType"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-outcomes/raw/base/base/quest/side_quests/sq026/scenes/sq026_15_end.scene.json",
+          "assetSha256": "0379d823e4a6c86eaa64ebf11ae3e45a34044c342c443042c0190310a96a0f84",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/24/Data/questNode/Data/condition/Data/type/Data",
+          "expectedType": "questVarComparison_ConditionType"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-outcomes/raw/base/base/quest/side_quests/sq026/scenes/sq026_15_end.scene.json",
+          "assetSha256": "0379d823e4a6c86eaa64ebf11ae3e45a34044c342c443042c0190310a96a0f84",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/26/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-outcomes/raw/base/base/quest/side_quests/sq026/scenes/sq026_15_end.scene.json",
+          "assetSha256": "0379d823e4a6c86eaa64ebf11ae3e45a34044c342c443042c0190310a96a0f84",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/223"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-outcomes/raw/base/base/quest/side_quests/sq026/scenes/sq026_15_end.scene.json",
+          "assetSha256": "0379d823e4a6c86eaa64ebf11ae3e45a34044c342c443042c0190310a96a0f84",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/98"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-outcomes/raw/base/base/quest/side_quests/sq026/scenes/sq026_15_end.scene.json",
+          "assetSha256": "0379d823e4a6c86eaa64ebf11ae3e45a34044c342c443042c0190310a96a0f84",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/244"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-outcomes/raw/base/base/quest/side_quests/sq026/scenes/sq026_15_end.scene.json",
+          "assetSha256": "0379d823e4a6c86eaa64ebf11ae3e45a34044c342c443042c0190310a96a0f84",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/102"
+        }
+      ]
+    },
+    {
+      "id": "jr-native.claire-race-first-promise",
+      "sourceId": "jr-native-10",
+      "kind": "native",
+      "locator": "Santo Domingo finale choice157 option1 prioritizes winning; section160 explicitly refuses an execution while accepting race rules, then node285 increments sq024_claire_spares_sampson. Alternate withdrawal reconsideration choice321 option0 rejoins only to win and converges on the same section. This is an earlier promise, not a final Sampson survival flag.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-outcomes/raw/base/base/quest/side_quests/sq024/scenes/sq024_02b_santo_domingo_race_end.scene.json",
+        "assetSha256": "0945a3264658654e17edeff16a119aec32eeda2f225ec4c95e820d723fce82a0",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/47/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/judy-river-outcomes/raw/base/base/quest/side_quests/sq024/scenes/sq024_02b_santo_domingo_race_end.scene.json",
+          "assetSha256": "0945a3264658654e17edeff16a119aec32eeda2f225ec4c95e820d723fce82a0",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data",
+          "expectedType": "scnChoiceNode"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-outcomes/raw/base/base/quest/side_quests/sq024/scenes/sq024_02b_santo_domingo_race_end.scene.json",
+          "assetSha256": "0945a3264658654e17edeff16a119aec32eeda2f225ec4c95e820d723fce82a0",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/21/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-outcomes/raw/base/base/quest/side_quests/sq024/scenes/sq024_02b_santo_domingo_race_end.scene.json",
+          "assetSha256": "0945a3264658654e17edeff16a119aec32eeda2f225ec4c95e820d723fce82a0",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/58/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-outcomes/raw/base/base/quest/side_quests/sq024/scenes/sq024_02b_santo_domingo_race_end.scene.json",
+          "assetSha256": "0945a3264658654e17edeff16a119aec32eeda2f225ec4c95e820d723fce82a0",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/57/Data",
+          "expectedType": "scnChoiceNode"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-outcomes/raw/base/base/quest/side_quests/sq024/scenes/sq024_02b_santo_domingo_race_end.scene.json",
+          "assetSha256": "0945a3264658654e17edeff16a119aec32eeda2f225ec4c95e820d723fce82a0",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/options/2"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-outcomes/raw/base/base/quest/side_quests/sq024/scenes/sq024_02b_santo_domingo_race_end.scene.json",
+          "assetSha256": "0945a3264658654e17edeff16a119aec32eeda2f225ec4c95e820d723fce82a0",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/264"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-outcomes/raw/base/base/quest/side_quests/sq024/scenes/sq024_02b_santo_domingo_race_end.scene.json",
+          "assetSha256": "0945a3264658654e17edeff16a119aec32eeda2f225ec4c95e820d723fce82a0",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/311"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-outcomes/raw/base/base/quest/side_quests/sq024/scenes/sq024_02b_santo_domingo_race_end.scene.json",
+          "assetSha256": "0945a3264658654e17edeff16a119aec32eeda2f225ec4c95e820d723fce82a0",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/271"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-outcomes/raw/base/base/quest/side_quests/sq024/scenes/sq024_02b_santo_domingo_race_end.scene.json",
+          "assetSha256": "0945a3264658654e17edeff16a119aec32eeda2f225ec4c95e820d723fce82a0",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/87"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-outcomes/raw/base/base/quest/side_quests/sq024/scenes/sq024_02b_santo_domingo_race_end.scene.json",
+          "assetSha256": "0945a3264658654e17edeff16a119aec32eeda2f225ec4c95e820d723fce82a0",
+          "jsonPointer": "/Data/RootChunk/actors/0"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-outcomes/raw/base/base/quest/side_quests/sq024/scenes/sq024_02b_santo_domingo_race_end.scene.json",
+          "assetSha256": "0945a3264658654e17edeff16a119aec32eeda2f225ec4c95e820d723fce82a0",
+          "jsonPointer": "/Data/RootChunk/playerActors/0"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq024/phases/sq024_02_pacifica_race.questphase.json",
+          "assetSha256": "f4f2bedd0675ab28e84f432e895d0d0dbb181c705cfbb298cbbf9ed62cb6a990",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/2/Data",
+          "expectedType": "questSceneNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "jr-native.claire-sampson-thanks",
+      "sourceId": "jr-native-11",
+      "kind": "native",
+      "locator": "Revealed NPC phone message contacts/sampson/sq024_giving_car/00_sampson_thanks (cooked journal LocKey#14333) thanks V for stopping Claire from killing him and offers his repaired car. Installed onscreen entry10228 resolves that key identically in onscreens and onscreens_final. Normal sq024 message graph enters only after positive crashed branch and native alive branch, via Claire follow-up and delays; runtime requires the actual revealed message rather than interpreting zero death as survival.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/39/Data/entries/0/Data/entries/0/Data",
+        "expectedType": "gameJournalPhoneMessage"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "localization/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/10228",
+          "expectedType": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq024/sq024.questphase.json",
+          "assetSha256": "2a7624d665ad5b33b5e8656dde8fc6d3d9c55c6941e1651b55893d310a73541b",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/37/Data/phaseGraph/Data/nodes/2/Data/condition/Data/type/Data",
+          "expectedType": "questVarComparison_ConditionType"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq024/sq024.questphase.json",
+          "assetSha256": "2a7624d665ad5b33b5e8656dde8fc6d3d9c55c6941e1651b55893d310a73541b",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/37/Data/phaseGraph/Data/nodes/4/Data/condition/Data/type/Data",
+          "expectedType": "questVarComparison_ConditionType"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq024/sq024.questphase.json",
+          "assetSha256": "2a7624d665ad5b33b5e8656dde8fc6d3d9c55c6941e1651b55893d310a73541b",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/37/Data/phaseGraph/Data/nodes/3/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq024/phases/text_messages/sq024_03_msg_big_race.questphase.json",
+          "assetSha256": "6fd86e653b2443837ca16c8b106b91e83d5f87ab6242ac585eff036a7e7fa026",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/38/Data",
+          "expectedType": "questInputNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq024/phases/text_messages/sq024_03_msg_big_race.questphase.json",
+          "assetSha256": "6fd86e653b2443837ca16c8b106b91e83d5f87ab6242ac585eff036a7e7fa026",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/43/Data",
+          "expectedType": "questPauseConditionNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq024/phases/text_messages/sq024_03_msg_big_race.questphase.json",
+          "assetSha256": "6fd86e653b2443837ca16c8b106b91e83d5f87ab6242ac585eff036a7e7fa026",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/40/Data",
+          "expectedType": "questJournalNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq024/phases/text_messages/sq024_03_msg_big_race.questphase.json",
+          "assetSha256": "6fd86e653b2443837ca16c8b106b91e83d5f87ab6242ac585eff036a7e7fa026",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/42/Data/type/Data",
+          "expectedType": "questEnablePlayerVehicle_NodeType"
+        }
+      ]
+    },
+    {
+      "id": "jr-native.claire-sampson-death",
+      "sourceId": "jr-native-12",
+      "kind": "native",
+      "locator": "Final confrontation scene execution sections212/233 write sq024_sampson_dead=1 at node265. Both alternative main-quest writes follow scene-left-area outcomes (embedded sq024 phase node77->88 and Big Race nested node85->96), so the flag does not prove V watched the shooting. Completion node4 writes sq024_done=1. Phrase the resolved confrontation consequence without inferring V's exact final dialogue or visible shot. Alternate-writer audit: reachable CYB-599920 repair enters an emergency cleanup after a Santo Domingo race-state failure and writes sq024_done. Completion alone therefore proves no final race or death. The rule separately requires the reviewed positive sampson_dead result, whose three writers follow the confrontation/forced-leave consequences.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq024/scenes/sq024_05b_trauma_team.scene.json",
+        "assetSha256": "9b5a455f8025a4bed7df122e700efe45c430ffef5562b39771acc8a568f11dd4",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/23/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq024/scenes/sq024_05b_trauma_team.scene.json",
+          "assetSha256": "9b5a455f8025a4bed7df122e700efe45c430ffef5562b39771acc8a568f11dd4",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/9/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq024/scenes/sq024_05b_trauma_team.scene.json",
+          "assetSha256": "9b5a455f8025a4bed7df122e700efe45c430ffef5562b39771acc8a568f11dd4",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/17/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq024/scenes/sq024_05b_trauma_team.scene.json",
+          "assetSha256": "9b5a455f8025a4bed7df122e700efe45c430ffef5562b39771acc8a568f11dd4",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/14/Data",
+          "expectedType": "scnChoiceNode"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq024/scenes/sq024_05b_trauma_team.scene.json",
+          "assetSha256": "9b5a455f8025a4bed7df122e700efe45c430ffef5562b39771acc8a568f11dd4",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/questNode/Data/condition/Data",
+          "expectedType": "questLogicalCondition"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq024/scenes/sq024_05b_trauma_team.scene.json",
+          "assetSha256": "9b5a455f8025a4bed7df122e700efe45c430ffef5562b39771acc8a568f11dd4",
+          "jsonPointer": "/Data/RootChunk/actors/0"
+        },
+        {
+          "jsonPath": "scene-evidence/judy-river-native/raw/base/base/quest/side_quests/sq024/scenes/sq024_05b_trauma_team.scene.json",
+          "assetSha256": "9b5a455f8025a4bed7df122e700efe45c430ffef5562b39771acc8a568f11dd4",
+          "jsonPointer": "/Data/RootChunk/actors/1"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq024/sq024.questphase.json",
+          "assetSha256": "2a7624d665ad5b33b5e8656dde8fc6d3d9c55c6941e1651b55893d310a73541b",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/14/Data/phaseGraph/Data/nodes/18/Data/type/Data",
+          "expectedType": "questSetVar_NodeType"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq024/sq024.questphase.json",
+          "assetSha256": "2a7624d665ad5b33b5e8656dde8fc6d3d9c55c6941e1651b55893d310a73541b",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/14/Data/phaseGraph/Data/nodes/26/Data/type/Data",
+          "expectedType": "questSetVar_NodeType"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq024/phases/sq024_05_the_big_race.questphase.json",
+          "assetSha256": "84a96469fc46b8d3fa0d7a47de0c911c484a553a720eeb9fbe372b7144355e39",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/4/Data/phaseGraph/Data/nodes/17/Data/phaseGraph/Data/nodes/6/Data/type/Data",
+          "expectedType": "questSetVar_NodeType"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq024/phases/sq024_05_the_big_race.questphase.json",
+          "assetSha256": "84a96469fc46b8d3fa0d7a47de0c911c484a553a720eeb9fbe372b7144355e39",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/4/Data/phaseGraph/Data/nodes/17/Data/phaseGraph/Data/nodes/10/Data/type/Data",
+          "expectedType": "questSetVar_NodeType"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq024/sq024.questphase.json",
+          "assetSha256": "2a7624d665ad5b33b5e8656dde8fc6d3d9c55c6941e1651b55893d310a73541b",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/27/Data/phaseGraph/Data/nodes/3/Data/type/Data",
+          "expectedType": "questSetVar_NodeType"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/bugfixing/sidequests/sq024/sq024_quest_bugfixes.questphase.json",
+          "assetSha256": "0a862c9ef3640d0b835fdc8a3c2aea96b4efe06fc950d8551f9fe90be09951b7",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/6/Data/phaseGraph/Data/nodes/3/Data/type/Data",
+          "expectedType": "questSetVar_NodeType"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/bugfixing/sidequests/sq024/sq024_quest_bugfixes.questphase.json",
+          "assetSha256": "0a862c9ef3640d0b835fdc8a3c2aea96b4efe06fc950d8551f9fe90be09951b7",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/4/Data",
+          "expectedType": "questConditionNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/bugfixing/sidequests/sq024/sq024_quest_bugfixes.questphase.json",
+          "assetSha256": "0a862c9ef3640d0b835fdc8a3c2aea96b4efe06fc950d8551f9fe90be09951b7",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/9/Data/type/Data",
+          "expectedType": "questSetVar_NodeType"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/bugfixing/sidequests/sq024/sq024_quest_bugfixes.questphase.json",
+          "assetSha256": "0a862c9ef3640d0b835fdc8a3c2aea96b4efe06fc950d8551f9fe90be09951b7",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/6/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        }
+      ]
+    }
+  ],
+  "factAllowlist": {
+    "sq006_fact_truth_hurts": {
+      "evidenceRefs": [
+        "jr-native.dream-truth",
+        "jr-native.dream-completed-route"
+      ]
+    },
+    "sq006_done": {
+      "evidenceRefs": [
+        "jr-native.dream-truth",
+        "jr-native.dream-completed-route",
+        "jr-native.dream-cover-story"
+      ]
+    },
+    "sq006_fact_fake_just_as_good": {
+      "evidenceRefs": [
+        "jr-native.dream-cover-story",
+        "jr-native.dream-completed-route"
+      ]
+    },
+    "sq021_randy_saved": {
+      "evidenceRefs": [
+        "jr-native.hunt-rescue-branch"
+      ]
+    },
+    "sq021_done": {
+      "evidenceRefs": [
+        "jr-native.hunt-rescue-branch"
+      ]
+    },
+    "sq021_randy_kaputt": {
+      "evidenceRefs": [
+        "jr-native.hunt-rescue-branch"
+      ]
+    },
+    "sq029_river_lover": {
+      "evidenceRefs": [
+        "jr-native.river-commitment"
+      ]
+    },
+    "sq029_done": {
+      "evidenceRefs": [
+        "jr-native.river-commitment"
+      ]
+    },
+    "mq024_admit_that_looked": {
+      "evidenceRefs": [
+        "jr-native.sandra-admission"
+      ]
+    },
+    "mq024_done": {
+      "evidenceRefs": [
+        "jr-native.sandra-admission",
+        "jr-native.sandra-blackmail"
+      ]
+    },
+    "mq024_combat_sandra": {
+      "evidenceRefs": [
+        "jr-native.sandra-blackmail"
+      ]
+    },
+    "sts_ep1_08_ana_gave_kill_order": {
+      "evidenceRefs": [
+        "jr-native.ana-revelation"
+      ]
+    },
+    "sts_ep1_08_done": {
+      "evidenceRefs": [
+        "jr-native.ana-revelation",
+        "jr-native.ana-monitor-delivered"
+      ]
+    },
+    "sts_ep1_08_biomonitor_ana": {
+      "evidenceRefs": [
+        "jr-native.ana-monitor-delivered"
+      ]
+    },
+    "sq026_side_maiko": {
+      "evidenceRefs": [
+        "jr-native.pisces-maiko-installed",
+        "jr-native.pisces-completed-debrief"
+      ]
+    },
+    "sq026_04_done": {
+      "evidenceRefs": [
+        "jr-native.pisces-maiko-installed",
+        "jr-native.pisces-completed-debrief",
+        "jr-native.pisces-payment",
+        "jr-native.pisces-maiko-death"
+      ]
+    },
+    "sq026_13_maiko_money": {
+      "evidenceRefs": [
+        "jr-native.pisces-payment",
+        "jr-native.pisces-completed-debrief"
+      ]
+    },
+    "sq026_maiko_dead": {
+      "evidenceRefs": [
+        "jr-native.pisces-maiko-death",
+        "jr-native.pisces-completed-debrief"
+      ]
+    },
+    "sq026_side_judy": {
+      "evidenceRefs": [
+        "jr-native.pisces-maiko-death",
+        "jr-native.pisces-completed-debrief"
+      ]
+    },
+    "sq024_claire_spares_sampson": {
+      "evidenceRefs": [
+        "jr-native.claire-race-first-promise"
+      ]
+    },
+    "sq024_sampson_dead": {
+      "evidenceRefs": [
+        "jr-native.claire-sampson-death"
+      ]
+    },
+    "sq024_done": {
+      "evidenceRefs": [
+        "jr-native.claire-sampson-death"
+      ]
+    }
+  },
+  "journalAllowlist": {
+    "judy-river.sampson-thanks": {
+      "questKey": "the-beast-in-me",
+      "nativePath": "contacts/sampson/sq024_giving_car/00_sampson_thanks",
+      "nativeClass": "gameJournalPhoneMessage",
+      "evidenceRefs": [
+        "jr-native.claire-sampson-thanks"
+      ]
+    }
+  },
+  "rules": [
+    {
+      "id": "jr-native.dream-truth",
+      "revision": 1,
+      "questKey": "dream-on",
+      "topic": "jefferson.manipulation_awareness",
+      "outcome": "truth",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "V disclosed to Jefferson that the operation involved altering his mind and was not simply Holt's spying. This does not establish who ultimately controlled it.",
+      "sourceIds": [
+        "jr-dream"
+      ],
+      "evidenceRefs": [
+        "jr-native.dream-truth",
+        "jr-native.dream-completed-route"
+      ],
+      "audience": {
+        "speakers": [
+          "jefferson-peralez"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "jefferson-peralez"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "sq006_fact_truth_hurts",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "sq006_done",
+            "op": "gte",
+            "value": 1
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.dream.jefferson-disclosure",
+          "outcomeKey": "truth"
+        }
+      ]
+    },
+    {
+      "id": "jr-native.dream-cover-story",
+      "revision": 1,
+      "questKey": "dream-on",
+      "topic": "jefferson.manipulation_awareness",
+      "outcome": "cover-story",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "V told Jefferson that Holt and SSI were involved in spying on him. Jefferson received this as V's report; the report does not independently establish the allegation's truth.",
+      "sourceIds": [
+        "jr-dream"
+      ],
+      "evidenceRefs": [
+        "jr-native.dream-cover-story",
+        "jr-native.dream-completed-route"
+      ],
+      "audience": {
+        "speakers": [
+          "jefferson-peralez"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "jefferson-peralez"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "sq006_fact_fake_just_as_good",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "sq006_done",
+            "op": "gte",
+            "value": 1
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.dream.jefferson-disclosure",
+          "outcomeKey": "cover-story"
+        }
+      ]
+    },
+    {
+      "id": "jr-native.hunt-randy-saved",
+      "revision": 1,
+      "questKey": "the-hunt",
+      "topic": "randy.rescue_outcome",
+      "outcome": "saved",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "Randy survived the rescue at the farm. River was directly involved in finding and helping his nephew.",
+      "sourceIds": [
+        "jr-hunt"
+      ],
+      "evidenceRefs": [
+        "jr-native.hunt-rescue-branch"
+      ],
+      "audience": {
+        "speakers": [
+          "river-ward"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "river-ward"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "sq021_randy_saved",
+            "op": "eq",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "sq021_done",
+            "op": "eq",
+            "value": 1
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.hunt.rescue",
+          "outcomeKey": "saved"
+        }
+      ]
+    },
+    {
+      "id": "jr-native.hunt-randy-too-late",
+      "revision": 1,
+      "questKey": "the-hunt",
+      "topic": "randy.rescue_outcome",
+      "outcome": "too-late",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "V and River reached Randy too late after the wrong-farm route; Randy did not survive. This does not establish that River later killed Harris.",
+      "sourceIds": [
+        "jr-hunt"
+      ],
+      "evidenceRefs": [
+        "jr-native.hunt-rescue-branch"
+      ],
+      "audience": {
+        "speakers": [
+          "river-ward"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "river-ward"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "sq021_randy_kaputt",
+            "op": "eq",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "sq021_done",
+            "op": "eq",
+            "value": 1
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.hunt.rescue",
+          "outcomeKey": "too-late"
+        }
+      ]
+    },
+    {
+      "id": "jr-native.river-relationship-committed",
+      "revision": 1,
+      "questKey": "following-the-river",
+      "topic": "river.relationship",
+      "outcome": "committed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "relationship",
+      "priority": 9,
+      "stable": true,
+      "statement": "During the morning after their night together, V and River agreed to try a romantic relationship. This is their decision at that time, not proof that later events have left the relationship unchanged.",
+      "sourceIds": [
+        "jr-following",
+        "jr-river"
+      ],
+      "evidenceRefs": [
+        "jr-native.river-commitment"
+      ],
+      "audience": {
+        "speakers": [
+          "river-ward"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "river-ward"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "sq029_river_lover",
+            "op": "eq",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "sq029_done",
+            "op": "eq",
+            "value": 1
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.following.relationship",
+          "outcomeKey": "committed"
+        }
+      ]
+    },
+    {
+      "id": "jr-native.sandra-admitted-reading",
+      "revision": 1,
+      "questKey": "full-disclosure",
+      "topic": "sandra.data_access",
+      "outcome": "read",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "The save establishes that V acknowledged inspecting Sandra's databank when returning it. Sandra knows about that access; this does not establish which later response V chose or that she shared every technical detail.",
+      "sourceIds": [
+        "jr-disclosure"
+      ],
+      "evidenceRefs": [
+        "jr-native.sandra-admission"
+      ],
+      "audience": {
+        "speakers": [
+          "sandra-dorsett"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "sandra-dorsett"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "mq024_admit_that_looked",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "mq024_done",
+            "op": "eq",
+            "value": 1
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.disclosure.reading",
+          "outcomeKey": "read"
+        }
+      ]
+    },
+    {
+      "id": "jr-native.sandra-blackmail",
+      "revision": 1,
+      "questKey": "full-disclosure",
+      "topic": "sandra.trust",
+      "outcome": "blackmail",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "V attempted to extort Sandra by threatening to expose the databank findings. Sandra responded with armed hostility. Hostility does not establish that Sandra died, and she has no reason to treat this as friendly cooperation.",
+      "sourceIds": [
+        "jr-disclosure"
+      ],
+      "evidenceRefs": [
+        "jr-native.sandra-blackmail"
+      ],
+      "audience": {
+        "speakers": [
+          "sandra-dorsett"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "sandra-dorsett"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "mq024_combat_sandra",
+            "op": "eq",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "mq024_done",
+            "op": "eq",
+            "value": 1
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.disclosure.response",
+          "outcomeKey": "blackmail"
+        }
+      ]
+    },
+    {
+      "id": "jr-native.ana-heard-revelation",
+      "revision": 1,
+      "questKey": "spy-in-the-jungle",
+      "topic": "ana.katya-revelation-and-order",
+      "outcome": "revelation",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "Ana heard Katya describe Bana's capture and claim she had kept him alive before someone else killed him. Ana rejected the claim and ordered V to kill Katya and recover the biomonitor. The order does not prove V obeyed it, and Katya's account remains her allegation.",
+      "sourceIds": [
+        "jr-spy"
+      ],
+      "evidenceRefs": [
+        "jr-native.ana-revelation"
+      ],
+      "audience": {
+        "speakers": [
+          "ana-friedman"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "ana-friedman"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "sts_ep1_08_ana_gave_kill_order",
+            "op": "eq",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "sts_ep1_08_done",
+            "op": "eq",
+            "value": 1
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.spy.revelation",
+          "outcomeKey": "revelation"
+        }
+      ]
+    },
+    {
+      "id": "jr-native.ana-monitor-delivered",
+      "revision": 1,
+      "questKey": "spy-in-the-jungle",
+      "topic": "ana.bana_evidence",
+      "outcome": "delivered-to-ana",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "V left Bana's biomonitor with Ana. Ana intended to use it as evidence in a disclosure; receipt of the device does not establish the subsequent outcome.",
+      "sourceIds": [
+        "jr-spy"
+      ],
+      "evidenceRefs": [
+        "jr-native.ana-monitor-delivered"
+      ],
+      "audience": {
+        "speakers": [
+          "ana-friedman"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "ana-friedman"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "sts_ep1_08_biomonitor_ana",
+            "op": "eq",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "sts_ep1_08_done",
+            "op": "eq",
+            "value": 1
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.spy.biomonitor",
+          "outcomeKey": "delivered-to-ana"
+        }
+      ]
+    },
+    {
+      "id": "jr-native.pisces-maiko-installed",
+      "revision": 1,
+      "questKey": "pisces",
+      "topic": "clouds.management",
+      "outcome": "maiko-installed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "V supported installing Maiko to run Clouds under its arrangement with the Tyger Claws. Judy confronted V about letting Maiko take control. This does not mean Clouds became permanently independent or that Judy approved of the compromise.",
+      "sourceIds": [
+        "jr-pisces",
+        "jr-pisces-guide"
+      ],
+      "evidenceRefs": [
+        "jr-native.pisces-maiko-installed",
+        "jr-native.pisces-completed-debrief"
+      ],
+      "audience": {
+        "speakers": [
+          "judy-alvarez"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "judy-alvarez"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "sq026_side_maiko",
+            "op": "eq",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "sq026_04_done",
+            "op": "eq",
+            "value": 1
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.pisces.control",
+          "outcomeKey": "maiko-installed"
+        }
+      ],
+      "exclusiveGroups": [
+        {
+          "id": "jr-native.pisces-resolution-route",
+          "outcome": "maiko-management"
+        }
+      ]
+    },
+    {
+      "id": "jr-native.pisces-payment-accepted",
+      "revision": 1,
+      "questKey": "pisces",
+      "topic": "judy.trust_maiko_payment",
+      "outcome": "accepted",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "relationship",
+      "priority": 8,
+      "stable": true,
+      "statement": "V accepted Maiko's money after supporting her takeover. Judy learned this in the debrief and treated it as a betrayal of what she wanted for Clouds; she withdrew from V rather than accepting the deal as a shared victory.",
+      "sourceIds": [
+        "jr-pisces"
+      ],
+      "evidenceRefs": [
+        "jr-native.pisces-payment",
+        "jr-native.pisces-completed-debrief",
+        "jr-native.pisces-maiko-installed"
+      ],
+      "audience": {
+        "speakers": [
+          "judy-alvarez"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "judy-alvarez"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "sq026_13_maiko_money",
+            "op": "eq",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "sq026_04_done",
+            "op": "eq",
+            "value": 1
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.pisces.payment",
+          "outcomeKey": "accepted"
+        }
+      ],
+      "exclusiveGroups": [
+        {
+          "id": "jr-native.pisces-resolution-route",
+          "outcome": "maiko-management"
+        }
+      ]
+    },
+    {
+      "id": "jr-native.pisces-maiko-killed",
+      "revision": 1,
+      "questKey": "pisces",
+      "topic": "maiko.story_status",
+      "outcome": "killed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 8,
+      "stable": true,
+      "statement": "Maiko died in the Clouds confrontation, and Judy learned that V killed her. Judy was shocked and distressed. This records her response at the debrief; it does not establish her later relationship with V.",
+      "sourceIds": [
+        "jr-judy",
+        "jr-pisces"
+      ],
+      "evidenceRefs": [
+        "jr-native.pisces-maiko-death",
+        "jr-native.pisces-completed-debrief",
+        "jr-native.pisces-maiko-installed"
+      ],
+      "audience": {
+        "speakers": [
+          "judy-alvarez"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "judy-alvarez"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "sq026_maiko_dead",
+            "op": "eq",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "sq026_side_judy",
+            "op": "eq",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "sq026_04_done",
+            "op": "eq",
+            "value": 1
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.pisces.maiko-fate",
+          "outcomeKey": "killed"
+        }
+      ],
+      "exclusiveGroups": [
+        {
+          "id": "jr-native.pisces-resolution-route",
+          "outcome": "judy-opposition"
+        }
+      ]
+    },
+    {
+      "id": "jr-native.claire-race-first-promise",
+      "revision": 1,
+      "questKey": "the-beast-in-me-santo-domingo",
+      "topic": "claire.sampson_promise",
+      "outcome": "race-first",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "V agreed to keep driving for Claire with winning as the priority and refused to promise an execution of Sampson. Claire accepted that boundary at the time. This agreement does not establish what happened to Sampson in the final confrontation.",
+      "sourceIds": [
+        "jr-santo",
+        "jr-beast"
+      ],
+      "evidenceRefs": [
+        "jr-native.claire-race-first-promise"
+      ],
+      "audience": {
+        "speakers": [
+          "claire-russell"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "claire-russell"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "sq024_claire_spares_sampson",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.santo.promise",
+          "outcomeKey": "race-first"
+        }
+      ]
+    },
+    {
+      "id": "jr-native.claire-sampson-spared",
+      "revision": 1,
+      "questKey": "the-beast-in-me",
+      "topic": "sampson.story_status",
+      "outcome": "spared",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "Claire ultimately spared Sampson after the final chase. V's intervention stopped her from killing him. This does not erase Dean's death or mean Claire's grief and anger are resolved.",
+      "sourceIds": [
+        "jr-sampson",
+        "jr-beast"
+      ],
+      "evidenceRefs": [
+        "jr-native.claire-sampson-thanks"
+      ],
+      "audience": {
+        "speakers": [
+          "claire-russell"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "claire-russell"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "judy-river.sampson-thanks",
+        "op": "in",
+        "value": [
+          "active",
+          "succeeded"
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.beast.sampson-fate",
+          "outcomeKey": "spared"
+        }
+      ],
+      "exclusiveGroups": [
+        {
+          "id": "jr-native.sampson-final-fate",
+          "outcome": "spared"
+        }
+      ]
+    },
+    {
+      "id": "jr-native.claire-cthulhu-offer",
+      "revision": 1,
+      "questKey": "the-beast-in-me",
+      "topic": "claire.sampson-car-offer",
+      "outcome": "cthulhu-promised",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "V received Sampson's later message offering his repaired car in thanks for preventing Claire from killing him. This private message is available to Claire only after V actually tells her about it.",
+      "sourceIds": [
+        "jr-cthulhu"
+      ],
+      "evidenceRefs": [
+        "jr-native.claire-sampson-thanks"
+      ],
+      "audience": {
+        "speakers": [
+          "claire-russell"
+        ],
+        "perspective": "told-by-v",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "claire-russell"
+        ]
+      },
+      "condition": {
+        "type": "journal",
+        "key": "judy-river.sampson-thanks",
+        "op": "in",
+        "value": [
+          "active",
+          "succeeded"
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.beast.cthulhu-gift",
+          "outcomeKey": "cthulhu-promised"
+        }
+      ],
+      "exclusiveGroups": [
+        {
+          "id": "jr-native.sampson-final-fate",
+          "outcome": "spared"
+        }
+      ]
+    },
+    {
+      "id": "jr-native.claire-sampson-dead",
+      "revision": 1,
+      "questKey": "the-beast-in-me",
+      "topic": "sampson.story_status",
+      "outcome": "killed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 6,
+      "stable": true,
+      "statement": "Claire's confrontation with Sampson after the final chase ended in his death. The resolved outcome does not establish which final dialogue V used or that V personally watched the shooting.",
+      "sourceIds": [
+        "jr-sampson",
+        "jr-big"
+      ],
+      "evidenceRefs": [
+        "jr-native.claire-sampson-death"
+      ],
+      "audience": {
+        "speakers": [
+          "claire-russell"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "claire-russell"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "sq024_sampson_dead",
+            "op": "eq",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "sq024_done",
+            "op": "eq",
+            "value": 1
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.beast.sampson-fate",
+          "outcomeKey": "killed"
+        }
+      ],
+      "exclusiveGroups": [
+        {
+          "id": "jr-native.sampson-final-fate",
+          "outcome": "killed"
+        }
+      ]
+    }
+  ]
+}

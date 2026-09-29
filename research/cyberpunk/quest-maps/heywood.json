@@ -1,0 +1,4551 @@
+{
+  "version": 1,
+  "lane": "heywood",
+  "sources": [
+    {
+      "id": "heywood-arroyo",
+      "url": "https://cyberpunk.fandom.com/wiki/Beat_on_the_Brat%3A_Arroyo",
+      "title": "Beat on the Brat: Arroyo",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Wager; post-bout hostility; O'Five",
+      "notes": "Accessible indexed article extract inspected. Direct Fandom requests were blocked; no bypass attempted. Narrative evidence only, not native variable semantics."
+    },
+    {
+      "id": "heywood-beat",
+      "url": "https://cyberpunk.fandom.com/wiki/Beat_on_the_Brat",
+      "title": "Beat on the Brat",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Training; Razor championship; fixed-fight offer",
+      "notes": "Accessible indexed article extract inspected. Direct Fandom requests were blocked; no bypass attempted. Narrative evidence only, not native variable semantics."
+    },
+    {
+      "id": "heywood-black-steel",
+      "url": "https://cyberpunk.fandom.com/wiki/Black_Steel_In_The_Hour_of_Chaos",
+      "title": "Black Steel In The Hour of Chaos",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Nix availability and delivered intel branch only",
+      "notes": "Accessible indexed article extract inspected. Direct Fandom requests were blocked; no bypass attempted. Narrative evidence only, not native variable semantics."
+    },
+    {
+      "id": "heywood-burning-alt",
+      "url": "https://video-game-guide-walkthrough.supersoluce.com/solution/cyberpunk-2077-guide-walkthrough/cyberpunk-2077-side-jobs/burning-desire-night-moves/",
+      "title": "Burning Desire / Night Moves",
+      "kind": "walkthrough",
+      "accessed": "2026-09-30",
+      "locator": "Refusal and delay outcomes; clinic and reward",
+      "notes": "Indexed walkthrough inspected; supports distinct transport success and delayed callback."
+    },
+    {
+      "id": "heywood-burning-game8",
+      "url": "https://game8.co/games/Cyberpunk-2077/archives/Quests-Burning-Desire-Night-Moves",
+      "title": "Burning Desire / Night Moves",
+      "kind": "walkthrough",
+      "accessed": "2026-09-30",
+      "locator": "Acceptance/refusal; transport; later reward call",
+      "notes": "Indexed walkthrough inspected. Guide is older; exact availability and payment are not runtime assumptions."
+    },
+    {
+      "id": "heywood-burning-guide",
+      "url": "https://www.gamerguides.com/cyberpunk-2077/guide/side-jobs/watson/burning-desire-night-moves",
+      "title": "Burning Desire - Night Moves",
+      "kind": "walkthrough",
+      "accessed": "2026-09-30",
+      "locator": "Act-dependent title; timed transport and failure",
+      "notes": "Indexed walkthrough inspected. Prerequisite differs from other guides and is not asserted as a native gate."
+    },
+    {
+      "id": "heywood-changes",
+      "url": "https://cyberpunk.fandom.com/wiki/Changes",
+      "title": "Changes",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Conditional Jackie encounter before Mikoshi",
+      "notes": "Accessible indexed article extract inspected. Direct Fandom requests were blocked; no bypass attempted. Narrative evidence only, not native variable semantics."
+    },
+    {
+      "id": "heywood-clowns",
+      "url": "https://cyberpunk.fandom.com/wiki/Send_in_the_Clowns",
+      "title": "Send in the Clowns",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Call; driving job; restaurant confrontation",
+      "notes": "Accessible indexed article extract inspected. Direct Fandom requests were blocked; no bypass attempted. Narrative evidence only, not native variable semantics."
+    },
+    {
+      "id": "heywood-corpo",
+      "url": "https://www.neoseeker.com/cyberpunk-2077/walkthrough/The_Corpo_Rat",
+      "title": "The Corpo-Rat walkthrough",
+      "kind": "walkthrough",
+      "accessed": "2026-09-30",
+      "locator": "Lizzie meeting and loss of corporate status",
+      "notes": "Indexed walkthrough inspected; existing friendship and dismissal confirmed, not all dialogue branches."
+    },
+    {
+      "id": "heywood-cynthia",
+      "url": "https://cyberpunk.fandom.com/wiki/Cynthia_Najarro",
+      "title": "Cynthia Najarro",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Biography; conditional NCX interactions",
+      "notes": "Accessible indexed article extract inspected. Direct Fandom requests were blocked; no bypass attempted. Narrative evidence only, not native variable semantics."
+    },
+    {
+      "id": "heywood-cynthia-ru",
+      "url": "https://cyberpunk.fandom.com/ru/wiki/%D0%A1%D0%B8%D0%BD%D1%82%D0%B8%D1%8F_%D0%9D%D0%B0%D1%85%D0%B0%D1%80%D1%80%D0%BE",
+      "title": "Cynthia Najarro (Russian wiki)",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Account of concealed appearance and heredity; corroborates explanation, not any rumored former identity",
+      "notes": "Accessible indexed article extract inspected. Direct Fandom requests were blocked; no bypass attempted. Narrative evidence only, not native variable semantics."
+    },
+    {
+      "id": "heywood-dazed",
+      "url": "https://cyberpunk.fandom.com/wiki/Dazed_and_Confused",
+      "title": "Dazed and Confused",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Optional message to Viktor or Judy; personal item advice",
+      "notes": "Accessible indexed article extract inspected. Direct Fandom requests were blocked; no bypass attempted. Narrative evidence only, not native variable semantics."
+    },
+    {
+      "id": "heywood-dennis",
+      "url": "https://cyberpunk.fandom.com/wiki/Dennis_Cranmer",
+      "title": "Dennis Cranmer",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Overview; brief job offer and extraction",
+      "notes": "Accessible indexed article extract inspected. Direct Fandom requests were blocked; no bypass attempted. Narrative evidence only, not native variable semantics."
+    },
+    {
+      "id": "heywood-fool",
+      "url": "https://cyberpunk.fandom.com/wiki/Fool_on_the_Hill",
+      "title": "Fool on the Hill",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "20-card collection; consultations; dreamcatcher",
+      "notes": "Accessible indexed article extract inspected. Direct Fandom requests were blocked; no bypass attempted. Narrative evidence only, not native variable semantics."
+    },
+    {
+      "id": "heywood-glen",
+      "url": "https://cyberpunk.fandom.com/wiki/Beat_on_the_Brat%3A_The_Glen",
+      "title": "Beat on the Brat: The Glen",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Four reward concessions; later family message",
+      "notes": "Accessible indexed article extract inspected. Direct Fandom requests were blocked; no bypass attempted. Narrative evidence only, not native variable semantics."
+    },
+    {
+      "id": "heywood-gun",
+      "url": "https://cyberpunk.fandom.com/wiki/The_Gun",
+      "title": "The Gun",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Free pistol collection; Streetkid variation; caliber inconsistency",
+      "notes": "Accessible indexed article extract inspected. Direct Fandom requests were blocked; no bypass attempted. Narrative evidence only, not native variable semantics."
+    },
+    {
+      "id": "heywood-heist",
+      "url": "https://cyberpunk.fandom.com/wiki/The_Heist",
+      "title": "The Heist",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Penthouse; escape; Jackie's remains destination branches",
+      "notes": "Accessible indexed article extract inspected. Direct Fandom requests were blocked; no bypass attempted. Narrative evidence only, not native variable semantics."
+    },
+    {
+      "id": "heywood-heroes",
+      "url": "https://cyberpunk.fandom.com/wiki/Heroes",
+      "title": "Heroes",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Objectives; offering choices; Misty reconciliation notes",
+      "notes": "Accessible indexed article extract inspected. Direct Fandom requests were blocked; no bypass attempted. Narrative evidence only, not native variable semantics."
+    },
+    {
+      "id": "heywood-heroes-guide",
+      "url": "https://www.powerpyx.com/cyberpunk-2077-heroes-walkthrough/",
+      "title": "Heroes walkthrough",
+      "kind": "walkthrough",
+      "accessed": "2026-09-30",
+      "locator": "Garage; Misty invitation; ofrenda; bike gift",
+      "notes": "Indexed walkthrough inspected for optional participation and gift acceptance."
+    },
+    {
+      "id": "heywood-japan",
+      "url": "https://cyberpunk.fandom.com/wiki/Big_in_Japan",
+      "title": "Big in Japan",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Marked fridge; extraction; lethal failure; final revelation",
+      "notes": "Accessible indexed article extract inspected. Direct Fandom requests were blocked; no bypass attempted. Narrative evidence only, not native variable semantics."
+    },
+    {
+      "id": "heywood-jesse",
+      "url": "https://cyberpunk.fandom.com/wiki/Jesse_Johnson",
+      "title": "Jesse Johnson",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Biography; recalled implant and distressed introduction",
+      "notes": "Accessible indexed article extract inspected. Direct Fandom requests were blocked; no bypass attempted. Narrative evidence only, not native variable semantics."
+    },
+    {
+      "id": "heywood-kabuki",
+      "url": "https://cyberpunk.fandom.com/wiki/Beat_on_the_Brat%3A_Kabuki",
+      "title": "Beat on the Brat: Kabuki",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Opponent identities and objectives",
+      "notes": "Accessible indexed article extract inspected. Direct Fandom requests were blocked; no bypass attempted. Narrative evidence only, not native variable semantics."
+    },
+    {
+      "id": "heywood-kold",
+      "url": "https://cyberpunk.fandom.com/wiki/KOLD_MIRAGE",
+      "title": "KOLD MIRAGE",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Discovery; permission to decrypt; rescue alternatives",
+      "notes": "Accessible indexed article extract inspected. Direct Fandom requests were blocked; no bypass attempted. Narrative evidence only, not native variable semantics."
+    },
+    {
+      "id": "heywood-mama",
+      "url": "https://cyberpunk.fandom.com/wiki/Guadalupe_Alejandra_Welles",
+      "title": "Guadalupe Alejandra Welles",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Biography; database entry; Notes",
+      "notes": "Accessible indexed article extract inspected. Direct Fandom requests were blocked; no bypass attempted. Narrative evidence only, not native variable semantics."
+    },
+    {
+      "id": "heywood-misty",
+      "url": "https://cyberpunk.fandom.com/wiki/Misty_Olszewski",
+      "title": "Misty Olszewski",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Early life; 2077; 2079; database entry",
+      "notes": "Accessible indexed article extract inspected. Direct Fandom requests were blocked; no bypass attempted. Narrative evidence only, not native variable semantics."
+    },
+    {
+      "id": "heywood-ncx-mail",
+      "url": "https://cyberpunk.fandom.com/wiki/NCX_Spaceport/Computers",
+      "title": "NCX Spaceport/Computers",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Memorial: Cynthia Najarro entry",
+      "notes": "Accessible indexed article extract inspected. Direct Fandom requests were blocked; no bypass attempted. Narrative evidence only, not native variable semantics."
+    },
+    {
+      "id": "heywood-nix",
+      "url": "https://cyberpunk.fandom.com/wiki/Nix",
+      "title": "Nix",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Biography; guarded corporate history; Old Net interest",
+      "notes": "Accessible indexed article extract inspected. Direct Fandom requests were blocked; no bypass attempted. Narrative evidence only, not native variable semantics."
+    },
+    {
+      "id": "heywood-no-easy",
+      "url": "https://cyberpunk.fandom.com/wiki/No_Easy_Way_Out",
+      "title": "No Easy Way Out",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Fred referral; deal and death-message branches; article incomplete",
+      "notes": "Accessible indexed article extract inspected. Direct Fandom requests were blocked; no bypass attempted. Narrative evidence only, not native variable semantics."
+    },
+    {
+      "id": "heywood-nocturne",
+      "url": "https://cyberpunk.fandom.com/wiki/Nocturne_Op55N1",
+      "title": "Nocturne Op55N1",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Clinic; rooftop; Arasaka and Panam sendoffs",
+      "notes": "Accessible indexed article extract inspected. Direct Fandom requests were blocked; no bypass attempted. Narrative evidence only, not native variable semantics."
+    },
+    {
+      "id": "heywood-nomad",
+      "url": "https://cyberpunk.fandom.com/wiki/The_Nomad",
+      "title": "The Nomad",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Walkthrough: border escape and iguana reveal",
+      "notes": "Accessible indexed article extract inspected. Direct Fandom requests were blocked; no bypass attempted. Narrative evidence only, not native variable semantics."
+    },
+    {
+      "id": "heywood-ozob",
+      "url": "https://cyberpunk.fandom.com/wiki/Ozob_Bozo",
+      "title": "Ozob Bozo",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Biography; Humans of Night City; game versus external creation history",
+      "notes": "Accessible indexed article extract inspected. Direct Fandom requests were blocked; no bypass attempted. Narrative evidence only, not native variable semantics."
+    },
+    {
+      "id": "heywood-pacifica",
+      "url": "https://cyberpunk.fandom.com/wiki/Beat_on_the_Brat%3A_Pacifica",
+      "title": "Beat on the Brat: Pacifica",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Nonfatal win versus grenade detonation",
+      "notes": "Accessible indexed article extract inspected. Direct Fandom requests were blocked; no bypass attempted. Narrative evidence only, not native variable semantics."
+    },
+    {
+      "id": "heywood-paid",
+      "url": "https://cyberpunk.fandom.com/wiki/Paid_in_Full",
+      "title": "Paid in Full",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Objectives and availability notes",
+      "notes": "Accessible indexed article extract inspected. Direct Fandom requests were blocked; no bypass attempted. Narrative evidence only, not native variable semantics."
+    },
+    {
+      "id": "heywood-pepe",
+      "url": "https://cyberpunk.fandom.com/wiki/Pepe_Najarro",
+      "title": "Pepe Najarro",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Biography; Humans of Night City vignette; quest Notes",
+      "notes": "Accessible indexed article extract inspected. Direct Fandom requests were blocked; no bypass attempted. Narrative evidence only, not native variable semantics."
+    },
+    {
+      "id": "heywood-playing",
+      "url": "https://cyberpunk.fandom.com/wiki/Playing_for_Time",
+      "title": "Playing for Time",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Clinic diagnosis; home care; Johnny encounter",
+      "notes": "Accessible indexed article extract inspected. Direct Fandom requests were blocked; no bypass attempted. Narrative evidence only, not native variable semantics."
+    },
+    {
+      "id": "heywood-rancho",
+      "url": "https://cyberpunk.fandom.com/wiki/Beat_on_the_Brat%3A_Rancho_Coronado",
+      "title": "Beat on the Brat: Rancho Coronado",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Sanctioned fight versus open-combat bypass during For My Son",
+      "notes": "Accessible indexed article extract inspected. Direct Fandom requests were blocked; no bypass attempted. Narrative evidence only, not native variable semantics."
+    },
+    {
+      "id": "heywood-raymond",
+      "url": "https://cyberpunk.fandom.com/wiki/Raymond_Chandler_Evening",
+      "title": "Raymond Chandler Evening",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Job description, objectives, private investigation",
+      "notes": "Accessible indexed article extract inspected. Direct Fandom requests were blocked; no bypass attempted. Narrative evidence only, not native variable semantics."
+    },
+    {
+      "id": "heywood-raymond-guide",
+      "url": "https://www.powerpyx.com/cyberpunk-2077-raymond-chandler-evening-walkthrough/",
+      "title": "Raymond Chandler Evening walkthrough",
+      "kind": "walkthrough",
+      "accessed": "2026-09-30",
+      "locator": "Bar intervention; following Cynthia; report to Pepe",
+      "notes": "Page directly inspected, including conversation and investigation objectives. Conclusive follow-up remains separate from advice."
+    },
+    {
+      "id": "heywood-rescue",
+      "url": "https://cyberpunk.fandom.com/wiki/The_Rescue",
+      "title": "The Rescue",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Montage; Sandra extraction; return drive",
+      "notes": "Accessible indexed article extract inspected. Direct Fandom requests were blocked; no bypass attempted. Narrative evidence only, not native variable semantics."
+    },
+    {
+      "id": "heywood-ripperdoc",
+      "url": "https://cyberpunk.fandom.com/wiki/The_Ripperdoc",
+      "title": "The Ripperdoc",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Walkthrough; upfront payment note",
+      "notes": "Accessible indexed article extract inspected. Direct Fandom requests were blocked; no bypass attempted. Narrative evidence only, not native variable semantics."
+    },
+    {
+      "id": "heywood-ronin",
+      "url": "https://arasakas-ronin.netlify.app/",
+      "title": "Cyberpunk 2077 transcript backup",
+      "kind": "community-transcript",
+      "accessed": "2026-09-30",
+      "locator": "The Streetkid; The Ripperdoc; Playing for Time; Heroes; Shoot To Thrill; Kold Mirage",
+      "notes": "Directly inspected for delivery and scene participation. Incomplete fan transcript: Nomad and Corpo sections are TODO. No native IDs verified. Authored samples are original."
+    },
+    {
+      "id": "heywood-ronin-remains",
+      "url": "https://arasakas-ronin.netlify.app/",
+      "title": "Cyberpunk 2077 transcript backup — reconstructed remains disclosure",
+      "kind": "community-transcript",
+      "accessed": "2026-09-30",
+      "locator": "Gimme Danger: after reconnaissance, “If Delamain…” reconstructed dialogue note",
+      "notes": "Inspected in collected inert text. The editor explicitly marks placement as unverified. The header includes a wait route inconsistent with Heist/Heroes walkthroughs. Supports only a reported disclosure if observed in the game; not route predicates or exact timing."
+    },
+    {
+      "id": "heywood-shoot",
+      "url": "https://cyberpunk.fandom.com/wiki/Shoot_To_Thrill",
+      "title": "Shoot To Thrill",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Rules; result branches; optional business conversation; patch notes",
+      "notes": "Accessible indexed article extract inspected. Direct Fandom requests were blocked; no bypass attempted. Narrative evidence only, not native variable semantics."
+    },
+    {
+      "id": "heywood-spellbound",
+      "url": "https://cyberpunk.fandom.com/wiki/Spellbound",
+      "title": "Spellbound",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Acquisition alternatives; optional decryption; payment; disputed queue/cool variants",
+      "notes": "Accessible indexed article extract inspected. Direct Fandom requests were blocked; no bypass attempted. Narrative evidence only, not native variable semantics."
+    },
+    {
+      "id": "heywood-streetkid",
+      "url": "https://cyberpunk.fandom.com/wiki/The_Streetkid",
+      "title": "The Streetkid",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Walkthrough: Pepe debt and car job",
+      "notes": "Accessible indexed article extract inspected. Direct Fandom requests were blocked; no bypass attempted. Narrative evidence only, not native variable semantics."
+    },
+    {
+      "id": "heywood-tomorrow",
+      "url": "https://cyberpunk.fandom.com/wiki/Tomorrow_Never_Knows",
+      "title": "Tomorrow Never Knows",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Four King murals; consultation and reading",
+      "notes": "Accessible indexed article extract inspected. Direct Fandom requests were blocked; no bypass attempted. Narrative evidence only, not native variable semantics."
+    },
+    {
+      "id": "heywood-tower",
+      "url": "https://cyberpunk.fandom.com/wiki/Things_Done_Changed",
+      "title": "Things Done Changed",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Viktor call and examination; Misty farewell",
+      "notes": "Accessible indexed article extract inspected. Direct Fandom requests were blocked; no bypass attempted. Narrative evidence only, not native variable semantics."
+    },
+    {
+      "id": "heywood-upgrade",
+      "url": "https://cyberpunk.fandom.com/wiki/Upgrade_U",
+      "title": "Upgrade U",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Patch 2.0 migration tutorial and old-save restriction",
+      "notes": "Accessible indexed article extract inspected. Direct Fandom requests were blocked; no bypass attempted. Narrative evidence only, not native variable semantics."
+    },
+    {
+      "id": "heywood-vik",
+      "url": "https://cyberpunk.fandom.com/wiki/Viktor_Vektor",
+      "title": "Viktor Vektor",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Biography; boxing and patient relationships; conditional endings",
+      "notes": "Accessible indexed article extract inspected. Direct Fandom requests were blocked; no bypass attempted. Narrative evidence only, not native variable semantics."
+    }
+  ],
+  "quests": [
+    {
+      "key": "the-nomad",
+      "title": "The Nomad",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "jackie-welles"
+      ],
+      "synopsis": "Nomad-origin partnership with Jackie.",
+      "stages": [
+        {
+          "key": "smuggling",
+          "description": "V and Jackie attempt a cross-border cargo job.",
+          "sourceIds": [
+            "heywood-nomad"
+          ]
+        },
+        {
+          "key": "escape",
+          "description": "Border trouble gives way to escape and a shared new start.",
+          "sourceIds": [
+            "heywood-nomad"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "heywood.origin.nomad-partnership",
+          "description": "How this lifepath establishes V and Jackie.",
+          "topic": "v.jackie.first-meeting",
+          "outcomes": [
+            {
+              "key": "completed",
+              "description": "The shared smuggling escape established their partnership.",
+              "affects": [
+                "jackie-welles"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-nomad"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-nomad"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Require Nomad lifepath and completed origin scene. Mutually exclusive with Streetkid/Corpo origin memories; a summoned Jackie does not establish it."
+          }
+        }
+      ],
+      "sourceIds": [
+        "heywood-nomad"
+      ],
+      "uncertainties": [
+        "Other cargo details and exact timing need native scene mapping. The Ronin Nomad section is unfinished and is not used as evidence."
+      ]
+    },
+    {
+      "key": "the-streetkid",
+      "title": "The Streetkid",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "jackie-welles",
+        "pepe-najarro"
+      ],
+      "synopsis": "Pepe’s debt leads V to a car job and a collision with Jackie.",
+      "stages": [
+        {
+          "key": "debt",
+          "description": "Pepe asks V to speak to Kirk.",
+          "sourceIds": [
+            "heywood-streetkid"
+          ]
+        },
+        {
+          "key": "car",
+          "description": "An attempted theft ends in police violence and a new acquaintance.",
+          "sourceIds": [
+            "heywood-ronin"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "heywood.pepe.debt-help",
+          "description": "Whether V intervened about Pepe’s debt.",
+          "topic": "pepe.kirk.debt-intervention",
+          "outcomes": [
+            {
+              "key": "attempted",
+              "description": "V sought a way to help Pepe with Kirk.",
+              "affects": [
+                "pepe-najarro"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-streetkid"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-streetkid"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Observe the conversation; attempted help is not proof the debt was cleared. Require Streetkid origin."
+          }
+        },
+        {
+          "id": "heywood.origin.streetkid-partnership",
+          "description": "How Jackie and V first become partners.",
+          "topic": "v.jackie.first-meeting",
+          "outcomes": [
+            {
+              "key": "completed",
+              "description": "Their rivalry over the car led to a shared ordeal and friendship.",
+              "affects": [
+                "jackie-welles"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-ronin"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-ronin"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Require Streetkid origin and the post-arrest meeting. Do not combine with other lifepaths."
+          }
+        }
+      ],
+      "sourceIds": [
+        "heywood-streetkid",
+        "heywood-ronin"
+      ],
+      "uncertainties": [
+        "Do not infer payment of Pepe’s debt from the failed theft."
+      ]
+    },
+    {
+      "key": "the-corpo-rat",
+      "title": "The Corpo-Rat",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "jackie-welles"
+      ],
+      "synopsis": "An existing friend supports V through loss of corporate status.",
+      "stages": [
+        {
+          "key": "meeting",
+          "description": "V meets Jackie at Lizzie’s with a dangerous corporate problem.",
+          "sourceIds": [
+            "heywood-corpo"
+          ]
+        },
+        {
+          "key": "dismissal",
+          "description": "Arasaka strips V of access; Jackie remains.",
+          "sourceIds": [
+            "heywood-corpo"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "heywood.origin.corpo-support",
+          "description": "Whether the corporate collapse and Jackie’s support occurred.",
+          "topic": "v.jackie.first-meeting",
+          "outcomes": [
+            {
+              "key": "completed",
+              "description": "Jackie supported an already-known V after corporate dismissal.",
+              "affects": [
+                "jackie-welles"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-corpo"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-corpo"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Require Corpo lifepath and the dismissal scene. This is not their first ever meeting. Ronin marks this lifepath TODO."
+          }
+        }
+      ],
+      "sourceIds": [
+        "heywood-corpo"
+      ],
+      "uncertainties": []
+    },
+    {
+      "key": "the-rescue",
+      "title": "The Rescue",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "jackie-welles"
+      ],
+      "synopsis": "Early partnership culminates in rescuing Sandra Dorsett.",
+      "stages": [
+        {
+          "key": "partnership",
+          "description": "The opening montage establishes shared work and Welles household hospitality.",
+          "sourceIds": [
+            "heywood-rescue"
+          ]
+        },
+        {
+          "key": "extraction",
+          "description": "Jackie, V and T-Bug coordinate the rescue.",
+          "sourceIds": [
+            "heywood-rescue"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "heywood.jackie.early-partnership",
+          "description": "Shared history established after the origin.",
+          "topic": "v.welles.early-partnership",
+          "outcomes": [
+            {
+              "key": "established",
+              "description": "V and Jackie worked together; the Welles household had welcomed V.",
+              "affects": [
+                "jackie-welles",
+                "mama-welles"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-rescue",
+                "heywood-mama"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-rescue",
+            "heywood-mama"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Current save must have reached the montage. Do not use spawned identity as proof. Mama knows household hospitality, not every merc operation."
+          }
+        },
+        {
+          "id": "heywood.rescue.sandra",
+          "description": "Outcome of the witnessed extraction.",
+          "topic": "sandra.rescue",
+          "outcomes": [
+            {
+              "key": "handed-to-trauma-team",
+              "description": "Sandra was transferred to Trauma Team.",
+              "affects": [
+                "jackie-welles"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "heywood-rescue"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-rescue"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Only V/Jackie’s visible rescue events are shared. Sandra’s later private research is not revealed by rescuing her."
+          }
+        }
+      ],
+      "sourceIds": [
+        "heywood-rescue",
+        "heywood-mama"
+      ],
+      "uncertainties": []
+    },
+    {
+      "key": "the-ripperdoc",
+      "title": "The Ripperdoc",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "jackie-welles",
+        "viktor-vektor",
+        "misty-olszewski"
+      ],
+      "synopsis": "A clinic visit, credit decision and prospective job discussion.",
+      "stages": [
+        {
+          "key": "clinic",
+          "description": "V receives new implants from Viktor.",
+          "sourceIds": [
+            "heywood-ripperdoc"
+          ]
+        },
+        {
+          "key": "prospect",
+          "description": "Jackie discusses Dexter DeShawn’s opportunity.",
+          "sourceIds": [
+            "heywood-ronin"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "heywood.vik.debt-at-install",
+          "description": "Payment state at the first installation.",
+          "topic": "v.viktor.install-debt",
+          "outcomes": [
+            {
+              "key": "on-credit",
+              "description": "V took the installation on credit.",
+              "affects": [
+                "viktor-vektor"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-ripperdoc"
+              ]
+            },
+            {
+              "key": "paid-upfront",
+              "description": "V paid during the installation visit.",
+              "affects": [
+                "viktor-vektor"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-ripperdoc"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-ripperdoc"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "A verified installation/payment scene is required. Absence of Paid in Full does not prove upfront payment. Later repayment is a separate event."
+          }
+        },
+        {
+          "id": "heywood.jackie.dex-introduction",
+          "description": "Whether Jackie discussed the new fixer.",
+          "topic": "v.jackie.dex-prospect",
+          "outcomes": [
+            {
+              "key": "discussed",
+              "description": "Jackie spoke to V about Dexter’s proposed opportunity.",
+              "affects": [
+                "jackie-welles"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-ronin"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-ronin"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Observe the exact dialogue/event and current save branch. Quest completion and absent/zero facts are insufficient. No native graph, journal hash, fact name or version semantics has been technically verified."
+          }
+        }
+      ],
+      "sourceIds": [
+        "heywood-ripperdoc",
+        "heywood-ronin"
+      ],
+      "uncertainties": [
+        "Amounts and tutorials require current game-version checks; Upgrade U is a separate migration job."
+      ]
+    },
+    {
+      "key": "the-heist",
+      "title": "The Heist",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "jackie-welles",
+        "mama-welles",
+        "viktor-vektor",
+        "misty-olszewski"
+      ],
+      "synopsis": "The Konpeki escape and what happens to Jackie’s remains.",
+      "stages": [
+        {
+          "key": "penthouse",
+          "description": "V and Jackie witness events in the penthouse.",
+          "sourceIds": [
+            "heywood-heist"
+          ]
+        },
+        {
+          "key": "escape",
+          "description": "Jackie is fatally wounded during escape.",
+          "sourceIds": [
+            "heywood-heist"
+          ]
+        },
+        {
+          "key": "destination",
+          "description": "V instructs Delamain about the remains.",
+          "sourceIds": [
+            "heywood-heist"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "heywood.jackie.konpeki-witness",
+          "description": "Directly witnessed penthouse events.",
+          "topic": "v.jackie.konpeki-witness",
+          "outcomes": [
+            {
+              "key": "witnessed",
+              "description": "Jackie and V witnessed Saburo’s killing before their escape.",
+              "affects": [
+                "jackie-welles"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "heywood-heist"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-heist"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Do not give Jackie later revelations, V’s mental conversations or ending knowledge. This witnessed history does not make a summoned copy canonically alive."
+          }
+        },
+        {
+          "id": "heywood.jackie.death",
+          "description": "Family-facing notification of Jackie’s death.",
+          "topic": "welles.jackie.death-disclosure",
+          "outcomes": [
+            {
+              "key": "reported-to-family",
+              "description": "The Welles family has learned that Jackie died.",
+              "affects": [
+                "mama-welles"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "heywood-heroes",
+                "heywood-mama"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-heroes",
+            "heywood-mama"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Require an actual family notification or later verified family mourning scene. World death alone is not proof Mama witnessed the escape or knows its details."
+          }
+        },
+        {
+          "id": "heywood.jackie.body-instruction",
+          "description": "V’s instruction to Delamain.",
+          "topic": "jackie.remains.request",
+          "outcomes": [
+            {
+              "key": "family",
+              "description": "V requested delivery to Jackie’s family.",
+              "affects": [
+                "mama-welles"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "heywood-heist"
+              ]
+            },
+            {
+              "key": "wait",
+              "description": "V instructed Delamain to wait.",
+              "affects": [
+                "mama-welles"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "heywood-heist"
+              ]
+            },
+            {
+              "key": "viktor",
+              "description": "V requested delivery to Viktor.",
+              "affects": [
+                "viktor-vektor"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "heywood-heist"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-heist"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Player choice, delivery and each person’s notification are separate. Do not tell the recipient the command occurred until delivery/report evidence exists."
+          }
+        },
+        {
+          "id": "heywood.jackie.body-disposition",
+          "description": "Actual destination and availability of the remains.",
+          "topic": "jackie.remains.disposition",
+          "outcomes": [
+            {
+              "key": "family-received",
+              "description": "The family received the remains, enabling the full ofrenda.",
+              "affects": [
+                "mama-welles"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-heist",
+                "heywood-heroes"
+              ]
+            },
+            {
+              "key": "clinic-seized",
+              "description": "Arasaka seized the remains after the clinic route.",
+              "affects": [
+                "viktor-vektor"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "heywood-heist"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-heist",
+            "heywood-heroes"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Require actual disposition evidence after the instruction. The wait instruction ultimately follows family delivery, but do not infer notification time. Arasaka’s later use of the remains is a separate disclosure."
+          }
+        }
+      ],
+      "sourceIds": [
+        "heywood-heist",
+        "heywood-heroes",
+        "heywood-mama"
+      ],
+      "uncertainties": [
+        "No raw fact names verified. Clinic seizure does not establish what Mama or Misty have been told. Living-Jackie dialogue must not acquire his own posthumous memories."
+      ]
+    },
+    {
+      "key": "heroes",
+      "title": "Heroes",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "mama-welles",
+        "misty-olszewski",
+        "viktor-vektor",
+        "jackie-welles"
+      ],
+      "synopsis": "Family mourning, optional reconciliation and keepsakes after Jackie’s death.",
+      "stages": [
+        {
+          "key": "invitation",
+          "description": "Mama’s call or alternate package branch establishes what is available.",
+          "sourceIds": [
+            "heywood-heroes"
+          ]
+        },
+        {
+          "key": "garage",
+          "description": "V can spend time with Misty and choose an offering.",
+          "sourceIds": [
+            "heywood-heroes-guide"
+          ]
+        },
+        {
+          "key": "ofrenda",
+          "description": "The full branch brings people together at El Coyote Cojo.",
+          "sourceIds": [
+            "heywood-heroes-guide"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "heywood.heroes.funeral",
+          "description": "Which mourning route was reached.",
+          "topic": "jackie.ofrenda",
+          "outcomes": [
+            {
+              "key": "full-ofrenda",
+              "description": "The full ofrenda was held with the family’s recovered remains.",
+              "affects": [
+                "mama-welles",
+                "misty-olszewski",
+                "viktor-vektor"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-heroes"
+              ]
+            },
+            {
+              "key": "package-only",
+              "description": "The alternate route provided a package without the full ofrenda.",
+              "affects": [
+                "mama-welles"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-heroes"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-heroes"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Full-ofrenda knowledge must still check which individual attended; the outcome establishes the event, not universal witness. Package-only never authorizes speeches or guest attendance."
+          }
+        },
+        {
+          "id": "heywood.heroes.misty-attendance",
+          "description": "Whether Misty attended after V’s invitation.",
+          "topic": "misty.jackie.ofrenda-attendance",
+          "outcomes": [
+            {
+              "key": "attended",
+              "description": "Misty attended the ofrenda.",
+              "affects": [
+                "misty-olszewski",
+                "mama-welles"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "heywood-heroes-guide"
+              ]
+            },
+            {
+              "key": "not-invited",
+              "description": "V did not invite Misty in the relevant opportunity.",
+              "affects": [
+                "misty-olszewski"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-heroes-guide"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-heroes-guide"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Require the invitation branch and attendance evidence. Missing event data is unknown, not not-invited."
+          }
+        },
+        {
+          "id": "heywood.heroes.reconciliation",
+          "description": "V’s intervention about Mama and Misty.",
+          "topic": "mama.misty.reconciliation",
+          "outcomes": [
+            {
+              "key": "encouraged",
+              "description": "V urged Mama to recognize Misty’s importance to Jackie.",
+              "affects": [
+                "mama-welles",
+                "misty-olszewski"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-heroes"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-heroes"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Observe the discussion and any resulting exchange. Invitation alone is not reconciliation. Misty learns what she actually hears, not V’s private earlier comments."
+          }
+        },
+        {
+          "id": "heywood.heroes.offering",
+          "description": "Which object V chose for the altar.",
+          "topic": "v.jackie.ofrenda-offering",
+          "outcomes": [
+            {
+              "key": "book",
+              "description": "V chose Jackie’s book.",
+              "affects": [
+                "mama-welles"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "heywood-heroes"
+              ]
+            },
+            {
+              "key": "basketball",
+              "description": "V chose the basketball.",
+              "affects": [
+                "mama-welles"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "heywood-heroes"
+              ]
+            },
+            {
+              "key": "tequila",
+              "description": "V chose the tequila.",
+              "affects": [
+                "mama-welles"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "heywood-heroes"
+              ]
+            },
+            {
+              "key": "belt",
+              "description": "V chose the belt.",
+              "affects": [
+                "mama-welles"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "heywood-heroes"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-heroes"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Require actual altar placement, not inventory pickup. Other attendees need attendance proof before receiving witnessed knowledge."
+          }
+        },
+        {
+          "id": "heywood.heroes.motorcycle",
+          "description": "Whether V accepted the motorcycle gift.",
+          "topic": "v.jackie.motorcycle",
+          "outcomes": [
+            {
+              "key": "accepted",
+              "description": "V accepted Jackie’s motorcycle from Mama.",
+              "affects": [
+                "mama-welles"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-heroes-guide"
+              ]
+            },
+            {
+              "key": "declined",
+              "description": "V declined the offered motorcycle.",
+              "affects": [
+                "mama-welles"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-heroes-guide"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-heroes-guide"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Distinguish initial offer, acceptance and actual vehicle entitlement. The full funeral is not the sole route to the bike."
+          }
+        }
+      ],
+      "sourceIds": [
+        "heywood-heroes",
+        "heywood-heroes-guide",
+        "heywood-ronin"
+      ],
+      "uncertainties": [
+        "Later collection of Jackie’s guns is a separate inventory event, not guaranteed by job completion. Speech topic and each guest exchange require additional mapping."
+      ]
+    },
+    {
+      "key": "playing-for-time",
+      "title": "Playing for Time",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "viktor-vektor",
+        "misty-olszewski"
+      ],
+      "synopsis": "Clinical explanation and home care after the heist.",
+      "stages": [
+        {
+          "key": "diagnosis",
+          "description": "Viktor explains the Relic crisis to V.",
+          "sourceIds": [
+            "heywood-playing"
+          ]
+        },
+        {
+          "key": "home",
+          "description": "Misty helps V settle and explains medication.",
+          "sourceIds": [
+            "heywood-playing"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "heywood.vik.relic-diagnosis",
+          "description": "What Viktor has actually explained.",
+          "topic": "v.viktor.relic-diagnosis",
+          "outcomes": [
+            {
+              "key": "explained",
+              "description": "Viktor explained that the Relic is overwriting V and cannot simply be removed.",
+              "affects": [
+                "viktor-vektor"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-playing"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-playing"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Requires the diagnostic conversation. Other characters do not inherit confidential medical knowledge from job completion."
+          }
+        },
+        {
+          "id": "heywood.misty.home-care",
+          "description": "Misty’s direct involvement in V’s recovery.",
+          "topic": "v.misty.home-care",
+          "outcomes": [
+            {
+              "key": "delivered",
+              "description": "Misty helped V at home and discussed the medicines.",
+              "affects": [
+                "misty-olszewski"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-playing"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-playing"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Observe the exact dialogue/event and current save branch. Quest completion and absent/zero facts are insufficient. No native graph, journal hash, fact name or version semantics has been technically verified."
+          }
+        },
+        {
+          "id": "heywood.misty.jackie-disclosure",
+          "description": "Optional account of Jackie’s final moments.",
+          "topic": "misty.jackie.final-moments",
+          "outcomes": [
+            {
+              "key": "v-recounted-final-moments",
+              "description": "V told Misty about Jackie’s final moments.",
+              "affects": [
+                "misty-olszewski"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "heywood-ronin"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-ronin"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Require this optional disclosure and retain only what V said. Home care does not itself prove this conversation occurred."
+          }
+        }
+      ],
+      "sourceIds": [
+        "heywood-playing",
+        "heywood-ronin"
+      ],
+      "uncertainties": []
+    },
+    {
+      "key": "paid-in-full",
+      "title": "Paid in Full",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "viktor-vektor"
+      ],
+      "synopsis": "V settles the clinic debt if the first installation used credit.",
+      "stages": [
+        {
+          "key": "balance",
+          "description": "A prior credit arrangement remains outstanding.",
+          "sourceIds": [
+            "heywood-paid"
+          ]
+        },
+        {
+          "key": "payment",
+          "description": "V returns to pay Viktor.",
+          "sourceIds": [
+            "heywood-paid"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "heywood.vik.debt-repayment",
+          "description": "Confirmed repayment of the installation debt.",
+          "topic": "v.viktor.install-debt",
+          "outcomes": [
+            {
+              "key": "paid",
+              "description": "V paid the outstanding clinic debt.",
+              "affects": [
+                "viktor-vektor"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-paid"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-paid"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Require the repayment transaction and the debt branch. Do not confuse cash availability, a missing quest or upfront payment with this later personal interaction."
+          }
+        }
+      ],
+      "sourceIds": [
+        "heywood-paid"
+      ],
+      "uncertainties": [
+        "The published amount is 21,000 eddies; executable economics must use current game evidence."
+      ]
+    },
+    {
+      "key": "fool-on-the-hill",
+      "title": "Fool on the Hill",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "misty-olszewski",
+        "viktor-vektor"
+      ],
+      "synopsis": "V seeks an interpretation of the city’s tarot imagery.",
+      "stages": [
+        {
+          "key": "first-image",
+          "description": "A discovered mural opens the investigation.",
+          "sourceIds": [
+            "heywood-fool"
+          ]
+        },
+        {
+          "key": "consult",
+          "description": "V can consult Misty and Viktor.",
+          "sourceIds": [
+            "heywood-fool"
+          ]
+        },
+        {
+          "key": "collection",
+          "description": "Twenty base-game murals lead to the final discussion.",
+          "sourceIds": [
+            "heywood-fool"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "heywood.tarot.misty-consultation",
+          "description": "Whether V discussed the strange murals with Misty.",
+          "topic": "v.misty.tarot-consultation",
+          "outcomes": [
+            {
+              "key": "discussed",
+              "description": "Misty discussed the images with V.",
+              "affects": [
+                "misty-olszewski"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-fool"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-fool"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Observe the exact dialogue/event and current save branch. Quest completion and absent/zero facts are insufficient. No native graph, journal hash, fact name or version semantics has been technically verified."
+          }
+        },
+        {
+          "id": "heywood.tarot.vik-consultation",
+          "description": "Whether V asked Viktor about the images.",
+          "topic": "v.viktor.tarot-consultation",
+          "outcomes": [
+            {
+              "key": "discussed",
+              "description": "Viktor heard V’s report of the images.",
+              "affects": [
+                "viktor-vektor"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "heywood-fool"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-fool"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "This is a patient report, not evidence Viktor can see the murals or that every vision is an objective prediction."
+          }
+        },
+        {
+          "id": "heywood.tarot.city-collection",
+          "description": "Collection and final interpretation are different stages.",
+          "topic": "v.misty.tarot-city",
+          "outcomes": [
+            {
+              "key": "collected",
+              "description": "V found the twenty relevant city murals.",
+              "affects": [
+                "misty-olszewski"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "heywood-fool"
+              ]
+            },
+            {
+              "key": "reading-completed",
+              "description": "V returned to Misty for the completed collection’s interpretation.",
+              "affects": [
+                "misty-olszewski"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-fool"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-fool"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Collection alone does not tell Misty V completed it. Twenty-card state excludes the ending cards and Phantom Liberty Kings; require the subsequent conversation for the reading."
+          }
+        },
+        {
+          "id": "heywood.tarot.dreamcatcher",
+          "description": "Reward receipt after the final discussion.",
+          "topic": "v.misty.dreamcatcher",
+          "outcomes": [
+            {
+              "key": "received",
+              "description": "Misty gave V a dreamcatcher.",
+              "affects": [
+                "misty-olszewski"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-fool"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-fool"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Observe the exact dialogue/event and current save branch. Quest completion and absent/zero facts are insufficient. No native graph, journal hash, fact name or version semantics has been technically verified."
+          }
+        }
+      ],
+      "sourceIds": [
+        "heywood-fool"
+      ],
+      "uncertainties": [
+        "Tarot interpretation is symbolic and character-specific. It must not reveal unchosen endings or future decisions."
+      ]
+    },
+    {
+      "key": "tomorrow-never-knows",
+      "title": "Tomorrow Never Knows",
+      "category": "side",
+      "game": "phantom-liberty",
+      "nativeIds": [],
+      "characters": [
+        "misty-olszewski"
+      ],
+      "synopsis": "Four Dogtown King murals lead to a separate interpretation.",
+      "stages": [
+        {
+          "key": "kings",
+          "description": "V discovers the four King cards around Dogtown.",
+          "sourceIds": [
+            "heywood-tomorrow"
+          ]
+        },
+        {
+          "key": "consultation",
+          "description": "Misty can discuss progress, then provide a completed reading.",
+          "sourceIds": [
+            "heywood-tomorrow"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "heywood.tarot.king-cups",
+          "description": "Whether the cups King mural was discovered.",
+          "topic": "v.tarot.king-cups",
+          "outcomes": [
+            {
+              "key": "discovered",
+              "description": "King of Cups discovered.",
+              "affects": [
+                "misty-olszewski"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "heywood-tomorrow"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-tomorrow"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Independent discovery event; do not infer from geographical proximity. Misty requires V’s actual report before acquiring this knowledge. All four cards and the final conversation are separate from this one discovery."
+          }
+        },
+        {
+          "id": "heywood.tarot.king-pentacles",
+          "description": "Whether the pentacles King mural was discovered.",
+          "topic": "v.tarot.king-pentacles",
+          "outcomes": [
+            {
+              "key": "discovered",
+              "description": "King of Pentacles discovered.",
+              "affects": [
+                "misty-olszewski"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "heywood-tomorrow"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-tomorrow"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Independent discovery event; do not infer from geographical proximity. Misty requires V’s actual report before acquiring this knowledge. All four cards and the final conversation are separate from this one discovery."
+          }
+        },
+        {
+          "id": "heywood.tarot.king-wands",
+          "description": "Whether the wands King mural was discovered.",
+          "topic": "v.tarot.king-wands",
+          "outcomes": [
+            {
+              "key": "discovered",
+              "description": "King of Wands discovered.",
+              "affects": [
+                "misty-olszewski"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "heywood-tomorrow"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-tomorrow"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Independent discovery event; do not infer from geographical proximity. Misty requires V’s actual report before acquiring this knowledge. All four cards and the final conversation are separate from this one discovery."
+          }
+        },
+        {
+          "id": "heywood.tarot.king-swords",
+          "description": "Whether the swords King mural was discovered.",
+          "topic": "v.tarot.king-swords",
+          "outcomes": [
+            {
+              "key": "discovered",
+              "description": "King of Swords discovered.",
+              "affects": [
+                "misty-olszewski"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "heywood-tomorrow"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-tomorrow"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Independent discovery event; do not infer from geographical proximity. Misty requires V’s actual report before acquiring this knowledge. All four cards and the final conversation are separate from this one discovery."
+          }
+        },
+        {
+          "id": "heywood.tarot.kings-reading",
+          "description": "Misty’s reading after all four cards are known.",
+          "topic": "v.misty.tarot-kings",
+          "outcomes": [
+            {
+              "key": "completed",
+              "description": "Misty interpreted the completed four-King collection.",
+              "affects": [
+                "misty-olszewski"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-tomorrow"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-tomorrow"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Require all four discoveries and the final discussion. Partial consultation is not the completed reading."
+          }
+        }
+      ],
+      "sourceIds": [
+        "heywood-tomorrow"
+      ],
+      "uncertainties": [
+        "An initial reading can happen before all cards; no inferred reading from journal completion alone. Kings are not future ending guarantees."
+      ]
+    },
+    {
+      "key": "nocturne-op55n1",
+      "title": "Nocturne Op55N1",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "viktor-vektor",
+        "misty-olszewski"
+      ],
+      "synopsis": "Heywood slice: urgent care, rooftop access and what Misty is told.",
+      "stages": [
+        {
+          "key": "triage",
+          "description": "V returns to the clinic in a severe crisis.",
+          "sourceIds": [
+            "heywood-nocturne"
+          ]
+        },
+        {
+          "key": "rooftop",
+          "description": "Misty leads V to a private place to decide.",
+          "sourceIds": [
+            "heywood-nocturne"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "heywood.nocturne.final-triage",
+          "description": "Viktor’s final emergency treatment before the choice.",
+          "topic": "v.viktor.final-triage",
+          "outcomes": [
+            {
+              "key": "treated",
+              "description": "Viktor treated V and warned how serious the condition had become.",
+              "affects": [
+                "viktor-vektor"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-nocturne"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-nocturne"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Observe the exact dialogue/event and current save branch. Quest completion and absent/zero facts are insufficient. No native graph, journal hash, fact name or version semantics has been technically verified."
+          }
+        },
+        {
+          "id": "heywood.nocturne.rooftop",
+          "description": "Misty’s directly witnessed assistance.",
+          "topic": "v.misty.rooftop",
+          "outcomes": [
+            {
+              "key": "guided",
+              "description": "Misty guided V to the rooftop and left room for a private decision.",
+              "affects": [
+                "misty-olszewski"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-nocturne"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-nocturne"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "This does not disclose V’s mental conversation, private calls or selected plan to Misty."
+          }
+        },
+        {
+          "id": "heywood.nocturne.misty-sendoff",
+          "description": "Which departure choice reached Misty.",
+          "topic": "misty.v.final-plan",
+          "outcomes": [
+            {
+              "key": "arasaka-disclosed",
+              "description": "Misty learned V was taking Arasaka’s help and objected.",
+              "affects": [
+                "misty-olszewski"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-nocturne"
+              ]
+            },
+            {
+              "key": "panam-arrived",
+              "description": "Misty saw Panam arrive to take V.",
+              "affects": [
+                "misty-olszewski"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "heywood-nocturne"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-nocturne"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Observe the sendoff itself. A rooftop selection does not automatically disclose every reason, contact or later outcome to Misty."
+          }
+        }
+      ],
+      "sourceIds": [
+        "heywood-nocturne"
+      ],
+      "uncertainties": [
+        "Full ending choices belong to the main-story lane. This record covers only local witnesses and disclosures."
+      ]
+    },
+    {
+      "key": "things-done-changed",
+      "title": "Things Done Changed",
+      "category": "main",
+      "game": "phantom-liberty",
+      "nativeIds": [],
+      "characters": [
+        "viktor-vektor",
+        "misty-olszewski"
+      ],
+      "synopsis": "Conditional 2079 reunion after V’s surgery and absence.",
+      "stages": [
+        {
+          "key": "contact",
+          "description": "V can contact Viktor after returning.",
+          "sourceIds": [
+            "heywood-tower"
+          ]
+        },
+        {
+          "key": "clinic",
+          "description": "A later examination establishes lasting limitations.",
+          "sourceIds": [
+            "heywood-tower"
+          ]
+        },
+        {
+          "key": "farewell",
+          "description": "V and Misty meet before she leaves.",
+          "sourceIds": [
+            "heywood-tower"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "heywood.tower.vik-call",
+          "description": "Optional contact before visiting the clinic.",
+          "topic": "v.viktor.2079-call",
+          "outcomes": [
+            {
+              "key": "connected",
+              "description": "V contacted Viktor after the long absence.",
+              "affects": [
+                "viktor-vektor"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-tower"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-tower"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Require this ending timeline and actual call. Do not backfill knowledge into 2077 or earlier saves."
+          }
+        },
+        {
+          "id": "heywood.tower.vik-exam",
+          "description": "What the 2079 examination establishes.",
+          "topic": "v.viktor.2079-exam",
+          "outcomes": [
+            {
+              "key": "confirmed",
+              "description": "Viktor confirmed V’s continuing intolerance of combat implants.",
+              "affects": [
+                "viktor-vektor"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-tower"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-tower"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Gate on the ending branch and completed examination. Clinic ownership changes are timeline context, not universal biography."
+          }
+        },
+        {
+          "id": "heywood.tower.misty-reunion",
+          "description": "Misty’s reunion and future plans.",
+          "topic": "v.misty.2079-farewell",
+          "outcomes": [
+            {
+              "key": "farewell",
+              "description": "Misty met V again and spoke of leaving for Poland.",
+              "affects": [
+                "misty-olszewski"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-tower",
+                "heywood-misty"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-tower",
+            "heywood-misty"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Require the actual 2079 farewell; the event cannot survive a rollback to a pre-ending save."
+          }
+        }
+      ],
+      "sourceIds": [
+        "heywood-tower",
+        "heywood-misty"
+      ],
+      "uncertainties": [
+        "This slice does not map surgery choice, coma, Reed or other ending calls. No ending may be assumed from the existence of the Phantom Liberty expansion."
+      ]
+    },
+    {
+      "key": "upgrade-u",
+      "title": "Upgrade U",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "viktor-vektor"
+      ],
+      "synopsis": "A migration tutorial for qualifying pre-2.0 saves.",
+      "stages": [
+        {
+          "key": "migration",
+          "description": "A qualifying older save receives a ripperdoc tutorial.",
+          "sourceIds": [
+            "heywood-upgrade"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "heywood.vik.upgrade-u",
+          "description": "Whether the migration-only tutorial was completed.",
+          "topic": "v.cyberware.migration-tutorial",
+          "outcomes": [
+            {
+              "key": "completed",
+              "description": "The older-save cyberware migration tutorial completed.",
+              "affects": [
+                "viktor-vektor"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-upgrade"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-upgrade"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Require verified migration/version eligibility. Never make this a prerequisite for current new-game relationship history."
+          }
+        }
+      ],
+      "sourceIds": [
+        "heywood-upgrade"
+      ],
+      "uncertainties": [
+        "A tutorial completion is not a new surgery history beyond what its transaction evidence establishes."
+      ]
+    },
+    {
+      "key": "dazed-and-confused",
+      "title": "Dazed and Confused",
+      "category": "side",
+      "game": "phantom-liberty",
+      "nativeIds": [],
+      "characters": [
+        "viktor-vektor"
+      ],
+      "synopsis": "Optional Viktor advice about Tool’s identity crisis.",
+      "stages": [
+        {
+          "key": "consultation",
+          "description": "V can seek a specialist opinion while helping Tool.",
+          "sourceIds": [
+            "heywood-dazed"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "heywood.vik.tool-consultation",
+          "description": "Whether Viktor was consulted rather than a different contact.",
+          "topic": "v.viktor.tool-advice",
+          "outcomes": [
+            {
+              "key": "advice-sent",
+              "description": "Viktor advised using a personal object to help with the identity problem.",
+              "affects": [
+                "viktor-vektor"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-dazed"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-dazed"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Require the actual message to Viktor and his reply. Asking Judy is not the same event. Final recovery or harm must be separately reported to Viktor."
+          }
+        }
+      ],
+      "sourceIds": [
+        "heywood-dazed"
+      ],
+      "uncertainties": [
+        "The full Tool job is owned by another lane. Advice is not proof the plan succeeded."
+      ]
+    },
+    {
+      "key": "gimme-danger",
+      "title": "Gimme Danger",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "jackie-welles",
+        "viktor-vektor",
+        "mama-welles",
+        "misty-olszewski"
+      ],
+      "synopsis": "Bounded slice: a possible disclosure about Arasaka and Jackie’s remains.",
+      "stages": [
+        {
+          "key": "disclosure",
+          "description": "Takemura can discuss what happened to Jackie’s remains.",
+          "sourceIds": [
+            "heywood-ronin-remains"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "heywood.jackie.remains-disclosure",
+          "description": "Whether V actually heard the reported Soulkiller disclosure.",
+          "topic": "v.jackie.remains-disclosure",
+          "outcomes": [
+            {
+              "key": "heard",
+              "description": "Takemura told V that Arasaka took Jackie’s body and could extract a damaged engram.",
+              "affects": [
+                "v"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-ronin-remains"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-ronin-remains"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Strictly observed dialogue only. Transcript placement and route header are unverified. This does not give Mama, Misty or Viktor the disclosure unless V later tells them, and never gives it to living Jackie."
+          }
+        }
+      ],
+      "sourceIds": [
+        "heywood-ronin-remains"
+      ],
+      "uncertainties": [
+        "Ronin’s reconstructed header lists clinic OR wait, conflicting with the family-delivery wait route in Heist/Heroes guides. No executable branch predicate can be derived from this header. The scene’s exact placement needs direct technical evidence."
+      ]
+    },
+    {
+      "key": "changes",
+      "title": "Changes",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "jackie-welles"
+      ],
+      "synopsis": "A branch-dependent Mikoshi encounter involving a damaged representation of Jackie.",
+      "stages": [
+        {
+          "key": "encounter",
+          "description": "V’s personal experience can differ according to the remains branch.",
+          "sourceIds": [
+            "heywood-changes"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "heywood.jackie.construct-encounter",
+          "description": "Which pre-Mikoshi representation V encountered.",
+          "topic": "v.jackie.mikoshi-encounter",
+          "outcomes": [
+            {
+              "key": "damaged-construct",
+              "description": "V encountered a damaged Jackie construct after the clinic/remains branch.",
+              "affects": [
+                "v"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-changes"
+              ]
+            },
+            {
+              "key": "necklace",
+              "description": "The alternate scene used the bullet necklace rather than that construct.",
+              "affects": [
+                "v"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-changes"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-changes"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Requires this ending scene and exact branch observation, not body routing alone. It is V’s experience, not proof that the living Jackie understood his posthumous fate or that the family was informed."
+          }
+        }
+      ],
+      "sourceIds": [
+        "heywood-changes"
+      ],
+      "uncertainties": [
+        "The damaged representation must not be merged into a resurrected companion’s intrinsic biography. Other endings’ Jackie scenes need their own mappings."
+      ]
+    },
+    {
+      "key": "beat-on-the-brat",
+      "title": "Beat on the Brat",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "coach-fred",
+        "viktor-vektor"
+      ],
+      "synopsis": "Fred’s circuit culminates in a championship against Razor.",
+      "stages": [
+        {
+          "key": "training",
+          "description": "Fred proposes a training bout against his robot.",
+          "sourceIds": [
+            "heywood-beat"
+          ]
+        },
+        {
+          "key": "qualifiers",
+          "description": "Four qualifying locations form the circuit.",
+          "sourceIds": [
+            "heywood-beat"
+          ]
+        },
+        {
+          "key": "final",
+          "description": "The championship includes a private offer and a separately observed result.",
+          "sourceIds": [
+            "heywood-beat"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "heywood.boxing.training",
+          "description": "Training-bout result before the circuit.",
+          "topic": "v.fred.training",
+          "outcomes": [
+            {
+              "key": "won",
+              "description": "V beat the training robot and impressed Fred.",
+              "affects": [
+                "coach-fred"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "heywood-beat"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-beat"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Observe the exact dialogue/event and current save branch. Quest completion and absent/zero facts are insufficient. No native graph, journal hash, fact name or version semantics has been technically verified."
+          }
+        },
+        {
+          "id": "heywood.boxing.final-offer",
+          "description": "V’s answer to Fred’s proposed fixed championship.",
+          "topic": "v.fred.fixed-final-agreement",
+          "outcomes": [
+            {
+              "key": "accepted",
+              "description": "V agreed to Fred’s proposal to lose for more money.",
+              "affects": [
+                "coach-fred"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-beat"
+              ]
+            },
+            {
+              "key": "rejected",
+              "description": "V rejected Fred’s proposal.",
+              "affects": [
+                "coach-fred"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-beat"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-beat"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Requires the private pre-fight dialogue. Vik and other spectators do not hear the agreement automatically. Acceptance is not proof of compliance."
+          }
+        },
+        {
+          "id": "heywood.boxing.razor-advice",
+          "description": "Whether Viktor delivered his ringside advice.",
+          "topic": "v.viktor.razor-advice",
+          "outcomes": [
+            {
+              "key": "heard",
+              "description": "Viktor pointed out Razor’s vulnerable torso implants.",
+              "affects": [
+                "viktor-vektor"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-beat",
+                "heywood-vik"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-beat",
+            "heywood-vik"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Observe the exact dialogue/event and current save branch. Quest completion and absent/zero facts are insufficient. No native graph, journal hash, fact name or version semantics has been technically verified."
+          }
+        },
+        {
+          "id": "heywood.boxing.final-result",
+          "description": "The actual championship result.",
+          "topic": "v.boxing.razor-result",
+          "outcomes": [
+            {
+              "key": "victory",
+              "description": "V defeated Razor.",
+              "affects": [
+                "coach-fred",
+                "viktor-vektor"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "heywood-beat"
+              ]
+            },
+            {
+              "key": "defeat",
+              "description": "V lost to Razor.",
+              "affects": [
+                "coach-fred",
+                "viktor-vektor"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "heywood-beat"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-beat"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Require terminal result and attendance. Defeat does not establish deliberate fixing; an accepted deal can be followed by a victory."
+          }
+        },
+        {
+          "id": "heywood.boxing.final-fixed-loss",
+          "description": "Evidence of deliberate compliance, beyond a loss.",
+          "topic": "v.fred.fixed-final-performance",
+          "outcomes": [
+            {
+              "key": "confirmed",
+              "description": "V deliberately followed the agreed losing arrangement.",
+              "affects": [
+                "coach-fred",
+                "viktor-vektor"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-beat",
+                "heywood-vik"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-beat",
+            "heywood-vik"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Require accepted deal plus affirmative evidence of the fixed-result branch. Fred knows his own agreement; Vik’s judgment needs the actual post-fight reaction, not mind-reading intent."
+          }
+        }
+      ],
+      "sourceIds": [
+        "heywood-beat",
+        "heywood-vik"
+      ],
+      "uncertainties": [
+        "Qualifying completion can include combat bypasses. Aggregate completion must not fabricate four legitimate victories. Ozob is optional. Wager values and attribute requirements vary by version."
+      ]
+    },
+    {
+      "key": "beat-on-the-brat-kabuki",
+      "title": "Beat on the Brat: Kabuki",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "coach-fred"
+      ],
+      "synopsis": "V faces the two-body Kabuki opponents.",
+      "stages": [
+        {
+          "key": "bout",
+          "description": "V negotiates and fights Esquerdo and Certo.",
+          "sourceIds": [
+            "heywood-kabuki"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "heywood.boxing.kabuki-result",
+          "description": "Kabuki result, kept apart from the other qualifiers.",
+          "topic": "v.boxing.kabuki",
+          "outcomes": [
+            {
+              "key": "victory",
+              "description": "V defeated the Kabuki opponents.",
+              "affects": [
+                "coach-fred"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "heywood-kabuki"
+              ]
+            },
+            {
+              "key": "defeat",
+              "description": "V lost the attempted bout.",
+              "affects": [
+                "coach-fred"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "heywood-kabuki"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-kabuki"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Require a recorded attempt and result; a later rematch can supersede defeat as latest status while retaining history. Fred’s knowledge needs a circuit report or disclosure, not omnipresence."
+          }
+        }
+      ],
+      "sourceIds": [
+        "heywood-kabuki"
+      ],
+      "uncertainties": []
+    },
+    {
+      "key": "beat-on-the-brat-arroyo",
+      "title": "Beat on the Brat: Arroyo",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "coach-fred"
+      ],
+      "synopsis": "Buck’s bout has separate wagers and possible post-fight hostility.",
+      "stages": [
+        {
+          "key": "wager",
+          "description": "V can discuss an expanded wager involving Buck’s rifle.",
+          "sourceIds": [
+            "heywood-arroyo"
+          ]
+        },
+        {
+          "key": "fight",
+          "description": "The boxing result and subsequent confrontation are separate.",
+          "sourceIds": [
+            "heywood-arroyo"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "heywood.boxing.arroyo-wager",
+          "description": "What was wagered with Buck.",
+          "topic": "v.boxing.arroyo-wager",
+          "outcomes": [
+            {
+              "key": "cash",
+              "description": "A cash-only wager was established.",
+              "affects": [
+                "coach-fred"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "heywood-arroyo"
+              ]
+            },
+            {
+              "key": "rifle",
+              "description": "Buck’s rifle was included.",
+              "affects": [
+                "coach-fred"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "heywood-arroyo"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-arroyo"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Observe the wager dialogue. Attribute access and money thresholds need version-specific verification."
+          }
+        },
+        {
+          "id": "heywood.boxing.arroyo-result",
+          "description": "Result of the sanctioned bout.",
+          "topic": "v.boxing.arroyo-result",
+          "outcomes": [
+            {
+              "key": "victory",
+              "description": "V won the bout against Buck.",
+              "affects": [
+                "coach-fred"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "heywood-arroyo"
+              ]
+            },
+            {
+              "key": "defeat",
+              "description": "V lost the bout.",
+              "affects": [
+                "coach-fred"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "heywood-arroyo"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-arroyo"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Observe the exact dialogue/event and current save branch. Quest completion and absent/zero facts are insufficient. No native graph, journal hash, fact name or version semantics has been technically verified."
+          }
+        },
+        {
+          "id": "heywood.boxing.arroyo-aftermath",
+          "description": "Whether post-bout violence occurred.",
+          "topic": "v.boxing.arroyo-aftermath",
+          "outcomes": [
+            {
+              "key": "hostility",
+              "description": "Buck’s group turned hostile after the bout.",
+              "affects": [
+                "coach-fred"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "heywood-arroyo"
+              ]
+            },
+            {
+              "key": "departed",
+              "description": "V left without the later hostile encounter.",
+              "affects": [
+                "coach-fred"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "heywood-arroyo"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-arroyo"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Do not equate hostility, taking the rifle and Buck’s death. Each requires its own event evidence; Fred needs a report."
+          }
+        }
+      ],
+      "sourceIds": [
+        "heywood-arroyo"
+      ],
+      "uncertainties": [
+        "Buck need not die for the rifle to become available. Item collection is not established by a wager or victory alone."
+      ]
+    },
+    {
+      "key": "beat-on-the-brat-the-glen",
+      "title": "Beat on the Brat: The Glen",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "coach-fred"
+      ],
+      "synopsis": "César’s stake creates a choice about his car and money.",
+      "stages": [
+        {
+          "key": "family",
+          "description": "V meets César and his pregnant partner.",
+          "sourceIds": [
+            "heywood-glen"
+          ]
+        },
+        {
+          "key": "bout",
+          "description": "A winning V can choose what to keep.",
+          "sourceIds": [
+            "heywood-glen"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "heywood.boxing.glen-result",
+          "description": "Result of César’s bout.",
+          "topic": "v.boxing.glen-result",
+          "outcomes": [
+            {
+              "key": "victory",
+              "description": "V beat César.",
+              "affects": [
+                "coach-fred"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "heywood-glen"
+              ]
+            },
+            {
+              "key": "defeat",
+              "description": "V lost the bout.",
+              "affects": [
+                "coach-fred"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "heywood-glen"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-glen"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Observe the exact dialogue/event and current save branch. Quest completion and absent/zero facts are insufficient. No native graph, journal hash, fact name or version semantics has been technically verified."
+          }
+        },
+        {
+          "id": "heywood.boxing.glen-concession",
+          "description": "What V actually kept after winning.",
+          "topic": "v.cesar.reward-concession",
+          "outcomes": [
+            {
+              "key": "kept-both",
+              "description": "V kept the money and car.",
+              "affects": [
+                "coach-fred"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "heywood-glen"
+              ]
+            },
+            {
+              "key": "car-only",
+              "description": "V kept the car and left the money.",
+              "affects": [
+                "coach-fred"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "heywood-glen"
+              ]
+            },
+            {
+              "key": "money-only",
+              "description": "V kept the money and left the car.",
+              "affects": [
+                "coach-fred"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "heywood-glen"
+              ]
+            },
+            {
+              "key": "left-both",
+              "description": "V left both to César.",
+              "affects": [
+                "coach-fred"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "heywood-glen"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-glen"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Require victory and the actual concession dialogue. A generous statement without the resulting choice is insufficient. Neither Fred nor other companions inherit this private interaction."
+          }
+        },
+        {
+          "id": "heywood.boxing.glen-family-message",
+          "description": "Later update beyond the reward decision.",
+          "topic": "v.cesar.family-update",
+          "outcomes": [
+            {
+              "key": "received",
+              "description": "César sent V a later family/baby update.",
+              "affects": [
+                "v"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-glen"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-glen"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Observe the actual message. Published eligibility does not establish that the message arrived, was read, or was shared with another character."
+          }
+        }
+      ],
+      "sourceIds": [
+        "heywood-glen"
+      ],
+      "uncertainties": [
+        "A possible appearance at the final is not automatic proof of attendance. Keep reward state, relationship response and later messages separate."
+      ]
+    },
+    {
+      "key": "beat-on-the-brat-rancho-coronado",
+      "title": "Beat on the Brat: Rancho Coronado",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "coach-fred"
+      ],
+      "synopsis": "Rhino’s fight must be distinguished from killing the gym’s occupants.",
+      "stages": [
+        {
+          "key": "gym",
+          "description": "V enters the Animals gym and may arrange a bout.",
+          "sourceIds": [
+            "heywood-rancho"
+          ]
+        },
+        {
+          "key": "resolution",
+          "description": "Boxing or unrelated open combat can resolve the journal entry differently.",
+          "sourceIds": [
+            "heywood-rancho"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "heywood.boxing.rancho-resolution",
+          "description": "How the Rancho qualifier resolved.",
+          "topic": "v.boxing.rancho-resolution",
+          "outcomes": [
+            {
+              "key": "bout-victory",
+              "description": "V defeated Rhino in the sanctioned bout.",
+              "affects": [
+                "coach-fred"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "heywood-rancho"
+              ]
+            },
+            {
+              "key": "bout-defeat",
+              "description": "V lost the sanctioned bout.",
+              "affects": [
+                "coach-fred"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "heywood-rancho"
+              ]
+            },
+            {
+              "key": "combat-bypass",
+              "description": "Open combat, including the related gig route, bypassed the sanctioned fight.",
+              "affects": [
+                "coach-fred"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "heywood-rancho"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-rancho"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Quest completion alone cannot distinguish these outcomes. Require route-specific scene and combat evidence. A bypass is never narrated as a legitimate boxing win; vendor availability is another outcome."
+          }
+        }
+      ],
+      "sourceIds": [
+        "heywood-rancho"
+      ],
+      "uncertainties": [
+        "For My Son can cause the bypass. Its full target/survival outcomes belong to the gig inventory; they are not inferred here."
+      ]
+    },
+    {
+      "key": "send-in-the-clowns",
+      "title": "Send in the Clowns",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "ozob-bozo"
+      ],
+      "synopsis": "Ozob hires V for a ride that becomes a combat pickup.",
+      "stages": [
+        {
+          "key": "call",
+          "description": "V arranges to collect Ozob.",
+          "sourceIds": [
+            "heywood-clowns"
+          ]
+        },
+        {
+          "key": "ride",
+          "description": "Ozob visits a restaurant while V waits.",
+          "sourceIds": [
+            "heywood-clowns"
+          ]
+        },
+        {
+          "key": "return",
+          "description": "The situation escalates, followed by payment.",
+          "sourceIds": [
+            "heywood-clowns"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "heywood.ozob.nose-disclosure",
+          "description": "Optional conversation about the grenade.",
+          "topic": "v.ozob.nose-story",
+          "outcomes": [
+            {
+              "key": "explained",
+              "description": "Ozob explained his unusual nose to V.",
+              "affects": [
+                "ozob-bozo"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-clowns",
+                "heywood-ozob"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-clowns",
+            "heywood-ozob"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "An observed optional explanation is required. V seeing the grenade is not proof of hearing Ozob’s story."
+          }
+        },
+        {
+          "id": "heywood.ozob.delivery",
+          "description": "Outcome of Ozob’s first job with V.",
+          "topic": "v.ozob.first-job",
+          "outcomes": [
+            {
+              "key": "completed",
+              "description": "V finished the ride and its violent complication with Ozob.",
+              "affects": [
+                "ozob-bozo"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-clowns"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-clowns"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Require completion and Ozob’s survival. This does not imply V accepted the later boxing wager."
+          }
+        }
+      ],
+      "sourceIds": [
+        "heywood-clowns",
+        "heywood-ozob"
+      ],
+      "uncertainties": []
+    },
+    {
+      "key": "beat-on-the-brat-pacifica",
+      "title": "Beat on the Brat: Pacifica",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "ozob-bozo"
+      ],
+      "synopsis": "An optional fight with Ozob has a potentially fatal grenade outcome.",
+      "stages": [
+        {
+          "key": "agreement",
+          "description": "V and Ozob arrange their wager.",
+          "sourceIds": [
+            "heywood-pacifica"
+          ]
+        },
+        {
+          "key": "bout",
+          "description": "Head damage can detonate the grenade.",
+          "sourceIds": [
+            "heywood-pacifica"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "heywood.boxing.pacifica-result",
+          "description": "The opponent’s survival matters independently of V’s success.",
+          "topic": "v.ozob.bout-result",
+          "outcomes": [
+            {
+              "key": "v-won-ozob-alive",
+              "description": "V won while Ozob survived.",
+              "affects": [
+                "ozob-bozo"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-pacifica"
+              ]
+            },
+            {
+              "key": "v-lost",
+              "description": "V lost and Ozob survived.",
+              "affects": [
+                "ozob-bozo"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-pacifica"
+              ]
+            },
+            {
+              "key": "ozob-killed",
+              "description": "Ozob’s grenade detonated and killed him.",
+              "affects": [
+                "v"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "heywood-pacifica"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-pacifica"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Require the actual bout and survival event; the journal ending and reward do not distinguish a living opponent from referee payment after death. A manager-spawned copy cannot undo story death."
+          }
+        }
+      ],
+      "sourceIds": [
+        "heywood-pacifica"
+      ],
+      "uncertainties": [
+        "This bout is optional for the main championship. Avoid undocumented health/damage thresholds."
+      ]
+    },
+    {
+      "key": "no-easy-way-out",
+      "title": "No Easy Way Out",
+      "category": "side",
+      "game": "phantom-liberty",
+      "nativeIds": [],
+      "characters": [
+        "coach-fred"
+      ],
+      "synopsis": "Fred-facing referral and reported aftermath of Aaron’s job.",
+      "stages": [
+        {
+          "key": "referral",
+          "description": "Fred asks V to help Aaron.",
+          "sourceIds": [
+            "heywood-no-easy"
+          ]
+        },
+        {
+          "key": "update",
+          "description": "Fred’s later message can establish what he learned.",
+          "sourceIds": [
+            "heywood-no-easy"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "heywood.fred.aaron-referral",
+          "description": "Whether Fred initiated this connection.",
+          "topic": "v.fred.aaron-referral",
+          "outcomes": [
+            {
+              "key": "sent",
+              "description": "Fred referred Aaron to V.",
+              "affects": [
+                "coach-fred"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-no-easy"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-no-easy"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Observe the exact dialogue/event and current save branch. Quest completion and absent/zero facts are insufficient. No native graph, journal hash, fact name or version semantics has been technically verified."
+          }
+        },
+        {
+          "id": "heywood.fred.aaron-update",
+          "description": "What Fred’s own later message confirms he knows.",
+          "topic": "fred.aaron.outcome",
+          "outcomes": [
+            {
+              "key": "death-reported",
+              "description": "Fred’s later message reports Aaron’s death.",
+              "affects": [
+                "coach-fred"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "heywood-no-easy"
+              ]
+            },
+            {
+              "key": "help-failed-reported",
+              "description": "Fred’s later message reports that the intervention did not help Aaron.",
+              "affects": [
+                "coach-fred"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "heywood-no-easy"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-no-easy"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Require the actual message and relevant route, not completion alone. Fred’s message establishes knowledge; it does not prove who told him or make him an eyewitness to the clinic or confrontation."
+          }
+        }
+      ],
+      "sourceIds": [
+        "heywood-no-easy"
+      ],
+      "uncertainties": [
+        "This is only the Fred-facing slice. The inspected article extract was incomplete for all Aaron/Angie survival and deal variants; the full quest lane must resolve those separately."
+      ]
+    },
+    {
+      "key": "raymond-chandler-evening",
+      "title": "Raymond Chandler Evening",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "pepe-najarro",
+        "cynthia-najarro"
+      ],
+      "synopsis": "A suspicious husband hires V; the investigation exposes a private history rather than an affair.",
+      "stages": [
+        {
+          "key": "bar",
+          "description": "V can intervene in a confrontation at El Coyote Cojo.",
+          "sourceIds": [
+            "heywood-raymond-guide"
+          ]
+        },
+        {
+          "key": "commission",
+          "description": "Pepe asks V to follow Cynthia.",
+          "sourceIds": [
+            "heywood-raymond"
+          ]
+        },
+        {
+          "key": "explanation",
+          "description": "The tail reaches a ripperdoc and a private explanation.",
+          "sourceIds": [
+            "heywood-raymond-guide"
+          ]
+        },
+        {
+          "key": "report",
+          "description": "V chooses what to advise Pepe, followed by a possible later update.",
+          "sourceIds": [
+            "heywood-raymond-guide",
+            "heywood-cynthia"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "heywood.pepe.bar-intervention",
+          "description": "How the opening confrontation was resolved.",
+          "topic": "v.pepe.bar-intervention",
+          "outcomes": [
+            {
+              "key": "intimidated",
+              "description": "V talked the aggressors down.",
+              "affects": [
+                "pepe-najarro"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "heywood-raymond-guide"
+              ]
+            },
+            {
+              "key": "fought",
+              "description": "V fought the aggressors.",
+              "affects": [
+                "pepe-najarro"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "heywood-raymond-guide"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-raymond-guide"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Observe this scene. Earlier Gustavo Orta events can alter available resolution; no exact native gate or stat threshold is verified."
+          }
+        },
+        {
+          "id": "heywood.pepe.investigation",
+          "description": "Whether Pepe and V agreed to the private investigation.",
+          "topic": "v.pepe.investigation",
+          "outcomes": [
+            {
+              "key": "commissioned",
+              "description": "Pepe hired V to investigate his suspicions.",
+              "affects": [
+                "pepe-najarro"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-raymond-guide"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-raymond-guide"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Pepe’s suspicions are his beliefs, not facts about Cynthia. V’s refusal or an unaccepted offer is not an active commission."
+          }
+        },
+        {
+          "id": "heywood.cynthia.disclosure",
+          "description": "Whether Cynthia explained her appearance history to V.",
+          "topic": "v.cynthia.private-history",
+          "outcomes": [
+            {
+              "key": "explained",
+              "description": "Cynthia explained past cosmetic changes and why her son looks different.",
+              "affects": [
+                "cynthia-najarro"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-cynthia",
+                "heywood-cynthia-ru"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-cynthia",
+            "heywood-cynthia-ru"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Strict private audience: Cynthia and V. Her own knowledge predates the scene, but disclosure to V does not automatically disclose it to Pepe or the whole companion group."
+          }
+        },
+        {
+          "id": "heywood.pepe.report",
+          "description": "V’s advice on the marriage, distinct from later results.",
+          "topic": "v.pepe.marriage-advice",
+          "outcomes": [
+            {
+              "key": "supported-marriage",
+              "description": "V urged Pepe to trust Cynthia’s love.",
+              "affects": [
+                "pepe-najarro"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-raymond-guide"
+              ]
+            },
+            {
+              "key": "advised-separation",
+              "description": "V’s report encouraged Pepe’s doubts and separation.",
+              "affects": [
+                "pepe-najarro"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-raymond-guide"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-raymond-guide"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Map exact final report branches; never summarize negative advice as proof of infidelity. Track what V actually revealed separately from the recommendation."
+          }
+        },
+        {
+          "id": "heywood.pepe.marriage-followup",
+          "description": "Confirmed relationship aftermath rather than inferred intent.",
+          "topic": "pepe.cynthia.marriage",
+          "outcomes": [
+            {
+              "key": "reconciled",
+              "description": "The later update confirms the couple stayed together.",
+              "affects": [
+                "pepe-najarro",
+                "cynthia-najarro"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-pepe",
+                "heywood-cynthia"
+              ]
+            },
+            {
+              "key": "separated",
+              "description": "The later update confirms separation.",
+              "affects": [
+                "pepe-najarro",
+                "cynthia-najarro"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-pepe",
+                "heywood-cynthia"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-pepe",
+            "heywood-cynthia"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Require the relevant follow-up communication or demonstrated relationship state. Advice is not itself a receipt of the subsequent outcome. Only the informed audience receives the update."
+          }
+        }
+      ],
+      "sourceIds": [
+        "heywood-raymond",
+        "heywood-raymond-guide",
+        "heywood-pepe",
+        "heywood-cynthia",
+        "heywood-cynthia-ru"
+      ],
+      "uncertainties": [
+        "Do not invent a former identity, transition history or affair. The disclosed explanation concerns cosmetic changes. Exact losing-tail, refusal and interrupted-investigation states need additional coverage."
+      ]
+    },
+    {
+      "key": "the-killing-moon",
+      "title": "The Killing Moon",
+      "category": "main",
+      "game": "phantom-liberty",
+      "nativeIds": [],
+      "characters": [
+        "cynthia-najarro"
+      ],
+      "synopsis": "Cynthia-facing NCX help and aftermath only.",
+      "stages": [
+        {
+          "key": "encounter",
+          "description": "A qualifying earlier relationship permits a helpful NCX encounter.",
+          "sourceIds": [
+            "heywood-cynthia"
+          ]
+        },
+        {
+          "key": "aftermath",
+          "description": "A later memorial visit can reveal Cynthia’s reaction.",
+          "sourceIds": [
+            "heywood-cynthia",
+            "heywood-ncx-mail"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "heywood.cynthia.ncx-help",
+          "description": "Whether Cynthia actually supplied help at the spaceport.",
+          "topic": "v.cynthia.ncx-help",
+          "outcomes": [
+            {
+              "key": "provided",
+              "description": "Cynthia helped V find a route through NCX.",
+              "affects": [
+                "cynthia-najarro"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-cynthia"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-cynthia"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Require the favorable prior encounter and actual assistance scene. She does not acquire V/Songbird’s full plan, private conversations or later choices from giving access."
+          }
+        },
+        {
+          "id": "heywood.cynthia.ncx-aftermath",
+          "description": "What was seen at the memorial afterward.",
+          "topic": "v.cynthia.ncx-aftermath",
+          "outcomes": [
+            {
+              "key": "memorial-visited",
+              "description": "V met Cynthia mourning coworkers at the NCX memorial.",
+              "affects": [
+                "cynthia-najarro"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-cynthia",
+                "heywood-ncx-mail"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-cynthia",
+            "heywood-ncx-mail"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Require a post-incident visit and the actual encounter. Her computer statement is private source material; it does not mean V or every companion read it."
+          }
+        }
+      ],
+      "sourceIds": [
+        "heywood-cynthia",
+        "heywood-ncx-mail"
+      ],
+      "uncertainties": [
+        "Main spaceport choices and outcomes belong to the Phantom Liberty lane. Survivor grief does not prove knowledge of operational responsibility."
+      ]
+    },
+    {
+      "key": "the-gun",
+      "title": "The Gun",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "robert-wilson"
+      ],
+      "synopsis": "V collects a pistol Wilson prepared for them.",
+      "stages": [
+        {
+          "key": "pickup",
+          "description": "Wilson offers the free Dying Night pistol at his store.",
+          "sourceIds": [
+            "heywood-gun"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "heywood.wilson.pistol",
+          "description": "Actual collection of the offered pistol.",
+          "topic": "v.wilson.dying-night",
+          "outcomes": [
+            {
+              "key": "collected",
+              "description": "V collected Dying Night from Wilson.",
+              "affects": [
+                "robert-wilson"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-gun"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-gun"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Require the vendor/item transaction. Seeing the offer, visiting the shop or winning Shoot To Thrill does not establish this pickup."
+          }
+        }
+      ],
+      "sourceIds": [
+        "heywood-gun"
+      ],
+      "uncertainties": [
+        "The Gun and Shoot To Thrill rewards are separate. Older caliber and reward details differ across guides/versions; do not hardcode them from narrative text."
+      ]
+    },
+    {
+      "key": "shoot-to-thrill",
+      "title": "Shoot To Thrill",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "robert-wilson"
+      ],
+      "synopsis": "Wilson’s range competition has rules, placement and an optional business conversation.",
+      "stages": [
+        {
+          "key": "invitation",
+          "description": "Wilson calls V to the competition.",
+          "sourceIds": [
+            "heywood-shoot"
+          ]
+        },
+        {
+          "key": "competition",
+          "description": "A pistol-only timed contest counts target hits.",
+          "sourceIds": [
+            "heywood-ronin"
+          ]
+        },
+        {
+          "key": "results",
+          "description": "Wilson announces placement and prizes.",
+          "sourceIds": [
+            "heywood-shoot"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "heywood.wilson.competition",
+          "description": "Whether V took part in the range contest.",
+          "topic": "v.wilson.competition",
+          "outcomes": [
+            {
+              "key": "participated",
+              "description": "V participated under Wilson’s competition rules.",
+              "affects": [
+                "robert-wilson"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-shoot"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-shoot"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "An invitation or arrival is not participation. Do not fabricate V’s disqualification from the scripted shotgun-user scene."
+          }
+        },
+        {
+          "id": "heywood.wilson.result",
+          "description": "Confirmed placement, not estimated score.",
+          "topic": "v.wilson.competition-result",
+          "outcomes": [
+            {
+              "key": "first",
+              "description": "V placed first.",
+              "affects": [
+                "robert-wilson"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "heywood-shoot"
+              ]
+            },
+            {
+              "key": "second",
+              "description": "V placed second.",
+              "affects": [
+                "robert-wilson"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "heywood-shoot"
+              ]
+            },
+            {
+              "key": "other",
+              "description": "V completed without a top-two placement.",
+              "affects": [
+                "robert-wilson"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "heywood-shoot"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-shoot"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Require result announcement. Score thresholds, prize item and quantities need version-specific verification; no inferred perfect score from first place."
+          }
+        },
+        {
+          "id": "heywood.wilson.business-talk",
+          "description": "Optional discussion after the contest.",
+          "topic": "v.wilson.business-talk",
+          "outcomes": [
+            {
+              "key": "discussed",
+              "description": "Wilson discussed how poorly the event translated into sales.",
+              "affects": [
+                "robert-wilson"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-ronin"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-ronin"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Requires the optional conversation, not merely the competition result."
+          }
+        }
+      ],
+      "sourceIds": [
+        "heywood-shoot",
+        "heywood-ronin"
+      ],
+      "uncertainties": [
+        "Multiple hits and other lanes’ targets count under the observed rules; target counting still needs native verification before a numeric mapping."
+      ]
+    },
+    {
+      "key": "big-in-japan",
+      "title": "Big in Japan",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "dennis-cranmer"
+      ],
+      "synopsis": "Dennis’s package job becomes an extraction of a living surgeon.",
+      "stages": [
+        {
+          "key": "offer",
+          "description": "Dennis proposes a direct job at the Afterlife.",
+          "sourceIds": [
+            "heywood-japan"
+          ]
+        },
+        {
+          "key": "fridge",
+          "description": "V locates the marked fridge and its living passenger.",
+          "sourceIds": [
+            "heywood-japan"
+          ]
+        },
+        {
+          "key": "delivery",
+          "description": "V must get the passenger through danger to Dennis.",
+          "sourceIds": [
+            "heywood-japan"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "heywood.dennis.offer",
+          "description": "Whether V accepted Dennis’s terms.",
+          "topic": "v.dennis.contract",
+          "outcomes": [
+            {
+              "key": "accepted",
+              "description": "V accepted the package retrieval job.",
+              "affects": [
+                "dennis-cranmer"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-japan"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-japan"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Observe the exact dialogue/event and current save branch. Quest completion and absent/zero facts are insufficient. No native graph, journal hash, fact name or version semantics has been technically verified."
+          }
+        },
+        {
+          "id": "heywood.dennis.package",
+          "description": "When V learned what the package really was.",
+          "topic": "v.dennis.package-reveal",
+          "outcomes": [
+            {
+              "key": "discovered",
+              "description": "V found a living surgeon in the marked fridge.",
+              "affects": [
+                "v"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "heywood-japan"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-japan"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Dennis already knows whom he arranged to extract; this event marks V’s discovery. Do not give nearby unrelated companions knowledge without witness/disclosure evidence."
+          }
+        },
+        {
+          "id": "heywood.dennis.extraction",
+          "description": "Delivery or failure of the living cargo.",
+          "topic": "v.dennis.extraction",
+          "outcomes": [
+            {
+              "key": "delivered-alive",
+              "description": "V delivered Haruyoshi alive.",
+              "affects": [
+                "dennis-cranmer"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-japan"
+              ]
+            },
+            {
+              "key": "died-before-delivery",
+              "description": "Haruyoshi died before delivery.",
+              "affects": [
+                "dennis-cranmer"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "heywood-japan"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-japan"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Require passenger survival/delivery or explicit death event. Dennis’s failure knowledge additionally requires an actual report; physical distance or missing actor is not proof of death."
+          }
+        },
+        {
+          "id": "heywood.dennis.surgeon-story",
+          "description": "Optional final account from Haruyoshi.",
+          "topic": "v.haruyoshi.account",
+          "outcomes": [
+            {
+              "key": "heard",
+              "description": "Haruyoshi claimed he deliberately caused a crime boss’s surgical death.",
+              "affects": [
+                "v"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-japan"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-japan"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Attribute it as Haruyoshi’s account. Do not upgrade a boast into an independently established fact or assume Dennis heard an optional private conversation."
+          }
+        },
+        {
+          "id": "heywood.dennis.reward",
+          "description": "Whether V collected the offered reward.",
+          "topic": "v.dennis.reward",
+          "outcomes": [
+            {
+              "key": "collected",
+              "description": "V collected the reward, including the offered Scalpel.",
+              "affects": [
+                "dennis-cranmer"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-japan"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-japan"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "The reward entitlement and physical Scalpel pickup are separate technical events. Only this combined receipt may claim both were collected; completion alone is insufficient."
+          }
+        }
+      ],
+      "sourceIds": [
+        "heywood-japan",
+        "heywood-dennis"
+      ],
+      "uncertainties": [
+        "Precise fridge identifiers, passenger handles and transaction conditions remain unmapped. Game-story details do not establish Dennis’s entire background."
+      ]
+    },
+    {
+      "key": "spellbound",
+      "title": "Spellbound",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "nix"
+      ],
+      "synopsis": "Nix commissions acquisition of an old data artifact.",
+      "stages": [
+        {
+          "key": "commission",
+          "description": "Nix asks V to acquire the Spellbook from R3n0.",
+          "sourceIds": [
+            "heywood-spellbound"
+          ]
+        },
+        {
+          "key": "acquisition",
+          "description": "Negotiation or confrontation leads to the storage location.",
+          "sourceIds": [
+            "heywood-spellbound"
+          ]
+        },
+        {
+          "key": "handoff",
+          "description": "V may examine the artifact and negotiate payment.",
+          "sourceIds": [
+            "heywood-spellbound"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "heywood.nix.spellbook-acquisition",
+          "description": "How V obtained the seller’s coordinates.",
+          "topic": "v.r3n0.acquisition",
+          "outcomes": [
+            {
+              "key": "purchased",
+              "description": "V paid for the coordinates.",
+              "affects": [
+                "v"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-spellbound"
+              ]
+            },
+            {
+              "key": "corpo-discount",
+              "description": "V secured the Corpo-specific reduced price.",
+              "affects": [
+                "v"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-spellbound"
+              ]
+            },
+            {
+              "key": "laptop",
+              "description": "V obtained coordinates through the seller’s laptop after confrontation.",
+              "affects": [
+                "v"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "heywood-spellbound"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-spellbound"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Observe the actual route. Purchase does not establish the seller’s private identity, and a laptop route does not alone establish whether R3n0 died."
+          }
+        },
+        {
+          "id": "heywood.nix.r3n0-discovery",
+          "description": "Whether V read the private employment evidence.",
+          "topic": "v.r3n0.private-identity",
+          "outcomes": [
+            {
+              "key": "read",
+              "description": "V read evidence identifying the seller and the company-property scheme.",
+              "affects": [
+                "v"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "heywood-spellbound"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-spellbound"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Require specific content access. Nix’s commission and later handoff do not give him this information without a report."
+          }
+        },
+        {
+          "id": "heywood.nix.spellbook-decryption",
+          "description": "Whether V decrypted the tablet before handoff.",
+          "topic": "v.spellbook.decryption",
+          "outcomes": [
+            {
+              "key": "decrypted",
+              "description": "V successfully decrypted the old tablet.",
+              "affects": [
+                "v"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "heywood-spellbound"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-spellbound"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Require successful access, not merely owning the shard. Keep revealed contents out of other characters’ context until shared."
+          }
+        },
+        {
+          "id": "heywood.nix.spellbook-handoff",
+          "description": "Whether the artifact reached Nix.",
+          "topic": "v.nix.spellbook",
+          "outcomes": [
+            {
+              "key": "delivered",
+              "description": "V delivered the requested old Zetatech tablet.",
+              "affects": [
+                "nix"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-spellbound"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-spellbound"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Observe the exact dialogue/event and current save branch. Quest completion and absent/zero facts are insufficient. No native graph, journal hash, fact name or version semantics has been technically verified."
+          }
+        },
+        {
+          "id": "heywood.nix.spellbook-payment",
+          "description": "The actual compensation agreement.",
+          "topic": "v.nix.spellbook-payment",
+          "outcomes": [
+            {
+              "key": "standard",
+              "description": "V accepted the ordinary compensation.",
+              "affects": [
+                "nix"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-spellbound"
+              ]
+            },
+            {
+              "key": "bonus-negotiated",
+              "description": "V negotiated increased compensation.",
+              "affects": [
+                "nix"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-spellbound"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-spellbound"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Require agreement/payment branch. Stat checks and multipliers are version-sensitive; decryption alone does not prove a bonus was paid."
+          }
+        }
+      ],
+      "sourceIds": [
+        "heywood-spellbound"
+      ],
+      "uncertainties": [
+        "Alternate netpage and Cool-based details were marked uncertain in the inspected material. They are not encoded as supported outcomes. Source descriptions do not establish exact graph IDs."
+      ]
+    },
+    {
+      "key": "kold-mirage",
+      "title": "KOLD MIRAGE",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "nix"
+      ],
+      "synopsis": "An old deck endangers Nix; saving him and preserving its data are distinct outcomes.",
+      "stages": [
+        {
+          "key": "discovery",
+          "description": "V finds a corpse and old deck in a freezer.",
+          "sourceIds": [
+            "heywood-kold"
+          ]
+        },
+        {
+          "key": "assessment",
+          "description": "Nix examines the recovered hardware.",
+          "sourceIds": [
+            "heywood-ronin"
+          ]
+        },
+        {
+          "key": "crisis",
+          "description": "The decryption attempt threatens his life.",
+          "sourceIds": [
+            "heywood-kold"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "heywood.nix.deck-recovery",
+          "description": "Whether the deck was actually recovered.",
+          "topic": "v.bartmoss.deck",
+          "outcomes": [
+            {
+              "key": "recovered",
+              "description": "V recovered the deck from the freezer.",
+              "affects": [
+                "v"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "heywood-kold"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-kold"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "A discovered location, quest start or Johnny’s comment is not item receipt. Johnny’s private identification is not audible to Nix."
+          }
+        },
+        {
+          "id": "heywood.nix.deck-decryption",
+          "description": "V’s permission and Nix’s attempt.",
+          "topic": "v.nix.bartmoss-attempt",
+          "outcomes": [
+            {
+              "key": "deferred",
+              "description": "The dangerous examination was deferred.",
+              "affects": [
+                "nix"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-kold"
+              ]
+            },
+            {
+              "key": "started",
+              "description": "Nix began the decryption attempt.",
+              "affects": [
+                "nix"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-kold"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-kold"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Record a deferred state without treating it as permanent rejection; later permission can advance it. Do not infer data recovery from the start event."
+          }
+        },
+        {
+          "id": "heywood.nix.rescue",
+          "description": "What actually saved Nix, and at what data cost.",
+          "topic": "v.nix.bartmoss-rescue",
+          "outcomes": [
+            {
+              "key": "power-shutdown",
+              "description": "V cut power, saving Nix but losing the data.",
+              "affects": [
+                "nix"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-kold"
+              ]
+            },
+            {
+              "key": "computer-breach",
+              "description": "V used the computer to save Nix and preserve data access.",
+              "affects": [
+                "nix"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-kold",
+                "heywood-ronin"
+              ]
+            },
+            {
+              "key": "died",
+              "description": "Nix died during the failed rescue.",
+              "affects": [
+                "v"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "heywood-nix"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-kold",
+            "heywood-ronin",
+            "heywood-nix"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Require exact rescue/death evidence after the crisis. A completed journal entry, quickhack reward or later spawned copy cannot establish which route occurred. Withhold live-Nix follow-ups after verified story death."
+          }
+        }
+      ],
+      "sourceIds": [
+        "heywood-kold",
+        "heywood-ronin",
+        "heywood-nix"
+      ],
+      "uncertainties": [
+        "Start order can vary: discovery and other jobs can expose the lead. Ronin shows one rescue route and is not proof that alternatives do not exist."
+      ]
+    },
+    {
+      "key": "black-steel-in-the-hour-of-chaos",
+      "title": "Black Steel In The Hour of Chaos",
+      "category": "main",
+      "game": "phantom-liberty",
+      "nativeIds": [],
+      "characters": [
+        "nix"
+      ],
+      "synopsis": "Nix’s optional intelligence favor, not the full convoy operation.",
+      "stages": [
+        {
+          "key": "request",
+          "description": "A living, eligible Nix can be asked for help.",
+          "sourceIds": [
+            "heywood-black-steel"
+          ]
+        },
+        {
+          "key": "delivery",
+          "description": "V retrieves the prepared intelligence.",
+          "sourceIds": [
+            "heywood-black-steel"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "heywood.nix.maxtac-favor",
+          "description": "Request and delivered intelligence are separate states.",
+          "topic": "v.nix.maxtac-favor",
+          "outcomes": [
+            {
+              "key": "requested",
+              "description": "V asked Nix for the intelligence favor.",
+              "affects": [
+                "nix"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-black-steel"
+              ]
+            },
+            {
+              "key": "data-delivered",
+              "description": "Nix supplied the requested convoy information.",
+              "affects": [
+                "nix"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-black-steel"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-black-steel"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Require survival and the eligible prior rescue history, the actual request, then confirmed delivery. A different netrunner’s help does not establish a Nix favor. Elapsed time alone is not delivery."
+          }
+        }
+      ],
+      "sourceIds": [
+        "heywood-black-steel"
+      ],
+      "uncertainties": [
+        "Do not supply later convoy, Songbird or ending outcomes to Nix just because he prepared data. Exact wait duration and reward delivery require native checks."
+      ]
+    },
+    {
+      "key": "burning-desire",
+      "title": "Burning Desire / Night Moves",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "jesse"
+      ],
+      "synopsis": "Jesse’s implant emergency requires a timely ride and has a separate later callback.",
+      "stages": [
+        {
+          "key": "street",
+          "description": "A distressed Jesse asks for transport.",
+          "sourceIds": [
+            "heywood-burning-game8"
+          ]
+        },
+        {
+          "key": "transport",
+          "description": "V takes him to a clinic; excessive delay can be fatal.",
+          "sourceIds": [
+            "heywood-burning-guide"
+          ]
+        },
+        {
+          "key": "callback",
+          "description": "A successful ride can be followed by thanks and payment.",
+          "sourceIds": [
+            "heywood-burning-alt"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "heywood.jesse.help",
+          "description": "V’s response to Jesse’s request.",
+          "topic": "v.jesse.help",
+          "outcomes": [
+            {
+              "key": "accepted",
+              "description": "V agreed to take Jesse to a ripperdoc.",
+              "affects": [
+                "jesse"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-burning-game8"
+              ]
+            },
+            {
+              "key": "refused",
+              "description": "V refused the requested ride.",
+              "affects": [
+                "jesse"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-burning-game8"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-burning-game8"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Require the actual answer. Refusal, ignoring an undiscovered encounter and failing an accepted ride are different."
+          }
+        },
+        {
+          "id": "heywood.jesse.transport",
+          "description": "Actual outcome of the emergency journey.",
+          "topic": "v.jesse.transport",
+          "outcomes": [
+            {
+              "key": "arrived",
+              "description": "Jesse reached the clinic alive.",
+              "affects": [
+                "jesse"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-burning-guide"
+              ]
+            },
+            {
+              "key": "died",
+              "description": "Jesse died during the unsuccessful emergency.",
+              "affects": [
+                "v"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "heywood-burning-alt"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-burning-guide",
+            "heywood-burning-alt"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Require verified arrival/survival or death, not elapsed real time or disappearance. A summoned Jesse cannot undo story death."
+          }
+        },
+        {
+          "id": "heywood.jesse.callback",
+          "description": "Whether the later thanks/payment call occurred.",
+          "topic": "v.jesse.callback",
+          "outcomes": [
+            {
+              "key": "paid",
+              "description": "Jesse later called and paid V.",
+              "affects": [
+                "jesse"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "heywood-burning-alt"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "heywood-burning-alt"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Require the actual callback/transaction. Successful drop-off alone does not mean the money or conversation has already arrived."
+          }
+        }
+      ],
+      "sourceIds": [
+        "heywood-burning-game8",
+        "heywood-burning-guide",
+        "heywood-burning-alt",
+        "heywood-jesse"
+      ],
+      "uncertainties": [
+        "Burning Desire and Night Moves are act-dependent displayed names for this encounter. Guides disagree on unlock prerequisites, so none is asserted as an executable condition."
+      ]
+    }
+  ]
+}

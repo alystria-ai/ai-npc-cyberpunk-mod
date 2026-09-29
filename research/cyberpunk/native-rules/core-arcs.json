@@ -1,0 +1,1119 @@
+{
+  "version": 1,
+  "id": "cyberpunk-native-core-arcs",
+  "revision": 1,
+  "gameVersions": [
+    "2.31"
+  ],
+  "profileKeys": [
+    "8ug8ear",
+    "aaron",
+    "adam-smasher",
+    "alan-noel",
+    "alex",
+    "ana-friedman",
+    "arthur-jenkins",
+    "babs-okoye",
+    "bill-mitchell",
+    "blue-moon",
+    "bob-sagan",
+    "briana-dolson",
+    "carol-emeka",
+    "cassidy-righter",
+    "chang-hoon-nam",
+    "claire-russell",
+    "coach-fred",
+    "cynthia-najarro",
+    "dakota-smith",
+    "dennis-cranmer",
+    "dexter-deshawn",
+    "dino-dinovic",
+    "elizabeth-peralez",
+    "evelyn-parker",
+    "frank-nostra",
+    "hanako-arasaka",
+    "iris-tanner",
+    "jackie-welles",
+    "jake-estevez",
+    "jefferson-peralez",
+    "jesse",
+    "jim-jarry",
+    "johnny-silverhand",
+    "joss-kutcher",
+    "judy-alvarez",
+    "kerry-eurodyne",
+    "liam-northom",
+    "life-coach",
+    "lina-malina",
+    "lizzy-wizzy",
+    "mama-welles",
+    "mark-bana",
+    "meredith-stout",
+    "misty-olszewski",
+    "mitch-anderson",
+    "mr-hands",
+    "muamar-reyes",
+    "nancy-hartley",
+    "nele-springer",
+    "nix",
+    "ozob-bozo",
+    "paco-torres",
+    "padre-ibarra",
+    "panam-palmer",
+    "pepe-najarro",
+    "placide",
+    "r3n0",
+    "rachel-casich",
+    "regina-jones",
+    "resident-female",
+    "resident-male",
+    "river-ward",
+    "robert-wilson",
+    "rogue-amendiares",
+    "sandra-dorsett",
+    "santiago",
+    "saul-bright",
+    "sergei-karasinsky",
+    "shank",
+    "solomon-reed",
+    "songbird",
+    "spider-murphy",
+    "steven-santos",
+    "t-bug",
+    "takemura",
+    "thompson",
+    "viktor-vektor",
+    "wakako-okada",
+    "yorinobu-arasaka"
+  ],
+  "sources": [
+    {
+      "id": "jr-pyramid",
+      "url": "https://cyberpunk.fandom.com/wiki/Pyramid_Song",
+      "title": "Pyramid Song",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Dive; romance; friendship; departure",
+      "notes": "Read via indexed page content on 2026-09-30; direct Fandom access returned a robots restriction. Community interpretation, not native branch evidence."
+    },
+    {
+      "id": "jr-romance",
+      "url": "https://cyberpunk.fandom.com/wiki/Cyberpunk_2077_Romance",
+      "title": "Cyberpunk 2077 Romance",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Eligibility; primary call; endings; hangouts",
+      "notes": "Read via indexed page content on 2026-09-30; direct Fandom access returned a robots restriction. Community interpretation, not native branch evidence."
+    },
+    {
+      "id": "jr-pyramid-guide",
+      "url": "https://www.powerpyx.com/cyberpunk-2077-pyramid-song-walkthrough/",
+      "title": "PowerPyx: Pyramid Song",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Romance gates and morning commitment",
+      "notes": "Direct guide inspected; corroboration, not native evidence."
+    },
+    {
+      "id": "silverhand-chippin-wiki",
+      "url": "https://cyberpunk.fandom.com/wiki/Chippin%27_In_%28quest%29",
+      "title": "Chippin' In (quest) — Cyberpunk Wiki",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Grayson's account; Smasher; secret ending",
+      "notes": "Search-indexed page content inspected. Direct browsing was restricted; no claim of a fresh full-page scrape."
+    },
+    {
+      "id": "silverhand-reaper-corroboration",
+      "url": "https://www.gamespot.com/articles/cyberpunk-2077-how-to-unlock-the-secret-ending-dont-fear-the-reaper/1100-6485655/",
+      "title": "How to unlock Don't Fear the Reaper — GameSpot",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Oil-field dialogue rather than percentage",
+      "notes": "Indexed explanation inspected; corroborates that a generic relationship percentage is not an adequate unlock predicate."
+    },
+    {
+      "id": "core-arcs.native.hut",
+      "kind": "native",
+      "locator": "base\\quest\\side_quests\\sq030\\phases\\sq030_hut.questphase",
+      "gameVersions": [
+        "2.31"
+      ],
+      "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+      "archiveSha256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
+      "archiveEntrySha1": "d5e2e36d4f54e789aa67371487d08186543d97e3",
+      "assetSha256": "418976828c6f86bf6a67621a5af9e71a30ffe24283b1111084ad344ba72096dd",
+      "jsonPath": "raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json"
+    },
+    {
+      "id": "core-arcs.native.morning",
+      "kind": "native",
+      "locator": "base\\quest\\side_quests\\sq030\\scenes\\sq030_11_morning.scene",
+      "gameVersions": [
+        "2.31"
+      ],
+      "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+      "archiveSha256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
+      "archiveEntrySha1": "f1b8ec8b1f162ded8c8e3843518a44d15a986098",
+      "assetSha256": "cafeac069c24f55df7199d97f656d721c0298fefcae45c44386a3bfd2231a1d3",
+      "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq030/scenes/sq030_11_morning.scene.json"
+    },
+    {
+      "id": "core-arcs.native.grave",
+      "kind": "native",
+      "locator": "base\\quest\\side_quests\\sq031\\scenes\\sq031_05_grave.scene",
+      "gameVersions": [
+        "2.31"
+      ],
+      "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+      "archiveSha256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
+      "archiveEntrySha1": "09f30f1fc1fade0fe3b89278f1d676fa72d86cae",
+      "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
+      "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json"
+    },
+    {
+      "id": "core-arcs.native.graveQuest",
+      "kind": "native",
+      "locator": "base\\quest\\side_quests\\sq031\\phases\\sq031_grave.questphase",
+      "gameVersions": [
+        "2.31"
+      ],
+      "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+      "archiveSha256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
+      "archiveEntrySha1": "7f6690681d36cd82c51349cf2ba94a3cbefe4308",
+      "assetSha256": "48c7015905b43466259cc0df8dfb00e3c62effc81187573f3406d8b543e3f2b0",
+      "jsonPath": "raw/base/base/quest/side_quests/sq031/phases/sq031_grave.questphase.json"
+    },
+    {
+      "id": "core-arcs.native.meta",
+      "kind": "native",
+      "locator": "base\\quest\\cyberpunk2077_metajournal.questphase",
+      "gameVersions": [
+        "2.31"
+      ],
+      "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+      "archiveSha256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
+      "archiveEntrySha1": "7f58de9e174ff4cddc589281e40b790a04934213",
+      "assetSha256": "cbdb6489fde970b753c9d63a62e292176647b3486b9055d83073511492d8fe7f",
+      "jsonPath": "raw/base/base/quest/cyberpunk2077_metajournal.questphase.json"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "core-arcs.judy.morning-choice",
+      "sourceId": "core-arcs.native.morning",
+      "kind": "native",
+      "locator": "Morning scene choice 115 option 0 -> section 119 -> node 365; reviewed commitment dialogue and Judy actor.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq030/scenes/sq030_11_morning.scene.json",
+        "assetSha256": "cafeac069c24f55df7199d97f656d721c0298fefcae45c44386a3bfd2231a1d3",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/41/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sq030_11_romance",
+          "/value": 1,
+          "/setExactValue": 1
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq030/scenes/sq030_11_morning.scene.json",
+          "assetSha256": "cafeac069c24f55df7199d97f656d721c0298fefcae45c44386a3bfd2231a1d3",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/14/Data",
+          "expectedType": "scnChoiceNode",
+          "expected": {
+            "/nodeId/id": 115,
+            "/options/0/screenplayOptionId/id": 258
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq030/scenes/sq030_11_morning.scene.json",
+          "assetSha256": "cafeac069c24f55df7199d97f656d721c0298fefcae45c44386a3bfd2231a1d3",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/14/Data/outputSockets/0/destinations/0",
+          "expectedType": "scnInputSocketId"
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq030/scenes/sq030_11_morning.scene.json",
+          "assetSha256": "cafeac069c24f55df7199d97f656d721c0298fefcae45c44386a3bfd2231a1d3",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/16/Data",
+          "expectedType": "scnSectionNode",
+          "expected": {
+            "/nodeId/id": 119
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq030/scenes/sq030_11_morning.scene.json",
+          "assetSha256": "cafeac069c24f55df7199d97f656d721c0298fefcae45c44386a3bfd2231a1d3",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/16/Data/outputSockets/0/destinations/0",
+          "expectedType": "scnInputSocketId"
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq030/scenes/sq030_11_morning.scene.json",
+          "assetSha256": "cafeac069c24f55df7199d97f656d721c0298fefcae45c44386a3bfd2231a1d3",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/286"
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq030/scenes/sq030_11_morning.scene.json",
+          "assetSha256": "cafeac069c24f55df7199d97f656d721c0298fefcae45c44386a3bfd2231a1d3",
+          "jsonPointer": "/Data/RootChunk/actors/0"
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq030/scenes/sq030_11_morning.scene.json",
+          "assetSha256": "cafeac069c24f55df7199d97f656d721c0298fefcae45c44386a3bfd2231a1d3",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/42/Data/questNode/Data/condition/Data/type/Data"
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq030/scenes/sq030_11_morning.scene.json",
+          "assetSha256": "cafeac069c24f55df7199d97f656d721c0298fefcae45c44386a3bfd2231a1d3",
+          "jsonPointer": "/Data/RootChunk/exitPoints/1",
+          "expectedType": "scnExitPoint",
+          "expected": {
+            "/name/$value": "romance",
+            "/nodeId/id": 43
+          }
+        }
+      ],
+      "review": {
+        "interpretation": "The affirmative morning branch after intimacy expresses a continuing relationship. This writer is necessary but not sufficient: the rule also requires the terminal romance route.",
+        "participant": "Judy is an actor in this exact scene; V makes the choice. No other spawned companion receives this private knowledge."
+      }
+    },
+    {
+      "id": "core-arcs.judy.lover-route",
+      "sourceId": "core-arcs.native.hut",
+      "kind": "native",
+      "locator": "Hut scene node 52 romance output -> node 78 exact sq030_judy_lover=1.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
+        "assetSha256": "418976828c6f86bf6a67621a5af9e71a30ffe24283b1111084ad344ba72096dd",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/25/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sq030_judy_lover",
+          "/value": 1,
+          "/setExactValue": 1
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
+          "assetSha256": "418976828c6f86bf6a67621a5af9e71a30ffe24283b1111084ad344ba72096dd",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/16/Data",
+          "expectedType": "questSceneNodeDefinition",
+          "expected": {
+            "/id": 52,
+            "/sceneFile/DepotPath/$value": "base\\quest\\side_quests\\sq030\\scenes\\sq030_11_morning.scene"
+          }
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
+          "assetSha256": "418976828c6f86bf6a67621a5af9e71a30ffe24283b1111084ad344ba72096dd",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/16/Data/sockets/5/Data/connections/0/Data",
+          "expectedType": "graphGraphConnectionDefinition"
+        }
+      ],
+      "review": {
+        "interpretation": "The morning romance scene exit reaches this assignment. Romance eligibility alone does not establish this route."
+      }
+    },
+    {
+      "id": "core-arcs.judy.romance-completed",
+      "sourceId": "core-arcs.native.hut",
+      "kind": "native",
+      "locator": "Hut romance branch: 52 -> 78 -> AND 63 -> journal success 64 -> cleanup 271/279/272/269 -> reward 114 -> exact romance assignment 172.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
+        "assetSha256": "418976828c6f86bf6a67621a5af9e71a30ffe24283b1111084ad344ba72096dd",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/47/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sq030_romance",
+          "/value": 1,
+          "/setExactValue": 1
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
+          "assetSha256": "418976828c6f86bf6a67621a5af9e71a30ffe24283b1111084ad344ba72096dd",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/16/Data/sockets/5/Data/connections/0/Data",
+          "expectedType": "graphGraphConnectionDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
+          "assetSha256": "418976828c6f86bf6a67621a5af9e71a30ffe24283b1111084ad344ba72096dd",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/20/Data/sockets/1/Data/connections/0/Data",
+          "expectedType": "graphGraphConnectionDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
+          "assetSha256": "418976828c6f86bf6a67621a5af9e71a30ffe24283b1111084ad344ba72096dd",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/20/Data/sockets/3/Data/connections/0/Data",
+          "expectedType": "graphGraphConnectionDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
+          "assetSha256": "418976828c6f86bf6a67621a5af9e71a30ffe24283b1111084ad344ba72096dd",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/21/Data/sockets/5/Data/connections/0/Data",
+          "expectedType": "graphGraphConnectionDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
+          "assetSha256": "418976828c6f86bf6a67621a5af9e71a30ffe24283b1111084ad344ba72096dd",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/122/Data/sockets/2/Data/connections/0/Data",
+          "expectedType": "graphGraphConnectionDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
+          "assetSha256": "418976828c6f86bf6a67621a5af9e71a30ffe24283b1111084ad344ba72096dd",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/123/Data/sockets/1/Data/connections/0/Data",
+          "expectedType": "graphGraphConnectionDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
+          "assetSha256": "418976828c6f86bf6a67621a5af9e71a30ffe24283b1111084ad344ba72096dd",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/120/Data/sockets/1/Data/connections/0/Data",
+          "expectedType": "graphGraphConnectionDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
+          "assetSha256": "418976828c6f86bf6a67621a5af9e71a30ffe24283b1111084ad344ba72096dd",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/28/Data/sockets/1/Data/connections/0/Data",
+          "expectedType": "graphGraphConnectionDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
+          "assetSha256": "418976828c6f86bf6a67621a5af9e71a30ffe24283b1111084ad344ba72096dd",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/28/Data/sockets/2/Data/connections/0/Data",
+          "expectedType": "graphGraphConnectionDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
+          "assetSha256": "418976828c6f86bf6a67621a5af9e71a30ffe24283b1111084ad344ba72096dd",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/20/Data",
+          "expectedType": "questLogicalAndNodeDefinition",
+          "expected": {
+            "/id": 63
+          }
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
+          "assetSha256": "418976828c6f86bf6a67621a5af9e71a30ffe24283b1111084ad344ba72096dd",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/21/Data",
+          "expectedType": "questJournalNodeDefinition",
+          "expected": {
+            "/id": 64
+          }
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
+          "assetSha256": "418976828c6f86bf6a67621a5af9e71a30ffe24283b1111084ad344ba72096dd",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/18/Data",
+          "expectedType": "questJournalNodeDefinition",
+          "expected": {
+            "/id": 60
+          }
+        }
+      ],
+      "review": {
+        "interpretation": "Terminal historical completion, after the romance output and required objective input. The context records the choice made then, not an irrevocable present or future romance."
+      }
+    },
+    {
+      "id": "core-arcs.judy.friends-completed",
+      "sourceId": "core-arcs.native.hut",
+      "kind": "native",
+      "locator": "Hut friendship branch: 52 -> AND 62 -> journal success 76 -> cleanup 273/278/274/268 -> reward 113 -> exact friendship assignment 171.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
+        "assetSha256": "418976828c6f86bf6a67621a5af9e71a30ffe24283b1111084ad344ba72096dd",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/46/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sq030_friendship",
+          "/value": 1,
+          "/setExactValue": 1
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
+          "assetSha256": "418976828c6f86bf6a67621a5af9e71a30ffe24283b1111084ad344ba72096dd",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/16/Data/sockets/4/Data/connections/0/Data",
+          "expectedType": "graphGraphConnectionDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
+          "assetSha256": "418976828c6f86bf6a67621a5af9e71a30ffe24283b1111084ad344ba72096dd",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/19/Data/sockets/3/Data/connections/0/Data",
+          "expectedType": "graphGraphConnectionDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
+          "assetSha256": "418976828c6f86bf6a67621a5af9e71a30ffe24283b1111084ad344ba72096dd",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/24/Data/sockets/5/Data/connections/0/Data",
+          "expectedType": "graphGraphConnectionDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
+          "assetSha256": "418976828c6f86bf6a67621a5af9e71a30ffe24283b1111084ad344ba72096dd",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/124/Data/sockets/2/Data/connections/0/Data",
+          "expectedType": "graphGraphConnectionDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
+          "assetSha256": "418976828c6f86bf6a67621a5af9e71a30ffe24283b1111084ad344ba72096dd",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/125/Data/sockets/1/Data/connections/0/Data",
+          "expectedType": "graphGraphConnectionDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
+          "assetSha256": "418976828c6f86bf6a67621a5af9e71a30ffe24283b1111084ad344ba72096dd",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/119/Data/sockets/1/Data/connections/0/Data",
+          "expectedType": "graphGraphConnectionDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
+          "assetSha256": "418976828c6f86bf6a67621a5af9e71a30ffe24283b1111084ad344ba72096dd",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/27/Data/sockets/1/Data/connections/0/Data",
+          "expectedType": "graphGraphConnectionDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
+          "assetSha256": "418976828c6f86bf6a67621a5af9e71a30ffe24283b1111084ad344ba72096dd",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/27/Data/sockets/2/Data/connections/0/Data",
+          "expectedType": "graphGraphConnectionDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
+          "assetSha256": "418976828c6f86bf6a67621a5af9e71a30ffe24283b1111084ad344ba72096dd",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/19/Data",
+          "expectedType": "questLogicalAndNodeDefinition",
+          "expected": {
+            "/id": 62
+          }
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
+          "assetSha256": "418976828c6f86bf6a67621a5af9e71a30ffe24283b1111084ad344ba72096dd",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/24/Data",
+          "expectedType": "questJournalNodeDefinition",
+          "expected": {
+            "/id": 76
+          }
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
+          "assetSha256": "418976828c6f86bf6a67621a5af9e71a30ffe24283b1111084ad344ba72096dd",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/16/Data",
+          "expectedType": "questSceneNodeDefinition",
+          "expected": {
+            "/sceneFile/DepotPath/$value": "base\\quest\\side_quests\\sq030\\scenes\\sq030_11_morning.scene"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq030/scenes/sq030_11_morning.scene.json",
+          "assetSha256": "cafeac069c24f55df7199d97f656d721c0298fefcae45c44386a3bfd2231a1d3",
+          "jsonPointer": "/Data/RootChunk/exitPoints/0",
+          "expectedType": "scnExitPoint",
+          "expected": {
+            "/name/$value": "friendship",
+            "/nodeId/id": 2
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq030/scenes/sq030_11_morning.scene.json",
+          "assetSha256": "cafeac069c24f55df7199d97f656d721c0298fefcae45c44386a3bfd2231a1d3",
+          "jsonPointer": "/Data/RootChunk/actors/0"
+        }
+      ],
+      "review": {
+        "interpretation": "An affirmative terminal friendship result. It is not inferred by zero romance, ineligibility, missing facts, or quest completion alone."
+      }
+    },
+    {
+      "id": "core-arcs.johnny.oilfield-choice",
+      "sourceId": "core-arcs.native.grave",
+      "kind": "native",
+      "locator": "Normal oilfield entry 91 reaches choice 624; option 0 -> dialogue section 626 -> quest node 1483 increments sq032_johnny_friend by 1.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+        "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/213/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sq032_johnny_friend",
+          "/value": 1,
+          "/setExactValue": 0
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/42/Data",
+          "expectedType": "scnChoiceNode",
+          "expected": {
+            "/nodeId/id": 624,
+            "/options/0/screenplayOptionId/id": 5634
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/42/Data/outputSockets/0/destinations/0",
+          "expectedType": "scnInputSocketId"
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data",
+          "expectedType": "scnSectionNode",
+          "expected": {
+            "/nodeId/id": 626
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data/outputSockets/0/destinations/0",
+          "expectedType": "scnInputSocketId"
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/options/22"
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/56"
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/57"
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/552"
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/182"
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/185"
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
+          "jsonPointer": "/Data/RootChunk/actors/0"
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
+          "jsonPointer": "/Data/RootChunk/entryPoints/4",
+          "expectedType": "scnEntryPoint",
+          "expected": {
+            "/nodeId/id": 91,
+            "/name/$value": "sq031_05_grave_in"
+          }
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq031/phases/sq031_grave.questphase.json",
+          "assetSha256": "48c7015905b43466259cc0df8dfb00e3c62effc81187573f3406d8b543e3f2b0",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data",
+          "expectedType": "questSceneNodeDefinition",
+          "expected": {
+            "/id": 142,
+            "/sceneFile/DepotPath/$value": "base\\quest\\side_quests\\sq031\\scenes\\sq031_05_grave.scene"
+          }
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq031/phases/sq031_grave.questphase.json",
+          "assetSha256": "48c7015905b43466259cc0df8dfb00e3c62effc81187573f3406d8b543e3f2b0",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/0/Data/sockets/1/Data/connections/0/Data",
+          "expectedType": "graphGraphConnectionDefinition"
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/1/Data/outputSockets/0/destinations/1",
+          "expectedType": "scnInputSocketId"
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/260/Data/outputSockets/0/destinations/0",
+          "expectedType": "scnInputSocketId"
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/219/Data/outputSockets/0/destinations/0",
+          "expectedType": "scnInputSocketId"
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/211/Data/outputSockets/0/destinations/0",
+          "expectedType": "scnInputSocketId"
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/165/Data/outputSockets/0/destinations/2",
+          "expectedType": "scnInputSocketId"
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/214/Data/outputSockets/1/destinations/0",
+          "expectedType": "scnInputSocketId"
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/110/Data/outputSockets/0/destinations/0",
+          "expectedType": "scnInputSocketId"
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/99/Data/outputSockets/1/destinations/0",
+          "expectedType": "scnInputSocketId"
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/outputSockets/0/destinations/0",
+          "expectedType": "scnInputSocketId"
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/100/Data/outputSockets/0/destinations/0",
+          "expectedType": "scnInputSocketId"
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/105/Data/outputSockets/0/destinations/0",
+          "expectedType": "scnInputSocketId"
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/164/Data/outputSockets/0/destinations/0",
+          "expectedType": "scnInputSocketId"
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/111/Data/outputSockets/0/destinations/0",
+          "expectedType": "scnInputSocketId"
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/15/Data/outputSockets/0/destinations/0",
+          "expectedType": "scnInputSocketId"
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/16/Data/outputSockets/0/destinations/0",
+          "expectedType": "scnInputSocketId"
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/11/Data/outputSockets/2/destinations/0",
+          "expectedType": "scnInputSocketId"
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/12/Data/outputSockets/0/destinations/0",
+          "expectedType": "scnInputSocketId"
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/82/Data/outputSockets/2/destinations/0",
+          "expectedType": "scnInputSocketId"
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data/outputSockets/2/destinations/0",
+          "expectedType": "scnInputSocketId"
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/171/Data/outputSockets/0/destinations/0",
+          "expectedType": "scnInputSocketId"
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/17/Data/outputSockets/3/destinations/0",
+          "expectedType": "scnInputSocketId"
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/21/Data/outputSockets/0/destinations/0",
+          "expectedType": "scnInputSocketId"
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/227/Data/outputSockets/0/destinations/0",
+          "expectedType": "scnInputSocketId"
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/172/Data/outputSockets/0/destinations/0",
+          "expectedType": "scnInputSocketId"
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/25/Data/outputSockets/0/destinations/0",
+          "expectedType": "scnInputSocketId"
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/84/Data/outputSockets/1/destinations/0",
+          "expectedType": "scnInputSocketId"
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/83/Data/outputSockets/0/destinations/0",
+          "expectedType": "scnInputSocketId"
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/30/Data/outputSockets/0/destinations/0",
+          "expectedType": "scnInputSocketId"
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/31/Data/outputSockets/0/destinations/0",
+          "expectedType": "scnInputSocketId"
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/94/Data/outputSockets/0/destinations/0",
+          "expectedType": "scnInputSocketId"
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/37/Data/outputSockets/0/destinations/0",
+          "expectedType": "scnInputSocketId"
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/38/Data/outputSockets/0/destinations/0",
+          "expectedType": "scnInputSocketId"
+        },
+        {
+          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/40/Data/outputSockets/0/destinations/0",
+          "expectedType": "scnInputSocketId"
+        }
+      ],
+      "review": {
+        "interpretation": "V gives Johnny one final chance and Johnny answers with a commitment to try. The adjacent alternative routes elsewhere. The fact is an increment, not an exact set or a percentage.",
+        "participant": "Johnny is the Silverhand scene actor and speaks in the same section. Rogue and other companions do not gain knowledge from this mapping.",
+        "normalEntryReachability": [
+          91,
+          1715,
+          1516,
+          1292,
+          1120,
+          1494,
+          913,
+          810,
+          92,
+          857,
+          900,
+          1117,
+          915,
+          555,
+          556,
+          548,
+          549,
+          736,
+          551,
+          1140,
+          560,
+          568,
+          1578,
+          1146,
+          577,
+          747,
+          746,
+          595,
+          599,
+          790,
+          611,
+          615,
+          620,
+          624
+        ]
+      }
+    },
+    {
+      "id": "core-arcs.johnny.positive-threshold",
+      "sourceId": "core-arcs.native.meta",
+      "kind": "native",
+      "locator": "Metajournal inner node 36 checks sq032_johnny_friend GreaterOrEqual 1.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "raw/base/base/quest/cyberpunk2077_metajournal.questphase.json",
+        "assetSha256": "cbdb6489fde970b753c9d63a62e292176647b3486b9055d83073511492d8fe7f",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/6/Data/condition/Data/type/Data",
+        "expectedType": "questVarComparison_ConditionType",
+        "expected": {
+          "/factName": "sq032_johnny_friend",
+          "/comparisonType": "GreaterOrEqual",
+          "/value": 1
+        }
+      },
+      "nativeRefs": [],
+      "review": {
+        "interpretation": "This corroborates the positive threshold used for the incremental oilfield result. No friendship percentage, ending availability, or other outcome is inferred."
+      }
+    }
+  ],
+  "factAllowlist": {
+    "sq030_11_romance": {
+      "evidenceRefs": [
+        "core-arcs.judy.morning-choice"
+      ]
+    },
+    "sq030_judy_lover": {
+      "evidenceRefs": [
+        "core-arcs.judy.lover-route"
+      ]
+    },
+    "sq030_romance": {
+      "evidenceRefs": [
+        "core-arcs.judy.romance-completed"
+      ]
+    },
+    "sq030_friendship": {
+      "evidenceRefs": [
+        "core-arcs.judy.friends-completed"
+      ]
+    },
+    "sq032_johnny_friend": {
+      "evidenceRefs": [
+        "core-arcs.johnny.oilfield-choice",
+        "core-arcs.johnny.positive-threshold"
+      ]
+    }
+  },
+  "journalAllowlist": {},
+  "rules": [
+    {
+      "id": "core-arcs.judy.committed",
+      "revision": 1,
+      "questKey": "pyramid-song",
+      "topic": "judy.relationship",
+      "outcome": "committed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "relationship",
+      "priority": 9,
+      "stable": true,
+      "statement": "After the dive at Laguna Bend, V and Judy chose to continue their relationship.",
+      "sourceIds": [
+        "jr-pyramid-guide",
+        "jr-romance"
+      ],
+      "evidenceRefs": [
+        "core-arcs.judy.morning-choice",
+        "core-arcs.judy.lover-route",
+        "core-arcs.judy.romance-completed"
+      ],
+      "audience": {
+        "speakers": [
+          "judy-alvarez"
+        ],
+        "perspective": "private",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "judy-alvarez"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "sq030_11_romance",
+            "op": "eq",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "sq030_judy_lover",
+            "op": "eq",
+            "value": 1
+          },
+          {
+            "type": "fact",
+            "key": "sq030_romance",
+            "op": "eq",
+            "value": 1
+          }
+        ]
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.pyramid.relationship",
+          "outcomeKey": "committed"
+        }
+      ]
+    },
+    {
+      "id": "core-arcs.judy.friends",
+      "revision": 1,
+      "questKey": "pyramid-song",
+      "topic": "judy.relationship",
+      "outcome": "friends",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "relationship",
+      "priority": 9,
+      "stable": true,
+      "statement": "Judy and V finished their Laguna Bend visit as friends.",
+      "sourceIds": [
+        "jr-pyramid"
+      ],
+      "evidenceRefs": [
+        "core-arcs.judy.friends-completed"
+      ],
+      "audience": {
+        "speakers": [
+          "judy-alvarez"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "judy-alvarez"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "sq030_friendship",
+        "op": "eq",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "judy-river.pyramid.relationship",
+          "outcomeKey": "friends"
+        }
+      ]
+    },
+    {
+      "id": "core-arcs.johnny.second-chance",
+      "revision": 1,
+      "questKey": "chippin-in",
+      "topic": "johnny.v.oilfield-reconciliation",
+      "outcome": "second-chance",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "relationship",
+      "priority": 9,
+      "stable": true,
+      "statement": "At the oilfield, V gave Johnny a final chance to rebuild their relationship, and Johnny committed to trying.",
+      "sourceIds": [
+        "silverhand-chippin-wiki",
+        "silverhand-reaper-corroboration"
+      ],
+      "evidenceRefs": [
+        "core-arcs.johnny.oilfield-choice",
+        "core-arcs.johnny.positive-threshold"
+      ],
+      "audience": {
+        "speakers": [
+          "johnny-silverhand"
+        ],
+        "perspective": "private",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "johnny-silverhand"
+        ]
+      },
+      "condition": {
+        "type": "fact",
+        "key": "sq032_johnny_friend",
+        "op": "gte",
+        "value": 1
+      },
+      "narrativeLinks": [
+        {
+          "decisionId": "silverhand.oilfield-reconciliation",
+          "outcomeKey": "second-chance"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,2975 @@
+{
+  "version": 1,
+  "lane": "city-contacts",
+  "sources": [
+    {
+      "id": "city-bugbear",
+      "url": "https://cyberpunk.fandom.com/ru/wiki/8ug8ear",
+      "title": "Cyberpunk Wiki: 8ug8ear",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Biography and database entry",
+      "notes": "Search-indexed full Russian account inspected; English direct page was unavailable. Identity and background cross-checked against the gig entry; no translated dialogue reproduced."
+    },
+    {
+      "id": "city-warmer",
+      "url": "https://cyberpunk.fandom.com/wiki/Gig%3A_Getting_Warmer...",
+      "title": "Cyberpunk Wiki: Gig: Getting Warmer...",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Walkthrough, journal, objectives",
+      "notes": "Search-indexed English page inspected. Coolant-before-disconnect and extraction stages; age and reward thresholds are not used as current runtime rules."
+    },
+    {
+      "id": "city-blue",
+      "url": "https://cyberpunk.fandom.com/ru/wiki/%D0%91%D0%BB%D1%8E_%D0%9C%D1%83%D0%BD",
+      "title": "Cyberpunk Wiki: Blue Moon",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Biography, Us Cracks site description, plot involvement",
+      "notes": "Search-indexed Russian page inspected; English direct page returned an access error. Public idol identity and band affiliation; promotional personality blurbs treated as public image."
+    },
+    {
+      "id": "city-ronin",
+      "url": "https://arasakas-ronin.netlify.app/",
+      "title": "Arasaka’s Ronin: archived Cyberpunk dialogue transcription",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "I Don’t Wanna Hear It: the band and debriefing; Off the Leash",
+      "notes": "Public transcript read through web tools. Supports label dispute and band response; fan stage-direction interpretations are not canon authority. No transcript copied into samples."
+    },
+    {
+      "id": "city-breath",
+      "url": "https://www.powerpyx.com/cyberpunk-2077-every-breath-you-take-walkthrough/",
+      "title": "PowerPyx: Every Breath You Take walkthrough",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Failure conditions, identification, nonlethal and lethal outcomes",
+      "notes": "Search-indexed walkthrough inspected. Especially important: a completed job label can coexist with later Blue Moon death after misidentification."
+    },
+    {
+      "id": "city-stalker",
+      "url": "https://www.gosunoob.com/cyberpunk-2077/every-breath-you-take-find-the-stalker/",
+      "title": "GosuNoob: Every Breath You Take stalker",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Griselda Martinez identification",
+      "notes": "Inspected identification details; do not expose the stalker’s identity to Blue Moon before discovery."
+    },
+    {
+      "id": "city-lizzy",
+      "url": "https://cyberpunk.fandom.com/wiki/Lizzy_Wizzy",
+      "title": "Cyberpunk Wiki: Lizzy Wizzy",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Biography, public career, database, Phantom Liberty",
+      "notes": "Search-indexed English page inspected. Performance-art history separated from save-dependent Violence outcomes."
+    },
+    {
+      "id": "city-violence",
+      "url": "https://cyberpunk.fandom.com/wiki/Violence",
+      "title": "Cyberpunk Wiki: Violence",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Confrontation ordering and Phantom Liberty notes",
+      "notes": "Search-indexed page inspected. Headgear conditions marked verification-needed by source; treated as unresolved until native/live evidence."
+    },
+    {
+      "id": "city-violence-guide",
+      "url": "https://video-game-guide-walkthrough.supersoluce.com/solution/cyberpunk-2077-guide-walkthrough/cyberpunk-2077-side-jobs/violence/",
+      "title": "SuperSoluce: Violence",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Evidence, disclosure, body disposal and alternatives",
+      "notes": "Search-indexed walkthrough inspected. Numeric rewards/timing are version-sensitive and not encoded as rules."
+    },
+    {
+      "id": "city-liam",
+      "url": "https://cyberpunk.fandom.com/fr/wiki/Lizzy_Wizzy",
+      "title": "Cyberpunk Wiki: Lizzy Wizzy (French)",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "2077 investigation and Liam’s plan",
+      "notes": "Search-indexed account inspected. Liam’s fear and attempted personality backup are his stated rationale, not an objective diagnosis of Lizzy."
+    },
+    {
+      "id": "city-chip-in",
+      "url": "https://cyberpunk.fandom.com/wiki/Chip_In",
+      "title": "Cyberpunk Wiki: Chip In",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Frac-Sure Enough episode",
+      "notes": "Search-indexed transcribed in-game TV segment inspected; broadcast must be observed before granting public knowledge of later artwork."
+    },
+    {
+      "id": "city-iris",
+      "url": "https://cyberpunk.fandom.com/wiki/Iris_Tanner",
+      "title": "Cyberpunk Wiki: Iris Tanner",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Biography and database entry",
+      "notes": "Search-indexed English account inspected. Technical skill and difficult relationships; rescue and vehicle outcomes remain conditional."
+    },
+    {
+      "id": "city-no-fixers",
+      "url": "https://cyberpunk.fandom.com/wiki/Gig%3A_No_Fixers",
+      "title": "Cyberpunk Wiki: Gig: No Fixers",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Walkthrough, optional vehicle objective, journal",
+      "notes": "Search-indexed English page inspected; distinguishes personal rescue from recovery of vehicle/equipment."
+    },
+    {
+      "id": "city-jake",
+      "url": "https://cyberpunk.fandom.com/wiki/Jake_Estevez",
+      "title": "Cyberpunk Wiki: Jake Estevez",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Biography and associated jobs",
+      "notes": "Search-indexed English account inspected; custom pickup and later Quadra are distinct vehicles."
+    },
+    {
+      "id": "city-wicked",
+      "url": "https://cyberpunk.fandom.com/wiki/Wicked_Tires_Autoshop/Computers",
+      "title": "Cyberpunk Wiki: Wicked Tires Autoshop computers",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Messages: tuned thorton, same deal on soft, We need to meet",
+      "notes": "Transcriptions inspected. Technical reputation supported by customer messages; personal relationship inference limited to corroborated account."
+    },
+    {
+      "id": "city-wicked-place",
+      "url": "https://cyberpunk.fandom.com/wiki/Wicked_Tires_Autoshop",
+      "title": "Cyberpunk Wiki: Wicked Tires Autoshop",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Overview and database entry",
+      "notes": "Search-indexed page inspected; identifies conflict with Joaquín Davis and relationship with his wife."
+    },
+    {
+      "id": "city-life-work",
+      "url": "https://cyberpunk.fandom.com/wiki/Gig%3A_Life%27s_Work",
+      "title": "Cyberpunk Wiki: Gig: Life’s Work",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Journal, objectives and notes",
+      "notes": "Inspected recovery stages and possible Stadium Love recognition. Briefing’s undamaged-car bonus is reported not to affect payment; not promoted to a rule."
+    },
+    {
+      "id": "city-sex-wheels",
+      "url": "https://cyberpunk.fandom.com/wiki/Sex_On_Wheels",
+      "title": "Cyberpunk Wiki: Sex On Wheels",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Walkthrough and alternative acquisition notes",
+      "notes": "Inspected Jake gift route plus reported alternate route after gig failure. Owning the Quadra alone cannot establish Jake’s gratitude."
+    },
+    {
+      "id": "city-nam",
+      "url": "https://cyberpunk.fandom.com/wiki/Chang-Hoon_Nam",
+      "title": "Cyberpunk Wiki: Chang-Hoon Nam",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Biography and database entry",
+      "notes": "Search-indexed English account inspected. Published age conflicts with the older gig briefing; exact age omitted."
+    },
+    {
+      "id": "city-nam-computer",
+      "url": "https://cyberpunk.fandom.com/wiki/Chang-Hoon_Nam/Computers",
+      "title": "Cyberpunk Wiki: Chang-Hoon Nam’s computers",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Kang Tao container and Dante messages",
+      "notes": "In-game message transcriptions inspected for interpersonal caution, pride and limits. No transcript copied."
+    },
+    {
+      "id": "city-wakako-favorite",
+      "url": "https://www.powerpyx.com/cyberpunk-2077-wakakos-favorite-gig-walkthrough/",
+      "title": "PowerPyx: Wakako’s Favorite",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Hideout, lights, shard and recovery",
+      "notes": "Search-indexed walkthrough inspected. Older stat gates deliberately omitted."
+    },
+    {
+      "id": "city-black-steel",
+      "url": "https://video-game-guide-walkthrough.supersoluce.com/solution/cyberpunk-2077-phantom-liberty-dlc-guide-walkthrough/phantom-liberty-dlc-main-jobs/black-steel-in-the-hour-of-chaos/",
+      "title": "SuperSoluce: Black Steel in the Hour of Chaos",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Chang-Hoon Nam option",
+      "notes": "Inspected account of successful data theft followed by aphasia. No native fact semantics established."
+    },
+    {
+      "id": "city-distance",
+      "url": "https://cyberpunk.fandom.com/wiki/The_Distance",
+      "title": "Cyberpunk Wiki: The Distance",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Prerequisite, Jim’s invitation and repeatable races",
+      "notes": "Search-indexed English page inspected. Jim’s private biography is not supplied."
+    },
+    {
+      "id": "city-races",
+      "url": "https://game8.co/games/Cyberpunk-2077/archives/Car-Races",
+      "title": "Game8: replayable car races",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Invitation, entry fee and locations",
+      "notes": "Search-indexed guide inspected to corroborate Jim’s organizer role. Specific balances/timers are not save facts."
+    },
+    {
+      "id": "city-patch21",
+      "url": "https://www.cyberpunk.net/en/news/49597/update-2-1-patch-notes",
+      "title": "CD Projekt RED: Update 2.1 patch notes",
+      "kind": "official",
+      "accessed": "2026-09-30",
+      "locator": "Replayable car races",
+      "notes": "Official search-indexed notes inspected; direct page fetch unavailable. Confirms feature introduction, rewards and race flags."
+    },
+    {
+      "id": "city-corpo",
+      "url": "https://www.gamepressure.com/cyberpunk-2077/the-corpo-rat/z2de81",
+      "title": "Gamepressure: The Corpo-Rat",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "AV flight to Lizzie’s",
+      "notes": "Search-indexed walkthrough inspected; identifies optional Life Coach call. No personal name, medical credential or later service capability established."
+    },
+    {
+      "id": "city-corpo-gg",
+      "url": "https://www.gamerguides.com/cyberpunk-2077/guide/main-jobs/prologue/the-corpo-rat",
+      "title": "Gamer Guides: The Corpo-Rat",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "AV interruptions and corporate prologue",
+      "notes": "Search-indexed guide inspected; independently corroborates Life Coach in Corpo introduction."
+    },
+    {
+      "id": "city-bana",
+      "url": "https://cyberpunk.fandom.com/ru/wiki/%D0%9C%D0%B0%D1%80%D0%BA_%D0%91%D0%B0%D0%BD%D0%B0",
+      "title": "Cyberpunk Wiki: Mark Bana",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Biography, BIA dossier and Spy in the Jungle",
+      "notes": "Search-indexed Russian page inspected. Dead agent and impostor distinction essential; later political aftermath not granted automatically to a summoned copy."
+    },
+    {
+      "id": "city-spy",
+      "url": "https://sirusgaming.com/cyberpunk-2077-spy-in-the-jungle-walkthrough/",
+      "title": "Sirus Gaming: Spy in the Jungle",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Identity reveal, Katya decision, biomonitor routes",
+      "notes": "Search-indexed walkthrough inspected; opinions and moral recommendations ignored. Some wording mistakenly says Boris where context means Bana; no such typo propagated."
+    },
+    {
+      "id": "city-spy-gg",
+      "url": "https://www.gamerguides.com/cyberpunk-2077/guide/phantom-liberty/gigs/spy-in-the-jungle-guide-give-ana-the-biomonitor-or-destroy-it",
+      "title": "Gamer Guides: Spy in the Jungle",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Hidden room and Katya reveal",
+      "notes": "Inspected corroborating account of impersonation and information-for-mercy bargain."
+    },
+    {
+      "id": "city-reno",
+      "url": "https://cyberpunk.fandom.com/wiki/R3n0",
+      "title": "Cyberpunk Wiki: R3n0",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Biography and associated quest",
+      "notes": "Search-indexed stub inspected; little personal history available."
+    },
+    {
+      "id": "city-reno-ru",
+      "url": "https://cyberpunk.fandom.com/ru/wiki/R3n0",
+      "title": "Cyberpunk Wiki: R3n0 (Russian)",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Biography and computer notes",
+      "notes": "Search-indexed page inspected. Real name Clarity and Hard Wire employment derived from laptop evidence; keep private."
+    },
+    {
+      "id": "city-spellbound",
+      "url": "https://www.powerpyx.com/cyberpunk-2077-spellbound-walkthrough/",
+      "title": "PowerPyx: Spellbound",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Seller meeting, purchase/steal paths and Nix handoff",
+      "notes": "Inspected walkthrough; its historical numeric stat checks are not valid contemporary runtime rules."
+    },
+    {
+      "id": "city-patch20",
+      "url": "https://www.cyberpunk.net/en/news/49060/update-2-0",
+      "title": "CD Projekt RED: Update 2.0",
+      "kind": "official",
+      "accessed": "2026-09-30",
+      "locator": "Spellbound quest fix",
+      "notes": "Official indexed patch note explicitly permits stealing laptop data without a cyberdeck. Avoid outdated mandatory-hacking claims."
+    },
+    {
+      "id": "city-rachel",
+      "url": "https://cyberpunk.fandom.com/wiki/Rachel_Casich",
+      "title": "Cyberpunk Wiki: Rachel Casich",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Biography, branch-dependent production, Phantom Liberty note",
+      "notes": "Search-indexed English page inspected. Career and Joshua project; success/failure and later Lina/Tool messages gated."
+    },
+    {
+      "id": "city-ziggy-rachel",
+      "url": "https://cyberpunk.fandom.com/wiki/Night_After_Night_with_Ziggy_Q",
+      "title": "Cyberpunk Wiki: Night After Night with Ziggy Q",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Rachel Casich interview",
+      "notes": "Inspected in-game TV transcription for public producer persona, prior credits and commercial priorities. Dialogue samples are original."
+    },
+    {
+      "id": "city-sinnerman",
+      "url": "https://cyberpunk.fandom.com/wiki/Sinnerman",
+      "title": "Cyberpunk Wiki: Sinnerman",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Objectives and branch notes",
+      "notes": "Search-indexed job page inspected; Joshua neutralization ends follow-up path without requiring Rachel’s death."
+    },
+    {
+      "id": "city-light",
+      "url": "https://game8.co/games/Cyberpunk-2077/archives/Quests-There-Is-a-Light-That-Never-Goes-Out",
+      "title": "Game8: There Is a Light That Never Goes Out",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Rachel’s offer",
+      "notes": "Inspected negotiation branch; guide contradicts itself about later payment/execution access, so exact payment mechanics left unresolved."
+    },
+    {
+      "id": "city-wont-go",
+      "url": "https://video-game-guide-walkthrough.supersoluce.com/solution/cyberpunk-2077-guide-walkthrough/cyberpunk-2077-major-side-jobs/they-wont-go-when-i-go/",
+      "title": "SuperSoluce: They Won’t Go When I Go",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Final conversation and cumulative doubt",
+      "notes": "Inspected support/doubt and performance outcome description; no guessed point thresholds."
+    },
+    {
+      "id": "city-sergei",
+      "url": "https://cyberpunk.fandom.com/ru/wiki/%D0%A1%D0%B5%D1%80%D0%B3%D0%B5%D0%B9_%D0%9A%D0%B0%D1%80%D0%B0%D1%81%D0%B8%D0%BD%D1%81%D0%BA%D0%B8%D0%B9",
+      "title": "Cyberpunk Wiki: Sergei Karasinsky",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Biography, database and post-gig note",
+      "notes": "Search-indexed Russian page inspected; practical recklessness and kidnapping; external actor/film easter eggs are not in-world biography."
+    },
+    {
+      "id": "city-olive",
+      "url": "https://cyberpunk.fandom.com/fr/wiki/Contrat_%3A_Un_rameau_d%27olivier",
+      "title": "Cyberpunk Wiki: Gig: Olive Branch (French)",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Walkthrough, optional trunk, consequences",
+      "notes": "Search-indexed account inspected. Alex release/delivery and subsequent bodies treated as separate discoveries."
+    },
+    {
+      "id": "city-shank",
+      "url": "https://cyberpunk.fandom.com/wiki/Nuka_Ohlone",
+      "title": "Cyberpunk Wiki: Nuka Ohlone",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Identity and Brainporium role",
+      "notes": "Search-indexed stub inspected. Full name comes from an unused database title; public alias Shank is preferred."
+    },
+    {
+      "id": "city-dazed",
+      "url": "https://www.gamerguides.com/cyberpunk-2077/guide/phantom-liberty/side-jobs/dazed-and-confused-walkthrough-cyberpunk-2077",
+      "title": "Gamer Guides: Dazed and Confused",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Tool’s letter, Lina recruitment and directing outcomes",
+      "notes": "Page opened and read. Letter, sister and clone performances have different consequences; recommendations ignored."
+    },
+    {
+      "id": "city-dazed-gp",
+      "url": "https://www.gamepressure.com/cyberpunk-2077/dazed-and-confused/z010f63",
+      "title": "Gamepressure: Dazed and Confused",
+      "kind": "community",
+      "accessed": "2026-09-30",
+      "locator": "Tool, letter, recording and Lina",
+      "notes": "Indexed guide inspected to corroborate recovery through the personal letter."
+    }
+  ],
+  "quests": [
+    {
+      "key": "getting-warmer",
+      "title": "Gig: Getting Warmer...",
+      "category": "gig",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "8ug8ear",
+        "wakako-okada"
+      ],
+      "synopsis": "Wakako sends V to extract a trapped netrunner whose protective software makes forced disconnection dangerous.",
+      "stages": [
+        {
+          "key": "briefing",
+          "description": "Wakako identifies the rescue target; this is a client report, not evidence that V has met her.",
+          "sourceIds": [
+            "city-warmer"
+          ]
+        },
+        {
+          "key": "chair-contact",
+          "description": "Reach the apartment and receive instructions through the runner’s screens.",
+          "sourceIds": [
+            "city-warmer"
+          ]
+        },
+        {
+          "key": "cooling",
+          "description": "Find coolant and apply it before detaching the neural link.",
+          "sourceIds": [
+            "city-warmer"
+          ]
+        },
+        {
+          "key": "disconnect",
+          "description": "Detach the runner after the cooling step; outcome needs direct state confirmation.",
+          "sourceIds": [
+            "city-warmer"
+          ]
+        },
+        {
+          "key": "evacuation",
+          "description": "Carry the unconscious runner to Wakako’s transport.",
+          "sourceIds": [
+            "city-warmer"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "city-contacts.warmer.disconnection",
+          "description": "Whether the disconnection preserved 8ug8ear’s life.",
+          "topic": "bugbear.rescue.disconnection",
+          "outcomes": [
+            {
+              "key": "cooled-safe",
+              "description": "Coolant used before safe disconnection.",
+              "affects": [
+                "8ug8ear"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "city-warmer"
+              ]
+            },
+            {
+              "key": "fatal-disconnection",
+              "description": "Unsafe disconnection killed the story runner.",
+              "affects": [
+                "8ug8ear"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "city-warmer"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "city-warmer"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Require ordered cooling and disconnection branch evidence plus actor/outcome confirmation. A companion copy cannot prove story survival."
+          }
+        },
+        {
+          "id": "city-contacts.warmer.extraction",
+          "description": "Whether a living rescue target reached transport.",
+          "topic": "bugbear.rescue.extraction",
+          "outcomes": [
+            {
+              "key": "delivered-alive",
+              "description": "Living runner handed to the fixer’s driver.",
+              "affects": [
+                "8ug8ear",
+                "wakako-okada"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "city-warmer"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "city-warmer"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "The patient was unconscious during physical evacuation; exact rescue actions are witnessed by V and learned by her through a credible later account, not automatically recalled as sights she saw."
+          }
+        }
+      ],
+      "sourceIds": [
+        "city-warmer",
+        "city-bugbear"
+      ],
+      "uncertainties": [
+        "The profile must not treat a screen exchange as a long face-to-face friendship.",
+        "No exact failure flag or time limit has been verified."
+      ]
+    },
+    {
+      "key": "wakakos-favorite",
+      "title": "Gig: Wakako’s Favorite",
+      "category": "gig",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "chang-hoon-nam",
+        "wakako-okada"
+      ],
+      "synopsis": "Investigate Wakako’s unresponsive associate and recover him from a local subnet lock.",
+      "stages": [
+        {
+          "key": "locate",
+          "description": "Enter Nam’s hideout below a restaurant.",
+          "sourceIds": [
+            "city-wakako-favorite"
+          ]
+        },
+        {
+          "key": "diagnose",
+          "description": "Examine Nam and the Kang Tao correspondence.",
+          "sourceIds": [
+            "city-wakako-favorite"
+          ]
+        },
+        {
+          "key": "guided-route",
+          "description": "Follow his lights through the protected passage.",
+          "sourceIds": [
+            "city-wakako-favorite"
+          ]
+        },
+        {
+          "key": "recovery-shard",
+          "description": "Retrieve the shard and insert it into his port.",
+          "sourceIds": [
+            "city-wakako-favorite"
+          ]
+        },
+        {
+          "key": "debrief",
+          "description": "Speak after he recovers.",
+          "sourceIds": [
+            "city-wakako-favorite"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "city-contacts.nam.recovery",
+          "description": "Whether Nam recovered and personally met V.",
+          "topic": "nam.rescue",
+          "outcomes": [
+            {
+              "key": "recovered",
+              "description": "Shard-assisted recovery followed by conversation.",
+              "affects": [
+                "chang-hoon-nam",
+                "wakako-okada"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "city-wakako-favorite"
+              ]
+            },
+            {
+              "key": "vendor-established",
+              "description": "Later availability as a quickhack vendor is observed.",
+              "affects": [
+                "chang-hoon-nam"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "city-nam"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "city-wakako-favorite",
+            "city-nam"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Recovery and vendor availability are distinct milestones; evaluate each explicitly rather than promoting a generic completed journal state."
+          }
+        }
+      ],
+      "sourceIds": [
+        "city-wakako-favorite",
+        "city-nam"
+      ],
+      "uncertainties": [
+        "Sources disagree on age (older gig briefing 65, later account 67); no age-dependent conclusions.",
+        "Uncompleted is not equivalent to dead or refused."
+      ]
+    },
+    {
+      "key": "black-steel-in-the-hour-of-chaos",
+      "title": "Black Steel in the Hour of Chaos",
+      "category": "main",
+      "game": "phantom-liberty",
+      "nativeIds": [],
+      "characters": [
+        "chang-hoon-nam"
+      ],
+      "synopsis": "Character-specific slice: Nam can be asked to obtain MaxTac convoy information, at considerable personal cost.",
+      "stages": [
+        {
+          "key": "runner-request",
+          "description": "V selects a netrunner for the convoy-data task.",
+          "sourceIds": [
+            "city-black-steel"
+          ]
+        },
+        {
+          "key": "nam-return",
+          "description": "Receive Nam’s answer and meet him for the data.",
+          "sourceIds": [
+            "city-black-steel"
+          ]
+        },
+        {
+          "key": "aftereffects",
+          "description": "Observe impaired speech and discuss leaving the city.",
+          "sourceIds": [
+            "city-black-steel",
+            "city-nam"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "city-contacts.nam.maxtac-job",
+          "description": "Nam’s involvement and condition during the convoy information job.",
+          "topic": "nam.maxtac.assistance",
+          "outcomes": [
+            {
+              "key": "engaged",
+              "description": "V specifically recruited Nam for the intrusion.",
+              "affects": [
+                "chang-hoon-nam"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "city-black-steel"
+              ]
+            },
+            {
+              "key": "data-delivered-injured",
+              "description": "Nam delivered the information and suffered aphasia after the hack.",
+              "affects": [
+                "chang-hoon-nam"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "city-black-steel"
+              ]
+            },
+            {
+              "key": "departure-discussed",
+              "description": "V and Nam discussed leaving Night City after the injury.",
+              "affects": [
+                "chang-hoon-nam"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "city-nam"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "city-black-steel",
+            "city-nam"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Only the selected runner knows this work firsthand. Discussion of departure is not verified arrival elsewhere, and aphasia is not an invitation to caricature speech."
+          }
+        }
+      ],
+      "sourceIds": [
+        "city-black-steel",
+        "city-nam"
+      ],
+      "uncertainties": [
+        "Partial coverage: no convoy assault, Reed/Songbird outcome or other runner route is owned by this record."
+      ]
+    },
+    {
+      "key": "no-fixers",
+      "title": "Gig: No Fixers",
+      "category": "gig",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "iris-tanner",
+        "dakota-smith"
+      ],
+      "synopsis": "A coerced repair job becomes a rescue; retrieving Iris’s equipment-bearing vehicle is a separate obligation.",
+      "stages": [
+        {
+          "key": "sos",
+          "description": "Dakota reports Iris’s improvised distress transmission.",
+          "sourceIds": [
+            "city-no-fixers"
+          ]
+        },
+        {
+          "key": "find-iris",
+          "description": "Reach Iris inside the Wraith outpost.",
+          "sourceIds": [
+            "city-no-fixers"
+          ]
+        },
+        {
+          "key": "vehicle-request",
+          "description": "She asks for her vehicle before departure.",
+          "sourceIds": [
+            "city-no-fixers"
+          ]
+        },
+        {
+          "key": "return",
+          "description": "Bring Iris to Dakota’s garage.",
+          "sourceIds": [
+            "city-no-fixers"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "city-contacts.iris.extraction",
+          "description": "Iris’s arrival at Dakota’s garage.",
+          "topic": "iris.rescue",
+          "outcomes": [
+            {
+              "key": "safe-arrival",
+              "description": "Iris reached Dakota and the rescue was acknowledged.",
+              "affects": [
+                "iris-tanner",
+                "dakota-smith"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "city-no-fixers"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "city-no-fixers"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Narrative meaning only. Exact native fact/journal paths, stage gates, version and branch evidence must be reviewed before runtime use. Missing facts and zero values establish no outcome."
+          }
+        },
+        {
+          "id": "city-contacts.iris.vehicle",
+          "description": "Whether V also recovered Iris’s own vehicle.",
+          "topic": "iris.equipment.recovery",
+          "outcomes": [
+            {
+              "key": "recovered",
+              "description": "Iris’s vehicle was returned with her.",
+              "affects": [
+                "iris-tanner",
+                "dakota-smith"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "city-no-fixers"
+              ]
+            },
+            {
+              "key": "left-behind",
+              "description": "Iris was rescued but her vehicle/equipment was left behind.",
+              "affects": [
+                "iris-tanner",
+                "dakota-smith"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "city-no-fixers"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "city-no-fixers"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Require completed safe arrival and optional vehicle result. Either branch can complete the gig; generic completion cannot distinguish them."
+          }
+        }
+      ],
+      "sourceIds": [
+        "city-no-fixers",
+        "city-iris"
+      ],
+      "uncertainties": [
+        "Additional gratitude/reward does not establish romance, permanent employment or friendship."
+      ]
+    },
+    {
+      "key": "lifes-work",
+      "title": "Gig: Life’s Work",
+      "category": "gig",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "jake-estevez",
+        "padre-ibarra"
+      ],
+      "synopsis": "Recover a mechanic’s custom pickup from a 6th Street shop after enabling it with supplied software.",
+      "stages": [
+        {
+          "key": "contract",
+          "description": "Padre explains the pickup’s value to Jake.",
+          "sourceIds": [
+            "city-life-work"
+          ]
+        },
+        {
+          "key": "software",
+          "description": "Reach the shop terminal and upload the software.",
+          "sourceIds": [
+            "city-life-work"
+          ]
+        },
+        {
+          "key": "pickup",
+          "description": "Drive the custom Thorton to Jake.",
+          "sourceIds": [
+            "city-life-work"
+          ]
+        },
+        {
+          "key": "handover",
+          "description": "Deliver and speak with its owner.",
+          "sourceIds": [
+            "city-life-work"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "city-contacts.jake.pickup",
+          "description": "Return of Jake’s custom vehicle.",
+          "topic": "jake.pickup.recovered",
+          "outcomes": [
+            {
+              "key": "returned",
+              "description": "The pickup was handed back to Jake.",
+              "affects": [
+                "jake-estevez",
+                "padre-ibarra"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "city-life-work"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "city-life-work"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Narrative meaning only. Exact native fact/journal paths, stage gates, version and branch evidence must be reviewed before runtime use. Missing facts and zero values establish no outcome."
+          }
+        },
+        {
+          "id": "city-contacts.jake.shop-violence",
+          "description": "Whether V’s violence at the shop becomes a later recognition issue.",
+          "topic": "jake.shop.approach",
+          "outcomes": [
+            {
+              "key": "violent-approach",
+              "description": "V used violence against the shop’s gang.",
+              "affects": [
+                "jake-estevez"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "city-life-work"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "city-life-work"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Jake was not established as an eyewitness to the infiltration. Keep later recognition as a separate reported/witnessed event."
+          }
+        }
+      ],
+      "sourceIds": [
+        "city-life-work",
+        "city-jake",
+        "city-wicked"
+      ],
+      "uncertainties": [
+        "The briefing promises an undamaged-car bonus but the inspected wiki reports no payout change; do not fabricate a damage reward rule."
+      ]
+    },
+    {
+      "key": "sex-on-wheels",
+      "title": "Sex On Wheels",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "jake-estevez"
+      ],
+      "synopsis": "A later vehicle invitation can lead V to a Quadra, but possession of that car does not uniquely prove Jake’s gift route.",
+      "stages": [
+        {
+          "key": "invitation",
+          "description": "Receive the message identifying the available car.",
+          "sourceIds": [
+            "city-sex-wheels"
+          ]
+        },
+        {
+          "key": "garage",
+          "description": "Go to the cargo-station garage.",
+          "sourceIds": [
+            "city-sex-wheels"
+          ]
+        },
+        {
+          "key": "claim",
+          "description": "Enter the Quadra and finish the acquisition.",
+          "sourceIds": [
+            "city-sex-wheels"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "city-contacts.jake.quadra-gift",
+          "description": "Provenance of the Quadra acquisition.",
+          "topic": "jake.quadra.gift",
+          "outcomes": [
+            {
+              "key": "jake-invitation",
+              "description": "Jake offered the Quadra after his pickup was returned.",
+              "affects": [
+                "jake-estevez"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "city-sex-wheels"
+              ]
+            },
+            {
+              "key": "jake-gift-claimed",
+              "description": "V claimed the offered Quadra after the verified Jake invitation.",
+              "affects": [
+                "jake-estevez"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "city-sex-wheels"
+              ]
+            },
+            {
+              "key": "alternate-acquisition",
+              "description": "The car was acquired through a different reported route, not demonstrated gratitude from Jake.",
+              "affects": [
+                "jake-estevez"
+              ],
+              "knowledge": "shared-journal",
+              "sourceIds": [
+                "city-sex-wheels"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "city-sex-wheels"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "The wiki reports a Muamar/scavenger alternative after failure and a proximity start. Those routes need independent current-version game confirmation; do not infer invitation from ownership."
+          }
+        }
+      ],
+      "sourceIds": [
+        "city-sex-wheels",
+        "city-jake"
+      ],
+      "uncertainties": [
+        "The repaired pickup and gifted Quadra are different vehicles."
+      ]
+    },
+    {
+      "key": "i-dont-wanna-hear-it",
+      "title": "I Don’t Wanna Hear It",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "blue-moon",
+        "kerry-eurodyne"
+      ],
+      "synopsis": "Blue Moon’s slice of the backstage dispute: distinguish reconciliation with the band from coercion to cancel.",
+      "stages": [
+        {
+          "key": "backstage",
+          "description": "V and Kerry reach Us Cracks backstage at Riot.",
+          "sourceIds": [
+            "city-ronin"
+          ]
+        },
+        {
+          "key": "label-discussion",
+          "description": "The band explains how the cover was arranged.",
+          "sourceIds": [
+            "city-ronin"
+          ]
+        },
+        {
+          "key": "resolution",
+          "description": "The confrontation either reaches an understanding or is forced to end through threats.",
+          "sourceIds": [
+            "city-ronin",
+            "city-breath"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "city-contacts.blue.band-resolution",
+          "description": "The way V and Kerry resolved the band dispute.",
+          "topic": "us-cracks.kerry.relation",
+          "outcomes": [
+            {
+              "key": "reconciled",
+              "description": "A friendly understanding followed discussion of the label’s involvement.",
+              "affects": [
+                "blue-moon",
+                "kerry-eurodyne"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "city-ronin"
+              ]
+            },
+            {
+              "key": "coerced",
+              "description": "The band was threatened into stopping the performance.",
+              "affects": [
+                "blue-moon",
+                "kerry-eurodyne"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "city-breath"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "city-ronin",
+            "city-breath"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Friendly resolution enables later contact but does not prove that a later stalker job or romance occurred."
+          }
+        }
+      ],
+      "sourceIds": [
+        "city-ronin",
+        "city-breath"
+      ],
+      "uncertainties": [
+        "Character-specific slice; full Kerry entrance and personal arc belong in the music lane."
+      ]
+    },
+    {
+      "key": "every-breath-you-take",
+      "title": "Every Breath You Take",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "blue-moon"
+      ],
+      "synopsis": "Protect Blue Moon while identifying a stalker; mistaken success and later death must remain distinguishable.",
+      "stages": [
+        {
+          "key": "request",
+          "description": "Blue Moon explains the harassment and protection plan.",
+          "sourceIds": [
+            "city-breath"
+          ]
+        },
+        {
+          "key": "shadow",
+          "description": "Follow her around Kabuki without ruining the plan.",
+          "sourceIds": [
+            "city-breath"
+          ]
+        },
+        {
+          "key": "identify",
+          "description": "Investigate a suspicious fan and inspect evidence.",
+          "sourceIds": [
+            "city-breath",
+            "city-stalker"
+          ]
+        },
+        {
+          "key": "intervene",
+          "description": "Prevent the attack and establish which person was stopped.",
+          "sourceIds": [
+            "city-breath"
+          ]
+        },
+        {
+          "key": "aftermath",
+          "description": "Check later messages, not just the immediate job label.",
+          "sourceIds": [
+            "city-breath"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "city-contacts.blue.stalker-identification",
+          "description": "Whom V identified as the stalker.",
+          "topic": "blue-moon.stalker.identity",
+          "outcomes": [
+            {
+              "key": "griselda-confirmed",
+              "description": "Evidence identifies Griselda Martinez, using the fan name Green Cloud.",
+              "affects": [
+                "blue-moon"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "city-stalker"
+              ]
+            },
+            {
+              "key": "wrong-person-reported",
+              "description": "V reported a different person as the culprit.",
+              "affects": [
+                "blue-moon"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "city-breath"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "city-stalker",
+            "city-breath"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Narrative meaning only. Exact native fact/journal paths, stage gates, version and branch evidence must be reviewed before runtime use. Missing facts and zero values establish no outcome."
+          }
+        },
+        {
+          "id": "city-contacts.blue.protection",
+          "description": "Blue Moon’s verified safety during and after the operation.",
+          "topic": "blue-moon.survival",
+          "outcomes": [
+            {
+              "key": "safe-debrief",
+              "description": "She survived the attack and debriefed after the correct intervention.",
+              "affects": [
+                "blue-moon"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "city-breath"
+              ]
+            },
+            {
+              "key": "killed-on-route",
+              "description": "The stalker killed her during the operation.",
+              "affects": [
+                "blue-moon"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "city-breath"
+              ]
+            },
+            {
+              "key": "later-death-reported",
+              "description": "A later report established her death after V misidentified the threat.",
+              "affects": [
+                "blue-moon"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "city-breath"
+              ]
+            },
+            {
+              "key": "operation-abandoned",
+              "description": "V left or compromised the operation; later survival still needs its own evidence.",
+              "affects": [
+                "blue-moon"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "city-breath"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "city-breath"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "A completed journal entry does not guarantee survival; late messages and exact rescue branch are required. A summoned copy is never proof of resurrection."
+          }
+        },
+        {
+          "id": "city-contacts.blue.stalker-disposition",
+          "description": "How the confirmed attacker was stopped.",
+          "topic": "blue-moon.stalker.disposition",
+          "outcomes": [
+            {
+              "key": "nonlethal",
+              "description": "The confirmed stalker was incapacitated and police handling discussed.",
+              "affects": [
+                "blue-moon"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "city-breath"
+              ]
+            },
+            {
+              "key": "lethal",
+              "description": "The confirmed stalker was killed.",
+              "affects": [
+                "blue-moon"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "city-breath"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "city-breath"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Differentiate intended arrest from confirmed police custody. Reward equality does not erase moral/emotional distinction."
+          }
+        },
+        {
+          "id": "city-contacts.blue.stalker-neutralization",
+          "description": "The actual stalker was physically stopped; identity learned, lethal force and Blue Moon survival remain separate questions.",
+          "topic": "blue-moon.stalker.neutralization",
+          "outcomes": [
+            {
+              "key": "actual-neutralized",
+              "description": "The actual woman stalking Blue Moon was killed, defeated or rendered unconscious. This does not establish which of those occurred or whether her legal identity was learned.",
+              "affects": [
+                "blue-moon"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "city-breath",
+                "city-stalker"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "city-breath",
+            "city-stalker"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Narrative record. The reviewed native pack supplies a bounded positive predicate for actual neutralization, with V disclosure required; identity and lethal disposition are independent outcomes."
+          }
+        }
+      ],
+      "sourceIds": [
+        "city-breath",
+        "city-stalker"
+      ],
+      "uncertainties": [
+        "No canonical romance is established by gratitude or friendly messages.",
+        "Red Menace’s actions and survival need separate observations, not extrapolation from Blue Moon’s result."
+      ]
+    },
+    {
+      "key": "violence",
+      "title": "Violence",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "lizzy-wizzy",
+        "liam-northom"
+      ],
+      "synopsis": "An apparent relationship investigation reveals a personality-copy proposal; disclosure and a later cover-up have separate consequences.",
+      "stages": [
+        {
+          "key": "motel-request",
+          "description": "Lizzy privately hires V to check suspected infidelity.",
+          "sourceIds": [
+            "city-violence-guide"
+          ]
+        },
+        {
+          "key": "riot-investigation",
+          "description": "Locate Liam and distinguish actual surveillance evidence from assumptions.",
+          "sourceIds": [
+            "city-violence"
+          ]
+        },
+        {
+          "key": "report",
+          "description": "Decide what to tell Lizzy.",
+          "sourceIds": [
+            "city-violence-guide"
+          ]
+        },
+        {
+          "key": "later-call",
+          "description": "Only the appropriate branch leads to a new motel summons.",
+          "sourceIds": [
+            "city-violence-guide"
+          ]
+        },
+        {
+          "key": "body-request",
+          "description": "Discover Liam’s body and respond to Lizzy’s disposal request.",
+          "sourceIds": [
+            "city-violence-guide"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "city-contacts.violence.evidence",
+          "description": "What V actually learned at Riot.",
+          "topic": "lizzy.investigation.evidence",
+          "outcomes": [
+            {
+              "key": "copy-plot-heard",
+              "description": "V overheard the personality-copy proposal and obtained evidence.",
+              "affects": [
+                "lizzy-wizzy",
+                "liam-northom"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "city-violence",
+                "city-liam"
+              ]
+            },
+            {
+              "key": "affair-assumed",
+              "description": "Premature confrontation left V interpreting events as an affair.",
+              "affects": [
+                "lizzy-wizzy",
+                "liam-northom"
+              ],
+              "knowledge": "private",
+              "sourceIds": [
+                "city-violence"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "city-violence",
+            "city-liam"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "V’s knowledge and Liam’s private plan do not become Lizzy’s knowledge until disclosure. Audio evidence is not proof an engram was actually made."
+          }
+        },
+        {
+          "id": "city-contacts.violence.bribe",
+          "description": "Liam’s response to a confrontation after evidence.",
+          "topic": "liam.bribe",
+          "outcomes": [
+            {
+              "key": "accepted",
+              "description": "V accepted Liam’s payment for discretion.",
+              "affects": [
+                "liam-northom"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "city-violence-guide"
+              ]
+            },
+            {
+              "key": "not-accepted",
+              "description": "V explicitly refused the offered payment.",
+              "affects": [
+                "liam-northom"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "city-violence-guide"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "city-violence-guide"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "No inferred refusal from zero payout; require an explicit dialogue result. Taking a bribe and later exposing him are independent choices."
+          }
+        },
+        {
+          "id": "city-contacts.violence.disclosure",
+          "description": "What Lizzy was told about Liam.",
+          "topic": "lizzy.liam.disclosure",
+          "outcomes": [
+            {
+              "key": "truth",
+              "description": "V disclosed the copying proposal.",
+              "affects": [
+                "lizzy-wizzy"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "city-violence-guide"
+              ]
+            },
+            {
+              "key": "affair-cover",
+              "description": "V told Lizzy the affair version and did not disclose the proposal.",
+              "affects": [
+                "lizzy-wizzy"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "city-violence-guide"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "city-violence-guide"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Store factual disclosure separately from truth known to V. Lizzy may believe the affair report; do not silently upgrade it to the hidden plot."
+          }
+        },
+        {
+          "id": "city-contacts.violence.motel-death",
+          "description": "Whether the second encounter revealed Liam’s death.",
+          "topic": "liam.story.fate",
+          "outcomes": [
+            {
+              "key": "body-discovered",
+              "description": "V found Liam dead with Lizzy in the motel.",
+              "affects": [
+                "lizzy-wizzy",
+                "liam-northom"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "city-violence-guide"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "city-violence-guide"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Liam’s summoned copy cannot remember events after death. Lizzy knows her own involvement; other characters need a disclosure path."
+          }
+        },
+        {
+          "id": "city-contacts.violence.disposal",
+          "description": "Whether V helped dispose of Liam’s body.",
+          "topic": "lizzy.v.coverup",
+          "outcomes": [
+            {
+              "key": "body-hidden",
+              "description": "V agreed and disposed of the body.",
+              "affects": [
+                "lizzy-wizzy"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "city-violence-guide"
+              ]
+            },
+            {
+              "key": "help-refused",
+              "description": "V refused to perform the disposal.",
+              "affects": [
+                "lizzy-wizzy"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "city-violence-guide"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "city-violence-guide"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Agreement alone is not completed disposal. Keep acceptance and completion evidence distinct."
+          }
+        },
+        {
+          "id": "city-contacts.violence.public-bd",
+          "description": "Whether the later braindance is known publicly in this timeline.",
+          "topic": "lizzy.frac-sure-enough",
+          "outcomes": [
+            {
+              "key": "broadcast-observed",
+              "description": "The relevant TV report about Frac-Sure Enough was observed.",
+              "affects": [
+                "lizzy-wizzy"
+              ],
+              "knowledge": "public",
+              "sourceIds": [
+                "city-chip-in"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "city-chip-in"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Do not inject the later broadcast before it exists or use its existence to reveal private details to every character automatically."
+          }
+        }
+      ],
+      "sourceIds": [
+        "city-violence",
+        "city-violence-guide",
+        "city-liam",
+        "city-chip-in"
+      ],
+      "uncertainties": [
+        "No source proves a medical diagnosis of cyberpsychosis; avoid presenting speculation as clinical fact.",
+        "Early Riot violence can disrupt progression; exact unusual kill branches are not mapped."
+      ]
+    },
+    {
+      "key": "you-know-my-name",
+      "title": "You Know My Name",
+      "category": "main",
+      "game": "phantom-liberty",
+      "nativeIds": [],
+      "characters": [
+        "lizzy-wizzy"
+      ],
+      "synopsis": "Lizzy-specific slice: encounter the performer after her Black Sapphire set and preserve the prior relationship outcome.",
+      "stages": [
+        {
+          "key": "performance",
+          "description": "Lizzy performs at the Black Sapphire.",
+          "sourceIds": [
+            "city-lizzy"
+          ]
+        },
+        {
+          "key": "optional-conversation",
+          "description": "V may approach her after the set.",
+          "sourceIds": [
+            "city-lizzy",
+            "city-violence"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "city-contacts.lizzy.black-sapphire",
+          "description": "Observed interaction with Lizzy at the party.",
+          "topic": "lizzy.party.encounter",
+          "outcomes": [
+            {
+              "key": "cordial",
+              "description": "She engaged V cordially at the party.",
+              "affects": [
+                "lizzy-wizzy"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "city-lizzy"
+              ]
+            },
+            {
+              "key": "rebuffed",
+              "description": "She declined the interaction following the hostile disposal outcome.",
+              "affects": [
+                "lizzy-wizzy"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "city-violence"
+              ]
+            },
+            {
+              "key": "headgear-gift",
+              "description": "The actual headgear gift and handover were observed.",
+              "affects": [
+                "lizzy-wizzy"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "city-lizzy"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "city-lizzy",
+            "city-violence"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "The wiki marks some gift-condition claims verification-needed. Record observed gift, not a guessed formula linking it to Violence; greeting is not proof of prior murder/cover-up."
+          }
+        }
+      ],
+      "sourceIds": [
+        "city-lizzy",
+        "city-violence"
+      ],
+      "uncertainties": [
+        "Partial coverage only; no FIA infiltration intelligence is granted to Lizzy."
+      ]
+    },
+    {
+      "key": "spellbound",
+      "title": "Spellbound",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "r3n0",
+        "nix"
+      ],
+      "synopsis": "V obtains a historic data artifact from a seller for Nix; payment, coercion and subsequent decryption are distinct events.",
+      "stages": [
+        {
+          "key": "commission",
+          "description": "Nix supplies a lead and seller contact.",
+          "sourceIds": [
+            "city-spellbound"
+          ]
+        },
+        {
+          "key": "meeting",
+          "description": "Meet R3n0 in Charter Hill and negotiate.",
+          "sourceIds": [
+            "city-spellbound"
+          ]
+        },
+        {
+          "key": "coordinates",
+          "description": "Buy access or obtain coordinates from her computer.",
+          "sourceIds": [
+            "city-spellbound",
+            "city-patch20"
+          ]
+        },
+        {
+          "key": "cache",
+          "description": "Retrieve the artifact.",
+          "sourceIds": [
+            "city-spellbound"
+          ]
+        },
+        {
+          "key": "handoff",
+          "description": "Return to Nix; negotiations there are not automatically known to the seller.",
+          "sourceIds": [
+            "city-spellbound"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "city-contacts.reno.transaction",
+          "description": "How V acquired R3n0’s stash location.",
+          "topic": "reno.sale",
+          "outcomes": [
+            {
+              "key": "paid-asking",
+              "description": "V paid the stated asking price.",
+              "affects": [
+                "r3n0"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "city-spellbound"
+              ]
+            },
+            {
+              "key": "negotiated-corpo",
+              "description": "Corpo leverage produced a negotiated sale.",
+              "affects": [
+                "r3n0"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "city-spellbound"
+              ]
+            },
+            {
+              "key": "coordinates-stolen",
+              "description": "V took the coordinates without completing the sale.",
+              "affects": [
+                "r3n0"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "city-spellbound"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "city-spellbound",
+            "city-patch20"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Theft may not be witnessed immediately. Do not give her omniscient knowledge of stealth or the buyer’s later decryption. No obsolete Intelligence-9/cyberdeck requirement."
+          }
+        },
+        {
+          "id": "city-contacts.reno.fate",
+          "description": "Seller’s observed condition after confrontation.",
+          "topic": "reno.story.fate",
+          "outcomes": [
+            {
+              "key": "incapacitated",
+              "description": "The story seller was incapacitated.",
+              "affects": [
+                "r3n0"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "city-spellbound"
+              ]
+            },
+            {
+              "key": "dead",
+              "description": "The story seller was confirmed dead.",
+              "affects": [
+                "r3n0"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "city-reno"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "city-spellbound",
+            "city-reno"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Neutralized is not dead; completion/loot possession and a manager-spawned copy cannot distinguish these outcomes."
+          }
+        }
+      ],
+      "sourceIds": [
+        "city-reno",
+        "city-reno-ru",
+        "city-spellbound",
+        "city-patch20"
+      ],
+      "uncertainties": [
+        "The private laptop identifies Clarity/Hard Wire; her alias alone does not give every companion those facts.",
+        "Artifact authorship and game-version-specific payout formula require separate evidence."
+      ]
+    },
+    {
+      "key": "sinnerman",
+      "title": "Sinnerman",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "rachel-casich"
+      ],
+      "synopsis": "A contract against Joshua can end as a hit or turn into participation in the producer’s project.",
+      "stages": [
+        {
+          "key": "pursuit",
+          "description": "V accompanies Bill in pursuit of Joshua’s transport.",
+          "sourceIds": [
+            "city-sinnerman"
+          ]
+        },
+        {
+          "key": "confrontation",
+          "description": "The roadside encounter introduces Joshua, Rachel and police supervision.",
+          "sourceIds": [
+            "city-sinnerman"
+          ]
+        },
+        {
+          "key": "new-proposal",
+          "description": "V can continue with Joshua rather than complete the original hit.",
+          "sourceIds": [
+            "city-sinnerman"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "city-contacts.rachel.sinnerman-entry",
+          "description": "Whether V entered Rachel’s production chain.",
+          "topic": "rachel.joshua.v-role",
+          "outcomes": [
+            {
+              "key": "joined",
+              "description": "V joined Joshua’s journey.",
+              "affects": [
+                "rachel-casich"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "city-sinnerman"
+              ]
+            },
+            {
+              "key": "joshua-neutralized",
+              "description": "V neutralized Joshua and ended access to the later project quests.",
+              "affects": [
+                "rachel-casich"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "city-sinnerman"
+              ]
+            },
+            {
+              "key": "left",
+              "description": "V explicitly declined to continue after speaking.",
+              "affects": [
+                "rachel-casich"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "city-sinnerman"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "city-sinnerman"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Do not infer Rachel’s death from Joshua’s neutralization. Need separate actor fate evidence, and do not assume Bill survived."
+          }
+        }
+      ],
+      "sourceIds": [
+        "city-sinnerman"
+      ],
+      "uncertainties": [
+        "Neutralization wording may encompass more than lethal damage; use the exact native resolution when mapped."
+      ]
+    },
+    {
+      "key": "there-is-a-light-that-never-goes-out",
+      "title": "There Is a Light That Never Goes Out",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "rachel-casich"
+      ],
+      "synopsis": "Rachel manages V’s influence on Joshua while commercial plans collide with his attempt at repentance.",
+      "stages": [
+        {
+          "key": "visits",
+          "description": "Joshua visits a victim’s family under supervision.",
+          "sourceIds": [
+            "city-rachel"
+          ]
+        },
+        {
+          "key": "buyout",
+          "description": "Rachel offers to pay V to disengage.",
+          "sourceIds": [
+            "city-light"
+          ]
+        },
+        {
+          "key": "piez",
+          "description": "If V continues, the group talks at PieZ.",
+          "sourceIds": [
+            "city-light"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "city-contacts.rachel.buyout",
+          "description": "Whether V accepted Rachel’s offer to step away.",
+          "topic": "rachel.v.buyout",
+          "outcomes": [
+            {
+              "key": "accepted",
+              "description": "V accepted the offer and disengaged from the project path.",
+              "affects": [
+                "rachel-casich"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "city-light"
+              ]
+            },
+            {
+              "key": "refused",
+              "description": "V refused and remained involved in the conversation.",
+              "affects": [
+                "rachel-casich"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "city-light"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "city-light"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Require explicit dialogue. Sources are inconsistent about payout timing; do not claim a sum, follow-up access or payment from a generic job completion flag."
+          }
+        },
+        {
+          "id": "city-contacts.rachel.joshua-influence",
+          "description": "Which verified tone V used with Joshua.",
+          "topic": "joshua.conviction.influence",
+          "outcomes": [
+            {
+              "key": "supported",
+              "description": "V expressed support for his intentions.",
+              "affects": [
+                "rachel-casich"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "city-wont-go"
+              ]
+            },
+            {
+              "key": "challenged",
+              "description": "V challenged the plan and introduced doubt.",
+              "affects": [
+                "rachel-casich"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "city-wont-go"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "city-wont-go"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Conversation choices may accumulate. No invented doubt counter or threshold. Rachel only directly knows what she heard or later production feedback reveals."
+          }
+        }
+      ],
+      "sourceIds": [
+        "city-rachel",
+        "city-light",
+        "city-wont-go"
+      ],
+      "uncertainties": [
+        "This records interaction evidence, not a guarantee of Joshua’s internal conviction or future commercial quality."
+      ]
+    },
+    {
+      "key": "they-wont-go-when-i-go",
+      "title": "They Won’t Go When I Go",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "rachel-casich"
+      ],
+      "synopsis": "At the studio, V’s participation and Joshua’s state affect a production whose result is reported later.",
+      "stages": [
+        {
+          "key": "studio-call",
+          "description": "Rachel asks V to attend the troubled shoot.",
+          "sourceIds": [
+            "city-rachel"
+          ]
+        },
+        {
+          "key": "dressing-room",
+          "description": "V speaks with Joshua before recording.",
+          "sourceIds": [
+            "city-wont-go"
+          ]
+        },
+        {
+          "key": "recording",
+          "description": "The execution is recorded; V can participate, observe or leave.",
+          "sourceIds": [
+            "city-rachel",
+            "city-wont-go"
+          ]
+        },
+        {
+          "key": "released-result",
+          "description": "Rachel later reports commercial success or failure.",
+          "sourceIds": [
+            "city-rachel"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "city-contacts.rachel.final-participation",
+          "description": "V’s specific role at the recording.",
+          "topic": "rachel.shoot.v-role",
+          "outcomes": [
+            {
+              "key": "performed",
+              "description": "V personally participated in the recorded execution.",
+              "affects": [
+                "rachel-casich"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "city-rachel"
+              ]
+            },
+            {
+              "key": "observed",
+              "description": "V remained as an observer while another participant performed it.",
+              "affects": [
+                "rachel-casich"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "city-rachel"
+              ]
+            },
+            {
+              "key": "departed",
+              "description": "V left without carrying out the role.",
+              "affects": [
+                "rachel-casich"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "city-wont-go"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "city-rachel",
+            "city-wont-go"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Participation is not evidence that the braindance succeeded; conviction and later feedback are separate."
+          }
+        },
+        {
+          "id": "city-contacts.rachel.production-result",
+          "description": "Rachel’s actual later evaluation of the production.",
+          "topic": "rachel.passion.result",
+          "outcomes": [
+            {
+              "key": "successful-report",
+              "description": "Rachel reported a successful release and reacted positively.",
+              "affects": [
+                "rachel-casich"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "city-rachel"
+              ]
+            },
+            {
+              "key": "failed-report",
+              "description": "Rachel reported damage to the project and blamed V.",
+              "affects": [
+                "rachel-casich"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "city-rachel"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "city-rachel"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Prefer explicit later call/message over reconstructed point arithmetic. Private dressing-room remarks are not shared with unrelated companions."
+          }
+        }
+      ],
+      "sourceIds": [
+        "city-rachel",
+        "city-wont-go"
+      ],
+      "uncertainties": [
+        "The exact cumulative dialogue formula is not established. Prayer choice alone is not a verified success switch."
+      ]
+    },
+    {
+      "key": "olive-branch",
+      "title": "Gig: Olive Branch",
+      "category": "gig",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "sergei-karasinsky",
+        "wakako-okada"
+      ],
+      "synopsis": "A peace offering contains a captive; V chooses whether to complete the delivery or release him.",
+      "stages": [
+        {
+          "key": "sergei-briefing",
+          "description": "Meet Sergei and receive the car.",
+          "sourceIds": [
+            "city-olive"
+          ]
+        },
+        {
+          "key": "optional-discovery",
+          "description": "Open the trunk and speak with Alex Pushkin.",
+          "sourceIds": [
+            "city-olive"
+          ]
+        },
+        {
+          "key": "delivery-choice",
+          "description": "Drive to the Tyger restaurant or release the captive.",
+          "sourceIds": [
+            "city-olive"
+          ]
+        },
+        {
+          "key": "later-evidence",
+          "description": "Separate later body discoveries may establish a death.",
+          "sourceIds": [
+            "city-olive"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "city-contacts.sergei.captive",
+          "description": "Disposition of Alex Pushkin.",
+          "topic": "olive-branch.alex",
+          "outcomes": [
+            {
+              "key": "delivered",
+              "description": "Car and captive delivered to the Tygers.",
+              "affects": [
+                "sergei-karasinsky",
+                "wakako-okada"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "city-olive"
+              ]
+            },
+            {
+              "key": "released",
+              "description": "V freed Alex instead of completing the intended offering.",
+              "affects": [
+                "sergei-karasinsky",
+                "wakako-okada"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "city-olive"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "city-olive"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "A recipient’s report can establish delivery; Sergei was not in the car with V. Generic gig success does not establish captive survival."
+          }
+        },
+        {
+          "id": "city-contacts.sergei.aftermath",
+          "description": "Which later death has been directly established.",
+          "topic": "olive-branch.aftermath",
+          "outcomes": [
+            {
+              "key": "sergei-body-found",
+              "description": "Sergei’s body was found after the release route.",
+              "affects": [
+                "sergei-karasinsky"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "city-olive",
+                "city-sergei"
+              ]
+            },
+            {
+              "key": "alex-body-found",
+              "description": "Alex’s body was found after the delivery route.",
+              "affects": [
+                "sergei-karasinsky"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "city-olive"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "city-olive",
+            "city-sergei"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Do not instantly convert a choice into knowledge of a later death. Require reveal/discovery and keep a summoned copy separate from the story actor."
+          }
+        }
+      ],
+      "sourceIds": [
+        "city-olive",
+        "city-sergei"
+      ],
+      "uncertainties": [
+        "A possible Guinea Pigs dialogue link needs that separate quest’s evidence and V’s actual discovery; no blanket omniscience about Biotechnica."
+      ]
+    },
+    {
+      "key": "the-distance",
+      "title": "The Distance",
+      "category": "activity",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "jim-jarry"
+      ],
+      "synopsis": "Repeatable street racing initiated through Jim after the earlier racing series.",
+      "stages": [
+        {
+          "key": "invitation",
+          "description": "Receive Jim’s message after The Beast in Me.",
+          "sourceIds": [
+            "city-distance",
+            "city-races"
+          ]
+        },
+        {
+          "key": "entry",
+          "description": "Choose a marked race and pay the entry fee.",
+          "sourceIds": [
+            "city-distance"
+          ]
+        },
+        {
+          "key": "run",
+          "description": "Participate in the selected race.",
+          "sourceIds": [
+            "city-races"
+          ]
+        },
+        {
+          "key": "result",
+          "description": "Observe finishing result and reward for this individual run.",
+          "sourceIds": [
+            "city-patch21"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "city-contacts.jim.race-access",
+          "description": "Whether this save received and accepted Jim’s invitation.",
+          "topic": "jim.races.access",
+          "outcomes": [
+            {
+              "key": "invited",
+              "description": "Jim’s invitation was received.",
+              "affects": [
+                "jim-jarry"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "city-races"
+              ]
+            },
+            {
+              "key": "accepted",
+              "description": "V accepted the offer to race again.",
+              "affects": [
+                "jim-jarry"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "city-distance"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "city-distance",
+            "city-races"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Narrative meaning only. Exact native fact/journal paths, stage gates, version and branch evidence must be reviewed before runtime use. Missing facts and zero values establish no outcome."
+          }
+        },
+        {
+          "id": "city-contacts.jim.race-result",
+          "description": "The result of a single repeatable race instance.",
+          "topic": "jim.races.result",
+          "outcomes": [
+            {
+              "key": "won",
+              "description": "A specific completed run recorded a win.",
+              "affects": [
+                "jim-jarry"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "city-patch21"
+              ]
+            },
+            {
+              "key": "completed-other-place",
+              "description": "A specific completed run recorded a nonwinning finish.",
+              "affects": [
+                "jim-jarry"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "city-races"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "city-races",
+            "city-patch21"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Must include race location/run identity and game time; a persistent global completion value cannot create unlimited wins or collapse repeat races into one memory."
+          }
+        }
+      ],
+      "sourceIds": [
+        "city-distance",
+        "city-races",
+        "city-patch21"
+      ],
+      "uncertainties": [
+        "Jim’s physical appearance, personal life and authority beyond organizing these races are not established by these sources.",
+        "Classification here is activity because repeatable; the game calls it a side job."
+      ]
+    },
+    {
+      "key": "the-corpo-rat",
+      "title": "The Corpo-Rat",
+      "category": "main",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "life-coach"
+      ],
+      "synopsis": "Life Coach-specific slice of the Corpo introduction: an optional call during V’s AV trip.",
+      "stages": [
+        {
+          "key": "corpo-introduction",
+          "description": "The selected lifepath places V in Arasaka employment.",
+          "sourceIds": [
+            "city-corpo-gg"
+          ]
+        },
+        {
+          "key": "av-call",
+          "description": "The coach is one of the calls during the flight.",
+          "sourceIds": [
+            "city-corpo"
+          ]
+        },
+        {
+          "key": "service-boundary",
+          "description": "Later employment/benefit changes must not be assumed to leave coaching services available.",
+          "sourceIds": [
+            "city-corpo-gg"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "city-contacts.coach.intro-call",
+          "description": "Whether Corpo V actually answered this call.",
+          "topic": "coach.v.intro",
+          "outcomes": [
+            {
+              "key": "answered",
+              "description": "V answered the coach’s call during the AV flight.",
+              "affects": [
+                "life-coach"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "city-corpo"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "city-corpo"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Requires Corpo lifepath and explicit answered-call evidence. Presence in the phone roster is not proof of a conversation or ongoing biometric access."
+          }
+        }
+      ],
+      "sourceIds": [
+        "city-corpo",
+        "city-corpo-gg"
+      ],
+      "uncertainties": [
+        "No medical qualification, true name, autonomous surveillance power or post-prologue service is sourced."
+      ]
+    },
+    {
+      "key": "spy-in-the-jungle",
+      "title": "Gig: Spy in the Jungle",
+      "category": "gig",
+      "game": "phantom-liberty",
+      "nativeIds": [],
+      "characters": [
+        "mark-bana",
+        "ana-friedman",
+        "steven-santos"
+      ],
+      "synopsis": "Mark-specific slice: a missing agent’s apparent signal masks another person; fate, evidence disposal and later disclosure must remain separate.",
+      "stages": [
+        {
+          "key": "briefing",
+          "description": "Agents report a revived biomonitor signal and ask for a discreet search.",
+          "sourceIds": [
+            "city-spy"
+          ]
+        },
+        {
+          "key": "museum-signal",
+          "description": "A voice apparently belonging to Bana guides V through Organitopia.",
+          "sourceIds": [
+            "city-spy"
+          ]
+        },
+        {
+          "key": "identity-reveal",
+          "description": "Katya reveals that Bana died and that she is using his signal.",
+          "sourceIds": [
+            "city-spy",
+            "city-spy-gg"
+          ]
+        },
+        {
+          "key": "katya-choice",
+          "description": "V chooses whether to spare her and takes the biomonitor.",
+          "sourceIds": [
+            "city-spy"
+          ]
+        },
+        {
+          "key": "evidence-choice",
+          "description": "Give the evidence to Ana, destroy it, or follow Steven’s drop-point route.",
+          "sourceIds": [
+            "city-spy"
+          ]
+        },
+        {
+          "key": "later-fallout",
+          "description": "Later conversation/reports may reveal consequences beyond contract completion.",
+          "sourceIds": [
+            "city-bana"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "city-contacts.bana.identity-reveal",
+          "description": "Whether V established that the apparent Bana contact was an impersonation.",
+          "topic": "bana.identity",
+          "outcomes": [
+            {
+              "key": "katya-revealed",
+              "description": "Katya’s impersonation and Bana’s death were revealed to V.",
+              "affects": [
+                "mark-bana",
+                "ana-friedman",
+                "steven-santos"
+              ],
+              "knowledge": "witnessed",
+              "sourceIds": [
+                "city-spy",
+                "city-spy-gg"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "city-spy",
+            "city-spy-gg"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Do not use an active biomonitor or holocall portrait to infer survival. A spawned Bana model is not Katya and cannot inherit her private knowledge."
+          }
+        },
+        {
+          "id": "city-contacts.bana.katya-fate",
+          "description": "V’s action toward the impersonator.",
+          "topic": "bana.katya.fate",
+          "outcomes": [
+            {
+              "key": "spared",
+              "description": "Katya was allowed to leave after handing over evidence.",
+              "affects": [
+                "mark-bana"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "city-spy"
+              ]
+            },
+            {
+              "key": "killed",
+              "description": "Katya was killed.",
+              "affects": [
+                "mark-bana"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "city-spy"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "city-spy"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Bana did not witness these posthumous events. Accepting a deal can be followed by a later killing, so actual actor fate supersedes initial dialogue intent."
+          }
+        },
+        {
+          "id": "city-contacts.bana.evidence",
+          "description": "How V disposed of Bana’s biomonitor evidence.",
+          "topic": "bana.evidence.disposition",
+          "outcomes": [
+            {
+              "key": "given-ana",
+              "description": "V gave it to Ana for exposure.",
+              "affects": [
+                "mark-bana",
+                "ana-friedman",
+                "steven-santos"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "city-spy"
+              ]
+            },
+            {
+              "key": "destroyed",
+              "description": "V destroyed it during the agents’ dispute.",
+              "affects": [
+                "mark-bana",
+                "ana-friedman",
+                "steven-santos"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "city-spy"
+              ]
+            },
+            {
+              "key": "drop-point",
+              "description": "V used the designated drop point following Steven’s instruction.",
+              "affects": [
+                "mark-bana",
+                "ana-friedman",
+                "steven-santos"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "city-spy"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "city-spy"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Participant applies to living agents in the room; Bana’s reconstruction may discuss it only as a report from V. Never phrase it as his remembered rescue."
+          }
+        },
+        {
+          "id": "city-contacts.bana.aftermath-report",
+          "description": "Whether later consequences were actually disclosed.",
+          "topic": "bana.exposure.aftermath",
+          "outcomes": [
+            {
+              "key": "steven-report",
+              "description": "A later encounter with Steven established the consequences of exposing the cover-up.",
+              "affects": [
+                "mark-bana",
+                "ana-friedman",
+                "steven-santos"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "city-bana"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "city-bana"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Require the later report before discussing imprisonment, honors, benefits or institutional fallout. Exposure is not proof the speaker witnessed every result."
+          }
+        }
+      ],
+      "sourceIds": [
+        "city-bana",
+        "city-spy",
+        "city-spy-gg"
+      ],
+      "uncertainties": [
+        "Partial coverage: the operation’s broader political links belong with Ana/Steven dossiers.",
+        "Some early guides report no aftermath, but later accounts identify a stadium encounter; native mapping must verify version and reveal gate."
+      ]
+    },
+    {
+      "key": "dazed-and-confused",
+      "title": "Dazed and Confused",
+      "category": "side",
+      "game": "phantom-liberty",
+      "nativeIds": [],
+      "characters": [
+        "shank",
+        "rachel-casich"
+      ],
+      "synopsis": "A Brainporium crisis creates a choice between helping Tool recover and building a commercial performance around the altered identity.",
+      "stages": [
+        {
+          "key": "brainporium",
+          "description": "Investigate the apparent captive at Shank’s shop.",
+          "sourceIds": [
+            "city-dazed"
+          ]
+        },
+        {
+          "key": "tool-evidence",
+          "description": "Learn Tool’s condition and find his personal letter.",
+          "sourceIds": [
+            "city-dazed",
+            "city-dazed-gp"
+          ]
+        },
+        {
+          "key": "lina-recruitment",
+          "description": "Recruit the actual Lina Malina for a recorded encounter.",
+          "sourceIds": [
+            "city-dazed"
+          ]
+        },
+        {
+          "key": "directing",
+          "description": "Choose which approach Lina uses during the recording.",
+          "sourceIds": [
+            "city-dazed"
+          ]
+        },
+        {
+          "key": "business-aftermath",
+          "description": "Observe later messages and any studio offer.",
+          "sourceIds": [
+            "city-rachel",
+            "city-dazed"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "city-contacts.shank.tool-treatment",
+          "description": "Which narrative direction V chose for the shoot.",
+          "topic": "brainporium.tool.outcome",
+          "outcomes": [
+            {
+              "key": "letter-recovery",
+              "description": "Lina read Tool’s letter and he recovered his former identity.",
+              "affects": [
+                "shank"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "city-dazed",
+                "city-dazed-gp"
+              ]
+            },
+            {
+              "key": "sister-performance",
+              "description": "Lina presented Tool as her sister and their performance partnership continued.",
+              "affects": [
+                "shank"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "city-dazed"
+              ]
+            },
+            {
+              "key": "clone-performance",
+              "description": "The shoot used an FIA-clone story; Lina did not stay to build the same partnership.",
+              "affects": [
+                "shank"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "city-dazed"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "city-dazed",
+            "city-dazed-gp"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "The clone/sister framing is a performed story, not evidence of genetic cloning, kinship or FIA involvement. Do not diagnose real people by analogy."
+          }
+        },
+        {
+          "id": "city-contacts.shank.rachel-contact",
+          "description": "Whether Rachel entered the subsequent business story.",
+          "topic": "brainporium.fourth-wall.offer",
+          "outcomes": [
+            {
+              "key": "offer-received",
+              "description": "Rachel actually contacted V about the performers.",
+              "affects": [
+                "shank",
+                "rachel-casich"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "city-rachel"
+              ]
+            },
+            {
+              "key": "hostile-contact",
+              "description": "A later Rachel message connected her hostility to the earlier failed Passion production.",
+              "affects": [
+                "shank",
+                "rachel-casich"
+              ],
+              "knowledge": "participant",
+              "sourceIds": [
+                "city-rachel"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "city-rachel"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "A commercial pitch is not a signed contract. Shank only knows Rachel’s private message if V shares it or a direct interaction is observed."
+          }
+        }
+      ],
+      "sourceIds": [
+        "city-shank",
+        "city-dazed",
+        "city-dazed-gp",
+        "city-rachel"
+      ],
+      "uncertainties": [
+        "An immediate release path exists in player reports but is not fully corroborated by the inspected guide sections; do not infer its detailed aftermath.",
+        "This lane does not claim every Lina recruitment method, reward or later motorcycle condition."
+      ]
+    },
+    {
+      "key": "stadium-love",
+      "title": "Stadium Love",
+      "category": "side",
+      "game": "base",
+      "nativeIds": [],
+      "characters": [
+        "jake-estevez"
+      ],
+      "synopsis": "Bounded cross-quest consequence only: a 6th Street member can recognize V from the violence at Wicked Tires during Life's Work. Jake is not at the shooting contest and has no automatic knowledge of the confrontation.",
+      "stages": [
+        {
+          "key": "possible-recognition",
+          "description": "A participant may identify V as the merc involved in the Wicked Tires incident; the contest itself does not establish the cause or guarantee recognition.",
+          "sourceIds": [
+            "city-life-work"
+          ]
+        }
+      ],
+      "decisions": [
+        {
+          "id": "city-contacts.jake.recognition",
+          "description": "Whether the later 6th Street encounter actually recognized V for the autoshop violence.",
+          "topic": "jake.autoshop.later-recognition",
+          "outcomes": [
+            {
+              "key": "recognized-later",
+              "description": "A Stadium Love participant later recognized V from the shop violence.",
+              "affects": [
+                "jake-estevez"
+              ],
+              "knowledge": "told-by-v",
+              "sourceIds": [
+                "city-life-work"
+              ]
+            }
+          ],
+          "sourceIds": [
+            "city-life-work"
+          ],
+          "runtime": {
+            "status": "unmapped",
+            "conditions": null,
+            "evidence": [],
+            "notes": "Requires the actual recognition branch in the native Stadium Love scene. No inference from Life's Work completion, generic combat, or contest completion. Jake may discuss this only after V discloses it."
+          }
+        }
+      ],
+      "sourceIds": [
+        "city-life-work"
+      ],
+      "gaps": [
+        "This lane does not map shooting scores, drinking, prizes or other Stadium Love outcomes.",
+        "Recognition is knowledge held by V and the involved gang member, not a direct Jake memory."
+      ]
+    }
+  ]
+}
