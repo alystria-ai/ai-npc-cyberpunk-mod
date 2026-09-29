@@ -61,9 +61,15 @@ The live September 30 diagnostic established:
   same Added/Changed shape as loot. Source exclusion is therefore required.
 
 `npm run test:loot` covers the source sequences, batching, exact-copy witnesses,
-cooldowns, cancellation, battle merging and wire validation. Fixture checks do
-not qualify audible game behavior. Production installation and the first spoken
-loot reaction are pending.
+cooldowns, cancellation, battle merging and wire validation. September 30:
+110 checks pass; the optional installed-MCM integration check also passes when
+run separately against the game's actual API files. The source checkpoint is
+`ac609bc`. Fixture checks do not qualify audible game behavior.
+The combined Lua update was installed and hash-verified at 01:00 IST on
+September 30; the conversation bridge was restarted with the new context code.
+CET activation and the first spoken loot reaction are pending. The previous
+installed adapters are backed up under
+`backups/loot-equipment-before-20260930-010043/`.
 
 Only the observed item-specific Loot path is admitted initially. Corpse loot-all,
 virtual pickups and acquisitions that emit Changed without Added are not yet

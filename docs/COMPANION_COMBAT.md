@@ -38,6 +38,9 @@ record checks pass; all four affected Lua modules parse. These cover exact
 command ownership, delayed cancellation, departure, combat, teardown and hand
 clearance. The temporary probe has been retired. The production handoff and
 visible holstering still need live verification after the combined CET reload.
+Checkpoint `679e801` was installed and hash-verified at 01:00 IST on September 30.
+The previous adapters are retained under
+`backups/loot-equipment-before-20260930-010043/`; CET activation is pending.
 Use `party-weapon-state:<nonce>` for read-only hand attachments, combat/scene
 gates, movement state and equipment ownership.
 
