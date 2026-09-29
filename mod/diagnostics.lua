@@ -304,7 +304,8 @@ if request:match('^composer%-input:') then
     end
     local f = io.open('runtime/composer-input.json', 'wb')
     if f then f:write(json.encode({installed = fix.installed, patched = fix.patched, seen = fix.seen,
-        title = fix.lastTitle, case = fix.lastCase, error = fix.lastError})); f:close() end
+        title = fix.lastTitle, case = fix.lastCase, placeholder = fix.lastPlaceholder,
+        error = fix.lastError})); f:close() end
     return
 end
 if request:match('^subtitles%-enable:') then

@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 import fengari from 'fengari';
 
 const source = readFileSync(new URL('../mod/phone-chat-style.lua', import.meta.url), 'utf8');
+const composerSource = readFileSync(new URL('../mod/composer-input.lua', import.meta.url), 'utf8');
 function runLua(program) {
   const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
   const vm = lauxlib.luaL_newstate(); lualib.luaL_openlibs(vm);
@@ -26,7 +27,8 @@ local function widget(name)
   function w:SetState(value) self.state=value end
   function w:GetNumChildren() return #self.children end
   function w:GetWidgetByIndex(i) return self.children[i+1] end
-  function w:Reparent(parent) table.insert(parent.children,self) end
+  function w:Reparent(parent) self.parent=parent; table.insert(parent.children,self) end
+  function w:GetParentWidget() return self.parent end
   function w:IsVisible() return self.visible end
   function w:SetVisible(value) self.visible=value end
   function w:SetSize(value) self.size=value end
@@ -92,4 +94,57 @@ focused=true; m.composer(popup,'Unable to connect. Try again.')
 assert(input.placeholder:find('Enter to send') and hint.visible)
 contact=''; hint.visible=true; m.composer(popup,'')
 assert(hint.visible) -- Native Messages isn't our composer.
+`));
+
+test('inherited focus hooks leave world chat, manager search and detached inputs untouched', () => runLua(setup + `
+for _, name in ipairs({'TextInput', 'managerSearch', 'input'}) do
+  local input=widget(name)
+  if name~='input' then input:Reparent(root) end
+  local original='Original prompt for '..name
+  input.placeholder=original
+  input.controller={IsFocused=function() return true end, GetRootWidget=function() return input end,
+    SetDefaultText=function(_,value) input.placeholder=value end,
+    SetText=function() error('A style hook must not replace the draft') end}
+  for _, method in ipairs({'OnFocusReceived','OnFocusLost'}) do
+    observers['CyberpunkConvai.ConvaiPhoneChatInput.'..method](input.controller)
+    assert(input.placeholder==original, name..' inherited the phone hint')
+    assert(m.lastError==nil, m.lastError)
+  end
+end
+-- The same inherited callback still updates the owned phone composer.
+local panel=widget('convaiPhoneComposer'); panel:Reparent(root)
+local input=widget('input'); input:Reparent(panel)
+local focused=true
+input.controller={IsFocused=function() return focused end, GetRootWidget=function() return input end,
+  SetDefaultText=function(_,value) input.placeholder=value end}
+observers['CyberpunkConvai.ConvaiPhoneChatInput.OnFocusReceived'](input.controller)
+assert(input.placeholder:find('Enter to send'))
+focused=false
+observers['CyberpunkConvai.ConvaiPhoneChatInput.OnFocusLost'](input.controller)
+assert(input.placeholder=='Press Enter to write  /  Esc to stop typing')
+assert(m.lastError==nil, m.lastError)
+`));
+
+test('world composer restores its own prompt without editing drafts or other notifications', () => runLua(setup + `
+textLetterCase={OriginalCase=3}
+local data={title='TALK TO JUDY',message='Type your message to the character.'}
+local placeholder='Press Enter to write  /  Esc to stop typing'
+local letterCase=1
+local input={SetDefaultText=function(_,value) placeholder=value end,
+  GetDefaultText=function() return placeholder end,
+  SetLetterCase=function(_,value) letterCase=value end, GetLetterCase=function() return letterCase end,
+  SetText=function() error('Do not replace the draft') end}
+local notification={m_textInput=input,GetRootWidget=function() return {
+  GetUserData=function() return data end} end}
+local fix=(function() ${composerSource} end)()
+fix.apply(notification)
+assert(placeholder==data.message and letterCase==textLetterCase.OriginalCase)
+assert(fix.lastPlaceholder==data.message)
+data={title='Other mod',message='Type your message to the character.'}
+placeholder='Other prompt'; letterCase=1
+fix.apply(notification)
+assert(placeholder=='Other prompt' and letterCase==1)
+data={title='TALK TO SOMEBODY',message='Unrelated dialog'}
+fix.apply(notification)
+assert(placeholder=='Other prompt' and letterCase==1)
 `));

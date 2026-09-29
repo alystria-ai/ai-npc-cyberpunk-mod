@@ -118,6 +118,13 @@ replies cannot enter a new attachment, and repeated polls do not resend a reques
   are all good. This is user visual acceptance; no new screenshot was supplied.
   Normal Messages restoration has automated coverage, not a separate live check.
   No game input was injected and no restart was required for the correction.
+- Follow-up: inherited Codeware focus callbacks also reached F6/F8 inputs.
+  Placeholder and text-style changes now require a `convaiPhoneComposer` ancestor.
+  The world composer keeps “Type your message to the character.” and mixed-case
+  typing; changing the hint never changes a draft. The regression reproduced
+  the leaked hint before the fix and passes afterward, including detached inputs
+  and manager search. All 20 focused phone checks pass. Applied live without a
+  reload; the user confirmed the original in-world prompt is restored.
 
 ### Combined live check
 

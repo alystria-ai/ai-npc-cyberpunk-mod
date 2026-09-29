@@ -129,27 +129,34 @@ function M.isChat(controller)
     return marker and marker:IsVisible() or false
 end
 
-function M.inputText(flow)
-    local text = flow:GetRootWidget()
-    local owner = text
+local function phoneComposer(widget)
+    local owner = widget
     for _ = 1, 7 do
         if not owner then return end
-        if owner:GetName() == CName.new('convaiPhoneComposer') then
-            local focus = find(owner, 'focus', 4)
-            if focus then text:SetTintColor(focus:GetTintColor()) end
-            -- Codeware dims empty placeholders to 15%, too faint in the phone.
-            text:SetOpacity(flow:IsEmpty() and 0.75 or 1.0)
-            return
-        end
+        if owner:GetName() == CName.new('convaiPhoneComposer') then return owner end
         owner = owner:GetParentWidget()
     end
 end
 
+function M.inputText(flow)
+    local text = flow:GetRootWidget()
+    local owner = phoneComposer(text)
+    if not owner then return end
+    local focus = find(owner, 'focus', 4)
+    if focus then text:SetTintColor(focus:GetTintColor()) end
+    -- Codeware dims empty placeholders to 15%, too faint in the phone.
+    text:SetOpacity(flow:IsEmpty() and 0.75 or 1.0)
+end
+
 function M.input(input)
+    -- CET can observe an inherited Codeware callback on other input classes.
+    -- Check the actual owning tree before changing any placeholder or style.
+    local root = input:GetRootWidget()
+    if not phoneComposer(root) then return end
     input:SetDefaultText(input:IsFocused()
         and 'Write a message...  /  Enter to send  /  Esc to stop typing'
         or 'Press Enter to write  /  Esc to stop typing')
-    local text = find(input:GetRootWidget(), 'text', 4)
+    local text = find(root, 'text', 4)
     if text and text:GetController() then M.inputText(text:GetController()) end
 end
 
