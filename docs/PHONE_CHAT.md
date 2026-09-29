@@ -51,7 +51,11 @@ not unlock contacts or change quest state.
   a newer unsent draft during an earlier request's failure.
 - A real text-only Judy request returned 26 characters in 4.866 seconds. This is
   service-path evidence, not a measurement of on-screen send-to-display latency.
-- Native install, visual layout and real typing are **pending**. Confirm mixed-case
+- Installed with SHA-256 copy verification after the user closed the game. Restarted
+  the bridge, launched Cyberpunk PID 11260, and confirmed actual startup compilation
+  completed at 13:19:02 IST. Only `PhoneChat.reds` differed from the installed native
+  files before this install; existing native scripts were unchanged.
+- Visual layout and real typing are **pending**. Confirm mixed-case
   text containing J/L/F/C does not trigger Journal, invite, call or close; verify
   Escape, a reply in the panel, draft retention and the normal scripted choices.
 - Check a supported contact without an existing SMS thread as a separate native
