@@ -250,6 +250,45 @@ options.journalDepth=5
 assert(capture().journal['-1'].status=='unknown' and parentReads==5)
 `));
 
+test('reviewed path aliases resolve without invented hashes and record the actual native hash', () => run(nativeFixture + `
+pack.journalAllowlist={['city.test.objective']={questKey='test-quest',evidenceRefs={'native:journal'},
+ nativePath='quests/test/phase/objective',nativeClass='gameJournalQuestObjective'}}
+local out=capture(); assert(out.journal['city.test.objective'].value=='succeeded')
+assert(out.journal['city.test.objective'].evidenceRefs[2]=='journal-hash:4294967295')
+pack.journalAllowlist['city.test.objective'].expectedHash='55'
+assert(capture().journal['city.test.objective'].status=='unknown')
+`));
+
+test('selected phone choices and received messages use narrow phone ancestry; unchosen, hidden and unknown contacts stay unknown', () => run(nativeFixture + `
+local contact=node(40,'gameJournalContact','Active')
+function contact:IsKnown() return self.known~=false end
+local conversation=node(41,'gameJournalPhoneConversation','Active',contact)
+local group=node(42,'gameJournalPhoneChoiceGroup','Active',conversation)
+local choice=node(43,'gameJournalPhoneChoiceEntry','Succeeded',group); choice.visited=true
+local message=node(44,'gameJournalPhoneMessage','Active',conversation)
+function manager:IsEntryVisited(entry) return entry.visited==true end
+function manager:GetEntryByString(path,class)
+ if path=='contacts/regina/case/sent_report' then assert(class=='gameJournalPhoneChoiceEntry'); return choice end
+ assert(path=='contacts/regina/case/reply' and class=='gameJournalPhoneMessage'); return message
+end
+pack.journalAllowlist={
+ ['case.report']={questKey='case',evidenceRefs={'native:report'},nativePath='contacts/regina/case/sent_report',nativeClass='gameJournalPhoneChoiceEntry'},
+ ['case.reply']={questKey='case',evidenceRefs={'native:reply'},nativePath='contacts/regina/case/reply',nativeClass='gameJournalPhoneMessage'}}
+local out=capture(); assert(out.journal['case.report'].value=='succeeded' and out.journal['case.reply'].value=='active')
+choice.state='Active'; assert(capture().journal['case.report'].status=='unknown')
+choice.state='Inactive'; assert(capture().journal['case.report'].status=='unknown')
+choice.state='Succeeded'; choice.visited=false; assert(capture().journal['case.report'].status=='unknown')
+choice.visited=true; group.state='Inactive'; assert(capture().journal['case.report'].status=='unknown')
+pack.journalAllowlist['case.report'].allowRetiredChoiceGroup=true
+pack.journalAllowlist['case.report'].retiredGroupEvidenceRefs={'native:report'}
+assert(capture().journal['case.report'].value=='succeeded','verified retired group erased selected receipt')
+choice.state='Inactive'; assert(capture().journal['case.report'].status=='unknown','retired group made an unselected leaf known')
+choice.state='Succeeded'; conversation.state='Inactive'; assert(capture().journal['case.report'].status=='unknown')
+conversation.state='Active'
+group.state='Active'; contact.known=false; out=capture()
+assert(out.journal['case.report'].status=='unknown' and out.journal['case.reply'].status=='unknown')
+`));
+
 test('a captured Lua snapshot conforms to the bridge parser, including absent empty lists and unknown native identity', () => {
   const actual = run(nativeFixture + 'return capture()');
   const parsed = parseWorldSnapshot(actual);

@@ -18,6 +18,17 @@ $targets = @(
     @{ From = (Join-Path $project 'mod\battle-observer.lua'); To = (Join-Path $game 'bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai\battle-observer.lua') },
     @{ From = (Join-Path $project 'mod\battle-reactions.lua'); To = (Join-Path $game 'bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai\battle-reactions.lua') },
     @{ From = (Join-Path $project 'mod\quest-context.lua'); To = (Join-Path $game 'bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai\quest-context.lua') },
+    # The optional KnowledgeState.reds native component remains quarantined.
+    # These Lua adapters support anonymous, current-world context without it.
+    @{ From = (Join-Path $project 'mod\knowledge-state.lua'); To = (Join-Path $game 'bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai\knowledge-state.lua') },
+    @{ From = (Join-Path $project 'mod\save-identity.lua'); To = (Join-Path $game 'bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai\save-identity.lua') },
+    @{ From = (Join-Path $project 'mod\world-knowledge.lua'); To = (Join-Path $game 'bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai\world-knowledge.lua') },
+    @{ From = (Join-Path $project 'mod\journal-history.lua'); To = (Join-Path $game 'bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai\journal-history.lua') },
+    @{ From = (Join-Path $project 'mod\knowledge-probe.lua'); To = (Join-Path $game 'bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai\knowledge-probe.lua') },
+    # The facts alternative stays inert unless explicitly selected and qualified.
+    @{ From = (Join-Path $project 'mod\fact-identity.lua'); To = (Join-Path $game 'bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai\fact-identity.lua') },
+    @{ From = (Join-Path $project 'mod\fact-identity-probe.lua'); To = (Join-Path $game 'bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai\fact-identity-probe.lua') },
+    @{ From = (Join-Path $project 'characters\world-knowledge.json'); To = (Join-Path $game 'bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai\world-knowledge.json') },
     @{ From = (Join-Path $project 'r6\scripts\CyberpunkConvai\PhoneChatTabs.reds'); To = (Join-Path $game 'r6\scripts\CyberpunkConvai\PhoneChatTabs.reds') },
     @{ From = (Join-Path $project 'mod\phone-chat.lua'); To = (Join-Path $game 'bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai\phone-chat.lua') },
     @{ From = (Join-Path $project 'mod\phone-chat-style.lua'); To = (Join-Path $game 'bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai\phone-chat-style.lua') },

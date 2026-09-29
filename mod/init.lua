@@ -6,6 +6,7 @@ local speech = dofile('speech.lua')
 local microphone = dofile('microphone.lua')
 local characterCatalog = dofile('character-catalog.lua')
 local groupChat = dofile('group-chat.lua')
+groupChat.captureReply = speech.transcript
 local manager = dofile('manager.lua')
 local mcm = dofile('mcm.lua')
 local phoneLayout = dofile('phone-layout.lua')
@@ -18,6 +19,190 @@ convaiBattleReactions = battles
 local lootObserver = dofile('loot-observer.lua')
 local loot = dofile('loot-reactions.lua').new()
 convaiLootObserver, convaiLootReactions = lootObserver, loot
+-- Construction is inert. Native identity inspection and collection start only
+-- after onUpdate has confirmed an attached, alive player in the loaded world.
+local knowledgeState
+local knowledgeAllowed, knowledgeEpoch, knowledgePoll, knowledgeInvalidated = false, 0, 0, false
+local knowledgeFrame, knowledgeChanged, knowledgeConfigured = nil, false, false
+local knowledgePhoneCapture, knowledgePhoneReceipts = nil, {}
+local knowledgeLaunch = 'lua-world-' .. tostring(os.time()) .. '-' .. tostring(math.random(100000000, 999999999))
+local worldSessionSignature, worldSessionAt = nil, nil
+local function knowledgeUnavailable(reason)
+    return {version = 1, status = 'unavailable', reason = reason or 'world-unavailable'}
+end
+local function knowledgeOwner(frame)
+    return {session = knowledgeEpoch, generation = frame and frame.generation, worldToken = frame and frame.worldToken,
+        paused = frame and frame.status == 'paused' or false}
+end
+local function sameKnowledgeOwner(a, b)
+    return a and b and a.session == b.session and a.generation == b.generation and a.worldToken == b.worldToken
+end
+knowledgeState = dofile('knowledge-state.lua').new({currentGeneration = function()
+    if not knowledgeAllowed then return nil end
+    return knowledgeState.inspect().generation
+end})
+local worldKnowledge = dofile('world-knowledge.lua').new({
+    currentGeneration = function() return knowledgeFrame and knowledgeFrame.generation end,
+    currentWorldToken = function() return knowledgeFrame and knowledgeFrame.worldToken end})
+local journalHistory = dofile('journal-history.lua').new({
+    currentGeneration = function() return knowledgeFrame and knowledgeFrame.generation end,
+    currentWorldToken = function() return knowledgeFrame and knowledgeFrame.worldToken end})
+convaiKnowledgeState, convaiWorldKnowledge = knowledgeState, worldKnowledge
+
+local function publishWorldSession(frame, ready, force)
+    local now = os.time()
+    local value = {version = 1, token = frame and frame.worldToken or (knowledgeLaunch .. '-' .. (knowledgeEpoch + 1)),
+        generation = frame and frame.generation or (knowledgeEpoch + 1), ready = ready == true, updated = now * 1000}
+    local signature = value.token .. ':' .. tostring(value.ready)
+    if not force and signature == worldSessionSignature and worldSessionAt == now then return end
+    local encoded, raw = pcall(json.encode, value); if not encoded then return end
+    local path = 'runtime/world-session.json'
+    local file = io.open(path .. '.tmp', 'wb'); if not file then return end
+    local written, closed = file:write(raw), file:close(); if not written or not closed then return end
+    if not os.rename(path .. '.tmp', path) then os.remove(path); if not os.rename(path .. '.tmp', path) then return end end
+    worldSessionSignature, worldSessionAt = signature, now
+end
+
+local function refreshKnowledgeFrame()
+    if not knowledgeAllowed then return knowledgeUnavailable() end
+    local ok, frame = pcall(knowledgeState.snapshot)
+    if not ok or type(frame) ~= 'table' then frame = knowledgeUnavailable('native-read-failed') end
+    if frame.status ~= 'ready' and frame.status ~= 'paused' then
+        -- This token isolates anonymous transports on explicit Lua lifecycle
+        -- boundaries. It grants no persistent identity or inherited memory.
+        frame = {version = 1, status = 'ready', anonymous = true, generation = knowledgeEpoch + 1,
+            worldToken = knowledgeLaunch .. '-' .. (knowledgeEpoch + 1), identity = knowledgeUnavailable(frame.reason)}
+    end
+    if knowledgeFrame and not sameKnowledgeOwner(knowledgeOwner(knowledgeFrame), knowledgeOwner(frame)) then
+        knowledgeChanged = true
+        worldKnowledge:reset(nil, 'world-binding-changed'); journalHistory:reset()
+    end
+    knowledgeFrame = frame
+    publishWorldSession(frame, true)
+    return frame
+end
+
+local function invalidateKnowledge(reason)
+    -- No native reads here: teardown must publish unavailable before any actor
+    -- cleanup. The local epoch is a cancellation guard, never a save identity.
+    local before = knowledgeFrame
+    knowledgeAllowed, knowledgeFrame, knowledgePhoneCapture = false, nil, nil
+    publishWorldSession(before, false, true)
+    knowledgeEpoch, knowledgePoll, knowledgeChanged = knowledgeEpoch + 1, 0, false
+    knowledgeInvalidated = true
+    knowledgeState.invalidate(reason)
+    worldKnowledge:reset(nil, reason); journalHistory:reset()
+end
+
+local function configureKnowledge()
+    if knowledgeConfigured then return end
+    knowledgeConfigured = true
+    local file = io.open('world-knowledge.json', 'rb')
+    if not file then return end
+    local raw = file:read(8 * 1024 * 1024 + 1); file:close()
+    if type(raw) ~= 'string' or #raw > 8 * 1024 * 1024 then return end
+    local decoded, pack = pcall(json.decode, raw)
+    local versionOk, version = pcall(function() return Game.GetSystemRequestsHandler():GetGameVersion() end)
+    if decoded and type(pack) == 'table' and versionOk and type(version) == 'string' then
+        worldKnowledge:configure(pack, {gameVersion = version})
+    end
+end
+
+local function updateKnowledge(delta)
+    knowledgePoll = knowledgePoll + math.max(tonumber(delta) or 0, 1 / 60)
+    if knowledgePoll >= 0.1 then
+        knowledgePoll = 0
+        knowledgeState.update()
+    end
+    local before = refreshKnowledgeFrame()
+    if before.status == 'paused' then return end
+    if before.status ~= 'ready' then
+        worldKnowledge:reset(nil, before.reason); journalHistory:reset(); return
+    end
+    configureKnowledge()
+    local context = {generation = before.generation, worldToken = before.worldToken}
+    -- Each collector enforces its own per-frame work and age limits. A second
+    -- inspection rejects any native transition that occurred during its reads.
+    worldKnowledge:update(context); journalHistory:update(context)
+    refreshKnowledgeFrame()
+end
+
+local function captureKnowledge(context, channel)
+    if not knowledgeAllowed then return nil end
+    local before = refreshKnowledgeFrame()
+    if before.status == 'paused' then return nil, 'save-in-progress' end
+    local owner = knowledgeOwner(before)
+    local audience = {channel = channel or (context.group and 'group' or 'private'), profileKeys = {}}
+    if context.group then
+        for _, key in ipairs(context.group.audience or {}) do audience.profileKeys[#audience.profileKeys + 1] = key end
+    elseif context.profileKey then audience.profileKeys[1] = context.profileKey end
+    local identity = {status = 'unknown'}
+    local native = before.identity
+    local named = true
+    for _, key in ipairs(audience.profileKeys) do
+        if key == 'resident-male' or key == 'resident-female' then named = false end
+    end
+    if named and type(native) == 'table' and native.status == 'available' and native.authoritative == true then
+        identity = {status = 'verified', userId = native.userId or native.localUserId,
+            playthroughId = native.playthroughId or native.campaignId, branchId = native.branchId, checkpointId = native.checkpointId}
+    end
+    local world, history = knowledgeUnavailable(before.reason), knowledgeUnavailable(before.reason)
+    if before.status == 'ready' then
+        local binding = {generation = before.generation, worldToken = before.worldToken, audience = audience, identity = identity}
+        world, history = worldKnowledge:capture(binding), journalHistory:capture(binding)
+    end
+    local after = refreshKnowledgeFrame()
+    if not knowledgeAllowed or not sameKnowledgeOwner(owner, knowledgeOwner(after)) then return nil end
+    if after.status == 'paused' then return nil, 'save-in-progress' end
+    return {worldKnowledge = world, journalHistory = history, owner = owner}
+end
+
+local function attachKnowledge(context)
+    local ok, captured = pcall(captureKnowledge, context)
+    if not ok or not captured then return nil end
+    context.worldKnowledge, context.journalHistory = captured.worldKnowledge, captured.journalHistory
+    return captured.owner
+end
+
+local function capturePhoneBinding()
+    local frame = refreshKnowledgeFrame()
+    if frame.status ~= 'ready' then return knowledgeUnavailable(frame.reason) end
+    local value = frame.identity or knowledgeUnavailable('identity-unavailable')
+    -- Preserve the native load generation even before a user binding is ready.
+    value.generation = frame.generation
+    return value
+end
+
+local function publishPhoneDelivery(receipt)
+    if type(receipt) ~= 'table' or receipt.source ~= 'phone-ui' or receipt.state ~= 'accepted'
+        or receipt.partial ~= false or receipt.cancelled ~= false or type(receipt.id) ~= 'string'
+        or #receipt.id == 0 or #receipt.id > 240 or type(receipt.completedAt) ~= 'number' then return end
+    for _, prior in ipairs(knowledgePhoneReceipts) do if prior.id == receipt.id then return end end
+    local row = {version = 1, source = 'phone-ui', state = 'accepted', partial = false, cancelled = false}
+    for _, key in ipairs({'id', 'requestId', 'profileKey', 'contact', 'world', 'binding', 'worldToken'}) do
+        if type(receipt[key]) == 'string' and #receipt[key] <= 600 then row[key] = receipt[key] end
+    end
+    for _, key in ipairs({'sequence', 'completedAt', 'generation'}) do
+        local value = receipt[key]
+        if type(value) == 'number' and value == value and value >= 0 and value < math.huge then row[key] = value end
+    end
+    if not row.requestId or not row.profileKey or not row.world or not row.binding or not row.completedAt then return end
+    knowledgePhoneReceipts[#knowledgePhoneReceipts + 1] = row
+    if #knowledgePhoneReceipts > 16 then table.remove(knowledgePhoneReceipts, 1) end
+    local ok, raw = pcall(json.encode, {version = 1, updated = os.time() * 1000, receipts = knowledgePhoneReceipts})
+    if not ok or #raw > 32768 then return end
+    local path = 'runtime/knowledge-phone-delivery.json'
+    local file = io.open(path .. '.tmp', 'wb'); if not file then return end
+    local written, closed = file:write(raw), file:close()
+    if not written or not closed then return end
+    if not os.rename(path .. '.tmp', path) then os.remove(path); os.rename(path .. '.tmp', path) end
+end
+
+microphone.captureKnowledge = captureKnowledge
+microphone.currentKnowledgeOwner = function()
+    if not knowledgeAllowed then return nil end
+    return knowledgeOwner(refreshKnowledgeFrame())
+end
 groupChat.captureJournal = questContext.capture
 phoneChat.captureJournal = questContext.capture
 microphone.captureJournal = questContext.capture
@@ -27,6 +212,7 @@ microphone.captureBattle = battles.capture
 convaiPhoneChat = phoneChat
 convaiGroupChat = groupChat
 groupChat.onPreparation = function(preparation)
+    if preparation and not attachKnowledge(preparation.input) then preparation = nil end
     local f = io.open('runtime/group-prefetch.json.tmp', 'wb')
     if not f then return end
     f:write(preparation and json.encode(preparation) or '{}'); f:close()
@@ -47,7 +233,20 @@ end
 manager.configure(companions, profiles)
 subtitles.configure({style = manager.subtitleStyle})
 companions.onBeforeRemove = speech.clearEntity
-phoneChat.configure(profiles, manager)
+phoneChat.configure(profiles, manager, {
+    captureBinding = capturePhoneBinding,
+    captureWorldKnowledge = function(_, key)
+        knowledgePhoneCapture = captureKnowledge({profileKey = key}, 'phone')
+        return knowledgePhoneCapture and knowledgePhoneCapture.worldKnowledge or knowledgeUnavailable()
+    end,
+    captureJournalHistory = function()
+        local captured = knowledgePhoneCapture; knowledgePhoneCapture = nil
+        if captured and sameKnowledgeOwner(captured.owner, knowledgeOwner(refreshKnowledgeFrame())) then
+            return captured.journalHistory
+        end
+        return knowledgeUnavailable('phone-world-changed')
+    end,
+    onDelivered = publishPhoneDelivery})
 mcm.configure(manager, companions, dofile('manager-party.lua'), dofile('mcm-entry.lua'))
 convaiManager = mcm
 local catalog = characterCatalog.build(profiles)
@@ -59,6 +258,7 @@ convaiCompanions = companions
 local generation = 0
 local active = nil
 local pending = nil
+local pendingKnowledgeOwner = nil
 local poll = 0
 local diagnosticPoll = 0
 local lastDiagnosticRequest = nil
@@ -356,6 +556,8 @@ local function toggleVoice()
     if not player then return end
     if microphone.context and microphone.state ~= 'reply' then
         pending = microphone.finish()
+        if not pending then pendingKnowledgeOwner = nil; return end
+        pendingKnowledgeOwner = microphone.knowledgeOwner
         pending.sentAt = os.time()
         focusUntil = os.time() + 90
         return
@@ -390,14 +592,19 @@ local function toggleVoice()
 end
 
 local function sendRequest(context)
+    local owner = attachKnowledge(context)
+    if not owner then return false end
     context.journal = context.journal or questContext.capture()
     context.battle = context.battle or battles.capture()
+    local current = knowledgeOwner(refreshKnowledgeFrame())
+    if not knowledgeAllowed or current.paused or not sameKnowledgeOwner(owner, current) then return false end
     local file = io.open('runtime/last-input.json.tmp', 'wb')
     if not file then return false end
     file:write(json.encode(context)); file:close()
     os.remove('runtime/last-input.json')
     if not os.rename('runtime/last-input.json.tmp', 'runtime/last-input.json') then return false end
     pending = context
+    pendingKnowledgeOwner = owner
     if not context.reaction then focusUntil = os.time() + 90 end
     return true
 end
@@ -809,6 +1016,7 @@ local worldSuspended, sessionHasState = false, false
 local function abandonSession(reason)
     -- Never touch NPC/player components during native world destruction.
     -- pcall cannot catch an access violation in an already unloaded component.
+    invalidateKnowledge(reason)
     cancelAutomatic(reason, true)
     battles.reset()
     loot.reset(); lootObserver.reset(); lastAutomatic = nil
@@ -821,6 +1029,7 @@ local function abandonSession(reason)
     groupChat.cancel()
     phoneChat.abandon()
     active, pending, focusUntil, focusMode, focusEntity = nil, nil, nil, nil, nil
+    pendingKnowledgeOwner = nil
     focusedCrowd, releasedCrowd, pendingPhoneAction = nil, nil, nil
     phoneCatalogReady = false
     resetGaze()
@@ -873,9 +1082,26 @@ registerForEvent('onUpdate', function(delta)
     end)
     if not sessionOk or not sessionReady then
         if sessionHasState then abandonSession('world unavailable') end
+        if not knowledgeInvalidated then invalidateKnowledge('world unavailable') end
         return
     end
     sessionHasState = true
+    knowledgeAllowed, knowledgeInvalidated = true, false
+    local knowledgeOk = pcall(updateKnowledge, delta)
+    if not knowledgeOk then invalidateKnowledge('knowledge-update-failed') end
+    -- Autosave freezes the native cursor briefly. Keep the exact owner and
+    -- queued native input, but do not capture/send/apply UI changes until ready.
+    if knowledgeFrame and knowledgeFrame.status == 'paused' then return end
+    if knowledgeChanged then
+        -- A changed lease/branch can happen without an NPC detach (for example
+        -- initial bridge activation). Cancel conversation ownership, not actors.
+        knowledgeChanged = false
+        cancelAutomatic('knowledge-world-changed', true)
+        microphone.cancel(); groupChat.cancel(); phoneChat.abandon()
+        speech.abandon(); subtitles.abandon()
+        active, pending, pendingKnowledgeOwner = nil, nil, nil
+        warmConversation(nil, nil)
+    end
     local worldOk, worldReady = pcall(function()
         if not menuPlayer or not menuPlayer:IsAttached() then return false end
         local definitions = Game.GetAllBlackboardDefs()
@@ -928,17 +1154,10 @@ registerForEvent('onUpdate', function(delta)
     local voiceSubmission = microphone.update(player)
     if voiceSubmission then
         pending = voiceSubmission; pending.sentAt = os.time(); focusUntil = os.time() + 90
+        pendingKnowledgeOwner = microphone.knowledgeOwner
     end
     if not player then
-        groupChat.cancel()
-        if active then warmConversation(nil, nil) end
-        companions.dismissAll()
-        publishPartyConnections(false)
-        pendingPhoneAction = nil
-        phoneCatalogReady = false
-        manager.reset()
-        active = nil; pending = nil; focusUntil = nil
-        focusMode = nil; focusEntity = nil; endFocus(nil); resetGaze()
+        abandonSession('world unavailable during update')
         return
     end
     if not phoneCatalogReady then
@@ -994,6 +1213,15 @@ registerForEvent('onUpdate', function(delta)
     end
     updateGaze(player, 0.1)
     if pending then
+        local currentOwner = knowledgeOwner(refreshKnowledgeFrame())
+        if currentOwner.paused then return end
+        if pendingKnowledgeOwner and not sameKnowledgeOwner(pendingKnowledgeOwner, currentOwner) then
+            cancelAutomatic('knowledge-world-changed', true)
+            pending, pendingKnowledgeOwner = nil, nil
+            microphone.cancel(); groupChat.cancel()
+        end
+    end
+    if pending then
         local replyFile = io.open('runtime/reply.json', 'rb')
         if replyFile then
             local raw = replyFile:read('*a')
@@ -1012,7 +1240,7 @@ registerForEvent('onUpdate', function(delta)
                 end)
                 if shown then
                     local _, listeners = groupAudience(player)
-                    groupChat.received(pending.requestId, reply.text, reply.error ~= nil or (not speech.requestId and not subtitles.line), listeners)
+                    groupChat.received(pending.requestId, reply.text, reply.error ~= nil or (not speech.requestId and not subtitles.line), listeners, reply.stream)
                     log('Conversation result: generation=' .. pending.generation .. ' error=' .. tostring(reply.error ~= nil))
                     if automatic and pending.requestId == automatic.requestId then
                         automatic.shown = reply.error == nil
@@ -1067,6 +1295,7 @@ registerForEvent('onUpdate', function(delta)
 end)
 
 registerForEvent('onShutdown', function()
+    invalidateKnowledge('shutdown')
     cancelAutomatic('shutdown')
     battles.reset()
     loot.reset(); lootObserver.reset(); lastAutomatic = nil

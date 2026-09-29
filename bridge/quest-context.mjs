@@ -1,6 +1,9 @@
+import {createHash} from 'node:crypto';
 import {groupContext} from './group-context.mjs';
 import {battleContext} from './battle-context.mjs';
 import {lootContext} from './loot-context.mjs';
+import {parseWorldSnapshot} from './world-knowledge.mjs';
+import {parseJournalHistory, selectJournalHistory} from './journal-history.mjs';
 
 const unavailable = () => ({version: 1, status: 'unavailable'});
 const id = value => typeof value === 'string' && /^-?\d{1,12}$/.test(value);
@@ -55,6 +58,58 @@ export function journalContext(journal) {
     + 'without inventing progress or giving spoilers. This snapshot replaces earlier assumptions about the current tracked quest.';
 }
 
+const TRUSTED_KNOWLEDGE = Symbol('validated-conversation-knowledge');
+const WORLD_UNAVAILABLE = 'Current-save world knowledge is unavailable for this turn. Missing facts establish neither a decision nor a relationship; do not reuse assumptions from another save.';
+const HISTORY_UNAVAILABLE = "The broader current-save journal history is unavailable for this turn. Missing entries do not establish completion, failure or a character's past participation.";
+const CURRENT_AUTHORITY = 'Current verified save facts and the current tracked-quest snapshot override older journal observations and remembered claims from previous conversations or other saves. '
+  + 'An unsupplied or unknown fact remains unknown; it is not proof of a negative outcome or a relationship.';
+
+function contextIdentity(input) {
+  try {
+    return createHash('sha256').update(JSON.stringify([input.requestId, input.id, input.generation,
+      input.entity, input.name, input.profileKey, input.channel, input.saveIdentity, input.text, input.group,
+      input.journal, input.battle, input.loot, input.reaction, input.worldKnowledge, input.journalHistory])).digest('hex');
+  } catch { return null; }
+}
+function currentBinding(snapshot, generation, worldToken) {
+  return snapshot?.status === 'ready' && Number.isSafeInteger(generation) && generation >= 0
+    && snapshot.generation === generation && snapshot.worldToken === worldToken;
+}
+function sameAudience(input, snapshot) {
+  const channel = input.group ? 'group' : input.channel === 'phone' ? 'phone' : 'private';
+  const audience = input.group?.audience ?? [input.profileKey];
+  return Array.isArray(audience) && audience.includes(input.profileKey) && snapshot.audience.channel === channel
+    && JSON.stringify([...snapshot.audience.profileKeys].sort()) === JSON.stringify([...audience].sort());
+}
+
+/** Internal bridge attachment, after KnowledgeService.project/current succeeds.
+ * generation/worldToken are the expected WORLD binding, never the turn counter.
+ * Raw JSON strings named knowledgeContext/historyContext are never consumed.
+ * The private symbol survives an ordinary object spread, not IPC serialization.
+ * Parent retains and rechecks the original service guard across awaited work.
+ */
+export function withConversationKnowledge(input, {knowledgeContext = '', generation, worldToken,
+  questCatalog = [], now = Date.now()} = {}) {
+  const result = {...input};
+  delete result.knowledgeContext; delete result.historyContext; delete result.journalHistoryContext;
+  if (input.worldKnowledge !== undefined) result.worldKnowledge = parseWorldSnapshot(input.worldKnowledge);
+  if (input.journalHistory !== undefined) result.journalHistory = parseJournalHistory(input.journalHistory);
+  const snapshot = result.worldKnowledge, capturedAt = Date.parse(snapshot?.capturedAt), age = now - capturedAt;
+  const current = currentBinding(snapshot, generation, worldToken) && sameAudience(result, snapshot)
+    && Number.isFinite(now) && Number.isFinite(age) && age >= -1000 && age <= 5000;
+  const projected = current && typeof knowledgeContext === 'string' && knowledgeContext.length <= 12000
+    ? knowledgeContext.trim() : '';
+  const history = result.journalHistory === undefined ? '' : selectJournalHistory({snapshot: result.journalHistory,
+    generation, worldToken, profileKey: result.profileKey, query: result.text, questCatalog, now}).context;
+  result[TRUSTED_KNOWLEDGE] = Object.freeze({identity: contextIdentity(result), knowledgeContext: projected, historyContext: history});
+  return result;
+}
+
 export function conversationContext(input) {
-  return [groupContext(input), journalContext(input.journal), battleContext(input), lootContext(input)].filter(Boolean).join('\n\n');
+  const attached = input[TRUSTED_KNOWLEDGE];
+  const trusted = attached?.identity && attached.identity === contextIdentity(input) ? attached : null;
+  const knowledge = trusted?.knowledgeContext || (input.worldKnowledge !== undefined ? WORLD_UNAVAILABLE : '');
+  const history = trusted?.historyContext || (input.journalHistory !== undefined ? HISTORY_UNAVAILABLE : '');
+  return [groupContext(input), knowledge, history, journalContext(input.journal), battleContext(input), lootContext(input),
+    knowledge || history ? CURRENT_AUTHORITY : ''].filter(Boolean).join('\n\n');
 }

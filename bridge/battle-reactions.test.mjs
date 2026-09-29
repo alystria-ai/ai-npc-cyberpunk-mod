@@ -112,6 +112,12 @@ local generation,automatic,battleSample,battlePeople,battlePoll=0,nil,nil,{},0
 local active,pending,focusUntil=nil,nil,nil
 local cancelled,stopped,cleared=0,0,0
 local function noop()end
+local function attachKnowledge()return {session=1}end
+local invalidateKnowledge=noop
+local knowledgeAllowed=true
+local function knowledgeOwner()return {session=1}end
+local function refreshKnowledgeFrame()return {}end
+local function sameKnowledgeOwner(a,b)return a and b and a.session==b.session end
 local speech={}
 function speech.stop()stopped=stopped+1;speech.requestId=nil end
 function speech.abandon()speech.requestId,speech.target=nil,nil end

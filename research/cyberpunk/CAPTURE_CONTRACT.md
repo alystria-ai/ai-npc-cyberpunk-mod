@@ -126,7 +126,8 @@ inventories require an explicit subset; there is no alphabetical truncation of
 fact/decision observations. Selecting a nonallowlisted name fails closed.
 
 Each inventory row needs nonempty bounded `evidenceRefs`. Journal rows need a
-`questKey` and a signed or unsigned 32-bit decimal hash as their map key.
+`questKey` and either a signed/unsigned 32-bit decimal hash as their map key or a
+stable alias accompanied by a reviewed exact `nativePath` and `nativeClass`.
 Capture-only metadata may accompany the resolver fields:
 
 ```json
@@ -143,9 +144,12 @@ Capture-only metadata may accompany the resolver fields:
 
 `nativePath` and `nativeClass` must appear together. The path is looked up by the
 native API, then the returned entry's hash and class are checked. Supported
-classes are quest, phase, objective, and subobjective. Optional `questHash`
+classes are quest, phase, objective, subobjective, phone choice, and phone message. Optional `questHash`
 checks the ancestor quest as well. Hash lookup without a path is supported;
 reviewed full paths are useful where source joins need stronger disambiguation.
+An alias such as `city.jake.gift` requires no invented hash. Optional
+`expectedHash` checks a truly known native hash; otherwise the exact native path
+and class select the entry. The observed hash is recorded in capture evidence.
 
 Captures exceeding the bridge's 256 KiB byte budget fail closed rather than
 truncate a condition's evidence. At most 32 observed active quest keys are sent
@@ -190,10 +194,32 @@ parents, cycles, depth overflow, class/hash mismatches, and nonquest entries
 produce unknown observations. This is deliberately conservative where unusual
 quest assets hide a parent while retaining a child state.
 
-`IsEntryVisited` is not used: opening a UI entry does not establish witnessing,
+For quest entries, `IsEntryVisited` is not used: opening a UI entry does not establish witnessing,
 participation, or another character's knowledge. A succeeded objective is only
 a succeeded objective; interpreting it as a relationship or decision requires
 the separately reviewed native mapping.
+
+The narrow phone selector additionally accepts exact `gameJournalPhoneChoiceEntry`
+paths only when the choice is `Succeeded` and visited. In the inspected native
+`messengerDialogView.script` `ActivateReply`, all unchosen replies become visited
+and `Inactive`, while the selected reply becomes visited and `Succeeded`. Visited
+alone is never selection evidence. Exact `gameJournalPhoneMessage` paths may be
+`Active` or `Succeeded`, including unread messages. Both types require a bounded
+active/succeeded phone conversation/choice-group chain ending at a known
+`gameJournalContact`. Hidden parents, unselected choices, failed messages and
+unknown contacts remain unknown. No phone title or message text is read.
+These are narrow sent/received journal receipts, not proof that a report's claim
+is objectively true; the mapping must preserve that distinction. Phone capture
+is source-backed and VM-tested; live qualification remains pending.
+
+Some verified quest branches retire a used `gameJournalPhoneChoiceGroup` to
+Inactive after V sends the report. Only those selectors may set
+`allowRetiredChoiceGroup: true` with nonempty `retiredGroupEvidenceRefs`, each
+also present in the selector's reviewed native `evidenceRefs`. This permits an
+inactive group ancestor only under a Succeeded+visited choice leaf. It never
+permits an inactive/unselected leaf or hidden conversation/contact. The mapped
+Regina report rules additionally require her exact matching reply to be active
+or succeeded; the receipt remains a report, not independent victim-fate proof.
 
 Lifepath comes from the loaded player's `PlayerDevelopmentSystem.GetLifePath`,
 compared with the native `Nomad`, `StreetKid`, and `Corporate` enum values.

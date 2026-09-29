@@ -5,6 +5,7 @@ import fengari from 'fengari';
 
 const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
 const source = readFileSync(new URL('../mod/save-identity.lua', import.meta.url), 'utf8');
+const probeSource = readFileSync(new URL('../mod/save-identity-probe.lua', import.meta.url), 'utf8');
 function run(code) {
   const state = lauxlib.luaL_newstate();
   lualib.luaL_openlibs(state);
@@ -286,4 +287,63 @@ test('all IDs roundtrip without loss across high-bit UUID limbs', () => run(`
     local result=driver.inspect()
     result.expected.revision=2147483648
     assert(not driver.apply({kind='resume',expected=result.expected}).ok)
+`));
+
+const probeFixture = `
+local gameReads, published, reportBytes = 0, nil, nil
+local request='save-identity:inspect:qualification-001'
+io={open=function(path,mode)
+    if mode=='rb' then
+        assert(path=='runtime/diagnostic-request.txt')
+        return {read=function(_,count) return request:sub(1,count) end,close=function() return true end}
+    end
+    assert(path=='runtime/save-identity-probe.json' and mode=='wb')
+    return {write=function(_,value) reportBytes=value; return true end,close=function() return true end}
+end}
+json={encode=function(value) published=copy(value); return 'plain-report-json' end}
+dofile=function(path) assert(path=='save-identity.lua'); return Identity end
+Game={
+    GetPlayer=function()
+        gameReads=gameReads+1
+        return {IsAttached=function() return true end,IsDeadNoStatPool=function() return false end}
+    end,
+    GetSystemRequestsHandler=function() return {IsPreGame=function() return false end} end,
+    GetScriptableSystemsContainer=function()
+        return {Get=function(_,name) assert(name=='CyberpunkConvai.ConvaiKnowledgeState'); return current end}
+    end,
+}
+local function inspectProbe()
+    return (function() ${probeSource} end)()
+end
+`;
+
+test('qualification probe reports native types and before/readback without mutations', () => run(`
+    local driver=adapter(); seed(driver); local before=nativeCalls
+    ${probeFixture}
+    local report=inspectProbe()
+    assert(report.ok and report.readOnly and report.sameReadback)
+    assert(report.before.campaignId==C and report.readback.branchId==B)
+    assert(report.nativeSnapshot.fields.ready.type=='boolean' and report.nativeSnapshot.fields.ready.value)
+    assert(report.nativeSnapshot.tokens.campaign.validLimbs==8)
+    assert(report.methods.Advance.type=='function' and report.identity.status=='available')
+    assert(nativeCalls==before and published.readOnly and reportBytes=='plain-report-json')
+`));
+
+test('qualification probe refuses mutating and malformed requests before game access', () => run(`
+    ${probeFixture}
+    for _,value in ipairs({'save-identity:seed:qualification-002', 'save-identity:advance:qualification-003',
+        'save-identity:inspect:short', 'save-identity:inspect:'..string.rep('x',200)}) do
+        request=value; local report=inspectProbe()
+        assert(not report.ok and report.readOnly and report.error:match('Only save%-identity'))
+    end
+    assert(gameReads==0 and nativeCalls==0)
+`));
+
+test('qualification probe exposes bounded read errors without claiming unavailable identity', () => run(`
+    ${probeFixture}
+    current.GetSnapshot=function() error('native snapshot unavailable '..string.rep('x',600)) end
+    local report=inspectProbe()
+    assert(report.ok and not report.nativeSnapshot.ok and #report.nativeSnapshot.error<=240)
+    assert(report.before.status=='unavailable' and report.readback.status=='unavailable')
+    assert(not report.sameReadback and report.identity.authoritative==false and nativeCalls==0)
 `));

@@ -1,8 +1,15 @@
 # Save identity, checkpoint proof, and rollback protocol
 
 September 30, 2026. Source-backed implementation; native game qualification is
-still required. This subsystem does not identify a loaded save from its filename,
+blocked by a startup crash, documented below. Keep the native component excluded
+from installs until that boundary is resolved. This subsystem does not identify a loaded save from its filename,
 modification time, journal title, game clock, most recent disk metadata, or PID.
+
+An isolated, opt-in alternative now exists in `mod/fact-identity.lua`; it uses a
+fixed audited mod-owned fact namespace and no new native class. See
+[the alternative protocol and qualification gates](../../docs/SAVE_IDENTITY_ALTERNATIVES.md).
+Its game writes and restore-proof qualification default off. The native class
+described below remains quarantined; it was not repaired or reinstalled here.
 
 ## What is implemented
 
@@ -199,7 +206,7 @@ history key or old unscoped provider session must not be reattached implicitly.
 
 ## Verification and remaining qualification
 
-Performed: Lua 5.1 syntax check; **14** focused adapter tests covering missing
+Performed: Lua 5.1 syntax check; **17** focused adapter/probe tests covering missing
 native state, malformed IDs/counters, unknown schema, exact readback, stale CAS,
 new/pre-mod saves, bridge replacement, save freezes, AfterSave nonpromotion,
 immutable restore proof, older-prefix forks, ambiguous writes, detach, and high-bit
@@ -210,9 +217,12 @@ The parent also completed isolated redscript compilation successfully (scc exit
 30, 2026, 03:00:29 IST). The log reports compilation complete and output into the
 isolated staging cache. Compilation does not qualify persistence.
 
-Not performed by this task: install, restart, native live capture, native
-serialization roundtrip, or remote memory writes. Parent owns integration and
-any later live qualification.
+The parent attempted an isolated install of `KnowledgeState.reds` and the unused
+Lua adapter. Startup crashed before normal plugin script initialization. Removing
+only `KnowledgeState.reds` restored startup and the user loaded the same save
+normally. The adapter remained installed but unused. No native identity was
+seeded, and no serialization roundtrip or remote-memory qualification occurred.
+The parent owns installation and any later live qualification.
 
 Required controlled game check before enabling durable promotion:
 
@@ -227,9 +237,110 @@ Required controlled game check before enabling durable promotion:
 5. Save and reload the fork; verify IDs/epoch/sequence survive a full process
    restart and a CET-only reload cannot create a false restore receipt.
 
-The exact remaining blocker to claiming this subsystem live-qualified is the
-unperformed native save/load roundtrip and installed callback ordering. There is
+The immediate blocker is the native registration crash below. After resolving
+it, the native save/load roundtrip and installed callback ordering still require
+qualification. There is
 also no source-backed disk-success signal in the inspected Codeware payload.
 Until qualification, keep durable cloud promotion disabled. A future verified
 save-success signal may permit earlier promotion; neither a delay nor checking
 the newest save file is an acceptable substitute.
+
+## Read-only live qualification probe
+
+`mod/save-identity-probe.lua` is an explicit bounded inspection tool. The parent
+adds this routing branch to `diagnostics.lua` when installing the probe:
+
+```lua
+if request:match('^save%-identity:') then
+    return dofile('save-identity-probe.lua')
+end
+```
+
+The request is **only** `save-identity:inspect:<unique nonce>`, with an 8–64
+character alphanumeric/hyphen/underscore nonce. It writes plain diagnostics to
+`runtime/save-identity-probe.json`: adapter before/readback, exact restored proof,
+known native method types, a whitelist of scalar field types/values, and bounded
+token-array shape information. It does not stringify native objects, retain
+handles, enumerate arbitrary game objects, read a command file, or call any
+mutating identity method. Invalid/mutating actions are rejected before game access.
+
+This extra raw-type view explains `native-read-failed` without weakening the
+adapter: for example, missing fields, unexpected native numeric types, or token
+arrays with the wrong shape remain unavailable and visible diagnostically.
+
+Do **not** add `seed` or `advance` probe operations outside the coordinator.
+Advancing a save-owned cursor without the corresponding durable bridge journal
+would create exactly the broken pointer this subsystem prevents. For the live
+roundtrip, first inspect the uninitialized system, then install/run the actual
+`mod/knowledge-state.lua` and `bridge/knowledge-service.mjs` coordinator against
+its real isolated application ledger. Let its durable preparation seed the native
+identity. Exercise advances through its normal durable append API, not direct CET
+commands. The parent exclusively owns live request/command files and game control.
+
+After coordinator seed/append, ask for an ordinary manual save and a reload only
+when ready to verify native restore. The probe can inspect before and after those
+user actions. It does not initiate a save, load, autosave, or game restart.
+
+## September 30 startup qualification failure
+
+This is an observed failure, not a successful native integration. The installed
+combination was Cyberpunk 2.31, RED4ext 1.30.0, and Codeware 1.20.5. The local report
+is `C:\Users\akshi\AppData\Local\REDEngine\ReportQueue\Cyberpunk2077-20260930-033026-17504-20244`.
+The parent isolated the regression to adding this native source: removing only
+`KnowledgeState.reds` restored startup and same-save loading. This establishes a
+trigger under that run's initialization order; it does not establish that one of
+our redscript callbacks caused the native fault.
+
+Read-only dump analysis used the installed binaries' x64 PE unwind metadata,
+including chained unwind records, and pinned source. The exception is a write to
+address `0x4` at `Codeware.dll+0x4d16a`, instruction `mov [rcx+4], r8d` with zero
+`rcx`. The recovered faulting call chain is:
+
+1. Codeware `HashMap::Reserve`, `+0x4d16a`.
+2. Hash-map insertion, return `+0x36d63`.
+3. `SystemBuilder<StaticEntitySystem>::RegisterSystem`, return `+0xeb19b`.
+4. `TypeInfoRegistrar::OnDescribe`'s pending callback loop, return `+0xf999`.
+5. Native RTTI startup jobs, game returns `+0x1485ff`, `+0x1477f4`,
+   `+0x1481d2`, `+0x148101`, `+0x147f18`, `+0x1489a0`, `+0x148cdb`.
+
+The `StaticEntitySystem` identification is supported by its RTTI CName hash
+`0xa7a41658434ebb1d`, the matching constructor, and the two game-instance map
+insertions. It is Codeware's own native system. The faulting stack does not contain
+our `OnLoad`, `OnAttach`, or a script-VM call. A second RTTI worker was inside
+Codeware's native `CClass::CreateInstance` hook for
+`gameJournalPointOfInterestMappin`, identified from the class hash
+`0x20e05c1aa7eacebe`; that is also not one of our classes.
+
+At the failing rehash, requested new capacity was **6** while the map read from
+the dump had count **298** and capacity **318**. The new six-entry free list was
+exhausted while traversing the old map. This is inconsistent with an ordinary
+single-threaded reserve: its entry guard should return when requested capacity
+does not exceed current capacity. The evidence supports initialization overlap
+or corruption between that guard and traversal. It does not identify the other
+writer conclusively, so concurrency remains a cause candidate rather than a
+fully reproduced source-level diagnosis.
+
+Relevant primary source:
+
+- [Codeware SystemBuilder registration](https://github.com/psiberx/cp2077-codeware/blob/613a1cb830ecf33508ffca839d3ea631073504ef/lib/Red/TypeInfo/Definition.hpp#L976):
+  checks for a framework, initializes a custom system, then inserts into
+  `systemMap`, `systemImplementations`, and `systemInstances` without a lock.
+- [Codeware pending RTTI callback loop](https://github.com/psiberx/cp2077-codeware/blob/613a1cb830ecf33508ffca839d3ea631073504ef/lib/Red/TypeInfo/Registrar.hpp#L64):
+  moves and invokes the pending describe callbacks.
+- [Pinned SDK HashMap reserve](https://github.com/psiberx/RED4ext.SDK/blob/6ea7425adf23203027d3b8d21838a29fc765691c/include/RED4ext/HashMap.hpp#L329):
+  checks capacity, allocates the requested size, then reads the live old capacity,
+  index table, and node list during rehash.
+- [Codeware script lifecycle hooks](https://github.com/psiberx/cp2077-codeware/blob/613a1cb830ecf33508ffca839d3ea631073504ef/src/App/Scripting/ScriptingService.cpp#L44):
+  service `OnLoad` follows ScriptBundle destruction; `OnInitialize` follows game
+  instance initialization. The [official callback documentation](https://github.com/psiberx/cp2077-codeware/wiki#game-events)
+  explicitly supports `GetCallbackSystem()` during service `OnLoad`.
+
+Moving our registration to a different callback could change timing but is not
+a proven correction for this stack. The existing face service already uses the
+documented `OnLoad` callback path. No speculative native code rewrite, plugin
+binary patch, external save edit, or library downgrade was applied during this
+analysis. Keep the native component quarantined, durable identity unavailable,
+and remote memory promotion disabled. A controlled inert-declaration isolation
+test or a source-level Codeware registration fix can investigate the trigger
+further; neither should be described as repaired before startup and save/load
+qualification succeed.

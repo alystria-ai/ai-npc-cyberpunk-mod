@@ -1,5 +1,28 @@
 local M = {}
 
+local function sameOwner(a, b)
+    return a and b and a.session == b.session and a.generation == b.generation and a.worldToken == b.worldToken
+end
+
+local function capture(context, prior)
+    if not M.captureKnowledge then return true end
+    local ok, value, reason = pcall(M.captureKnowledge, context)
+    if ok and not value and reason == 'save-in-progress' then return false, reason end
+    if not ok or type(value) ~= 'table' or type(value.owner) ~= 'table'
+        or (prior and not sameOwner(prior, value.owner)) then return false end
+    context.worldKnowledge, context.journalHistory = value.worldKnowledge, value.journalHistory
+    M.knowledgeOwner = value.owner
+    return true
+end
+
+local function currentOwner()
+    if not M.currentKnowledgeOwner then return true end
+    local ok, value = pcall(M.currentKnowledgeOwner)
+    if not ok or not sameOwner(M.knowledgeOwner, value) then return false, 'world-changed' end
+    if value.paused then return false, 'save-in-progress' end
+    return true
+end
+
 local function command(action, context)
     local f = io.open('runtime/microphone-command.json', 'wb')
     if not f then return false end
@@ -10,21 +33,36 @@ end
 
 function M.cancel()
     if M.context then command('cancel', M.context) end
-    M.context, M.state, M.started = nil, nil, nil
+    M.context, M.state, M.started, M.knowledgeOwner, M.finishPending = nil, nil, nil, nil, nil
 end
 
 function M.begin(context)
     M.cancel()
+    if not capture(context) then return false end
     context.journal = M.captureJournal and M.captureJournal()
     context.battle = M.captureBattle and M.captureBattle()
-    if not command('start', context) then return false end
+    if not currentOwner() then M.knowledgeOwner = nil; return false end
+    if not command('start', context) then M.knowledgeOwner = nil; return false end
     M.context, M.state, M.started = context, 'starting', os.time()
     return true
 end
 
 function M.finish()
     if not M.context then return nil end
-    command('finish', M.context)
+    local captured, reason = capture(M.context, M.knowledgeOwner)
+    if not captured then
+        if reason == 'save-in-progress' then M.finishPending = true else M.cancel() end
+        return nil
+    end
+    M.finishPending = nil
+    M.context.journal = M.captureJournal and M.captureJournal()
+    M.context.battle = M.captureBattle and M.captureBattle()
+    local current, problem = currentOwner()
+    if not current then
+        if problem == 'save-in-progress' then M.finishPending = true else M.cancel() end
+        return nil
+    end
+    if not command('finish', M.context) then M.cancel(); return nil end
     M.state = 'reply'
     return M.context
 end
@@ -32,6 +70,10 @@ end
 function M.update(player)
     if not M.context then return nil end
     if not player then M.cancel(); return nil end
+    if M.currentKnowledgeOwner then
+        local ok, current = pcall(M.currentKnowledgeOwner)
+        if not ok or not sameOwner(M.knowledgeOwner, current) then M.cancel(); return nil end
+    end
     local defs = Game.GetAllBlackboardDefs()
     if Game.GetBlackboardSystem():Get(defs.UI_System):GetBool(defs.UI_System.IsInMenu) then
         M.cancel(); return nil
@@ -45,10 +87,11 @@ function M.update(player)
                 player:ConvaiPhoneFeedback('Listening - press F7 again to finish')
             elseif value.state == 'error' then
                 player:ConvaiPhoneFeedback('Microphone unavailable. Check your Windows input device.')
-                M.context, M.state = nil, nil
+                M.context, M.state, M.knowledgeOwner = nil, nil, nil
             end
         end
     end
+    if M.context and M.finishPending then return M.finish() end
     if M.context and M.state == 'recording' and os.time() - M.started >= 30 then return M.finish() end
     if M.context and M.state == 'starting' and os.time() - M.started >= 35 then
         M.cancel(); player:ConvaiPhoneFeedback('Microphone connection timed out. Please try again.')

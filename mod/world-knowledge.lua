@@ -7,7 +7,8 @@ local Collector = {}; Collector.__index = Collector
 local MAX_SAFE = 9007199254740991
 local STATES = {Active = 'active', Succeeded = 'succeeded', Failed = 'failed'}
 local CLASSES = {gameJournalQuest = true, gameJournalQuestPhase = true,
-    gameJournalQuestObjective = true, gameJournalQuestSubObjective = true}
+    gameJournalQuestObjective = true, gameJournalQuestSubObjective = true,
+    gameJournalPhoneChoiceEntry = true, gameJournalPhoneMessage = true}
 
 local function plain(value) return type(value) == 'table' and getmetatable(value) == nil end
 local function integer(value, low, high)
@@ -107,10 +108,38 @@ local function nativeJournal(key, selector, depthLimit)
         entry = journal:GetEntry(unsignedHash(key))
     end
     if not entry then return nil, 'journal-missing' end
-    if unsignedHash(journal:GetEntryHash(entry)) ~= unsignedHash(key) then return nil, 'journal-hash-mismatch' end
+    local actualHash = unsignedHash(journal:GetEntryHash(entry))
+    local expectedHash = selector.expectedHash and unsignedHash(selector.expectedHash) or unsignedHash(key)
+    if not actualHash or (expectedHash and actualHash ~= expectedHash) then return nil, 'journal-hash-mismatch' end
     if selector.nativeClass and not entry:IsA(selector.nativeClass) then return nil, 'journal-class-mismatch' end
     local value = journalState(journal, entry)
     if not value then return nil, 'journal-not-revealed' end
+    local phoneChoice = entry:IsA('gameJournalPhoneChoiceEntry')
+    local phoneMessage = entry:IsA('gameJournalPhoneMessage')
+    if phoneChoice or phoneMessage then
+        if phoneChoice and (value ~= 'succeeded' or not journal:IsEntryVisited(entry)) then return nil, 'phone-choice-not-sent' end
+        if phoneMessage and value ~= 'active' and value ~= 'succeeded' then return nil, 'phone-message-not-received' end
+        local cursor, seen = entry, {}
+        for _ = 1, depthLimit do
+            local id = unsignedHash(journal:GetEntryHash(cursor))
+            local current = journalState(journal, cursor)
+            local retiredGroup = phoneChoice and selector.allowRetiredChoiceGroup == true
+                and cursor:IsA('gameJournalPhoneChoiceGroup')
+                and journal:GetEntryState(cursor) == Enum.new('gameJournalEntryState', 'Inactive')
+            if not id or seen[id] or (current ~= 'active' and current ~= 'succeeded' and not retiredGroup) then return nil, 'phone-parent-unrevealed' end
+            seen[id] = true
+            if cursor:IsA('gameJournalContact') then
+                if not cursor:IsKnown(journal) then return nil, 'phone-contact-unknown' end
+                return {value = value, revealed = true, isQuest = false, nativeHash = string.format('%.0f', actualHash)}
+            end
+            if cursor ~= entry and not cursor:IsA('gameJournalPhoneConversation') and not cursor:IsA('gameJournalPhoneChoiceGroup') then
+                return nil, 'phone-parent-invalid'
+            end
+            cursor = journal:GetParentEntry(cursor)
+            if not cursor then return nil, 'phone-parent-missing' end
+        end
+        return nil, 'phone-depth-limit'
+    end
     local isQuest = entry:IsA('gameJournalQuest')
     if not isQuest and not entry:IsA('gameJournalQuestPhase')
         and not entry:IsA('gameJournalQuestObjectiveBase') then return nil, 'journal-not-quest' end
@@ -122,7 +151,7 @@ local function nativeJournal(key, selector, depthLimit)
         if not journalState(journal, cursor) then return nil, 'journal-parent-unrevealed' end
         if cursor:IsA('gameJournalQuest') then
             if selector.questHash and hash ~= unsignedHash(selector.questHash) then return nil, 'journal-quest-mismatch' end
-            return {value = value, revealed = true, isQuest = isQuest}
+            return {value = value, revealed = true, isQuest = isQuest, nativeHash = string.format('%.0f', actualHash)}
         end
         cursor = journal:GetParentEntry(cursor)
         if not cursor then return nil, 'journal-parent-missing' end
@@ -162,12 +191,26 @@ local function selectedInventory(pack, name, selected)
         if not row then return nil, 'selection-not-allowlisted' end
         local item = {key = key}
         if name == 'journalAllowlist' then
-            if not unsignedHash(key) or not identifier(row.questKey) then return nil, 'invalid-journal-selector' end
+            if not identifier(row.questKey) then return nil, 'invalid-journal-selector' end
             item.questKey = row.questKey
             if row.nativePath ~= nil or row.nativeClass ~= nil then
                 if type(row.nativePath) ~= 'string' or #row.nativePath < 1 or #row.nativePath > 512
                     or row.nativePath:find('[%c]') or not CLASSES[row.nativeClass] then return nil, 'invalid-journal-selector' end
                 item.nativePath, item.nativeClass = row.nativePath, row.nativeClass
+            end
+            if row.allowRetiredChoiceGroup ~= nil then
+                if row.allowRetiredChoiceGroup ~= true or row.nativeClass ~= 'gameJournalPhoneChoiceEntry'
+                    or not list(row.retiredGroupEvidenceRefs, 16, identifier, 1) then return nil, 'invalid-retired-group-evidence' end
+                local refs = {}; for _, ref in ipairs(row.evidenceRefs) do refs[ref] = true end
+                for _, ref in ipairs(row.retiredGroupEvidenceRefs) do if not refs[ref] then return nil, 'invalid-retired-group-evidence' end end
+                item.allowRetiredChoiceGroup = true
+            end
+            if not unsignedHash(key) and not item.nativePath then return nil, 'invalid-journal-selector' end
+            if row.expectedHash ~= nil then
+                if not unsignedHash(row.expectedHash) or (unsignedHash(key) and unsignedHash(key) ~= unsignedHash(row.expectedHash)) then
+                    return nil, 'invalid-journal-selector'
+                end
+                item.expectedHash = row.expectedHash
             end
             if row.questHash ~= nil then
                 if not unsignedHash(row.questHash) then return nil, 'invalid-journal-selector' end
@@ -308,8 +351,10 @@ function Collector:update(context)
             local ok, observation = pcall(self.adapter.readJournal, row.key, clone(row), self.journalDepth)
             if ok and plain(observation) and observation.revealed == true
                 and (observation.value == 'active' or observation.value == 'succeeded' or observation.value == 'failed') then
+                local refs = evidence(job, 'journal', index - #self.config.facts)
+                if unsignedHash(observation.nativeHash) then refs[#refs + 1] = 'journal-hash:' .. string.format('%.0f', unsignedHash(observation.nativeHash)) end
                 job.journal[row.key] = {status = 'known', value = observation.value, revealed = true, questKey = row.questKey,
-                    sourceId = 'native-journal-manager', evidenceRefs = evidence(job, 'journal', index - #self.config.facts)}
+                    sourceId = 'native-journal-manager', evidenceRefs = refs}
                 if observation.isQuest == true and observation.value == 'active' then job.active[row.questKey] = true end
             else
                 job.journal[row.key] = unknown(ok and 'journal-not-revealed' or 'journal-read-failed')

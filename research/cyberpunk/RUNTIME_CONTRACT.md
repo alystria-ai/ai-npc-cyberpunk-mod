@@ -82,6 +82,15 @@ admitted; missing, hidden and inactive entries cannot establish a negative fact.
 Each journal observation's `questKey` must match the reviewed inventory entry.
 Lifepaths are `nomad`, `streetkid`, or `corpo`.
 
+Journal map keys are canonical identifiers, not necessarily numeric hashes.
+An author can use a stable alias such as `city.jake.gift` with allowlist metadata
+`nativePath`, `nativeClass`, and optional `expectedHash`. The native collector
+resolves the exact path and class, checks the expected hash when supplied, and
+retains the observed native hash as capture evidence. The resulting observation
+uses the same alias key. A numeric key is also allowed when the native hash is
+already verified. The resolver does not calculate hashes, resolve paths, or let
+selector metadata establish a revealed state.
+
 The native adapter may instead emit `{ "version": 1, "status": "unavailable" }`.
 It must do so during world transitions or when it cannot bind the observation to
 the current world. A ready snapshot need not observe every allowlisted fact:
@@ -167,6 +176,30 @@ world proposition. Two true outcomes for one topic suppress the entire topic and
 produce a conflict diagnostic; different character perspectives do not resolve a
 world-state contradiction. Compatible observations need different semantic topics.
 
+Optional `exclusiveGroups` links different semantic topics to a reviewed mutually
+exclusive route without merging their useful context:
+
+```json
+{"exclusiveGroups":[{"id":"aldecaldos.sq027-route","outcome":"assisted"}]}
+```
+
+The field is an array of at most eight records, each with exactly `id` and
+`outcome` identifier strings. Group IDs cannot repeat within a rule. A second
+rule can declare the same group with outcome `betrayed`. If both rules evaluate
+true in the same snapshot, every true rule declaring either outcome of that
+group is suppressed before audience filtering, ranking, context or memory.
+Distinct compatible facts declaring `assisted` retain their separate topics.
+Diagnostics expose bounded `exclusiveGroupConflicts`; rejected story text is
+never included in context. Ordinary same-topic conflicts continue to apply.
+
+The author must support the route exclusion with reviewed native branch evidence
+and annotate every dependent facet. Groups are independent; membership does not
+implicitly propagate to unannotated topics. Sequential history such as an early
+kiss and a later relationship decline is not mutually exclusive. An unknown or
+missing opposing flag creates no conflict and establishes no rejected choice;
+the selected fact still needs its own positive proof. The compiler uses the same
+runtime validator to reject malformed group metadata.
+
 ## Bounded condition AST
 
 ```js
@@ -243,8 +276,11 @@ leaked through model-visible diagnostics.
 
 Events are **candidates**, never memory receipts. Only selected, stable, true,
 non-conflicting outcomes with verified identity produce them. IDs hash
-`userId/playthroughId/branchId/profileKey/topic/outcome`, so capture time, array
-order, query, duplicated NPC copies and pack revision do not duplicate one event.
+`userId/playthroughId/branchId/profileKey/topic/outcome/channel/sortedAudience`,
+so capture time, audience array order, query, duplicated NPC copies and pack
+revision do not duplicate one event. A different channel or exact recipient set
+gets its own candidate ID; this prevents the ledger from confusing distinct
+disclosure scopes while retaining each candidate's exact audience authorization.
 Events include rule/pack revision, source IDs, mapping evidence, captured
 observation evidence, perspective, identity and snapshot generation/checkpoint.
 The separate ledger must still validate branch continuity, handle rollback,
@@ -270,7 +306,12 @@ Candidate shape (shared with the separate memory ledger):
 }
 ```
 
-`witnessedBy` includes the speaker only for reviewed participant/witnessed rules.
+`witnessedBy` includes the speaker only for an explicitly reviewed `witnessed`
+perspective. Participation does not establish conscious witnessing: an
+unconscious rescue victim, for example, cannot remember the journey as an
+eyewitness. `knownBy` still needs a supported reason for knowing the statement,
+such as reviewed aftermath dialogue or an explicit disclosure receipt. Being
+involved in an event is not enough to know every hidden detail of it.
 `audience` contains the exact sorted current recipient profiles, separately from
 knowledge owners. The ledger may not expose a candidate to an expanded group.
 `group-safe` requires public/shared-journal origin, all recipients, and the group

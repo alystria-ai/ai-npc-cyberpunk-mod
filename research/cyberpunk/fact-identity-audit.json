@@ -1,0 +1,1109 @@
+{
+  "version": 1,
+  "storage": "quest-facts-v1",
+  "factNames": [
+    "cyberpunkconvai_mem_v1_head",
+    "cyberpunkconvai_mem_v1_0_schema",
+    "cyberpunkconvai_mem_v1_0_campaign_1",
+    "cyberpunkconvai_mem_v1_0_campaign_2",
+    "cyberpunkconvai_mem_v1_0_campaign_3",
+    "cyberpunkconvai_mem_v1_0_campaign_4",
+    "cyberpunkconvai_mem_v1_0_campaign_5",
+    "cyberpunkconvai_mem_v1_0_campaign_6",
+    "cyberpunkconvai_mem_v1_0_campaign_7",
+    "cyberpunkconvai_mem_v1_0_campaign_8",
+    "cyberpunkconvai_mem_v1_0_branch_1",
+    "cyberpunkconvai_mem_v1_0_branch_2",
+    "cyberpunkconvai_mem_v1_0_branch_3",
+    "cyberpunkconvai_mem_v1_0_branch_4",
+    "cyberpunkconvai_mem_v1_0_branch_5",
+    "cyberpunkconvai_mem_v1_0_branch_6",
+    "cyberpunkconvai_mem_v1_0_branch_7",
+    "cyberpunkconvai_mem_v1_0_branch_8",
+    "cyberpunkconvai_mem_v1_0_epoch",
+    "cyberpunkconvai_mem_v1_0_sequence",
+    "cyberpunkconvai_mem_v1_0_generation",
+    "cyberpunkconvai_mem_v1_0_seal",
+    "cyberpunkconvai_mem_v1_1_schema",
+    "cyberpunkconvai_mem_v1_1_campaign_1",
+    "cyberpunkconvai_mem_v1_1_campaign_2",
+    "cyberpunkconvai_mem_v1_1_campaign_3",
+    "cyberpunkconvai_mem_v1_1_campaign_4",
+    "cyberpunkconvai_mem_v1_1_campaign_5",
+    "cyberpunkconvai_mem_v1_1_campaign_6",
+    "cyberpunkconvai_mem_v1_1_campaign_7",
+    "cyberpunkconvai_mem_v1_1_campaign_8",
+    "cyberpunkconvai_mem_v1_1_branch_1",
+    "cyberpunkconvai_mem_v1_1_branch_2",
+    "cyberpunkconvai_mem_v1_1_branch_3",
+    "cyberpunkconvai_mem_v1_1_branch_4",
+    "cyberpunkconvai_mem_v1_1_branch_5",
+    "cyberpunkconvai_mem_v1_1_branch_6",
+    "cyberpunkconvai_mem_v1_1_branch_7",
+    "cyberpunkconvai_mem_v1_1_branch_8",
+    "cyberpunkconvai_mem_v1_1_epoch",
+    "cyberpunkconvai_mem_v1_1_sequence",
+    "cyberpunkconvai_mem_v1_1_generation",
+    "cyberpunkconvai_mem_v1_1_seal"
+  ],
+  "manifest": [
+    {
+      "name": "cyberpunkconvai_mem_v1_head",
+      "hash32": 604016763
+    },
+    {
+      "name": "cyberpunkconvai_mem_v1_0_schema",
+      "hash32": 3576334787
+    },
+    {
+      "name": "cyberpunkconvai_mem_v1_0_campaign_1",
+      "hash32": 2857418690
+    },
+    {
+      "name": "cyberpunkconvai_mem_v1_0_campaign_2",
+      "hash32": 2840641071
+    },
+    {
+      "name": "cyberpunkconvai_mem_v1_0_campaign_3",
+      "hash32": 2823863452
+    },
+    {
+      "name": "cyberpunkconvai_mem_v1_0_campaign_4",
+      "hash32": 2807085833
+    },
+    {
+      "name": "cyberpunkconvai_mem_v1_0_campaign_5",
+      "hash32": 2790308214
+    },
+    {
+      "name": "cyberpunkconvai_mem_v1_0_campaign_6",
+      "hash32": 2773530595
+    },
+    {
+      "name": "cyberpunkconvai_mem_v1_0_campaign_7",
+      "hash32": 2756752976
+    },
+    {
+      "name": "cyberpunkconvai_mem_v1_0_campaign_8",
+      "hash32": 3008417261
+    },
+    {
+      "name": "cyberpunkconvai_mem_v1_0_branch_1",
+      "hash32": 1443709148
+    },
+    {
+      "name": "cyberpunkconvai_mem_v1_0_branch_2",
+      "hash32": 1494042005
+    },
+    {
+      "name": "cyberpunkconvai_mem_v1_0_branch_3",
+      "hash32": 1477264386
+    },
+    {
+      "name": "cyberpunkconvai_mem_v1_0_branch_4",
+      "hash32": 1393376291
+    },
+    {
+      "name": "cyberpunkconvai_mem_v1_0_branch_5",
+      "hash32": 1376598672
+    },
+    {
+      "name": "cyberpunkconvai_mem_v1_0_branch_6",
+      "hash32": 1426931529
+    },
+    {
+      "name": "cyberpunkconvai_mem_v1_0_branch_7",
+      "hash32": 1410153910
+    },
+    {
+      "name": "cyberpunkconvai_mem_v1_0_branch_8",
+      "hash32": 1594707719
+    },
+    {
+      "name": "cyberpunkconvai_mem_v1_0_epoch",
+      "hash32": 4024556637
+    },
+    {
+      "name": "cyberpunkconvai_mem_v1_0_sequence",
+      "hash32": 3106188693
+    },
+    {
+      "name": "cyberpunkconvai_mem_v1_0_generation",
+      "hash32": 807195246
+    },
+    {
+      "name": "cyberpunkconvai_mem_v1_0_seal",
+      "hash32": 3345544609
+    },
+    {
+      "name": "cyberpunkconvai_mem_v1_1_schema",
+      "hash32": 796897042
+    },
+    {
+      "name": "cyberpunkconvai_mem_v1_1_campaign_1",
+      "hash32": 3679725787
+    },
+    {
+      "name": "cyberpunkconvai_mem_v1_1_campaign_2",
+      "hash32": 3696503406
+    },
+    {
+      "name": "cyberpunkconvai_mem_v1_1_campaign_3",
+      "hash32": 3713281025
+    },
+    {
+      "name": "cyberpunkconvai_mem_v1_1_campaign_4",
+      "hash32": 3730058644
+    },
+    {
+      "name": "cyberpunkconvai_mem_v1_1_campaign_5",
+      "hash32": 3746836263
+    },
+    {
+      "name": "cyberpunkconvai_mem_v1_1_campaign_6",
+      "hash32": 3763613882
+    },
+    {
+      "name": "cyberpunkconvai_mem_v1_1_campaign_7",
+      "hash32": 3780391501
+    },
+    {
+      "name": "cyberpunkconvai_mem_v1_1_campaign_8",
+      "hash32": 3528727216
+    },
+    {
+      "name": "cyberpunkconvai_mem_v1_1_branch_1",
+      "hash32": 3459654713
+    },
+    {
+      "name": "cyberpunkconvai_mem_v1_1_branch_2",
+      "hash32": 3409321856
+    },
+    {
+      "name": "cyberpunkconvai_mem_v1_1_branch_3",
+      "hash32": 3426099475
+    },
+    {
+      "name": "cyberpunkconvai_mem_v1_1_branch_4",
+      "hash32": 3509987570
+    },
+    {
+      "name": "cyberpunkconvai_mem_v1_1_branch_5",
+      "hash32": 3526765189
+    },
+    {
+      "name": "cyberpunkconvai_mem_v1_1_branch_6",
+      "hash32": 3476432332
+    },
+    {
+      "name": "cyberpunkconvai_mem_v1_1_branch_7",
+      "hash32": 3493209951
+    },
+    {
+      "name": "cyberpunkconvai_mem_v1_1_branch_8",
+      "hash32": 3577098046
+    },
+    {
+      "name": "cyberpunkconvai_mem_v1_1_epoch",
+      "hash32": 2035445690
+    },
+    {
+      "name": "cyberpunkconvai_mem_v1_1_sequence",
+      "hash32": 3876518652
+    },
+    {
+      "name": "cyberpunkconvai_mem_v1_1_generation",
+      "hash32": 1707819643
+    },
+    {
+      "name": "cyberpunkconvai_mem_v1_1_seal",
+      "hash32": 3625728236
+    }
+  ],
+  "knownFactCount": 14317,
+  "collisionCount": 0,
+  "completeWithinScope": true,
+  "corpusDigest": "8deccd2b450d5915742715cd5ab716eb19df775c9b94739f9a112932fb778753",
+  "scope": "All indexed base/DLC quest/journal fact dictionaries and currently extracted scene dictionaries; literal fact API calls in pinned game scripts and installed redscript/CET Lua sources.",
+  "coverageGaps": [
+    "Not a complete enumeration of the engine fact database; zero GetFact is not absence evidence.",
+    "Unextracted scene/archive resources and dynamic/composed fact names are not enumerated.",
+    "Binary plugins and future mods can introduce names not represented by source literals.",
+    "A reviewed manifest must be regenerated after supported resource or mod-source changes."
+  ],
+  "qualification": {
+    "nativeWrites": false,
+    "restoreObserver": false,
+    "saveLoadRoundtrip": false,
+    "cloudPromotion": false
+  },
+  "sources": [
+    {
+      "kind": "extracted-dictionary",
+      "path": "research/cyberpunk/cache/game/index/facts-dictionary.json",
+      "sha256": "c1b8c740f7ea146a0fcb600a4e5a1158132f430f6e1fbdf34b09b70cbafabb2b",
+      "facts": 13805
+    },
+    {
+      "kind": "extracted-dictionary",
+      "path": "research/cyberpunk/cache/game/scene-evidence/aldecaldos-native/index/facts-dictionary.json",
+      "sha256": "53aaa5cf3ebfd0700f292dbb4696d81c7eef4051ffa7c9d4ff4d7e2b72073f05",
+      "facts": 7
+    },
+    {
+      "kind": "extracted-dictionary",
+      "path": "research/cyberpunk/cache/game/scene-evidence/aldecaldos-outcomes/index/facts-dictionary.json",
+      "sha256": "d224a9f0dd46864467a2cdb8ae09d1577bf26489d6c5afc7401f0d721e3681b5",
+      "facts": 28
+    },
+    {
+      "kind": "extracted-dictionary",
+      "path": "research/cyberpunk/cache/game/scene-evidence/arasaka-heist/index/facts-dictionary.json",
+      "sha256": "56f9597e6e32172f02d5c8b840d7c1039333258378802fb9a562d9d2230f6266",
+      "facts": 192
+    },
+    {
+      "kind": "extracted-dictionary",
+      "path": "research/cyberpunk/cache/game/scene-evidence/city-contacts/index/facts-dictionary.json",
+      "sha256": "dc692fccfa6f62db9be4a32bc726dc9c07a440d56ed141274c29270a3a82518b",
+      "facts": 69
+    },
+    {
+      "kind": "extracted-dictionary",
+      "path": "research/cyberpunk/cache/game/scene-evidence/city-contacts-extra/index/facts-dictionary.json",
+      "sha256": "cf4cbecfed6a6e722f422724b6fc18a01bff7e006716941b48077939019dc92d",
+      "facts": 33
+    },
+    {
+      "kind": "extracted-dictionary",
+      "path": "research/cyberpunk/cache/game/scene-evidence/core-relationships/index/facts-dictionary.json",
+      "sha256": "97b9fec946096952505a1d8ce829b23338b1d817323cfeebcea944c4dda63a7a",
+      "facts": 49
+    },
+    {
+      "kind": "extracted-dictionary",
+      "path": "research/cyberpunk/cache/game/scene-evidence/fixers/index/facts-dictionary.json",
+      "sha256": "f6892a7189a47d213e3e1ac3cf3afff9096503c482a6482719b18b2a24b20d53",
+      "facts": 22
+    },
+    {
+      "kind": "extracted-dictionary",
+      "path": "research/cyberpunk/cache/game/scene-evidence/heywood/index/facts-dictionary.json",
+      "sha256": "67b79ae44b7dcdf816bc3886dcdbd3b3b6793c84bcee16f036366d21661ca3ea",
+      "facts": 102
+    },
+    {
+      "kind": "extracted-dictionary",
+      "path": "research/cyberpunk/cache/game/scene-evidence/heywood-range/index/facts-dictionary.json",
+      "sha256": "b9fe3d65f41d9049f1f6bf7bc79e48f32ce0c3fbb21648632c33801baa770462",
+      "facts": 21
+    },
+    {
+      "kind": "extracted-dictionary",
+      "path": "research/cyberpunk/cache/game/scene-evidence/heywood-small-jobs/index/facts-dictionary.json",
+      "sha256": "fa5c53ec15ee696fbe187c9ecb5cd70d77df73d90f84a7c3a62d8221780d2320",
+      "facts": 21
+    },
+    {
+      "kind": "extracted-dictionary",
+      "path": "research/cyberpunk/cache/game/scene-evidence/judy-river-native/index/facts-dictionary.json",
+      "sha256": "f65cda4b10791fa123751e0f5ee3904a95fb27003b7294152e8e35e44c417a50",
+      "facts": 132
+    },
+    {
+      "kind": "extracted-dictionary",
+      "path": "research/cyberpunk/cache/game/scene-evidence/judy-river-outcomes/index/facts-dictionary.json",
+      "sha256": "c43e78dddc5c634724f4e1ecaacc48a90ef2324c87d60e424005c6efa53b8cd8",
+      "facts": 19
+    },
+    {
+      "kind": "extracted-dictionary",
+      "path": "research/cyberpunk/cache/game/scene-evidence/phantom-aaron/index/facts-dictionary.json",
+      "sha256": "45ff677c35684be206495e59e57bda063d51876931d489ed95ae7180f15731f6",
+      "facts": 18
+    },
+    {
+      "kind": "extracted-dictionary",
+      "path": "research/cyberpunk/cache/game/scene-evidence/phantom-final/index/facts-dictionary.json",
+      "sha256": "216e126e6f61896c92bbc1b7da8a52d77dd5ba6c303f094453cb69fe07c9fe17",
+      "facts": 62
+    },
+    {
+      "kind": "extracted-dictionary",
+      "path": "research/cyberpunk/cache/game/scene-evidence/phantom-native/index/facts-dictionary.json",
+      "sha256": "a5a4329463b9ef3f922a344fdd0de9d589b121e05837fd90ad4781699a6a612d",
+      "facts": 80
+    },
+    {
+      "kind": "extracted-dictionary",
+      "path": "research/cyberpunk/cache/game/scene-evidence/phantom-nele/index/facts-dictionary.json",
+      "sha256": "14fe25be9458aa2015a176398fd11de6b7a81a46a69b568f5f64e67eef4ccd74",
+      "facts": 22
+    },
+    {
+      "kind": "extracted-dictionary",
+      "path": "research/cyberpunk/cache/game/scene-evidence/release-root/index/facts-dictionary.json",
+      "sha256": "4b0c3ed2dff9cde6bc50b2ca5860dfb87f7e22946928740bcb7f591b5b0b07be",
+      "facts": 0
+    },
+    {
+      "kind": "extracted-dictionary",
+      "path": "research/cyberpunk/cache/game/scene-evidence/silverhand/index/facts-dictionary.json",
+      "sha256": "194c3d6be4c427697e3310a975cca84a23c340352a34378faa8dd5e233b18222",
+      "facts": 110
+    },
+    {
+      "kind": "extracted-dictionary",
+      "path": "research/cyberpunk/cache/game/scene-evidence/silverhand-movie/index/facts-dictionary.json",
+      "sha256": "8f114aed3f1ccfb135d1f9ca2316fa1dfdc20daab1d9ffdef9fb4c040cd982c9",
+      "facts": 8
+    },
+    {
+      "kind": "extracted-dictionary",
+      "path": "research/cyberpunk/cache/game/scene-evidence/silverhand-uscracks/index/facts-dictionary.json",
+      "sha256": "b468b20fd03a63d9c1ec2f665c40633c0a19c8dc967b00e9b114f401c3b43ae3",
+      "facts": 20
+    },
+    {
+      "kind": "game-script-literals",
+      "repository": "CDPR-Modding-Documentation/Cyberpunk-Scripts",
+      "revision": "fce9ab7e6a608b0d729290d898003589515900e1",
+      "trackedScriptFiles": 2077,
+      "matchedLiterals": 343,
+      "matchDigest": "872114cb81e1ad517aaf01b94c9571386d7f1b43d6f7d6be82a1d10eb762058d"
+    },
+    {
+      "kind": "installed-script-literals",
+      "fileCount": 145,
+      "matchedLiterals": 0,
+      "manifest": [
+        {
+          "path": "installed/r6/scripts/Audioware/Callback.reds",
+          "sha256": "35cd46b079acc078a11e882dbe1fe7a59fab30c745847ed6cf6ca55594e401f9",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/r6/scripts/Audioware/Codeware.reds",
+          "sha256": "d596e0e944948c9e225d4f5f7446c3b72f53b5b4927bf0c1e60079c121b5d71f",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/r6/scripts/Audioware/Config.reds",
+          "sha256": "364a7e721c650c0be6ba2bf806a1cddf3c08470d51f04234ddd548db2edca5ab",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/r6/scripts/Audioware/Event/Callback.reds",
+          "sha256": "135e461dcf7abd880d6077cb769d9fd258abc3bb50f3cba8e2ed64e92358cef3",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/r6/scripts/Audioware/Event/Dynamic.reds",
+          "sha256": "f1ea8d1a929cc04148bdf3960ad88853981db2f5d43fc29fafda83cc66a0a93b",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/r6/scripts/Audioware/Ext.reds",
+          "sha256": "fb7c049af06a6d95e772aae45526cd9edd6871c3961a479792cb7755cec2df9c",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/r6/scripts/Audioware/Hooks.reds",
+          "sha256": "749713f1abc5be4656d835224f93e39bd023ab08d4163cdc41e73514626d6c05",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/r6/scripts/Audioware/Listener.reds",
+          "sha256": "03f914fa44199c8dbe34f9d679f999c0167419dfb34928ee4aaa4b26949810c7",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/r6/scripts/Audioware/Manager.reds",
+          "sha256": "5082003d06e570c5eb512826d455211b9b089f9d2e52c3ef9fd27daec65c3f90",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/r6/scripts/Audioware/Natives.reds",
+          "sha256": "3cb00d99b59e060eecd19f7807695c6024ac6f9029d372230d27d5ff5a36edc0",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/r6/scripts/Audioware/PreGame.reds",
+          "sha256": "a9bb7170d0c86eaebf81d48eefdf290e820b78712957b6abf165098a0117ef3a",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/r6/scripts/Audioware/Preset.reds",
+          "sha256": "28c8ac2189cadf2e3f9a70d8bc5301e43cd44500370f00f43b1e6b6b7699d34a",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/r6/scripts/Audioware/Service.reds",
+          "sha256": "81deba2666122b1c721504dba0f4aeed315a66e67f21e3b22450e51b11cbcb9c",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/r6/scripts/Audioware/Settings.reds",
+          "sha256": "4e030b858947d47d76585db9caf546e950bcfea5c819c1c8756b60e6063a492c",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/r6/scripts/Audioware/System.reds",
+          "sha256": "332ace9d477598f6363cbc3e9d736ea0f12917802564c0748b3495087b7c300c",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/r6/scripts/Audioware/Trigger.reds",
+          "sha256": "134fd91d992a1d2803ab22854c418f5b9c06e2d56dacc57645b13a18d59f9ef6",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/r6/scripts/Audioware/Tween.reds",
+          "sha256": "1d85a84884d72b1e6412e35a65ccf5444f60b585e643fb7a51449e4b93aead43",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/r6/scripts/Audioware/Utils.reds",
+          "sha256": "75a088e0fd80e84b02adbdd5cebce187765830dabeb5d33c776bbac067d3b710",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/r6/scripts/CyberpunkConvai/Composer.reds",
+          "sha256": "301505e46d583ecb85009b25b388d13b1c9e7272659f350baedb510b1261f859",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/r6/scripts/CyberpunkConvai/Engagement.reds",
+          "sha256": "831b2357a5030ae3ff98c64c08bb26926710aff34738f62bea02edd5b8cb9108",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/r6/scripts/CyberpunkConvai/Face.reds",
+          "sha256": "5ca33a242dafc9d5600ea258ca4effc78eb6349e022fe5bcc087f364bea1cd14",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/r6/scripts/CyberpunkConvai/FaceFeature.reds",
+          "sha256": "710cd0293007def4f65f3ce7ca4245601a3fc1dbae548bbac73bea260f133557",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/r6/scripts/CyberpunkConvai/Manager.reds",
+          "sha256": "f8f54e3c937ddf326029112c531465d91b61c49aa66040e0bea4314735b6d6e9",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/r6/scripts/CyberpunkConvai/PhoneChat.reds",
+          "sha256": "aebcd6d409a6e3ae92358bcd9e5e6ab3b9499c5913202f8f3e4070a6d0fcf6a5",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/r6/scripts/CyberpunkConvai/PhoneChatTabs.reds",
+          "sha256": "29cbda8d12dfbd4e4cbcc96823e605042a29a69b6aa9a27e2eecd0b2eb49f96d",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/r6/scripts/CyberpunkConvai/PhoneContacts.reds",
+          "sha256": "d4f6e25cf8ed123ef0240a49dc5cf97e52a5e924fc1b03d7a4990ea2230b1a3f",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/r6/scripts/CyberpunkConvai/Speech.reds",
+          "sha256": "3206be6286df110206bc2dadb77b94ade43d0c4309549e44e3b351dc04469854",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/r6/scripts/CyberwareEx/CyberwareEx.Global.reds",
+          "sha256": "21a8f9cbf797718d1cc3271d955de745484f2c32daace7291350ce3f896adbf4",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/r6/scripts/CyberwareEx/CyberwareEx.OverrideMode.reds",
+          "sha256": "23467e92f1a7122ac66fcc78caadf7c040a8df74221cd3b7407a536172e9f6b7",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/r6/scripts/CyberwareEx/CyberwareEx.reds",
+          "sha256": "e765d09ac0ea1ecce7350def22e3d63e0b7fccea4ed6d0ca12deda2f0bbe41bd",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/r6/scripts/ModConfigurationMenu/UI/MCMContent.reds",
+          "sha256": "d521635202d87255cfe17ce13e79c587b19f2c067e98ff1fd77edeb99361d0e8",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/r6/scripts/ModConfigurationMenu/UI/MCMEntryContext.reds",
+          "sha256": "fcebd2d57380578284b26c4f3796aff3050f992a66af3b9b134c85ec1920a290",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/r6/scripts/ModConfigurationMenu/UI/MCMFrameworkCompat.reds",
+          "sha256": "649388cefca54b2a1941fc75c42cfec9f93f8298c1fe3edccd2eda02a407da54",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/r6/scripts/ModConfigurationMenu/UI/MCMLayout.reds",
+          "sha256": "8b086dff6fd3ec05110c3e47d4559a6f02e0975fcc2300086d04f62f5f2600fc",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/r6/scripts/ModConfigurationMenu/UI/MCMModal.reds",
+          "sha256": "5dcdc4c2dd93875cdc013e39780348114da3ebf425f9557ec528017ee0cbecce",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/r6/scripts/ModConfigurationMenu/UI/MCMNativeControls.reds",
+          "sha256": "fc9e7667a19758d59ba7a39011f4c9ed99df94f8ff9feff3f87fbe46155f82d7",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/r6/scripts/ModConfigurationMenu/UI/MCMRenderer.reds",
+          "sha256": "955353e53302fdd8db9ad01e090d27cb5d2b9b2cdc0ca809ec2926491b600e36",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/r6/scripts/ModConfigurationMenu/UI/MCMRuntime.reds",
+          "sha256": "9c6b81713907274bbf9465155cf9ac8bd4c57936eb12a9bb3646f52144c88e13",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/r6/scripts/ModConfigurationMenu/UI/MCMSettingsEntry.reds",
+          "sha256": "979f69e3354a7f2325448f3ab7cf0692dc633c7cdff9884ba6900208f05605c5",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/r6/scripts/ModConfigurationMenu/UI/MCMTextInput.reds",
+          "sha256": "0e69feb95655070470515dd569c2249243a2e163dbde714bceabf6257c5be0dd",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/r6/scripts/ModConfigurationMenu/UI/MCMTextMeasurement.reds",
+          "sha256": "cedd118cfac76de73c47e2c18cc45582258795e34c2fb6e7a699f77dfb5110cf",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/r6/scripts/ModConfigurationMenu/UI/MCMTheme.reds",
+          "sha256": "b574c48d8703013f96dcf09ee556a7a45fec59140365c9f407d97d1a9e796d29",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/r6/scripts/ModConfigurationMenuAPI/Bridges/ModSettings/MCMModSettingsAdapter.reds",
+          "sha256": "7307d0e69fe99a15535a0a07b254cb4907336e168f0eea079b1c8b4ad223db29",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/r6/scripts/ModConfigurationMenuAPI/Bridges/RCF/MCMRCFAdapter.reds",
+          "sha256": "20bb8703cf9de1d352c7bde8a3e9edb5bb9f3a7616f1216d37f26f781c122d7b",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/00_MCMNativeSettingsLifecycle/init.lua",
+          "sha256": "6b649998818bb32665b0a7f3a3b6c55dfbf80e198cf392af8909419155eedaaf",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/battle-observer.lua",
+          "sha256": "1958efe1ebc1d5e297d3208bb8fa17454e31339ad59c5df140480f9221c6b3eb",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/battle-reactions.lua",
+          "sha256": "ffa283d044a5224d42863d1b2cd74f262612766d518591ceaf6c5aa420e99d6e",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/character-catalog.lua",
+          "sha256": "37cad0d2a8d61b25089efdf161d80ab41a526a74e8a08128aee795ffa41fc77c",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-actuator.lua",
+          "sha256": "cfd8b7e835dd243047a33961040847a26025b6a6faa5284e994854a5cf42f34a",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-appearance.lua",
+          "sha256": "bda9e38c2abef8e3009184e21ec892d63833c61f54cc5e89655988a425d6fada",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-behavior.lua",
+          "sha256": "96fa7d206d5b2bd0db0b69ce1b8078cb51ee4c0b66b079c8d7842971aa6c8353",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-equipment.lua",
+          "sha256": "55ae545b6e21f3cc63fe5d34c496e34322ca01f2450e9d8e8de47cced59dd872",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-locomotion.lua",
+          "sha256": "8989e33838213293cfcf4b05c2ef3c42808b6c6b0801d346e37fb5e6137bde31",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-placement.lua",
+          "sha256": "2224f648023a7c373b400f82b5f3236145aa69f97ee74890b777c8488de1b113",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-records.lua",
+          "sha256": "65e950d36656f02cb1e028fe69effe1080b45cb7e3307b6778004be649ee6be3",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-space.lua",
+          "sha256": "c3a4616aed055ff6f224e8649c4bce031b7efdbee6ee780337cb51d5cf8d3818",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-travel.lua",
+          "sha256": "a2f4337f6a445536b918bf4253bc7f09b7a54fa2608f8fa2cd88ceb45aed6395",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companions.lua",
+          "sha256": "8419c9501127ea48f0840d64a22412d9107811c0bb36228d9d342fb857ca925b",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/composer-input.lua",
+          "sha256": "867f460fcec12003a48cd1ccfa0b470dc022fddb6b7f16c3b6b6deef292f32a2",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/diagnostics.lua",
+          "sha256": "79165549706c219a9d95b1b58088692ccf01ee800efbb1d10371c944fd342b59",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/face-probe.lua",
+          "sha256": "b018e58e905fc580bdc5e6fa4f4cb6b8b1f70ad9ddff4c3bbf22a8c49f6b9b97",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/facial-playback.lua",
+          "sha256": "8f813476ef99663b861f5e01c2f17ed3bc313d0508557d3f9b446e44d03cf91a",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/group-chat.lua",
+          "sha256": "06687ec80125e0e735aaa29f7a49e71d61115013201aca42f2a30da4b19aef2d",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/init.lua",
+          "sha256": "84eb97cf38b19cba044365027051367aba7e95275b5f4894a4654aa9814469d5",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/journal-history.lua",
+          "sha256": "eac50f1fbab561ef6774b44f7502c030d08dfbf97151ce52ba57004faec2e938",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/knowledge-probe.lua",
+          "sha256": "f7be2ec241429acc99b401a4b26a6fdc590b51f6ec753358a3316d21ced1baa7",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/knowledge-state.lua",
+          "sha256": "64bd5a5bed678652b39deffc30fff02b2c11c79fb2b3f26a27879234ea788069",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/loot-observer.lua",
+          "sha256": "1304de9b350a60b5b05013f0b20d55b2511a091032ef77da174f6db9b91699d1",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/loot-probe.lua",
+          "sha256": "8a3aee46773aec4ee27466fc48cf306d60a393ace263d8e18865e87ff8eb4de0",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/loot-reactions.lua",
+          "sha256": "5ddfee4ab58964b4728fbb9dcb334c26f0f77e2744628e7d112078ae7aca9f7e",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/manager-party.lua",
+          "sha256": "ace17a1a283a7b1539e31159b6202cc9e036fe260556654867a5e8b5163295dc",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/manager.lua",
+          "sha256": "4483bda89b22e17f496a3acf5e337d0067efc4f5936cb941adcd72c46f264403",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/mcm-entry.lua",
+          "sha256": "89a8d3e905092df12d807511fa023df7d898bd1f78c6ebce60d8a68ae7482ba5",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/mcm.lua",
+          "sha256": "ced086d545ceea7bc650367a2a899ee57505a03a1d642521084dfef457c0658e",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/microphone.lua",
+          "sha256": "5e11933168713d9b61cce646b81da9d34eb18623b59d38d6a2edb51d77b98dcd",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/phone-chat-style.lua",
+          "sha256": "e2d07e1a2396bb6989c0b7cac67e3647c8c18cb6e774a43d0dfdf2f4116b4120",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/phone-chat.lua",
+          "sha256": "dbd3e5c5d2b049d8e9ab482814b9beb9bd72acfb0eb9289a90e726ae9c4fbb87",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/phone-input.lua",
+          "sha256": "808c785c61b0afcb01c8afefd251a07a77ff25c9403598364128fbbd26edeb43",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/phone-layout.lua",
+          "sha256": "1d9a298f5381f836cbdac72cf7fb0a91f2509d26179dcde43b3942b06f2bf066",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/quest-context.lua",
+          "sha256": "9e3576c59d188c24e6a17893d9726a1689d6576e672118020c431db4fa92817e",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/runtime/check-companions.lua",
+          "sha256": "466a02103091770ed104abe9ccad1c432ec7c655e08f25e44c58a17eee11dae8",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/runtime/check-init.lua",
+          "sha256": "df1505bd288ac0f4ce7d877295305caccfdf059cf646f9c892e860d9a2bee75c",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/runtime/check-phone-input.lua",
+          "sha256": "e93d5cbe7349c402835ee8908213050aaa8453df1da9decc4fb356b744bc237d",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/runtime/observation-probe-deferred.lua",
+          "sha256": "5a5c63f5adedf11604fecbea4a2a1f7a2bfe086837f7ad502e7f234bd0740a8d",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/runtime/phone-controls.lua",
+          "sha256": "f13a84e3f6ca173894ac21191ad317e3398a7fb109591a4a4364999efe3ca99d",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/save-identity.lua",
+          "sha256": "0fbf5574c0f32620f6871b999b2846e8a2ebdd6e664dc959f9fb1b6b714236a4",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/speech.lua",
+          "sha256": "4a8a5d35a3186dc16df1c4849f0eae5c3e1fac2032c72670708daab05d7c0bda",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/subtitles.lua",
+          "sha256": "019444410e94b4cd217d16b12b0f9f0bf10db3984bb0853fc9e72f95ac6fcbe4",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/world-knowledge.lua",
+          "sha256": "1786223a9a2deccb0d5c825cca7c5cab9f817fadf85d170de933de236582862e",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenu/init.lua",
+          "sha256": "e93461b31ba47cf02fecea2566800ac2c340d561d84ef2ea6a0abf933c04c893",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenu/mcm_ui/init.lua",
+          "sha256": "d46212d6bd85f6b02eb6333ace0984aa0f431fe648a3dd9e16eefc60e8768390",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenu/mcm_ui/mcm_collections.lua",
+          "sha256": "bb9da48e1e6647fac17c27201ac3e9afdea744cbd8162a28b1d0c6462fd24ea9",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenu/mcm_ui/mcm_controller.lua",
+          "sha256": "562673c023ec439aa820c5924839cbd5d65a1b98a4e287f675bddd98f8486695",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenu/mcm_ui/mcm_host.lua",
+          "sha256": "83948d9c4172eadad9e5a7040f15c624ca712a1925fb0a6840a45da774216e2b",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenu/mcm_ui/mcm_input_tags.lua",
+          "sha256": "416809773b1f873f44251cf07d89a61ce8e116f8689b61a5a7f98f7c2aaa45e8",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenu/mcm_ui/mcm_install_health.lua",
+          "sha256": "ac652e2f1bab88f1d53d8757c81fcd96056edc65295825fd743456612de6f774",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenu/mcm_ui/mcm_layout.lua",
+          "sha256": "30dff7234796fd5383a615f55fc0635e24a83234fe8ee1a8b2d8019d5fffe27b",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenu/mcm_ui/mcm_localization.lua",
+          "sha256": "04b8f21b3626a87ebd77a3a5f9887c6cfba576380996aff14dc1a8a7dee7fbae",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenu/mcm_ui/mcm_logger.lua",
+          "sha256": "d7997d0d1fc4c59df827abff3e4a2fd6c738b7b80a61e1e0b52140ff4ca50950",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenu/mcm_ui/mcm_menu_bridge.lua",
+          "sha256": "368c47499b74f5aef4b36e10891fd340cafb2c85f0920682d0ace3efd1fb875b",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenu/mcm_ui/mcm_mod_list.lua",
+          "sha256": "859429a1d03501e58f6e9954ed9a9b542678a730ef653f7abeb900ffb2809bbc",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenu/mcm_ui/mcm_model.lua",
+          "sha256": "3e5f3166c784e663449bd2ec6732806aab558f1f3a7872044f46f89d3cb6cf16",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenu/mcm_ui/mcm_native_input.lua",
+          "sha256": "6064f6e5e494e95699e22054c48b4096f13b09c5bbf1e41168a7fd1fb4736ff9",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenu/mcm_ui/mcm_native_render.lua",
+          "sha256": "cb0671ea4cda3f0192fe077c95b683f69837451eaa19374591732803b5b6e54d",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenu/mcm_ui/mcm_native_surface.lua",
+          "sha256": "146bdda05880f7b702e8dff7f32114ac7e61e42100164ac3de6e7464b3cfb86b",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenu/mcm_ui/mcm_preferences.lua",
+          "sha256": "45cadc4bb5121350a9d42408d1b32a3423451008a263b31e467c91df24a086d5",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenu/mcm_ui/mcm_presets.lua",
+          "sha256": "4208c3d7ee7bec7f7ef73937dd0706cc3f2a92d98181c018509a2c7e8fe3a64e",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenu/mcm_ui/mcm_routes.lua",
+          "sha256": "b0ce53b835a5cebb3778d2621b5800a234b2d9738df8f8feb07696c5311612a4",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenu/mcm_ui/mcm_runtime.lua",
+          "sha256": "82526fbb96ff9f2605424c37eb764eba58211c199e2b1d8037bf53573690621f",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenu/mcm_ui/mcm_settings_entry.lua",
+          "sha256": "5c64999cbbfe5ffc1cd4d08a56a89eb97ee5a982d7a9c948eeb2702d65093989",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenu/mcm_ui/mcm_settings_schema.lua",
+          "sha256": "0604a530d6d16573803abbd7d73b5b3c93cbd0f3bcc622d552a47ed331daabfe",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenu/mcm_ui/mcm_state.lua",
+          "sha256": "7908dc4d9f3ffb133235afca8fc7ebcf628e1bb8f3db545f23c7201a83a0ae2a",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenu/mcm_ui/mcm_text.lua",
+          "sha256": "9f869d389147ff6f8ef203604bd6d8981cc2bfbd64af507f3eae3d632687b27e",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenu/mcm_ui/mcm_theme.lua",
+          "sha256": "bb4887ff437800981c47a27cbf55dcd99f0ec0e38eea15797727258ec4d20b2f",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenu/mcm_ui/views/mcm_collections_view.lua",
+          "sha256": "5dcfe281ab309267d48cbc9fcd0c164a7489ea16bf15c719f6d1d88cc53a5a34",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenu/mcm_ui/views/mcm_presets_view.lua",
+          "sha256": "a9efddb5c0cb0e52313add6332156fc15b15b463d3c69c3727cf93ba63b3473e",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenuAPI/bridges/loader.lua",
+          "sha256": "d7458eb09bdcb49c8eebc11b379c9c300b99b6375669336fe0a1ec518634fbfe",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenuAPI/bridges/ms/init.lua",
+          "sha256": "e1fcc1bd3b2c67d047a209b95ac464f9761095b26a298546448a10ee3e17e90a",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenuAPI/bridges/ms/provider.lua",
+          "sha256": "50b5ffe356fe352f9ab2d4c9df29a7e26f070f08e21667327e6a7bffb6281448",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenuAPI/bridges/native_settings/init.lua",
+          "sha256": "97c8bccf77bca32c58ca67365cc0ac3347b012e1ef04aaacef00a82f3a3ec897",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenuAPI/bridges/native_settings/provider.lua",
+          "sha256": "3924e7b85bec0c4594a8451acca2e9881d5762c38b9ce388c315a7ca25ca6813",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenuAPI/bridges/rcf/init.lua",
+          "sha256": "33c6da4785ec904937101c6f57d21f2d1e82b1c03245b8b68fbad08da7e42974",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenuAPI/bridges/rcf/provider.lua",
+          "sha256": "a560a507166c36a831f613302a4002035e517f96f9e5b639d381e0d3a1d06dfc",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenuAPI/data/portable/portable_folder.lua",
+          "sha256": "96307f146c9dda2bf5381694e53f5959882cd63f375d27c498e2baaab61d3328",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenuAPI/init.lua",
+          "sha256": "2473d4611191898dd365f0008cb0ca1fcbee05bebca0b6bd00d66a720b106d2f",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenuAPI/modules/catalog.lua",
+          "sha256": "2004408879bea075457562adabec58cb56a3195eeab8d1874505532bd4879409",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenuAPI/modules/collections.lua",
+          "sha256": "11f0620887c89be1b4a7ab493f71311b0ce650a389a18874a97812445e57b0c0",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenuAPI/modules/core.lua",
+          "sha256": "398b3ce9608254ab69c04e1e65ade1a701d7128333afa68382f2126b0edecb5c",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenuAPI/modules/defaults.lua",
+          "sha256": "49a3841564080166766240cbcc30e718dc44cd8291d9244b975dd6c04f021941",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenuAPI/modules/diagnostics.lua",
+          "sha256": "39d5fccbcd40fda117732a850468d1032d576e536481b0fe3d76e872f23d0c5e",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenuAPI/modules/drafts.lua",
+          "sha256": "077e4ee72c86b48fd2e79c9c0a18af55d84c48b6b32d53d832cdaf85ef386748",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenuAPI/modules/dynamic_snapshots.lua",
+          "sha256": "6132684326454372cdbb732deb5214f54b725ba11cedd57fb628854b425e675b",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenuAPI/modules/events.lua",
+          "sha256": "e3ae2b496ec87329c66fe273714a9a341d30edfaeca42bbe76b66485169dd0e2",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenuAPI/modules/logger.lua",
+          "sha256": "0a630fb135efbb96ea7a781611fd3ea592c7623af35105a463b86ffead70545d",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenuAPI/modules/operations.lua",
+          "sha256": "c27a47344d686dd9253da52d2a1becb577f30285adebdc263da7c80085896b3b",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenuAPI/modules/portable_collections.lua",
+          "sha256": "e87f6992e0a7800e1f43f4e284e12f1b5bdd2247947ad0c3cc8f41d4d54b9ee8",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenuAPI/modules/presets.lua",
+          "sha256": "0b3eb288f3c112c107806c41a89b19738ef27b995600f1559e3234b3be8559d9",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenuAPI/modules/provider_registry.lua",
+          "sha256": "770cb5cea3b98770356ec5e8d8dc85afc3f81cb9d3b1aa465c19364a63a5b69f",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenuAPI/modules/snapshots.lua",
+          "sha256": "42e4306df30bf67c466fcb59e4f170100947d4be457087d9f8aede35ea1a3166",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenuAPI/modules/storage.lua",
+          "sha256": "3a164a5d377145b8fb6e75413a565ee98aa709343277c07fa54e5d36302af77f",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenuAPI/modules/transactions.lua",
+          "sha256": "115386703e7734a9eb8bc31f469b80d66e6fba1419d11ae598f0a247fffbd69a",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenuAPI/modules/util.lua",
+          "sha256": "0ada1da89fe98acd45b0a1be24e5e75eb5d2fc313ddbf972ce974c4ae6905eb1",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenuAPI/modules/values.lua",
+          "sha256": "b9b8c07089e4361681b93951a4060cde4a4336c7d54ba7f9b8c2c52fddbbb9db",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenuAPI/modules/workflows/collections.lua",
+          "sha256": "2f962a56693782026bd66b9035c3af75e8ad5c34f7b04ca0e83c34e8104b1bae",
+          "matchedLiterals": 0
+        },
+        {
+          "path": "installed/bin/x64/plugins/cyber_engine_tweaks/mods/ModConfigurationMenuAPI/modules/workflows/presets.lua",
+          "sha256": "c63e7041e1adc378278d5a5ec36ea946a0df55b8ab320d0842710a8e3be6b0d8",
+          "matchedLiterals": 0
+        }
+      ]
+    }
+  ],
+  "collisions": []
+}

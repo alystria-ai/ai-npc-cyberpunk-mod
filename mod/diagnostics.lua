@@ -2,6 +2,31 @@
 local requestFile = io.open('runtime/diagnostic-request.txt', 'rb')
 local request = requestFile and requestFile:read('*a') or ''
 if requestFile then requestFile:close() end
+if request:match('^fact%-identity%-read:') then
+    if not convaiFactIdentityProbe then
+        convaiFactIdentityProbe = dofile('fact-identity-probe.lua').new({request = request,
+            names = dofile('fact-identity.lua').factNames,
+            getFacts = function() return Game.GetQuestsSystem() end,
+            observe = function(class, method, callback) ObserveAfter(class, method, callback) end,
+            world = function()
+                local player = Game.GetPlayer()
+                return {playerPresent = player ~= nil, attached = player and player:IsAttached() or false,
+                    preGame = Game.GetSystemRequestsHandler():IsPreGame()}
+            end,
+            publish = function(value)
+                local raw = json.encode(value)
+                assert(#raw <= 131072, 'read-only probe report too large')
+                local file = assert(io.open('runtime/fact-identity-probe.json', 'wb'))
+                file:write(raw); file:close()
+            end})
+        convaiFactIdentityProbe.arm()
+    elseif request:match('^fact%-identity%-read:stop:') then
+        convaiFactIdentityProbe.stop()
+    else
+        convaiFactIdentityProbe.read()
+    end
+    return
+end
 if request:match('^knowledge%-capture:') then
     return dofile('knowledge-probe.lua')
 end
