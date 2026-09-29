@@ -170,7 +170,7 @@ test('MCM settings apply as one saved transaction and leave playback unchanged o
   run(`${managerFixture}
     manager.configure(api, profiles); manager.snapshot(player)
     assert(not manager.disappearingMessages())
-    assert(manager.subtitleStyle() == 'overhead' and saved.subtitleStyle == 'overhead')
+    assert(manager.subtitleStyle() == 'dialogue' and saved.subtitleStyle == 'dialogue')
     assert(manager.snapshot(player).settings.voiceProvider == 'hybrid')
     assert(manager.battleReactions() and manager.snapshot(player).settings.battleReactions)
     assert(manager.lootReactions() and manager.snapshot(player).settings.lootReactions)
@@ -180,17 +180,17 @@ test('MCM settings apply as one saved transaction and leave playback unchanged o
     assert(manager.applySettings(player, {battleReactions = false}))
     assert(not manager.battleReactions() and saved.battleReactions == false)
     assert(manager.applySettings(player, {battleReactions = 'on'}) == false)
-    assert(manager.applySettings(player, {voice = false, subtitleStyle = 'dialogue', omniSteps = 16, voiceProvider = 'convai', disappearingMessages = true, enabledByKey = {['johnny-silverhand'] = false}}))
+    assert(manager.applySettings(player, {voice = false, subtitleStyle = 'overhead', omniSteps = 16, voiceProvider = 'convai', disappearingMessages = true, enabledByKey = {['johnny-silverhand'] = false}}))
     assert(player.voice == false and saved.omniSteps == 16 and not manager.profileEnabled('johnny-silverhand'))
     assert(saved.disappearingMessages and manager.disappearingMessages())
     failSave = true
-    assert(manager.applySettings(player, {voice = true, subtitles = false, subtitleStyle = 'overhead', omniSteps = 32, voiceProvider = 'hybrid', disappearingMessages = false}) == false)
+    assert(manager.applySettings(player, {voice = true, subtitles = false, subtitleStyle = 'dialogue', omniSteps = 32, voiceProvider = 'hybrid', disappearingMessages = false}) == false)
     local values = manager.snapshot(player).settings
     assert(values.voice == false and values.subtitles == true and values.omniSteps == 16)
     assert(player.voice == false and player.subtitles == true)
     assert(values.disappearingMessages and manager.disappearingMessages())
     assert(values.voiceProvider == 'convai')
-    assert(values.subtitleStyle == 'dialogue' and manager.subtitleStyle() == 'dialogue')
+    assert(values.subtitleStyle == 'overhead' and manager.subtitleStyle() == 'overhead')
     failSave = false
     assert(manager.applySettings(player, {voice = true, omniSteps = 8}) == false)
     assert(manager.applySettings(player, {enabledByKey = {unknown = true}}) == false)
@@ -198,11 +198,11 @@ test('MCM settings apply as one saved transaction and leave playback unchanged o
     assert(manager.applySettings(player, {voiceProvider = 'unknown'}) == false)
     assert(manager.applySettings(nil, {voice = true}))
     manager.reset(); manager.snapshot(player); assert(player.voice == true)
-    assert(manager.subtitleStyle() == 'dialogue', 'failed save or reset replaced subtitle choice')
+    assert(manager.subtitleStyle() == 'overhead', 'failed save or reset replaced explicit subtitle choice')
   `);
 });
 
-test('subtitle style migration preserves Convai voices, the master switch and unknown saved fields', () => {
+test('subtitle style defaults to dialogue and preserves explicit overhead, Convai voices and other saved fields', () => {
   run(`${managerFixture}
     for _, oldStyle in ipairs({'missing', 'invalid', false, 1}) do
       seed = {version = 2, voice = false, subtitles = false, voiceProvider = 'convai',
@@ -212,21 +212,21 @@ test('subtitle style migration preserves Convai voices, the master switch and un
       for _, profile in ipairs(profiles) do seed.enabledByKey[profile.key] = true end
       files['runtime/settings.json'], saved = 'seed', nil
       manager.configure(api, profiles)
-      assert(manager.subtitleStyle() == 'overhead')
+      assert(manager.subtitleStyle() == 'dialogue')
       local state = manager.snapshot(player).settings
-      assert(state.subtitleStyle == 'overhead' and saved.subtitleStyle == 'overhead')
+      assert(state.subtitleStyle == 'dialogue' and saved.subtitleStyle == 'dialogue')
       assert(not state.subtitles and not player.subtitles, 'migration enabled the master switch')
       assert(state.voiceProvider == 'convai' and saved.voiceProvider == 'convai')
       assert(not state.voice and state.omniSteps == 16 and state.disappearingMessages)
       assert(not state.battleReactions and not state.lootReactions)
       assert(saved.future.keep == 'unchanged')
-      assert(manager.applySettings(player, {subtitleStyle = 'dialogue'}))
+      assert(manager.applySettings(player, {subtitleStyle = 'overhead'}))
       manager.reset()
       state = manager.snapshot(player).settings
-      assert(manager.subtitleStyle() == 'dialogue' and state.subtitleStyle == 'dialogue')
+      assert(manager.subtitleStyle() == 'overhead' and state.subtitleStyle == 'overhead')
       assert(not state.subtitles and state.voiceProvider == 'convai' and saved.future.keep == 'unchanged')
-      assert(manager.applySettings(player, {subtitleStyle = 'overhead'}))
-      assert(manager.subtitleStyle() == 'overhead' and not player.subtitles)
+      assert(manager.applySettings(player, {subtitleStyle = 'dialogue'}))
+      assert(manager.subtitleStyle() == 'dialogue' and not player.subtitles)
     end
   `);
 });
@@ -322,8 +322,8 @@ test('MCM schema uses native controls, operates on current copies while paused, 
     assert(invoke('tab:settings').ok)
     assert(row('voice').type == 'bool' and row('omniSteps').type == 'select')
     assert(row('subtitles').type == 'bool' and row('subtitles').value == true)
-    assert(row('subtitleStyle').type == 'select' and row('subtitleStyle').value == 1)
-    assert(row('subtitleStyle').defaultValue == 1 and row('subtitleStyle').capabilities.draft)
+    assert(row('subtitleStyle').type == 'select' and row('subtitleStyle').value == 2)
+    assert(row('subtitleStyle').defaultValue == 2 and row('subtitleStyle').capabilities.draft)
     assert(row('subtitleStyle').elements[1] == 'Above speaker' and row('subtitleStyle').elements[2] == 'Dialogue HUD')
     assert(row('voiceProvider').type == 'select' and row('voiceProvider').value == 1)
     assert(row('disappearingMessages').type == 'bool' and row('disappearingMessages').value == false)
@@ -333,17 +333,17 @@ test('MCM schema uses native controls, operates on current copies while paused, 
     assert(not manager.lootReactions())
     assert(registered.applyBatch('manager', {{id = 'battleReactions', value = false}}).ok)
     assert(not manager.battleReactions())
-    local applied = registered.applyBatch('manager', {{id = 'voice', value = false}, {id = 'omniSteps', value = 1}, {id = 'disappearingMessages', value = true}, {id = 'voiceProvider', value = 2}, {id = 'subtitleStyle', value = 2}})
+    local applied = registered.applyBatch('manager', {{id = 'voice', value = false}, {id = 'omniSteps', value = 1}, {id = 'disappearingMessages', value = true}, {id = 'voiceProvider', value = 2}, {id = 'subtitleStyle', value = 1}})
     assert(applied.ok and applied.atomic and #applied.appliedIds == 5 and saved.omniSteps == 16)
     assert(saved.voiceProvider == 'convai')
     loaded = registered.loadMod('manager')
-    assert(manager.subtitleStyle() == 'dialogue' and row('subtitleStyle').value == 2)
+    assert(manager.subtitleStyle() == 'overhead' and row('subtitleStyle').value == 1)
     for _, invalid in ipairs({0, 3, '1', 'overhead', false}) do
       assert(not registered.applyBatch('manager', {{id = 'subtitles', value = false}, {id = 'subtitleStyle', value = invalid}}).ok)
-      assert(manager.subtitleStyle() == 'dialogue' and player.subtitles)
+      assert(manager.subtitleStyle() == 'overhead' and player.subtitles)
     end
-    assert(registered.applyBatch('manager', {{id = 'subtitleStyle', value = 1}}).ok)
-    assert(manager.subtitleStyle() == 'overhead' and saved.voiceProvider == 'convai')
+    assert(registered.applyBatch('manager', {{id = 'subtitleStyle', value = 2}}).ok)
+    assert(manager.subtitleStyle() == 'dialogue' and saved.voiceProvider == 'convai')
     assert(not registered.applyBatch('manager', {{id = 'voiceProvider', value = 3}}).ok)
     assert(manager.disappearingMessages())
     assert(player.voice == false)
@@ -485,7 +485,7 @@ test('installed MCM API accepts the provider, actions, draft transactions and dy
       assert(actual.setDraft(key .. ':voice', false))
       assert(actual.setDraft(key .. ':omniSteps', 1))
       assert(actual.setDraft(key .. ':voiceProvider', 2))
-      assert(actual.setDraft(key .. ':subtitleStyle', 2))
+      assert(actual.setDraft(key .. ':subtitleStyle', 1))
       assert(actual.setDraft(key .. ':battleReactions', false))
       assert(actual.invokeAction(key .. ':tab:characters') == false)
       local ok, err = actual.apply(key)
@@ -494,7 +494,7 @@ test('installed MCM API accepts the provider, actions, draft transactions and dy
       assert(manager.snapshot(player).settings.omniSteps == 16 and not actual.hasDrafts(key))
       assert(actual.getValue(key .. ':voiceProvider') == 2)
       assert(manager.snapshot(player).settings.voiceProvider == 'convai')
-      assert(actual.getValue(key .. ':subtitleStyle') == 2 and manager.subtitleStyle() == 'dialogue')
+      assert(actual.getValue(key .. ':subtitleStyle') == 1 and manager.subtitleStyle() == 'overhead')
       assert(not manager.battleReactions() and actual.getValue(key .. ':battleReactions') == false)
       assert(actual.invokeAction(key .. ':tab:party'))
       assert(actual.invokeAction(key .. ':dismiss:queued:1'))

@@ -2,6 +2,65 @@
 local requestFile = io.open('runtime/diagnostic-request.txt', 'rb')
 local request = requestFile and requestFile:read('*a') or ''
 if requestFile then requestFile:close() end
+if request:match('^subtitles%-style:') then
+    local report = {request = request}
+    local ok, err = pcall(function()
+        local style = request:match('^subtitles%-style:([%a]+):')
+        assert(style == 'dialogue' or style == 'overhead', 'Choose dialogue or overhead')
+        assert(not (convaiSpeech and convaiSpeech.requestId), 'Wait for the current reply to finish')
+        local api = assert(GetMod('ModConfigurationMenuAPI'), 'MCM unavailable')
+        local provider = assert(api.providers.getProvider('cyberpunk-convai'), 'Companion Manager unavailable')
+        report.before = convaiSubtitles.style()
+        -- Use the running manager's transaction, so memory and disk agree.
+        local result = provider.applyBatch('manager', {{id = 'subtitleStyle', value = style == 'overhead' and 1 or 2}})
+        assert(result and result.ok, result and result.error or 'Subtitle preference was not saved')
+        convaiSubtitles.clear()
+        report.after = convaiSubtitles.style()
+        assert(report.after == style, 'Running subtitle preference did not change')
+        if not api.hasDrafts('cyberpunk-convai:manager') then api.reloadMod('cyberpunk-convai:manager') end
+    end)
+    report.ok, report.error = ok, not ok and tostring(err) or nil
+    local file = io.open('runtime/subtitles-style.json', 'wb')
+    if file then file:write(json.encode(report)); file:close() end
+    return
+end
+if request:match('^subtitles%-refresh:') then
+    local report = {request = request}
+    local ok, err = pcall(function()
+        assert(not (convaiSpeech and convaiSpeech.requestId), 'Wait for the current reply to finish')
+        local subtitles = dofile('subtitles.lua')
+        subtitles.clear()
+        assert(subtitles.install(), 'Native subtitle hook unavailable')
+        -- The provider owns the live manager closures. Refresh just this row's
+        -- reset value without recreating the manager or disturbing MCM drafts.
+        local api = GetMod('ModConfigurationMenuAPI')
+        local provider = api and api.providers.getProvider('cyberpunk-convai')
+        if provider and not provider.convaiDialogueDefault then
+            local previousLoad = provider.loadMod
+            provider.loadMod = function(id, ...)
+                local schema, problem = previousLoad(id, ...)
+                for _, category in ipairs(schema and schema.categories or {}) do
+                    for _, row in ipairs(category.settings or {}) do
+                        if row.id == 'subtitleStyle' then
+                            row.defaultValue = 2
+                            row.description = 'Use the regular dialogue HUD by default, or place subtitles above the speaking companion. The Subtitles switch controls both.'
+                        end
+                    end
+                end
+                return schema, problem
+            end
+            provider.convaiDialogueDefault = true
+        end
+        report.managerDefaultUpdated = provider and provider.convaiDialogueDefault or false
+        if api and not api.hasDrafts('cyberpunk-convai:manager') then api.reloadMod('cyberpunk-convai:manager') end
+        report.adapter = subtitles.status()
+        report.style = subtitles.style()
+    end)
+    report.ok, report.error = ok, not ok and tostring(err) or nil
+    local file = io.open('runtime/subtitles-refresh.json', 'wb')
+    if file then file:write(json.encode(report)); file:close() end
+    return
+end
 if request:match('^overhead%-state:') then
     local report = {request = request, controllers = {}, rendered = convaiOverheadProbe and convaiOverheadProbe.rendered,
         adapter = convaiSubtitles and convaiSubtitles.status and convaiSubtitles.status()}
@@ -20,7 +79,7 @@ if request:match('^overhead%-state:') then
     if file then file:write(json.encode(report)); file:close() end
     return
 end
-if request:match('^overhead%-probe:') then
+if request:match('^overhead%-probe:') or request:match('^subtitles%-preview:') then
     local report = {request = request}
     local ok, err = pcall(function()
         local player = Game.GetPlayer()
@@ -29,7 +88,10 @@ if request:match('^overhead%-probe:') then
         local people = convaiCompanions.conversationCandidates(player, 20)
         assert(people and people[1] and people[1].npc, 'No nearby companion')
         local person, subtitles = people[1], convaiSubtitles
+        local previewStyle = request:match('^subtitles%-preview:([%a]+):') or 'overhead'
+        assert(previewStyle == 'overhead' or previewStyle == 'dialogue', 'Choose dialogue or overhead')
         assert(subtitles, 'Subtitle adapter unavailable')
+        assert(not subtitles.line and not (convaiSpeech and convaiSpeech.requestId), 'Wait for the current reply to finish')
         assert(person.npc:IsAttached() and not person.npc:IsDeadNoStatPool(), 'Companion unavailable')
         local settings = UserSettings.new()
         report.nativeOverheads = settings:GetVar('/accessibility/subtitles', 'Overheads'):GetValue()
@@ -48,18 +110,27 @@ if request:match('^overhead%-probe:') then
                 capture.rendered = passed and detail or {error = tostring(detail)}
             end)
         end
-        subtitles.clear()
-        subtitles.serial = subtitles.serial + 1
-        local line = scnDialogLineData.new()
-        line.id = CRUID(0x436F6E760000 + subtitles.serial)
-        line.type, line.speaker, line.speakerName = scnDialogLineType.OverHead, person.npc, person.name
-        line.text, line.isPersistent, line.duration = 'Checking subtitles above the speaking companion.', false, 8
+        if not convaiOverheadProbe.dialogueHook then
+            convaiOverheadProbe.dialogueHook = true
+            ObserveAfter('SubtitleLineLogicController', 'SetLineData', function(controller, shown)
+                local capture = convaiOverheadProbe
+                if not capture.id or os.time() > capture.expiresAt or tostring(shown.id) ~= capture.id then return end
+                capture.rendered = {id = tostring(shown.id), text = shown.text,
+                    renderer = 'native-dialogue', widgetVisible = controller:GetRootWidget():IsVisible(), at = os.time()}
+            end)
+        end
+        -- Previewing either layout does not change the saved or running choice.
+        local previousStyle = subtitles.styleProvider
+        subtitles.configure({style = function() return previewStyle end})
+        local shown, result = pcall(subtitles.show, person.name,
+            'These streets never seem to sleep. Keep close and watch the next dark corner.', person.npc, person.entity)
+        subtitles.configure({style = previousStyle})
+        assert(shown and result, 'Test subtitle unavailable: ' .. tostring(result))
+        local line = subtitles.line
         convaiOverheadProbe.id, convaiOverheadProbe.expiresAt, convaiOverheadProbe.rendered = tostring(line.id), os.time() + 10, nil
-        subtitles.line, subtitles.remaining, subtitles.pages, subtitles.page = line, 8, {line.text}, 1
-        subtitles.speaker = person.name
-        Game.GetBlackboardSystem():Get(Game.GetAllBlackboardDefs().UIGameData):SetVariant(
-            Game.GetAllBlackboardDefs().UIGameData.ShowDialogLine, ToVariant({line}, 'array:scnDialogLineData'), true)
+        subtitles.remaining = 8
         report.line = tostring(line.id)
+        report.previewStyle, report.savedStyle = previewStyle, subtitles.style()
     end)
     report.ok, report.error = ok, not ok and tostring(err) or nil
     local file = io.open('runtime/overhead-probe.json', 'wb')

@@ -48,7 +48,7 @@ local function loadSettings()
     if type(settings.voice) ~= 'boolean' then settings.voice = true end
     if type(settings.subtitles) ~= 'boolean' then settings.subtitles = true end
     if settings.subtitleStyle ~= 'overhead' and settings.subtitleStyle ~= 'dialogue' then
-        settings.subtitleStyle, settingsNeedSave = 'overhead', true
+        settings.subtitleStyle, settingsNeedSave = 'dialogue', true
     end
     if type(settings.disappearingMessages) ~= 'boolean' then settings.disappearingMessages = false end
     if type(settings.battleReactions) ~= 'boolean' then settings.battleReactions, settingsNeedSave = true, true end

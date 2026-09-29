@@ -20,9 +20,20 @@ end
 local function board()
     return Game.GetBlackboardSystem():Get(Game.GetAllBlackboardDefs().UIGameData)
 end
+local function restorePlacement()
+    local placement = M.placement
+    M.placement = nil
+    if placement then
+        pcall(function()
+            local offset = placement.offset
+            placement.projection:SetFixedWorldOffset(Vector4.new(offset.x, offset.y, offset.z, offset.w))
+        end)
+    end
+end
 local function hideLine()
     local line = M.line
-    M.line, M.controller = nil, nil
+    restorePlacement()
+    M.line, M.controller, M.widgetToken = nil, nil, nil
     if line then
         pcall(function()
             board():SetVariant(Game.GetAllBlackboardDefs().UIGameData.HideDialogLine,
@@ -36,7 +47,7 @@ function M.configure(options)
 end
 function M.style()
     local ok, value = pcall(function() return M.styleProvider and M.styleProvider() end)
-    return ok and value == 'dialogue' and 'dialogue' or 'overhead'
+    return ok and value == 'overhead' and 'overhead' or 'dialogue'
 end
 function M.enabled()
     local player = Game.GetPlayer()
@@ -46,8 +57,9 @@ function M.enabled()
 end
 function M.abandon()
     -- Death/detach destroys the HUD. Release references without native calls.
-    M.line, M.controller, M.actor, M.entity, M.playerID = nil, nil, nil, nil, nil
+    M.line, M.controller, M.widgetToken, M.actor, M.entity, M.playerID = nil, nil, nil, nil, nil, nil
     M.pages, M.timed, M.speaker, M.page, M.remaining, M.mode = nil, nil, nil, nil, nil, nil
+    M.placement = nil
 end
 function M.clear()
     hideLine()
@@ -58,37 +70,35 @@ function M.clearEntity(entity)
     return false
 end
 
--- Prefer a sentence/clause break, retain every word, and keep UTF-8 characters
--- intact even in CJK text without spaces or unusually long words.
+-- Keep normal sentences together. Only wrap when a line actually exceeds the
+-- native layout budget; short sentences and commas do not force a new page.
+-- Preserve UTF-8 even in CJK text without spaces or unusually long words.
 function M.split(text, style)
     if type(text) ~= 'string' then return {} end
     text = text:gsub('%s+', ' '):match('^%s*(.-)%s*$')
     local chars, pages = {}, {}
     for char in text:gmatch(UTF8) do chars[#chars + 1] = char end
-    local short = style == 'overhead'
-    local maximum, start = short and 64 or 160, 1
+    local overhead = style == 'overhead'
+    local maximum, start = overhead and 120 or 160, 1
     while start <= #chars do
         local finish = math.min(#chars, start + maximum - 1)
-        local boundary, punctuation, words, inWord = nil, nil, 0, false
-        local ended = false
-        for index = start, finish do
-            local char = chars[index]
-            if char == ' ' then
-                boundary, inWord = index - 1, false
-                if short and words >= 12 then finish, ended = index - 1, true; break end
-            else
-                if not inWord then words, inWord = words + 1, true end
-                if short and index - start >= 15 and (char:match('[.!?;]') or char == '。' or char == '！' or char == '？' or char == '；') then
-                    finish, ended = index, true; break
-                end
-                if short and index - start >= 27 and (char == ',' or char == ':' or char == '，' or char == '、' or char == '：') then
-                    punctuation = index
+        if finish < #chars then
+            local boundary, punctuation
+            for index = start, finish do
+                local char = chars[index]
+                if char == ' ' then boundary = index - 1 end
+                if overhead and index >= start + math.floor(maximum * 0.65) then
+                    -- ASCII punctuation must finish a word, so decimals and
+                    -- abbreviations inside a token cannot become boundaries.
+                    local wordEnd = not chars[index + 1] or chars[index + 1] == ' '
+                    if (wordEnd and char:match('[.!?,;:]')) or char == '。' or char == '！'
+                        or char == '？' or char == '；' or char == '，' or char == '、' or char == '：' then
+                        punctuation = index
+                    end
                 end
             end
-        end
-        if not ended and finish < #chars and chars[finish + 1] ~= ' ' then
-            if punctuation and punctuation >= start + math.floor(maximum / 2) then finish = punctuation
-            elseif boundary and boundary >= start + math.floor(maximum / 2) then finish = boundary end
+            if punctuation then finish = punctuation
+            elseif chars[finish + 1] ~= ' ' and boundary and boundary >= start then finish = boundary end
         end
         local page = table.concat(chars, '', start, finish):match('^%s*(.-)%s*$')
         if page ~= '' then pages[#pages + 1] = page end
@@ -111,7 +121,10 @@ local function showPage()
     local words, characters = 0, 0
     for _ in text:gmatch('%S+') do words = words + 1 end
     for _ in text:gmatch(UTF8) do characters = characters + 1 end
-    local reading = math.max(words / 2.8, characters / 10) + 0.8
+    -- Keep the accepted dialogue-HUD reading time. Overhead text without spaces
+    -- needs its own character-based budget; audio always uses playback time.
+    local reading = M.mode == 'overhead' and math.max(words / 2.8, characters / 10) + 0.8
+        or math.max(words / 2.8, #text / 36) + 1.2
     line.duration = M.timed and M.timed.duration + 1 or math.max(M.mode == 'overhead' and 2 or 3.5, math.min(12, reading))
     M.line, M.remaining = line, line.duration
     board():SetVariant(Game.GetAllBlackboardDefs().UIGameData.ShowDialogLine,
@@ -180,30 +193,59 @@ function M.update(delta)
 end
 
 function M.install()
-    if M.hooksInstalled then return true end
+    if M.hooksVersion == 4 then return true end
     if type(ObserveAfter) ~= 'function' then return false end
     ObserveAfter('ChatterLineLogicController', 'SetLineData', function(controller, line)
-        if M.controller == controller then M.controller = nil end
+        local named, rootName = pcall(function() return NameToString(controller:GetRootWidget():GetName()) end)
+        if named and (M.widgetToken == rootName or (M.placement and M.placement.token == rootName)) then
+            restorePlacement(); M.widgetToken = nil
+        end
         if not M.line or M.mode ~= 'overhead' or tostring(line.id) ~= tostring(M.line.id) then return end
         local ok, result = pcall(function()
             return {id = tostring(line.id), entity = tostring(controller:GetOwnerID().hash),
                 renderer = 'native-overhead', text = line.text, projection = controller:GetProjection() ~= nil}
         end)
         M.rendered = ok and result or {error = tostring(result)}
-        if ok and result.entity == M.entity and result.projection then M.controller = controller end
+        if ok and result.entity == M.entity and result.projection then
+            -- CET may hand each callback a different Lua wrapper for the same
+            -- native controller. A name on our newly created root is stable;
+            -- userdata equality is not a safe ownership key across callbacks.
+            -- Each render gets a fresh token, even when the same line is
+            -- recreated on another root. A retired native root stays retired.
+            M.renderSerial = (M.renderSerial or 0) + 1
+            local token = 'convai_subtitle_' .. tostring(line.id):gsub('[^%w_]', '_') .. '_' .. M.renderSerial
+            local marked = pcall(function() controller:GetRootWidget():SetName(CName.new(token)) end)
+            if marked then M.widgetToken, M.rendered.widgetToken = token, token end
+            local adjusted, offset = pcall(function()
+                local projection = controller:GetProjection()
+                restorePlacement()
+                local original = projection:GetFixedWorldOffset()
+                M.placement = {projection = projection, token = token,
+                    offset = {x = original.x, y = original.y, z = original.z, w = original.w}}
+                -- The native NPC chatter anchor adds 30 cm above its UI slot.
+                -- Our optional captions need only 5 cm of extra headroom.
+                projection:SetFixedWorldOffset(Vector4.new(0, 0, 0.05, 0))
+                return projection:GetFixedWorldOffset().z
+            end)
+            M.rendered.worldOffsetZ = adjusted and offset or nil
+            M.rendered.placementError = not adjusted and tostring(offset) or nil
+        end
     end)
     -- Other crowd chatter can be closer to screen centre. Keep this exact
     -- owned line readable; every other controller retains the native behavior.
     if type(Override) == 'function' then
         Override('ChatterLineLogicController', 'IsBubble', function(controller, target, wrapped)
-            if M.line and M.mode == 'overhead' and controller == M.controller then
-                M.bubbleOverrides = (M.bubbleOverrides or 0) + 1
-                return false
+            if M.line and M.mode == 'overhead' and M.widgetToken then
+                local ok, name = pcall(function() return NameToString(controller:GetRootWidget():GetName()) end)
+                if ok and name == M.widgetToken then
+                    M.bubbleOverrides = (M.bubbleOverrides or 0) + 1
+                    return false
+                end
             end
             return wrapped(target)
         end)
     end
-    M.hooksInstalled = true
+    M.hooksInstalled, M.hooksVersion = true, 4
     return true
 end
 function M.status()

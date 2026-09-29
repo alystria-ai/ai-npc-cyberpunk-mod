@@ -202,8 +202,8 @@ local function schema()
         rows = {
             setting('voice', 'Voice playback', 'bool', snapshot.settings.voice, true, 'Play voiced replies from your companions.'),
             setting('subtitles', 'Subtitles', 'bool', snapshot.settings.subtitles, true, 'Show companion replies using the selected subtitle display.'),
-            setting('subtitleStyle', 'Subtitle display', 'select', snapshot.settings.subtitleStyle == 'dialogue' and 2 or 1, 1,
-                'Display short phrases above the speaking companion, or use the regular dialogue HUD. The Subtitles switch controls both.',
+            setting('subtitleStyle', 'Subtitle display', 'select', snapshot.settings.subtitleStyle == 'overhead' and 1 or 2, 2,
+                'Use the regular dialogue HUD by default, or place subtitles above the speaking companion. The Subtitles switch controls both.',
                 {'Above speaker', 'Dialogue HUD'}),
             setting('battleReactions', 'React to battles', 'bool', snapshot.settings.battleReactions, true,
                 'A nearby companion can make one short comment as combat starts and another afterward. Ten-minute cooldown after a fight; conversations and story scenes take priority. Loading a save resets the cooldown.'),
