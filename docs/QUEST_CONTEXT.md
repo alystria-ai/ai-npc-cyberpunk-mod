@@ -67,8 +67,11 @@ reactions remain separate backlog items.
   events and eyewitness claims. No remote character profile was changed.
 - The correction passed the same 53 affected checks and was applied by restarting
   only the hidden bridge (PID 23836). Cyberpunk stayed open, the saved Convai voice
-  choice stayed active, and the local voice model stayed unloaded. The user's
-  repeat F6 check is pending.
+  choice stayed active, and the local voice model stayed unloaded. The user
+  confirmed the repeat F6 check works. Their subsequent input tracked **Freedom**;
+  Judy replied that V had a message from Muamar to check, matching the updated
+  objective. F8 and phone propagation have automated coverage; a separate live
+  test of each route and the deferred microphone check have not been claimed.
 
 The [Convai message reference](https://github.com/Conv-AI/Convai-Documentation/blob/main/api-reference/core-api-reference/live-apis-beta/client-to-server-messages.md#context-update)
 documents silent context replacement and its success receipt. That receipt proves
