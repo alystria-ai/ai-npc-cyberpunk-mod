@@ -90,6 +90,13 @@ After the 7.40-second reply, PyTorch reported 1,981.86 MiB live allocation and
 2,284 MiB reserved/peak. Evidence copies are
 `runtime/latency-investigation-20260929/graph-live-*.json`.
 
+The later visually accepted v4 Judy reply began at approximately **4.108 s**:
+1.400 s Convai collection, 1.520 s local synthesis and 0.923 s lip analysis.
+Its audio lasted 4.44 s and the native face reset normally. This also shows
+that further reductions in first-reply delay must consider collection and
+CPU lip analysis, not only the GPU model. Receipt copies use the
+`v4-accepted-` prefix in the same evidence folder.
+
 ## Ownership, limits and rollback
 
 - One graph, up to 640 combined reference/text/audio tokens; larger inputs use

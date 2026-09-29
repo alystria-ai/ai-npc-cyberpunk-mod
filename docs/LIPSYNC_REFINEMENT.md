@@ -60,7 +60,15 @@ jaw weights had a 0.049 active median, 0.196 95th percentile and 0.310 maximum;
 both individual upper raisers were zero. Version 4 increases jaw targets for
 B/C/D/E/F/H (maximum 0.40), keeps the existing energy variation, and leaves
 closed P/B/M, F/V lip contact, lip shaping and timing unchanged. This is a
-controlled opening adjustment, still awaiting visual acceptance.
+controlled opening adjustment.
+
+**Live v4 result:** the user confirmed **"Natural opening"** on Judy's next
+F6 reply. The native receipt reports 173 applications over the 4.44-second
+utterance, `coarticulated-v4`, and a completed face reset. First audio was
+estimated at 4.108 s from bridge receipt; local generation took 1.520 s and
+phonetic analysis 0.923 s. Evidence:
+`runtime/latency-investigation-20260929/v4-accepted-*.json`.
+This accepts Judy's opening adjustment, not every rig or expressive behavior.
 
 ## Verification and limits
 
@@ -69,7 +77,8 @@ raisers and active corner delivery to the native
 feature, distinct trajectories, closure/rest, unchanged audio, pause/resume,
 speaker changes and cleanup. The live speech-install diagnostic accepted the
 adapter without restarting/reloading the game. Visual acceptance remains a
-separate in-game check; a passing test is not proof of convincing facial motion.
+separate in-game check; Judy's acceptance above applies to the latest v4 change,
+while other characters and broader expressive quality still need inspection.
 
 The recognizer still supplies nine acoustic categories, not a full phoneme
 alignment or a trained 3D performance. English transcript-guided recognition
