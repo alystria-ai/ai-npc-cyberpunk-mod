@@ -8,6 +8,8 @@ local allowed = {
     lips_r_purse = true, lips_l_stretch = true, lips_r_stretch = true,
     lips_l_lower_raise = true, lips_r_lower_raise = true,
     lips_tighten_up = true, lips_tighten_dn = true, lips_suck_dn = true, tongue_mid_tip_up = true,
+    lips_l_upper_raise = true, lips_r_upper_raise = true,
+    lips_l_corner_stretch = true, lips_r_corner_stretch = true,
 }
 local function finite(value)
     return type(value) == 'number' and value == value and value > -math.huge and value < math.huge
@@ -40,7 +42,7 @@ end
 
 function M.start(context, timeline, actor, duration)
     M.abandon('unavailable')
-    M.source, M.error, M.applied, M.position = nil, nil, 0, nil
+    M.source, M.articulation, M.error, M.applied, M.position = nil, nil, nil, 0, nil
     if type(timeline) ~= 'table' then return false end
     local ok, err = pcall(function()
         assert(timeline.version == 1 and timeline.requestId == context.requestId
@@ -49,7 +51,7 @@ function M.start(context, timeline, actor, duration)
             and finite(timeline.duration) and math.abs(timeline.duration - duration) < 0.001, 'Facial duration mismatch')
         assert(timeline.source == 'convai-arkit61' or timeline.source == 'audio-envelope'
             or timeline.source == 'local-phonetic', 'Unknown facial source')
-        assert(type(timeline.tracks) == 'table' and #timeline.tracks > 0 and #timeline.tracks <= 17
+        assert(type(timeline.tracks) == 'table' and #timeline.tracks > 0 and #timeline.tracks <= 21
             and type(timeline.frames) == 'table' and #timeline.frames >= 2 and #timeline.frames <= 7202,
             'Invalid facial timeline size')
         local used, previous = {}, -1
@@ -73,6 +75,7 @@ function M.start(context, timeline, actor, duration)
         assert(M.feature, 'Native facial feature is unavailable')
         M.requestId, M.timeline, M.index = context.requestId, timeline, 1
         M.source, M.active, M.state = timeline.source, true, 'waiting-for-audio'
+        M.articulation = timeline.articulation
     end)
     if not ok then clear(); M.state, M.error = 'unavailable', tostring(err) end
     return ok
@@ -107,7 +110,7 @@ function M.sync(actor, position, requestId)
 end
 
 function M.status()
-    return {state = M.state or 'idle', source = M.source, position = M.position,
+    return {state = M.state or 'idle', source = M.source, articulation = M.articulation, position = M.position,
         applied = M.applied or 0, restored = M.restored, error = M.error}
 end
 

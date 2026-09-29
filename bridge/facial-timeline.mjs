@@ -79,7 +79,9 @@ export function buildFacialTimeline(result, owner) {
   const fps = cues ? 60 : 30;
   let index = 0;
   for (let sample = 0; sample / fps < wav.duration; sample++) {
-    const at = sample / fps, level = envelope[Math.floor(at * 30)] || 0;
+    const at = sample / fps, energyFrame = at * 30, energyIndex = Math.floor(energyFrame);
+    const level = (envelope[energyIndex] || 0) * (1 - energyFrame + energyIndex)
+      + (envelope[energyIndex + 1] || 0) * (energyFrame - energyIndex);
     let values = zero();
     if (sample > 0 && (level > 0 || cues)) {
       if (source) {
@@ -102,5 +104,6 @@ export function buildFacialTimeline(result, owner) {
   }
   frames.push([wav.duration, ...zero()]);
   return {version: 1, requestId: owner.requestId, entity: owner.entity, duration: wav.duration,
-    source: source ? 'convai-arkit61' : cues ? 'local-phonetic' : 'audio-envelope', tracks: [...SPEECH_TRACKS], frames};
+    source: source ? 'convai-arkit61' : cues ? 'local-phonetic' : 'audio-envelope',
+    articulation: cues ? 'coarticulated-v4' : undefined, tracks: [...SPEECH_TRACKS], frames};
 }

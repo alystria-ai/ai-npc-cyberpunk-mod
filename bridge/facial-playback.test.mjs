@@ -116,3 +116,15 @@ test('native apply failure and muting clean up once without breaking the speech 
   cursor=0.5; speech.update(0.1); voice=false; speech.update(0.1)
   assert(speech.state=='muted' and not face.active and judy.resets==2)
 `));
+
+test('reserved upper lip and active corner controls reach the native feature and clear with the same owner', () => run(`
+  local c,r=input(judy,'articulation')
+  r.face.source='local-phonetic'; r.face.articulation='coarticulated-v4'
+  r.face.tracks={'jaw_mid_open','lips_l_upper_raise','lips_r_upper_raise','lips_l_corner_stretch','lips_r_corner_stretch'}
+  r.face.frames={{0,0,0,0,0,0},{0.5,.05,0,0,.065,.065},{2,0,0,0,0,0}}
+  assert(speech.start(c,r)); cursor=0.5; speech.update(.01)
+  assert(judy.frames[1].lips_l_upper_raise==0 and judy.frames[1].lips_r_upper_raise==0)
+  assert(judy.frames[1].lips_r_corner_stretch==.065)
+  assert(face.status().articulation=='coarticulated-v4')
+  speech.stop('cancelled'); assert(judy.resets==1 and not face.active)
+`));
