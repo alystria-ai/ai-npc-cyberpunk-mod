@@ -9,7 +9,7 @@ Relaxed state alone did not establish that the weapon was holstered.
 
 `mod/companion-equipment.lua` adds an equipment owner per managed copy. Fresh
 attachment and new combat arm a cleanup check. It waits for a stable, stationary
-hold, no player/NPC combat or hostile threats, relaxed autonomous AI, a normal
+hold, no player/NPC combat, no player entity threat or NPC hostile threat, relaxed autonomous AI, a normal
 upper body, and no authored scene/dialogue. It then asks the native
 `AIUnequipCommand` to holster one occupied hand at a time, using the default
 animation. It verifies actual slot clearance, allows at most two attempts per
@@ -40,7 +40,19 @@ clearance. The temporary probe has been retired. The production handoff and
 visible holstering still need live verification after the combined CET reload.
 Checkpoint `679e801` was installed and hash-verified at 01:00 IST on September 30.
 The previous adapters are retained under
-`backups/loot-equipment-before-20260930-010043/`; CET activation is pending.
+`backups/loot-equipment-before-20260930-010043/`. CET activation passed, and the
+fresh copy initially had empty hands. The subsequent user check still showed a
+drawn weapon: the user clarified that V had been hit by a car. The capture found
+both actors out of combat, Judy relaxed with Normal upper body and no threat,
+but V's broad threat query still true. V's visible, entity-only and visible-entity
+queries were all false. Evidence: `runtime/equipment-player-threat-20260930.json`.
+
+The player guard now checks `HasHostileThreat(player, false, true)`, excluding
+location-only memories while retaining nonvisible hostile entities. The NPC
+threat and both combat/scene gates are unchanged. Twenty-four equipment checks
+pass, including the captured location-memory sequence and cancellation on a
+returning hostile entity. This correction still needs CET activation and live
+holstering verification.
 Use `party-weapon-state:<nonce>` for read-only hand attachments, combat/scene
 gates, movement state and equipment ownership.
 

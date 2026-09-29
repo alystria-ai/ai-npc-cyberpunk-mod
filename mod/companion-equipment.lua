@@ -143,7 +143,10 @@ local function tick(s, player, idle, acquireHold)
     if not s.armed or s.cancelFailed then return end
 
     local guard = s.guard
-    guard.playerThreat = flag(TargetTrackingExtension.HasHostileThreat(player), 'Player threats')
+    -- V's tracker can retain a location-only threat after a vehicle impact even
+    -- when both actors are calm and no hostile entity remains. That memory must
+    -- not keep a follower armed; real entity threats still defer holstering.
+    guard.playerThreat = flag(TargetTrackingExtension.HasHostileThreat(player, false, true), 'Player entity threats')
     guard.npcThreat = flag(TargetTrackingExtension.HasHostileThreat(npc), 'NPC threats')
     guard.autonomous = flag(npc:IsOnAutonomousAI(), 'NPC autonomy')
     guard.relaxed = npc:GetHighLevelStateFromBlackboard() == Enum.new('gamedataNPCHighLevelState', 'Relaxed')

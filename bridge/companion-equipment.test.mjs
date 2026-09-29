@@ -38,7 +38,10 @@ npc.hands={[right]=gun('weapon1')}
 ScriptedPuppet={GetWeaponRight=function(n)return n.hands[right] end,GetWeaponLeft=function(n)return n.hands[left] end}
 NPCPuppet={IsInCombat=function(n)return n.combat end}
 PlayerPuppet={GetSceneTier=function(p)return p.tier end}
-TargetTrackingExtension={HasHostileThreat=function(n)return n.threat end}
+TargetTrackingExtension={HasHostileThreat=function(n,onlyVisible,onlyEntities)
+ if n==player and n.locationThreat and not onlyEntities then return true end
+ return n.threat
+end}
 local scene={IsEntityInDialogue=function(_,id)return id.dialogue end,IsEntityInScene=function(_,id)return id.scene end}
 Game={GetSceneSystem=function()return {GetScriptInterface=function()return scene end}end,
  GetAllBlackboardDefs=function()return {PuppetState={UpperBody='UpperBody'}}end}
@@ -101,6 +104,24 @@ test('new combat rearms cleanup only after a second stable calm interval', () =>
  assert(#ai.commands==0)
  player.combat=false;tick(2.5);assert(#ai.commands==0)
  tick(.25);assert(#ai.commands==1 and m.snapshot(s).episode==2)
+`));
+
+test('vehicle-impact location memory cannot leave a calm follower permanently armed', () => run(`
+ player.combat=true;tick(.5)
+ player.combat=false;player.locationThreat=true
+ assert(TargetTrackingExtension.HasHostileThreat(player)==true)
+ assert(TargetTrackingExtension.HasHostileThreat(player,false,true)==false)
+ tick(2.5);assert(#ai.commands==0)
+ tick(.25);assert(#ai.commands==1 and m.snapshot(s).episode==2)
+ npc.hands[right]=nil;s.command.state='Success';tick(.25)
+ assert(m.snapshot(s).phase=='complete' and not m.holdsMovement(s))
+`));
+
+test('location memory permits holstering but a returning hostile entity cancels it', () => run(`
+ tick(3);local owned=s.command;player.locationThreat=true;tick(.5)
+ assert(s.command==owned and #ai.stopped==0)
+ player.threat=true;tick(.25)
+ assert(not s.command and ai.stopped[1]==owned and not m.holdsMovement(s))
 `));
 
 test('native scene or renewed combat cancels only the equipment command', () => {

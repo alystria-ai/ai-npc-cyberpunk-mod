@@ -222,6 +222,12 @@ if request:match('^party%-weapon%-state:') then
     local player = Game.GetPlayer()
     local report = {at = os.time() * 1000, scope = 'Configured managed companions within 100 metres', companions = {},
         player = {combat = read(function() return player:IsInCombat() end),
+            dead = read(function() return player:IsDeadNoStatPool() end),
+            threats = {
+                remembered = read(function() return TargetTrackingExtension.HasHostileThreat(player) end),
+                visible = read(function() return TargetTrackingExtension.HasHostileThreat(player, true) end),
+                entities = read(function() return TargetTrackingExtension.HasHostileThreat(player, false, true) end),
+                visibleEntities = read(function() return TargetTrackingExtension.HasHostileThreat(player, true, true) end)},
             tier = read(function() return PlayerPuppet.GetSceneTier(player) end), hands = hands(player)}}
     local cached, cachedOK = {}, false
     local listOK, rows = pcall(convaiCompanions.list)
