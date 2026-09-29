@@ -56,17 +56,20 @@ function M.sample(player)
 end
 
 function M.canSpeak(npc, phase)
-    local ok, ready, reason = pcall(function()
+    local ok, ready, reason, waiting = pcall(function()
         if not npc then return false, 'missing' end
         if not npc:IsAttached() then return false, 'detached' end
         if npc:IsDeadNoStatPool() then return false, 'dead' end
+        -- Callers supply owned companion copies. A story-controlled actor is
+        -- unavailable; native speech on autonomous AI may finish shortly.
+        if not npc:IsOnAutonomousAI() then return false, 'story-control' end
         local scene = Game.GetSceneSystem():GetScriptInterface()
-        if scene:IsEntityInDialogue(npc:GetEntityID()) then return false, 'native-dialogue' end
-        if scene:IsEntityInScene(npc:GetEntityID()) then return false, 'native-scene' end
+        if scene:IsEntityInDialogue(npc:GetEntityID()) then return false, 'native-dialogue', true end
+        if scene:IsEntityInScene(npc:GetEntityID()) then return false, 'native-scene', true end
         if phase ~= 'start' and NPCPuppet.IsInCombat(npc) then return false, 'still-in-combat' end
         return true, 'available'
     end)
-    return ok and ready, ok and reason or 'native-read-failed'
+    return ok and ready, ok and reason or 'native-read-failed', ok and waiting == true
 end
 
 return M

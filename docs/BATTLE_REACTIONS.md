@@ -29,6 +29,14 @@ sequences. Opening a menu, starting a conversation, leaving the speaker, disabli
 the option or changing combat phase cancels pending automatic work and its owned
 playback. Missed windows are skipped, not replayed later.
 
+An owned companion in autonomous gameplay may become temporarily busy with
+native speech while a reply is being generated. Keep that same request and lease,
+but admit no audio, facial animation or captions until the speaker is free. Read
+the native speaker again at delivery, including between regular observer polls.
+The original reply expiry still applies. Story-controlled actors, dead/detached
+speakers and player scene gates remain interruptions. Native dialogue beginning
+after AI playback starts also stops that playback.
+
 ## Data and ownership
 
 - `mod/battle-observer.lua` samples native state without retaining native
@@ -98,6 +106,18 @@ are reused.
   unaccepted. The next fight must be checked against the new cancellation ledger.
 - Combining loot and exploration observations with the closing comment is still
   pending. No Horde-wave or kill-count equivalent is invented for Cyberpunk.
+- Second live fight: the opening was cancelled two seconds after submission by
+  Judy's `native-dialogue` gate, at 7.16 metres, with player combat true and all
+  player/manual/output guards clear. The game scripts schedule a companion
+  `start_combat` voice line after 1.5 seconds; membership alone does not identify
+  its purpose, so the correction waits for autonomous native speech to finish
+  rather than ignoring it. The next idle probe confirmed Judy was autonomous
+  and available but 32 metres away, outside the reaction radius. This later
+  distance does not prove her distance at the closing window.
+- The waiting/delivery correction passes 23 focused battle/lease checks,
+  including same-request retention, an intervening native voice line, unchanged
+  deadlines and manual/story/playback interruption. Lua is installed with hash
+  verification, awaiting CET reload and live acceptance; no game restart needed.
 
 ## Live check and diagnostics
 

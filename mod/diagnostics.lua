@@ -6,10 +6,20 @@ if request:match('^battle%-context:') then
     local observer, player = dofile('battle-observer.lua'), Game.GetPlayer()
     local report = observer.sample(player)
     report.companions = {}
+    report.candidateRadius = 100
     if convaiCompanions and player then
-        for _, person in ipairs(convaiCompanions.conversationCandidates(player, 20)) do
-            report.companions[#report.companions + 1] = {profile = person.profileKey, distance = person.distance,
-                available = observer.canSpeak(person.npc, report.combat and 'start' or 'end')}
+        for _, person in ipairs(convaiCompanions.conversationCandidates(player, report.candidateRadius)) do
+            local available, reason, waiting = observer.canSpeak(person.npc, report.combat and 'start' or 'end')
+            local speaker = {profile = person.profileKey, distance = person.distance, available = available,
+                reason = reason, temporarilyBusy = waiting, withinReactionRange = person.distance <= 20}
+            pcall(function()
+                local scene = Game.GetSceneSystem():GetScriptInterface()
+                speaker.dialogue = scene:IsEntityInDialogue(person.npc:GetEntityID())
+                speaker.scene = scene:IsEntityInScene(person.npc:GetEntityID())
+                speaker.combat = NPCPuppet.IsInCombat(person.npc)
+                speaker.autonomous = person.npc:IsOnAutonomousAI()
+            end)
+            report.companions[#report.companions + 1] = speaker
         end
     end
     if convaiBattleReactions then report.scheduler = convaiBattleReactions.status() end

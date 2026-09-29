@@ -102,7 +102,7 @@ g.received(first.requestId,'A reply',false,{'judy-alvarez','alex'}); g.completed
 assert(g.next(2,1001,live).battle.status=='fighting')
 `));
 
-test('actual game adapter owns the auto request lease and cancels only its own pending speech', () => run(fixture + `
+const adapterFixture = fixture + `
 local battles=policy
 local generation,automatic,battleSample,battlePeople,battlePoll=0,nil,nil,{},0
 local active,pending,focusUntil=nil,nil,nil
@@ -116,8 +116,8 @@ local voice,captions=true,true
 local player={ConvaiManagerVoice=function()return voice end,ConvaiManagerSubtitles=function()return captions end}
 local manager={profileEnabled=function()return true end,battleReactions=function()return settings end}
 local companions={conversationCandidates=function()return people end}
-local speakerReady=true
-local battleObserver={sample=function()return sample end,canSpeak=function()return speakerReady,speakerReady and 'available' or 'native-dialogue' end}
+local speakerReady,speakerBusy=true,false
+local battleObserver={sample=function()return sample end,canSpeak=function()return speakerReady,speakerReady and 'available' or 'native-dialogue',speakerBusy end}
 local questContext={capture=function()return {version=1,status='untracked'}end}
 local function log()end
 local encoded,files={},{}
@@ -134,6 +134,9 @@ local function lastCancellation()
  local index=tonumber(files['runtime/battle-cancellations.json']:match('%d+'))
  local rows=encoded[index].events;return rows[#rows],rows
 end
+`;
+
+test('actual game adapter owns the auto request lease and cancels only its own pending speech', () => run(adapterFixture + `
 sample.combat=false; updateBattles(player,.5,true)
 sample.combat=true; for _=1,6 do now=now+.5;updateBattles(player,.5,true)end
 assert(automatic and pending==automatic and pending.reaction.phase=='start')
@@ -199,6 +202,50 @@ end
 plain(evidence)
 `));
 
+test('temporary native speech holds the same pending reaction and gates actual delivery without restarting generation', () => run(adapterFixture + `
+sample.combat=false;updateBattles(player,.5,true)
+sample.combat=true;for _=1,6 do now=now+.5;updateBattles(player,.5,true)end
+local context=assert(automatic);local deadline=context.reaction.expiresAt;local sentGeneration=generation
+speakerReady,speakerBusy=false,true;now=now+.5;updateBattles(player,.5,true)
+assert(pending==context and automatic==context and context.waitingForSpeaker)
+assert(not reactionCanDeliver(context,player),'Native speech must block audio, face and subtitles')
+local lease=encoded[tonumber(files['runtime/reaction-lease.json']:match('%d+'))]
+assert(lease.valid and lease.requestId==context.requestId)
+speakerReady,speakerBusy=true,false
+assert(reactionCanDeliver(context,player) and not context.waitingForSpeaker)
+assert(pending==context and generation==sentGeneration and context.reaction.expiresAt==deadline)
+-- Native dialogue can start between the observer sample and reply delivery.
+speakerReady,speakerBusy=false,true
+assert(not reactionCanDeliver(context,player) and pending==context)
+assert(reactionCanDeliver({requestId='manual'},player),'Manual conversation policy is unchanged')
+`));
+
+test('a held reaction keeps its original expiry and yields to manual or native story interruption', () => run(adapterFixture + `
+local function start()
+ policy.reset();active=nil;speakerReady,speakerBusy=true,false
+ sample.combat=false;updateBattles(player,.5,true)
+ sample.combat=true;for _=1,6 do now=now+.5;updateBattles(player,.5,true)end
+ assert(automatic);speakerReady,speakerBusy=false,true
+ now=now+.5;updateBattles(player,.5,true);assert(automatic.waitingForSpeaker)
+end
+start();now=automatic.reaction.expiresAt/1000+1;updateBattles(player,.5,true)
+assert(not pending and not automatic);assert(lastCancellation().reason=='admission-expired')
+start();active={};now=now+.5;updateBattles(player,.5,true)
+assert(not automatic and lastCancellation().reason=='manual-priority')
+start();sample.blocked=true;now=now+.5;updateBattles(player,.5,true)
+assert(not automatic and lastCancellation().reason=='scene-blocked');sample.blocked=false
+start();speakerBusy=false;now=now+.5;updateBattles(player,.5,true)
+assert(not automatic and lastCancellation().reason=='speaker-unavailable')
+`));
+
+test('native dialogue interrupting an admitted reaction still releases its playback', () => run(adapterFixture + `
+sample.combat=false;updateBattles(player,.5,true)
+sample.combat=true;for _=1,6 do now=now+.5;updateBattles(player,.5,true)end
+automatic.playbackAt=now;automatic.shown=true;speech.requestId=automatic.requestId;pending=nil
+speakerReady,speakerBusy=false,true;now=now+.5;updateBattles(player,.5,true)
+assert(not automatic and stopped==1 and lastCancellation().reason=='speaker-unavailable')
+`));
+
 test('on-time speech may finish past admission expiry while gameplay interruption still wins', () => run(fixture + `
 tick(1,true);tick(2,true);local event=assert(offer(false));policy.claim(event)
 local started=event.expiresAt/1000-1
@@ -235,8 +282,9 @@ assert(not m.canSpeak(nil,'end'))
 `));
 
 test('native speaker eligibility reports the failing gate without exposing native error text', () => run(`
-local attached,dead,dialogue,scene,combat=true,false,false,false,false
-local npc={IsAttached=function()return attached end,IsDeadNoStatPool=function()return dead end,GetEntityID=function()return 1 end}
+local attached,dead,dialogue,scene,combat,autonomous=true,false,false,false,false,true
+local npc={IsAttached=function()return attached end,IsDeadNoStatPool=function()return dead end,
+ GetEntityID=function()return 1 end,IsOnAutonomousAI=function()return autonomous end}
 Game={GetSceneSystem=function()return {GetScriptInterface=function()return {
  IsEntityInDialogue=function()return dialogue end,IsEntityInScene=function()return scene end}end}end}
 NPCPuppet={IsInCombat=function()return combat end}
@@ -244,12 +292,15 @@ local m=(function() ${observer} end)()
 local ok,why=m.canSpeak(npc,'end');assert(ok and why=='available')
 attached=false;ok,why=m.canSpeak(npc,'start');assert(not ok and why=='detached');attached=true
 dead=true;ok,why=m.canSpeak(npc,'start');assert(not ok and why=='dead');dead=false
-dialogue=true;ok,why=m.canSpeak(npc,'start');assert(not ok and why=='native-dialogue');dialogue=false
-scene=true;ok,why=m.canSpeak(npc,'start');assert(not ok and why=='native-scene');scene=false
+local waiting
+dialogue=true;ok,why,waiting=m.canSpeak(npc,'start');assert(not ok and why=='native-dialogue' and waiting)
+autonomous=false;ok,why,waiting=m.canSpeak(npc,'start');assert(not ok and why=='story-control' and not waiting)
+autonomous=true;dialogue=false
+scene=true;ok,why,waiting=m.canSpeak(npc,'start');assert(not ok and why=='native-scene' and waiting);scene=false
 combat=true;ok,why=m.canSpeak(npc,'end');assert(not ok and why=='still-in-combat')
 assert(m.canSpeak(npc,'start'))
 Game.GetSceneSystem=function()error('native private details')end
-ok,why=m.canSpeak(npc,'end');assert(not ok and why=='native-read-failed')
+ok,why,waiting=m.canSpeak(npc,'end');assert(not ok and why=='native-read-failed' and not waiting)
 `));
 
 const battle = {version: 1, status: 'ended', encounter: 'battle-1', ageSeconds: 8, durationSeconds: 25,

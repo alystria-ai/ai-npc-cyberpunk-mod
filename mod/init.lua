@@ -434,6 +434,7 @@ end
 local function captureReactionGuard(worldReady, outputs, person)
     local previous = reactionGuard and reactionGuard.speaker
     local speaker = {present = person ~= nil, available = person ~= nil and person.available == true,
+        temporarilyBusy = person ~= nil and person.voiceBusy == true,
         reason = person and (person.availableReason or 'unclassified')
             or (battleCandidatesOk == false and 'candidate-read-failed' or 'not-in-nearby-enabled-party')}
     if person then
@@ -460,6 +461,7 @@ local function recordReactionCancellation(reason, abandoning)
         playbackAt = automatic.playbackAt and automatic.playbackAt * 1000,
         pending = pending ~= nil and pending.requestId == automatic.requestId,
         playing = speech.requestId == automatic.requestId, shown = automatic.shown == true,
+        waitingForSpeaker = automatic.waitingForSpeaker == true,
         manual = manual.text or manual.group or manual.microphone or manual.phone,
         manualActivity = manual, guard = reactionGuard, scheduler = battles.status()}
     reactionEvidence[#reactionEvidence + 1] = record
@@ -486,6 +488,17 @@ cancelAutomatic = function(reason, abandoning)
     automatic, reactionGuard = nil, nil
 end
 
+local function reactionSpeakerWait(person)
+    local waiting = person ~= nil and person.voiceBusy == true and not automatic.playbackAt
+    if waiting and not automatic.waitingForSpeaker then
+        log('Automatic reaction waiting for native speech: ' .. tostring(person.availableReason))
+    elseif not waiting and automatic.waitingForSpeaker then
+        log('Automatic reaction speaker ready again')
+    end
+    automatic.waitingForSpeaker = waiting
+    return waiting
+end
+
 local function updateBattles(player, elapsed, worldReady)
     battlePoll = battlePoll + elapsed
     if not battleSample or battlePoll >= 0.5 then
@@ -498,7 +511,7 @@ local function updateBattles(player, elapsed, worldReady)
         if ok then
             for _, person in ipairs(candidates) do
                 if supportedProfiles[person.profileKey] and manager.profileEnabled(person.profileKey) then
-                    person.available, person.availableReason = battleObserver.canSpeak(person.npc, battleSample.combat and 'start' or 'end')
+                    person.available, person.availableReason, person.voiceBusy = battleObserver.canSpeak(person.npc, battleSample.combat and 'start' or 'end')
                     battlePeople[#battlePeople + 1] = person
                 end
             end
@@ -514,10 +527,11 @@ local function updateBattles(player, elapsed, worldReady)
             if person.entity == automatic.entity then speaker = person; break end
         end
         captureReactionGuard(worldReady, outputs, speaker)
+        local waiting = reactionSpeakerWait(speaker)
         local valid, invalidReason = battles.valid(automatic.reaction, os.time(), automatic.playbackAt)
         local reason = not worldReady and 'world-not-ready' or manual and 'manual-priority'
             or not outputs.enabled and 'outputs-disabled'
-            or not speaker and 'speaker-missing' or not speaker.available and 'speaker-unavailable'
+            or not speaker and 'speaker-missing' or (not speaker.available and not waiting) and 'speaker-unavailable'
             or not valid and (invalidReason or 'event-invalid')
         if reason then
             cancelAutomatic(reason)
@@ -543,6 +557,24 @@ local function updateBattles(player, elapsed, worldReady)
         battles.claim(event)
         log('Automatic battle reaction: ' .. event.phase .. ' speaker=' .. person.profileKey)
     else cancelAutomatic('request-write-failed') end
+end
+
+local function reactionCanDeliver(context, player)
+    if not context.reaction then return true end
+    if not automatic or automatic.requestId ~= context.requestId then return false end
+    -- A reply can become ready between the half-second observer samples. Read
+    -- the owned speaker again before any audio, captions or facial playback.
+    for _, person in ipairs(battlePeople) do
+        if person.entity == context.entity then
+            person.available, person.availableReason, person.voiceBusy = battleObserver.canSpeak(person.npc, context.reaction.phase)
+            captureReactionGuard(true, reactionOutputs(player), person)
+            local waiting = reactionSpeakerWait(person)
+            if not person.available and not waiting then cancelAutomatic('speaker-unavailable') end
+            return person.available == true
+        end
+    end
+    cancelAutomatic('speaker-missing')
+    return false
 end
 
 local function groupAudience(player)
@@ -872,7 +904,8 @@ registerForEvent('onUpdate', function(delta)
                 and reply.requestId == pending.requestId
                 and reply.generation == pending.generation
                 and reply.entity == pending.entity
-                and (type(reply.text) == 'string' or type(reply.error) == 'string') then
+                and (type(reply.text) == 'string' or type(reply.error) == 'string')
+                and reactionCanDeliver(pending, player) then
                 local shown = pcall(function()
                     if reply.error then
                         if not pending.reaction then player:ConvaiPhoneFeedback(reply.error) end
