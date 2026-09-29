@@ -314,7 +314,7 @@ assert(firstToken~='native-chatter-root','The exact verified root needs a persis
 local receipt=m.status().rendered
 assert(receipt.id==first.id and receipt.entity=='201ULL' and receipt.renderer=='native-overhead')
 assert(receipt.text=='A rendered line.' and receipt.projection==true)
-assert(receipt.worldOffsetZ==.05 and own.offset.z==.05 and own.heightWrites==1)
+assert(receipt.worldOffsetZ==.15 and own.offset.z==.15 and own.heightWrites==1)
 assert(own.offset.x==0 and own.offset.y==0 and own.offset.w==0)
 local projectionCallback=wrapController(own)
 assert(renderer~=projectionCallback and renderer:GetRootWidget()~=projectionCallback:GetRootWidget())
@@ -384,7 +384,7 @@ m.clearEntity('201ULL')
 assert(bubble(wrapController(firstRoot),{},wrapped)==true and bubble(wrapController(secondRoot),{},wrapped)==true)
 m.show('Judy','Caption before unload.',judy,'201ULL');after(wrapController(firstRoot),shown()[3])
 assert(bubble(wrapController(firstRoot),{},wrapped)==false)
-assert(m.placement~=nil and firstRoot.offset.z==.05)
+assert(m.placement~=nil and firstRoot.offset.z==.15)
 local reads,writes=nativeReads,firstRoot.heightWrites;world=false;m.abandon()
 assert(nativeReads==reads and firstRoot.heightWrites==writes)
 assert(bubble(wrapController(firstRoot),{},wrapped)==true and nativeReads==reads)
@@ -402,22 +402,22 @@ end
 m.show('Judy','A caption before clear.',judy,'201ULL')
 local nativeVector=firstRoot.offset
 after(wrapController(firstRoot),shown()[1])
-assert(firstRoot.offset.z==.05 and firstRoot.heightWrites==1)
+assert(firstRoot.offset.z==.15 and firstRoot.heightWrites==1)
 -- A native return value may be a wrapper backed by reusable storage. Restoration
 -- needs the captured scalars, not a later view through that original wrapper.
 nativeVector.x=99;nativeVector.z=99
 m.clear();originalRestored()
 assert(firstRoot.heightWrites==2 and m.placement==nil)
 m.show('Judy','A caption before root reuse.',judy,'201ULL')
-after(wrapController(firstRoot),shown()[2]);assert(firstRoot.offset.z==.05)
+after(wrapController(firstRoot),shown()[2]);assert(firstRoot.offset.z==.15)
 after(wrapController(firstRoot),{id='native-dialogue',text='A native replacement on the same root'})
 originalRestored();assert(firstRoot.heightWrites==4 and m.placement==nil)
 m.clear();assert(firstRoot.heightWrites==4,'A retired placement must not be restored twice')
 m.show('Judy','A caption rendered on another root.',judy,'201ULL')
 local line=shown()[3]
-after(wrapController(firstRoot),line);assert(firstRoot.offset.z==.05)
+after(wrapController(firstRoot),line);assert(firstRoot.offset.z==.15)
 after(wrapController(secondRoot),line)
-originalRestored();assert(firstRoot.heightWrites==6 and secondRoot.offset.z==.05)
+originalRestored();assert(firstRoot.heightWrites==6 and secondRoot.offset.z==.15)
 m.clear();assert(secondRoot.offset.z==.3 and secondRoot.heightWrites==2 and m.placement==nil)
 `));
 

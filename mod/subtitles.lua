@@ -193,7 +193,7 @@ function M.update(delta)
 end
 
 function M.install()
-    if M.hooksVersion == 4 then return true end
+    if M.hooksVersion == 5 then return true end
     if type(ObserveAfter) ~= 'function' then return false end
     ObserveAfter('ChatterLineLogicController', 'SetLineData', function(controller, line)
         local named, rootName = pcall(function() return NameToString(controller:GetRootWidget():GetName()) end)
@@ -223,8 +223,8 @@ function M.install()
                 M.placement = {projection = projection, token = token,
                     offset = {x = original.x, y = original.y, z = original.z, w = original.w}}
                 -- The native NPC chatter anchor adds 30 cm above its UI slot.
-                -- Our optional captions need only 5 cm of extra headroom.
-                projection:SetFixedWorldOffset(Vector4.new(0, 0, 0.05, 0))
+                -- Keep 15 cm of headroom: the earlier 5 cm sat too low.
+                projection:SetFixedWorldOffset(Vector4.new(0, 0, 0.15, 0))
                 return projection:GetFixedWorldOffset().z
             end)
             M.rendered.worldOffsetZ = adjusted and offset or nil
@@ -245,7 +245,7 @@ function M.install()
             return wrapped(target)
         end)
     end
-    M.hooksInstalled, M.hooksVersion = true, 4
+    M.hooksInstalled, M.hooksVersion = true, 5
     return true
 end
 function M.status()
