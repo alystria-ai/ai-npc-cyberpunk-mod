@@ -14,7 +14,8 @@ import {groupContext, conversationScope} from './group-context.mjs';
 import {GroupPrefetch, inputIdentity, validatePrefetch, parsePrewarm} from './group-prefetch.mjs';
 import {throwIfCancelled} from './transport-pool.mjs';
 import {PartyConnections} from './party-connections.mjs';
-import {ResidentVoice, voiceSteps} from './resident-voice.mjs';
+import {LOCAL_VOICE_KEYS} from './resident-voice.mjs';
+import {VoiceSelection} from './voice-selection.mjs';
 import {PhoneChat, parsePhoneState} from './phone-chat.mjs';
 import {GameLaunchIdentity, identifyGameLaunch} from './game-launch.mjs';
 
@@ -30,7 +31,7 @@ const voiceConfig = JSON.parse(await readFile(localVoiceConfigPath, 'utf8').catc
   throw error;
 }));
 let voiceMetricsWriting = Promise.resolve();
-const localVoice = new ResidentVoice(voiceConfig, {project, configPath: localVoiceConfigPath,
+const localVoice = new VoiceSelection(voiceConfig, {project, configPath: localVoiceConfigPath,
   onState: state => {
     voiceMetricsWriting = voiceMetricsWriting.catch(() => {}).then(() => atomic(resolve(runtime, 'local-voice-state.json'), JSON.stringify(state)));
     return voiceMetricsWriting;
@@ -137,7 +138,7 @@ const prefetch = new GroupPrefetch({prepare: async (input, {signal}) => {
 }});
 
 async function synthesizeReply(input, result, signal) {
-  if (!localVoice.usesProfile(input.profileKey)) return result;
+  if (!localVoice.usesProfile(input.profileKey)) return {...result, timing: {...result.timing, voiceProvider: 'convai'}};
   throwIfCancelled(signal);
   try {
     const phrases = splitSpeechText(result.text), steps = localVoice.steps;
@@ -462,8 +463,13 @@ async function pollSettings(checkShutdown = true) {
     // A transient rename/partial settings write must not reset the selected quality.
     const raw = await readFile(resolve(runtime, 'settings.json'), 'utf8').catch(() => '');
     let settings; try { settings = JSON.parse(raw); } catch {}
-    if (settings && [16, 32].includes(settings.omniSteps) && localVoice.setSteps(voiceSteps(settings.omniSteps))) {
+    localVoice.request(settings);
+    const previousProvider = localVoice.provider;
+    // Every phrase of an accepted turn keeps its original provider and quality.
+    // Microphone startup and input polling also own a boundary before `active`.
+    if (localVoice.applyWhenIdle(active || streaming || polling || micPolling || mic.current || prefetchPolling)) {
       prefetch.invalidate(); prefetchObserved = '';
+      if (localVoice.provider !== previousProvider) await connections.reconfigure(LOCAL_VOICE_KEYS);
     }
     if (Date.now() - lastVoiceHeartbeat >= 5000) {
       lastVoiceHeartbeat = Date.now(); localVoice.publish(localVoice.state);

@@ -135,6 +135,14 @@ export class PartyConnections {
     this.stale = true; this.profiles = []; this.composer = this.request = null;
     await this.reconcile(); this.emit();
   }
+  async reconfigure(profiles) {
+    // Preserve committed Convai sessions, but reconnect the changed TTS routes.
+    // Replace entries so a late completion cannot mark an old warmup ready.
+    for (const [identity, entry] of this.entries) if (profiles.includes(entry.profile)) {
+      entry.controller?.abort(); this.entries.delete(identity);
+    }
+    this.revision++; await this.reconcile(); this.emit();
+  }
   diagnostic() {
     return {updated: this.now(), partyUpdated: this.updated, stale: this.stale, limit: CONNECTION_LIMIT,
       profiles: this.profiles, unconfigured: this.profiles.filter(profile => !this.isKnown(profile)),

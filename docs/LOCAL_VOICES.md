@@ -12,12 +12,23 @@ opt-out. FP8 remains an isolated candidate, not the installed voice precision.
 
 ## Routing and lifetime
 
+- **Companion Manager → Settings → Companion voices** selects
+  **OmniVoice + Convai (default)** or **Convai for all characters**. The local
+  F4 manager binding is preserved. Apply saves the selection for future launches.
 - Johnny Silverhand, Judy Alvarez and Panam Palmer: Convai generates text;
   one shared OmniVoice model produces their speech from existing verified game
   recordings. Other characters keep their configured Convai/Kokoro voices.
-- The bridge starts one hidden worker and warms all three references before
-  accepting speech. It stays loaded for the bridge lifetime, with no idle
-  unload. Changing steps updates the next request without reloading weights.
+- While OmniVoice is selected, the bridge starts one hidden worker and warms
+  all three references before accepting local speech. It stays loaded without
+  idle eviction. Changing steps updates the next reply without reloading weights.
+- Selecting Convai waits for the current conversation reply (including every
+  streamed phrase or microphone response) to finish. Subsequent replies use the
+  character's configured Convai voice. The old worker finishes outstanding CUDA
+  work and exits through EOF, releasing its GPU allocation. Status distinguishes
+  a pending change, releasing memory, and a fully unloaded model.
+- Switching back warms one new worker only after the old worker exits. Rapid
+  toggles cannot overlap workers. Native audio already prepared can finish
+  playing while the model is released. None of these changes restart the game.
 - Only one GPU render runs at once. Cancelling a turn discards its audio, but
   retains ownership of the worker until that render finishes. Queued cancelled
   work is skipped. Shutdown uses pipe EOF and waits for the worker to release.
@@ -28,7 +39,9 @@ opt-out. FP8 remains an isolated candidate, not the installed voice precision.
   [SPEECH_STREAMING.md](SPEECH_STREAMING.md) and
   [LIPSYNC_REFINEMENT.md](LIPSYNC_REFINEMENT.md) for the current validation limits.
 - Model errors preserve the written reply, without borrowing another voice.
-  Restarting the conversation bridge recovers a failed worker.
+  The provider choice is explicit, not automatic failover or a second request
+  that silently rewrites the answer. Switching to Convai and back can recreate
+  a failed local worker; restarting the conversation bridge also recovers it.
 
 ## Local setup and operation
 
@@ -50,6 +63,26 @@ requests graceful shutdown of the identified bridge; it does not kill active
 CUDA work. The game runtime's `local-voice-state.json` records actual device,
 parameter dtype, engine, steps, worker PID and residency. `settings.json`
 persists `omniSteps` and the bridge polls changes without a game restart.
+It also persists `voiceProvider` (`hybrid` or `convai`). Partial/invalid writes
+do not reset an already valid choice. The affected realtime connections renew
+their TTS configuration while preserving committed character session IDs.
+
+## Provider selection checks — September 29
+
+- 36 focused checks passed; the installed-MCM environment check then passed in a
+  separate run against the actual installed API (37 applicable checks passed).
+  Coverage includes saved Convai startup without a model, busy-turn deferral,
+  fixed phrase quality, rapid switches, switching during warmup, stale connection
+  completion, settings persistence and rollback when a save fails.
+- Installed the Lua settings update and restarted only the hidden bridge. The
+  user reloaded CET, selected **Convai for all characters**, applied it, and
+  confirmed Judy's F6 reply had voice and subtitles. The native playback receipt
+  records the realtime Convai route and a 2.005-second audio track.
+- The previously warm FP16 worker exited normally. The running bridge reports
+  `remote`, `resident: false` and zero CUDA allocation/reservation. The saved
+  Convai selection remains active; no game restart was needed.
+- Switching back and rapid changes are covered by worker-lifecycle tests. Their
+  corresponding in-game selection/playback checks have not been repeated.
 
 ## Verification, September 28
 
@@ -70,6 +103,8 @@ The earlier single-Johnny RT60 benchmark reserved 2,208 MiB (**2.16 GiB**) for
 both qualities and sampled about 3.35 GiB process RAM. All companion copies
 share the model; memory is not multiplied by their count.
 
-Live hybrid conversation playback, mixed local/Convai F8 ordering, and the
-new manager's visual/interaction acceptance are pending the combined install.
+At this September 28 checkpoint, live hybrid conversation playback, mixed
+local/Convai F8 ordering, and manager acceptance were still pending. Subsequent
+user checks accepted MCM and Judy's local speech; the September 29 provider
+selection check above records the new Convai-only path separately.
 The real-worker report and WAVs are under ignored `runtime/local-voice-check/`.

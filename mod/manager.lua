@@ -48,6 +48,9 @@ local function loadSettings()
     if type(settings.voice) ~= 'boolean' then settings.voice = true end
     if type(settings.subtitles) ~= 'boolean' then settings.subtitles = true end
     if type(settings.disappearingMessages) ~= 'boolean' then settings.disappearingMessages = false end
+    if settings.voiceProvider ~= 'hybrid' and settings.voiceProvider ~= 'convai' then
+        settings.voiceProvider, settingsNeedSave = 'hybrid', true
+    end
     if settings.omniSteps ~= 16 and settings.omniSteps ~= 32 then
         settings.omniSteps, settingsNeedSave = 32, true
     end
@@ -367,7 +370,7 @@ local function detail(player, item)
         body = clean(profile.summary or 'Conversation profile for ' .. profile.name, 1100)
             .. '\n\nConversation: ' .. (M.profileEnabled(profile.key) and 'on' or 'off')
             .. '\nCopies in party: ' .. copyCount(profile.key)
-        if localVoices[profile.key] and localVoiceState.provider == 'hybrid' then
+        if localVoices[profile.key] and settings.voiceProvider == 'hybrid' and localVoiceState.provider == 'hybrid' then
             body = body .. '\nVoice: OmniVoice ' .. settings.omniSteps .. ' steps'
         elseif profile.voiceName then body = body .. '\nVoice: ' .. clean(profile.voiceName, 140) end
         if not item.definition then body = body .. '\nChoose a model in Models, then assign this profile in Party.' end
@@ -550,6 +553,7 @@ function M.snapshot(player)
         profiles = profiles, models = models, party = party, feedback = feedback,
         settings = {voice = settings.voice, subtitles = settings.subtitles,
             disappearingMessages = settings.disappearingMessages,
+            voiceProvider = settings.voiceProvider,
             omniSteps = settings.omniSteps, enabledByKey = enabled},
         localVoice = localVoiceState,
         scan = {started = scanStarted, finished = scanFinished, error = scanError,
@@ -583,6 +587,9 @@ function M.applySettings(player, values)
         elseif key == 'omniSteps' then
             if value ~= 16 and value ~= 32 then return false, 'Choose 16 or 32 voice steps.' end
             nextSettings.omniSteps = value
+        elseif key == 'voiceProvider' then
+            if value ~= 'hybrid' and value ~= 'convai' then return false, 'Choose OmniVoice or Convai voices.' end
+            nextSettings.voiceProvider = value
         elseif key == 'enabledByKey' then
             if type(value) ~= 'table' then return false, 'Invalid conversation settings.' end
             for profile, enabled in pairs(value) do

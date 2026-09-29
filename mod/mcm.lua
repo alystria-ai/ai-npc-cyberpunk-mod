@@ -76,7 +76,8 @@ end
 
 local function profileDescription(profile, snapshot)
     local voice = profile.voiceName or 'Convai voice'
-    if profile.key == 'judy-alvarez' or profile.key == 'panam-palmer' or profile.key == 'johnny-silverhand' then
+    if snapshot.settings.voiceProvider ~= 'convai' and (profile.key == 'judy-alvarez'
+        or profile.key == 'panam-palmer' or profile.key == 'johnny-silverhand') then
         voice = 'OmniVoice ' .. snapshot.settings.omniSteps .. ' steps'
     end
     return (profile.summary or profile.name) .. '\n\nVoice: ' .. voice
@@ -203,14 +204,20 @@ local function schema()
             setting('subtitles', 'Dialogue subtitles', 'bool', snapshot.settings.subtitles, true, 'Show companion replies through the game’s native dialogue subtitles.'),
             setting('disappearingMessages', 'Disappearing messages', 'bool', snapshot.settings.disappearingMessages, false,
                 'Clear the phone Chat history and drafts when you next launch the game. Characters keep their Convai conversation memory. Loading a save or reloading mods does not clear messages.'),
+            setting('voiceProvider', 'Companion voices', 'select', snapshot.settings.voiceProvider == 'convai' and 2 or 1, 1,
+                'OmniVoice gives Johnny, Judy and Panam their prepared local voices. Convai uses each character’s configured online voice and releases the local model’s GPU memory. Other characters always use Convai. Changes wait for the current reply to finish.',
+                {'OmniVoice + Convai (default)', 'Convai for all characters'}),
             setting('omniSteps', 'Local voice quality', 'select', snapshot.settings.omniSteps == 16 and 1 or 2, 2,
-                'Johnny, Judy and Panam use OmniVoice. 32 steps gives the preferred quality; 16 steps is faster. The shared voice model stays loaded. Other characters use Convai voices.',
+                'Applies while OmniVoice is selected. 32 steps gives the preferred quality; 16 steps is faster. One shared model stays loaded until you select Convai or stop the voice service.',
                 {'16 steps · Faster', '32 steps · Higher quality (default)'}),
         }
         local voiceLabels = {ready = 'Ready', loading = 'Loading', warming = 'Preparing voices', speaking = 'Preparing a reply',
-            error = 'Unavailable', waiting = 'Waiting for voice service', disabled = 'Not configured', stopped = 'Stopped'}
-        rows[#rows + 1] = readonly('voice-status', 'Local voices', voiceLabels[snapshot.localVoice.state] or 'Waiting for voice service',
-            'The shared model is prepared once and kept warm for conversations.')
+            error = 'Unavailable', waiting = 'Waiting for voice service', disabled = 'Not configured', stopped = 'Stopped',
+            releasing = 'Releasing local voice memory', remote = 'Convai voices · Local model unloaded'}
+        local voiceStatus = snapshot.localVoice.pending and 'Changing after the current reply'
+            or voiceLabels[snapshot.localVoice.state] or 'Waiting for voice service'
+        rows[#rows + 1] = readonly('voice-status', 'Voice service', voiceStatus,
+            'OmniVoice stays warm while selected. Switching back from Convai prepares the model again; no game restart is needed.')
         rows[#rows + 1] = action('permissions', 'Character conversations', 'Manage',
             'Enable or disable each character’s participation in AI conversations.',
             function(context) return navigate('permissions', context) end)
@@ -251,6 +258,9 @@ function M.configure(domain, companions, queueFactory, entryFactory)
                 elseif key == 'omniSteps' then
                     if change.value ~= 1 and change.value ~= 2 then return {ok = false, error = 'Choose a voice quality.'} end
                     values.omniSteps = change.value == 1 and 16 or 32
+                elseif key == 'voiceProvider' then
+                    if change.value ~= 1 and change.value ~= 2 then return {ok = false, error = 'Choose OmniVoice or Convai voices.'} end
+                    values.voiceProvider = change.value == 1 and 'hybrid' or 'convai'
                 elseif key:sub(1, 8) == 'enabled:' then values.enabledByKey[key:sub(9)] = change.value
                 else return {ok = false, error = 'That setting is read-only.'} end
                 applied[#applied + 1] = key
@@ -336,7 +346,8 @@ function M.update(currentPlayer, worldReady)
     if now >= snapshotAt then
         snapshotAt = now + 1
         local snapshot = manager.snapshot(currentPlayer)
-        local signature = {queue.message(), tostring(queue.count()), snapshot.localVoice.state or ''}
+        local signature = {queue.message(), tostring(queue.count()), snapshot.localVoice.state or '',
+            snapshot.localVoice.provider or '', tostring(snapshot.localVoice.pending)}
         for _, member in ipairs(queue.list()) do
             signature[#signature + 1] = table.concat({member.id, member.state or '', member.profileKey or '', member.error or ''}, '|')
         end

@@ -57,6 +57,24 @@ test('spawn warms without a composer, duplicate copies reuse identity, dismissal
   assert.deepEqual(removed.removed, ['alex']); assert.equal(f.live.size, 0);
 });
 
+test('changing the voice route renews only affected connections and rejects stale warm completion', async () => {
+  const f = fixture(); f.heartbeat(['alex', 'judy']);
+  await f.step(0); await f.step(500);
+  const alex = f.connections.entries.get(connectionKey('alex', 'private'));
+  const before = f.connections.entries.get(connectionKey('judy', 'private'));
+  assert.equal(before.state, 'ready');
+  await f.connections.reconfigure(['judy']);
+  const after = f.connections.entries.get(connectionKey('judy', 'private'));
+  assert.notEqual(before, after); assert.equal(after.state, 'waiting');
+  assert.equal(f.connections.entries.get(connectionKey('alex', 'private')), alex);
+  f.host.defer = true; await f.step(500);
+  const pending = f.connections.entries.get(connectionKey('judy', 'private'));
+  await f.connections.reconfigure(['judy']); f.pending[0].resolve(); await flush();
+  assert(pending.controller.signal.aborted);
+  assert.equal(f.connections.entries.get(connectionKey('judy', 'private')).state, 'waiting');
+  await f.connections.clear();
+});
+
 test('all eight private connections coexist with three group pages and survive composer changes', async () => {
   const f = fixture(); f.heartbeat(profiles);
   for (let i = 0; i < 11; i++) { f.heartbeat(profiles); await f.step(); }
