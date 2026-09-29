@@ -11,6 +11,9 @@ if (-not [IO.File]::Exists((Join-Path $game 'bin\x64\Cyberpunk2077.exe'))) { thr
 if (-not $LuaOnly -and (Get-Process Cyberpunk2077 -ErrorAction SilentlyContinue)) { throw 'Close the game before installing native scripts, or use -LuaOnly for a CET reload.' }
 
 $targets = @(
+    @{ From = (Join-Path $project 'mod\loot-observer.lua'); To = (Join-Path $game 'bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai\loot-observer.lua') },
+    @{ From = (Join-Path $project 'mod\loot-reactions.lua'); To = (Join-Path $game 'bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai\loot-reactions.lua') },
+    @{ From = (Join-Path $project 'mod\loot-probe.lua'); To = (Join-Path $game 'bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai\loot-probe.lua') },
     @{ From = (Join-Path $project 'mod\battle-observer.lua'); To = (Join-Path $game 'bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai\battle-observer.lua') },
     @{ From = (Join-Path $project 'mod\battle-reactions.lua'); To = (Join-Path $game 'bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai\battle-reactions.lua') },
     @{ From = (Join-Path $project 'mod\quest-context.lua'); To = (Join-Path $game 'bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai\quest-context.lua') },

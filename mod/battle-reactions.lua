@@ -73,7 +73,23 @@ function M.new()
             opponents = opponents, witnesses = witnesses}
     end
 
-    function self.offer(busy, people, now)
+    -- Reservation lasts only while this encounter still has a closing slot
+    -- and a surviving nearby witness. Recent context lives much longer.
+    function self.closingWindow(people)
+        if not enabled or not sample or not sample.available or sample.blocked
+            or not current or not current.eligible or current.closed or current.state ~= 'ended' then return nil end
+        local elapsed = clock - current.ended
+        if elapsed > 40 then return nil end
+        for _, person in ipairs(people or {}) do
+            if current.witnesses[person.profileKey] and person.distance <= 20
+                and (person.available ~= false or person.voiceBusy == true) then
+                return {encounter = current.id, elapsed = elapsed, remaining = 40 - elapsed}
+            end
+        end
+        return nil
+    end
+
+    function self.offer(busy, people, now, holdClosing)
         if busy or not enabled or not sample or not sample.available or sample.blocked or not current or not current.eligible then return nil end
         local phase, remaining
         if current.state == 'fighting' then
@@ -82,7 +98,7 @@ function M.new()
             phase, remaining = 'start', 12 - elapsed
         else
             local elapsed = clock - current.ended
-            if current.closed or elapsed < 4 or elapsed > 40 then return nil end
+            if current.closed or holdClosing or elapsed < 4 or elapsed > 40 then return nil end
             phase, remaining = 'end', 40 - elapsed
         end
         local chosen

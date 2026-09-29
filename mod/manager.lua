@@ -49,6 +49,7 @@ local function loadSettings()
     if type(settings.subtitles) ~= 'boolean' then settings.subtitles = true end
     if type(settings.disappearingMessages) ~= 'boolean' then settings.disappearingMessages = false end
     if type(settings.battleReactions) ~= 'boolean' then settings.battleReactions, settingsNeedSave = true, true end
+    if type(settings.lootReactions) ~= 'boolean' then settings.lootReactions, settingsNeedSave = true, true end
     if settings.voiceProvider ~= 'hybrid' and settings.voiceProvider ~= 'convai' then
         settings.voiceProvider, settingsNeedSave = 'hybrid', true
     end
@@ -108,6 +109,11 @@ end
 function M.battleReactions()
     loadSettings()
     return settings.battleReactions == true
+end
+
+function M.lootReactions()
+    loadSettings()
+    return settings.lootReactions == true
 end
 
 local function savedFeedback(message)
@@ -560,6 +566,7 @@ function M.snapshot(player)
         settings = {voice = settings.voice, subtitles = settings.subtitles,
             disappearingMessages = settings.disappearingMessages,
             battleReactions = settings.battleReactions,
+            lootReactions = settings.lootReactions,
             voiceProvider = settings.voiceProvider,
             omniSteps = settings.omniSteps, enabledByKey = enabled},
         localVoice = localVoiceState,
@@ -588,7 +595,7 @@ function M.applySettings(player, values)
     nextSettings.enabledByKey = {}
     for key, value in pairs(settings.enabledByKey) do nextSettings.enabledByKey[key] = value end
     for key, value in pairs(values) do
-        if key == 'voice' or key == 'subtitles' or key == 'disappearingMessages' or key == 'battleReactions' then
+        if key == 'voice' or key == 'subtitles' or key == 'disappearingMessages' or key == 'battleReactions' or key == 'lootReactions' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings[key] = value
         elseif key == 'omniSteps' then

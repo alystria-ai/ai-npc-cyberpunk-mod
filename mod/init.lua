@@ -15,6 +15,9 @@ local questContext = dofile('quest-context.lua')
 local battleObserver = dofile('battle-observer.lua')
 local battles = dofile('battle-reactions.lua').new()
 convaiBattleReactions = battles
+local lootObserver = dofile('loot-observer.lua')
+local loot = dofile('loot-reactions.lua').new()
+convaiLootObserver, convaiLootReactions = lootObserver, loot
 groupChat.captureJournal = questContext.capture
 phoneChat.captureJournal = questContext.capture
 microphone.captureJournal = questContext.capture
@@ -68,6 +71,7 @@ local focusedCrowd = nil
 local releasedCrowd = nil
 local pendingPhoneAction = nil
 local automatic, battleSample, battlePeople, battlePoll = nil, nil, {}, 0
+local lastAutomatic = nil
 local cancelAutomatic = function() end
 local phoneCatalogReady = false
 local function profileEnabled(player, key)
@@ -463,7 +467,8 @@ local function recordReactionCancellation(reason, abandoning)
         playing = speech.requestId == automatic.requestId, shown = automatic.shown == true,
         waitingForSpeaker = automatic.waitingForSpeaker == true,
         manual = manual.text or manual.group or manual.microphone or manual.phone,
-        manualActivity = manual, guard = reactionGuard, scheduler = battles.status()}
+        manualActivity = manual, guard = reactionGuard, scheduler = battles.status(),
+        kind = automatic.reaction.kind, loot = loot.status()}
     reactionEvidence[#reactionEvidence + 1] = record
     if #reactionEvidence > 32 then table.remove(reactionEvidence, 1) end
     -- This bounded ledger is diagnostic data only. No text, native object,
@@ -485,6 +490,7 @@ cancelAutomatic = function(reason, abandoning)
         elseif automatic.shown then subtitles.clear() end
     end
     log('Automatic reaction released: ' .. tostring(reason))
+    if automatic.reaction.kind == 'loot' then loot.release(automatic.reaction) end
     automatic, reactionGuard = nil, nil
 end
 
@@ -499,25 +505,61 @@ local function reactionSpeakerWait(person)
     return waiting
 end
 
+local function reactionPeople(player, observation)
+    local people = {}
+    local combat = observation.combat or battles.status().state == 'fighting'
+    local ok, candidates = pcall(companions.conversationCandidates, player, 20)
+    if ok then
+        for _, person in ipairs(candidates) do
+            if supportedProfiles[person.profileKey] and manager.profileEnabled(person.profileKey) then
+                person.available, person.availableReason, person.voiceBusy = battleObserver.canSpeak(person.npc, combat and 'start' or 'end')
+                people[#people + 1] = person
+            end
+        end
+    end
+    return people, ok
+end
+
+-- Source callbacks obtain current gates and witnesses before the transfer.
+-- The collector copies only plain identities; no saved NPC references.
+local function captureLootContext(player)
+    local observation = battleObserver.sample(player)
+    local ready = false
+    pcall(function()
+        local defs = Game.GetAllBlackboardDefs()
+        ready = not Game.GetSystemRequestsHandler():IsGamePaused()
+            and not Game.GetSystemRequestsHandler():IsPreGame()
+            and not Game.GetBlackboardSystem():Get(defs.UI_System):GetBool(defs.UI_System.IsInMenu)
+            and not player:ConvaiComposerOpen()
+    end)
+    return {available = observation.available, blocked = observation.blocked,
+        worldReady = ready, enabled = manager.lootReactions(), now = os.time(),
+        people = reactionPeople(player, observation)}
+end
+
 local function updateBattles(player, elapsed, worldReady)
     battlePoll = battlePoll + elapsed
     if not battleSample or battlePoll >= 0.5 then
         battlePoll = 0
         battleSample = battleObserver.sample(player)
         battleSampleAt = os.time() * 1000
-        battlePeople = {}
-        local ok, candidates = pcall(companions.conversationCandidates, player, 20)
-        battleCandidatesOk = ok
-        if ok then
-            for _, person in ipairs(candidates) do
-                if supportedProfiles[person.profileKey] and manager.profileEnabled(person.profileKey) then
-                    person.available, person.availableReason, person.voiceBusy = battleObserver.canSpeak(person.npc, battleSample.combat and 'start' or 'end')
-                    battlePeople[#battlePeople + 1] = person
-                end
-            end
-        end
+        battlePeople, battleCandidatesOk = reactionPeople(player, battleSample)
     end
-    battles.update(battleSample, worldReady and elapsed or 0, os.time(), manager.battleReactions(), battlePeople)
+    local now = os.time()
+    battles.update(battleSample, worldReady and elapsed or 0, now, manager.battleReactions(), battlePeople)
+    local closing = battles.closingWindow(battlePeople)
+    loot.update({available = battleSample.available, blocked = battleSample.blocked,
+        paused = not worldReady, combat = battleSample.combat or battles.status().state == 'fighting', holdForBattle = closing ~= nil},
+        worldReady and elapsed or 0, now, manager.lootReactions(), battlePeople)
+    -- Drain already confirmed receipts before suspending source collection in
+    -- a menu. Pausing freezes their policy timer; story/disabled gates discard.
+    for _, item in ipairs(lootObserver.drain()) do
+        local accepted, reason = loot.acquire(item, item.witnesses, now)
+        if accepted then log('World loot collected: ' .. item.record .. ' quantity=' .. item.quantity)
+        else log('World loot skipped: ' .. tostring(reason)) end
+    end
+    lootObserver.update({available = battleSample.available, blocked = battleSample.blocked,
+        worldReady = worldReady, enabled = manager.lootReactions(), now = now, people = battlePeople})
     local manual = active ~= nil or groupChat.round ~= nil
         or (microphone.context ~= nil and microphone.state ~= 'reply') or phoneChat.pending ~= nil
     local outputs = reactionOutputs(player)
@@ -528,7 +570,8 @@ local function updateBattles(player, elapsed, worldReady)
         end
         captureReactionGuard(worldReady, outputs, speaker)
         local waiting = reactionSpeakerWait(speaker)
-        local valid, invalidReason = battles.valid(automatic.reaction, os.time(), automatic.playbackAt)
+        local owner = automatic.reaction.kind == 'loot' and loot or battles
+        local valid, invalidReason = owner.valid(automatic.reaction, now, automatic.playbackAt)
         local reason = not worldReady and 'world-not-ready' or manual and 'manual-priority'
             or not outputs.enabled and 'outputs-disabled'
             or not speaker and 'speaker-missing' or (not speaker.available and not waiting) and 'speaker-unavailable'
@@ -540,22 +583,72 @@ local function updateBattles(player, elapsed, worldReady)
         elseif not reactionLease(true) then cancelAutomatic('lease-write-failed') end
     end
     local busy = not worldReady or manual or not outputs.enabled or pending ~= nil or speech.requestId ~= nil or subtitles.line ~= nil or automatic ~= nil
-    local event = battles.offer(busy, battlePeople, os.time())
+    local lootState = loot.status()
+    -- Complete one post-battle reply once looting settles. Continuous pickup
+    -- activity cannot defer that reply beyond its original admission window.
+    local holdClosing = closing and closing.elapsed < 25 and lootState.collecting
+    local spaced = not lastAutomatic or now - lastAutomatic.at >= 30
+    local event = battles.offer(busy, battlePeople, now, holdClosing)
+    if event and not spaced and not (event.phase == 'end' and lastAutomatic.kind == 'battle'
+        and lastAutomatic.phase == 'start' and lastAutomatic.encounter == event.encounter) then event = nil end
+    if event then
+        if event.phase == 'end' then
+            event.loot = loot.capture({forBattle = true, entity = event.person.entity, profileKey = event.person.profileKey}, now)
+            if not event.loot and lootState.pending > 0 then
+                -- Rotation must not choose a non-witness and silently drop a
+                -- witnessed batch. Prefer the intersection, then use the same
+                -- battle speaker policy within it. At most eight party copies
+                -- can reserve these detached, single-use snapshot tokens.
+                local battleWitnesses, witnessed, snapshots = {}, {}, {}
+                for _, key in ipairs(event.battle.witnesses) do battleWitnesses[key] = true end
+                for _, candidate in ipairs(battlePeople) do
+                    if battleWitnesses[candidate.profileKey] then
+                        local snapshot = loot.capture({forBattle = true, entity = candidate.entity, profileKey = candidate.profileKey}, now)
+                        if snapshot then
+                            witnessed[#witnessed + 1] = candidate
+                            snapshots[candidate.entity] = snapshot
+                        end
+                    end
+                end
+                local combined = battles.offer(false, witnessed, now)
+                if combined then
+                    event = combined
+                    event.loot = snapshots[event.person.entity]
+                end
+            end
+        end
+        event.reaction = {kind = 'battle', encounter = event.encounter, phase = event.phase, expiresAt = event.expiresAt}
+    else event = loot.offer(busy or not spaced, battlePeople, now) end
     if not event then return end
     generation = generation + 1
-    local person = event.person
+    local person
+    for _, candidate in ipairs(battlePeople) do
+        if candidate.entity == event.person.entity and candidate.profileKey == event.person.profileKey then person = candidate; break end
+    end
+    if not person then return end
     local context = {generation = generation, entity = person.entity, name = person.name,
-        bodyType = person.bodyType, profileKey = person.profileKey, battle = event.battle, sentAt = os.time(),
-        text = event.phase == 'start' and 'Combat has begun. Give a brief in-character reaction.'
+        bodyType = person.bodyType, profileKey = person.profileKey, battle = event.battle, loot = event.loot, sentAt = now,
+        text = event.reaction.kind == 'loot' and 'V has collected world loot. Give a brief in-character reaction.'
+            or event.phase == 'start' and 'Combat has begun. Give a brief in-character reaction.'
             or 'Combat has ended. Give a brief in-character reaction without assuming victory.',
-        reaction = {kind = 'battle', encounter = event.encounter, phase = event.phase, expiresAt = event.expiresAt}}
+        reaction = event.reaction}
     context.requestId = tostring(os.time()) .. '-' .. generation .. '-' .. context.entity
     automatic = context
     captureReactionGuard(worldReady, outputs, person)
     if reactionLease(true) and sendRequest(context) then
+        local claimed
+        if event.reaction.kind == 'loot' then claimed = loot.claim(event, now)
+        else
+            claimed = not event.loot or loot.consumeForBattle(event.loot, now) ~= nil
+            if claimed then
+                claimed = battles.claim(event)
+                if claimed and event.phase == 'end' then loot.suppressAfterBattle(now) end
+            end
+        end
+        if not claimed then cancelAutomatic('claim-failed'); return end
         speech.target = person.npc
-        battles.claim(event)
-        log('Automatic battle reaction: ' .. event.phase .. ' speaker=' .. person.profileKey)
+        lastAutomatic = {at = now, kind = event.reaction.kind, phase = event.phase, encounter = event.encounter}
+        log('Automatic ' .. event.reaction.kind .. ' reaction: ' .. tostring(event.phase or 'batch') .. ' speaker=' .. person.profileKey)
     else cancelAutomatic('request-write-failed') end
 end
 
@@ -716,6 +809,7 @@ local function abandonSession(reason)
     -- pcall cannot catch an access violation in an already unloaded component.
     cancelAutomatic(reason, true)
     battles.reset()
+    loot.reset(); lootObserver.reset(); lastAutomatic = nil
     battleSample, battlePeople, battlePoll = nil, {}, 0
     companions.abandon()
     mcm.resetSession()
@@ -736,6 +830,8 @@ local function abandonSession(reason)
 end
 
 registerForEvent('onInit', function()
+    lootObserver.configure({captureContext = captureLootContext})
+    lootObserver.install()
     convaiLocomotion = dofile('companion-locomotion.lua')
     convaiLocomotion.install(function(npc, command)
         return companions.ownsTravelCommand(npc, command)
@@ -970,6 +1066,7 @@ end)
 registerForEvent('onShutdown', function()
     cancelAutomatic('shutdown')
     battles.reset()
+    loot.reset(); lootObserver.reset(); lastAutomatic = nil
     battleSample, battlePeople = nil, {}
     phoneChat.abandon()
     mcm.shutdown()

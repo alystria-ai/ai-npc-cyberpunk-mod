@@ -204,6 +204,8 @@ local function schema()
             setting('subtitles', 'Dialogue subtitles', 'bool', snapshot.settings.subtitles, true, 'Show companion replies through the game’s native dialogue subtitles.'),
             setting('battleReactions', 'React to battles', 'bool', snapshot.settings.battleReactions, true,
                 'A nearby companion can make one short comment as combat starts and another afterward. Ten-minute cooldown after a fight; conversations and story scenes take priority. Loading a save resets the cooldown.'),
+            setting('lootReactions', 'React to collected loot', 'bool', snapshot.settings.lootReactions, true,
+                'Companions can comment after you finish collecting world loot. Storage transfers stay silent. A ten-minute cooldown spaces ordinary comments; newly acquired Legendary equipment has a separate two-minute cooldown. Loot can join a post-battle comment.'),
             setting('disappearingMessages', 'Disappearing messages', 'bool', snapshot.settings.disappearingMessages, false,
                 'Clear the phone Chat history and drafts when you next launch the game. Characters keep their Convai conversation memory. Loading a save or reloading mods does not clear messages.'),
             setting('voiceProvider', 'Companion voices', 'select', snapshot.settings.voiceProvider == 'convai' and 2 or 1, 1,
@@ -256,7 +258,7 @@ function M.configure(domain, companions, queueFactory, entryFactory)
             local values, applied = {enabledByKey = {}}, {}
             for _, change in ipairs(changes) do
                 local key = change.id
-                if key == 'voice' or key == 'subtitles' or key == 'disappearingMessages' or key == 'battleReactions' then values[key] = change.value
+                if key == 'voice' or key == 'subtitles' or key == 'disappearingMessages' or key == 'battleReactions' or key == 'lootReactions' then values[key] = change.value
                 elseif key == 'omniSteps' then
                     if change.value ~= 1 and change.value ~= 2 then return {ok = false, error = 'Choose a voice quality.'} end
                     values.omniSteps = change.value == 1 and 16 or 32

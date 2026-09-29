@@ -105,8 +105,11 @@ are reused.
 - In-game audio was initially unaccepted; the later corrected-run evidence is
   recorded below. Cooldown/save-reset edge cases have automated coverage, without
   a separate full ten-minute live check.
-- Combining loot and exploration observations with the closing comment is still
-  pending. No Horde-wave or kill-count equivalent is invented for Cyberpunk.
+- September 30: witnessed loot merging is implemented with one shared automatic
+  reply owner, six-second collection quiet time, a bounded closing wait and
+  exact-copy witness selection. Production audible acceptance is pending; see
+  `LOOT_REACTIONS.md`. Exploration merging remains a separate task. No Horde-wave
+  or kill-count equivalent is invented for Cyberpunk.
 - Second live fight: the opening was cancelled two seconds after submission by
   Judy's `native-dialogue` gate, at 7.16 metres, with player combat true and all
   player/manual/output guards clear. The game scripts schedule a companion

@@ -3,6 +3,7 @@
 import {parseGroup} from './group-context.mjs';
 import {parseJournal} from './quest-context.mjs';
 import {parseBattle, parseReaction} from './battle-context.mjs';
+import {parseLoot} from './loot-context.mjs';
 
 export function profileFor(input, roster) {
   return roster.find(profile => profile.key === input.profileKey);
@@ -22,8 +23,10 @@ export function parseInput(raw) {
   const group = value.group === undefined ? undefined : parseGroup(value.group);
   if (group === null) return null;
   const journal = parseJournal(value.journal);
-  const battle = parseBattle(value.battle), reaction = parseReaction(value.reaction, battle);
+  const loot = parseLoot(value.loot, {entity, profileKey});
+  if (loot === null) return null;
+  const battle = parseBattle(value.battle), reaction = parseReaction(value.reaction, battle, loot);
   if (reaction === null) return null;
   return {requestId, generation, entity, name: name.slice(0, 120), bodyType: bodyType.slice(0, 80), profileKey, text: text.trim(), group,
-    ...(journal ? {journal} : {}), ...(battle ? {battle} : {}), ...(reaction ? {reaction} : {})};
+    ...(journal ? {journal} : {}), ...(battle ? {battle} : {}), ...(loot ? {loot} : {}), ...(reaction ? {reaction} : {})};
 }

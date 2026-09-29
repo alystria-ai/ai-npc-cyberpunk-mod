@@ -1,5 +1,6 @@
 import {groupContext} from './group-context.mjs';
 import {battleContext} from './battle-context.mjs';
+import {lootContext} from './loot-context.mjs';
 
 const unavailable = () => ({version: 1, status: 'unavailable'});
 const id = value => typeof value === 'string' && /^-?\d{1,12}$/.test(value);
@@ -55,5 +56,5 @@ export function journalContext(journal) {
 }
 
 export function conversationContext(input) {
-  return [groupContext(input), journalContext(input.journal), battleContext(input)].filter(Boolean).join('\n\n');
+  return [groupContext(input), journalContext(input.journal), battleContext(input), lootContext(input)].filter(Boolean).join('\n\n');
 }

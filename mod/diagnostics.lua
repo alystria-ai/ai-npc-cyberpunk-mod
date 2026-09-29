@@ -2,6 +2,70 @@
 local requestFile = io.open('runtime/diagnostic-request.txt', 'rb')
 local request = requestFile and requestFile:read('*a') or ''
 if requestFile then requestFile:close() end
+if request:match('^loot%-state:') then
+    local report = {request = request, at = os.time() * 1000,
+        observer = convaiLootObserver and convaiLootObserver.status() or {available = false},
+        policy = convaiLootReactions and convaiLootReactions.status() or {available = false},
+        pending = convaiLootReactions and convaiLootReactions.capture() or {available = false},
+        battle = convaiBattleReactions and convaiBattleReactions.status() or {available = false}}
+    local file = io.open('runtime/loot-state.json', 'wb')
+    if file then file:write(json.encode(report)); file:close() end
+    return
+end
+if request:match('^loot%-inventory%-state:') then
+    local report = {request = request}
+    local ok, err = pcall(function()
+        local player = Game.GetPlayer()
+        local first, second = Game.GetTransactionSystem():GetItemList(player)
+        report.firstType, report.secondType = type(first), type(second)
+        local items = type(second) == 'table' and second or type(first) == 'table' and first
+        report.count = items and #items
+        report.examples = {}
+        for i = 1, math.min(items and #items or 0, 3) do
+            report.examples[i] = {identity = tostring(ItemID.GetCombinedHash(items[i]:GetID())), quantity = items[i]:GetQuantity()}
+        end
+    end)
+    report.ok, report.error = ok, not ok and tostring(err) or nil
+    local file = io.open('runtime/loot-inventory-state.json', 'wb')
+    if file then file:write(json.encode(report)); file:close() end
+    return
+end
+if request:match('^loot%-test%-drop:') then
+    local report = {request = request, record = 'Items.LowQualityDrink10', quantity = 2}
+    local ok, err = pcall(function()
+        local player = Game.GetPlayer()
+        assert(player and player:IsAttached() and not player:IsDeadNoStatPool(), 'Player is unavailable')
+        assert(PlayerPuppet.GetSceneTier(player) == 1 and not player:IsInCombat(), 'Return to safe open gameplay')
+        local id = ItemID.FromTDBID(TweakDBID.new(report.record))
+        local transaction = Game.GetTransactionSystem()
+        report.before = transaction:GetItemQuantity(player, id)
+        assert(transaction:GiveItem(player, id, report.quantity), 'Test item grant failed')
+        report.afterGrant = transaction:GetItemQuantity(player, id)
+        assert(report.afterGrant == report.before + report.quantity, 'Unexpected test item count')
+        local instructions = {DropInstruction.Create(id, report.quantity)}
+        report.spawnAccepted = Game.GetLootManager():SpawnItemDropOfManyItems(player, instructions,
+            CName.new('playerDropBag'), player:GetWorldPosition())
+        report.afterDrop = transaction:GetItemQuantity(player, id)
+        assert(report.spawnAccepted, 'Native drop request failed; the two test drinks remain in inventory')
+        report.position = {x = player:GetWorldPosition().x, y = player:GetWorldPosition().y, z = player:GetWorldPosition().z}
+    end)
+    report.ok, report.error = ok, not ok and tostring(err) or nil
+    local file = io.open('runtime/loot-test-drop.json', 'wb')
+    if file then file:write(json.encode(report)); file:close() end
+    return
+end
+if request:match('^loot%-probe:') then
+    local probe = dofile('loot-probe.lua')
+    local action = request:match('^loot%-probe:([^:]+):')
+    local report
+    if action == 'start' then report = probe.start({seconds = 300, maxEvents = 512})
+    elseif action == 'stop' then report = probe.stop('diagnostic-finished')
+    else report = probe.status() end
+    report.request = request
+    local file = io.open('runtime/loot-probe.json', 'wb')
+    if file then file:write(json.encode(report)); file:close() end
+    return
+end
 if request:match('^battle%-context:') then
     local observer, player = dofile('battle-observer.lua'), Game.GetPlayer()
     local report = observer.sample(player)
