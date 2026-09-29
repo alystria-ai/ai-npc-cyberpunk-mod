@@ -142,8 +142,11 @@ replies cannot enter a new attachment, and repeated polls do not resend a reques
   pass; the native file matches the successful isolated compilation.
 - Installed with file-hash verification while the game was closed on September
   29. The normal game startup compiled successfully at 23:22:28 IST and the
-  hidden reply bridge is ready. Switching between a populated contact and an
-  unused contact is awaiting the user's live check.
+  hidden reply bridge is ready. The user confirmed histories are separate after
+  the requested populated/unused-contact check. A live read of Babs's panel
+  also matched her two saved lines exactly, with two AI renderers and zero
+  native quest choices. No style/domain error was reported. Native Messages
+  restoration still has automated coverage, without a new visual acceptance.
 
 ### Combined live check
 
