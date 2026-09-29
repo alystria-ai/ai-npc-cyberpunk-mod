@@ -2,6 +2,14 @@
 local requestFile = io.open('runtime/diagnostic-request.txt', 'rb')
 local request = requestFile and requestFile:read('*a') or ''
 if requestFile then requestFile:close() end
+if request:match('^quest%-context:') then
+    local context = dofile('quest-context.lua')
+    local report = {snapshot = context.capture()}
+    report.error = context.lastError
+    local file = io.open('runtime/quest-context-probe.json', 'wb')
+    if file then file:write(json.encode(report)); file:close() end
+    return
+end
 if request:match('^phone%-chat%-style:') then
     local style = dofile('phone-chat-style.lua')
     style.lastError = nil

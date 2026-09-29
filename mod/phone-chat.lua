@@ -111,7 +111,8 @@ function M.update(player, delta)
             M.errors[submission.contact] = 'Wait for your previous reply before sending another message.'
         else
             M.serial = M.serial + 1
-            M.pending = {id = M.world .. '-' .. M.serial, contact = submission.contact, text = text}
+            M.pending = {id = M.world .. '-' .. M.serial, contact = submission.contact, text = text,
+                journal = M.captureJournal and M.captureJournal()}
             M.sentAt = os.time()
             M.errors[submission.contact] = nil
             if publish(true) then

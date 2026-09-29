@@ -10,7 +10,8 @@ import {SpeechSlots, SpeechStream, splitSpeechText} from './speech-stream.mjs';
 import {RealtimeHost} from './realtime-host.mjs';
 import {MicrophoneSession} from './microphone-session.mjs';
 import {randomUUID} from 'node:crypto';
-import {groupContext, conversationScope} from './group-context.mjs';
+import {conversationScope} from './group-context.mjs';
+import {conversationContext} from './quest-context.mjs';
 import {GroupPrefetch, inputIdentity, validatePrefetch, parsePrewarm} from './group-prefetch.mjs';
 import {throwIfCancelled} from './transport-pool.mjs';
 import {PartyConnections} from './party-connections.mjs';
@@ -107,10 +108,10 @@ let metricsWriting = Promise.resolve();
 let connectionMetricsWriting = Promise.resolve();
 
 const sessionKey = input => input.profileKey + ':' + conversationScope(input);
-const completeContext = input => JSON.stringify([groupContext(input), ids[input.profileKey], realtimeSessions.get(sessionKey(input)) || null,
+const completeContext = input => JSON.stringify([conversationContext(input), ids[input.profileKey], realtimeSessions.get(sessionKey(input)) || null,
   localVoice.usesProfile(input.profileKey) ? localVoice.steps : 'convai']);
 const realtimeConfig = input => ({key, characterId: ids[input.profileKey], sessionId: realtimeSessions.get(sessionKey(input)),
-  scope: conversationScope(input), context: groupContext(input), text: input.text, ttsEnabled: !localVoice.usesProfile(input.profileKey)});
+  scope: conversationScope(input), context: conversationContext(input), text: input.text, ttsEnabled: !localVoice.usesProfile(input.profileKey)});
 const connections = new PartyConnections({host: realtime, isKnown: profile => Object.hasOwn(ids, profile),
   configFor: (profile, scope) => ({key, characterId: ids[profile], scope, sessionId: realtimeSessions.get(profile + ':' + scope), ttsEnabled: !localVoice.usesProfile(profile)}),
   onState: state => {
@@ -185,7 +186,7 @@ async function status(state, detail = '') {
 
 async function respond(input, profile, {signal, prepared} = {}) {
   const scopedSession = sessionKey(input);
-  const context = groupContext(input);
+  const context = conversationContext(input);
   if (await audioReady(runtime)) {
     if (prepared) {
       try { return await prepared; }
@@ -303,7 +304,7 @@ async function pollMicrophone() {
         // A new microphone turn supersedes a pending text reply.
         active?.controller.abort(); prefetch.invalidate();
         await connections.setRequest({...input, group: undefined});
-        void mic.start(input, {key, characterId: ids[profile.key], scope: 'private', sessionId: realtimeSessions.get(input.profileKey + ':private'), ttsEnabled: !localVoice.usesProfile(input.profileKey)}).catch(error => console.error(error.message));
+        void mic.start(input, {...realtimeConfig(input), scope: 'private', sessionId: realtimeSessions.get(input.profileKey + ':private')}).catch(error => console.error(error.message));
       }
     }
     void mic.tick(await audioReady(runtime)).catch(error => console.error(error.message));
@@ -358,7 +359,8 @@ async function processInput(request, prepared) {
         error: `${input.name} does not have a conversation profile configured yet.`}));
       return;
     }
-    await measure(input, {receivedAt: request.receivedAt, preparation: {mode: prepared ? 'claimed' : 'none'}});
+    await measure(input, {receivedAt: request.receivedAt, preparation: {mode: prepared ? 'claimed' : 'none'},
+      journalStatus: input.journal?.status || 'not-supplied', journalObjectives: input.journal?.quest?.objectives.length || 0});
     await status('thinking', profile.name);
     const canWarm = await audioReady(runtime);
     throwIfCancelled(controller.signal);

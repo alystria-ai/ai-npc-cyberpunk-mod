@@ -187,7 +187,8 @@ async function beginVoice(config) {
 
 function updateContext(config) {
   client.updateContext({mode: 'replace', run_llm: 'false',
-    text: 'You are speaking to V in Night City. Reply briefly without stage directions. No verified quest or relationship state is supplied. '
+    text: 'You are speaking to V in Night City. Reply briefly without stage directions. '
+      + 'Use only explicitly supplied current-save facts for quest progress. No verified relationship state is supplied. '
       + (config.context || 'This is a private conversation with V.')});
 }
 

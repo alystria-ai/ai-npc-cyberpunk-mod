@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 import {runInNewContext} from 'node:vm';
 import {drainBlendshapes} from './blendshape-capture.mjs';
 import {BlendshapeQueue} from '../node_modules/@convai/web-sdk/dist/core/BlendshapeQueue.js';
+import {journalContext} from './quest-context.mjs';
 
 const source = readFileSync(new URL('./realtime-client.mjs', import.meta.url), 'utf8')
   .replace("import {ConvaiClient} from '@convai/web-sdk/vanilla';", '')
@@ -40,6 +41,22 @@ function fixture() {
   return {api: window.convaiRealtime, clients, events, captures};
 }
 const config = {key: 'test-key', characterId: 'alex', scope: 'group:alex,panam', text: 'Hello'};
+
+test('a turn silently replaces journal context before sending the original user message', async () => {
+  const {api, events} = fixture();
+  await api.warm(config);
+  const journal = {version: 1, status: 'active', quest: {id: '1', title: 'Visible quest',
+    objectives: [{id: '2', text: 'Meet a friend.', tracked: true}]}};
+  const pending = api.reply({...config, context: journalContext(journal)}); pending.catch(() => {});
+  await flush();
+  const row = events.find(event => event[0] === 'context')[1];
+  assert.equal(row.mode, 'replace'); assert.equal(row.run_llm, 'false');
+  assert.match(row.text, /Visible quest/); assert.match(row.text, /active, revealed objectives/);
+  assert.doesNotMatch(row.text, /No verified quest/);
+  assert(events.findIndex(event => event[0] === 'context') < events.findIndex(event => event[0] === 'message'));
+  assert.equal(events.find(event => event[0] === 'message')[1], config.text);
+  await api.close(); await assert.rejects(pending, /cancelled/);
+});
 
 test('warm is silent and an unused anonymous connection can prepare without reconnecting', async () => {
   const {api, clients, events} = fixture();

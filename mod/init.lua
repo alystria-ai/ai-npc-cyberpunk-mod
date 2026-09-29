@@ -11,6 +11,10 @@ local mcm = dofile('mcm.lua')
 local phoneLayout = dofile('phone-layout.lua')
 local phoneChatStyle = dofile('phone-chat-style.lua')
 local phoneChat = dofile('phone-chat.lua')
+local questContext = dofile('quest-context.lua')
+groupChat.captureJournal = questContext.capture
+phoneChat.captureJournal = questContext.capture
+microphone.captureJournal = questContext.capture
 convaiPhoneChat = phoneChat
 convaiGroupChat = groupChat
 groupChat.onPreparation = function(preparation)
@@ -370,6 +374,7 @@ local function toggleVoice()
 end
 
 local function sendRequest(context)
+    context.journal = context.journal or questContext.capture()
     local file = io.open('runtime/last-input.json.tmp', 'wb')
     if not file then return false end
     file:write(json.encode(context)); file:close()
