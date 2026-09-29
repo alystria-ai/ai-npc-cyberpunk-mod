@@ -117,3 +117,20 @@ test('wrong device/precision cannot report readiness; wrong speaker and malforme
   const invalid = assert.rejects(second, /supported WAV/); h.reply(1, {audio: Buffer.from('{}').toString('base64')}); await invalid;
   const closed = h.client.close(); h.finish(); await closed;
 });
+
+test('acceleration diagnostics distinguish replay from a bounded eager fallback without changing quality', async () => {
+  const h = harness();
+  const first = h.client.synthesize('judy-alvarez', 'A cached render.'); await tick();
+  h.reply(0, {acceleration: 'cuda-graph', cudaGraph: {replays: 32, captures: 1, graphReservedMiB: 44}});
+  const replay = await first;
+  assert.equal(replay.timing.voiceAcceleration, 'cuda-graph');
+  assert.equal(replay.timing.voiceGraph.replays, 32);
+  assert.equal(replay.timing.voiceSteps, 32);
+  const next = h.client.synthesize('judy-alvarez', 'A shape above the graph budget.'); await tick();
+  h.reply(1, {acceleration: 'eager', cudaGraph: {replays: 32, fallbacks: 32, shape: null}});
+  const fallback = await next;
+  assert.equal(fallback.timing.voiceAcceleration, 'eager');
+  assert.equal(h.states.at(-1).cudaGraph.shape, null);
+  assert.deepEqual(fallback.audio, replay.audio);
+  const closed = h.client.close(); h.finish(); await closed;
+});

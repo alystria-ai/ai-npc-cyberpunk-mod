@@ -9,6 +9,7 @@ import argparse
 import base64
 import hashlib
 import io
+import importlib.util
 import json
 import os
 import sys
@@ -60,22 +61,34 @@ def main():
     if not torch.cuda.is_available():
         raise RuntimeError('OmniVoice requires CUDA in this installation')
     backend = get_backend_class('omnivoice')()
+    graph = None
     try:
         backend._ensure_loaded()
         if not (backend.execution_device or '').startswith('cuda'):
             raise RuntimeError('OmniVoice did not load on CUDA')
         if backend.dtype != 'torch.float16':
             raise RuntimeError('OmniVoice did not load with the expected FP16 weights')
+        # Reuse the existing model's CUDA work, retaining just one bounded
+        # graph. This does not change weights, precision, sampling or audio.
+        # The opt-out keeps rollback independent of the game installation.
+        if os.environ.get('CYBERPUNK_CONVAI_CUDA_GRAPH', '1') != '0':
+            spec = importlib.util.spec_from_file_location('voice_cuda_graph', ROOT / 'bridge/voice-cuda-graph.py')
+            replay = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(replay)
+            graph = replay.VoiceGraph(backend._model).install()
         model_info = {'device': backend.execution_device, 'dtype': backend.dtype,
                       'runtime': 'pytorch', 'tensorrt': False, 'compiled': False}
         def memory_info():
             return {'cudaAllocatedMiB': torch.cuda.memory_allocated() / 1024**2,
                     'cudaReservedMiB': torch.cuda.memory_reserved() / 1024**2,
-                    'cudaPeakReservedMiB': torch.cuda.max_memory_reserved() / 1024**2}
+                    'cudaPeakReservedMiB': torch.cuda.max_memory_reserved() / 1024**2,
+                    'acceleration': graph.snapshot()['mode'] if graph else 'eager',
+                    'cudaGraph': graph.snapshot() if graph else None}
 
         def render(key, text, steps):
             ref, transcript = refs[key]
             torch.manual_seed(1042)
+            if graph: graph.begin_request()
             started = time.perf_counter()
             with torch.inference_mode():
                 wav = backend.generate(text, ref_audio=ref, ref_text=transcript,
@@ -116,8 +129,11 @@ def main():
                 print(f'Local speech failed: {type(error).__name__}: {error}', file=sys.stderr, flush=True)
                 send({'op': 'error', 'id': request_id, 'message': 'Local voice could not generate this reply.'})
     finally:
-        backend.unload()
-        output.close()
+        try:
+            if graph: graph.close()
+        finally:
+            backend.unload()
+            output.close()
 
 
 if __name__ == '__main__':

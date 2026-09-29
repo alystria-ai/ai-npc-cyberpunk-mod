@@ -92,6 +92,7 @@ export class ResidentVoice {
       this.loaded = true;
       this.details = {device: frame.device, dtype: frame.dtype, runtime: frame.runtime,
         tensorrt: frame.tensorrt, compiled: frame.compiled,
+        acceleration: frame.acceleration || 'eager', cudaGraph: frame.cudaGraph,
         cudaAllocatedMiB: frame.cudaAllocatedMiB, cudaReservedMiB: frame.cudaReservedMiB,
         cudaPeakReservedMiB: frame.cudaPeakReservedMiB};
       if (!this.closing && !this.failure) this.publish('ready');
@@ -102,6 +103,10 @@ export class ResidentVoice {
     this.pending.delete(frame.id);
     for (const key of ['cudaAllocatedMiB', 'cudaReservedMiB', 'cudaPeakReservedMiB']) {
       if (Number.isFinite(frame[key])) this.details[key] = frame[key];
+    }
+    if (['eager', 'cuda-graph'].includes(frame.acceleration)) {
+      this.details.acceleration = frame.acceleration;
+      this.details.cudaGraph = frame.cudaGraph;
     }
     if (!this.closing) this.publish('ready');
     if (frame.op === 'error') request.reject(Error('Local voice could not generate this reply'));
@@ -144,6 +149,7 @@ export class ResidentVoice {
       return {audio: bytes.toString('base64'), wav, faces: [], captions: [], timing: {
         voiceProvider: 'omnivoice', voiceEngine: 'omnivoice', voiceSteps: steps, voiceWarm: true,
         voiceDtype: this.details.dtype, voiceRuntime: this.details.runtime,
+        voiceAcceleration: frame.acceleration || 'eager', voiceGraph: frame.cudaGraph,
         voiceQueueMs: started - queued, voiceGenerationMs: frame.generationMs,
         voiceRoundTripMs: performance.now() - started}};
     });

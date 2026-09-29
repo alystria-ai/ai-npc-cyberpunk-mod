@@ -5,6 +5,11 @@ with 16 steps available in F5 → Settings → Local voice quality. Both setting
 use **FP16 on CUDA through PyTorch**, without TensorRT or `torch.compile`.
 The numbers 16 and 32 describe generation steps, not floating-point precision.
 
+September 29: the worker now uses bounded CUDA graph replay around the original
+FP16 forward. See [VOICE_ACCELERATION.md](VOICE_ACCELERATION.md) for comparable
+timings, memory definitions, exact-WAV checks, fallback and the bridge-only
+opt-out. FP8 remains an isolated candidate, not the installed voice precision.
+
 ## Routing and lifetime
 
 - Johnny Silverhand, Judy Alvarez and Panam Palmer: Convai generates text;
@@ -18,8 +23,10 @@ The numbers 16 and 32 describe generation steps, not floating-point precision.
   work is skipped. Shutdown uses pipe EOF and waits for the worker to release.
 - WAV output has no added EQ, pitch/speed change, loudness normalization or
   denoising. It enters the existing native positional emitter and subtitles.
-  Convai audio timings are discarded for local speech. Rig lip sync is still
-  unimplemented and is not claimed by this integration.
+  Convai audio timings are discarded for local speech. Local phonetic lip sync
+  and phrase playback now follow the native audio cursor; see
+  [SPEECH_STREAMING.md](SPEECH_STREAMING.md) and
+  [LIPSYNC_REFINEMENT.md](LIPSYNC_REFINEMENT.md) for the current validation limits.
 - Model errors preserve the written reply, without borrowing another voice.
   Restarting the conversation bridge recovers a failed worker.
 
