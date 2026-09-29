@@ -2,6 +2,37 @@
 local requestFile = io.open('runtime/diagnostic-request.txt', 'rb')
 local request = requestFile and requestFile:read('*a') or ''
 if requestFile then requestFile:close() end
+if request:match('^phone%-chat%-state:') then
+    local chat = convaiPhoneChat
+    local report = {contact = chat and chat.contact, error = chat and chat.lastError,
+        pending = chat and chat.pending and {contact = chat.pending.contact, id = chat.pending.id},
+        widgets = {}}
+    local ok, err = pcall(function()
+        local player = Game.GetPlayer()
+        report.typing = player and player:ConvaiPhoneChatTyping()
+        for _, layer in ipairs(Game.GetInkSystem():GetLayers()) do
+            for _, controller in ipairs(layer:GetGameControllers()) do
+                if NameToString(controller:GetClassName()) == 'PhoneMessagePopupGameController' then
+                    local function visit(widget, depth)
+                        if not widget or depth > 12 or #report.widgets >= 220 then return end
+                        local item = {name = NameToString(widget:GetName()), class = NameToString(widget:GetClassName()),
+                            depth = depth, visible = widget:IsVisible(), width = widget:GetWidth(), height = widget:GetHeight()}
+                        local parent = widget:GetParentWidget()
+                        if parent then item.parent = NameToString(parent:GetName()) end
+                        report.widgets[#report.widgets + 1] = item
+                        local compound, count = pcall(function() return widget:GetNumChildren() end)
+                        if compound then for index = 0, count - 1 do visit(widget:GetWidgetByIndex(index), depth + 1) end end
+                    end
+                    visit(controller:GetRootWidget(), 0)
+                end
+            end
+        end
+    end)
+    if not ok then report.probeError = tostring(err) end
+    local file = io.open('runtime/phone-chat-debug.json', 'wb')
+    if file then file:write(json.encode(report)); file:close() end
+    return
+end
 if request:match('^party%-combat%-state:') then
     local report = {records = {}, companions = {}}
     for _, record in ipairs({'Character.Silverhand', 'Character.Judy', 'Character.Grayson',

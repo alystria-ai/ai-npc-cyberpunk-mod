@@ -1,5 +1,11 @@
 # Cyberpunk Convai overhaul
 
+## September 29 — current direction
+
+- Voice tuning is deferred at the user's request. Keep the accepted FP16 OmniVoice route and 32/16 generation-step setting; these are inference steps, not training epochs. FP8 is an experiment, not a shipped precision option.
+- [ ] Expose an explicit Convai voice-provider fallback for the three local-voice characters. The present failure path preserves a written reply; do not describe it as automatic Convai audio fallback.
+- [ ] Next acceptance gate: integrated phone Messages composer. Source, isolated native compilation, text-only Convai request and lifecycle tests are ready; one native install/relaunch and visual/typing check remain. See `docs/PHONE_CHAT.md`.
+
 This is the running request and verification list. A checked item means the behavior was seen in the game or directly verified; code alone does not close an item. Update this file when a request is added or a test changes the result.
 
 ## Companion experience
@@ -62,6 +68,7 @@ This is the running request and verification list. A checked item means the beha
 - [x] Preserve typed capitalization in the F6 composer. A scoped OriginalCase hook replaces Codeware's forced uppercase only in our input. The live controller reported OriginalCase and the user confirmed mixed-case typing works. The input was not submitted in this check.
 - [x] Fix the missing response to "hey". The managed Alex was reported by the engine as Alena Xenakis; the legacy router did not match her and the bridge was stopped. Added canonical managed identity, Alex/Kerry profiles, a hidden bridge launcher, explicit reply errors and a 40-second timeout. Direct Alex API reply succeeded; the user confirmed a reply appeared in-game.
 - [ ] Add a native text composer inside each contact's phone message panel, with per-contact conversation history and replies in that panel, without opening CET.
+  - September 29: implemented a Codeware input inside the native SMS panel and native sent/received bubbles, with contact-scoped drafts/history, one outstanding text-only request, isolated Convai phone sessions, timeout recovery and unload cancellation. Supported unlocked contacts with no authored messages receive an ephemeral UI conversation row; no quest entries are fabricated. Reply does not require a nearby companion. Nine focused checks pass, and a real Judy request returned in 4.866 seconds. Not installed or visually verified yet.
 - [x] Use a game-styled native text input that accepts typing without opening CET. Basic live text exchange with Convai worked.
 - [x] Use native dialogue subtitles for replies and remove the thinking notification. Installed live without restart. The game had Cinematic subtitles disabled; enabled and saved that setting, and the user confirmed Alex's named native subtitle appears without thinking notifications. Only this mod's caption IDs are removed. Long text is paged by reading time until voiced playback supplies timing.
 - [ ] Finish the text conversation flow: per-character sessions, loading and error states, replies, cancellation, and return to gameplay.

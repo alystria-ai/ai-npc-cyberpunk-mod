@@ -9,6 +9,9 @@ local function phoneOpen()
 end
 
 function M.blocksMenuAction(action)
+    local player = Game.GetPlayer()
+    local okTyping, typing = pcall(function() return player and player:ConvaiPhoneChatTyping() end)
+    if okTyping and typing then return true end
     if not phoneOpen() then return false end
     -- The standard journal binding is J. GetKey also covers menu actions the
     -- player has rebound to either of our phone keys.
@@ -23,7 +26,7 @@ function M.blocksMenuAction(action)
 end
 
 function M.install()
-    if M.installed and M.version == 1 then return end
+    if M.installed then return end
     Override('gameuiInGameMenuGameController', 'OnAction', function(self, action, consumer, wrapped)
         local ok, blocked = pcall(M.blocksMenuAction, action)
         if ok and blocked then
@@ -34,7 +37,9 @@ function M.install()
         return wrapped(action, consumer)
     end)
     Override('gameuiInGameMenuGameController', 'OnHandleMenuInput', function(self, event, wrapped)
-        if phoneOpen() and event:IsAction('toggle_journal') then
+        local player = Game.GetPlayer()
+        local ok, typing = pcall(function() return player and player:ConvaiPhoneChatTyping() end)
+        if (ok and typing) or (phoneOpen() and event:IsAction('toggle_journal')) then
             M.blocked = M.blocked + 1
             event:Handle()
             event:Consume()
@@ -43,7 +48,7 @@ function M.install()
         return wrapped(event)
     end)
     M.installed = true
-    M.version = 1
+    M.version = 2
 end
 
 convaiPhoneInput = M

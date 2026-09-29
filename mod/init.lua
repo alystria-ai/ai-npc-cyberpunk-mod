@@ -9,6 +9,8 @@ local groupChat = dofile('group-chat.lua')
 local manager = dofile('manager.lua')
 local mcm = dofile('mcm.lua')
 local phoneLayout = dofile('phone-layout.lua')
+local phoneChat = dofile('phone-chat.lua')
+convaiPhoneChat = phoneChat
 convaiGroupChat = groupChat
 groupChat.onPreparation = function(preparation)
     local f = io.open('runtime/group-prefetch.json.tmp', 'wb')
@@ -29,6 +31,7 @@ do
     end
 end
 manager.configure(companions, profiles)
+phoneChat.configure(profiles, manager)
 mcm.configure(manager, companions, dofile('manager-party.lua'), dofile('mcm-entry.lua'))
 convaiManager = mcm
 local catalog = characterCatalog.build(profiles)
@@ -519,6 +522,7 @@ local function abandonSession(reason)
     subtitles.abandon()
     microphone.cancel()
     groupChat.cancel()
+    phoneChat.abandon()
     active, pending, focusUntil, focusMode, focusEntity = nil, nil, nil, nil, nil
     focusedCrowd, releasedCrowd, pendingPhoneAction = nil, nil, nil
     phoneCatalogReady = false
@@ -586,6 +590,8 @@ registerForEvent('onUpdate', function(delta)
     if not mcmOk then log('MCM update failed: ' .. tostring(mcmError)) end
     local phoneOk, phoneError = pcall(phoneLayout.refresh)
     if not phoneOk then phoneLayout.lastError = tostring(phoneError) end
+    local chatOk, chatError = pcall(phoneChat.update, menuPlayer, delta)
+    if not chatOk then phoneChat.lastError = tostring(chatError) end
     local speechOk, speechError = pcall(speech.update, tonumber(delta) or 0)
     if not speechOk then
         log('Speech update failed: ' .. tostring(speechError))
@@ -740,6 +746,7 @@ registerForEvent('onUpdate', function(delta)
 end)
 
 registerForEvent('onShutdown', function()
+    phoneChat.abandon()
     mcm.shutdown()
     groupChat.cancel()
     warmConversation(nil, nil)

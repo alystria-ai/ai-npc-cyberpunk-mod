@@ -15,6 +15,7 @@ import {GroupPrefetch, inputIdentity, validatePrefetch, parsePrewarm} from './gr
 import {throwIfCancelled} from './transport-pool.mjs';
 import {PartyConnections} from './party-connections.mjs';
 import {ResidentVoice, voiceSteps} from './resident-voice.mjs';
+import {PhoneChat, parsePhoneState} from './phone-chat.mjs';
 
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const game = process.env.CYBERPUNK_CONVAI_GAME || 'E:\\SteamLibrary\\steamapps\\common\\Cyberpunk 2077';
@@ -39,6 +40,34 @@ const keyLine = (await readFile(keyFile, 'utf8')).trim();
 const key = /^api-key\s*=\s*(\S+)\s*$/i.exec(keyLine)?.[1];
 if (!key) throw Error('Local Convai key file must contain api-key=...');
 await mkdir(runtime, {recursive: true});
+
+const phoneInput = resolve(runtime, 'phone-chat-input.json');
+const phoneOutput = resolve(runtime, 'phone-chat-output.json');
+const phoneSessionPath = resolve(project, 'runtime/phone-sessions.json');
+let phoneSessions = {};
+try { phoneSessions = JSON.parse(await readFile(phoneSessionPath, 'utf8')) || {}; } catch {}
+const phone = new PhoneChat({
+  contacts: JSON.parse(await readFile(resolve(project, 'characters/phone-contacts.json'), 'utf8')), ids,
+  reply: options => requestReply({key, ...options}),
+  publish: value => atomic(phoneOutput, JSON.stringify(value)),
+  sessions: phoneSessions, saveSessions: value => atomic(phoneSessionPath, JSON.stringify(value)),
+});
+let phonePolling = false;
+async function pollPhone() {
+  if (phonePolling || stopped) return;
+  phonePolling = true;
+  try {
+    const state = parsePhoneState(await readFile(phoneInput, 'utf8').catch(() => ''));
+    if (state?.request) {
+      // A service restart must not replay a reply already published to the mod.
+      let prior; try { prior = JSON.parse(await readFile(phoneOutput, 'utf8')); } catch {}
+      if (prior?.world === state.world && prior.id === state.request.id && ['reply', 'error'].includes(prior.state)) {
+        state.request = undefined;
+      }
+    }
+    await phone.accept(state);
+  } finally { phonePolling = false; }
+}
 
 const inputPath = resolve(runtime, 'last-input.json');
 const replyPath = resolve(runtime, 'reply.json');
@@ -450,9 +479,11 @@ const timer = setInterval(tick, 150);
 const micTimer = setInterval(() => { void pollMicrophone().catch(error => console.error('[CyberpunkConvai] Microphone poll:', error.message)); }, 150);
 const prefetchTimer = setInterval(() => { void pollPrefetch().catch(error => console.error('[CyberpunkConvai] Preparation poll:', error.message)); }, 150);
 const settingsTimer = setInterval(() => { void pollSettings().catch(error => console.error('[CyberpunkConvai] Settings poll:', error.message)); }, 500);
+const phoneTimer = setInterval(() => { void pollPhone().catch(error => console.error('[CyberpunkConvai] Phone poll:', error.message)); }, 150);
 async function shutdown() {
   if (stopped) return;
   stopped = true; active?.controller.abort(); prefetch.invalidate();
+  phone.close(); clearInterval(phoneTimer);
   clearInterval(timer); clearInterval(micTimer); clearInterval(prefetchTimer); clearInterval(settingsTimer);
   await Promise.allSettled([localVoice.close(), mic.cancel(), connections.clear()]);
   await realtime.close();
