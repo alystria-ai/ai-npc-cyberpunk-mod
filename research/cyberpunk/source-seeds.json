@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "description": "Reviewed public entry points. Full fetched text belongs only in ignored cache/public. Index presence is not native quest verification.",
+  "reviewedAt": "2026-09-30",
+  "allowedHosts": [
+    "arasakas-ronin.netlify.app", "cyberpunk.fandom.com", "www.powerpyx.com",
+    "www.cyberpunk.net", "cdn-s-cyberpunk.cdprojektred.com", "forums.cdprojektred.com",
+    "game8.co", "vulkk.com", "www.escapistmagazine.com", "www.gamepressure.com",
+    "www.gamepur.com", "www.gamerguides.com", "www.gosunoob.com", "www.trueachievements.com",
+    "video-game-guide-walkthrough.supersoluce.com", "segmentnext.com", "gamefaqs.gamespot.com",
+    "www.neoseeker.com", "www.gamespot.com", "www.pcgamer.com", "en.wikipedia.org",
+    "sirusgaming.com", "www.gamesradar.com", "rtalsoriangames.com", "www.pcgamesn.com",
+    "dotesports.com", "int-ent.de", "gamers.wiki", "www.reddit.com", "primagames.com"
+  ],
+  "sources": [
+    {"url": "https://arasakas-ronin.netlify.app/", "kind": "transcript", "title": "Cyberpunk 2077 community transcript", "provenance": "User supplied. Partial and branch-selective transcript, not an exhaustive quest inventory."},
+    {"url": "https://cyberpunk.fandom.com/wiki/Cyberpunk_2077_Main_Jobs", "kind": "index", "category": "main", "title": "Cyberpunk Wiki main jobs", "provenance": "User supplied; direct fetch may be restricted."},
+    {"url": "https://cyberpunk.fandom.com/wiki/Cyberpunk_2077_Side_Jobs", "kind": "index", "category": "side", "title": "Cyberpunk Wiki side jobs", "provenance": "Verified indexed public URL, 2026-09-30."},
+    {"url": "https://cyberpunk.fandom.com/wiki/Cyberpunk_2077_Gigs", "kind": "index", "category": "gig", "title": "Cyberpunk Wiki gigs", "provenance": "Verified indexed public URL, 2026-09-30."},
+    {"url": "https://www.powerpyx.com/cyberpunk-2077-walkthrough-all-missions/", "kind": "index", "category": "mixed", "expand": true, "title": "Cyberpunk 2077 all missions walkthrough", "provenance": "Public search and direct HTML inspected 2026-09-30; headings distinguish main, side, gigs, and Phantom Liberty."},
+    {"url": "https://www.powerpyx.com/cyberpunk-2077-side-jobs-walkthrough-side-quests/", "kind": "index", "category": "side", "expand": true, "title": "Cyberpunk 2077 side jobs", "provenance": "Public search verified 2026-09-30."},
+    {"url": "https://www.powerpyx.com/cyberpunk-2077-all-gigs-list-walkthroughs/", "kind": "index", "category": "gig", "expand": true, "title": "Cyberpunk 2077 gig list", "provenance": "Public search verified 2026-09-30; source counts are not independently verified totals."},
+    {"url": "https://www.powerpyx.com/cyberpunk-2077-phantom-liberty-dlc-walkthrough/", "kind": "index", "category": "mixed", "game": "phantom-liberty", "expand": true, "title": "Phantom Liberty walkthrough", "provenance": "Public search verified 2026-09-30."},
+    {"url": "https://www.powerpyx.com/cyberpunk-2077-all-ncpd-scanner-hustles-locations/", "kind": "index", "category": "scanner", "expand": true, "title": "NCPD scanner hustle locations", "provenance": "Public search verified 2026-09-30; district aggregate is not an individually named quest list."},
+    {"url": "https://www.powerpyx.com/cyberpunk-2077-story-choices-guide/", "kind": "guide", "title": "Cyberpunk 2077 story choices guide", "provenance": "Linked by the inspected all-missions guide."},
+    {"url": "https://www.cyberpunk.net/en/cosplay-guides", "kind": "official", "title": "Official character cosplay guides", "provenance": "Public search verified 2026-09-30; static HTML may not contain loaded character information."},
+    {"url": "https://www.gosunoob.com/cyberpunk-2077/every-breath-you-take-find-the-stalker/", "kind": "guide", "title": "Every Breath You Take branches", "provenance": "Dossier source; direct web-tool page opened 2026-09-30."},
+    {"url": "https://video-game-guide-walkthrough.supersoluce.com/solution/cyberpunk-2077-phantom-liberty-dlc-guide-walkthrough/phantom-liberty-dlc-main-jobs/black-steel-in-the-hour-of-chaos/", "kind": "guide", "title": "Black Steel in the Hour of Chaos netrunner choices", "provenance": "Dossier source; direct web-tool page opened 2026-09-30."},
+    {"url": "https://www.gamespot.com/articles/cyberpunk-2077-how-to-unlock-the-secret-ending-dont-fear-the-reaper/1100-6485655/", "kind": "guide", "title": "Do not Fear the Reaper guide", "provenance": "Dossier source; direct web-tool page opened 2026-09-30."},
+    {"url": "https://game8.co/games/Cyberpunk-2077/archives/Quests-Main-Jobs", "kind": "index", "category": "main", "expand": true, "title": "Game8 main quest guides", "provenance": "Public search and complete static guide body inspected 2026-09-30; expansion follows only observed quest table links."},
+    {"url": "https://game8.co/games/Cyberpunk-2077/archives/Quests-Side-Jobs", "kind": "index", "category": "side", "expand": true, "title": "Game8 side quest guides", "provenance": "Public search and complete static guide body inspected 2026-09-30; expansion follows only observed quest table links."},
+    {"url": "https://game8.co/games/Cyberpunk-2077/archives/Quests-Phantom-Liberty", "kind": "index", "category": "main", "game": "phantom-liberty", "expand": true, "title": "Game8 Phantom Liberty walkthrough", "provenance": "Public search and complete static guide body inspected 2026-09-30; expansion follows only observed quest table links."},
+    {"url": "https://game8.co/games/Cyberpunk-2077/archives/Quests-NCPD-Scanner-Hustles", "kind": "index", "category": "scanner", "title": "Game8 NCPD scanner hustles", "provenance": "Public search verified 2026-09-30; broad activity context, not a native or individual-job inventory."}
+  ]
+}
