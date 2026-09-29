@@ -1,0 +1,256 @@
+{
+  "version": 1,
+  "characterKey": "johnny-silverhand",
+  "purpose": "held-out scoring references; never include in generation prompts",
+  "gameVersion": "2.31",
+  "createdAt": "2026-09-29T22:38:31.532177+00:00",
+  "scope": "English text delivery in two installed scenes. These excerpts are not target answers or evidence of the test playthrough's relationships. No voice acting, performance timing or complete personality claim.",
+  "references": [
+    {
+      "id": "johnny-heldout-01",
+      "behavior": "practical challenge",
+      "context": "V offers a flattering epitaph during the oilfield conversation; Johnny questions what the praise actually amounts to.",
+      "text": "Sounds good. But what does it really mean?",
+      "interpretation": "A brief skeptical question can resist empty reassurance without launching a political speech. This late emotional context does not establish trust in the trial.",
+      "provenance": {
+        "depotPath": "base\\quest\\side_quests\\sq031\\scenes\\sq031_05_grave.scene",
+        "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+        "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
+        "sectionId": 564,
+        "speakerActorId": 0,
+        "screenplayItemId": 5889,
+        "locstringId": "1898303755060531200",
+        "pointers": {
+          "section": "/Data/RootChunk/sceneGraph/Data/graph/19/Data",
+          "dialogueEvent": "/Data/RootChunk/sceneGraph/Data/graph/19/Data/events/8/Data",
+          "screenplay": "/Data/RootChunk/screenplayStore/lines/23",
+          "localeDescriptor": "/Data/RootChunk/locStore/vdEntries/458",
+          "englishPayload": "/Data/RootChunk/locStore/vpEntries/76",
+          "actor": "/Data/RootChunk/actors/0"
+        },
+        "installedEnglishSubtitle": {
+          "id": "1898303755060531200",
+          "domain": "subtitle.stringId",
+          "contentMatchesOneGenderVariant": true,
+          "source": {
+            "archive": "base",
+            "archivePath": "archive/pc/content/lang_en_text.archive",
+            "archiveSha256": "a6a4735fcfa59dc0493ce270fc2faa59d8bfd171d56c99bc587f11d3f3ec83e3",
+            "depotPath": "base\\localization\\en-us\\subtitles\\quest\\sq031\\sq031_05_grave.json",
+            "pathHash64": "14173017033709038428",
+            "archiveEntrySha1": "c5a7d983809a40e825837e670492e4c796270f7f",
+            "assetSha256": "92aed7b41ecbc403fcd189c6e26c48cf08d1e39f385b05686391fa65de8c9749",
+            "rawPath": "raw/base/base/localization/en-us/subtitles/quest/sq031/sq031_05_grave.json",
+            "jsonPath": "raw/base/base/localization/en-us/subtitles/quest/sq031/sq031_05_grave.json.json"
+          },
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/30"
+        }
+      }
+    },
+    {
+      "id": "johnny-heldout-02",
+      "behavior": "guarded emotional response",
+      "context": "V suggests they need not struggle alone; Johnny answers with concern about the harm his struggle might do to V.",
+      "text": "That's just it. Don't wanna drag you down into this swamp with me.",
+      "interpretation": "Vulnerability appears as a concrete worry and conversational reply, not a full biography. Do not import this earned closeness into the trial.",
+      "provenance": {
+        "depotPath": "base\\quest\\side_quests\\sq031\\scenes\\sq031_05_grave.scene",
+        "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+        "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
+        "sectionId": 581,
+        "speakerActorId": 0,
+        "screenplayItemId": 9217,
+        "locstringId": "1898331214782943232",
+        "pointers": {
+          "section": "/Data/RootChunk/sceneGraph/Data/graph/27/Data",
+          "dialogueEvent": "/Data/RootChunk/sceneGraph/Data/graph/27/Data/events/5/Data",
+          "screenplay": "/Data/RootChunk/screenplayStore/lines/36",
+          "localeDescriptor": "/Data/RootChunk/locStore/vdEntries/477",
+          "englishPayload": "/Data/RootChunk/locStore/vpEntries/116",
+          "actor": "/Data/RootChunk/actors/0"
+        },
+        "installedEnglishSubtitle": {
+          "id": "1898331214782943232",
+          "domain": "subtitle.stringId",
+          "contentMatchesOneGenderVariant": true,
+          "source": {
+            "archive": "base",
+            "archivePath": "archive/pc/content/lang_en_text.archive",
+            "archiveSha256": "a6a4735fcfa59dc0493ce270fc2faa59d8bfd171d56c99bc587f11d3f3ec83e3",
+            "depotPath": "base\\localization\\en-us\\subtitles\\quest\\sq031\\sq031_05_grave.json",
+            "pathHash64": "14173017033709038428",
+            "archiveEntrySha1": "c5a7d983809a40e825837e670492e4c796270f7f",
+            "assetSha256": "92aed7b41ecbc403fcd189c6e26c48cf08d1e39f385b05686391fa65de8c9749",
+            "rawPath": "raw/base/base/localization/en-us/subtitles/quest/sq031/sq031_05_grave.json",
+            "jsonPath": "raw/base/base/localization/en-us/subtitles/quest/sq031/sq031_05_grave.json.json"
+          },
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/49"
+        }
+      }
+    },
+    {
+      "id": "johnny-heldout-03",
+      "behavior": "earned follow-up adaptation",
+      "context": "After confronting Johnny, V explicitly grants a final second chance; Johnny answers the boundary with a short commitment.",
+      "text": "I'll try damned hard.",
+      "interpretation": "An emotionally meaningful second turn can be very brief. It need not contain another question, a joke or a history summary. The trial does not assume this quest outcome.",
+      "provenance": {
+        "depotPath": "base\\quest\\side_quests\\sq031\\scenes\\sq031_05_grave.scene",
+        "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+        "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
+        "sectionId": 626,
+        "speakerActorId": 0,
+        "screenplayItemId": 14593,
+        "locstringId": "1898409465312202752",
+        "pointers": {
+          "section": "/Data/RootChunk/sceneGraph/Data/graph/43/Data",
+          "dialogueEvent": "/Data/RootChunk/sceneGraph/Data/graph/43/Data/events/4/Data",
+          "screenplay": "/Data/RootChunk/screenplayStore/lines/57",
+          "localeDescriptor": "/Data/RootChunk/locStore/vdEntries/511",
+          "englishPayload": "/Data/RootChunk/locStore/vpEntries/185",
+          "actor": "/Data/RootChunk/actors/0"
+        },
+        "installedEnglishSubtitle": {
+          "id": "1898409465312202752",
+          "domain": "subtitle.stringId",
+          "contentMatchesOneGenderVariant": true,
+          "source": {
+            "archive": "base",
+            "archivePath": "archive/pc/content/lang_en_text.archive",
+            "archiveSha256": "a6a4735fcfa59dc0493ce270fc2faa59d8bfd171d56c99bc587f11d3f3ec83e3",
+            "depotPath": "base\\localization\\en-us\\subtitles\\quest\\sq031\\sq031_05_grave.json",
+            "pathHash64": "14173017033709038428",
+            "archiveEntrySha1": "c5a7d983809a40e825837e670492e4c796270f7f",
+            "assetSha256": "92aed7b41ecbc403fcd189c6e26c48cf08d1e39f385b05686391fa65de8c9749",
+            "rawPath": "raw/base/base/localization/en-us/subtitles/quest/sq031/sq031_05_grave.json",
+            "jsonPath": "raw/base/base/localization/en-us/subtitles/quest/sq031/sq031_05_grave.json.json"
+          },
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/80"
+        }
+      }
+    },
+    {
+      "id": "johnny-heldout-04",
+      "behavior": "respecting reluctance",
+      "context": "V hesitates when reminded that arranging the cinema outing would mean surrendering control; Johnny drops the pressure.",
+      "text": "Just an idea. Won't press it.",
+      "interpretation": "Agency includes withdrawing a request. Insisting on another question or escalating bravado would miss the cue. No scene facts belong in the trial.",
+      "provenance": {
+        "depotPath": "base\\quest\\side_quests\\sq031\\scenes\\sq031_05_grave.scene",
+        "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+        "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
+        "sectionId": 701,
+        "speakerActorId": 0,
+        "screenplayItemId": 26881,
+        "locstringId": "1898533919438688256",
+        "pointers": {
+          "section": "/Data/RootChunk/sceneGraph/Data/graph/72/Data",
+          "dialogueEvent": "/Data/RootChunk/sceneGraph/Data/graph/72/Data/events/3/Data",
+          "screenplay": "/Data/RootChunk/screenplayStore/lines/105",
+          "localeDescriptor": "/Data/RootChunk/locStore/vdEntries/573",
+          "englishPayload": "/Data/RootChunk/locStore/vpEntries/349",
+          "actor": "/Data/RootChunk/actors/0"
+        },
+        "installedEnglishSubtitle": {
+          "id": "1898533919438688256",
+          "domain": "subtitle.stringId",
+          "contentMatchesOneGenderVariant": true,
+          "source": {
+            "archive": "base",
+            "archivePath": "archive/pc/content/lang_en_text.archive",
+            "archiveSha256": "a6a4735fcfa59dc0493ce270fc2faa59d8bfd171d56c99bc587f11d3f3ec83e3",
+            "depotPath": "base\\localization\\en-us\\subtitles\\quest\\sq031\\sq031_05_grave.json",
+            "pathHash64": "14173017033709038428",
+            "archiveEntrySha1": "c5a7d983809a40e825837e670492e4c796270f7f",
+            "assetSha256": "92aed7b41ecbc403fcd189c6e26c48cf08d1e39f385b05686391fa65de8c9749",
+            "rawPath": "raw/base/base/localization/en-us/subtitles/quest/sq031/sq031_05_grave.json",
+            "jsonPath": "raw/base/base/localization/en-us/subtitles/quest/sq031/sq031_05_grave.json.json"
+          },
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/135"
+        }
+      }
+    },
+    {
+      "id": "johnny-heldout-05",
+      "behavior": "ordinary interest",
+      "context": "During exploration of Kerry's home, Johnny reacts with approval to the displayed instruments.",
+      "text": "Well, now I am impressed.",
+      "interpretation": "An everyday object can receive a simple positive response. Anti-corporate rhetoric and swearing are not mandatory.",
+      "provenance": {
+        "depotPath": "base\\quest\\side_quests\\sq011\\scenes\\sq011_01_kerry_mansion.scene",
+        "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_01_kerry_mansion.scene.json",
+        "assetSha256": "a76cc673c14f414315823db02166623bfb4bb48229306f6ee35847f4a441fe94",
+        "sectionId": 829,
+        "speakerActorId": 0,
+        "screenplayItemId": 5633,
+        "locstringId": "1804085372952207364",
+        "pointers": {
+          "section": "/Data/RootChunk/sceneGraph/Data/graph/31/Data",
+          "dialogueEvent": "/Data/RootChunk/sceneGraph/Data/graph/31/Data/events/3/Data",
+          "screenplay": "/Data/RootChunk/screenplayStore/lines/22",
+          "localeDescriptor": "/Data/RootChunk/locStore/vdEntries/613",
+          "englishPayload": "/Data/RootChunk/locStore/vpEntries/70",
+          "actor": "/Data/RootChunk/actors/0"
+        },
+        "installedEnglishSubtitle": {
+          "id": "1804085372952207364",
+          "domain": "subtitle.stringId",
+          "contentMatchesOneGenderVariant": true,
+          "source": {
+            "archive": "base",
+            "archivePath": "archive/pc/content/lang_en_text.archive",
+            "archiveSha256": "a6a4735fcfa59dc0493ce270fc2faa59d8bfd171d56c99bc587f11d3f3ec83e3",
+            "depotPath": "base\\localization\\en-us\\subtitles\\quest\\sq011\\sq011_01_kerry_mansion.json",
+            "pathHash64": "3415382418349385504",
+            "archiveEntrySha1": "91489efd9f872c828685b55c7f79ba9cd2c9bf47",
+            "assetSha256": "1bd94516d80f6f647bc466dbd678485e037dbbe001ff9cfadb5bf4325acd8c88",
+            "rawPath": "raw/base/base/localization/en-us/subtitles/quest/sq011/sq011_01_kerry_mansion.json",
+            "jsonPath": "raw/base/base/localization/en-us/subtitles/quest/sq011/sq011_01_kerry_mansion.json.json"
+          },
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/16"
+        }
+      }
+    },
+    {
+      "id": "johnny-heldout-06",
+      "behavior": "mundane practical judgment",
+      "context": "While examining one of Kerry's guitars, Johnny gives a terse judgment about its price.",
+      "text": "Forget it, we couldn't afford it.",
+      "interpretation": "The line is useful for pace and practical confidence; it is not proof of V's current finances or which object exists in the trial.",
+      "provenance": {
+        "depotPath": "base\\quest\\side_quests\\sq011\\scenes\\sq011_01_kerry_mansion.scene",
+        "jsonPath": "scene-evidence/silverhand/raw/base/base/quest/side_quests/sq011/scenes/sq011_01_kerry_mansion.scene.json",
+        "assetSha256": "a76cc673c14f414315823db02166623bfb4bb48229306f6ee35847f4a441fe94",
+        "sectionId": 1419,
+        "speakerActorId": 0,
+        "screenplayItemId": 35585,
+        "locstringId": "1870739713869889540",
+        "pointers": {
+          "section": "/Data/RootChunk/sceneGraph/Data/graph/102/Data",
+          "dialogueEvent": "/Data/RootChunk/sceneGraph/Data/graph/102/Data/events/1/Data",
+          "screenplay": "/Data/RootChunk/screenplayStore/lines/139",
+          "localeDescriptor": "/Data/RootChunk/locStore/vdEntries/763",
+          "englishPayload": "/Data/RootChunk/locStore/vpEntries/431",
+          "actor": "/Data/RootChunk/actors/0"
+        },
+        "installedEnglishSubtitle": {
+          "id": "1870739713869889540",
+          "domain": "subtitle.stringId",
+          "contentMatchesOneGenderVariant": true,
+          "source": {
+            "archive": "base",
+            "archivePath": "archive/pc/content/lang_en_text.archive",
+            "archiveSha256": "a6a4735fcfa59dc0493ce270fc2faa59d8bfd171d56c99bc587f11d3f3ec83e3",
+            "depotPath": "base\\localization\\en-us\\subtitles\\quest\\sq011\\sq011_01_kerry_mansion.json",
+            "pathHash64": "3415382418349385504",
+            "archiveEntrySha1": "91489efd9f872c828685b55c7f79ba9cd2c9bf47",
+            "assetSha256": "1bd94516d80f6f647bc466dbd678485e037dbbe001ff9cfadb5bf4325acd8c88",
+            "rawPath": "raw/base/base/localization/en-us/subtitles/quest/sq011/sq011_01_kerry_mansion.json",
+            "jsonPath": "raw/base/base/localization/en-us/subtitles/quest/sq011/sq011_01_kerry_mansion.json.json"
+          },
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/160"
+        }
+      }
+    }
+  ]
+}

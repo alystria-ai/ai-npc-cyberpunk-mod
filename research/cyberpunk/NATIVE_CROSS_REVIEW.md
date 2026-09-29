@@ -1,6 +1,6 @@
 # Native mapping semantic cross-review
 
-Independent review of the reviewed native mappings against the installed Cyberpunk 2077 2.31 graph and English localization evidence. This is a source review, not qualification against a live save. Review remains in progress while lanes are being authored.
+Independent semantic review against the installed Cyberpunk 2077 2.31 graph and English localization evidence, completed 2026-09-30 for the nine pack hashes recorded below. The concrete findings identified in this pass are resolved. This is source qualification only; native capture and behavior in a live save still need their own qualification.
 
 ## Method and boundary
 
@@ -30,9 +30,9 @@ The source inventory, binary hashes, pointers and archive fingerprints stay in e
 | Reed's observation of dead Songbird shared `death-granted` with the private mercy decision | Even careful prose still exposed the cause through an outcome label; later disclosure also changed text/perspective under the same stable event ID. | Phantom owner split `found-dead` into its own observation topic/decision. The private decision requires disclosure; both retain the same dead-fate exclusive group. |
 | Songbird-facing lab context named an unused private ICEbreaker plan / radio provenance | A participant in one branch could receive details of a plan or private communication she had not heard. | Phantom owner narrowed her supported/capture statements to the actions she experienced. |
 | Ending assault markers can survive an ending replay | Individually plausible private facts could combine Rogue, Aldecaldo and Arasaka assault histories as one current route. | Coordinated `ending.assault-route` values `rogue`, `aldecaldos`, `solo`, `arasaka`. Reviewed positive route-specific rules conflict across topics and audiences. Missing opposing markers remain unknown. |
-| Compatible Iris fact inventories had different optional audit metadata | Merging city and Aldecaldos failed although their native meanings agreed. | Reported to compiler owner: preserve the city writer inventory/audit scope when merging an entry with no conflicting metadata. Execution selectors must still agree. |
+| Compatible Iris fact inventories had different optional audit metadata | Merging city and Aldecaldos failed although their native meanings agreed. | Compiler owner now unions compatible writer/evidence metadata and retains a supplied audit scope. Conflicting supplied scopes or execution selectors still reject. The final merged verification passes. |
 
-## Source checks completed so far
+## Independent source checks
 
 ### Core Judy and Johnny mappings
 
@@ -59,6 +59,7 @@ The source inventory, binary hashes, pointers and archive fingerprints stay in e
 - Rogue: checked the route-specific cinematic event, actor-specific ragdoll operation and positive writer, with independent postfight spoken corroboration of death. Ragdoll or a variable name alone is not death proof. The optional later line corroborates meaning; the rule does not claim it necessarily played.
 - Grayson: checked the put-weapon-away choice for historical mercy. For death, the broad killed/defeated/unconscious gate is followed by an explicit `Combat_Kill` targeting Grayson with `skipDefeatedState=1` before the positive death writer. The broad gate alone was not promoted.
 - Concert: completed performance and Nancy's lineup knowledge are separate from the earlier choice. Nancy does not gain the private argument or Johnny-possession details from participating in the public performance.
+- Drive-in: checked the actual kiss event outputs to writer721, followed by Rogue's refusal/reply/departure continuation. The completed outing additionally requires the production `movie_out` return through reward411, checkpoint409 and cleanup406/In1 to the date-done writer. Read the post-outing V/Johnny exchange and the explicit interrupted-intimacy English. These are separate private historical facets; neither establishes a V/Rogue partnership.
 
 ### Fixers
 
@@ -76,6 +77,7 @@ The source inventory, binary hashes, pointers and archive fingerprints stay in e
 - Claire's misleading `claire_spares_sampson` variable is an earlier race-first promise. Final survival is qualified by the actual later Sampson message (installed key14333), while car-offer details require disclosure to Claire. The death consequence also has leave-area writers, so no witnessed shooting or exact player line is asserted.
 - Ana's monitor delivery includes leave/timeout convergence. It proves the shared consequence of receiving the biomonitor, not a unique selected handover line. Her private alternatives remain withheld.
 - The Judy/River owner independently reviewed the core Judy morning/hut paths and found no semantic blocker; that peer review also checked the actor bindings and installed English joins.
+- Final positive-writer citations include Sandra's EP1/default-history and standalone test writers, the race emergency-repair completion, the standalone ending test and River's normal/hostile wrap-up. These are classified in the evidence; broad completion never establishes affection. The Pisces resolution group keeps installation/payment compatible while suppressing simultaneous opposing death-route positives. Ana's delivery statement no longer names undisclosed alternative destinations.
 
 ### Aldecaldos / Dakota
 
@@ -100,6 +102,10 @@ The source inventory, binary hashes, pointers and archive fingerprints stay in e
 - Read Cynthia's private explanation and the separate Pepe follow-up messages (installed keys18876/18877). Her explanation is attributed, not a paternity test; later reconciliation/separation requires the actual corresponding message.
 - Checked Razor victory/defeat objective states and matching Fred announcements. A loss does not prove an intentional dive just because V earlier accepted an offer.
 - Checked Ozob's intact-nose surrender/reward scene and positive talk receipt. A win counter alone also covers an explosion and is insufficient. Fred's specific later SMS establishes secondhand knowledge, without granting a dead Ozob copy a surviving personal memory.
+- Checked Jackie's three destination instructions at choice952 and their separate positive writers and English sections. The speakers in the cab are V/Delamain; Mama, Misty and Viktor receive these instructions only through the exact disclosed-topic receipt. Family/default-history writers remain cited. An instruction does not establish actual delivery or later seizure.
+- Checked Wilson's score comparison (`>40` first, then `>25` second), exact placing writers and result sections. The completed competition guard is retained. Placement does not expose a raw score or optional business conversation.
+- Checked Jesse's two accepted-help options through hub1038 to the succeeded help objective. The payment rule uses only the completed callback output into quest85/Succeeded, after the native reward and spoken transfer confirmation. Requested/interrupted calls do not qualify.
+- Checked Dennis's accepted briefing output and the production fishing-village continuation. The delivery scene includes a living speaking Haruyoshi; its completed output reaches the succeeded cargo conversation and quest. Optional surgeon history and acquiring the offered katana remain separate gaps.
 
 ### Phantom Liberty
 
@@ -109,15 +115,38 @@ The source inventory, binary hashes, pointers and archive fingerprints stay in e
 - Checked the medical arrangement's monorail/finale and later message alternatives. A previous refusal may coexist with later acceptance, so those historical flags are not incorrectly treated as exclusive final outcomes.
 - Checked Nele's surrender versus withdrawal convergence and broad agent-neutralization meaning. Custody does not reveal her later fate; defeating the agents does not mean all died or that her departure was friendly.
 - Read Aaron's actual later result/career messages (installed keys85239/85245 and85240/85246). Advice does not predict the later outcome. The private Angie negotiation requires disclosure because Aaron was unconscious.
+- Checked the final border handover: section3187 reaches objective7856/Succeeded for both fate branches, so the shared internal corpse label cannot prove death. Separate positive Cynosure fate observations qualify alive custody or body delivery. Medal choices131/0 and131/1 write4661; the private acceptance requires V's disclosure to Reed.
+- Checked the actual treatment boarding sequence: affirmed Reed call, doctor mount390, agent mount388, V mount398, AV doors, delay89 and objective213/Succeeded. Readiness alone is insufficient. This establishes the arranged transport and boarding, without inferring completed surgery or later recovery.
 
 ### Bounded alternate-writer audit
 
-Cross-checked every allowlisted fact against all current main quest/phase indexes and all exported scene fact indexes, joining binary resource hash and exact pointer rather than only names. Already-cited writers covered every positive occurrence in the current Aldecaldos, Arasaka/Heist, city, core and Silverhand packs. Additional exact refs/classifications were requested for Heywood's Ozob win writer; Judy/River's Sandra presets, race bugfix, standalone ending test and Hunt scene completion; and Phantom's monorail medical arrangement. This audit covers the installed graph corpus and the exported scene subset, not every unexported scene in the game.
+Cross-checked every allowlisted fact against all current main quest/phase indexes and all exported scene fact indexes, joining binary resource hash and exact pointer rather than only names. The final sweep found zero uncited positive assignment occurrences in all nine packs. Additional refs/classifications requested for Heywood's Ozob win writer; Judy/River's Sandra presets, race bugfix, standalone ending test and Hunt scene completion; and Phantom's monorail medical arrangement are now present. Counts by pack were 20 Aldecaldos, 17 Arasaka/Heist, 20 city, 5 core, 22 Heywood, 37 Judy/River, 25 Phantom and 13 Silverhand; fixers uses journal receipts rather than fact leaves. These counts include cross-pack overlap. This audit covers the installed graph corpus and the exported scene subset, not every unexported scene in the game. EP1 bootstrap linkage outside the base release-reference closure remains an explicitly documented corpus boundary; default-history wording does not assert a human-selected line.
 
-## Pending lanes / remaining checks
+## Final merged verification
 
-Final additions to Heywood/Silverhand, the pending extra writer citations, the Iris merge metadata correction, and final merged topic/privacy checks remain open. Counts and hashes will be recorded after lane owners finish their final changes. Unmapped outcomes remain non-executable.
+Read-only imports of `mergeNativePacks`, `verifyNativeEvidence` and the actual resolver completed without writing generated packs, installing the mod or calling the game/cloud:
+
+- **172 enabled source-verified rules**, **166 mapped narrative outcomes** out of **1,160 researched outcomes**; **994 outcomes remain unmapped**.
+- **271 distinct cited artifacts** and **3,467 native pointers** verified against winning inventories, binary hashes, exact pointers/types/values and current authored decision/outcome links. Zero merge or artifact errors.
+- **110 merged resolver assertions passed** across the 79 declared pack profiles. Checks include empty snapshots, ending route conflicts across private speakers, Panam/Saul cross-topic contradictions, Reed's observation versus private cause, Jefferson's cover-story privacy, exact disclosure recipient isolation, forbidden group disclosure, completed drive-in facets, treatment boarding versus future cure, unknown profiles and rollback replacement. Verified-identity cases also checked that rejected information produces no memory candidate.
+- The review initially used two noncanonical test-profile names (`saburo-arasaka`, `goro-takemura`); the resolver correctly failed closed. The corrected merged fixture uses the authored `takemura` key. No production behavior was changed to accommodate that fixture error.
+
+No concrete semantic blocker remains from this review pass at the hashes below. That finding does not turn the unmapped inventory into executable knowledge, prove unexported scene behavior, or establish that any source-qualified outcome is true in a current save.
+
+| Native pack | Enabled rules | Pointer refs | Cited artifacts | SHA-256 |
+| --- | ---: | ---: | ---: | --- |
+| `aldecaldos.json` | 16 | 227 | 40 | `ab955718cdeafe9e440f628a67f6abe8fd409035af698721a2d8083b8f6cdd85` |
+| `arasaka-heist.json` | 8 | 148 | 25 | `e2eeeaba28ecd59db352be5e80121a51c1f4505e81cf2efeff38da3dd557ea3d` |
+| `city-contacts.json` | 16 | 117 | 35 | `a13cd3046aaedd8b4f3b4c1e5088e32e5af23ca540e6229a6874a9ffdf3d7efc` |
+| `core-arcs.json` | 3 | 88 | 5 | `17234b628318f758337bc56fb29dd1a3e88af87a8754b670157e625af9950165` |
+| `fixers.json` | 45 | 955 | 68 | `a961eeb9115a5416ed51e3a29da77f773da290ae1d4f91e62dd6ae38a99b1af3` |
+| `heywood.json` | 29 | 777 | 41 | `2e41eee175c5d25e8fdf771f24365a1b63a9e38c9d8b91cb5e2d26c2894592b0` |
+| `judy-river.json` | 16 | 221 | 35 | `16ef1c25e918eeb11467f95f781b44608600f6400bcf25d4d5867861b4181a6c` |
+| `phantom.json` | 24 | 544 | 38 | `a6e9e8fe5c551f94b4058cbb5b904c7d87cd97f1c4cffe3a331351dfb2fefc4c` |
+| `silverhand.json` | 15 | 390 | 26 | `8778a04260efbc5ef5ec4c32968def1a2953f018dd683c30ca1f343130672a48` |
+
+Artifacts shared by packs are counted once in the merged total; individual table counts therefore do not sum to the unique merged total. Each lane's narrative review contains its detailed conservative gaps.
 
 ## Resolver verification
 
-The focused resolver suite currently passes 23 tests, including ambiguous zero, rollback replacement, unknown profile/version, bounded predicates/output, explicit disclosure, exact group audience, stable event identities, participant-versus-witness semantics, and cross-topic exclusive-group suppression. These tests establish the data boundary; they do not qualify native capture or in-game behavior.
+The focused resolver suite was rerun and passes **23/23 tests**, including ambiguous zero, rollback replacement, unknown profile/version, bounded predicates/output, explicit disclosure, exact group audience, stable event identities, participant-versus-witness semantics, and cross-topic exclusive-group suppression. These tests establish the data boundary; they do not qualify native capture or in-game behavior.

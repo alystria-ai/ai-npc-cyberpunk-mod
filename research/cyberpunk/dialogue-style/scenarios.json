@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "context": "This is a private, calm conversation with V in Night City. V and the character are cordial recent acquaintances. No romance, exceptional trust, completed character quest, or disclosure of private history is established. No combat or urgent task is happening. V's following remarks establish only the immediate situation and intention they explicitly describe. Answer as the character, without narration or stage directions.",
+  "exchanges": [
+    {
+      "id": "johnny-past",
+      "characterKey": "johnny-silverhand",
+      "kind": "personal-past",
+      "turns": [
+        "What was it like for you in the war?",
+        "I'm not looking for a war story. I want to understand you a little better. If you'd rather leave it, say so."
+      ]
+    },
+    {
+      "id": "judy-past",
+      "characterKey": "judy-alvarez",
+      "kind": "personal-past",
+      "turns": [
+        "What was growing up in Laguna Bend like?",
+        "I wasn't asking for every bad thing. Just wondered what you liked about the place. We can leave it if you'd rather."
+      ]
+    },
+    {
+      "id": "panam-past",
+      "characterKey": "panam-palmer",
+      "kind": "personal-past",
+      "turns": [
+        "Why did you leave the Aldecaldos?",
+        "I'm not taking Saul's side. I'm trying to understand what you needed to change. You don't owe me the whole story."
+      ]
+    },
+    {
+      "id": "johnny-present",
+      "characterKey": "johnny-silverhand",
+      "kind": "ordinary-present",
+      "turns": [
+        "Think this stall charged me twice for one coffee. You'd go back and say something?",
+        "Hold on, that other charge was yesterday. My mistake. Coffee's not bad, though."
+      ]
+    },
+    {
+      "id": "judy-present",
+      "characterKey": "judy-alvarez",
+      "kind": "ordinary-present",
+      "turns": [
+        "Think this stall charged me twice for one coffee. You'd go back and say something?",
+        "Hold on, that other charge was yesterday. My mistake. Coffee's not bad, though."
+      ]
+    },
+    {
+      "id": "panam-present",
+      "characterKey": "panam-palmer",
+      "kind": "ordinary-present",
+      "turns": [
+        "Think this stall charged me twice for one coffee. You'd go back and say something?",
+        "Hold on, that other charge was yesterday. My mistake. Coffee's not bad, though."
+      ]
+    }
+  ]
+}

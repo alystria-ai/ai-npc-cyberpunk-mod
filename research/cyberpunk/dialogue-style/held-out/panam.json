@@ -1,0 +1,228 @@
+{
+  "version": 1,
+  "characterKey": "panam-palmer",
+  "purpose": "held-out scoring references; never include in generation prompts",
+  "scope": "Brief installed English subtitle excerpts, verified against scene speaker definitions. Context summaries are original. Distinct branches are examples, not an asserted sequence or current-save history.",
+  "references": [
+    {
+      "id": "panam-held-out-01",
+      "context": "After V collapses, Panam directly asks what is happening; this trial does not establish that event.",
+      "text": "V... You have to tell me what is happening.",
+      "provenance": {
+        "scene": {
+          "archive": "base",
+          "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+          "archiveEntrySha1": "030cf27c7c3c90a629bbb03aab7492981277df65",
+          "depotPath": "base\\quest\\side_quests\\sq027\\scenes\\sq027_09_new_camp_wakeup.scene",
+          "pathHash64": "4129229270168495133",
+          "assetSha256": "5cca608d7a3162d361705447d24bce7b1de3257968241a0889505771abd8686f",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq027/scenes/sq027_09_new_camp_wakeup.scene.json",
+          "batch": "core-relationships"
+        },
+        "speakerActorId": 0,
+        "speakerName": "Panam",
+        "actorPointer": "/Data/RootChunk/actors/0",
+        "locstringId": "1947404463386521600",
+        "variantId": "2971019327413575680",
+        "descriptorPointer": "/Data/RootChunk/locStore/vdEntries/316",
+        "payloadPointer": "/Data/RootChunk/locStore/vpEntries/2",
+        "screenplayPointers": [
+          "/Data/RootChunk/screenplayStore/lines/0"
+        ],
+        "installedEnglishSubtitle": {
+          "id": "1947404463386521600",
+          "domain": "subtitle.stringId",
+          "contentMatchesOneGenderVariant": true,
+          "source": {
+            "archive": "base",
+            "archivePath": "archive/pc/content/lang_en_text.archive",
+            "archiveSha256": "a6a4735fcfa59dc0493ce270fc2faa59d8bfd171d56c99bc587f11d3f3ec83e3",
+            "depotPath": "base\\localization\\en-us\\subtitles\\quest\\sq027\\sq027_09_new_camp_wakeup.json",
+            "pathHash64": "8969345944863409845",
+            "archiveEntrySha1": "814e6ac6d15ca9a591c723183b6b05a2151a7cb1",
+            "assetSha256": "5b77d4175c123543d76cffef3abb073680c28582ef5c07808b801718c08c71d7",
+            "rawPath": "raw/base/base/localization/en-us/subtitles/quest/sq027/sq027_09_new_camp_wakeup.json",
+            "jsonPath": "raw/base/base/localization/en-us/subtitles/quest/sq027/sq027_09_new_camp_wakeup.json.json"
+          },
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/0"
+        }
+      }
+    },
+    {
+      "id": "panam-held-out-02",
+      "context": "Panam softens her approach and asks V to explain bit by bit.",
+      "text": "OK, V, relax. Take it bit by bit. What is happening, exactly?",
+      "provenance": {
+        "scene": {
+          "archive": "base",
+          "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+          "archiveEntrySha1": "030cf27c7c3c90a629bbb03aab7492981277df65",
+          "depotPath": "base\\quest\\side_quests\\sq027\\scenes\\sq027_09_new_camp_wakeup.scene",
+          "pathHash64": "4129229270168495133",
+          "assetSha256": "5cca608d7a3162d361705447d24bce7b1de3257968241a0889505771abd8686f",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq027/scenes/sq027_09_new_camp_wakeup.scene.json",
+          "batch": "core-relationships"
+        },
+        "speakerActorId": 0,
+        "speakerName": "Panam",
+        "actorPointer": "/Data/RootChunk/actors/0",
+        "locstringId": "1947414952367747072",
+        "variantId": "2971019327430352900",
+        "descriptorPointer": "/Data/RootChunk/locStore/vdEntries/324",
+        "payloadPointer": "/Data/RootChunk/locStore/vpEntries/21",
+        "screenplayPointers": [
+          "/Data/RootChunk/screenplayStore/lines/6"
+        ],
+        "installedEnglishSubtitle": {
+          "id": "1947414952367747072",
+          "domain": "subtitle.stringId",
+          "contentMatchesOneGenderVariant": true,
+          "source": {
+            "archive": "base",
+            "archivePath": "archive/pc/content/lang_en_text.archive",
+            "archiveSha256": "a6a4735fcfa59dc0493ce270fc2faa59d8bfd171d56c99bc587f11d3f3ec83e3",
+            "depotPath": "base\\localization\\en-us\\subtitles\\quest\\sq027\\sq027_09_new_camp_wakeup.json",
+            "pathHash64": "8969345944863409845",
+            "archiveEntrySha1": "814e6ac6d15ca9a591c723183b6b05a2151a7cb1",
+            "assetSha256": "5b77d4175c123543d76cffef3abb073680c28582ef5c07808b801718c08c71d7",
+            "rawPath": "raw/base/base/localization/en-us/subtitles/quest/sq027/sq027_09_new_camp_wakeup.json",
+            "jsonPath": "raw/base/base/localization/en-us/subtitles/quest/sq027/sq027_09_new_camp_wakeup.json.json"
+          },
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/8"
+        }
+      }
+    },
+    {
+      "id": "panam-held-out-03",
+      "context": "Panam understands Relic advertising, while distinguishing that limited knowledge from the new disclosure.",
+      "text": "The Arasaka tech? Does something with personalities? I saw the ads. Sounds like some rich people scam, to be honest.",
+      "provenance": {
+        "scene": {
+          "archive": "base",
+          "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+          "archiveEntrySha1": "030cf27c7c3c90a629bbb03aab7492981277df65",
+          "depotPath": "base\\quest\\side_quests\\sq027\\scenes\\sq027_09_new_camp_wakeup.scene",
+          "pathHash64": "4129229270168495133",
+          "assetSha256": "5cca608d7a3162d361705447d24bce7b1de3257968241a0889505771abd8686f",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq027/scenes/sq027_09_new_camp_wakeup.scene.json",
+          "batch": "core-relationships"
+        },
+        "speakerActorId": 0,
+        "speakerName": "Panam",
+        "actorPointer": "/Data/RootChunk/actors/0",
+        "locstringId": "1947496595300413440",
+        "variantId": "2971019327447130124",
+        "descriptorPointer": "/Data/RootChunk/locStore/vdEntries/335",
+        "payloadPointer": "/Data/RootChunk/locStore/vpEntries/54",
+        "screenplayPointers": [
+          "/Data/RootChunk/screenplayStore/lines/17"
+        ],
+        "installedEnglishSubtitle": {
+          "id": "1947496595300413440",
+          "domain": "subtitle.stringId",
+          "contentMatchesOneGenderVariant": true,
+          "source": {
+            "archive": "base",
+            "archivePath": "archive/pc/content/lang_en_text.archive",
+            "archiveSha256": "a6a4735fcfa59dc0493ce270fc2faa59d8bfd171d56c99bc587f11d3f3ec83e3",
+            "depotPath": "base\\localization\\en-us\\subtitles\\quest\\sq027\\sq027_09_new_camp_wakeup.json",
+            "pathHash64": "8969345944863409845",
+            "archiveEntrySha1": "814e6ac6d15ca9a591c723183b6b05a2151a7cb1",
+            "assetSha256": "5b77d4175c123543d76cffef3abb073680c28582ef5c07808b801718c08c71d7",
+            "rawPath": "raw/base/base/localization/en-us/subtitles/quest/sq027/sq027_09_new_camp_wakeup.json",
+            "jsonPath": "raw/base/base/localization/en-us/subtitles/quest/sq027/sq027_09_new_camp_wakeup.json.json"
+          },
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/19"
+        }
+      }
+    },
+    {
+      "id": "panam-held-out-04",
+      "context": "Panam answers a simple question about hearing old music on the radio.",
+      "text": "Yes, they sometimes play those oldies on the radio. Why?",
+      "provenance": {
+        "scene": {
+          "archive": "base",
+          "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+          "archiveEntrySha1": "030cf27c7c3c90a629bbb03aab7492981277df65",
+          "depotPath": "base\\quest\\side_quests\\sq027\\scenes\\sq027_09_new_camp_wakeup.scene",
+          "pathHash64": "4129229270168495133",
+          "assetSha256": "5cca608d7a3162d361705447d24bce7b1de3257968241a0889505771abd8686f",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq027/scenes/sq027_09_new_camp_wakeup.scene.json",
+          "batch": "core-relationships"
+        },
+        "speakerActorId": 0,
+        "speakerName": "Panam",
+        "actorPointer": "/Data/RootChunk/actors/0",
+        "locstringId": "1947503021360017408",
+        "variantId": "2971019327430352928",
+        "descriptorPointer": "/Data/RootChunk/locStore/vdEntries/338",
+        "payloadPointer": "/Data/RootChunk/locStore/vpEntries/42",
+        "screenplayPointers": [
+          "/Data/RootChunk/screenplayStore/lines/13"
+        ],
+        "installedEnglishSubtitle": {
+          "id": "1947503021360017408",
+          "domain": "subtitle.stringId",
+          "contentMatchesOneGenderVariant": true,
+          "source": {
+            "archive": "base",
+            "archivePath": "archive/pc/content/lang_en_text.archive",
+            "archiveSha256": "a6a4735fcfa59dc0493ce270fc2faa59d8bfd171d56c99bc587f11d3f3ec83e3",
+            "depotPath": "base\\localization\\en-us\\subtitles\\quest\\sq027\\sq027_09_new_camp_wakeup.json",
+            "pathHash64": "8969345944863409845",
+            "archiveEntrySha1": "814e6ac6d15ca9a591c723183b6b05a2151a7cb1",
+            "assetSha256": "5b77d4175c123543d76cffef3abb073680c28582ef5c07808b801718c08c71d7",
+            "rawPath": "raw/base/base/localization/en-us/subtitles/quest/sq027/sq027_09_new_camp_wakeup.json",
+            "jsonPath": "raw/base/base/localization/en-us/subtitles/quest/sq027/sq027_09_new_camp_wakeup.json.json"
+          },
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/22"
+        }
+      }
+    },
+    {
+      "id": "panam-held-out-05",
+      "context": "Panam is confused by the unexpected explanation and seeks clarification.",
+      "text": "He's what? A-am I not... is this some sort of strange metaphor?",
+      "provenance": {
+        "scene": {
+          "archive": "base",
+          "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+          "archiveEntrySha1": "030cf27c7c3c90a629bbb03aab7492981277df65",
+          "depotPath": "base\\quest\\side_quests\\sq027\\scenes\\sq027_09_new_camp_wakeup.scene",
+          "pathHash64": "4129229270168495133",
+          "assetSha256": "5cca608d7a3162d361705447d24bce7b1de3257968241a0889505771abd8686f",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq027/scenes/sq027_09_new_camp_wakeup.scene.json",
+          "batch": "core-relationships"
+        },
+        "speakerActorId": 0,
+        "speakerName": "Panam",
+        "actorPointer": "/Data/RootChunk/actors/0",
+        "locstringId": "1947505641373954048",
+        "variantId": "2971019327447130116",
+        "descriptorPointer": "/Data/RootChunk/locStore/vdEntries/340",
+        "payloadPointer": "/Data/RootChunk/locStore/vpEntries/48",
+        "screenplayPointers": [
+          "/Data/RootChunk/screenplayStore/lines/15"
+        ],
+        "installedEnglishSubtitle": {
+          "id": "1947505641373954048",
+          "domain": "subtitle.stringId",
+          "contentMatchesOneGenderVariant": true,
+          "source": {
+            "archive": "base",
+            "archivePath": "archive/pc/content/lang_en_text.archive",
+            "archiveSha256": "a6a4735fcfa59dc0493ce270fc2faa59d8bfd171d56c99bc587f11d3f3ec83e3",
+            "depotPath": "base\\localization\\en-us\\subtitles\\quest\\sq027\\sq027_09_new_camp_wakeup.json",
+            "pathHash64": "8969345944863409845",
+            "archiveEntrySha1": "814e6ac6d15ca9a591c723183b6b05a2151a7cb1",
+            "assetSha256": "5b77d4175c123543d76cffef3abb073680c28582ef5c07808b801718c08c71d7",
+            "rawPath": "raw/base/base/localization/en-us/subtitles/quest/sq027/sq027_09_new_camp_wakeup.json",
+            "jsonPath": "raw/base/base/localization/en-us/subtitles/quest/sq027/sq027_09_new_camp_wakeup.json.json"
+          },
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/24"
+        }
+      }
+    }
+  ]
+}

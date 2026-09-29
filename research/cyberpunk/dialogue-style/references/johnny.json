@@ -1,0 +1,228 @@
+{
+  "version": 1,
+  "characterKey": "johnny-silverhand",
+  "purpose": "prompt delivery examples",
+  "scope": "Brief installed English subtitle excerpts, verified against scene speaker definitions. Context summaries are original. Distinct branches are examples, not an asserted sequence or current-save history.",
+  "references": [
+    {
+      "id": "johnny-prompt-01",
+      "context": "Johnny asks for practical help getting the drive-in projector running.",
+      "text": "You wouldn't happen to know how to get it up an' running?",
+      "provenance": {
+        "scene": {
+          "archive": "base",
+          "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+          "archiveEntrySha1": "8f2d2572390f13f0dc85d6d956fef54e5c802df8",
+          "depotPath": "base\\quest\\side_quests\\sq031\\scenes\\sq031_07_cinema.scene",
+          "pathHash64": "17570320021289059982",
+          "assetSha256": "6993336073c0b56789f8bea683dc00902869c93da937a9c66480fe04ea4b42b3",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/silverhand/raw/base/base/quest/side_quests/sq031/scenes/sq031_07_cinema.scene.json",
+          "batch": "silverhand"
+        },
+        "speakerActorId": 0,
+        "speakerName": "Johnny",
+        "actorPointer": "/Data/RootChunk/actors/0",
+        "locstringId": "1934328665788403712",
+        "variantId": "4031309030428676108",
+        "descriptorPointer": "/Data/RootChunk/locStore/vdEntries/274",
+        "payloadPointer": "/Data/RootChunk/locStore/vpEntries/174",
+        "screenplayPointers": [
+          "/Data/RootChunk/screenplayStore/lines/56"
+        ],
+        "installedEnglishSubtitle": {
+          "id": "1934328665788403712",
+          "domain": "subtitle.stringId",
+          "contentMatchesOneGenderVariant": true,
+          "source": {
+            "archive": "base",
+            "archivePath": "archive/pc/content/lang_en_text.archive",
+            "archiveSha256": "a6a4735fcfa59dc0493ce270fc2faa59d8bfd171d56c99bc587f11d3f3ec83e3",
+            "depotPath": "base\\localization\\en-us\\subtitles\\quest\\sq031\\sq031_07_cinema.json",
+            "pathHash64": "13986296901195198534",
+            "archiveEntrySha1": "f775d2df113d2c41b1b86d6554acd2167b242ce1",
+            "assetSha256": "7e3d9e54b375a525b4b7b3d2423e00ec378a505e0a0faea22a7ef8e0b0793086",
+            "rawPath": "raw/base/base/localization/en-us/subtitles/quest/sq031/sq031_07_cinema.json",
+            "jsonPath": "raw/base/base/localization/en-us/subtitles/quest/sq031/sq031_07_cinema.json.json"
+          },
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/67"
+        }
+      }
+    },
+    {
+      "id": "johnny-prompt-02",
+      "context": "Johnny gives a blunt opinion of the film, rather than a general political speech.",
+      "text": "Movie was a turd wrapped in crepe paper.",
+      "provenance": {
+        "scene": {
+          "archive": "base",
+          "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+          "archiveEntrySha1": "f5a8bdd4eac4986afa2b2ee649460e823d1a53eb",
+          "depotPath": "base\\quest\\side_quests\\sq031\\scenes\\sq031_08_movie.scene",
+          "pathHash64": "15485802196157146994",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "batch": "silverhand-movie"
+        },
+        "speakerActorId": 0,
+        "speakerName": "Johnny",
+        "actorPointer": "/Data/RootChunk/actors/0",
+        "locstringId": "1902734616279404544",
+        "variantId": "2967267386728026220",
+        "descriptorPointer": "/Data/RootChunk/locStore/vdEntries/357",
+        "payloadPointer": "/Data/RootChunk/locStore/vpEntries/203",
+        "screenplayPointers": [
+          "/Data/RootChunk/screenplayStore/lines/67"
+        ],
+        "installedEnglishSubtitle": {
+          "id": "1902734616279404544",
+          "domain": "subtitle.stringId",
+          "contentMatchesOneGenderVariant": true,
+          "source": {
+            "archive": "base",
+            "archivePath": "archive/pc/content/lang_en_text.archive",
+            "archiveSha256": "a6a4735fcfa59dc0493ce270fc2faa59d8bfd171d56c99bc587f11d3f3ec83e3",
+            "depotPath": "base\\localization\\en-us\\subtitles\\quest\\sq031\\sq031_08_movie.json",
+            "pathHash64": "12035453902716777450",
+            "archiveEntrySha1": "142c04a76e39e8fa4d4205e5d60a5f32aa3be302",
+            "assetSha256": "6737023f01aeea5d904afa85fc0117ec6625563be326d6da8a78306cfa7b22b4",
+            "rawPath": "raw/base/base/localization/en-us/subtitles/quest/sq031/sq031_08_movie.json",
+            "jsonPath": "raw/base/base/localization/en-us/subtitles/quest/sq031/sq031_08_movie.json.json"
+          },
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/79"
+        }
+      }
+    },
+    {
+      "id": "johnny-prompt-03",
+      "context": "Johnny is frustrated because Rogue is upset and has not explained why.",
+      "text": "Now she's mad. And won't tell me what about.",
+      "provenance": {
+        "scene": {
+          "archive": "base",
+          "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+          "archiveEntrySha1": "f5a8bdd4eac4986afa2b2ee649460e823d1a53eb",
+          "depotPath": "base\\quest\\side_quests\\sq031\\scenes\\sq031_08_movie.scene",
+          "pathHash64": "15485802196157146994",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "batch": "silverhand-movie"
+        },
+        "speakerActorId": 0,
+        "speakerName": "Johnny",
+        "actorPointer": "/Data/RootChunk/actors/0",
+        "locstringId": "1908636192462360576",
+        "variantId": "2967267386744803340",
+        "descriptorPointer": "/Data/RootChunk/locStore/vdEntries/373",
+        "payloadPointer": "/Data/RootChunk/locStore/vpEntries/227",
+        "screenplayPointers": [
+          "/Data/RootChunk/screenplayStore/lines/75"
+        ],
+        "installedEnglishSubtitle": {
+          "id": "1908636192462360576",
+          "domain": "subtitle.stringId",
+          "contentMatchesOneGenderVariant": true,
+          "source": {
+            "archive": "base",
+            "archivePath": "archive/pc/content/lang_en_text.archive",
+            "archiveSha256": "a6a4735fcfa59dc0493ce270fc2faa59d8bfd171d56c99bc587f11d3f3ec83e3",
+            "depotPath": "base\\localization\\en-us\\subtitles\\quest\\sq031\\sq031_08_movie.json",
+            "pathHash64": "12035453902716777450",
+            "archiveEntrySha1": "142c04a76e39e8fa4d4205e5d60a5f32aa3be302",
+            "assetSha256": "6737023f01aeea5d904afa85fc0117ec6625563be326d6da8a78306cfa7b22b4",
+            "rawPath": "raw/base/base/localization/en-us/subtitles/quest/sq031/sq031_08_movie.json",
+            "jsonPath": "raw/base/base/localization/en-us/subtitles/quest/sq031/sq031_08_movie.json.json"
+          },
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/95"
+        }
+      }
+    },
+    {
+      "id": "johnny-prompt-04",
+      "context": "Johnny defensively rejects the suggestion that he caused the problem.",
+      "text": "Uh, no. It's definitely not me.",
+      "provenance": {
+        "scene": {
+          "archive": "base",
+          "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+          "archiveEntrySha1": "f5a8bdd4eac4986afa2b2ee649460e823d1a53eb",
+          "depotPath": "base\\quest\\side_quests\\sq031\\scenes\\sq031_08_movie.scene",
+          "pathHash64": "15485802196157146994",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "batch": "silverhand-movie"
+        },
+        "speakerActorId": 0,
+        "speakerName": "Johnny",
+        "actorPointer": "/Data/RootChunk/actors/0",
+        "locstringId": "1908640142255214592",
+        "variantId": "2967267386744803352",
+        "descriptorPointer": "/Data/RootChunk/locStore/vdEntries/378",
+        "payloadPointer": "/Data/RootChunk/locStore/vpEntries/236",
+        "screenplayPointers": [
+          "/Data/RootChunk/screenplayStore/lines/78"
+        ],
+        "installedEnglishSubtitle": {
+          "id": "1908640142255214592",
+          "domain": "subtitle.stringId",
+          "contentMatchesOneGenderVariant": true,
+          "source": {
+            "archive": "base",
+            "archivePath": "archive/pc/content/lang_en_text.archive",
+            "archiveSha256": "a6a4735fcfa59dc0493ce270fc2faa59d8bfd171d56c99bc587f11d3f3ec83e3",
+            "depotPath": "base\\localization\\en-us\\subtitles\\quest\\sq031\\sq031_08_movie.json",
+            "pathHash64": "12035453902716777450",
+            "archiveEntrySha1": "142c04a76e39e8fa4d4205e5d60a5f32aa3be302",
+            "assetSha256": "6737023f01aeea5d904afa85fc0117ec6625563be326d6da8a78306cfa7b22b4",
+            "rawPath": "raw/base/base/localization/en-us/subtitles/quest/sq031/sq031_08_movie.json",
+            "jsonPath": "raw/base/base/localization/en-us/subtitles/quest/sq031/sq031_08_movie.json.json"
+          },
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/100"
+        }
+      }
+    },
+    {
+      "id": "johnny-prompt-05",
+      "context": "Johnny needs time to think, and redirects toward a concrete next destination.",
+      "text": "Gotta mull it over. For now, take me to North Oak.",
+      "provenance": {
+        "scene": {
+          "archive": "base",
+          "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+          "archiveEntrySha1": "f5a8bdd4eac4986afa2b2ee649460e823d1a53eb",
+          "depotPath": "base\\quest\\side_quests\\sq031\\scenes\\sq031_08_movie.scene",
+          "pathHash64": "15485802196157146994",
+          "assetSha256": "33be817d6b9243891ac5f43dd64df1b5c67706042d5eceed68af3e52f924b260",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/silverhand-movie/raw/base/base/quest/side_quests/sq031/scenes/sq031_08_movie.scene.json",
+          "batch": "silverhand-movie"
+        },
+        "speakerActorId": 0,
+        "speakerName": "Johnny",
+        "actorPointer": "/Data/RootChunk/actors/0",
+        "locstringId": "1908646957093244928",
+        "variantId": "2967267386744803364",
+        "descriptorPointer": "/Data/RootChunk/locStore/vdEntries/381",
+        "payloadPointer": "/Data/RootChunk/locStore/vpEntries/245",
+        "screenplayPointers": [
+          "/Data/RootChunk/screenplayStore/lines/81"
+        ],
+        "installedEnglishSubtitle": {
+          "id": "1908646957093244928",
+          "domain": "subtitle.stringId",
+          "contentMatchesOneGenderVariant": true,
+          "source": {
+            "archive": "base",
+            "archivePath": "archive/pc/content/lang_en_text.archive",
+            "archiveSha256": "a6a4735fcfa59dc0493ce270fc2faa59d8bfd171d56c99bc587f11d3f3ec83e3",
+            "depotPath": "base\\localization\\en-us\\subtitles\\quest\\sq031\\sq031_08_movie.json",
+            "pathHash64": "12035453902716777450",
+            "archiveEntrySha1": "142c04a76e39e8fa4d4205e5d60a5f32aa3be302",
+            "assetSha256": "6737023f01aeea5d904afa85fc0117ec6625563be326d6da8a78306cfa7b22b4",
+            "rawPath": "raw/base/base/localization/en-us/subtitles/quest/sq031/sq031_08_movie.json",
+            "jsonPath": "raw/base/base/localization/en-us/subtitles/quest/sq031/sq031_08_movie.json.json"
+          },
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/103"
+        }
+      }
+    }
+  ]
+}

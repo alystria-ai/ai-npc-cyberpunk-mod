@@ -1,0 +1,77 @@
+{
+  "version": 1,
+  "model": "fast-gemma-4-31b-it",
+  "textOnly": true,
+  "all": {
+    "replies": 36,
+    "medianFirstTextMs": 869,
+    "medianCompleteMs": 1432,
+    "minFirstTextMs": 521,
+    "maxFirstTextMs": 1518,
+    "medianWords": 29.5
+  },
+  "byCharacter": [
+    {
+      "characterKey": "johnny-silverhand",
+      "replies": 12,
+      "medianFirstTextMs": 890,
+      "medianCompleteMs": 1468,
+      "minFirstTextMs": 521,
+      "maxFirstTextMs": 1459,
+      "medianWords": 27.5
+    },
+    {
+      "characterKey": "judy-alvarez",
+      "replies": 12,
+      "medianFirstTextMs": 804,
+      "medianCompleteMs": 1357,
+      "minFirstTextMs": 547,
+      "maxFirstTextMs": 1332,
+      "medianWords": 28.5
+    },
+    {
+      "characterKey": "panam-palmer",
+      "replies": 12,
+      "medianFirstTextMs": 933,
+      "medianCompleteMs": 1405,
+      "minFirstTextMs": 552,
+      "maxFirstTextMs": 1518,
+      "medianWords": 31.5
+    }
+  ],
+  "byTurn": [
+    {
+      "turn": 1,
+      "replies": 18,
+      "medianFirstTextMs": 1046,
+      "medianCompleteMs": 1563,
+      "minFirstTextMs": 547,
+      "maxFirstTextMs": 1518,
+      "medianWords": 30
+    },
+    {
+      "turn": 2,
+      "replies": 18,
+      "medianFirstTextMs": 571,
+      "medianCompleteMs": 1263,
+      "minFirstTextMs": 521,
+      "maxFirstTextMs": 914,
+      "medianWords": 27
+    }
+  ],
+  "connectionMedianMs": 3160,
+  "isolation": {
+    "allProfilesMemoryDisabledReadback": true,
+    "allProfilesModelReadback": true,
+    "allProfilesSeparateFieldsReadback": true,
+    "oneSessionWithinEveryPair": true,
+    "distinctMeasuredSessions": 18,
+    "sessionIdsUsable": true,
+    "laterExchangesReuseOneSyntheticUser": true,
+    "ownedProfilesCreated": 10,
+    "ownedProfilesAbsenceVerified": 10,
+    "textSends": 37,
+    "measuredReplies": 36,
+    "abandonedSends": 1
+  }
+}

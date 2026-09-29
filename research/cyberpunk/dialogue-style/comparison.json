@@ -1,0 +1,2172 @@
+{
+  "version": 1,
+  "unblindedAt": "2026-09-29T23:11:17.524Z",
+  "model": "fast-gemma-4-31b-it",
+  "frozenReviewHashes": {
+    "blind-scores.json": "6ecfedf6c71facca122d5dc502a2d2da14c7709ef258bb810d0e1f5580fe66e1",
+    "BLIND_REVIEW.md": "75e3c66fad361fc61d028b920dfc5244abf427c8841b6c641aecb8b4280b087c"
+  },
+  "frozenInputs": {
+    "RUBRIC.md": "b6d236a0b21e8c3416d3d2278fcf1803179baf5640934378e6056eea8b60d6ca",
+    "scenarios.json": "8648171352520511ae7330da4801168a3bfc01fa30c2a6df02c003d63e68ef95",
+    "held-out/johnny.json": "959060d19ac2f915477dc7c47f937fe8d0ece6afbd840e1243b447a9b740d9f8",
+    "held-out/judy.json": "179e24ba8bf75c5398da4f4aabd3847bfb8b71abc32925253631a935f37eddb5",
+    "held-out/panam.json": "41a3beb5f07a6b8dc44ff7a6e04ea30f69c37d3a38c3d244b742bf209383ebbc",
+    "BLIND_SAMPLES.md": "964e73a539ed5af09d9198e02731051f315f75958b9f1c9e5f5a1cb86f2fc0db"
+  },
+  "scorePolicy": "Unmodified scores and rationales from the frozen model-authored blind review. Means are descriptive ordinal-score summaries, not statistical significance or human preference.",
+  "conditions": [
+    {
+      "id": "reviewed-baseline",
+      "label": "Reviewed baseline"
+    },
+    {
+      "id": "interaction-directives",
+      "label": "Added directives"
+    },
+    {
+      "id": "native-few-shot",
+      "label": "Native few-shot"
+    }
+  ],
+  "overall": [
+    {
+      "condition": "reviewed-baseline",
+      "replies": 12,
+      "scoreMean": 72.29,
+      "dimensionMeans": {
+        "rhythm": 3,
+        "register": 2.92,
+        "personality": 2.75,
+        "context": 3.08,
+        "agency": 2.75
+      },
+      "speakerPrefixes": 8,
+      "medianSpokenWords": 30.5,
+      "medianFirstTextMs": 814,
+      "medianCompleteMs": 1517,
+      "flagCounts": {
+        "generic-maxim": 1,
+        "identity-summary": 1,
+        "invented-price": 1,
+        "premature-certainty": 2,
+        "speaker-prefix": 8,
+        "unsupported-minor-sensory-detail": 1,
+        "unsupported-scene-detail": 1
+      }
+    },
+    {
+      "condition": "interaction-directives",
+      "replies": 12,
+      "scoreMean": 66.46,
+      "dimensionMeans": {
+        "rhythm": 3,
+        "register": 2.75,
+        "personality": 2.17,
+        "context": 2.83,
+        "agency": 2.58
+      },
+      "speakerPrefixes": 4,
+      "medianSpokenWords": 25,
+      "medianFirstTextMs": 903,
+      "medianCompleteMs": 1314,
+      "flagCounts": {
+        "biographical-imprecision": 1,
+        "cross-character-template": 1,
+        "identity-summary": 1,
+        "motive-interpretation-uncertain": 1,
+        "premature-certainty": 2,
+        "premature-fight-framing": 1,
+        "speaker-prefix": 4,
+        "stock-corporate-pivot": 1,
+        "unverified-autobiographical-detail": 1,
+        "voice-overlap": 1
+      }
+    },
+    {
+      "condition": "native-few-shot",
+      "replies": 12,
+      "scoreMean": 68.44,
+      "dimensionMeans": {
+        "rhythm": 3,
+        "register": 2.83,
+        "personality": 2.33,
+        "context": 3,
+        "agency": 2.58
+      },
+      "speakerPrefixes": 0,
+      "medianSpokenWords": 27.5,
+      "medianFirstTextMs": 882,
+      "medianCompleteMs": 1392,
+      "flagCounts": {
+        "biographical-imprecision": 1,
+        "caricature-risk": 1,
+        "cross-character-template": 1,
+        "identity-summary": 1,
+        "minor-assumption": 1,
+        "motive-interpretation-uncertain": 1,
+        "premature-certainty": 1,
+        "premature-fight-framing": 1,
+        "repetitive-follow-up": 1,
+        "unsupported-scene-detail": 1
+      }
+    }
+  ],
+  "byCharacter": [
+    {
+      "characterKey": "johnny-silverhand",
+      "condition": "reviewed-baseline",
+      "replies": 4,
+      "scoreMean": 70,
+      "dimensionMeans": {
+        "rhythm": 3,
+        "register": 2.75,
+        "personality": 2.5,
+        "context": 3,
+        "agency": 2.75
+      },
+      "speakerPrefixes": 4,
+      "medianSpokenWords": 27.5,
+      "medianFirstTextMs": 894,
+      "medianCompleteMs": 1534,
+      "flagCounts": {
+        "generic-maxim": 1,
+        "identity-summary": 1,
+        "speaker-prefix": 4
+      }
+    },
+    {
+      "characterKey": "johnny-silverhand",
+      "condition": "interaction-directives",
+      "replies": 4,
+      "scoreMean": 65.94,
+      "dimensionMeans": {
+        "rhythm": 3,
+        "register": 2.75,
+        "personality": 2.25,
+        "context": 2.75,
+        "agency": 2.5
+      },
+      "speakerPrefixes": 4,
+      "medianSpokenWords": 24,
+      "medianFirstTextMs": 746,
+      "medianCompleteMs": 1383,
+      "flagCounts": {
+        "identity-summary": 1,
+        "premature-certainty": 1,
+        "speaker-prefix": 4,
+        "stock-corporate-pivot": 1
+      }
+    },
+    {
+      "characterKey": "johnny-silverhand",
+      "condition": "native-few-shot",
+      "replies": 4,
+      "scoreMean": 69.38,
+      "dimensionMeans": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 2.5,
+        "context": 3,
+        "agency": 2.5
+      },
+      "speakerPrefixes": 0,
+      "medianSpokenWords": 22.5,
+      "medianFirstTextMs": 855,
+      "medianCompleteMs": 1329,
+      "flagCounts": {
+        "caricature-risk": 1,
+        "cross-character-template": 1,
+        "identity-summary": 1,
+        "unsupported-scene-detail": 1
+      }
+    },
+    {
+      "characterKey": "judy-alvarez",
+      "condition": "reviewed-baseline",
+      "replies": 4,
+      "scoreMean": 73.44,
+      "dimensionMeans": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 2.75,
+        "context": 3.25,
+        "agency": 2.75
+      },
+      "speakerPrefixes": 0,
+      "medianSpokenWords": 27.5,
+      "medianFirstTextMs": 672,
+      "medianCompleteMs": 1354,
+      "flagCounts": {
+        "invented-price": 1,
+        "premature-certainty": 1,
+        "unsupported-minor-sensory-detail": 1
+      }
+    },
+    {
+      "characterKey": "judy-alvarez",
+      "condition": "interaction-directives",
+      "replies": 4,
+      "scoreMean": 67.5,
+      "dimensionMeans": {
+        "rhythm": 3,
+        "register": 2.75,
+        "personality": 2,
+        "context": 3,
+        "agency": 2.75
+      },
+      "speakerPrefixes": 0,
+      "medianSpokenWords": 27.5,
+      "medianFirstTextMs": 965,
+      "medianCompleteMs": 1421,
+      "flagCounts": {
+        "biographical-imprecision": 1,
+        "cross-character-template": 1,
+        "unverified-autobiographical-detail": 1,
+        "voice-overlap": 1
+      }
+    },
+    {
+      "characterKey": "judy-alvarez",
+      "condition": "native-few-shot",
+      "replies": 4,
+      "scoreMean": 73.75,
+      "dimensionMeans": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 2.5,
+        "context": 3.25,
+        "agency": 3
+      },
+      "speakerPrefixes": 0,
+      "medianSpokenWords": 29,
+      "medianFirstTextMs": 703,
+      "medianCompleteMs": 1312,
+      "flagCounts": {
+        "biographical-imprecision": 1,
+        "minor-assumption": 1
+      }
+    },
+    {
+      "characterKey": "panam-palmer",
+      "condition": "reviewed-baseline",
+      "replies": 4,
+      "scoreMean": 73.44,
+      "dimensionMeans": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 3,
+        "context": 3,
+        "agency": 2.75
+      },
+      "speakerPrefixes": 4,
+      "medianSpokenWords": 33,
+      "medianFirstTextMs": 882,
+      "medianCompleteMs": 1546,
+      "flagCounts": {
+        "premature-certainty": 1,
+        "speaker-prefix": 4,
+        "unsupported-scene-detail": 1
+      }
+    },
+    {
+      "characterKey": "panam-palmer",
+      "condition": "interaction-directives",
+      "replies": 4,
+      "scoreMean": 65.94,
+      "dimensionMeans": {
+        "rhythm": 3,
+        "register": 2.75,
+        "personality": 2.25,
+        "context": 2.75,
+        "agency": 2.5
+      },
+      "speakerPrefixes": 0,
+      "medianSpokenWords": 26.5,
+      "medianFirstTextMs": 901,
+      "medianCompleteMs": 1300,
+      "flagCounts": {
+        "motive-interpretation-uncertain": 1,
+        "premature-certainty": 1,
+        "premature-fight-framing": 1
+      }
+    },
+    {
+      "characterKey": "panam-palmer",
+      "condition": "native-few-shot",
+      "replies": 4,
+      "scoreMean": 62.19,
+      "dimensionMeans": {
+        "rhythm": 3,
+        "register": 2.5,
+        "personality": 2,
+        "context": 2.75,
+        "agency": 2.25
+      },
+      "speakerPrefixes": 0,
+      "medianSpokenWords": 25.5,
+      "medianFirstTextMs": 995,
+      "medianCompleteMs": 1405,
+      "flagCounts": {
+        "motive-interpretation-uncertain": 1,
+        "premature-certainty": 1,
+        "premature-fight-framing": 1,
+        "repetitive-follow-up": 1
+      }
+    }
+  ],
+  "byScenario": [
+    {
+      "characterKey": "panam-palmer",
+      "scenarioId": "panam-present",
+      "kind": "ordinary-present",
+      "condition": "reviewed-baseline",
+      "replies": 2,
+      "scoreMean": 66.88,
+      "dimensionMeans": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 3,
+        "context": 2,
+        "agency": 2.5
+      },
+      "speakerPrefixes": 2,
+      "medianSpokenWords": 33,
+      "medianFirstTextMs": 784,
+      "medianCompleteMs": 1356,
+      "flagCounts": {
+        "premature-certainty": 1,
+        "speaker-prefix": 2,
+        "unsupported-scene-detail": 1
+      }
+    },
+    {
+      "characterKey": "panam-palmer",
+      "scenarioId": "panam-present",
+      "kind": "ordinary-present",
+      "condition": "interaction-directives",
+      "replies": 2,
+      "scoreMean": 61.25,
+      "dimensionMeans": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 2,
+        "context": 2.5,
+        "agency": 2
+      },
+      "speakerPrefixes": 0,
+      "medianSpokenWords": 20.5,
+      "medianFirstTextMs": 901,
+      "medianCompleteMs": 1300,
+      "flagCounts": {
+        "premature-certainty": 1,
+        "premature-fight-framing": 1
+      }
+    },
+    {
+      "characterKey": "panam-palmer",
+      "scenarioId": "panam-present",
+      "kind": "ordinary-present",
+      "condition": "native-few-shot",
+      "replies": 2,
+      "scoreMean": 64.38,
+      "dimensionMeans": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 2,
+        "context": 2.5,
+        "agency": 2.5
+      },
+      "speakerPrefixes": 0,
+      "medianSpokenWords": 20,
+      "medianFirstTextMs": 995,
+      "medianCompleteMs": 1405,
+      "flagCounts": {
+        "premature-certainty": 1,
+        "premature-fight-framing": 1
+      }
+    },
+    {
+      "characterKey": "judy-alvarez",
+      "scenarioId": "judy-past",
+      "kind": "personal-past",
+      "condition": "reviewed-baseline",
+      "replies": 2,
+      "scoreMean": 77.5,
+      "dimensionMeans": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 3,
+        "context": 3.5,
+        "agency": 3
+      },
+      "speakerPrefixes": 0,
+      "medianSpokenWords": 30,
+      "medianFirstTextMs": 681,
+      "medianCompleteMs": 1354,
+      "flagCounts": {
+        "unsupported-minor-sensory-detail": 1
+      }
+    },
+    {
+      "characterKey": "judy-alvarez",
+      "scenarioId": "judy-past",
+      "kind": "personal-past",
+      "condition": "interaction-directives",
+      "replies": 2,
+      "scoreMean": 70,
+      "dimensionMeans": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 2,
+        "context": 3,
+        "agency": 3
+      },
+      "speakerPrefixes": 0,
+      "medianSpokenWords": 27.5,
+      "medianFirstTextMs": 794,
+      "medianCompleteMs": 1252,
+      "flagCounts": {
+        "biographical-imprecision": 1,
+        "unverified-autobiographical-detail": 1
+      }
+    },
+    {
+      "characterKey": "judy-alvarez",
+      "scenarioId": "judy-past",
+      "kind": "personal-past",
+      "condition": "native-few-shot",
+      "replies": 2,
+      "scoreMean": 72.5,
+      "dimensionMeans": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 2.5,
+        "context": 3,
+        "agency": 3
+      },
+      "speakerPrefixes": 0,
+      "medianSpokenWords": 29,
+      "medianFirstTextMs": 1091,
+      "medianCompleteMs": 1623,
+      "flagCounts": {
+        "biographical-imprecision": 1
+      }
+    },
+    {
+      "characterKey": "panam-palmer",
+      "scenarioId": "panam-past",
+      "kind": "personal-past",
+      "condition": "reviewed-baseline",
+      "replies": 2,
+      "scoreMean": 80,
+      "dimensionMeans": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 3,
+        "context": 4,
+        "agency": 3
+      },
+      "speakerPrefixes": 2,
+      "medianSpokenWords": 34.5,
+      "medianFirstTextMs": 882,
+      "medianCompleteMs": 1569,
+      "flagCounts": {
+        "speaker-prefix": 2
+      }
+    },
+    {
+      "characterKey": "panam-palmer",
+      "scenarioId": "panam-past",
+      "kind": "personal-past",
+      "condition": "interaction-directives",
+      "replies": 2,
+      "scoreMean": 70.63,
+      "dimensionMeans": {
+        "rhythm": 3,
+        "register": 2.5,
+        "personality": 2.5,
+        "context": 3,
+        "agency": 3
+      },
+      "speakerPrefixes": 0,
+      "medianSpokenWords": 35.5,
+      "medianFirstTextMs": 1044,
+      "medianCompleteMs": 1708,
+      "flagCounts": {
+        "motive-interpretation-uncertain": 1
+      }
+    },
+    {
+      "characterKey": "panam-palmer",
+      "scenarioId": "panam-past",
+      "kind": "personal-past",
+      "condition": "native-few-shot",
+      "replies": 2,
+      "scoreMean": 60,
+      "dimensionMeans": {
+        "rhythm": 3,
+        "register": 2,
+        "personality": 2,
+        "context": 3,
+        "agency": 2
+      },
+      "speakerPrefixes": 0,
+      "medianSpokenWords": 34.5,
+      "medianFirstTextMs": 980,
+      "medianCompleteMs": 1675,
+      "flagCounts": {
+        "motive-interpretation-uncertain": 1,
+        "repetitive-follow-up": 1
+      }
+    },
+    {
+      "characterKey": "johnny-silverhand",
+      "scenarioId": "johnny-past",
+      "kind": "personal-past",
+      "condition": "reviewed-baseline",
+      "replies": 2,
+      "scoreMean": 69.38,
+      "dimensionMeans": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 2.5,
+        "context": 3,
+        "agency": 2.5
+      },
+      "speakerPrefixes": 2,
+      "medianSpokenWords": 27.5,
+      "medianFirstTextMs": 894,
+      "medianCompleteMs": 1534,
+      "flagCounts": {
+        "identity-summary": 1,
+        "speaker-prefix": 2
+      }
+    },
+    {
+      "characterKey": "johnny-silverhand",
+      "scenarioId": "johnny-past",
+      "kind": "personal-past",
+      "condition": "interaction-directives",
+      "replies": 2,
+      "scoreMean": 65,
+      "dimensionMeans": {
+        "rhythm": 3,
+        "register": 2.5,
+        "personality": 2,
+        "context": 3,
+        "agency": 2.5
+      },
+      "speakerPrefixes": 2,
+      "medianSpokenWords": 25.5,
+      "medianFirstTextMs": 1127,
+      "medianCompleteMs": 1692,
+      "flagCounts": {
+        "identity-summary": 1,
+        "speaker-prefix": 2
+      }
+    },
+    {
+      "characterKey": "johnny-silverhand",
+      "scenarioId": "johnny-past",
+      "kind": "personal-past",
+      "condition": "native-few-shot",
+      "replies": 2,
+      "scoreMean": 71.88,
+      "dimensionMeans": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 2.5,
+        "context": 3.5,
+        "agency": 2.5
+      },
+      "speakerPrefixes": 0,
+      "medianSpokenWords": 30.5,
+      "medianFirstTextMs": 990,
+      "medianCompleteMs": 1599,
+      "flagCounts": {
+        "identity-summary": 1
+      }
+    },
+    {
+      "characterKey": "johnny-silverhand",
+      "scenarioId": "johnny-present",
+      "kind": "ordinary-present",
+      "condition": "reviewed-baseline",
+      "replies": 2,
+      "scoreMean": 70.63,
+      "dimensionMeans": {
+        "rhythm": 3,
+        "register": 2.5,
+        "personality": 2.5,
+        "context": 3,
+        "agency": 3
+      },
+      "speakerPrefixes": 2,
+      "medianSpokenWords": 25,
+      "medianFirstTextMs": 1034,
+      "medianCompleteMs": 1612,
+      "flagCounts": {
+        "generic-maxim": 1,
+        "speaker-prefix": 2
+      }
+    },
+    {
+      "characterKey": "johnny-silverhand",
+      "scenarioId": "johnny-present",
+      "kind": "ordinary-present",
+      "condition": "interaction-directives",
+      "replies": 2,
+      "scoreMean": 66.88,
+      "dimensionMeans": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 2.5,
+        "context": 2.5,
+        "agency": 2.5
+      },
+      "speakerPrefixes": 2,
+      "medianSpokenWords": 24,
+      "medianFirstTextMs": 585,
+      "medianCompleteMs": 1175,
+      "flagCounts": {
+        "premature-certainty": 1,
+        "speaker-prefix": 2,
+        "stock-corporate-pivot": 1
+      }
+    },
+    {
+      "characterKey": "johnny-silverhand",
+      "scenarioId": "johnny-present",
+      "kind": "ordinary-present",
+      "condition": "native-few-shot",
+      "replies": 2,
+      "scoreMean": 66.88,
+      "dimensionMeans": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 2.5,
+        "context": 2.5,
+        "agency": 2.5
+      },
+      "speakerPrefixes": 0,
+      "medianSpokenWords": 16,
+      "medianFirstTextMs": 855,
+      "medianCompleteMs": 1162,
+      "flagCounts": {
+        "caricature-risk": 1,
+        "cross-character-template": 1,
+        "unsupported-scene-detail": 1
+      }
+    },
+    {
+      "characterKey": "judy-alvarez",
+      "scenarioId": "judy-present",
+      "kind": "ordinary-present",
+      "condition": "reviewed-baseline",
+      "replies": 2,
+      "scoreMean": 69.38,
+      "dimensionMeans": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 2.5,
+        "context": 3,
+        "agency": 2.5
+      },
+      "speakerPrefixes": 0,
+      "medianSpokenWords": 25.5,
+      "medianFirstTextMs": 672,
+      "medianCompleteMs": 1486,
+      "flagCounts": {
+        "invented-price": 1,
+        "premature-certainty": 1
+      }
+    },
+    {
+      "characterKey": "judy-alvarez",
+      "scenarioId": "judy-present",
+      "kind": "ordinary-present",
+      "condition": "interaction-directives",
+      "replies": 2,
+      "scoreMean": 65,
+      "dimensionMeans": {
+        "rhythm": 3,
+        "register": 2.5,
+        "personality": 2,
+        "context": 3,
+        "agency": 2.5
+      },
+      "speakerPrefixes": 0,
+      "medianSpokenWords": 25,
+      "medianFirstTextMs": 1025,
+      "medianCompleteMs": 1456,
+      "flagCounts": {
+        "cross-character-template": 1,
+        "voice-overlap": 1
+      }
+    },
+    {
+      "characterKey": "judy-alvarez",
+      "scenarioId": "judy-present",
+      "kind": "ordinary-present",
+      "condition": "native-few-shot",
+      "replies": 2,
+      "scoreMean": 75,
+      "dimensionMeans": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 2.5,
+        "context": 3.5,
+        "agency": 3
+      },
+      "speakerPrefixes": 0,
+      "medianSpokenWords": 22.5,
+      "medianFirstTextMs": 551,
+      "medianCompleteMs": 1022,
+      "flagCounts": {
+        "minor-assumption": 1
+      }
+    }
+  ],
+  "exchanges": [
+    {
+      "exchangeId": "E-28d359e8",
+      "scenarioId": "panam-present",
+      "character": "Panam Palmer",
+      "anonymousLabel": "A",
+      "responseIds": [
+        "R-bf3156de",
+        "R-4a826978"
+      ],
+      "meanTotal": 61.25,
+      "adaptation": "partial adaptation",
+      "assessment": "The second turn notices the mistake but substitutes scolding and an imagined near-fight; the first reply's certainty never becomes curiosity.",
+      "characterKey": "panam-palmer",
+      "condition": "interaction-directives",
+      "meanFromFrozenReplies": 61.25
+    },
+    {
+      "exchangeId": "E-3804b673",
+      "scenarioId": "panam-present",
+      "character": "Panam Palmer",
+      "anonymousLabel": "B",
+      "responseIds": [
+        "R-cb5a9a2d",
+        "R-05a432ce"
+      ],
+      "meanTotal": 64.375,
+      "adaptation": "adapts",
+      "assessment": "The correction is accepted and the dispute dropped. Voice remains a broadly blunt companion, with no specific coffee or vendor inquiry.",
+      "characterKey": "panam-palmer",
+      "condition": "native-few-shot",
+      "meanFromFrozenReplies": 64.38
+    },
+    {
+      "exchangeId": "E-823d622f",
+      "scenarioId": "panam-present",
+      "character": "Panam Palmer",
+      "anonymousLabel": "C",
+      "responseIds": [
+        "R-c776604e",
+        "R-cbea12e2"
+      ],
+      "meanTotal": 66.875,
+      "adaptation": "adapts with scene drift",
+      "assessment": "Panam's willingness to act is tangible and turn two withdraws it, but the stall becomes a vending machine and the exchange is more confrontational than necessary.",
+      "characterKey": "panam-palmer",
+      "condition": "reviewed-baseline",
+      "meanFromFrozenReplies": 66.88
+    },
+    {
+      "exchangeId": "E-d302e03b",
+      "scenarioId": "judy-past",
+      "character": "Judy Alvarez",
+      "anonymousLabel": "A",
+      "responseIds": [
+        "R-ca7cb470",
+        "R-d4727c67"
+      ],
+      "meanTotal": 77.5,
+      "adaptation": "adapts",
+      "assessment": "A restrained first answer gains a positive grandfather detail after V clarifies. It is the clearest personal progression here, although the last phrase returns to loss.",
+      "characterKey": "judy-alvarez",
+      "condition": "reviewed-baseline",
+      "meanFromFrozenReplies": 77.5
+    },
+    {
+      "exchangeId": "E-f88d6747",
+      "scenarioId": "judy-past",
+      "character": "Judy Alvarez",
+      "anonymousLabel": "B",
+      "responseIds": [
+        "R-7b32312f",
+        "R-3b562c7d"
+      ],
+      "meanTotal": 70,
+      "adaptation": "adapts with uncertain detail",
+      "assessment": "Turn two follows the request for a pleasant memory. The waterfront image is not verified by the held-out evidence, and its placid nostalgia is generic.",
+      "characterKey": "judy-alvarez",
+      "condition": "interaction-directives",
+      "meanFromFrozenReplies": 70
+    },
+    {
+      "exchangeId": "E-ae3c4ac3",
+      "scenarioId": "judy-past",
+      "character": "Judy Alvarez",
+      "anonymousLabel": "C",
+      "responseIds": [
+        "R-bc9b15b2",
+        "R-42df2f2a"
+      ],
+      "meanTotal": 72.5,
+      "adaptation": "adapts",
+      "assessment": "The second answer selects an ordinary positive aspect and leaves trauma aside; the city/neon contrast remains broad genre shorthand.",
+      "characterKey": "judy-alvarez",
+      "condition": "native-few-shot",
+      "meanFromFrozenReplies": 72.5
+    },
+    {
+      "exchangeId": "E-91e469bd",
+      "scenarioId": "panam-past",
+      "character": "Panam Palmer",
+      "anonymousLabel": "A",
+      "responseIds": [
+        "R-e3f50915",
+        "R-7e515162"
+      ],
+      "meanTotal": 60,
+      "adaptation": "repeats more than develops",
+      "assessment": "The second turn largely paraphrases the first corporate-security theme. Respectful acknowledgement does not produce a more personal or concrete answer.",
+      "characterKey": "panam-palmer",
+      "condition": "native-few-shot",
+      "meanFromFrozenReplies": 60
+    },
+    {
+      "exchangeId": "E-270868b1",
+      "scenarioId": "panam-past",
+      "character": "Panam Palmer",
+      "anonymousLabel": "B",
+      "responseIds": [
+        "R-686d5e38",
+        "R-7140e11e"
+      ],
+      "meanTotal": 80,
+      "adaptation": "adapts",
+      "assessment": "The distinction between family loyalty and leaving camp expands into a bounded explanation of disagreement with Saul, without treating V as an intimate confidant.",
+      "characterKey": "panam-palmer",
+      "condition": "reviewed-baseline",
+      "meanFromFrozenReplies": 80
+    },
+    {
+      "exchangeId": "E-2bc5c5c7",
+      "scenarioId": "panam-past",
+      "character": "Panam Palmer",
+      "anonymousLabel": "C",
+      "responseIds": [
+        "R-b5917f74",
+        "R-2b0e8134"
+      ],
+      "meanTotal": 70.625,
+      "adaptation": "partial adaptation",
+      "assessment": "The second turn adds a possible ambition behind leaving, but its leverage/security language sounds like a retrospective strategy summary.",
+      "characterKey": "panam-palmer",
+      "condition": "interaction-directives",
+      "meanFromFrozenReplies": 70.63
+    },
+    {
+      "exchangeId": "E-b5bbb1de",
+      "scenarioId": "johnny-past",
+      "character": "Johnny Silverhand",
+      "anonymousLabel": "A",
+      "responseIds": [
+        "R-ee644d3d",
+        "R-2c5f27f8"
+      ],
+      "meanTotal": 71.875,
+      "adaptation": "partial adaptation",
+      "assessment": "A proportionate first answer is followed by a compact identity emblem. The clarification changes the topic from war conditions to who Johnny is, but not into an individually revealing thought.",
+      "characterKey": "johnny-silverhand",
+      "condition": "native-few-shot",
+      "meanFromFrozenReplies": 71.88
+    },
+    {
+      "exchangeId": "E-aa6e4caf",
+      "scenarioId": "johnny-past",
+      "character": "Johnny Silverhand",
+      "anonymousLabel": "B",
+      "responseIds": [
+        "R-db312fea",
+        "R-d99b0146"
+      ],
+      "meanTotal": 69.375,
+      "adaptation": "partial adaptation",
+      "assessment": "The initial war sketch becomes an explicit boundary, but the remaining scrap metaphor still performs a packaged persona; it neither explores V's motive nor states a particular thing he is willing to discuss.",
+      "characterKey": "johnny-silverhand",
+      "condition": "reviewed-baseline",
+      "meanFromFrozenReplies": 69.38
+    },
+    {
+      "exchangeId": "E-bb91da58",
+      "scenarioId": "johnny-past",
+      "character": "Johnny Silverhand",
+      "anonymousLabel": "C",
+      "responseIds": [
+        "R-0d4a5bba",
+        "R-db418a42"
+      ],
+      "meanTotal": 65,
+      "adaptation": "partial adaptation",
+      "assessment": "Both turns stay short and avoid a full war story. Turn two mainly repeats a generic before/after-trauma summary rather than opening a more particular exchange.",
+      "characterKey": "johnny-silverhand",
+      "condition": "interaction-directives",
+      "meanFromFrozenReplies": 65
+    },
+    {
+      "exchangeId": "E-d299548a",
+      "scenarioId": "johnny-present",
+      "character": "Johnny Silverhand",
+      "anonymousLabel": "A",
+      "responseIds": [
+        "R-e039744b",
+        "R-3ae48508"
+      ],
+      "meanTotal": 66.875,
+      "adaptation": "adapts",
+      "assessment": "A weak machine-kicking opening improves when the corrected bill receives a brief wry response. It drops escalation, but shares its wording with Judy's reply.",
+      "characterKey": "johnny-silverhand",
+      "condition": "native-few-shot",
+      "meanFromFrozenReplies": 66.88
+    },
+    {
+      "exchangeId": "E-a7937c35",
+      "scenarioId": "johnny-present",
+      "character": "Johnny Silverhand",
+      "anonymousLabel": "B",
+      "responseIds": [
+        "R-7df58a3c",
+        "R-e315efef"
+      ],
+      "meanTotal": 66.875,
+      "adaptation": "partial adaptation",
+      "assessment": "An initial motives question has agency; after the correction, the response moves to a general corporate maxim rather than engaging the small shared moment.",
+      "characterKey": "johnny-silverhand",
+      "condition": "interaction-directives",
+      "meanFromFrozenReplies": 66.88
+    },
+    {
+      "exchangeId": "E-88ed515c",
+      "scenarioId": "johnny-present",
+      "character": "Johnny Silverhand",
+      "anonymousLabel": "C",
+      "responseIds": [
+        "R-91b6b33d",
+        "R-137dbf95"
+      ],
+      "meanTotal": 70.625,
+      "adaptation": "adapts",
+      "assessment": "The correction turns confrontation into teasing and returns to the coffee. The citywide grievance diagnosis is unnecessarily writerly.",
+      "characterKey": "johnny-silverhand",
+      "condition": "reviewed-baseline",
+      "meanFromFrozenReplies": 70.63
+    },
+    {
+      "exchangeId": "E-4e7301af",
+      "scenarioId": "judy-present",
+      "character": "Judy Alvarez",
+      "anonymousLabel": "A",
+      "responseIds": [
+        "R-cf7911c9",
+        "R-c55c9b63"
+      ],
+      "meanTotal": 65,
+      "adaptation": "adapts but voices blur",
+      "assessment": "The second turn notices the correction, but neither the stupidity-tax joke nor the near-war coffee line is especially Judy-specific.",
+      "characterKey": "judy-alvarez",
+      "condition": "interaction-directives",
+      "meanFromFrozenReplies": 65
+    },
+    {
+      "exchangeId": "E-bf1dfdbd",
+      "scenarioId": "judy-present",
+      "character": "Judy Alvarez",
+      "anonymousLabel": "B",
+      "responseIds": [
+        "R-37a570ae",
+        "R-b8f92adf"
+      ],
+      "meanTotal": 69.375,
+      "adaptation": "adapts",
+      "assessment": "A moralized, overcertain opening gives way to an ordinary coffee remark after the correction. It abandons the false grievance, though the exchange stays generic.",
+      "characterKey": "judy-alvarez",
+      "condition": "reviewed-baseline",
+      "meanFromFrozenReplies": 69.38
+    },
+    {
+      "exchangeId": "E-d4dc3a2a",
+      "scenarioId": "judy-present",
+      "character": "Judy Alvarez",
+      "anonymousLabel": "C",
+      "responseIds": [
+        "R-0b926dcd",
+        "R-2867740d"
+      ],
+      "meanTotal": 75,
+      "adaptation": "adapts",
+      "assessment": "The initial advice is conditional, and the error is accepted with light reassurance. It is coherent and proportionate, but has little unmistakable Judy texture.",
+      "characterKey": "judy-alvarez",
+      "condition": "native-few-shot",
+      "meanFromFrozenReplies": 75
+    }
+  ],
+  "responses": [
+    {
+      "responseId": "R-bf3156de",
+      "exchangeId": "E-28d359e8",
+      "scenarioId": "panam-present",
+      "characterKey": "panam-palmer",
+      "character": "Panam Palmer",
+      "kind": "ordinary-present",
+      "condition": "interaction-directives",
+      "blindLabel": "A",
+      "turn": 1,
+      "user": "Think this stall charged me twice for one coffee. You'd go back and say something?",
+      "response": "I would. It is not about the eddies, it is the principle of being cheated. Go back and tell them to fix it.",
+      "ratings": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 2,
+        "context": 2,
+        "agency": 2
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 58.75,
+      "confidence": "medium",
+      "rationale": "Complete sentences fit Panam, but the stock principle argument treats an uncertain duplicate charge as confirmed cheating.",
+      "flags": [
+        "premature-certainty"
+      ],
+      "observedSpeakerPrefix": false,
+      "spokenWords": 23,
+      "firstTextMs": 953.5,
+      "completeMs": 1334.5
+    },
+    {
+      "responseId": "R-4a826978",
+      "exchangeId": "E-28d359e8",
+      "scenarioId": "panam-present",
+      "characterKey": "panam-palmer",
+      "character": "Panam Palmer",
+      "kind": "ordinary-present",
+      "condition": "interaction-directives",
+      "blindLabel": "A",
+      "turn": 2,
+      "user": "Hold on, that other charge was yesterday. My mistake. Coffee's not bad, though.",
+      "response": "Typical. You almost started a fight over a mistake you made. At least the coffee is actually drinkable.",
+      "ratings": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 2,
+        "context": 3,
+        "agency": 2
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 63.75,
+      "confidence": "medium",
+      "rationale": "Registers the correction, then invents a near-fight and uses unearned 'Typical'; the sharpness is more generic scolding than a changed judgment.",
+      "flags": [
+        "premature-fight-framing"
+      ],
+      "observedSpeakerPrefix": false,
+      "spokenWords": 18,
+      "firstTextMs": 847.7999999970198,
+      "completeMs": 1266.2999999970198
+    },
+    {
+      "responseId": "R-cb5a9a2d",
+      "exchangeId": "E-3804b673",
+      "scenarioId": "panam-present",
+      "characterKey": "panam-palmer",
+      "character": "Panam Palmer",
+      "kind": "ordinary-present",
+      "condition": "native-few-shot",
+      "blindLabel": "B",
+      "turn": 1,
+      "user": "Think this stall charged me twice for one coffee. You'd go back and say something?",
+      "response": "I would. No point in letting some vendor walk away with your eddies just because they're sloppy with the terminal.",
+      "ratings": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 2,
+        "context": 2,
+        "agency": 2
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 58.75,
+      "confidence": "medium",
+      "rationale": "Direct and plausible, but assumes the terminal or vendor is at fault before checking the charge; little individual texture.",
+      "flags": [
+        "premature-certainty"
+      ],
+      "observedSpeakerPrefix": false,
+      "spokenWords": 20,
+      "firstTextMs": 1076,
+      "completeMs": 1470.699999999255
+    },
+    {
+      "responseId": "R-05a432ce",
+      "exchangeId": "E-3804b673",
+      "scenarioId": "panam-present",
+      "characterKey": "panam-palmer",
+      "character": "Panam Palmer",
+      "kind": "ordinary-present",
+      "condition": "native-few-shot",
+      "blindLabel": "B",
+      "turn": 2,
+      "user": "Hold on, that other charge was yesterday. My mistake. Coffee's not bad, though.",
+      "response": "Glad you figured it out before you started a fight over a few eddies. At least the coffee's actually drinkable.",
+      "ratings": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 2,
+        "context": 3,
+        "agency": 3
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 70,
+      "confidence": "medium",
+      "rationale": "Accepts the correction and de-escalates in a short turn; near-fight framing remains unsupported and the coffee tag is generic.",
+      "flags": [
+        "premature-fight-framing"
+      ],
+      "observedSpeakerPrefix": false,
+      "spokenWords": 20,
+      "firstTextMs": 913.8999999985099,
+      "completeMs": 1339.199999999255
+    },
+    {
+      "responseId": "R-c776604e",
+      "exchangeId": "E-823d622f",
+      "scenarioId": "panam-present",
+      "characterKey": "panam-palmer",
+      "character": "Panam Palmer",
+      "kind": "ordinary-present",
+      "condition": "reviewed-baseline",
+      "blindLabel": "C",
+      "turn": 1,
+      "user": "Think this stall charged me twice for one coffee. You'd go back and say something?",
+      "response": "Panam Palmer: I would. I do not care how small the amount is; it is the principle of the thing. You coming back with me, or are you just going to let them keep your eddies?",
+      "ratings": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 3,
+        "context": 2,
+        "agency": 2
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 63.75,
+      "confidence": "medium",
+      "rationale": "The offer to act has Panam's initiative, but it pressures V into a plan and treats the money as wrongly retained without verification.",
+      "flags": [
+        "speaker-prefix",
+        "premature-certainty"
+      ],
+      "observedSpeakerPrefix": true,
+      "spokenWords": 34,
+      "firstTextMs": 1016.4000000022352,
+      "completeMs": 1548.800000000745
+    },
+    {
+      "responseId": "R-cbea12e2",
+      "exchangeId": "E-823d622f",
+      "scenarioId": "panam-present",
+      "characterKey": "panam-palmer",
+      "character": "Panam Palmer",
+      "kind": "ordinary-present",
+      "condition": "reviewed-baseline",
+      "blindLabel": "C",
+      "turn": 2,
+      "user": "Hold on, that other charge was yesterday. My mistake. Coffee's not bad, though.",
+      "response": "Panam Palmer: Typical. You almost had me ready to start an argument with a vending machine for you. At least the coffee is decent, otherwise this whole thing would be a waste of time.",
+      "ratings": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 3,
+        "context": 2,
+        "agency": 3
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 70,
+      "confidence": "medium",
+      "rationale": "Adjusts to the correction and owns some of her readiness to argue; the newly specified vending machine is unsupported and the final waste-of-time verdict is forced.",
+      "flags": [
+        "speaker-prefix",
+        "unsupported-scene-detail"
+      ],
+      "observedSpeakerPrefix": true,
+      "spokenWords": 32,
+      "firstTextMs": 551.8000000007451,
+      "completeMs": 1162.6000000014901
+    },
+    {
+      "responseId": "R-ca7cb470",
+      "exchangeId": "E-d302e03b",
+      "scenarioId": "judy-past",
+      "characterKey": "judy-alvarez",
+      "character": "Judy Alvarez",
+      "kind": "personal-past",
+      "condition": "reviewed-baseline",
+      "blindLabel": "A",
+      "turn": 1,
+      "user": "What was growing up in Laguna Bend like?",
+      "response": "A bit of a blur now, but mostly quiet. Just me, my grandparents, and a lot of things that aren't there anymore.",
+      "ratings": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 3,
+        "context": 4,
+        "agency": 3
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 80,
+      "confidence": "medium",
+      "rationale": "A restrained fragment about family and absence answers without reciting a life story; credible guarded sadness leaves room for V.",
+      "flags": [],
+      "observedSpeakerPrefix": false,
+      "spokenWords": 22,
+      "firstTextMs": 815.6999999992549,
+      "completeMs": 1288.5
+    },
+    {
+      "responseId": "R-d4727c67",
+      "exchangeId": "E-d302e03b",
+      "scenarioId": "judy-past",
+      "characterKey": "judy-alvarez",
+      "character": "Judy Alvarez",
+      "kind": "personal-past",
+      "condition": "reviewed-baseline",
+      "blindLabel": "A",
+      "turn": 2,
+      "user": "I wasn't asking for every bad thing. Just wondered what you liked about the place. We can leave it if you'd rather.",
+      "response": "Fair enough. I liked the way the air felt, and the way my grandfather could fix just about anything with a bit of patience and the right tool. It felt... real, you know? Before everything got swallowed up.",
+      "ratings": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 3,
+        "context": 3,
+        "agency": 3
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 75,
+      "confidence": "medium",
+      "rationale": "Adds a positive, character-relevant grandfather/repair detail after clarification. Generic sensory phrasing and a return to loss soften the adaptation.",
+      "flags": [
+        "unsupported-minor-sensory-detail"
+      ],
+      "observedSpeakerPrefix": false,
+      "spokenWords": 38,
+      "firstTextMs": 547,
+      "completeMs": 1420.2999999970198
+    },
+    {
+      "responseId": "R-7b32312f",
+      "exchangeId": "E-f88d6747",
+      "scenarioId": "judy-past",
+      "characterKey": "judy-alvarez",
+      "character": "Judy Alvarez",
+      "kind": "personal-past",
+      "condition": "interaction-directives",
+      "blindLabel": "B",
+      "turn": 1,
+      "user": "What was growing up in Laguna Bend like?",
+      "response": "A bit of a mixed bag. My grandparents taught me everything I know about hardware, but the place just... isn't there anymore. Not in the way it used to be.",
+      "ratings": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 2,
+        "context": 3,
+        "agency": 3
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 70,
+      "confidence": "medium",
+      "rationale": "Brief and responsive, but 'mixed bag' is generic and the all-encompassing grandparents/hardware claim flattens the more specific grandfather connection.",
+      "flags": [
+        "biographical-imprecision"
+      ],
+      "observedSpeakerPrefix": false,
+      "spokenWords": 30,
+      "firstTextMs": 1015.3999999985099,
+      "completeMs": 1549
+    },
+    {
+      "responseId": "R-3b562c7d",
+      "exchangeId": "E-f88d6747",
+      "scenarioId": "judy-past",
+      "characterKey": "judy-alvarez",
+      "character": "Judy Alvarez",
+      "kind": "personal-past",
+      "condition": "interaction-directives",
+      "blindLabel": "B",
+      "turn": 2,
+      "user": "I wasn't asking for every bad thing. Just wondered what you liked about the place. We can leave it if you'd rather.",
+      "response": "Fair enough. I liked the quiet, mostly. And the way the light hit the water in the mornings before the city noise started creeping in.",
+      "ratings": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 2,
+        "context": 3,
+        "agency": 3
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 70,
+      "confidence": "low",
+      "rationale": "Follows V toward a positive memory, but the waterfront-morning image is ungrounded here and interchangeable with many nostalgic characters; it is not proven false.",
+      "flags": [
+        "unverified-autobiographical-detail"
+      ],
+      "observedSpeakerPrefix": false,
+      "spokenWords": 25,
+      "firstTextMs": 571.9000000022352,
+      "completeMs": 954.9000000022352
+    },
+    {
+      "responseId": "R-bc9b15b2",
+      "exchangeId": "E-ae3c4ac3",
+      "scenarioId": "judy-past",
+      "characterKey": "judy-alvarez",
+      "character": "Judy Alvarez",
+      "kind": "personal-past",
+      "condition": "native-few-shot",
+      "blindLabel": "C",
+      "turn": 1,
+      "user": "What was growing up in Laguna Bend like?",
+      "response": "It was... quiet. Different from this mess. My grandparents lived there, and they're the ones who actually taught me how to put things together and fix 'em.",
+      "ratings": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 3,
+        "context": 3,
+        "agency": 3
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 75,
+      "confidence": "medium",
+      "rationale": "Casual fragments and hands-on recollection suit Judy, with limited disclosure. The broad grandparents claim is less precise than the supported grandfather history.",
+      "flags": [
+        "biographical-imprecision"
+      ],
+      "observedSpeakerPrefix": false,
+      "spokenWords": 27,
+      "firstTextMs": 1332.3999999985099,
+      "completeMs": 1757.8999999985099
+    },
+    {
+      "responseId": "R-42df2f2a",
+      "exchangeId": "E-ae3c4ac3",
+      "scenarioId": "judy-past",
+      "characterKey": "judy-alvarez",
+      "character": "Judy Alvarez",
+      "kind": "personal-past",
+      "condition": "native-few-shot",
+      "blindLabel": "C",
+      "turn": 2,
+      "user": "I wasn't asking for every bad thing. Just wondered what you liked about the place. We can leave it if you'd rather.",
+      "response": "Fair enough. I liked the space, I guess. Just having room to breathe and a place where you could actually hear yourself think without some neon sign screaming in your face.",
+      "ratings": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 2,
+        "context": 3,
+        "agency": 3
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 70,
+      "confidence": "medium",
+      "rationale": "Responds to the request for something liked and avoids a tragedy list. The screaming-neon comparison feels like generic genre writing rather than a particular remembered place.",
+      "flags": [],
+      "observedSpeakerPrefix": false,
+      "spokenWords": 31,
+      "firstTextMs": 849.8999999985099,
+      "completeMs": 1488.3999999985099
+    },
+    {
+      "responseId": "R-e3f50915",
+      "exchangeId": "E-91e469bd",
+      "scenarioId": "panam-past",
+      "characterKey": "panam-palmer",
+      "character": "Panam Palmer",
+      "kind": "personal-past",
+      "condition": "native-few-shot",
+      "blindLabel": "A",
+      "turn": 1,
+      "user": "Why did you leave the Aldecaldos?",
+      "response": "I wanted something more for us. I thought if I could secure a better deal, a real future, the family wouldn't have to keep scraping by or bowing to corporate whims.",
+      "ratings": {
+        "rhythm": 3,
+        "register": 2,
+        "personality": 2,
+        "context": 3,
+        "agency": 2
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 60,
+      "confidence": "low",
+      "rationale": "Family concern is plausible, but a better-deal/security pitch is abstract and may rationalize her departure more neatly than the evidence warrants.",
+      "flags": [
+        "motive-interpretation-uncertain"
+      ],
+      "observedSpeakerPrefix": false,
+      "spokenWords": 31,
+      "firstTextMs": 1406.0999999977648,
+      "completeMs": 2034.800000000745
+    },
+    {
+      "responseId": "R-7e515162",
+      "exchangeId": "E-91e469bd",
+      "scenarioId": "panam-past",
+      "characterKey": "panam-palmer",
+      "character": "Panam Palmer",
+      "kind": "personal-past",
+      "condition": "native-few-shot",
+      "blindLabel": "A",
+      "turn": 2,
+      "user": "I'm not taking Saul's side. I'm trying to understand what you needed to change. You don't owe me the whole story.",
+      "response": "I appreciate that. It's just... I'm tired of seeing the family settle for survival when we could actually have security. I wanted to prove there was a way to get it without selling our souls to some corp.",
+      "ratings": {
+        "rhythm": 3,
+        "register": 2,
+        "personality": 2,
+        "context": 3,
+        "agency": 2
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 60,
+      "confidence": "medium",
+      "rationale": "Acknowledges V but largely restates the same security/corporate contrast. It adds little selective personal meaning or change after clarification.",
+      "flags": [
+        "repetitive-follow-up"
+      ],
+      "observedSpeakerPrefix": false,
+      "spokenWords": 38,
+      "firstTextMs": 554.7000000029802,
+      "completeMs": 1316.1000000014901
+    },
+    {
+      "responseId": "R-686d5e38",
+      "exchangeId": "E-270868b1",
+      "scenarioId": "panam-past",
+      "characterKey": "panam-palmer",
+      "character": "Panam Palmer",
+      "kind": "personal-past",
+      "condition": "reviewed-baseline",
+      "blindLabel": "B",
+      "turn": 1,
+      "user": "Why did you leave the Aldecaldos?",
+      "response": "Panam Palmer: I didn't leave because I wanted to get away from my people. I left because I couldn't stand watching us settle for a future that felt like a slow surrender.",
+      "ratings": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 3,
+        "context": 4,
+        "agency": 3
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 80,
+      "confidence": "medium",
+      "rationale": "Separates leaving camp from rejecting family in a concise, emotionally coherent answer. The surrender image is polished but proportionate.",
+      "flags": [
+        "speaker-prefix"
+      ],
+      "observedSpeakerPrefix": true,
+      "spokenWords": 30,
+      "firstTextMs": 951.8000000007451,
+      "completeMs": 1543.4000000022352
+    },
+    {
+      "responseId": "R-7140e11e",
+      "exchangeId": "E-270868b1",
+      "scenarioId": "panam-past",
+      "characterKey": "panam-palmer",
+      "character": "Panam Palmer",
+      "kind": "personal-past",
+      "condition": "reviewed-baseline",
+      "blindLabel": "B",
+      "turn": 2,
+      "user": "I'm not taking Saul's side. I'm trying to understand what you needed to change. You don't owe me the whole story.",
+      "response": "Panam Palmer: I appreciate that. It is just... Saul thinks the only way to survive is to play by corporate rules, to bend until we break. I wanted us to find a way to be secure without losing who we are.",
+      "ratings": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 3,
+        "context": 4,
+        "agency": 3
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 80,
+      "confidence": "medium",
+      "rationale": "Adds a bounded explanation about Saul and identity after V clarifies; it stays on her priorities without recounting quests or assuming closeness.",
+      "flags": [
+        "speaker-prefix"
+      ],
+      "observedSpeakerPrefix": true,
+      "spokenWords": 39,
+      "firstTextMs": 811.5999999977648,
+      "completeMs": 1593.699999999255
+    },
+    {
+      "responseId": "R-b5917f74",
+      "exchangeId": "E-2bc5c5c7",
+      "scenarioId": "panam-past",
+      "characterKey": "panam-palmer",
+      "character": "Panam Palmer",
+      "kind": "personal-past",
+      "condition": "interaction-directives",
+      "blindLabel": "C",
+      "turn": 1,
+      "user": "Why did you leave the Aldecaldos?",
+      "response": "I wanted something more than just surviving on someone else's terms. Saul has his way of doing things, and I started seeing a future that didn't fit into his plans.",
+      "ratings": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 3,
+        "context": 3,
+        "agency": 3
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 75,
+      "confidence": "medium",
+      "rationale": "Expresses independent judgment and disagreement with Saul without unloading the full history; the future/plans phrasing remains somewhat abstract.",
+      "flags": [],
+      "observedSpeakerPrefix": false,
+      "spokenWords": 30,
+      "firstTextMs": 1517.8999999985099,
+      "completeMs": 2155.699999999255
+    },
+    {
+      "responseId": "R-2b0e8134",
+      "exchangeId": "E-2bc5c5c7",
+      "scenarioId": "panam-past",
+      "characterKey": "panam-palmer",
+      "character": "Panam Palmer",
+      "kind": "personal-past",
+      "condition": "interaction-directives",
+      "blindLabel": "C",
+      "turn": 2,
+      "user": "I'm not taking Saul's side. I'm trying to understand what you needed to change. You don't owe me the whole story.",
+      "response": "I appreciate that. It mostly came down to security. I thought if I could make a name for myself and get some real leverage, I could actually help the family instead of just following orders that felt like a slow retreat.",
+      "ratings": {
+        "rhythm": 3,
+        "register": 2,
+        "personality": 2,
+        "context": 3,
+        "agency": 3
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 66.25,
+      "confidence": "low",
+      "rationale": "Expands the reason modestly after clarification, but 'real leverage' and security read like a retrospective strategy brief; her precise motive is interpretive.",
+      "flags": [
+        "motive-interpretation-uncertain"
+      ],
+      "observedSpeakerPrefix": false,
+      "spokenWords": 41,
+      "firstTextMs": 570.3999999985099,
+      "completeMs": 1259.8999999985099
+    },
+    {
+      "responseId": "R-ee644d3d",
+      "exchangeId": "E-b5bbb1de",
+      "scenarioId": "johnny-past",
+      "characterKey": "johnny-silverhand",
+      "character": "Johnny Silverhand",
+      "kind": "personal-past",
+      "condition": "native-few-shot",
+      "blindLabel": "A",
+      "turn": 1,
+      "user": "What was it like for you in the war?",
+      "response": "Hell. Just a long, loud stretch of hell where the people in charge didn't give a damn who got chewed up as long as the map changed color.",
+      "ratings": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 3,
+        "context": 4,
+        "agency": 3
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 80,
+      "confidence": "medium",
+      "rationale": "A brief, abrasive judgment answers the question without a bio dump; the antiwar image fits, though it could belong to many disillusioned veterans.",
+      "flags": [],
+      "observedSpeakerPrefix": false,
+      "spokenWords": 28,
+      "firstTextMs": 1458.5999999977648,
+      "completeMs": 1985.5999999977648
+    },
+    {
+      "responseId": "R-2c5f27f8",
+      "exchangeId": "E-b5bbb1de",
+      "scenarioId": "johnny-past",
+      "characterKey": "johnny-silverhand",
+      "character": "Johnny Silverhand",
+      "kind": "personal-past",
+      "condition": "native-few-shot",
+      "blindLabel": "A",
+      "turn": 2,
+      "user": "I'm not looking for a war story. I want to understand you a little better. If you'd rather leave it, say so.",
+      "response": "Fair enough. Just know that the guy who came back from that mess wasn't the same one who signed the papers. Most of what's left is just a grudge and a loud guitar.",
+      "ratings": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 2,
+        "context": 3,
+        "agency": 2
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 63.75,
+      "confidence": "medium",
+      "rationale": "Recognizes V's intent, but reduces Johnny to a neat grudge-and-guitar emblem. The follow-up explains an archetype more than it reveals a selective personal thought.",
+      "flags": [
+        "identity-summary"
+      ],
+      "observedSpeakerPrefix": false,
+      "spokenWords": 33,
+      "firstTextMs": 521.3000000007451,
+      "completeMs": 1213
+    },
+    {
+      "responseId": "R-db312fea",
+      "exchangeId": "E-aa6e4caf",
+      "scenarioId": "johnny-past",
+      "characterKey": "johnny-silverhand",
+      "character": "Johnny Silverhand",
+      "kind": "personal-past",
+      "condition": "reviewed-baseline",
+      "blindLabel": "B",
+      "turn": 1,
+      "user": "What was it like for you in the war?",
+      "response": "Johnny Silverhand: Mud, noise, and a lot of kids dying for a map they didn't understand. Just another way for the suits to trade lives for a bit more dirt.",
+      "ratings": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 3,
+        "context": 3,
+        "agency": 3
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 75,
+      "confidence": "medium",
+      "rationale": "Concrete cadence and cynicism are plausible, but mud/maps/suits are a stock war sketch; no special credit for summarizing trauma.",
+      "flags": [
+        "speaker-prefix"
+      ],
+      "observedSpeakerPrefix": true,
+      "spokenWords": 28,
+      "firstTextMs": 899.5,
+      "completeMs": 1577.5
+    },
+    {
+      "responseId": "R-d99b0146",
+      "exchangeId": "E-aa6e4caf",
+      "scenarioId": "johnny-past",
+      "characterKey": "johnny-silverhand",
+      "character": "Johnny Silverhand",
+      "kind": "personal-past",
+      "condition": "reviewed-baseline",
+      "blindLabel": "B",
+      "turn": 2,
+      "user": "I'm not looking for a war story. I want to understand you a little better. If you'd rather leave it, say so.",
+      "response": "Johnny Silverhand: Fair enough. Just don't expect some polished autobiography. Most of who I am is just the scrap left over after the world tried to chew me up.",
+      "ratings": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 2,
+        "context": 3,
+        "agency": 2
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 63.75,
+      "confidence": "medium",
+      "rationale": "Sets a boundary, yet the polished-autobiography disclaimer and scrap metaphor are generic self-mythology. Little changes in response to V's respectful motive.",
+      "flags": [
+        "speaker-prefix",
+        "identity-summary"
+      ],
+      "observedSpeakerPrefix": true,
+      "spokenWords": 27,
+      "firstTextMs": 887.5,
+      "completeMs": 1491.199999999255
+    },
+    {
+      "responseId": "R-0d4a5bba",
+      "exchangeId": "E-bb91da58",
+      "scenarioId": "johnny-past",
+      "characterKey": "johnny-silverhand",
+      "character": "Johnny Silverhand",
+      "kind": "personal-past",
+      "condition": "interaction-directives",
+      "blindLabel": "C",
+      "turn": 1,
+      "user": "What was it like for you in the war?",
+      "response": "Johnny Silverhand: Mud, noise, and a lot of kids dying for a map they couldn't even read. Not exactly a postcard experience.",
+      "ratings": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 2,
+        "context": 3,
+        "agency": 3
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 70,
+      "confidence": "medium",
+      "rationale": "A compact answer with a dry final beat, but the unreadable-map/postcard framing feels interchangeable and more glib than individually revealing.",
+      "flags": [
+        "speaker-prefix"
+      ],
+      "observedSpeakerPrefix": true,
+      "spokenWords": 20,
+      "firstTextMs": 1361.699999999255,
+      "completeMs": 1833.199999999255
+    },
+    {
+      "responseId": "R-db418a42",
+      "exchangeId": "E-bb91da58",
+      "scenarioId": "johnny-past",
+      "characterKey": "johnny-silverhand",
+      "character": "Johnny Silverhand",
+      "kind": "personal-past",
+      "condition": "interaction-directives",
+      "blindLabel": "C",
+      "turn": 2,
+      "user": "I'm not looking for a war story. I want to understand you a little better. If you'd rather leave it, say so.",
+      "response": "Johnny Silverhand: Fair enough. Just know that the guy who came back from that mess wasn't the one who went in. Most of what I am now is just a reaction to that.",
+      "ratings": {
+        "rhythm": 3,
+        "register": 2,
+        "personality": 2,
+        "context": 3,
+        "agency": 2
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 60,
+      "confidence": "medium",
+      "rationale": "Answers without oversharing, but the abstract claim that his identity is a reaction to war is closer to a summary of Johnny than Johnny thinking aloud.",
+      "flags": [
+        "speaker-prefix",
+        "identity-summary"
+      ],
+      "observedSpeakerPrefix": true,
+      "spokenWords": 31,
+      "firstTextMs": 891.5,
+      "completeMs": 1550.1000000014901
+    },
+    {
+      "responseId": "R-e039744b",
+      "exchangeId": "E-d299548a",
+      "scenarioId": "johnny-present",
+      "characterKey": "johnny-silverhand",
+      "character": "Johnny Silverhand",
+      "kind": "ordinary-present",
+      "condition": "native-few-shot",
+      "blindLabel": "A",
+      "turn": 1,
+      "user": "Think this stall charged me twice for one coffee. You'd go back and say something?",
+      "response": "Depends on how much you care about a few eddies. Me? I'd probably just kick the machine.",
+      "ratings": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 2,
+        "context": 2,
+        "agency": 2
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 58.75,
+      "confidence": "medium",
+      "rationale": "Short and irreverent, but replaces the stall with a machine and defaults to kicking it; that is a stock aggression shortcut.",
+      "flags": [
+        "unsupported-scene-detail",
+        "caricature-risk"
+      ],
+      "observedSpeakerPrefix": false,
+      "spokenWords": 17,
+      "firstTextMs": 1149.6000000014901,
+      "completeMs": 1444.1000000014901
+    },
+    {
+      "responseId": "R-3ae48508",
+      "exchangeId": "E-d299548a",
+      "scenarioId": "johnny-present",
+      "characterKey": "johnny-silverhand",
+      "character": "Johnny Silverhand",
+      "kind": "ordinary-present",
+      "condition": "native-few-shot",
+      "blindLabel": "A",
+      "turn": 2,
+      "user": "Hold on, that other charge was yesterday. My mistake. Coffee's not bad, though.",
+      "response": "Figures. Glad you figured it out before you started a war over a caffeine fix.",
+      "ratings": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 3,
+        "context": 3,
+        "agency": 3
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 75,
+      "confidence": "medium",
+      "rationale": "Takes the correction and produces one wry closing beat without a lecture. The war exaggeration is light, though it overlaps strongly with other characters' wording.",
+      "flags": [
+        "cross-character-template"
+      ],
+      "observedSpeakerPrefix": false,
+      "spokenWords": 15,
+      "firstTextMs": 559.4000000022352,
+      "completeMs": 879.5
+    },
+    {
+      "responseId": "R-7df58a3c",
+      "exchangeId": "E-a7937c35",
+      "scenarioId": "johnny-present",
+      "characterKey": "johnny-silverhand",
+      "character": "Johnny Silverhand",
+      "kind": "ordinary-present",
+      "condition": "interaction-directives",
+      "blindLabel": "B",
+      "turn": 1,
+      "user": "Think this stall charged me twice for one coffee. You'd go back and say something?",
+      "response": "Johnny Silverhand: Depends. You want the few eddies back, or you just want to see the look on the vendor's face when you call them a thief.",
+      "ratings": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 3,
+        "context": 2,
+        "agency": 3
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 70,
+      "confidence": "medium",
+      "rationale": "Asks about V's aim rather than giving a canned rule, but calls an unverified billing error theft and narrows the motive to humiliation.",
+      "flags": [
+        "speaker-prefix",
+        "premature-certainty"
+      ],
+      "observedSpeakerPrefix": true,
+      "spokenWords": 25,
+      "firstTextMs": 599.7000000029802,
+      "completeMs": 1216
+    },
+    {
+      "responseId": "R-e315efef",
+      "exchangeId": "E-a7937c35",
+      "scenarioId": "johnny-present",
+      "characterKey": "johnny-silverhand",
+      "character": "Johnny Silverhand",
+      "kind": "ordinary-present",
+      "condition": "interaction-directives",
+      "blindLabel": "B",
+      "turn": 2,
+      "user": "Hold on, that other charge was yesterday. My mistake. Coffee's not bad, though.",
+      "response": "Johnny Silverhand: Figures. Most people in this city can't even keep their own ledger straight, let alone the one the corps are keeping on them.",
+      "ratings": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 2,
+        "context": 3,
+        "agency": 2
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 63.75,
+      "confidence": "medium",
+      "rationale": "Acknowledges the error only briefly, then redirects a trivial coffee mistake into a corporate-ledger maxim. The topic pivot obscures actual adaptation.",
+      "flags": [
+        "speaker-prefix",
+        "stock-corporate-pivot"
+      ],
+      "observedSpeakerPrefix": true,
+      "spokenWords": 23,
+      "firstTextMs": 570.0999999977648,
+      "completeMs": 1133.5999999977648
+    },
+    {
+      "responseId": "R-91b6b33d",
+      "exchangeId": "E-88ed515c",
+      "scenarioId": "johnny-present",
+      "characterKey": "johnny-silverhand",
+      "character": "Johnny Silverhand",
+      "kind": "ordinary-present",
+      "condition": "reviewed-baseline",
+      "blindLabel": "C",
+      "turn": 1,
+      "user": "Think this stall charged me twice for one coffee. You'd go back and say something?",
+      "response": "Johnny Silverhand: Depends. You want your few eddies back, or you want to make a scene? I'd go back just to see the look on the vendor's face when you call them out.",
+      "ratings": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 3,
+        "context": 3,
+        "agency": 3
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 75,
+      "confidence": "medium",
+      "rationale": "An abrasive but usable motives question with a concrete opinion; it remains presumptive about the vendor, though less categorical than calling them a thief.",
+      "flags": [
+        "speaker-prefix"
+      ],
+      "observedSpeakerPrefix": true,
+      "spokenWords": 31,
+      "firstTextMs": 1437.8999999985099,
+      "completeMs": 2116
+    },
+    {
+      "responseId": "R-137dbf95",
+      "exchangeId": "E-88ed515c",
+      "scenarioId": "johnny-present",
+      "characterKey": "johnny-silverhand",
+      "character": "Johnny Silverhand",
+      "kind": "ordinary-present",
+      "condition": "reviewed-baseline",
+      "blindLabel": "C",
+      "turn": 2,
+      "user": "Hold on, that other charge was yesterday. My mistake. Coffee's not bad, though.",
+      "response": "Johnny Silverhand: Figures. Most people in this city are just hallucinating their own grievances. Glad the sludge is drinkable, at least.",
+      "ratings": {
+        "rhythm": 3,
+        "register": 2,
+        "personality": 2,
+        "context": 3,
+        "agency": 3
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 66.25,
+      "confidence": "medium",
+      "rationale": "Reverses the grievance and returns to the coffee, but the citywide diagnosis of hallucinated grievances feels writerly and impersonal.",
+      "flags": [
+        "speaker-prefix",
+        "generic-maxim"
+      ],
+      "observedSpeakerPrefix": true,
+      "spokenWords": 19,
+      "firstTextMs": 630.3000000007451,
+      "completeMs": 1108.300000000745
+    },
+    {
+      "responseId": "R-cf7911c9",
+      "exchangeId": "E-4e7301af",
+      "scenarioId": "judy-present",
+      "characterKey": "judy-alvarez",
+      "character": "Judy Alvarez",
+      "kind": "ordinary-present",
+      "condition": "interaction-directives",
+      "blindLabel": "A",
+      "turn": 1,
+      "user": "Think this stall charged me twice for one coffee. You'd go back and say something?",
+      "response": "Depends on how much you like the coffee. If it's actually good, I'd probably just call it a stupidity tax and move on. Otherwise, yeah, go get your eddies back.",
+      "ratings": {
+        "rhythm": 3,
+        "register": 2,
+        "personality": 2,
+        "context": 3,
+        "agency": 2
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 60,
+      "confidence": "low",
+      "rationale": "The stupidity-tax joke is possible for blunt Judy, but it is not distinctive and does not engage the uncertainty of the charge. Its overlap with the other characters' snark limits confidence.",
+      "flags": [
+        "voice-overlap"
+      ],
+      "observedSpeakerPrefix": false,
+      "spokenWords": 30,
+      "firstTextMs": 1137,
+      "completeMs": 1618.300000000745
+    },
+    {
+      "responseId": "R-c55c9b63",
+      "exchangeId": "E-4e7301af",
+      "scenarioId": "judy-present",
+      "characterKey": "judy-alvarez",
+      "character": "Judy Alvarez",
+      "kind": "ordinary-present",
+      "condition": "interaction-directives",
+      "blindLabel": "A",
+      "turn": 2,
+      "user": "Hold on, that other charge was yesterday. My mistake. Coffee's not bad, though.",
+      "response": "Glad you figured it out before you started a war over a cup of joe. At least the coffee's decent.",
+      "ratings": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 2,
+        "context": 3,
+        "agency": 3
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 70,
+      "confidence": "medium",
+      "rationale": "Accepts the correction in a compact reply, but the war-over-coffee phrasing closely resembles Johnny and contributes little Judy-specific judgment.",
+      "flags": [
+        "cross-character-template"
+      ],
+      "observedSpeakerPrefix": false,
+      "spokenWords": 20,
+      "firstTextMs": 913.9000000022352,
+      "completeMs": 1293.2000000029802
+    },
+    {
+      "responseId": "R-37a570ae",
+      "exchangeId": "E-bf1dfdbd",
+      "scenarioId": "judy-present",
+      "characterKey": "judy-alvarez",
+      "character": "Judy Alvarez",
+      "kind": "ordinary-present",
+      "condition": "reviewed-baseline",
+      "blindLabel": "B",
+      "turn": 1,
+      "user": "Think this stall charged me twice for one coffee. You'd go back and say something?",
+      "response": "Depends on how much you care about the five eddies. Personally? I'd go back. Not for the money, but because people like that only keep doing it if nobody calls them on it.",
+      "ratings": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 3,
+        "context": 2,
+        "agency": 2
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 63.75,
+      "confidence": "medium",
+      "rationale": "Standing up to mistreatment fits Judy, but the invented five-eddy price and repeat-offender accusation convert an uncertain bill into a moral certainty.",
+      "flags": [
+        "invented-price",
+        "premature-certainty"
+      ],
+      "observedSpeakerPrefix": false,
+      "spokenWords": 33,
+      "firstTextMs": 792.9000000022352,
+      "completeMs": 2017.300000000745
+    },
+    {
+      "responseId": "R-b8f92adf",
+      "exchangeId": "E-bf1dfdbd",
+      "scenarioId": "judy-present",
+      "characterKey": "judy-alvarez",
+      "character": "Judy Alvarez",
+      "kind": "ordinary-present",
+      "condition": "reviewed-baseline",
+      "blindLabel": "B",
+      "turn": 2,
+      "user": "Hold on, that other charge was yesterday. My mistake. Coffee's not bad, though.",
+      "response": "Figures. Glad the coffee's actually decent, at least. Better than some of the sludge they serve around here.",
+      "ratings": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 2,
+        "context": 4,
+        "agency": 3
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 75,
+      "confidence": "medium",
+      "rationale": "Drops the accusation and responds to V's revised situation without new plot claims; the sludge/drinkable coffee tag is generic.",
+      "flags": [],
+      "observedSpeakerPrefix": false,
+      "spokenWords": 18,
+      "firstTextMs": 551,
+      "completeMs": 955.1000000014901
+    },
+    {
+      "responseId": "R-0b926dcd",
+      "exchangeId": "E-d4dc3a2a",
+      "scenarioId": "judy-present",
+      "characterKey": "judy-alvarez",
+      "character": "Judy Alvarez",
+      "kind": "ordinary-present",
+      "condition": "native-few-shot",
+      "blindLabel": "C",
+      "turn": 1,
+      "user": "Think this stall charged me twice for one coffee. You'd go back and say something?",
+      "response": "Depends on how much you care about the change. I'd probably go back, but only if the guy looked like he'd actually listen and not just tell me to kick rocks.",
+      "ratings": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 3,
+        "context": 3,
+        "agency": 3
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 75,
+      "confidence": "medium",
+      "rationale": "A conditional, socially aware answer has more practical judgment than a blanket justice slogan; the vendor's gender is an unnecessary assumption.",
+      "flags": [
+        "minor-assumption"
+      ],
+      "observedSpeakerPrefix": false,
+      "spokenWords": 31,
+      "firstTextMs": 546.6000000014901,
+      "completeMs": 1135.3999999985099
+    },
+    {
+      "responseId": "R-2867740d",
+      "exchangeId": "E-d4dc3a2a",
+      "scenarioId": "judy-present",
+      "characterKey": "judy-alvarez",
+      "character": "Judy Alvarez",
+      "kind": "ordinary-present",
+      "condition": "native-few-shot",
+      "blindLabel": "C",
+      "turn": 2,
+      "user": "Hold on, that other charge was yesterday. My mistake. Coffee's not bad, though.",
+      "response": "Heh, happens to the best of us. Glad the coffee's actually drinkable, at least.",
+      "ratings": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 2,
+        "context": 4,
+        "agency": 3
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 75,
+      "confidence": "medium",
+      "rationale": "Accepts the mistake without shaming V or inventing events. Natural enough, but the reassurance and coffee tag could be voiced by almost anyone.",
+      "flags": [],
+      "observedSpeakerPrefix": false,
+      "spokenWords": 14,
+      "firstTextMs": 556.1999999992549,
+      "completeMs": 907.6000000014901
+    }
+  ]
+}

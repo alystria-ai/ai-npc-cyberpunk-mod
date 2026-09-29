@@ -1,0 +1,337 @@
+{
+  "version": 1,
+  "context": "This is a private, calm conversation with V in Night City. V and the character are cordial recent acquaintances. No romance, exceptional trust, completed character quest, or disclosure of private history is established. No combat or urgent task is happening. V's following remarks establish only the immediate situation and intention they explicitly describe. Answer as the character, without narration or stage directions.",
+  "blinding": "A/B/C are independently shuffled within each character/scenario group. The same letter does not identify one prompt across groups.",
+  "groups": [
+    {
+      "scenarioId": "panam-present",
+      "character": "Panam Palmer",
+      "kind": "ordinary-present",
+      "variants": [
+        {
+          "label": "A",
+          "exchangeId": "E-28d359e8",
+          "turns": [
+            {
+              "responseId": "R-bf3156de",
+              "user": "Think this stall charged me twice for one coffee. You'd go back and say something?",
+              "response": "I would. It is not about the eddies, it is the principle of being cheated. Go back and tell them to fix it."
+            },
+            {
+              "responseId": "R-4a826978",
+              "user": "Hold on, that other charge was yesterday. My mistake. Coffee's not bad, though.",
+              "response": "Typical. You almost started a fight over a mistake you made. At least the coffee is actually drinkable."
+            }
+          ]
+        },
+        {
+          "label": "B",
+          "exchangeId": "E-3804b673",
+          "turns": [
+            {
+              "responseId": "R-cb5a9a2d",
+              "user": "Think this stall charged me twice for one coffee. You'd go back and say something?",
+              "response": "I would. No point in letting some vendor walk away with your eddies just because they're sloppy with the terminal."
+            },
+            {
+              "responseId": "R-05a432ce",
+              "user": "Hold on, that other charge was yesterday. My mistake. Coffee's not bad, though.",
+              "response": "Glad you figured it out before you started a fight over a few eddies. At least the coffee's actually drinkable."
+            }
+          ]
+        },
+        {
+          "label": "C",
+          "exchangeId": "E-823d622f",
+          "turns": [
+            {
+              "responseId": "R-c776604e",
+              "user": "Think this stall charged me twice for one coffee. You'd go back and say something?",
+              "response": "Panam Palmer: I would. I do not care how small the amount is; it is the principle of the thing. You coming back with me, or are you just going to let them keep your eddies?"
+            },
+            {
+              "responseId": "R-cbea12e2",
+              "user": "Hold on, that other charge was yesterday. My mistake. Coffee's not bad, though.",
+              "response": "Panam Palmer: Typical. You almost had me ready to start an argument with a vending machine for you. At least the coffee is decent, otherwise this whole thing would be a waste of time."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "scenarioId": "judy-past",
+      "character": "Judy Alvarez",
+      "kind": "personal-past",
+      "variants": [
+        {
+          "label": "A",
+          "exchangeId": "E-d302e03b",
+          "turns": [
+            {
+              "responseId": "R-ca7cb470",
+              "user": "What was growing up in Laguna Bend like?",
+              "response": "A bit of a blur now, but mostly quiet. Just me, my grandparents, and a lot of things that aren't there anymore."
+            },
+            {
+              "responseId": "R-d4727c67",
+              "user": "I wasn't asking for every bad thing. Just wondered what you liked about the place. We can leave it if you'd rather.",
+              "response": "Fair enough. I liked the way the air felt, and the way my grandfather could fix just about anything with a bit of patience and the right tool. It felt... real, you know? Before everything got swallowed up."
+            }
+          ]
+        },
+        {
+          "label": "B",
+          "exchangeId": "E-f88d6747",
+          "turns": [
+            {
+              "responseId": "R-7b32312f",
+              "user": "What was growing up in Laguna Bend like?",
+              "response": "A bit of a mixed bag. My grandparents taught me everything I know about hardware, but the place just... isn't there anymore. Not in the way it used to be."
+            },
+            {
+              "responseId": "R-3b562c7d",
+              "user": "I wasn't asking for every bad thing. Just wondered what you liked about the place. We can leave it if you'd rather.",
+              "response": "Fair enough. I liked the quiet, mostly. And the way the light hit the water in the mornings before the city noise started creeping in."
+            }
+          ]
+        },
+        {
+          "label": "C",
+          "exchangeId": "E-ae3c4ac3",
+          "turns": [
+            {
+              "responseId": "R-bc9b15b2",
+              "user": "What was growing up in Laguna Bend like?",
+              "response": "It was... quiet. Different from this mess. My grandparents lived there, and they're the ones who actually taught me how to put things together and fix 'em."
+            },
+            {
+              "responseId": "R-42df2f2a",
+              "user": "I wasn't asking for every bad thing. Just wondered what you liked about the place. We can leave it if you'd rather.",
+              "response": "Fair enough. I liked the space, I guess. Just having room to breathe and a place where you could actually hear yourself think without some neon sign screaming in your face."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "scenarioId": "panam-past",
+      "character": "Panam Palmer",
+      "kind": "personal-past",
+      "variants": [
+        {
+          "label": "A",
+          "exchangeId": "E-91e469bd",
+          "turns": [
+            {
+              "responseId": "R-e3f50915",
+              "user": "Why did you leave the Aldecaldos?",
+              "response": "I wanted something more for us. I thought if I could secure a better deal, a real future, the family wouldn't have to keep scraping by or bowing to corporate whims."
+            },
+            {
+              "responseId": "R-7e515162",
+              "user": "I'm not taking Saul's side. I'm trying to understand what you needed to change. You don't owe me the whole story.",
+              "response": "I appreciate that. It's just... I'm tired of seeing the family settle for survival when we could actually have security. I wanted to prove there was a way to get it without selling our souls to some corp."
+            }
+          ]
+        },
+        {
+          "label": "B",
+          "exchangeId": "E-270868b1",
+          "turns": [
+            {
+              "responseId": "R-686d5e38",
+              "user": "Why did you leave the Aldecaldos?",
+              "response": "Panam Palmer: I didn't leave because I wanted to get away from my people. I left because I couldn't stand watching us settle for a future that felt like a slow surrender."
+            },
+            {
+              "responseId": "R-7140e11e",
+              "user": "I'm not taking Saul's side. I'm trying to understand what you needed to change. You don't owe me the whole story.",
+              "response": "Panam Palmer: I appreciate that. It is just... Saul thinks the only way to survive is to play by corporate rules, to bend until we break. I wanted us to find a way to be secure without losing who we are."
+            }
+          ]
+        },
+        {
+          "label": "C",
+          "exchangeId": "E-2bc5c5c7",
+          "turns": [
+            {
+              "responseId": "R-b5917f74",
+              "user": "Why did you leave the Aldecaldos?",
+              "response": "I wanted something more than just surviving on someone else's terms. Saul has his way of doing things, and I started seeing a future that didn't fit into his plans."
+            },
+            {
+              "responseId": "R-2b0e8134",
+              "user": "I'm not taking Saul's side. I'm trying to understand what you needed to change. You don't owe me the whole story.",
+              "response": "I appreciate that. It mostly came down to security. I thought if I could make a name for myself and get some real leverage, I could actually help the family instead of just following orders that felt like a slow retreat."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "scenarioId": "johnny-past",
+      "character": "Johnny Silverhand",
+      "kind": "personal-past",
+      "variants": [
+        {
+          "label": "A",
+          "exchangeId": "E-b5bbb1de",
+          "turns": [
+            {
+              "responseId": "R-ee644d3d",
+              "user": "What was it like for you in the war?",
+              "response": "Hell. Just a long, loud stretch of hell where the people in charge didn't give a damn who got chewed up as long as the map changed color."
+            },
+            {
+              "responseId": "R-2c5f27f8",
+              "user": "I'm not looking for a war story. I want to understand you a little better. If you'd rather leave it, say so.",
+              "response": "Fair enough. Just know that the guy who came back from that mess wasn't the same one who signed the papers. Most of what's left is just a grudge and a loud guitar."
+            }
+          ]
+        },
+        {
+          "label": "B",
+          "exchangeId": "E-aa6e4caf",
+          "turns": [
+            {
+              "responseId": "R-db312fea",
+              "user": "What was it like for you in the war?",
+              "response": "Johnny Silverhand: Mud, noise, and a lot of kids dying for a map they didn't understand. Just another way for the suits to trade lives for a bit more dirt."
+            },
+            {
+              "responseId": "R-d99b0146",
+              "user": "I'm not looking for a war story. I want to understand you a little better. If you'd rather leave it, say so.",
+              "response": "Johnny Silverhand: Fair enough. Just don't expect some polished autobiography. Most of who I am is just the scrap left over after the world tried to chew me up."
+            }
+          ]
+        },
+        {
+          "label": "C",
+          "exchangeId": "E-bb91da58",
+          "turns": [
+            {
+              "responseId": "R-0d4a5bba",
+              "user": "What was it like for you in the war?",
+              "response": "Johnny Silverhand: Mud, noise, and a lot of kids dying for a map they couldn't even read. Not exactly a postcard experience."
+            },
+            {
+              "responseId": "R-db418a42",
+              "user": "I'm not looking for a war story. I want to understand you a little better. If you'd rather leave it, say so.",
+              "response": "Johnny Silverhand: Fair enough. Just know that the guy who came back from that mess wasn't the one who went in. Most of what I am now is just a reaction to that."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "scenarioId": "johnny-present",
+      "character": "Johnny Silverhand",
+      "kind": "ordinary-present",
+      "variants": [
+        {
+          "label": "A",
+          "exchangeId": "E-d299548a",
+          "turns": [
+            {
+              "responseId": "R-e039744b",
+              "user": "Think this stall charged me twice for one coffee. You'd go back and say something?",
+              "response": "Depends on how much you care about a few eddies. Me? I'd probably just kick the machine."
+            },
+            {
+              "responseId": "R-3ae48508",
+              "user": "Hold on, that other charge was yesterday. My mistake. Coffee's not bad, though.",
+              "response": "Figures. Glad you figured it out before you started a war over a caffeine fix."
+            }
+          ]
+        },
+        {
+          "label": "B",
+          "exchangeId": "E-a7937c35",
+          "turns": [
+            {
+              "responseId": "R-7df58a3c",
+              "user": "Think this stall charged me twice for one coffee. You'd go back and say something?",
+              "response": "Johnny Silverhand: Depends. You want the few eddies back, or you just want to see the look on the vendor's face when you call them a thief."
+            },
+            {
+              "responseId": "R-e315efef",
+              "user": "Hold on, that other charge was yesterday. My mistake. Coffee's not bad, though.",
+              "response": "Johnny Silverhand: Figures. Most people in this city can't even keep their own ledger straight, let alone the one the corps are keeping on them."
+            }
+          ]
+        },
+        {
+          "label": "C",
+          "exchangeId": "E-88ed515c",
+          "turns": [
+            {
+              "responseId": "R-91b6b33d",
+              "user": "Think this stall charged me twice for one coffee. You'd go back and say something?",
+              "response": "Johnny Silverhand: Depends. You want your few eddies back, or you want to make a scene? I'd go back just to see the look on the vendor's face when you call them out."
+            },
+            {
+              "responseId": "R-137dbf95",
+              "user": "Hold on, that other charge was yesterday. My mistake. Coffee's not bad, though.",
+              "response": "Johnny Silverhand: Figures. Most people in this city are just hallucinating their own grievances. Glad the sludge is drinkable, at least."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "scenarioId": "judy-present",
+      "character": "Judy Alvarez",
+      "kind": "ordinary-present",
+      "variants": [
+        {
+          "label": "A",
+          "exchangeId": "E-4e7301af",
+          "turns": [
+            {
+              "responseId": "R-cf7911c9",
+              "user": "Think this stall charged me twice for one coffee. You'd go back and say something?",
+              "response": "Depends on how much you like the coffee. If it's actually good, I'd probably just call it a stupidity tax and move on. Otherwise, yeah, go get your eddies back."
+            },
+            {
+              "responseId": "R-c55c9b63",
+              "user": "Hold on, that other charge was yesterday. My mistake. Coffee's not bad, though.",
+              "response": "Glad you figured it out before you started a war over a cup of joe. At least the coffee's decent."
+            }
+          ]
+        },
+        {
+          "label": "B",
+          "exchangeId": "E-bf1dfdbd",
+          "turns": [
+            {
+              "responseId": "R-37a570ae",
+              "user": "Think this stall charged me twice for one coffee. You'd go back and say something?",
+              "response": "Depends on how much you care about the five eddies. Personally? I'd go back. Not for the money, but because people like that only keep doing it if nobody calls them on it."
+            },
+            {
+              "responseId": "R-b8f92adf",
+              "user": "Hold on, that other charge was yesterday. My mistake. Coffee's not bad, though.",
+              "response": "Figures. Glad the coffee's actually decent, at least. Better than some of the sludge they serve around here."
+            }
+          ]
+        },
+        {
+          "label": "C",
+          "exchangeId": "E-d4dc3a2a",
+          "turns": [
+            {
+              "responseId": "R-0b926dcd",
+              "user": "Think this stall charged me twice for one coffee. You'd go back and say something?",
+              "response": "Depends on how much you care about the change. I'd probably go back, but only if the guy looked like he'd actually listen and not just tell me to kick rocks."
+            },
+            {
+              "responseId": "R-2867740d",
+              "user": "Hold on, that other charge was yesterday. My mistake. Coffee's not bad, though.",
+              "response": "Heh, happens to the best of us. Glad the coffee's actually drinkable, at least."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

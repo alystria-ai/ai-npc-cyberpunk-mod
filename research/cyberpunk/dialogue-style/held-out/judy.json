@@ -1,0 +1,228 @@
+{
+  "version": 1,
+  "characterKey": "judy-alvarez",
+  "purpose": "held-out scoring references; never include in generation prompts",
+  "scope": "Brief installed English subtitle excerpts, verified against scene speaker definitions. Context summaries are original. Distinct branches are examples, not an asserted sequence or current-save history.",
+  "references": [
+    {
+      "id": "judy-held-out-01",
+      "context": "At the lakeside morning scene Judy asks for quiet company; the scene does not grant this trial romance.",
+      "text": "Will ya sit with me a while?",
+      "provenance": {
+        "scene": {
+          "archive": "base",
+          "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+          "archiveEntrySha1": "f1b8ec8b1f162ded8c8e3843518a44d15a986098",
+          "depotPath": "base\\quest\\side_quests\\sq030\\scenes\\sq030_11_morning.scene",
+          "pathHash64": "5273244802079820734",
+          "assetSha256": "cafeac069c24f55df7199d97f656d721c0298fefcae45c44386a3bfd2231a1d3",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq030/scenes/sq030_11_morning.scene.json",
+          "batch": "core-relationships"
+        },
+        "speakerActorId": 0,
+        "speakerName": "Judy",
+        "actorPointer": "/Data/RootChunk/actors/0",
+        "locstringId": "1751653949060923392",
+        "variantId": "3521580910183964672",
+        "descriptorPointer": "/Data/RootChunk/locStore/vdEntries/248",
+        "payloadPointer": "/Data/RootChunk/locStore/vpEntries/2",
+        "screenplayPointers": [
+          "/Data/RootChunk/screenplayStore/lines/0"
+        ],
+        "installedEnglishSubtitle": {
+          "id": "1751653949060923392",
+          "domain": "subtitle.stringId",
+          "contentMatchesOneGenderVariant": true,
+          "source": {
+            "archive": "base",
+            "archivePath": "archive/pc/content/lang_en_text.archive",
+            "archiveSha256": "a6a4735fcfa59dc0493ce270fc2faa59d8bfd171d56c99bc587f11d3f3ec83e3",
+            "depotPath": "base\\localization\\en-us\\subtitles\\quest\\sq030\\sq030_11_morning.json",
+            "pathHash64": "9587816562065204144",
+            "archiveEntrySha1": "6b7ba101d240203c01288c17b3e9bdf431ffe15a",
+            "assetSha256": "32c782049da7e80fc074f4e39607de6cff86bd1098b6a6cfa283aefbd1302c1a",
+            "rawPath": "raw/base/base/localization/en-us/subtitles/quest/sq030/sq030_11_morning.json",
+            "jsonPath": "raw/base/base/localization/en-us/subtitles/quest/sq030/sq030_11_morning.json.json"
+          },
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/0"
+        }
+      }
+    },
+    {
+      "id": "judy-held-out-02",
+      "context": "Judy hesitates before asking what the previous night meant in the relevant branch.",
+      "text": "So... yesterday... What was that, exactly?",
+      "provenance": {
+        "scene": {
+          "archive": "base",
+          "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+          "archiveEntrySha1": "f1b8ec8b1f162ded8c8e3843518a44d15a986098",
+          "depotPath": "base\\quest\\side_quests\\sq030\\scenes\\sq030_11_morning.scene",
+          "pathHash64": "5273244802079820734",
+          "assetSha256": "cafeac069c24f55df7199d97f656d721c0298fefcae45c44386a3bfd2231a1d3",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq030/scenes/sq030_11_morning.scene.json",
+          "batch": "core-relationships"
+        },
+        "speakerActorId": 0,
+        "speakerName": "Judy",
+        "actorPointer": "/Data/RootChunk/actors/0",
+        "locstringId": "1751657975072669696",
+        "variantId": "3521580910267850780",
+        "descriptorPointer": "/Data/RootChunk/locStore/vdEntries/250",
+        "payloadPointer": "/Data/RootChunk/locStore/vpEntries/166",
+        "screenplayPointers": [
+          "/Data/RootChunk/screenplayStore/lines/48"
+        ],
+        "installedEnglishSubtitle": {
+          "id": "1751657975072669696",
+          "domain": "subtitle.stringId",
+          "contentMatchesOneGenderVariant": true,
+          "source": {
+            "archive": "base",
+            "archivePath": "archive/pc/content/lang_en_text.archive",
+            "archiveSha256": "a6a4735fcfa59dc0493ce270fc2faa59d8bfd171d56c99bc587f11d3f3ec83e3",
+            "depotPath": "base\\localization\\en-us\\subtitles\\quest\\sq030\\sq030_11_morning.json",
+            "pathHash64": "9587816562065204144",
+            "archiveEntrySha1": "6b7ba101d240203c01288c17b3e9bdf431ffe15a",
+            "assetSha256": "32c782049da7e80fc074f4e39607de6cff86bd1098b6a6cfa283aefbd1302c1a",
+            "rawPath": "raw/base/base/localization/en-us/subtitles/quest/sq030/sq030_11_morning.json",
+            "jsonPath": "raw/base/base/localization/en-us/subtitles/quest/sq030/sq030_11_morning.json.json"
+          },
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/2"
+        }
+      }
+    },
+    {
+      "id": "judy-held-out-03",
+      "context": "Judy responds to the idea of moving elsewhere with a guarded observation about cities.",
+      "text": "Maybe so... Maybe all cities got allurin' faces... But stay long in one and you see what's behind it.",
+      "provenance": {
+        "scene": {
+          "archive": "base",
+          "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+          "archiveEntrySha1": "f1b8ec8b1f162ded8c8e3843518a44d15a986098",
+          "depotPath": "base\\quest\\side_quests\\sq030\\scenes\\sq030_11_morning.scene",
+          "pathHash64": "5273244802079820734",
+          "assetSha256": "cafeac069c24f55df7199d97f656d721c0298fefcae45c44386a3bfd2231a1d3",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq030/scenes/sq030_11_morning.scene.json",
+          "batch": "core-relationships"
+        },
+        "speakerActorId": 0,
+        "speakerName": "Judy",
+        "actorPointer": "/Data/RootChunk/actors/0",
+        "locstringId": "1765043703282384896",
+        "variantId": "3521580910267850752",
+        "descriptorPointer": "/Data/RootChunk/locStore/vdEntries/289",
+        "payloadPointer": "/Data/RootChunk/locStore/vpEntries/145",
+        "screenplayPointers": [
+          "/Data/RootChunk/screenplayStore/lines/42"
+        ],
+        "installedEnglishSubtitle": {
+          "id": "1765043703282384896",
+          "domain": "subtitle.stringId",
+          "contentMatchesOneGenderVariant": true,
+          "source": {
+            "archive": "base",
+            "archivePath": "archive/pc/content/lang_en_text.archive",
+            "archiveSha256": "a6a4735fcfa59dc0493ce270fc2faa59d8bfd171d56c99bc587f11d3f3ec83e3",
+            "depotPath": "base\\localization\\en-us\\subtitles\\quest\\sq030\\sq030_11_morning.json",
+            "pathHash64": "9587816562065204144",
+            "archiveEntrySha1": "6b7ba101d240203c01288c17b3e9bdf431ffe15a",
+            "assetSha256": "32c782049da7e80fc074f4e39607de6cff86bd1098b6a6cfa283aefbd1302c1a",
+            "rawPath": "raw/base/base/localization/en-us/subtitles/quest/sq030/sq030_11_morning.json",
+            "jsonPath": "raw/base/base/localization/en-us/subtitles/quest/sq030/sq030_11_morning.json.json"
+          },
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/35"
+        }
+      }
+    },
+    {
+      "id": "judy-held-out-04",
+      "context": "Judy presses for a personal meaning rather than accepting an evasive answer.",
+      "text": "You know exactly what I'm tryna say. What did it mean, like, to you?",
+      "provenance": {
+        "scene": {
+          "archive": "base",
+          "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+          "archiveEntrySha1": "f1b8ec8b1f162ded8c8e3843518a44d15a986098",
+          "depotPath": "base\\quest\\side_quests\\sq030\\scenes\\sq030_11_morning.scene",
+          "pathHash64": "5273244802079820734",
+          "assetSha256": "cafeac069c24f55df7199d97f656d721c0298fefcae45c44386a3bfd2231a1d3",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq030/scenes/sq030_11_morning.scene.json",
+          "batch": "core-relationships"
+        },
+        "speakerActorId": 0,
+        "speakerName": "Judy",
+        "actorPointer": "/Data/RootChunk/actors/0",
+        "locstringId": "1799690050371018752",
+        "variantId": "3521580910267850792",
+        "descriptorPointer": "/Data/RootChunk/locStore/vdEntries/293",
+        "payloadPointer": "/Data/RootChunk/locStore/vpEntries/173",
+        "screenplayPointers": [
+          "/Data/RootChunk/screenplayStore/lines/50"
+        ],
+        "installedEnglishSubtitle": {
+          "id": "1799690050371018752",
+          "domain": "subtitle.stringId",
+          "contentMatchesOneGenderVariant": true,
+          "source": {
+            "archive": "base",
+            "archivePath": "archive/pc/content/lang_en_text.archive",
+            "archiveSha256": "a6a4735fcfa59dc0493ce270fc2faa59d8bfd171d56c99bc587f11d3f3ec83e3",
+            "depotPath": "base\\localization\\en-us\\subtitles\\quest\\sq030\\sq030_11_morning.json",
+            "pathHash64": "9587816562065204144",
+            "archiveEntrySha1": "6b7ba101d240203c01288c17b3e9bdf431ffe15a",
+            "assetSha256": "32c782049da7e80fc074f4e39607de6cff86bd1098b6a6cfa283aefbd1302c1a",
+            "rawPath": "raw/base/base/localization/en-us/subtitles/quest/sq030/sq030_11_morning.json",
+            "jsonPath": "raw/base/base/localization/en-us/subtitles/quest/sq030/sq030_11_morning.json.json"
+          },
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/38"
+        }
+      }
+    },
+    {
+      "id": "judy-held-out-05",
+      "context": "Judy gives a short, exasperated response in the personal morning conversation.",
+      "text": "Ugh... Can be such a gonk sometimes.",
+      "provenance": {
+        "scene": {
+          "archive": "base",
+          "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+          "archiveEntrySha1": "f1b8ec8b1f162ded8c8e3843518a44d15a986098",
+          "depotPath": "base\\quest\\side_quests\\sq030\\scenes\\sq030_11_morning.scene",
+          "pathHash64": "5273244802079820734",
+          "assetSha256": "cafeac069c24f55df7199d97f656d721c0298fefcae45c44386a3bfd2231a1d3",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq030/scenes/sq030_11_morning.scene.json",
+          "batch": "core-relationships"
+        },
+        "speakerActorId": 0,
+        "speakerName": "Judy",
+        "actorPointer": "/Data/RootChunk/actors/0",
+        "locstringId": "1799719924435476480",
+        "variantId": "3521580910200741912",
+        "descriptorPointer": "/Data/RootChunk/locStore/vdEntries/296",
+        "payloadPointer": "/Data/RootChunk/locStore/vpEntries/32",
+        "screenplayPointers": [
+          "/Data/RootChunk/screenplayStore/lines/9"
+        ],
+        "installedEnglishSubtitle": {
+          "id": "1799719924435476480",
+          "domain": "subtitle.stringId",
+          "contentMatchesOneGenderVariant": true,
+          "source": {
+            "archive": "base",
+            "archivePath": "archive/pc/content/lang_en_text.archive",
+            "archiveSha256": "a6a4735fcfa59dc0493ce270fc2faa59d8bfd171d56c99bc587f11d3f3ec83e3",
+            "depotPath": "base\\localization\\en-us\\subtitles\\quest\\sq030\\sq030_11_morning.json",
+            "pathHash64": "9587816562065204144",
+            "archiveEntrySha1": "6b7ba101d240203c01288c17b3e9bdf431ffe15a",
+            "assetSha256": "32c782049da7e80fc074f4e39607de6cff86bd1098b6a6cfa283aefbd1302c1a",
+            "rawPath": "raw/base/base/localization/en-us/subtitles/quest/sq030/sq030_11_morning.json",
+            "jsonPath": "raw/base/base/localization/en-us/subtitles/quest/sq030/sq030_11_morning.json.json"
+          },
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/41"
+        }
+      }
+    }
+  ]
+}

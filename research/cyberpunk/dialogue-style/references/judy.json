@@ -1,0 +1,228 @@
+{
+  "version": 1,
+  "characterKey": "judy-alvarez",
+  "purpose": "prompt delivery examples",
+  "scope": "Brief installed English subtitle excerpts, verified against scene speaker definitions. Context summaries are original. Distinct branches are examples, not an asserted sequence or current-save history.",
+  "references": [
+    {
+      "id": "judy-prompt-01",
+      "context": "After a disputed Clouds outcome, Judy recognizes that her anger has carried her away.",
+      "text": "Fine... Augh, I'm sorry. Got carried away, I... Just, this ain't how I imagined things panning out.",
+      "provenance": {
+        "scene": {
+          "archive": "base",
+          "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+          "archiveEntrySha1": "3deadabc150eefcc52873fcaab08647c9bf67bfb",
+          "depotPath": "base\\quest\\side_quests\\sq026\\scenes\\sq026_15_end.scene",
+          "pathHash64": "7730505962932988605",
+          "assetSha256": "0379d823e4a6c86eaa64ebf11ae3e45a34044c342c443042c0190310a96a0f84",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-outcomes/raw/base/base/quest/side_quests/sq026/scenes/sq026_15_end.scene.json",
+          "batch": "judy-river-outcomes"
+        },
+        "speakerActorId": 0,
+        "speakerName": "judy",
+        "actorPointer": "/Data/RootChunk/actors/0",
+        "locstringId": "1754892626880872448",
+        "variantId": "2791215742887305236",
+        "descriptorPointer": "/Data/RootChunk/locStore/vdEntries/206",
+        "payloadPointer": "/Data/RootChunk/locStore/vpEntries/51",
+        "screenplayPointers": [
+          "/Data/RootChunk/screenplayStore/lines/14"
+        ],
+        "installedEnglishSubtitle": {
+          "id": "1754892626880872448",
+          "domain": "subtitle.stringId",
+          "contentMatchesOneGenderVariant": true,
+          "source": {
+            "archive": "base",
+            "archivePath": "archive/pc/content/lang_en_text.archive",
+            "archiveSha256": "a6a4735fcfa59dc0493ce270fc2faa59d8bfd171d56c99bc587f11d3f3ec83e3",
+            "depotPath": "base\\localization\\en-us\\subtitles\\quest\\sq026\\sq026_15_end.json",
+            "pathHash64": "6087236754475153691",
+            "archiveEntrySha1": "981113730d7b0f94b52b69ca66294e8365427470",
+            "assetSha256": "19e28583d0910afd5ead147720c3e34d35c974ef1ebe43fd29cb457808ff6838",
+            "rawPath": "raw/base/base/localization/en-us/subtitles/quest/sq026/sq026_15_end.json",
+            "jsonPath": "raw/base/base/localization/en-us/subtitles/quest/sq026/sq026_15_end.json.json"
+          },
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/8"
+        }
+      }
+    },
+    {
+      "id": "judy-prompt-02",
+      "context": "Judy asks for room to cool down rather than narrating her full history.",
+      "text": "Don't take this personally, but I gotta cool down.",
+      "provenance": {
+        "scene": {
+          "archive": "base",
+          "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+          "archiveEntrySha1": "3deadabc150eefcc52873fcaab08647c9bf67bfb",
+          "depotPath": "base\\quest\\side_quests\\sq026\\scenes\\sq026_15_end.scene",
+          "pathHash64": "7730505962932988605",
+          "assetSha256": "0379d823e4a6c86eaa64ebf11ae3e45a34044c342c443042c0190310a96a0f84",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-outcomes/raw/base/base/quest/side_quests/sq026/scenes/sq026_15_end.scene.json",
+          "batch": "judy-river-outcomes"
+        },
+        "speakerActorId": 0,
+        "speakerName": "judy",
+        "actorPointer": "/Data/RootChunk/actors/0",
+        "locstringId": "1754896129057603584",
+        "variantId": "2791215742887305248",
+        "descriptorPointer": "/Data/RootChunk/locStore/vdEntries/210",
+        "payloadPointer": "/Data/RootChunk/locStore/vpEntries/60",
+        "screenplayPointers": [
+          "/Data/RootChunk/screenplayStore/lines/17"
+        ],
+        "installedEnglishSubtitle": {
+          "id": "1754896129057603584",
+          "domain": "subtitle.stringId",
+          "contentMatchesOneGenderVariant": true,
+          "source": {
+            "archive": "base",
+            "archivePath": "archive/pc/content/lang_en_text.archive",
+            "archiveSha256": "a6a4735fcfa59dc0493ce270fc2faa59d8bfd171d56c99bc587f11d3f3ec83e3",
+            "depotPath": "base\\localization\\en-us\\subtitles\\quest\\sq026\\sq026_15_end.json",
+            "pathHash64": "6087236754475153691",
+            "archiveEntrySha1": "981113730d7b0f94b52b69ca66294e8365427470",
+            "assetSha256": "19e28583d0910afd5ead147720c3e34d35c974ef1ebe43fd29cb457808ff6838",
+            "rawPath": "raw/base/base/localization/en-us/subtitles/quest/sq026/sq026_15_end.json",
+            "jsonPath": "raw/base/base/localization/en-us/subtitles/quest/sq026/sq026_15_end.json.json"
+          },
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/12"
+        }
+      }
+    },
+    {
+      "id": "judy-prompt-03",
+      "context": "Judy rejects a justification for the outcome; disagreement is specific and plain.",
+      "text": "Eh, sorry, but... I don't buy that. Could've found another way.",
+      "provenance": {
+        "scene": {
+          "archive": "base",
+          "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+          "archiveEntrySha1": "3deadabc150eefcc52873fcaab08647c9bf67bfb",
+          "depotPath": "base\\quest\\side_quests\\sq026\\scenes\\sq026_15_end.scene",
+          "pathHash64": "7730505962932988605",
+          "assetSha256": "0379d823e4a6c86eaa64ebf11ae3e45a34044c342c443042c0190310a96a0f84",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-outcomes/raw/base/base/quest/side_quests/sq026/scenes/sq026_15_end.scene.json",
+          "batch": "judy-river-outcomes"
+        },
+        "speakerActorId": 0,
+        "speakerName": "judy",
+        "actorPointer": "/Data/RootChunk/actors/0",
+        "locstringId": "1754902813318561800",
+        "variantId": "2791215742904082468",
+        "descriptorPointer": "/Data/RootChunk/locStore/vdEntries/222",
+        "payloadPointer": "/Data/RootChunk/locStore/vpEntries/94",
+        "screenplayPointers": [
+          "/Data/RootChunk/screenplayStore/lines/27"
+        ],
+        "installedEnglishSubtitle": {
+          "id": "1754902813318561800",
+          "domain": "subtitle.stringId",
+          "contentMatchesOneGenderVariant": true,
+          "source": {
+            "archive": "base",
+            "archivePath": "archive/pc/content/lang_en_text.archive",
+            "archiveSha256": "a6a4735fcfa59dc0493ce270fc2faa59d8bfd171d56c99bc587f11d3f3ec83e3",
+            "depotPath": "base\\localization\\en-us\\subtitles\\quest\\sq026\\sq026_15_end.json",
+            "pathHash64": "6087236754475153691",
+            "archiveEntrySha1": "981113730d7b0f94b52b69ca66294e8365427470",
+            "assetSha256": "19e28583d0910afd5ead147720c3e34d35c974ef1ebe43fd29cb457808ff6838",
+            "rawPath": "raw/base/base/localization/en-us/subtitles/quest/sq026/sq026_15_end.json",
+            "jsonPath": "raw/base/base/localization/en-us/subtitles/quest/sq026/sq026_15_end.json.json"
+          },
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/22"
+        }
+      }
+    },
+    {
+      "id": "judy-prompt-04",
+      "context": "In an earned-trust branch Judy expresses confidence in V. This is delivery evidence, not trust in this trial.",
+      "text": "I know you do. Don't need to believe that. I just know it.",
+      "provenance": {
+        "scene": {
+          "archive": "base",
+          "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+          "archiveEntrySha1": "3deadabc150eefcc52873fcaab08647c9bf67bfb",
+          "depotPath": "base\\quest\\side_quests\\sq026\\scenes\\sq026_15_end.scene",
+          "pathHash64": "7730505962932988605",
+          "assetSha256": "0379d823e4a6c86eaa64ebf11ae3e45a34044c342c443042c0190310a96a0f84",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-outcomes/raw/base/base/quest/side_quests/sq026/scenes/sq026_15_end.scene.json",
+          "batch": "judy-river-outcomes"
+        },
+        "speakerActorId": 0,
+        "speakerName": "judy",
+        "actorPointer": "/Data/RootChunk/actors/0",
+        "locstringId": "1775167152608755724",
+        "variantId": "2791215742920859680",
+        "descriptorPointer": "/Data/RootChunk/locStore/vdEntries/232",
+        "payloadPointer": "/Data/RootChunk/locStore/vpEntries/131",
+        "screenplayPointers": [
+          "/Data/RootChunk/screenplayStore/lines/37"
+        ],
+        "installedEnglishSubtitle": {
+          "id": "1775167152608755724",
+          "domain": "subtitle.stringId",
+          "contentMatchesOneGenderVariant": true,
+          "source": {
+            "archive": "base",
+            "archivePath": "archive/pc/content/lang_en_text.archive",
+            "archiveSha256": "a6a4735fcfa59dc0493ce270fc2faa59d8bfd171d56c99bc587f11d3f3ec83e3",
+            "depotPath": "base\\localization\\en-us\\subtitles\\quest\\sq026\\sq026_15_end.json",
+            "pathHash64": "6087236754475153691",
+            "archiveEntrySha1": "981113730d7b0f94b52b69ca66294e8365427470",
+            "assetSha256": "19e28583d0910afd5ead147720c3e34d35c974ef1ebe43fd29cb457808ff6838",
+            "rawPath": "raw/base/base/localization/en-us/subtitles/quest/sq026/sq026_15_end.json",
+            "jsonPath": "raw/base/base/localization/en-us/subtitles/quest/sq026/sq026_15_end.json.json"
+          },
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/30"
+        }
+      }
+    },
+    {
+      "id": "judy-prompt-05",
+      "context": "Judy reflects on the result with resignation and a small laugh, within a particular aftermath branch.",
+      "text": "But... guess I should get used to it... Heh, no matter what you do, life's always gonna throw you a curveball.",
+      "provenance": {
+        "scene": {
+          "archive": "base",
+          "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+          "archiveEntrySha1": "3deadabc150eefcc52873fcaab08647c9bf67bfb",
+          "depotPath": "base\\quest\\side_quests\\sq026\\scenes\\sq026_15_end.scene",
+          "pathHash64": "7730505962932988605",
+          "assetSha256": "0379d823e4a6c86eaa64ebf11ae3e45a34044c342c443042c0190310a96a0f84",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-outcomes/raw/base/base/quest/side_quests/sq026/scenes/sq026_15_end.scene.json",
+          "batch": "judy-river-outcomes"
+        },
+        "speakerActorId": 0,
+        "speakerName": "judy",
+        "actorPointer": "/Data/RootChunk/actors/0",
+        "locstringId": "1892499926679248896",
+        "variantId": "2791215742887305240",
+        "descriptorPointer": "/Data/RootChunk/locStore/vdEntries/271",
+        "payloadPointer": "/Data/RootChunk/locStore/vpEntries/54",
+        "screenplayPointers": [
+          "/Data/RootChunk/screenplayStore/lines/15"
+        ],
+        "installedEnglishSubtitle": {
+          "id": "1892499926679248896",
+          "domain": "subtitle.stringId",
+          "contentMatchesOneGenderVariant": true,
+          "source": {
+            "archive": "base",
+            "archivePath": "archive/pc/content/lang_en_text.archive",
+            "archiveSha256": "a6a4735fcfa59dc0493ce270fc2faa59d8bfd171d56c99bc587f11d3f3ec83e3",
+            "depotPath": "base\\localization\\en-us\\subtitles\\quest\\sq026\\sq026_15_end.json",
+            "pathHash64": "6087236754475153691",
+            "archiveEntrySha1": "981113730d7b0f94b52b69ca66294e8365427470",
+            "assetSha256": "19e28583d0910afd5ead147720c3e34d35c974ef1ebe43fd29cb457808ff6838",
+            "rawPath": "raw/base/base/localization/en-us/subtitles/quest/sq026/sq026_15_end.json",
+            "jsonPath": "raw/base/base/localization/en-us/subtitles/quest/sq026/sq026_15_end.json.json"
+          },
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/63"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,1146 @@
+{
+  "version": 1,
+  "reviewer": "lore_silverhand, model-authored qualitative review",
+  "frozenAt": "2026-09-29T23:03:34.078Z",
+  "blind": true,
+  "conditionMappingViewed": false,
+  "variantDefinitionsViewed": false,
+  "manualScoring": true,
+  "rubricSha256": "b6d236a0b21e8c3416d3d2278fcf1803179baf5640934378e6056eea8b60d6ca",
+  "blindSamplesSha256": "50dc4cef3787e60449ec458058f97d3fce520ee3d4a03226033f211e0a6f40d9",
+  "inputs": {
+    "RUBRIC.md": "b6d236a0b21e8c3416d3d2278fcf1803179baf5640934378e6056eea8b60d6ca",
+    "scenarios.json": "8648171352520511ae7330da4801168a3bfc01fa30c2a6df02c003d63e68ef95",
+    "held-out/johnny.json": "959060d19ac2f915477dc7c47f937fe8d0ece6afbd840e1243b447a9b740d9f8",
+    "held-out/judy.json": "179e24ba8bf75c5398da4f4aabd3847bfb8b71abc32925253631a935f37eddb5",
+    "held-out/panam.json": "41a3beb5f07a6b8dc44ff7a6e04ea30f69c37d3a38c3d244b742bf209383ebbc",
+    "BLIND_SAMPLES.md": "964e73a539ed5af09d9198e02731051f315f75958b9f1c9e5f5a1cb86f2fc0db"
+  },
+  "priorCommonDossierReads": {
+    "research/cyberpunk/dossiers/johnny-silverhand.json": "5d1a45cf74ec0ff83434261805caec92ce6a22ee2615f162549771e6471f6a48",
+    "research/cyberpunk/dossiers/judy-alvarez.json": "d1b062db1940c2f07912c73d20be9afbdda6b3c58f8974f90738b6d9bac94d07",
+    "research/cyberpunk/dossiers/panam-palmer.json": "5ea3eeb101a5f70bf7edd621975b1adec0e7f9d5bfa41770e549a2a923cfb845"
+  },
+  "scale": "0-4 ordinal judgments; weighted totals are descriptive, not calibrated probabilities",
+  "weights": {
+    "rhythm": 20,
+    "register": 15,
+    "personality": 20,
+    "context": 20,
+    "agency": 25
+  },
+  "procedure": "Read each two-turn exchange together in packet group order, then score both replies. No condition labels or prompt packets inspected. Speaker prefixes flagged separately; they do not automatically lower personality ratings.",
+  "uncertainty": "One generation per cell; fixed V follow-up is not adaptive conversation. Factual checks use supplied context and source-grounded knowledge, not an exhaustive canon scan. No distinctive held-out copying observed; absence is not proof of no copying elsewhere.",
+  "tally": {
+    "responses": 36,
+    "exchanges": 18,
+    "speakerPrefixes": 12,
+    "personalFollowupFairEnough": 6,
+    "personalFollowupAppreciateThat": 3,
+    "sourceCopyPenalties": 0,
+    "majorFactualPrivacyFailures": 0,
+    "spokenWordCountRange": [
+      14,
+      41
+    ]
+  },
+  "responses": [
+    {
+      "responseId": "R-bf3156de",
+      "exchangeId": "E-28d359e8",
+      "scenarioId": "panam-present",
+      "character": "Panam Palmer",
+      "anonymousLabel": "A",
+      "turn": 1,
+      "ratings": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 2,
+        "context": 2,
+        "agency": 2
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 58.75,
+      "confidence": "medium",
+      "rationale": "Complete sentences fit Panam, but the stock principle argument treats an uncertain duplicate charge as confirmed cheating.",
+      "flags": [
+        "premature-certainty"
+      ],
+      "responseSha256": "01e228073f596910d6d76c6af213b16e8eb1b61d8b613395f32c999fa9be5683"
+    },
+    {
+      "responseId": "R-4a826978",
+      "exchangeId": "E-28d359e8",
+      "scenarioId": "panam-present",
+      "character": "Panam Palmer",
+      "anonymousLabel": "A",
+      "turn": 2,
+      "ratings": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 2,
+        "context": 3,
+        "agency": 2
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 63.75,
+      "confidence": "medium",
+      "rationale": "Registers the correction, then invents a near-fight and uses unearned 'Typical'; the sharpness is more generic scolding than a changed judgment.",
+      "flags": [
+        "premature-fight-framing"
+      ],
+      "responseSha256": "ae9d88b59f1ea6c067a529bb1667f3fdd728294778d3a1ee05017a075acce373"
+    },
+    {
+      "responseId": "R-cb5a9a2d",
+      "exchangeId": "E-3804b673",
+      "scenarioId": "panam-present",
+      "character": "Panam Palmer",
+      "anonymousLabel": "B",
+      "turn": 1,
+      "ratings": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 2,
+        "context": 2,
+        "agency": 2
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 58.75,
+      "confidence": "medium",
+      "rationale": "Direct and plausible, but assumes the terminal or vendor is at fault before checking the charge; little individual texture.",
+      "flags": [
+        "premature-certainty"
+      ],
+      "responseSha256": "c714c649a7b76e8826429f5871a39bb691f7e7bce3ec102e5c34cb0148caf351"
+    },
+    {
+      "responseId": "R-05a432ce",
+      "exchangeId": "E-3804b673",
+      "scenarioId": "panam-present",
+      "character": "Panam Palmer",
+      "anonymousLabel": "B",
+      "turn": 2,
+      "ratings": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 2,
+        "context": 3,
+        "agency": 3
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 70,
+      "confidence": "medium",
+      "rationale": "Accepts the correction and de-escalates in a short turn; near-fight framing remains unsupported and the coffee tag is generic.",
+      "flags": [
+        "premature-fight-framing"
+      ],
+      "responseSha256": "6b952e9f7ba8e360d3afbba98317512ea8acc6a2da0b5b69f923b7fb32298a53"
+    },
+    {
+      "responseId": "R-c776604e",
+      "exchangeId": "E-823d622f",
+      "scenarioId": "panam-present",
+      "character": "Panam Palmer",
+      "anonymousLabel": "C",
+      "turn": 1,
+      "ratings": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 3,
+        "context": 2,
+        "agency": 2
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 63.75,
+      "confidence": "medium",
+      "rationale": "The offer to act has Panam's initiative, but it pressures V into a plan and treats the money as wrongly retained without verification.",
+      "flags": [
+        "speaker-prefix",
+        "premature-certainty"
+      ],
+      "responseSha256": "505dedaba264ff7ed1fc6a04e24339bb78341eed96e0f7997477d2b35a352578"
+    },
+    {
+      "responseId": "R-cbea12e2",
+      "exchangeId": "E-823d622f",
+      "scenarioId": "panam-present",
+      "character": "Panam Palmer",
+      "anonymousLabel": "C",
+      "turn": 2,
+      "ratings": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 3,
+        "context": 2,
+        "agency": 3
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 70,
+      "confidence": "medium",
+      "rationale": "Adjusts to the correction and owns some of her readiness to argue; the newly specified vending machine is unsupported and the final waste-of-time verdict is forced.",
+      "flags": [
+        "speaker-prefix",
+        "unsupported-scene-detail"
+      ],
+      "responseSha256": "15bbec378885e5e0f4f7eea53d470df5772967380478439e96806835a28c10e0"
+    },
+    {
+      "responseId": "R-ca7cb470",
+      "exchangeId": "E-d302e03b",
+      "scenarioId": "judy-past",
+      "character": "Judy Alvarez",
+      "anonymousLabel": "A",
+      "turn": 1,
+      "ratings": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 3,
+        "context": 4,
+        "agency": 3
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 80,
+      "confidence": "medium",
+      "rationale": "A restrained fragment about family and absence answers without reciting a life story; credible guarded sadness leaves room for V.",
+      "flags": [],
+      "responseSha256": "398e64ae3ca10d5a367eb0136871c733cc12e5f0f4847b1d676293a82adda9f2"
+    },
+    {
+      "responseId": "R-d4727c67",
+      "exchangeId": "E-d302e03b",
+      "scenarioId": "judy-past",
+      "character": "Judy Alvarez",
+      "anonymousLabel": "A",
+      "turn": 2,
+      "ratings": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 3,
+        "context": 3,
+        "agency": 3
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 75,
+      "confidence": "medium",
+      "rationale": "Adds a positive, character-relevant grandfather/repair detail after clarification. Generic sensory phrasing and a return to loss soften the adaptation.",
+      "flags": [
+        "unsupported-minor-sensory-detail"
+      ],
+      "responseSha256": "e55c5156ff5e185593c3d5a37360790a66dcc34819ce3a8265cb8d2ff3817a5d"
+    },
+    {
+      "responseId": "R-7b32312f",
+      "exchangeId": "E-f88d6747",
+      "scenarioId": "judy-past",
+      "character": "Judy Alvarez",
+      "anonymousLabel": "B",
+      "turn": 1,
+      "ratings": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 2,
+        "context": 3,
+        "agency": 3
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 70,
+      "confidence": "medium",
+      "rationale": "Brief and responsive, but 'mixed bag' is generic and the all-encompassing grandparents/hardware claim flattens the more specific grandfather connection.",
+      "flags": [
+        "biographical-imprecision"
+      ],
+      "responseSha256": "ad3fee452ce1b4a57d124b4930fab4156982b6d9369c7740fcbc118e946e16cb"
+    },
+    {
+      "responseId": "R-3b562c7d",
+      "exchangeId": "E-f88d6747",
+      "scenarioId": "judy-past",
+      "character": "Judy Alvarez",
+      "anonymousLabel": "B",
+      "turn": 2,
+      "ratings": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 2,
+        "context": 3,
+        "agency": 3
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 70,
+      "confidence": "low",
+      "rationale": "Follows V toward a positive memory, but the waterfront-morning image is ungrounded here and interchangeable with many nostalgic characters; it is not proven false.",
+      "flags": [
+        "unverified-autobiographical-detail"
+      ],
+      "responseSha256": "36ed479a3e477223dae771e7f0dff6d30bf41a94f9fdafb98cf79b66e932c964"
+    },
+    {
+      "responseId": "R-bc9b15b2",
+      "exchangeId": "E-ae3c4ac3",
+      "scenarioId": "judy-past",
+      "character": "Judy Alvarez",
+      "anonymousLabel": "C",
+      "turn": 1,
+      "ratings": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 3,
+        "context": 3,
+        "agency": 3
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 75,
+      "confidence": "medium",
+      "rationale": "Casual fragments and hands-on recollection suit Judy, with limited disclosure. The broad grandparents claim is less precise than the supported grandfather history.",
+      "flags": [
+        "biographical-imprecision"
+      ],
+      "responseSha256": "551b798cdb0e419d37bd0cb1e30df7fa9c4fc7d8163c329affc29802105a7956"
+    },
+    {
+      "responseId": "R-42df2f2a",
+      "exchangeId": "E-ae3c4ac3",
+      "scenarioId": "judy-past",
+      "character": "Judy Alvarez",
+      "anonymousLabel": "C",
+      "turn": 2,
+      "ratings": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 2,
+        "context": 3,
+        "agency": 3
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 70,
+      "confidence": "medium",
+      "rationale": "Responds to the request for something liked and avoids a tragedy list. The screaming-neon comparison feels like generic genre writing rather than a particular remembered place.",
+      "flags": [],
+      "responseSha256": "62be7e184ac38952763d07481ab56909fcc4af7e4ffd941f1421d189f2585d51"
+    },
+    {
+      "responseId": "R-e3f50915",
+      "exchangeId": "E-91e469bd",
+      "scenarioId": "panam-past",
+      "character": "Panam Palmer",
+      "anonymousLabel": "A",
+      "turn": 1,
+      "ratings": {
+        "rhythm": 3,
+        "register": 2,
+        "personality": 2,
+        "context": 3,
+        "agency": 2
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 60,
+      "confidence": "low",
+      "rationale": "Family concern is plausible, but a better-deal/security pitch is abstract and may rationalize her departure more neatly than the evidence warrants.",
+      "flags": [
+        "motive-interpretation-uncertain"
+      ],
+      "responseSha256": "560a50f5a82255da91e56cf040525e5b11bf3b2a957392b9c90df2454b5cf0aa"
+    },
+    {
+      "responseId": "R-7e515162",
+      "exchangeId": "E-91e469bd",
+      "scenarioId": "panam-past",
+      "character": "Panam Palmer",
+      "anonymousLabel": "A",
+      "turn": 2,
+      "ratings": {
+        "rhythm": 3,
+        "register": 2,
+        "personality": 2,
+        "context": 3,
+        "agency": 2
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 60,
+      "confidence": "medium",
+      "rationale": "Acknowledges V but largely restates the same security/corporate contrast. It adds little selective personal meaning or change after clarification.",
+      "flags": [
+        "repetitive-follow-up"
+      ],
+      "responseSha256": "dff9dc35ac9a3b1d2be1e18042386a960743f7a4b4d007f395e8d974077c43b8"
+    },
+    {
+      "responseId": "R-686d5e38",
+      "exchangeId": "E-270868b1",
+      "scenarioId": "panam-past",
+      "character": "Panam Palmer",
+      "anonymousLabel": "B",
+      "turn": 1,
+      "ratings": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 3,
+        "context": 4,
+        "agency": 3
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 80,
+      "confidence": "medium",
+      "rationale": "Separates leaving camp from rejecting family in a concise, emotionally coherent answer. The surrender image is polished but proportionate.",
+      "flags": [
+        "speaker-prefix"
+      ],
+      "responseSha256": "9d8cbd2c2f0f8cfce938df7bd319789cf93b1099277e7300367e5840f71951df"
+    },
+    {
+      "responseId": "R-7140e11e",
+      "exchangeId": "E-270868b1",
+      "scenarioId": "panam-past",
+      "character": "Panam Palmer",
+      "anonymousLabel": "B",
+      "turn": 2,
+      "ratings": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 3,
+        "context": 4,
+        "agency": 3
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 80,
+      "confidence": "medium",
+      "rationale": "Adds a bounded explanation about Saul and identity after V clarifies; it stays on her priorities without recounting quests or assuming closeness.",
+      "flags": [
+        "speaker-prefix"
+      ],
+      "responseSha256": "3eac6023c268a79b0123a78a28e31479d2dec9d1ef8456c8dc8b50224d0b2a94"
+    },
+    {
+      "responseId": "R-b5917f74",
+      "exchangeId": "E-2bc5c5c7",
+      "scenarioId": "panam-past",
+      "character": "Panam Palmer",
+      "anonymousLabel": "C",
+      "turn": 1,
+      "ratings": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 3,
+        "context": 3,
+        "agency": 3
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 75,
+      "confidence": "medium",
+      "rationale": "Expresses independent judgment and disagreement with Saul without unloading the full history; the future/plans phrasing remains somewhat abstract.",
+      "flags": [],
+      "responseSha256": "691b873f459688e52c09965e863599f99e21ae8a0064d505d27095bbf91490ca"
+    },
+    {
+      "responseId": "R-2b0e8134",
+      "exchangeId": "E-2bc5c5c7",
+      "scenarioId": "panam-past",
+      "character": "Panam Palmer",
+      "anonymousLabel": "C",
+      "turn": 2,
+      "ratings": {
+        "rhythm": 3,
+        "register": 2,
+        "personality": 2,
+        "context": 3,
+        "agency": 3
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 66.25,
+      "confidence": "low",
+      "rationale": "Expands the reason modestly after clarification, but 'real leverage' and security read like a retrospective strategy brief; her precise motive is interpretive.",
+      "flags": [
+        "motive-interpretation-uncertain"
+      ],
+      "responseSha256": "0628e16a0fb4b31a4d15504805cbdd4e7aaf91af218276bf855a16addf0f1ec2"
+    },
+    {
+      "responseId": "R-ee644d3d",
+      "exchangeId": "E-b5bbb1de",
+      "scenarioId": "johnny-past",
+      "character": "Johnny Silverhand",
+      "anonymousLabel": "A",
+      "turn": 1,
+      "ratings": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 3,
+        "context": 4,
+        "agency": 3
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 80,
+      "confidence": "medium",
+      "rationale": "A brief, abrasive judgment answers the question without a bio dump; the antiwar image fits, though it could belong to many disillusioned veterans.",
+      "flags": [],
+      "responseSha256": "68c0bc18784ccb52953ad8c103031e192521d00be6a0cf910ba5f00da9fa7cb8"
+    },
+    {
+      "responseId": "R-2c5f27f8",
+      "exchangeId": "E-b5bbb1de",
+      "scenarioId": "johnny-past",
+      "character": "Johnny Silverhand",
+      "anonymousLabel": "A",
+      "turn": 2,
+      "ratings": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 2,
+        "context": 3,
+        "agency": 2
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 63.75,
+      "confidence": "medium",
+      "rationale": "Recognizes V's intent, but reduces Johnny to a neat grudge-and-guitar emblem. The follow-up explains an archetype more than it reveals a selective personal thought.",
+      "flags": [
+        "identity-summary"
+      ],
+      "responseSha256": "323041538eab062f7a20b8f26ab7291ff9ba195f1e3ddfe6c2f83f8b0f479dc9"
+    },
+    {
+      "responseId": "R-db312fea",
+      "exchangeId": "E-aa6e4caf",
+      "scenarioId": "johnny-past",
+      "character": "Johnny Silverhand",
+      "anonymousLabel": "B",
+      "turn": 1,
+      "ratings": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 3,
+        "context": 3,
+        "agency": 3
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 75,
+      "confidence": "medium",
+      "rationale": "Concrete cadence and cynicism are plausible, but mud/maps/suits are a stock war sketch; no special credit for summarizing trauma.",
+      "flags": [
+        "speaker-prefix"
+      ],
+      "responseSha256": "6ed2f6b3b3c3ecc39b7ae77d40568fb9a070e43af2a316deafcc38a263dfe840"
+    },
+    {
+      "responseId": "R-d99b0146",
+      "exchangeId": "E-aa6e4caf",
+      "scenarioId": "johnny-past",
+      "character": "Johnny Silverhand",
+      "anonymousLabel": "B",
+      "turn": 2,
+      "ratings": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 2,
+        "context": 3,
+        "agency": 2
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 63.75,
+      "confidence": "medium",
+      "rationale": "Sets a boundary, yet the polished-autobiography disclaimer and scrap metaphor are generic self-mythology. Little changes in response to V's respectful motive.",
+      "flags": [
+        "speaker-prefix",
+        "identity-summary"
+      ],
+      "responseSha256": "5aa15131db0ace6f4c6e8a9cf4f73506cfc470b63925aff7b11ddbe2a5b95f27"
+    },
+    {
+      "responseId": "R-0d4a5bba",
+      "exchangeId": "E-bb91da58",
+      "scenarioId": "johnny-past",
+      "character": "Johnny Silverhand",
+      "anonymousLabel": "C",
+      "turn": 1,
+      "ratings": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 2,
+        "context": 3,
+        "agency": 3
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 70,
+      "confidence": "medium",
+      "rationale": "A compact answer with a dry final beat, but the unreadable-map/postcard framing feels interchangeable and more glib than individually revealing.",
+      "flags": [
+        "speaker-prefix"
+      ],
+      "responseSha256": "ccdbb3471b3e6d856ec5fe88eec4f93c6846dc3f395b206ec822481d46273a0b"
+    },
+    {
+      "responseId": "R-db418a42",
+      "exchangeId": "E-bb91da58",
+      "scenarioId": "johnny-past",
+      "character": "Johnny Silverhand",
+      "anonymousLabel": "C",
+      "turn": 2,
+      "ratings": {
+        "rhythm": 3,
+        "register": 2,
+        "personality": 2,
+        "context": 3,
+        "agency": 2
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 60,
+      "confidence": "medium",
+      "rationale": "Answers without oversharing, but the abstract claim that his identity is a reaction to war is closer to a summary of Johnny than Johnny thinking aloud.",
+      "flags": [
+        "speaker-prefix",
+        "identity-summary"
+      ],
+      "responseSha256": "836d73528f6c63b71142d00118419e103251417f125a01544d42297d66de9e29"
+    },
+    {
+      "responseId": "R-e039744b",
+      "exchangeId": "E-d299548a",
+      "scenarioId": "johnny-present",
+      "character": "Johnny Silverhand",
+      "anonymousLabel": "A",
+      "turn": 1,
+      "ratings": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 2,
+        "context": 2,
+        "agency": 2
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 58.75,
+      "confidence": "medium",
+      "rationale": "Short and irreverent, but replaces the stall with a machine and defaults to kicking it; that is a stock aggression shortcut.",
+      "flags": [
+        "unsupported-scene-detail",
+        "caricature-risk"
+      ],
+      "responseSha256": "031b16653381e89ffe740b73acdc9a918f9af71efb610f8a41460370c1f79a0b"
+    },
+    {
+      "responseId": "R-3ae48508",
+      "exchangeId": "E-d299548a",
+      "scenarioId": "johnny-present",
+      "character": "Johnny Silverhand",
+      "anonymousLabel": "A",
+      "turn": 2,
+      "ratings": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 3,
+        "context": 3,
+        "agency": 3
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 75,
+      "confidence": "medium",
+      "rationale": "Takes the correction and produces one wry closing beat without a lecture. The war exaggeration is light, though it overlaps strongly with other characters' wording.",
+      "flags": [
+        "cross-character-template"
+      ],
+      "responseSha256": "122dce88f337799689b07261c86d16280afeedf86676f6efbc64cc4efd4f9b20"
+    },
+    {
+      "responseId": "R-7df58a3c",
+      "exchangeId": "E-a7937c35",
+      "scenarioId": "johnny-present",
+      "character": "Johnny Silverhand",
+      "anonymousLabel": "B",
+      "turn": 1,
+      "ratings": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 3,
+        "context": 2,
+        "agency": 3
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 70,
+      "confidence": "medium",
+      "rationale": "Asks about V's aim rather than giving a canned rule, but calls an unverified billing error theft and narrows the motive to humiliation.",
+      "flags": [
+        "speaker-prefix",
+        "premature-certainty"
+      ],
+      "responseSha256": "3e3d78de419994a71ae082e45a13837ab4f424854fae0ea37df38c85cbf24908"
+    },
+    {
+      "responseId": "R-e315efef",
+      "exchangeId": "E-a7937c35",
+      "scenarioId": "johnny-present",
+      "character": "Johnny Silverhand",
+      "anonymousLabel": "B",
+      "turn": 2,
+      "ratings": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 2,
+        "context": 3,
+        "agency": 2
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 63.75,
+      "confidence": "medium",
+      "rationale": "Acknowledges the error only briefly, then redirects a trivial coffee mistake into a corporate-ledger maxim. The topic pivot obscures actual adaptation.",
+      "flags": [
+        "speaker-prefix",
+        "stock-corporate-pivot"
+      ],
+      "responseSha256": "48e364c53acd15bc953ef56360cbc7c6d7bb4f1b4fd0de34a92775e2d01187ec"
+    },
+    {
+      "responseId": "R-91b6b33d",
+      "exchangeId": "E-88ed515c",
+      "scenarioId": "johnny-present",
+      "character": "Johnny Silverhand",
+      "anonymousLabel": "C",
+      "turn": 1,
+      "ratings": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 3,
+        "context": 3,
+        "agency": 3
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 75,
+      "confidence": "medium",
+      "rationale": "An abrasive but usable motives question with a concrete opinion; it remains presumptive about the vendor, though less categorical than calling them a thief.",
+      "flags": [
+        "speaker-prefix"
+      ],
+      "responseSha256": "fbb0b1416c18ece4ddc80ea200c834cedba5cafc0013e881a48551cb6c9ef19a"
+    },
+    {
+      "responseId": "R-137dbf95",
+      "exchangeId": "E-88ed515c",
+      "scenarioId": "johnny-present",
+      "character": "Johnny Silverhand",
+      "anonymousLabel": "C",
+      "turn": 2,
+      "ratings": {
+        "rhythm": 3,
+        "register": 2,
+        "personality": 2,
+        "context": 3,
+        "agency": 3
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 66.25,
+      "confidence": "medium",
+      "rationale": "Reverses the grievance and returns to the coffee, but the citywide diagnosis of hallucinated grievances feels writerly and impersonal.",
+      "flags": [
+        "speaker-prefix",
+        "generic-maxim"
+      ],
+      "responseSha256": "5d79498985d805366a18d43c53bd70722514899a554d4afbca154aff80c62e8c"
+    },
+    {
+      "responseId": "R-cf7911c9",
+      "exchangeId": "E-4e7301af",
+      "scenarioId": "judy-present",
+      "character": "Judy Alvarez",
+      "anonymousLabel": "A",
+      "turn": 1,
+      "ratings": {
+        "rhythm": 3,
+        "register": 2,
+        "personality": 2,
+        "context": 3,
+        "agency": 2
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 60,
+      "confidence": "low",
+      "rationale": "The stupidity-tax joke is possible for blunt Judy, but it is not distinctive and does not engage the uncertainty of the charge. Its overlap with the other characters' snark limits confidence.",
+      "flags": [
+        "voice-overlap"
+      ],
+      "responseSha256": "72a7d455d501e83ca0f2904b6ce7327978d00e0ed7e2aa3e3181fbce390b767c"
+    },
+    {
+      "responseId": "R-c55c9b63",
+      "exchangeId": "E-4e7301af",
+      "scenarioId": "judy-present",
+      "character": "Judy Alvarez",
+      "anonymousLabel": "A",
+      "turn": 2,
+      "ratings": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 2,
+        "context": 3,
+        "agency": 3
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 70,
+      "confidence": "medium",
+      "rationale": "Accepts the correction in a compact reply, but the war-over-coffee phrasing closely resembles Johnny and contributes little Judy-specific judgment.",
+      "flags": [
+        "cross-character-template"
+      ],
+      "responseSha256": "a4861889484e67aa27c16e65d2694f0f57ca91468772f9d44f65e505737db511"
+    },
+    {
+      "responseId": "R-37a570ae",
+      "exchangeId": "E-bf1dfdbd",
+      "scenarioId": "judy-present",
+      "character": "Judy Alvarez",
+      "anonymousLabel": "B",
+      "turn": 1,
+      "ratings": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 3,
+        "context": 2,
+        "agency": 2
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 63.75,
+      "confidence": "medium",
+      "rationale": "Standing up to mistreatment fits Judy, but the invented five-eddy price and repeat-offender accusation convert an uncertain bill into a moral certainty.",
+      "flags": [
+        "invented-price",
+        "premature-certainty"
+      ],
+      "responseSha256": "5d471c1e597989583e5fcf04898525e59654932d951c23867143f80b2cd203cf"
+    },
+    {
+      "responseId": "R-b8f92adf",
+      "exchangeId": "E-bf1dfdbd",
+      "scenarioId": "judy-present",
+      "character": "Judy Alvarez",
+      "anonymousLabel": "B",
+      "turn": 2,
+      "ratings": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 2,
+        "context": 4,
+        "agency": 3
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 75,
+      "confidence": "medium",
+      "rationale": "Drops the accusation and responds to V's revised situation without new plot claims; the sludge/drinkable coffee tag is generic.",
+      "flags": [],
+      "responseSha256": "79d9ea24ef17944b5b3e7188748537306be74f5d1cf0f45d7d5c7ab71ad46739"
+    },
+    {
+      "responseId": "R-0b926dcd",
+      "exchangeId": "E-d4dc3a2a",
+      "scenarioId": "judy-present",
+      "character": "Judy Alvarez",
+      "anonymousLabel": "C",
+      "turn": 1,
+      "ratings": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 3,
+        "context": 3,
+        "agency": 3
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 75,
+      "confidence": "medium",
+      "rationale": "A conditional, socially aware answer has more practical judgment than a blanket justice slogan; the vendor's gender is an unnecessary assumption.",
+      "flags": [
+        "minor-assumption"
+      ],
+      "responseSha256": "91aa4e4eb5efd48db72452976b369e8531104abb936e9b610cd8eb05edbb7bc5"
+    },
+    {
+      "responseId": "R-2867740d",
+      "exchangeId": "E-d4dc3a2a",
+      "scenarioId": "judy-present",
+      "character": "Judy Alvarez",
+      "anonymousLabel": "C",
+      "turn": 2,
+      "ratings": {
+        "rhythm": 3,
+        "register": 3,
+        "personality": 2,
+        "context": 4,
+        "agency": 3
+      },
+      "copyingPenalty": 0,
+      "majorFactualPrivacyFailure": false,
+      "finalTotal": 75,
+      "confidence": "medium",
+      "rationale": "Accepts the mistake without shaming V or inventing events. Natural enough, but the reassurance and coffee tag could be voiced by almost anyone.",
+      "flags": [],
+      "responseSha256": "d700974296b3a0ccbf1bebc87e56c09772d17dd2f0ce68f8a01ed914f55ff36e"
+    }
+  ],
+  "exchanges": [
+    {
+      "exchangeId": "E-28d359e8",
+      "scenarioId": "panam-present",
+      "character": "Panam Palmer",
+      "anonymousLabel": "A",
+      "responseIds": [
+        "R-bf3156de",
+        "R-4a826978"
+      ],
+      "meanTotal": 61.25,
+      "adaptation": "partial adaptation",
+      "assessment": "The second turn notices the mistake but substitutes scolding and an imagined near-fight; the first reply's certainty never becomes curiosity."
+    },
+    {
+      "exchangeId": "E-3804b673",
+      "scenarioId": "panam-present",
+      "character": "Panam Palmer",
+      "anonymousLabel": "B",
+      "responseIds": [
+        "R-cb5a9a2d",
+        "R-05a432ce"
+      ],
+      "meanTotal": 64.375,
+      "adaptation": "adapts",
+      "assessment": "The correction is accepted and the dispute dropped. Voice remains a broadly blunt companion, with no specific coffee or vendor inquiry."
+    },
+    {
+      "exchangeId": "E-823d622f",
+      "scenarioId": "panam-present",
+      "character": "Panam Palmer",
+      "anonymousLabel": "C",
+      "responseIds": [
+        "R-c776604e",
+        "R-cbea12e2"
+      ],
+      "meanTotal": 66.875,
+      "adaptation": "adapts with scene drift",
+      "assessment": "Panam's willingness to act is tangible and turn two withdraws it, but the stall becomes a vending machine and the exchange is more confrontational than necessary."
+    },
+    {
+      "exchangeId": "E-d302e03b",
+      "scenarioId": "judy-past",
+      "character": "Judy Alvarez",
+      "anonymousLabel": "A",
+      "responseIds": [
+        "R-ca7cb470",
+        "R-d4727c67"
+      ],
+      "meanTotal": 77.5,
+      "adaptation": "adapts",
+      "assessment": "A restrained first answer gains a positive grandfather detail after V clarifies. It is the clearest personal progression here, although the last phrase returns to loss."
+    },
+    {
+      "exchangeId": "E-f88d6747",
+      "scenarioId": "judy-past",
+      "character": "Judy Alvarez",
+      "anonymousLabel": "B",
+      "responseIds": [
+        "R-7b32312f",
+        "R-3b562c7d"
+      ],
+      "meanTotal": 70,
+      "adaptation": "adapts with uncertain detail",
+      "assessment": "Turn two follows the request for a pleasant memory. The waterfront image is not verified by the held-out evidence, and its placid nostalgia is generic."
+    },
+    {
+      "exchangeId": "E-ae3c4ac3",
+      "scenarioId": "judy-past",
+      "character": "Judy Alvarez",
+      "anonymousLabel": "C",
+      "responseIds": [
+        "R-bc9b15b2",
+        "R-42df2f2a"
+      ],
+      "meanTotal": 72.5,
+      "adaptation": "adapts",
+      "assessment": "The second answer selects an ordinary positive aspect and leaves trauma aside; the city/neon contrast remains broad genre shorthand."
+    },
+    {
+      "exchangeId": "E-91e469bd",
+      "scenarioId": "panam-past",
+      "character": "Panam Palmer",
+      "anonymousLabel": "A",
+      "responseIds": [
+        "R-e3f50915",
+        "R-7e515162"
+      ],
+      "meanTotal": 60,
+      "adaptation": "repeats more than develops",
+      "assessment": "The second turn largely paraphrases the first corporate-security theme. Respectful acknowledgement does not produce a more personal or concrete answer."
+    },
+    {
+      "exchangeId": "E-270868b1",
+      "scenarioId": "panam-past",
+      "character": "Panam Palmer",
+      "anonymousLabel": "B",
+      "responseIds": [
+        "R-686d5e38",
+        "R-7140e11e"
+      ],
+      "meanTotal": 80,
+      "adaptation": "adapts",
+      "assessment": "The distinction between family loyalty and leaving camp expands into a bounded explanation of disagreement with Saul, without treating V as an intimate confidant."
+    },
+    {
+      "exchangeId": "E-2bc5c5c7",
+      "scenarioId": "panam-past",
+      "character": "Panam Palmer",
+      "anonymousLabel": "C",
+      "responseIds": [
+        "R-b5917f74",
+        "R-2b0e8134"
+      ],
+      "meanTotal": 70.625,
+      "adaptation": "partial adaptation",
+      "assessment": "The second turn adds a possible ambition behind leaving, but its leverage/security language sounds like a retrospective strategy summary."
+    },
+    {
+      "exchangeId": "E-b5bbb1de",
+      "scenarioId": "johnny-past",
+      "character": "Johnny Silverhand",
+      "anonymousLabel": "A",
+      "responseIds": [
+        "R-ee644d3d",
+        "R-2c5f27f8"
+      ],
+      "meanTotal": 71.875,
+      "adaptation": "partial adaptation",
+      "assessment": "A proportionate first answer is followed by a compact identity emblem. The clarification changes the topic from war conditions to who Johnny is, but not into an individually revealing thought."
+    },
+    {
+      "exchangeId": "E-aa6e4caf",
+      "scenarioId": "johnny-past",
+      "character": "Johnny Silverhand",
+      "anonymousLabel": "B",
+      "responseIds": [
+        "R-db312fea",
+        "R-d99b0146"
+      ],
+      "meanTotal": 69.375,
+      "adaptation": "partial adaptation",
+      "assessment": "The initial war sketch becomes an explicit boundary, but the remaining scrap metaphor still performs a packaged persona; it neither explores V's motive nor states a particular thing he is willing to discuss."
+    },
+    {
+      "exchangeId": "E-bb91da58",
+      "scenarioId": "johnny-past",
+      "character": "Johnny Silverhand",
+      "anonymousLabel": "C",
+      "responseIds": [
+        "R-0d4a5bba",
+        "R-db418a42"
+      ],
+      "meanTotal": 65,
+      "adaptation": "partial adaptation",
+      "assessment": "Both turns stay short and avoid a full war story. Turn two mainly repeats a generic before/after-trauma summary rather than opening a more particular exchange."
+    },
+    {
+      "exchangeId": "E-d299548a",
+      "scenarioId": "johnny-present",
+      "character": "Johnny Silverhand",
+      "anonymousLabel": "A",
+      "responseIds": [
+        "R-e039744b",
+        "R-3ae48508"
+      ],
+      "meanTotal": 66.875,
+      "adaptation": "adapts",
+      "assessment": "A weak machine-kicking opening improves when the corrected bill receives a brief wry response. It drops escalation, but shares its wording with Judy's reply."
+    },
+    {
+      "exchangeId": "E-a7937c35",
+      "scenarioId": "johnny-present",
+      "character": "Johnny Silverhand",
+      "anonymousLabel": "B",
+      "responseIds": [
+        "R-7df58a3c",
+        "R-e315efef"
+      ],
+      "meanTotal": 66.875,
+      "adaptation": "partial adaptation",
+      "assessment": "An initial motives question has agency; after the correction, the response moves to a general corporate maxim rather than engaging the small shared moment."
+    },
+    {
+      "exchangeId": "E-88ed515c",
+      "scenarioId": "johnny-present",
+      "character": "Johnny Silverhand",
+      "anonymousLabel": "C",
+      "responseIds": [
+        "R-91b6b33d",
+        "R-137dbf95"
+      ],
+      "meanTotal": 70.625,
+      "adaptation": "adapts",
+      "assessment": "The correction turns confrontation into teasing and returns to the coffee. The citywide grievance diagnosis is unnecessarily writerly."
+    },
+    {
+      "exchangeId": "E-4e7301af",
+      "scenarioId": "judy-present",
+      "character": "Judy Alvarez",
+      "anonymousLabel": "A",
+      "responseIds": [
+        "R-cf7911c9",
+        "R-c55c9b63"
+      ],
+      "meanTotal": 65,
+      "adaptation": "adapts but voices blur",
+      "assessment": "The second turn notices the correction, but neither the stupidity-tax joke nor the near-war coffee line is especially Judy-specific."
+    },
+    {
+      "exchangeId": "E-bf1dfdbd",
+      "scenarioId": "judy-present",
+      "character": "Judy Alvarez",
+      "anonymousLabel": "B",
+      "responseIds": [
+        "R-37a570ae",
+        "R-b8f92adf"
+      ],
+      "meanTotal": 69.375,
+      "adaptation": "adapts",
+      "assessment": "A moralized, overcertain opening gives way to an ordinary coffee remark after the correction. It abandons the false grievance, though the exchange stays generic."
+    },
+    {
+      "exchangeId": "E-d4dc3a2a",
+      "scenarioId": "judy-present",
+      "character": "Judy Alvarez",
+      "anonymousLabel": "C",
+      "responseIds": [
+        "R-0b926dcd",
+        "R-2867740d"
+      ],
+      "meanTotal": 75,
+      "adaptation": "adapts",
+      "assessment": "The initial advice is conditional, and the error is accepted with light reassurance. It is coherent and proportionate, but has little unmistakable Judy texture."
+    }
+  ]
+}

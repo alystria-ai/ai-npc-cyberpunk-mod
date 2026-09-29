@@ -1,0 +1,228 @@
+{
+  "version": 1,
+  "characterKey": "panam-palmer",
+  "purpose": "prompt delivery examples",
+  "scope": "Brief installed English subtitle excerpts, verified against scene speaker definitions. Context summaries are original. Distinct branches are examples, not an asserted sequence or current-save history.",
+  "references": [
+    {
+      "id": "panam-prompt-01",
+      "context": "During a Basilisk demonstration Panam acknowledges the vehicle limitations and the work done on it.",
+      "text": "It's not the latest model, but Mitch and Bob did what they could.",
+      "provenance": {
+        "scene": {
+          "archive": "base",
+          "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+          "archiveEntrySha1": "0dbed14cd85e255a37554a7e06b0d6a340c6138e",
+          "depotPath": "base\\quest\\side_quests\\sq027\\scenes\\sq027_06_panzer.scene",
+          "pathHash64": "4401677472497907434",
+          "assetSha256": "2e9029faf8b8c8efe612d97bc5ffe7b900a79235e3237c0b9b087bad4ceae68d",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq027/scenes/sq027_06_panzer.scene.json",
+          "batch": "core-relationships"
+        },
+        "speakerActorId": 0,
+        "speakerName": "Panam",
+        "actorPointer": "/Data/RootChunk/actors/0",
+        "locstringId": "1357560447766646784",
+        "variantId": "4221718354196316260",
+        "descriptorPointer": "/Data/RootChunk/locStore/vdEntries/437",
+        "payloadPointer": "/Data/RootChunk/locStore/vpEntries/491",
+        "screenplayPointers": [
+          "/Data/RootChunk/screenplayStore/lines/204"
+        ],
+        "installedEnglishSubtitle": {
+          "id": "1357560447766646784",
+          "domain": "subtitle.stringId",
+          "contentMatchesOneGenderVariant": true,
+          "source": {
+            "archive": "base",
+            "archivePath": "archive/pc/content/lang_en_text.archive",
+            "archiveSha256": "a6a4735fcfa59dc0493ce270fc2faa59d8bfd171d56c99bc587f11d3f3ec83e3",
+            "depotPath": "base\\localization\\en-us\\subtitles\\quest\\sq027\\sq027_06_panzer.json",
+            "pathHash64": "6598015842724923596",
+            "archiveEntrySha1": "402c169fbdcd34fe86913b5ca2b5e7a347e06c40",
+            "assetSha256": "b8eb4e5e2ef4bbffefe7dc64b2801f714fe7fc7fac2db2beda3a5274010c8475",
+            "rawPath": "raw/base/base/localization/en-us/subtitles/quest/sq027/sq027_06_panzer.json",
+            "jsonPath": "raw/base/base/localization/en-us/subtitles/quest/sq027/sq027_06_panzer.json.json"
+          },
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/0"
+        }
+      }
+    },
+    {
+      "id": "panam-prompt-02",
+      "context": "Panam gives V one concrete driving instruction during the demonstration.",
+      "text": "Now take her along the line of turbines.",
+      "provenance": {
+        "scene": {
+          "archive": "base",
+          "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+          "archiveEntrySha1": "0dbed14cd85e255a37554a7e06b0d6a340c6138e",
+          "depotPath": "base\\quest\\side_quests\\sq027\\scenes\\sq027_06_panzer.scene",
+          "pathHash64": "4401677472497907434",
+          "assetSha256": "2e9029faf8b8c8efe612d97bc5ffe7b900a79235e3237c0b9b087bad4ceae68d",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq027/scenes/sq027_06_panzer.scene.json",
+          "batch": "core-relationships"
+        },
+        "speakerActorId": 0,
+        "speakerName": "Panam",
+        "actorPointer": "/Data/RootChunk/actors/0",
+        "locstringId": "1788479741468889088",
+        "variantId": "4221718354145984536",
+        "descriptorPointer": "/Data/RootChunk/locStore/vdEntries/462",
+        "payloadPointer": "/Data/RootChunk/locStore/vpEntries/84",
+        "screenplayPointers": [
+          "/Data/RootChunk/screenplayStore/lines/26"
+        ],
+        "installedEnglishSubtitle": {
+          "id": "1788479741468889088",
+          "domain": "subtitle.stringId",
+          "contentMatchesOneGenderVariant": true,
+          "source": {
+            "archive": "base",
+            "archivePath": "archive/pc/content/lang_en_text.archive",
+            "archiveSha256": "a6a4735fcfa59dc0493ce270fc2faa59d8bfd171d56c99bc587f11d3f3ec83e3",
+            "depotPath": "base\\localization\\en-us\\subtitles\\quest\\sq027\\sq027_06_panzer.json",
+            "pathHash64": "6598015842724923596",
+            "archiveEntrySha1": "402c169fbdcd34fe86913b5ca2b5e7a347e06c40",
+            "assetSha256": "b8eb4e5e2ef4bbffefe7dc64b2801f714fe7fc7fac2db2beda3a5274010c8475",
+            "rawPath": "raw/base/base/localization/en-us/subtitles/quest/sq027/sq027_06_panzer.json",
+            "jsonPath": "raw/base/base/localization/en-us/subtitles/quest/sq027/sq027_06_panzer.json.json"
+          },
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/25"
+        }
+      }
+    },
+    {
+      "id": "panam-prompt-03",
+      "context": "Panam invites V to practice while teasing about being watched.",
+      "text": "Warm up. Don't worry, I'm not going to watch.",
+      "provenance": {
+        "scene": {
+          "archive": "base",
+          "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+          "archiveEntrySha1": "0dbed14cd85e255a37554a7e06b0d6a340c6138e",
+          "depotPath": "base\\quest\\side_quests\\sq027\\scenes\\sq027_06_panzer.scene",
+          "pathHash64": "4401677472497907434",
+          "assetSha256": "2e9029faf8b8c8efe612d97bc5ffe7b900a79235e3237c0b9b087bad4ceae68d",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq027/scenes/sq027_06_panzer.scene.json",
+          "batch": "core-relationships"
+        },
+        "speakerActorId": 0,
+        "speakerName": "Panam",
+        "actorPointer": "/Data/RootChunk/actors/0",
+        "locstringId": "1788453154631471104",
+        "variantId": "4221718354196316204",
+        "descriptorPointer": "/Data/RootChunk/locStore/vdEntries/454",
+        "payloadPointer": "/Data/RootChunk/locStore/vpEntries/393",
+        "screenplayPointers": [
+          "/Data/RootChunk/screenplayStore/lines/131"
+        ],
+        "installedEnglishSubtitle": {
+          "id": "1788453154631471104",
+          "domain": "subtitle.stringId",
+          "contentMatchesOneGenderVariant": true,
+          "source": {
+            "archive": "base",
+            "archivePath": "archive/pc/content/lang_en_text.archive",
+            "archiveSha256": "a6a4735fcfa59dc0493ce270fc2faa59d8bfd171d56c99bc587f11d3f3ec83e3",
+            "depotPath": "base\\localization\\en-us\\subtitles\\quest\\sq027\\sq027_06_panzer.json",
+            "pathHash64": "6598015842724923596",
+            "archiveEntrySha1": "402c169fbdcd34fe86913b5ca2b5e7a347e06c40",
+            "assetSha256": "b8eb4e5e2ef4bbffefe7dc64b2801f714fe7fc7fac2db2beda3a5274010c8475",
+            "rawPath": "raw/base/base/localization/en-us/subtitles/quest/sq027/sq027_06_panzer.json",
+            "jsonPath": "raw/base/base/localization/en-us/subtitles/quest/sq027/sq027_06_panzer.json.json"
+          },
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/17"
+        }
+      }
+    },
+    {
+      "id": "panam-prompt-04",
+      "context": "Panam moderates V's enthusiasm with a concrete explanation of the vehicle's purpose.",
+      "text": "Don't get excited. The Basilisk is a cargo ship by design.",
+      "provenance": {
+        "scene": {
+          "archive": "base",
+          "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+          "archiveEntrySha1": "0dbed14cd85e255a37554a7e06b0d6a340c6138e",
+          "depotPath": "base\\quest\\side_quests\\sq027\\scenes\\sq027_06_panzer.scene",
+          "pathHash64": "4401677472497907434",
+          "assetSha256": "2e9029faf8b8c8efe612d97bc5ffe7b900a79235e3237c0b9b087bad4ceae68d",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq027/scenes/sq027_06_panzer.scene.json",
+          "batch": "core-relationships"
+        },
+        "speakerActorId": 0,
+        "speakerName": "Panam",
+        "actorPointer": "/Data/RootChunk/actors/0",
+        "locstringId": "1788476704792793088",
+        "variantId": "4221718354145984520",
+        "descriptorPointer": "/Data/RootChunk/locStore/vdEntries/458",
+        "payloadPointer": "/Data/RootChunk/locStore/vpEntries/72",
+        "screenplayPointers": [
+          "/Data/RootChunk/screenplayStore/lines/22"
+        ],
+        "installedEnglishSubtitle": {
+          "id": "1788476704792793088",
+          "domain": "subtitle.stringId",
+          "contentMatchesOneGenderVariant": true,
+          "source": {
+            "archive": "base",
+            "archivePath": "archive/pc/content/lang_en_text.archive",
+            "archiveSha256": "a6a4735fcfa59dc0493ce270fc2faa59d8bfd171d56c99bc587f11d3f3ec83e3",
+            "depotPath": "base\\localization\\en-us\\subtitles\\quest\\sq027\\sq027_06_panzer.json",
+            "pathHash64": "6598015842724923596",
+            "archiveEntrySha1": "402c169fbdcd34fe86913b5ca2b5e7a347e06c40",
+            "assetSha256": "b8eb4e5e2ef4bbffefe7dc64b2801f714fe7fc7fac2db2beda3a5274010c8475",
+            "rawPath": "raw/base/base/localization/en-us/subtitles/quest/sq027/sq027_06_panzer.json",
+            "jsonPath": "raw/base/base/localization/en-us/subtitles/quest/sq027/sq027_06_panzer.json.json"
+          },
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/21"
+        }
+      }
+    },
+    {
+      "id": "panam-prompt-05",
+      "context": "Panam immediately allows that the activity can still be enjoyable.",
+      "text": "But it should still be a good time.",
+      "provenance": {
+        "scene": {
+          "archive": "base",
+          "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+          "archiveEntrySha1": "0dbed14cd85e255a37554a7e06b0d6a340c6138e",
+          "depotPath": "base\\quest\\side_quests\\sq027\\scenes\\sq027_06_panzer.scene",
+          "pathHash64": "4401677472497907434",
+          "assetSha256": "2e9029faf8b8c8efe612d97bc5ffe7b900a79235e3237c0b9b087bad4ceae68d",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq027/scenes/sq027_06_panzer.scene.json",
+          "batch": "core-relationships"
+        },
+        "speakerActorId": 0,
+        "speakerName": "Panam",
+        "actorPointer": "/Data/RootChunk/actors/0",
+        "locstringId": "1788477132897013760",
+        "variantId": "4221718354145984524",
+        "descriptorPointer": "/Data/RootChunk/locStore/vdEntries/459",
+        "payloadPointer": "/Data/RootChunk/locStore/vpEntries/75",
+        "screenplayPointers": [
+          "/Data/RootChunk/screenplayStore/lines/23"
+        ],
+        "installedEnglishSubtitle": {
+          "id": "1788477132897013760",
+          "domain": "subtitle.stringId",
+          "contentMatchesOneGenderVariant": true,
+          "source": {
+            "archive": "base",
+            "archivePath": "archive/pc/content/lang_en_text.archive",
+            "archiveSha256": "a6a4735fcfa59dc0493ce270fc2faa59d8bfd171d56c99bc587f11d3f3ec83e3",
+            "depotPath": "base\\localization\\en-us\\subtitles\\quest\\sq027\\sq027_06_panzer.json",
+            "pathHash64": "6598015842724923596",
+            "archiveEntrySha1": "402c169fbdcd34fe86913b5ca2b5e7a347e06c40",
+            "assetSha256": "b8eb4e5e2ef4bbffefe7dc64b2801f714fe7fc7fac2db2beda3a5274010c8475",
+            "rawPath": "raw/base/base/localization/en-us/subtitles/quest/sq027/sq027_06_panzer.json",
+            "jsonPath": "raw/base/base/localization/en-us/subtitles/quest/sq027/sq027_06_panzer.json.json"
+          },
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/22"
+        }
+      }
+    }
+  ]
+}
