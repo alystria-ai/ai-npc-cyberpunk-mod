@@ -383,6 +383,11 @@ protected cb func OnChoiceEntryStateChanged(entryHash: Uint32, className: CName,
     if this.m_data.convaiChat { return false; };
     return wrappedMethod(entryHash, className, notifyOption, changeType);
 }
+@wrapMethod(PhoneMessagePopupGameController)
+protected cb func OnDelayedDotsAnimation(evt: ref<TypingDelayEvent>) -> Bool {
+    if this.m_data.convaiChat { return false; };
+    return wrappedMethod(evt);
+}
 
 // Bounded, named-widget lookup: the paths below come from the live HUD tree.
 public class ConvaiPhoneChatLayout {
@@ -466,11 +471,30 @@ public final func ConvaiChatSetLines(lines: array<ref<ConvaiPhoneChatLine>>) -> 
     this.m_convaiChatLines = lines;
     this.UpdateData(false, false);
 }
+// Detaching journal listeners cannot retract events already queued by the
+// native messenger. Those events also drive typing, sound and visited state.
+@wrapMethod(MessengerDialogViewController)
+protected cb func OnJournalUpdate(entryHash: Uint32, className: CName, notifyOption: JournalNotifyOption, changeType: JournalChangeType) -> Bool {
+    if this.m_convaiChatOnly { return false; };
+    return wrappedMethod(entryHash, className, notifyOption, changeType);
+}
+@wrapMethod(MessengerDialogViewController)
+protected cb func OnJournalUpdateDelayed(entryHash: Uint32, className: CName, notifyOption: JournalNotifyOption, changeType: JournalChangeType, delay: Float) -> Bool {
+    if this.m_convaiChatOnly { return false; };
+    return wrappedMethod(entryHash, className, notifyOption, changeType, delay);
+}
+@wrapMethod(MessengerDialogViewController)
+protected cb func OnDelayedJournalUpdate(evt: ref<DelayedJournalUpdate>) -> Bool {
+    if this.m_convaiChatOnly { return false; };
+    return wrappedMethod(evt);
+}
 @wrapMethod(MessengerDialogViewController)
 public func UpdateData(animateLastMessage: Bool, setVisited: Bool) -> Void {
     if !this.m_convaiChatOnly { wrappedMethod(animateLastMessage, setVisited); return; };
-    this.m_messagesListController.Clear();
-    this.m_choicesListController.Clear();
+    // Clear() alone defers widget refresh. An empty AI history has no later
+    // PushDataList call, so recycled quest SMS would otherwise remain visible.
+    this.m_messagesListController.Clear(true);
+    this.m_choicesListController.Clear(true);
     inkCompoundRef.SetVisible(this.m_replayFluff, false);
     inkWidgetRef.SetVisible(this.m_typingFluff, false);
     let items: array<ref<IScriptable>>;

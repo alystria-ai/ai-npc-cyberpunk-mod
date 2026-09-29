@@ -126,6 +126,25 @@ replies cannot enter a new attachment, and repeated polls do not resend a reques
   and manager search. All 20 focused phone checks pass. Applied live without a
   reload; the user confirmed the original in-world prompt is restored.
 
+### Conversation isolation repair
+
+- The next live report exposed a separate data-refresh defect: Coach Fred's
+  saved transcript was empty, but his native message list still contained two
+  AI rows from another contact. The selected contact agreed between native UI
+  and Lua; the saved histories were separate.
+- Native `Clear()` defers replacement. Chat now uses `Clear(true)` for its
+  message and choice lists, including empty histories. Queued journal-update
+  and typing events are ignored in Chat and forwarded in native Messages.
+  The matching Lua compatibility hooks are scoped to the actual Chat tree;
+  stored transcripts and Convai sessions are not edited.
+- Twenty-two focused phone checks pass, including empty/populated conversation
+  replacement and native Messages isolation. Full changed-Lua syntax checks
+  pass; the native file matches the successful isolated compilation.
+- Installed with file-hash verification while the game was closed on September
+  29. The normal game startup compiled successfully at 23:22:28 IST and the
+  hidden reply bridge is ready. Switching between a populated contact and an
+  unused contact is awaiting the user's live check.
+
 ### Combined live check
 
 1. Open Phone → Chat, choose a person, and confirm: one direct conversation screen.

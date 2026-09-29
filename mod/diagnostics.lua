@@ -29,6 +29,7 @@ if request:match('^phone%-chat%-style:') then
     local style = dofile('phone-chat-style.lua')
     style.lastError = nil
     local ok, err = pcall(function() style.install(true); style.refresh(true) end)
+    if ok and convaiPhoneChat then convaiPhoneChat.dirty = true end
     local failure = style.lastError
     if not ok then failure = tostring(err) end
     local file = io.open('runtime/phone-chat-style.json', 'wb')
@@ -43,6 +44,8 @@ end
 if request:match('^phone%-chat%-state:') then
     local chat = convaiPhoneChat
     local report = {contact = chat and chat.contact, error = chat and chat.lastError,
+        styleError = convaiPhoneChatStyle and convaiPhoneChatStyle.lastError,
+        storedLines = chat and #(chat.history[chat.contact] or {}),
         pending = chat and chat.pending and {contact = chat.pending.contact, id = chat.pending.id},
         widgets = {}}
     local ok, err = pcall(function()
@@ -69,6 +72,9 @@ if request:match('^phone%-chat%-state:') then
                         item.path = path .. '/' .. item.name
                         pcall(function() item.state = NameToString(widget:GetState()) end)
                         pcall(function() item.opacity = widget:GetOpacity() end)
+                        if request:find(':messages:') then
+                            pcall(function() item.text = string.sub(widget:GetText(), 1, 200) end)
+                        end
                         pcall(function() local c=widget:GetTintColor(); item.tint={r=c.Red,g=c.Green,b=c.Blue,a=c.Alpha} end)
                         pcall(function() item.fontSize=widget:GetFontSize(); item.fontStyle=NameToString(widget:GetFontStyle()) end)
                         pcall(function() item.desiredWidth=widget:GetDesiredWidth(); item.desiredHeight=widget:GetDesiredHeight() end)
@@ -80,11 +86,20 @@ if request:match('^phone%-chat%-state:') then
                         local logic = widget:GetController()
                         if logic then
                             item.controller = NameToString(logic:GetClassName())
+                            if item.controller == 'JournalEntriesListController' then
+                                pcall(function() item.listSize = logic:Size() end)
+                            end
                             if item.controller == 'CyberpunkConvai.ConvaiPhoneChatInput' then
                                 pcall(function() item.placeholder = logic:GetDefaultText() end)
                             end
                             if item.controller == 'MessengerDialogViewController' then
                                 pcall(function() item.hasChoices = logic:HasReplyOptions() end)
+                            end
+                            if request:find(':messages:') then
+                                pcall(function()
+                                    local data = logic:GetData()
+                                    if data then item.dataClass = NameToString(data:GetClassName()) end
+                                end)
                             end
                         end
                         local parent = widget:GetParentWidget()

@@ -129,6 +129,19 @@ function M.isChat(controller)
     return marker and marker:IsVisible() or false
 end
 
+function M.clearChatLists(controller)
+    if not M.isChat(controller) then return end
+    -- These two controller-owned lists are replaced by the native Chat paint.
+    -- Clear(false) defers the data replacement as well as the visual refresh;
+    -- checking Size() cannot distinguish that pending clear from real history.
+    local root = controller:GetRootWidget()
+    for _, name in ipairs({'MessagesList', 'ChoicesList'}) do
+        local widget = find(root, name, 8)
+        local list = widget and widget:GetController()
+        if list then list:Clear(true) end
+    end
+end
+
 local function phoneComposer(widget)
     local owner = widget
     for _ = 1, 7 do
@@ -192,7 +205,19 @@ function M.refresh(force)
     for _, layer in ipairs(Game.GetInkSystem():GetLayers()) do
         for _, controller in ipairs(layer:GetGameControllers()) do
             local class = NameToString(controller:GetClassName())
-            if class == 'PhoneMessagePopupGameController' then safely(M.composer, controller) end
+            if class == 'PhoneMessagePopupGameController' then
+                safely(M.composer, controller)
+                if force and convaiPhoneChat then
+                    safely(function()
+                        local contact = controller:ConvaiChatContact()
+                        local history = convaiPhoneChat.history[contact]
+                        if contact ~= '' and (not history or #history == 0) then
+                            local dialog = find(controller:GetRootWidget(), 'wrapper', 2)
+                            if dialog and dialog:GetController() then M.clearChatLists(dialog:GetController()) end
+                        end
+                    end)
+                end
+            end
             if class == 'NewHudPhoneGameController' then
                 local function visit(widget, depth)
                     if not widget or depth > 13 then return end
@@ -225,6 +250,48 @@ function M.install(live)
             if not M.isChat(c) then return wrapped(target) end
         end)
         M.installed = true
+    end
+    if not M.journalHooksInstalled then
+        -- Unregistering journal listeners cannot retract already queued events.
+        -- Keep their typing/sound/read-receipt effects out of AI Chat as well.
+        Override('MessengerDialogViewController', 'OnJournalUpdate', function(c, hash, class, notify, change, wrapped)
+            if not M.isChat(c) then return wrapped(hash, class, notify, change) end
+            return false
+        end)
+        Override('MessengerDialogViewController', 'OnJournalUpdateDelayed', function(c, hash, class, notify, change, delay, wrapped)
+            if not M.isChat(c) then return wrapped(hash, class, notify, change, delay) end
+            return false
+        end)
+        Override('MessengerDialogViewController', 'OnDelayedJournalUpdate', function(c, event, wrapped)
+            if not M.isChat(c) then return wrapped(event) end
+            return false
+        end)
+        Override('PhoneMessagePopupGameController', 'OnDelayedDotsAnimation', function(c, event, wrapped)
+            local dialog = find(c:GetRootWidget(), 'wrapper', 2)
+            local logic = dialog and dialog:GetController()
+            if logic and M.isChat(logic) then return false end
+            return wrapped(event)
+        end)
+        M.journalHooksInstalled = true
+    end
+    if not M.listHooksInstalled then
+        ObserveBefore('MessengerDialogViewController', 'UpdateData', function(c) safely(M.clearChatLists, c) end)
+        ObserveAfter('MessengerDialogViewController', 'ConvaiChatMode', function(c, chat)
+            safely(M.mode, c, chat)
+            if chat then safely(M.clearChatLists, c) end
+        end)
+        M.listHooksInstalled = true
+    end
+    if not M.presentHookInstalled then
+        -- This method has one signature; the native UpdateData method is
+        -- overloaded and a CET method-name observer need not cover both forms.
+        ObserveBefore('PhoneMessagePopupGameController', 'ConvaiChatPresent', function(c)
+            safely(function()
+                local dialog = find(c:GetRootWidget(), 'wrapper', 2)
+                if dialog and dialog:GetController() then M.clearChatLists(dialog:GetController()) end
+            end)
+        end)
+        M.presentHookInstalled = true
     end
     if not M.inputHooksInstalled then
         for _, method in ipairs({'OnFocusReceived', 'OnFocusLost'}) do

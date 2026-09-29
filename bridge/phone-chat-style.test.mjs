@@ -38,8 +38,9 @@ local function widget(name)
   return w
 end
 inkCanvas={new=function() return widget('new') end}
-local observers, overrides = {}, {}
+local observers, beforeObservers, overrides = {}, {}, {}
 ObserveAfter=function(class,method,fn) observers[class..'.'..method]=fn end
+ObserveBefore=function(class,method,fn) beforeObservers[class..'.'..method]=fn end
 Override=function(class,method,fn) overrides[class..'.'..method]=fn end
 local m=(function() ${source} end)()
 m.install()
@@ -76,6 +77,55 @@ mode(dialog,true); mode(dialog,true)
 assert(m.isChat(dialog))
 mode(dialog,false)
 assert(not options.visible and not m.isChat(dialog))
+`));
+
+test('empty Chat data flushes recycled rows while populated history and native Messages keep their data', () => runLua(setup + `
+local messages,choices=widget('MessagesList'),widget('ChoicesList')
+messages:Reparent(root);choices:Reparent(options)
+local function list(owner)
+  local c={data={},refreshes=0}
+  function c:Size()return #self.data end
+  function c:Clear(immediate)
+    if immediate then self.data={};self:Refresh() else self.pendingClear=true end
+  end
+  function c:Refresh()self.refreshes=self.refreshes+1;owner.children={}
+    for _,row in ipairs(self.data)do widget(row):Reparent(owner)end
+  end
+  owner.controller=c;return c
+end
+local messageList,choiceList=list(messages),list(choices)
+messageList.data={'Native incoming SMS'};choiceList.data={'Native reply'}
+widget('Native incoming SMS'):Reparent(messages);widget('Native reply'):Reparent(choices)
+mode(dialog,true)
+assert(#messages.children==0 and #choices.children==0,'Empty AI history retained another conversation')
+beforeObservers['MessengerDialogViewController.UpdateData'](dialog)
+messageList.data={'Current AI message'};messageList:Refresh()
+observers['MessengerDialogViewController.UpdateData'](dialog)
+assert(#messages.children==1 and messageList.data[1]=='Current AI message')
+-- Native deferred list operations remain entirely under the game's control.
+mode(dialog,false);messageList.data={};widget('Native preview'):Reparent(messages)
+local before=messageList.refreshes
+beforeObservers['MessengerDialogViewController.UpdateData'](dialog)
+observers['MessengerDialogViewController.UpdateData'](dialog)
+assert(messageList.refreshes==before and #messages.children==2)
+`));
+
+test('queued native journal and typing events cannot update Chat and still reach native Messages', () => runLua(setup + `
+local calls=0
+local function original(...)calls=calls+1;return 'forwarded'end
+local routes={
+  function()return overrides['MessengerDialogViewController.OnJournalUpdate'](dialog,1,'Message',2,3,original)end,
+  function()return overrides['MessengerDialogViewController.OnJournalUpdateDelayed'](dialog,1,'Message',2,3,.4,original)end,
+  function()return overrides['MessengerDialogViewController.OnDelayedJournalUpdate'](dialog,{},original)end}
+local popupRoot=widget('popup');root:SetName(CName.new('wrapper'));root:Reparent(popupRoot);root.controller=dialog
+local popup={GetRootWidget=function()return popupRoot end}
+routes[#routes+1]=function()return overrides['PhoneMessagePopupGameController.OnDelayedDotsAnimation'](popup,{},original)end
+mode(dialog,true)
+for _,route in ipairs(routes)do assert(route()==false)end
+assert(calls==0)
+mode(dialog,false)
+for _,route in ipairs(routes)do assert(route()=='forwarded')end
+assert(calls==4)
 `));
 
 test('composer moves only the idle hint into the placeholder and preserves drafts and error status', () => runLua(setup + `
