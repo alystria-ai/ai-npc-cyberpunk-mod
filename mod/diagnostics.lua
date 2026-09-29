@@ -192,6 +192,71 @@ if request:match('^phone%-chat%-state:') then
     if file then file:write(json.encode(report)); file:close() end
     return
 end
+if request:match('^party%-weapon%-state:') then
+    -- Read attachment state as well as combat state: Relaxed alone does not
+    -- establish that a weapon has left either hand. Never mutate equipment here.
+    local function read(fn)
+        local ok, value = pcall(fn)
+        if not ok or value == nil then return 'unavailable' end
+        if type(value) == 'boolean' or type(value) == 'number' or type(value) == 'string' then return value end
+        return tostring(value)
+    end
+    local function weapon(getter)
+        local ok, item = pcall(getter)
+        if not ok then return {present = 'unavailable'} end
+        if not item then return {present = false} end
+        return {present = true,
+            class = read(function() return NameToString(item:GetClassName()) end),
+            entity = read(function() return tostring(item:GetEntityID().hash) end),
+            record = read(function() return TDBID.ToStringDEBUG(ItemID.GetTDBID(item:GetItemID())) end),
+            itemHash = read(function() return tostring(ItemID.GetCombinedHash(item:GetItemID())) end),
+            isWeapon = read(function() return item:IsA('WeaponObject') end),
+            isFists = read(function() return WeaponObject.IsFists(item:GetItemID()) end)}
+    end
+    local function hands(owner)
+        return {
+            right = weapon(function() return Game.GetTransactionSystem():GetItemInSlot(owner, TweakDBID.new('AttachmentSlots.WeaponRight')) end),
+            left = weapon(function() return Game.GetTransactionSystem():GetItemInSlot(owner, TweakDBID.new('AttachmentSlots.WeaponLeft')) end),
+            active = weapon(function() return ScriptedPuppet.GetActiveWeapon(owner) end)}
+    end
+    local player = Game.GetPlayer()
+    local report = {at = os.time() * 1000, scope = 'Configured managed companions within 100 metres', companions = {},
+        player = {combat = read(function() return player:IsInCombat() end),
+            tier = read(function() return PlayerPuppet.GetSceneTier(player) end), hands = hands(player)}}
+    local cached, cachedOK = {}, false
+    local listOK, rows = pcall(convaiCompanions.list)
+    if listOK then
+        cachedOK = true
+        for _, row in ipairs(rows) do cached[row.entityID] = row end
+    end
+    local ok, candidates = pcall(convaiCompanions.conversationCandidates, player, 100)
+    report.candidatesAvailable, report.movementAvailable = ok, cachedOK
+    if ok then
+        for _, person in ipairs(candidates) do
+            local npc, snapshot = person.npc, cached[person.entity] or {}
+            report.companions[#report.companions + 1] = {
+                name = person.name, entity = person.entity, distance = person.distance,
+                record = read(function() return TDBID.ToStringDEBUG(npc:GetRecordID()) end),
+                combat = read(function() return NPCPuppet.IsInCombat(npc) end),
+                highLevel = read(function() return tostring(npc:GetHighLevelStateFromBlackboard()) end),
+                upperBody = read(function()
+                    return tostring(Enum.new('gamedataNPCUpperBodyState', npc:GetPuppetStateBlackboard():GetInt(GetAllBlackboardDefs().PuppetState.UpperBody)))
+                end),
+                autonomous = read(function() return npc:IsOnAutonomousAI() end),
+                hostileThreat = read(function() return TargetTrackingExtension.HasHostileThreat(npc) end),
+                scene = read(function() return Game.GetSceneSystem():GetScriptInterface():IsEntityInScene(npc:GetEntityID()) end),
+                dialogue = read(function() return Game.GetSceneSystem():GetScriptInterface():IsEntityInDialogue(npc:GetEntityID()) end),
+                follower = read(function() return npc:IsPlayerCompanion() end),
+                role = read(function() return NameToString(npc:GetAIControllerComponent():GetAIRole():GetClassName()) end),
+                hands = hands(npc), behavior = snapshot.behavior, behaviorReason = snapshot.behaviorReason,
+                operation = snapshot.operation, npcSpeed = snapshot.npcSpeed, groupIntent = snapshot.groupIntent,
+                equipment = snapshot.equipment}
+        end
+    end
+    local file = io.open('runtime/party-weapon-state.json', 'wb')
+    if file then file:write(json.encode(report)); file:close() end
+    return
+end
 if request:match('^party%-combat%-state:') then
     local report = {records = {}, companions = {}}
     for _, record in ipairs({'Character.Silverhand', 'Character.Judy', 'Character.Grayson',

@@ -7,11 +7,13 @@ const spawnRecords = readFileSync(new URL('../mod/companion-records.lua', import
 const space = readFileSync(new URL('../mod/companion-space.lua', import.meta.url), 'utf8');
 const travel = readFileSync(new URL('../mod/companion-travel.lua', import.meta.url), 'utf8');
 const actuator = readFileSync(new URL('../mod/companion-actuator.lua', import.meta.url), 'utf8');
+const equipment = readFileSync(new URL('../mod/companion-equipment.lua', import.meta.url), 'utf8');
 export const companionModules = `
   dofile=function(file)
     if file=='companion-space.lua' then return (function() ${space} end)() end
     if file=='companion-travel.lua' then return (function() ${travel} end)() end
     if file=='companion-actuator.lua' then return (function() ${actuator} end)() end
+    if file=='companion-equipment.lua' then return (function() ${equipment} end)() end
     if file=='companion-behavior.lua' then return (function() ${behavior} end)() end
     if file=='companion-placement.lua' then return (function() ${placement} end)() end
     if file=='companion-appearance.lua' then return (function() ${appearance} end)() end

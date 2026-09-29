@@ -7,6 +7,7 @@ local actuator = dofile('companion-actuator.lua')
 local placement = dofile('companion-placement.lua')
 local appearance = dofile('companion-appearance.lua')
 local spawnRecords = dofile('companion-records.lua')
+local equipment = dofile('companion-equipment.lua')
 
 local records = {
     ['viktor-vektor'] = {id = 'Character.Victor_Vector', name = 'Viktor Vektor'},
@@ -121,6 +122,7 @@ local function attachFollower(entry, player)
     entry.role = role
     entry.state = 'ready'
     entry.motor = actuator.new(npc)
+    entry.equipment = equipment.new(npc)
     entry.person = behavior.new(entry.serial)
     entry.lane = entry.lane or entry.slot
     -- The formation decision below chooses the first command. Starting an
@@ -229,6 +231,7 @@ end
 function M.dismiss(serialToDismiss)
     for index,entry in ipairs(entries) do
         if entry.serial==serialToDismiss then
+            if entry.equipment then equipment.release(entry.equipment) end
             if entry.motor and entry.npc and entry.npc:IsAttached() then
                 pcall(actuator.release,entry.motor)
             end
@@ -362,6 +365,7 @@ function M.list()
             actualSpawnZ=e.spawnActual and e.spawnActual.z,spawnZ=e.spawnPosition.z,
             npcZ=e.position and e.position.z,playerZ=groupFrame and groupFrame.position.z,
             phantomControllersDisabled=e.phantomControllersDisabled,
+            equipment=equipment.snapshot(e.equipment),
             focused=focused,focusLook=m.lookStyle=='full',ambientLook=m.lookStyle=='side',
             lookError=m.lookError,
             holding=m.kind=='hold',requestedGait=m.gait,routeTurning=m.stage=='orient',
@@ -370,7 +374,7 @@ function M.list()
             arrivalGoal=p.arrivalGoal and space.copy(p.arrivalGoal),
             operation={ticket=f.ticket,kind=f.kind,state=f.state,stage=f.stage,
                 target=f.target,active=f.active,complete=f.complete,failed=f.failed,
-                stalled=f.stalled,error=f.error,commands=m.commands,commandID=f.commandID},
+                stalled=f.stalled,suspended=f.suspended,error=f.error,commands=m.commands,commandID=f.commandID},
             commandTrace=m.events,
         }
     end
@@ -380,7 +384,10 @@ end
 function M.abandon()
     -- Native components may already be torn down. Dropping references is enough:
     -- these DynamicEntitySystem copies are explicitly nonpersistent.
-    for _,entry in ipairs(entries) do if entry.motor then actuator.abandon(entry.motor) end end
+    for _,entry in ipairs(entries) do
+        if entry.motor then actuator.abandon(entry.motor) end
+        if entry.equipment then equipment.abandon(entry.equipment) end
+    end
     entries={}
     elapsed,runtimeClock,commandCursor=0,0,0
     groupFrame=nil
@@ -452,8 +459,10 @@ function M.update(player,delta,focusEntity)
         if entry.state=='ready' then
             if not entry.npc:IsAttached() then
                 entry.state='missing'; actuator.abandon(entry.motor)
+                equipment.abandon(entry.equipment)
             elseif entry.npc:IsDeadNoStatPool() then
                 entry.state='dead'; actuator.abandon(entry.motor)
+                equipment.abandon(entry.equipment)
             else
                 local at=space.copy(entry.npc:GetWorldPosition())
                 entry.speed=entry.position and space.ground(entry.position,at)/step or 0
@@ -512,7 +521,17 @@ function M.update(player,delta,focusEntity)
             -- Braking is already a committed stop. Never choose an alternative
             -- behind the actor if its original stop point becomes unavailable.
             if decision.phase=='approach' then context.alternatives=choices end
-            if actuator.apply(entry.motor,decision,context,budget>0) then budget=budget-1 end
+            -- Admission requires stopped feet. Once admitted, a small native
+            -- holster root motion is allowed; player departure or a new walking
+            -- decision still ends the handoff immediately.
+            local idle=(entry.speed<0.18 or equipment.holdsMovement(entry.equipment))
+                and not groupFrame.moving and (groupFrame.rawSpeed or 0)<0.28
+                and decision.operation and decision.operation.kind=='hold' and entry.motor.kind=='hold'
+            equipment.update(entry.equipment,player,step,idle,function() return actuator.suspendHold(entry.motor) end)
+            if not equipment.holdsMovement(entry.equipment) then
+                actuator.resumeHold(entry.motor)
+                if actuator.apply(entry.motor,decision,context,budget>0) then budget=budget-1 end
+            end
             entry.error=nil
         end)
         if not ok then entry.error=tostring(err) end

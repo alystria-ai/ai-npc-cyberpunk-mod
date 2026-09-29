@@ -1,5 +1,46 @@
 # Managed companion combat
 
+## Holster after combat — September 30
+
+The user reported Judy still holding her gun after combat or respawning. Live
+reads found the nearby copy relaxed, autonomous and out of combat, with no
+hostile threat, but a Chao pistol still physically attached to her right hand.
+Relaxed state alone did not establish that the weapon was holstered.
+
+`mod/companion-equipment.lua` adds an equipment owner per managed copy. Fresh
+attachment and new combat arm a cleanup check. It waits for a stable, stationary
+hold, no player/NPC combat or hostile threats, relaxed autonomous AI, a normal
+upper body, and no authored scene/dialogue. It then asks the native
+`AIUnequipCommand` to holster one occupied hand at a time, using the default
+animation. It verifies actual slot clearance, allows at most two attempts per
+hand, and bounds each command to six seconds. Renewed combat or story ownership
+cancels only its own equipment command. World teardown abandons references
+without accessing native components.
+
+The follower role, inventory and combat loadout are preserved. A bounded native
+probe found that unequip stayed Enqueued while the
+existing owned hold was Executing. It ended after 15 seconds and cancelled its
+own queued commands. Evidence is retained locally in
+`runtime/equipment-probe-queued.json`. This exposed an engine command handoff
+requirement that the isolated fixtures could not establish.
+
+The movement actuator now suspends only its exact owned idle hold, confirms
+that command has stopped, and yields to the equipment owner. It retains the
+original movement ticket and reports suspension rather than a movement failure.
+After verified slot clearance, it restores a hold at the actual stance and runs
+the current movement decision. Walking away, renewed combat, authored dialogue
+or a new movement decision ends the handoff. If equipment cancellation fails,
+the owner retains the command reference and observes its terminal state without
+blocking movement or repeatedly sending cancellation requests.
+
+Twenty-two equipment/actuator integration checks and 42 existing movement and
+record checks pass; all four affected Lua modules parse. These cover exact
+command ownership, delayed cancellation, departure, combat, teardown and hand
+clearance. The temporary probe has been retired. The production handoff and
+visible holstering still need live verification after the combined CET reload.
+Use `party-weapon-state:<nonce>` for read-only hand attachments, combat/scene
+gates, movement state and equipment ownership.
+
 ## Johnny fleeing — September 29
 
 The user observed Johnny running away while Judy fought. Source inspection found

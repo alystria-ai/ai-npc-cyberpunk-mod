@@ -1,0 +1,280 @@
+-- Equipment belongs to each managed copy, independently of its locomotion ticket.
+-- Native contracts: core/ai/aiCommand.script:384 (AIUnequipCommand),
+-- cyberpunk/ai/commands/aiEquipItemCommand.script:30 (slotId), and
+-- cyberpunk/puppet/scriptedPuppet.script:2284 (typed hand-weapon reads).
+local M = {}
+local slots = {'AttachmentSlots.WeaponRight', 'AttachmentSlots.WeaponLeft'}
+local quietSeconds, commandSeconds, maxAttempts = 2.5, 6, 2
+
+local function copy(value)
+    if type(value) ~= 'table' then return value end
+    local result = {}; for key, item in pairs(value) do result[key] = copy(item) end
+    return result
+end
+local function flag(value, name)
+    if type(value) ~= 'boolean' then error(name .. ' unavailable') end
+    return value
+end
+local function commandState(ai, command)
+    local value = ai:GetCommandState(command)
+    if value == nil then error('Equipment command state unavailable') end
+    return tostring(value)
+end
+local function executing(state)
+    return state:find('Executing', 1, true) and not state:find('NotExecuting', 1, true)
+end
+
+function M.new(npc)
+    return {npc = npc, clock = 0, poll = 0, armed = true, phase = 'waiting',
+        reason = 'spawn', attempts = {}, commands = 0, episode = 1}
+end
+
+-- Cancel only our equipment command. Never clear a role, all commands, hand
+-- attachments, inventory, or the movement actuator's command reference.
+local function cancel(s)
+    s.handoff,s.handoffAt,s.handoffReady=false,nil,nil
+    if not s.command then return true end
+    if s.cancelFailed then return false end
+    local ok, err = pcall(function()
+        if not s.npc or not s.npc:IsAttached() then return end
+        local ai = s.npc:GetAIControllerComponent()
+        local state = commandState(ai, s.command)
+        s.commandState = state
+        local result
+        if state:find('Enqueued', 1, true) then result = ai:CancelCommand(s.command)
+        elseif executing(state) then result = ai:StopExecutingCommand(s.command, true)
+        elseif not (state:find('Success', 1, true) or state:find('Failure', 1, true)
+            or state:find('Cancelled', 1, true) or state:find('Interrupted', 1, true)
+            or state:find('NotExecuting', 1, true)) then error('Equipment command state unknown') end
+        if result == false then error('Native equipment cancellation refused') end
+    end)
+    if not ok then
+        s.cancelFailed, s.armed, s.phase = true, false, 'failed'
+        s.reason, s.error = 'Equipment cancellation unavailable', tostring(err)
+        return false
+    end
+    s.command, s.finishedAt = nil, nil
+    return true
+end
+
+function M.release(s)
+    if not s then return end
+    cancel(s)
+    s.armed, s.readySince = false, nil
+    if not s.cancelFailed then s.phase, s.reason = 'released', 'Managed copy dismissed' end
+end
+
+function M.abandon(s)
+    if not s then return end
+    -- Called after detach/death/world teardown. No native reads or cancellation.
+    s.npc, s.command, s.finishedAt, s.readySince = nil, nil, nil, nil
+    s.handoff,s.handoffAt,s.handoffReady=false,nil,nil
+    s.armed, s.phase, s.reason = false, 'abandoned', 'Native lifetime ended'
+end
+
+local function hands(npc)
+    local result = {}
+    for index = 1, 2 do
+        local getter = ScriptedPuppet.GetWeaponRight
+        if index == 2 then getter = ScriptedPuppet.GetWeaponLeft end
+        local item = getter(npc)
+        local row = {present = item ~= nil}
+        if item then
+            local id = item:GetItemID()
+            if not ItemID.IsValid(id) then error('Hand item identity unavailable') end
+            row.fists = flag(WeaponObject.IsFists(id), 'Fist classification')
+            row.item = tostring(ItemID.GetCombinedHash(id))
+            row.record = tostring(ItemID.GetTDBID(id))
+        end
+        result[slots[index]] = row
+    end
+    return result
+end
+
+local function wait(s, reason)
+    s.readySince = nil
+    if not cancel(s) then return end
+    s.phase, s.reason = s.armed and 'waiting' or 'complete', reason
+end
+
+local function failAttempt(s, reason)
+    if not cancel(s) then return end
+    s.reason, s.readySince, s.retryAt = reason, nil, s.clock + 1
+    if (s.attempts[s.slot] or 0) >= maxAttempts then
+        s.armed, s.phase = false, 'failed'
+    else s.phase = 'waiting' end
+end
+
+local function tick(s, player, idle, acquireHold)
+    local npc = s.npc
+    if not flag(npc:IsAttached(), 'NPC attachment') or flag(npc:IsDeadNoStatPool(), 'NPC life') then
+        M.abandon(s); return
+    end
+    if s.cancelFailed and s.command then
+        -- A failed cancellation cannot hold the walking controller hostage or
+        -- erase our native command reference. Observe it until it ends; do not
+        -- submit replacements or repeatedly invoke the failing cancel method.
+        local state=commandState(npc:GetAIControllerComponent(),s.command)
+        s.commandState=state
+        if state:find('Success',1,true) or state:find('Failure',1,true)
+            or state:find('Cancelled',1,true) or state:find('Interrupted',1,true)
+            or state:find('NotExecuting',1,true) then
+            s.command=nil
+            s.reason='Native holster ended after cancellation failed'
+        end
+        return
+    end
+    if not player or not flag(player:IsAttached(), 'Player attachment')
+        or flag(player:IsDeadNoStatPool(), 'Player life') then
+        wait(s, 'Player unavailable'); return
+    end
+    local combat = {player = flag(player:IsInCombat(), 'Player combat'),
+        npc = flag(NPCPuppet.IsInCombat(npc), 'NPC combat')}
+    s.guard = {playerCombat = combat.player, npcCombat = combat.npc}
+    if combat.player or combat.npc then
+        if not s.wasCombat then
+            s.episode, s.attempts, s.armed = s.episode + 1, {}, true
+            s.retryAt,s.cancelFailed = nil,nil
+        end
+        s.wasCombat = true
+        wait(s, 'Native combat owns equipment'); return
+    end
+    s.wasCombat = false
+    if not s.armed or s.cancelFailed then return end
+
+    local guard = s.guard
+    guard.playerThreat = flag(TargetTrackingExtension.HasHostileThreat(player), 'Player threats')
+    guard.npcThreat = flag(TargetTrackingExtension.HasHostileThreat(npc), 'NPC threats')
+    guard.autonomous = flag(npc:IsOnAutonomousAI(), 'NPC autonomy')
+    guard.relaxed = npc:GetHighLevelStateFromBlackboard() == Enum.new('gamedataNPCHighLevelState', 'Relaxed')
+    if guard.playerThreat or guard.npcThreat then wait(s, 'Hostile threat remains'); return end
+    if not guard.autonomous or not guard.relaxed then wait(s, 'NPC is not relaxed autonomous AI'); return end
+    local scene = Game.GetSceneSystem():GetScriptInterface()
+    guard.tier = PlayerPuppet.GetSceneTier(player)
+    guard.playerDialogue = flag(scene:IsEntityInDialogue(player:GetEntityID()), 'Player dialogue')
+    guard.npcScene = flag(scene:IsEntityInScene(npc:GetEntityID()), 'NPC scene')
+    guard.npcDialogue = flag(scene:IsEntityInDialogue(npc:GetEntityID()), 'NPC dialogue')
+    if guard.tier ~= 1 or guard.playerDialogue or guard.npcScene or guard.npcDialogue then
+        wait(s, 'Native scene or dialogue owns equipment'); return
+    end
+    guard.idle = idle == true
+    if not guard.idle then wait(s, 'Wait until settled'); return end
+    s.hands = hands(npc)
+
+    if s.command then
+        local ai = npc:GetAIControllerComponent()
+        local state = commandState(ai, s.command)
+        s.commandState = state
+        local hand = s.hands[s.slot]
+        local occupied = hand.present and not hand.fists
+        if state:find('Success', 1, true) and not occupied then
+            s.command, s.finishedAt, s.readySince = nil, nil, nil
+            s.phase, s.reason = 'waiting', 'Hand cleared; allow the native animation to settle'
+            local remaining = false
+            for _, name in ipairs(slots) do
+                if s.hands[name].present and not s.hands[name].fists then remaining = true end
+            end
+            if not remaining then
+                s.armed, s.phase, s.reason = false, 'complete', 'Native holster verified'
+                s.handoff,s.handoffAt,s.handoffReady=false,nil,nil
+            end
+            return
+        end
+        if s.clock - s.issuedAt >= commandSeconds then
+            failAttempt(s, 'Native holster timed out'); return
+        end
+        if not executing(state) and not state:find('Enqueued', 1, true) then
+            s.finishedAt = s.finishedAt or s.clock
+            -- A terminal command is not proof of a cleared hand. Give queued
+            -- attachment events a short grace, then retry once at most.
+            if s.clock - s.finishedAt >= 0.75 then failAttempt(s, 'Holster ended without verified slot clearance') end
+        end
+        return
+    end
+
+    local slot
+    for _, name in ipairs(slots) do
+        if s.hands[name].present and not s.hands[name].fists then slot = name; break end
+    end
+    local upper = npc:GetPuppetStateBlackboard():GetInt(Game.GetAllBlackboardDefs().PuppetState.UpperBody)
+    guard.upperNormal = Enum.new('gamedataNPCUpperBodyState', upper) == Enum.new('gamedataNPCUpperBodyState', 'Normal')
+    if not guard.upperNormal then wait(s, 'Native upper body is busy'); return end
+    if s.retryAt and s.clock < s.retryAt then return end
+    s.readySince = s.readySince or s.clock
+    s.phase, s.reason = 'waiting', 'Confirming a calm settled stance'
+    if s.clock - s.readySince < quietSeconds then return end
+    -- Newly spawned equipment may attach after the actor. Empty hands on the
+    -- first sample are not a settled baseline until this same calm interval.
+    if not slot then
+        s.armed, s.phase, s.reason, s.readySince = false, 'complete', 'No drawn hand weapons', nil
+        return
+    end
+    if not s.handoffReady then
+        if type(acquireHold)~='function' then
+            s.phase,s.reason='waiting','An owned idle hold handoff is required';return
+        end
+        s.handoff,s.handoffAt=true,s.handoffAt or s.clock
+        local ok,ready,reason=pcall(acquireHold)
+        if not ok then
+            cancel(s)
+            s.armed,s.phase,s.reason,s.error=false,'failed','Owned idle hold release failed',tostring(ready)
+            return
+        end
+        if ready~=true then
+            s.phase,s.reason='handoff',reason or 'Waiting for the owned idle hold to stop'
+            if s.clock-s.handoffAt>=2 then
+                cancel(s)
+                s.armed,s.phase,s.reason=false,'failed','Owned idle hold did not release in time'
+            end
+            return
+        end
+        s.handoffReady=true
+    end
+    if (s.attempts[slot] or 0) >= maxAttempts then
+        s.armed, s.phase, s.reason = false, 'failed', 'Holster attempt limit reached'; return
+    end
+    s.slot = slot
+    s.attempts[slot] = (s.attempts[slot] or 0) + 1
+    local command = NewObject('AIUnequipCommand')
+    command.slotId = TweakDBID.new(slot)
+    -- Preserve the native duration/animation default; do not snap-remove items.
+    s.command, s.issuedAt, s.finishedAt, s.commandState = command, s.clock, nil, nil
+    local accepted = npc:GetAIControllerComponent():SendCommand(command)
+    if accepted == false then
+        s.command = nil; failAttempt(s, 'Native holster request refused'); return
+    end
+    s.commandID, s.commands = tonumber(command.id), s.commands + 1
+    s.phase, s.reason, s.error = 'unequipping', 'Native holster requested', nil
+end
+
+function M.update(s, player, delta, idle, acquireHold)
+    if not s or not s.npc or s.phase == 'released' or s.phase == 'abandoned' then return end
+    local dt = tonumber(delta) or 0
+    if dt ~= dt or dt < 0 then return end
+    dt = math.min(dt, 1)
+    s.clock, s.poll = s.clock + dt, s.poll + dt
+    if s.handoff and idle~=true then wait(s,'Movement takes priority') end
+    if s.poll < 0.25 then return end
+    s.poll = 0
+    local ok, err = pcall(tick, s, player, idle, acquireHold)
+    if not ok then
+        wait(s, 'Equipment observation unavailable')
+        s.error = tostring(err)
+    end
+end
+
+function M.holdsMovement(s)
+    return s~=nil and s.handoff==true
+end
+
+function M.snapshot(s)
+    if not s then return {phase = 'uninitialized'} end
+    return {phase = s.phase, reason = s.reason, error = s.error, armed = s.armed,
+        episode = s.episode, attempts = copy(s.attempts), commands = s.commands,
+        commandID = s.commandID, commandState = s.commandState, active = s.command ~= nil,
+        movementSuspended = s.handoff == true, holdReleased = s.handoffReady == true,
+        slot = s.slot, guard = copy(s.guard), hands = copy(s.hands),
+        age = s.issuedAt and math.max(0, s.clock - s.issuedAt), cancellationFailed = s.cancelFailed == true}
+end
+
+return M

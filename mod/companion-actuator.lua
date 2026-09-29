@@ -34,11 +34,52 @@ local function clearLook(s)
     end
     s.look,s.lookStyle=nil,'none'
 end
+function M.suspendHold(s)
+    local held=s.suspendedHold
+    if not held then
+        if s.kind~='hold' or not s.command then return false,'No owned idle hold to release' end
+        held={command=s.command,ticket=s.ticket}
+        s.suspendedHold=held
+        s.command,s.issued=nil,false
+        local ai=s.npc:GetAIControllerComponent()
+        local state=tostring(ai:GetCommandState(held.command))
+        local accepted
+        if state:find('Enqueued',1,true) then accepted=ai:CancelCommand(held.command)
+        elseif active(state) then accepted=ai:StopExecutingCommand(held.command,true) end
+        if accepted==false then error('The native AI refused to release the owned idle hold') end
+        record(s,'hold-suspended')
+    end
+    local state=tostring(s.npc:GetAIControllerComponent():GetCommandState(held.command))
+    if active(state) then return false,'Waiting for the owned idle hold to stop' end
+    if not (state:find('Success',1,true) or state:find('Failure',1,true)
+        or state:find('Cancelled',1,true) or state:find('Interrupted',1,true)
+        or state:find('NotExecuting',1,true)) then return false,'Owned idle hold state unavailable' end
+    held.ready=true
+    return true
+end
+
+function M.resumeHold(s)
+    local held=s.suspendedHold
+    if not held then return end
+    if s.kind=='hold' and s.ticket==held.ticket and not s.command then
+        -- If release never completed, keep ownership of that exact original
+        -- command. Otherwise the next current decision creates a fresh hold at
+        -- the actual stance, or proceeds directly to the newly requested move.
+        s.command=not held.ready and held.command or nil
+        s.issued=not held.ready
+        s.feedback={}
+    end
+    s.suspendedHold=nil
+    record(s,'hold-resumed')
+end
+
 function M.release(s)
+    M.resumeHold(s)
     cancel(s); clearLook(s); s.feedback={}; s.issued=false
 end
 function M.abandon(s)
     s.command,s.npc,s.look=nil,nil,nil
+    s.suspendedHold=nil
     s.feedback={}; s.issued=false
 end
 function M.ownsTravel(s,command)
@@ -51,6 +92,13 @@ function M.sense(s,at,speed,dt)
     local f={ticket=s.ticket,kind=s.kind,target=s.target and space.copy(s.target),
         age=s.clock-(s.issuedAt or s.clock),stage=s.stage,waiting=not s.issued,
         commands=s.commands,error=s.error}
+    if s.suspendedHold then
+        f.state,f.stage,f.suspended='SuspendedForEquipment','equipment',true
+        f.commandID=tonumber(s.suspendedHold.command.id)
+        f.active,f.complete,f.failed=false,false,false
+        s.feedback=f
+        return f
+    end
     if s.command then
         local ok,label=pcall(function() return tostring(s.npc:GetAIControllerComponent():GetCommandState(s.command)) end)
         f.state=ok and label or 'Unavailable'
@@ -147,6 +195,7 @@ local function walk(s,intent,c)
 end
 
 function M.apply(s,decision,c,canPlan)
+    if s.suspendedHold then return false end
     local intent=decision.operation
     if not intent then return false end
     local style=decision.look or 'none'
