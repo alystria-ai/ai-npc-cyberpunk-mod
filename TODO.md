@@ -9,10 +9,40 @@
   rounds keep it for all speakers, and only the final remaining speaker may ask
   when enabled. Automatic reactions never ask. Lua files/catalogues were hash
   verified on installation and the reply bridge restarted successfully.
-- [ ] Activate through one CET Reload All Mods and check the new toggle starts
-  Off and ordinary replies do not append follow-up questions. The request is
-  pending with the user. Opt-in group listening remains unverified, and the
-  microphone test is still deferred. See `docs/FOLLOW_UP_QUESTIONS.md`.
+- [x] Diagnose enabled follow-ups being omitted: the setting reached the bridge
+  correctly, while the prompt only said a question was permitted. On now requests
+  one relevant question, with goodbye/no-question/fixed-reply exceptions. Default
+  Off and existing saved On choices are preserved. Source checkpoint `2ede95e`.
+- [x] Remove speaker labels from all 618 examples across 79 profiles, including
+  extracting only the character's response from V/character pairs. Production
+  serializers and preflight prevent the labels from returning. All 79 existing
+  cloud profiles were read back with biographies, voices, model configuration
+  and ID mappings preserved. Source `5a3686b`; wrapper `7a54e1d`.
+- [x] Check real provider behavior using the existing isolated research ID.
+  8ug8ear/Judy/Johnny On/Off and group-first/last behaved correctly. One goodbye
+  failure prompted clearer priority wording; the four targeted follow-up checks
+  then passed. All 14 post-repair replies omitted name prefixes. This is text-only
+  sampled behavior, not live voice acceptance across the whole cast.
+- [x] Use the native default red and a common left edge for Companion Manager
+  labels and section names. Initial `c6aed7a` did not apply in game because MCM
+  publishes the real page title after rendering rows. Live widget readback
+  identified that boundary; `4fe8a9b` styles the completed owned page and retains
+  cyan option boxes. 1009 full-suite checks pass, including installed MCM
+  integration; the 28 manager checks passed again after the final owner guard.
+- [x] Make accepted Escape/close from Companion Manager resume gameplay through
+  the native Resume action, preserving MCM's draft guard and other pages' exit
+  behavior. Source `4fe8a9b`; nine dedicated lifecycle checks pass.
+- [x] Remove the close-face retreat caused by V being within 0.72 metres. Keep
+  separation between overlapping companion copies and ordinary following.
+  Source `9e14265`; reproduced old failures, then 64 movement/behavior/equipment
+  checks passed. Lua/catalogues installed and hash verified as one update.
+- [ ] Activate the combined correction through one CET Reload All Mods and
+  visually check default-red labels, flat alignment, Esc returning to gameplay,
+  and a companion staying put during a close approach. Reload/open request is
+  pending with the user; no game restart required.
+- [ ] Hear a private On reply with a relevant question and no name prefix.
+  Opt-in group listening remains unverified; live microphone testing is still
+  deferred. See `docs/FOLLOW_UP_QUESTIONS.md`.
 - Keep one persistent player ID across saves, characters and channels. Invite
   may prepare the requested profile immediately, without recording contact or
   creating proactive memories; actual conversations build memory naturally.

@@ -134,3 +134,25 @@ Four provisioning regression checks and the character-routing check passed.
 The local readback receipt is `runtime/profile-field-migration-verification.json`;
 previous cloud values and exact returned fields are backed up beneath the batch
 directory recorded there. These account-specific files remain ignored by Git.
+
+## Speaker-label repair — September 30, 2026
+
+A live reply contained `8ug8ear:` as generated dialogue. The research exporter
+had prefixed every plain example with the character name, and 135 examples in
+18 dossiers contained V/character exchanges. Both builders now export only the
+character's spoken response. All **618 examples across 79 profiles** were
+regenerated, and provisioning rejects transcript labels before remote writes.
+Biographies, original research dialogue and third-party names inside actual
+speech remain intact; this is a formatting repair, not a lore rewrite.
+
+The style-only repair completed for all **79 existing cloud profiles**, with
+exact description/sample readback. Every unrelated returned field, complete
+model configuration and local ID mapping matched its before snapshot. No
+characters were recreated, and no player memory was cleared. The readback
+receipt is `runtime/profile-enrichment-report.json`; its ignored batch directory
+contains the before and after values. The source checkpoints are `5a3686b` and
+`7a54e1d`.
+
+The bridge also requests unlabelled spoken dialogue in per-turn context. This
+addresses the source of both text and voice output; it does not try to remove a
+name from text after the provider has already synthesized that name in audio.
