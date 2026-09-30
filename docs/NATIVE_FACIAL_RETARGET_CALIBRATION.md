@@ -22,14 +22,31 @@ Real producer-to-Lua checks verify the value reaches the feature and clears.
 CPU replay of 445 frames and 108 native interaction combinations per rig is
 finite. Typical added local upper-lip motion is 0.111 mm on Judy and 0.064 mm
 on Johnny, with peaks 0.206/0.136 mm. This is a restrained depth/contour change;
-it is not a claim of a large overall quality improvement. Ordinary speech
-comparison is the remaining gate.
+it is not a claim of a large overall quality improvement.
+
+The same frozen 7.4167-second native WAV was subsequently replayed through
+v7 and v8, with the bridge stopped. Its saved 445-frame provider timeline and
+native audio slot match duration and the original write sequence; the frozen
+hashes are checked before every replay. The game captured 55/56 frames across
+8.56/8.61 seconds, while the native adapter applied 335/337 facial poses and
+finished with a reset. Selected matching capture times show the added upper
+contour motion is restrained, with no obvious distortion. Head idle and capture
+sampling differ, so this is not a registered pixel comparison or proof of a
+large perceptual gain. The final v8 image is neutral. Johnny remains CPU-only.
+
+The bridge was restored with v8 loaded after replay. No game restart or CET
+reload was required. Ninety-seven focused facial/replay checks pass; native
+replay verifies rendering and lifecycle, not a new continuous-stream latency
+measurement. Overall conversational facial naturalness stays open.
 
 Evidence remains ignored: `runtime/upper-roll-images-20261001-013546`,
 `runtime/lip-depth-review-20261001/FINDINGS.md`, and
 `runtime/lips-v8-tests-20261001.log`. The user's authorization now includes
 triggering speech through the mod; a bounded local replay permits matching
 audio across comparisons without adding test dialogue to provider memory.
+The paired replay evidence is in `runtime/speech-replay-v7-20261001-014502`,
+`runtime/speech-replay-v8-20261001-014545`, and
+`runtime/lip-replay-source-20261001`. All capture workers have completed.
 
 ## October 1: lip contact and independent upper lift
 

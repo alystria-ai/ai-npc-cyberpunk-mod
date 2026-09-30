@@ -818,3 +818,13 @@ speech is idle. The bridge restarts hidden to load the host mapping. The game
 stays running, the persistent identity compares unchanged, and unrelated gaze
 modules stay at the currently accepted live version. No provider test dialogue
 or new player identity is created by this installation.
+
+The next bounded v8 comparison restores source upper-lip roll. Ninety-seven
+facial/replay checks pass. A short frozen native WAV/provider-timeline pair
+replays both v7/v8 through the real game adapter while the bridge is stopped;
+335/337 native applications and both final resets are observed. The visual
+change is restrained, with no obvious distortion in the retained view. Overall
+naturalness remains open; neither CPU geometry nor sparse window frames prove
+all-character quality. The bridge is restored on v8 afterward, and no capture
+worker remains running. The new replay module is registered in both development
+and proposed release manifests, excluding its private fixtures and recordings.

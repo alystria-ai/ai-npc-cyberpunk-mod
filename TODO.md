@@ -68,6 +68,13 @@
     V7 is installed and captured; the user reports "not bad, keep improving."
     Visible closure and reset improve, but final naturalness remains open. See
     `docs/NATIVE_FACIAL_RETARGET_CALIBRATION.md` for captures and limitations.
+  - Added source-driven upper-lip roll in v8, after a fixed-jaw native range
+    comparison. The same saved voice/source pair replays through v7/v8 without
+    another provider call; both captures finish with native facial reset.
+    V8 is live, 97 focused checks pass, and the helper can trigger future
+    comparisons without asking the user to send every F6 message. This is a
+    modest contour improvement; overall naturalness and other rendered rigs
+    remain open. All captures are bounded and the normal bridge is restored.
 - [x] Add **Follow-up questions** (`followUpQuestions`) to organized Settings,
   default Off per the user's latest request. Local checkpoint `135264d`; 991
   tests passed with zero failures/skips, including installed MCM integration.

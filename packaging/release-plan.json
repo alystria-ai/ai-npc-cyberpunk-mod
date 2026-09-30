@@ -9,6 +9,10 @@
       "filename": "CyberpunkConvai-Scripts.zip",
       "onlyExtension": ".lua",
       "files": [
+        {
+          "source": "mod/speech-replay-probe.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/speech-replay-probe.lua"
+        },
           {
             "source": "mod/speech-cadence-probe.lua",
             "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/speech-cadence-probe.lua"
