@@ -186,58 +186,36 @@ test('malformed indices, discontinuous clocks and final duration mismatches cann
   assert.equal(h.manifests.at(-1).complete, false);
 });
 
-test('host gates each streamed callback on its exact page token, epoch and abort signal', async () => {
-  const host = new RealtimeHost(), page = {}, controller = new AbortController(), received = [];
-  const config = {characterId: 'judy', endUserId: 'private-save-branch', scope: 'private'};
-  const sink = {token: 'one', epoch: 0, signal: controller.signal, config,
-    emit: async row => received.push(row), index: 1, duration: 0, busy: false};
-  host.audioSinks.set(page, sink);
-  await assert.rejects(host.acceptAudio(page, 'other', chunk(1, 0)), {name: 'AbortError'});
-  await host.acceptAudio(page, 'one', chunk(1, 0)); assert.equal(received.length, 1);
-  assert.equal(sink.index, 2); assert.equal(sink.duration, 1);
-  controller.abort();
-  await assert.rejects(host.acceptAudio(page, 'one', chunk(2, 1)), {name: 'AbortError'});
-  assert.equal(received.length, 1);
-});
-
-test('a callback finishing after the host closes does not acknowledge or authorize a later chunk', async () => {
-  const host = new RealtimeHost(), page = {}; let release;
-  const sink = {token: 'one', epoch: 0, config: {characterId: 'judy'}, index: 1, duration: 0,
-    emit: () => new Promise(done => { release = done; })};
-  host.audioSinks.set(page, sink);
-  const pending = host.acceptAudio(page, 'one', chunk(1, 0)); await tick();
-  await host.close(); release();
-  await assert.rejects(pending, {name: 'AbortError'});
-  assert.equal(sink.index, 1); assert.equal(sink.duration, 0);
-});
-
-test('text-only, warm and speculative operations cannot acquire a native audio sink', async () => {
+test('all host operations reject the retired audio callback before starting a browser', async () => {
   const host = new RealtimeHost(), config = {characterId: 'judy'};
+  let starts = 0; host.start = async () => { starts++; };
   const onAudioChunk = async () => {};
-  await assert.rejects(host.reply({...config, ttsEnabled: false}, {onAudioChunk}), /Only submitted voiced/);
-  await assert.rejects(host.warm(config, {onAudioChunk}), /Only submitted voiced/);
-  await assert.rejects(host.prepare(config, {onAudioChunk}), /Only submitted voiced/);
-  assert.equal(host.audioSinks.size, 0);
+  await assert.rejects(host.reply(config, {onAudioChunk}), /Chunked Convai playback is retired/);
+  await assert.rejects(host.reply({...config, ttsEnabled: false}, {onAudioChunk}), /Chunked Convai playback is retired/);
+  await assert.rejects(host.warm(config, {onAudioChunk}), /Chunked Convai playback is retired/);
+  await assert.rejects(host.prepare(config, {onAudioChunk}), /Chunked Convai playback is retired/);
+  await assert.rejects(host.reply(config, {onAudioChunk: null}), /Chunked Convai playback is retired/);
+  assert.equal(starts, 0);
+  assert.equal(host.acceptAudio, undefined);
+  assert.equal(host.audioSinks, undefined);
 });
 
-test('a pooled reply binds its callback before evaluation and removes that capability on completion', async () => {
-  const host = new RealtimeHost(), received = [], released = [];
+test('a pooled complete reply cannot forward caller supplied legacy stream tokens', async () => {
+  const host = new RealtimeHost(), released = [];
   host.start = async () => {};
   const page = {evaluate: async (fn, {config, method}) => {
-    assert.equal(method, 'reply'); assert.equal(typeof config.audioStreamToken, 'string');
-    await host.acceptAudio(page, config.audioStreamToken, chunk(1, 0));
-    assert.equal(received.length, 1);
-    return {text: metadata.text, sessionID: metadata.sessionID, streamed: true, stream: {chunks: 1, duration: 1}};
+    assert.equal(method, 'reply'); assert.equal(config.audioStreamToken, undefined);
+    assert.deepEqual(host.connectOwners.get(page), {characterId: 'judy', endUserId: 'current-branch', ttsEnabled: true});
+    return {text: metadata.text, sessionID: metadata.sessionID, audio: 'complete-wav', streamed: false};
   }};
   host.pool = {entries: new Map([['one', {}]]), acquire: async () => ({value: page, reused: true,
     release: async options => released.push(options)})};
   const supplied = {characterId: 'judy', endUserId: 'current-branch', scope: 'private', audioStreamToken: 'untrusted-token'};
-  const result = await host.reply(supplied, {onAudioChunk: async row => received.push(row)});
-  assert.equal(result.streamed, true); assert.equal(received.length, 1);
-  assert.equal(received[0].timing.pageReused, true);
-  assert.equal(host.audioSinks.size, 0); assert.equal(released.length, 1); assert.equal(!!released[0].discard, false);
+  const result = await host.reply(supplied);
+  assert.equal(result.streamed, false); assert.equal(result.audio, 'complete-wav');
+  assert.equal(result.timing.pageReused, true);
+  assert.equal(released.length, 1); assert.equal(!!released[0].discard, false);
   assert.equal(supplied.audioStreamToken, 'untrusted-token');
-  await assert.rejects(host.acceptAudio(page, 'untrusted-token', chunk(2, 1)), {name: 'AbortError'});
 });
 
 test('host microphone context refresh uses the owned lease and rejects identity changes before evaluation', async () => {

@@ -24,9 +24,9 @@ import {PlayerMemory} from './player-memory.mjs';
 import {PlayerMemoryApi} from './player-memory-api.mjs';
 import {PlayerMemoryControl} from './player-memory-control.mjs';
 import {PlayerKnowledge} from './player-knowledge.mjs';
-import {ConvaiAudioStream} from './convai-audio-stream.mjs';
 import {PlayerPhoneKnowledge, playerPhoneGeneration} from './player-phone-knowledge.mjs';
 import {atomicFile as atomic} from './guarded-file.mjs';
+import {readWorldSession} from './world-session.mjs';
 
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const stateDirectory = resolve(process.env.CYBERPUNK_CONVAI_STATE || resolve(project, 'runtime'));
@@ -122,7 +122,7 @@ const phone = new PhoneChat({
       sessionId: admitted.reconnectRequired ? undefined : options.sessionId,
       scope: prepared.scope, ...remote,
       context: conversationContext(prepared.input),
-      text: options.input.text, ttsEnabled: false}, {signal: options.signal, discard: true});
+      text: options.input.text, ttsEnabled: false}, {signal: options.signal});
     if (!await knowledgeRouter.current(prepared)) throw Error('Phone world changed');
     await knowledgeRouter.activity(prepared, 'generated-reply', {replyText: result.text});
     stagedKnowledgeTurn(prepared);
@@ -271,36 +271,6 @@ async function status(state, detail = '') {
   await atomic(statusPath, JSON.stringify({state, detail: detail.slice(0, 200), updated: Date.now()}));
 }
 
-const livePublished = new WeakSet();
-async function streamConvaiReply(input, profile, current, signal) {
-  const stream = new ConvaiAudioStream({input, streamId: randomUUID(), slots, readState: readSpeechState,
-    writeManifest: document => writeStreamManifest(document, current), current, signal, buildFace: buildFacialTimeline});
-  streaming++;
-  try {
-    const result = await realtime.reply(realtimeConfig(input), {signal, onAudioChunk: async chunk => {
-      const chunkReceivedAt = Date.now();
-      const row = await stream.append(chunk);
-      if (chunk.index !== 1) return;
-      if (!await current()) throw Error('Conversation changed before playback');
-      const committed = await atomic(replyPath, JSON.stringify({requestId: input.requestId, generation: input.generation,
-        entity: input.entity, profile: profile.key, text: chunk.text, audio: row.audio, face: row.face,
-        stream: stream.descriptor(), updated: Date.now()}), {signal, isCurrent: current, isCurrentSync: current.sync});
-      if (!committed || !await current()) throw Error('Conversation changed before playback');
-      livePublished.add(input);
-      await measure(input, {transport: 'realtime', publishedAt: Date.now(),
-        firstChunkReceivedAt: chunkReceivedAt, firstChunkNativePreparationMs: Date.now() - chunkReceivedAt,
-        firstChunkTiming: chunk.timing,
-        firstStreamChunkDuration: row.audio.duration, stream: {id: stream.manifest.streamId, mode: 'convai-live'}, nativePlaybackObserved: false});
-      await status('ready', profile.name);
-    }});
-    if (result.streamed) await stream.finish(result);
-    return {...result, transport: 'realtime', alreadyPublished: livePublished.has(input)};
-  } catch (error) {
-    await stream.fail(error).catch(() => {});
-    throw error;
-  } finally { streaming--; prefetchObserved = ''; }
-}
-
 async function respond(input, profile, {signal, prepared, current} = {}) {
   if (await audioReady(runtime)) {
     if (prepared) {
@@ -308,7 +278,8 @@ async function respond(input, profile, {signal, prepared, current} = {}) {
       catch { throwIfCancelled(signal); /* Failed speculation falls back to the submitted turn. */ }
     }
     throwIfCancelled(signal);
-    if (!localVoice.usesProfile(input.profileKey) && current) return streamConvaiReply(input, profile, current, signal);
+    // Remote PCM and NeuroSync arrive over the provider data channel. Publish
+    // that complete reply once; only local Omni TTS uses phrase generation.
     return synthesizeReply(input, {...await realtime.reply(realtimeConfig(input), {signal}), transport: 'realtime'}, signal);
   }
   prefetch.invalidate(); prepared?.cancel();
@@ -350,7 +321,7 @@ async function publishResult(input, profile, result, current = async () => true,
   }
   if (!await current()) return false;
   const committed = await atomic(replyPath, JSON.stringify({requestId: input.requestId, generation: input.generation,
-    entity: input.entity, profile: profile.key, text: result.text, audio, face, audioError,
+    entity: input.entity, profile: profile.key, text: result.text, userText: result.userText, audio, face, audioError,
     stream: stream?.descriptor(), updated: Date.now()}), {signal, isCurrent: current, isCurrentSync: current.sync});
   if (!committed || !await current()) return false;
   (result.transport === 'realtime' ? realtimeSessions : sessions).set(sessionKey(input), result.sessionID);
@@ -445,8 +416,16 @@ async function quiescePlayerMemory({signal} = {}) {
 async function admitPlayerConversation(prepared, {signal} = {}) {
   throwIfCancelled(signal);
   if (!prepared?.sendAllowed || !await knowledgeRouter.current(prepared)) throw Error('Conversation world changed');
-  // Automatic battle/loot replies never activate an unused character's memory.
-  if (prepared.input.reaction) return {reconnectRequired: false};
+  // An actually admitted battle/loot reply can enter natural provider memory.
+  // Register its Forget target locally without enabling or seeding anything.
+  if (prepared.input.reaction) {
+    await playerMemory.recordAutomaticConversation({profileKey: prepared.route.profileKey,
+      guard: prepared.guard, channel: prepared.route.channel,
+      requestId: prepared.input.requestId || prepared.input.id, signal});
+    throwIfCancelled(signal);
+    if (!await knowledgeRouter.current(prepared)) throw Error('Conversation memory changed');
+    return {reconnectRequired: false};
+  }
   await playerMemory.beginConversation({profileKey: prepared.route.profileKey,
     guard: prepared.guard, source: 'player',
     channel: prepared.route.transport === 'microphone' ? 'microphone' : prepared.route.channel,
@@ -514,7 +493,7 @@ async function pollMicrophone() {
         await knowledgeRouter.submitted(prepared);
         preparedInputs.set(prepared.input, prepared); microphoneKnowledge.clear();
         microphoneKnowledge.set(input.requestId, prepared); rememberKnowledgeTurn(prepared);
-        await connections.setRequest(prepared.input);
+        await connections.setRequest(prepared.input, realtimeConfig(prepared.input));
         const latest = JSON.parse(await readFile(micPath, 'utf8').catch(() => '{}'));
         if (microphoneKnowledge.get(input.requestId) !== prepared || !await knowledgeRouter.current(prepared)
             || latest.input?.requestId !== input.requestId || latest.action === 'cancel') {
@@ -641,7 +620,7 @@ async function processInput(request, prepared) {
     await status('thinking', profile.name);
     const canWarm = await audioReady(runtime);
     throwIfCancelled(controller.signal);
-    if (canWarm) await connections.setRequest(input);
+    if (canWarm) await connections.setRequest(input, realtimeConfig(input));
     throwIfCancelled(controller.signal);
     await measure(input, {transportRequestedAt: Date.now(),
       submissionStages: {...stages, beforeTransportMs: performance.now() - preparationStarted}});
@@ -651,17 +630,9 @@ async function processInput(request, prepared) {
     await knowledgeRouter.activity(knowledgeTurn, 'generated-reply', {replyText: result.text});
     stagedKnowledgeTurn(knowledgeTurn);
     await measure(input, {resultReadyAt: Date.now(), requestToResultMs: Date.now() - request.receivedAt});
-    if (result.alreadyPublished) {
-      realtimeSessions.set(sessionKey(input), result.sessionID);
-      connections.used(input, result.timing); prefetch.published(input, result.text);
-      await measure(input, {timing: result.timing, stream: result.stream, fullReplyReadyAt: Date.now()});
-    } else await publishResult(input, profile, result, current, controller.signal);
+    await publishResult(input, profile, result, current, controller.signal);
   } catch (error) {
     if (!await current()) return;
-    if (livePublished.has(input)) {
-      await measure(input, {streamInterrupted: true});
-      return; // The native stream owns partial-playback/error presentation.
-    }
     await status('error', error.message).catch(() => {});
     if (input) await atomic(replyPath, JSON.stringify({requestId: input.requestId,
       generation: input.generation, entity: input.entity,
@@ -744,7 +715,7 @@ async function pollPrefetch() {
     prefetch.invalidate();
     // Open the next connection, but don't invent a user turn before its
     // submitted audience and current-save context are known.
-    await connections.setRequest(predicted);
+    await connections.setRequest(predicted, realtimeConfig(predicted));
   } finally { prefetchPolling = false; }
 }
 
@@ -768,13 +739,9 @@ async function pollKnowledge() {
   if (knowledgePolling || stopped) return;
   knowledgePolling = true;
   try {
-    let session;
-    try { session = JSON.parse(await readFile(resolve(runtime, 'world-session.json'), 'utf8')); } catch {}
-    const valid = session?.version === 1 && typeof session.token === 'string' && session.token.length <= 200
-      && Number.isSafeInteger(session.generation) && session.generation > 0 && typeof session.ready === 'boolean'
-      && Number.isFinite(session.updated) && session.updated <= Date.now() + 1000 && Date.now() - session.updated < 5000;
+    const session = await readWorldSession(resolve(runtime, 'world-session.json'));
     const priorWorld = worldSession?.ready ? JSON.stringify([worldSession.token, worldSession.generation]) : null;
-    worldSession = valid ? session : null;
+    worldSession = session;
     const nextWorld = worldSession?.ready ? JSON.stringify([worldSession.token, worldSession.generation]) : null;
     if (priorWorld && priorWorld !== nextWorld) {
       memoryQuiescing++;

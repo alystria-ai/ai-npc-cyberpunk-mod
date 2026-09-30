@@ -1,0 +1,236 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {ConvaiDataAudio} from './convai-data-audio.mjs';
+import {readPcmWav} from './speech-audio.mjs';
+
+const owner = {response_id: 'isolated-response', neurosync_turn_id: 1, epoch: 1};
+const other = {response_id: 'other-response', neurosync_turn_id: 2, epoch: 1};
+const wire = data => ({label: 'rtvi-ai', type: 'server-message', data});
+const samples = Buffer.alloc(6400);
+for (let index = 0; index < 3200; index++) samples.writeInt16LE([-32768, -1, 0, 1, 32767][index % 5], index * 2);
+const pcm = (bytes = samples, extra = {}) => wire({type: 'audio-data', sample_rate: 8000,
+  channels: 1, audio: bytes.toString('base64'), includes_wav_header: false, ...extra});
+const face = (start = 0, count = 24, extra = {}) => wire({type: 'chunked-neurosync-blendshapes',
+  ...owner, fps: 60, start_frame_index: start,
+  blendshapes: Array.from({length: count}, (_, index) => Array.from({length: 61}, (_, key) => ((index + start + key) % 8) / 8)), ...extra});
+const stats = (extra = {}, own = owner) => wire({type: 'blendshape-turn-stats', ...own, sequence: 19,
+  stats: {total_audio_bytes: 6400, total_blendshapes: 24, fps: 60, total_audio_duration_ms: 400,
+    was_interrupted: false, ...extra}});
+const terminal = (extra = {}) => wire({type: 'bot-turn-completed', ...owner, sequence: 18,
+  was_interrupted: false, ...extra});
+const feed = (collector, message, atMs = 0, kind = 0) => collector.accept(message, {atMs, kind});
+function complete({audio = pcm(), faces = face(), statistics = stats(), end = terminal()} = {}) {
+  const c = new ConvaiDataAudio();
+  feed(c, faces, 10); feed(c, audio, 20); feed(c, statistics, 30); feed(c, end, 40);
+  return c;
+}
+
+test('one WAV preserves every source PCM byte, sample rate, channel and signed endpoint', () => {
+  const c = new ConvaiDataAudio();
+  feed(c, face(), 10);
+  feed(c, pcm(samples.subarray(0, 3200)), 20);
+  feed(c, pcm(samples.subarray(3200)), 40);
+  feed(c, stats(), 42); feed(c, terminal(), 43);
+  const result = c.finish(), decoded = readPcmWav(Buffer.from(result.audio, 'base64'));
+  assert.deepEqual(decoded.data, samples);
+  assert.equal(decoded.sampleRate, 8000); assert.equal(decoded.channels, 1); assert.equal(decoded.bits, 16);
+  assert.equal(result.duration, 0.4); assert.equal(result.packetCount, 2);
+  assert.deepEqual(result.timing, {firstFaceMs: 10, completeFaceMs: 10, firstAudioMs: 20,
+    completeAudioMs: 40, collectionCompleteMs: 43});
+  assert.equal(result.faces[12].at, 0.2);
+  assert.strictEqual(c.finish(), result);
+});
+
+test('declared stats may precede final PCM; matching terminal alone cannot publish a truncated WAV', () => {
+  const c = new ConvaiDataAudio();
+  feed(c, face(), 10); feed(c, pcm(samples.subarray(0, 3200)), 20);
+  feed(c, stats(), 30); feed(c, terminal(), 40);
+  assert.equal(c.ready, false); assert.throws(() => c.finish(), /complete audio/);
+  feed(c, pcm(samples.subarray(3200)), 50);
+  assert.equal(c.ready, true); assert.equal(c.finish().timing.collectionCompleteMs, 50);
+});
+
+test('stats sequence19 before terminal18 is valid, facial indices order the 60fps timeline', () => {
+  const c = new ConvaiDataAudio();
+  feed(c, face(12, 12, {sequence: 4}), 10);
+  feed(c, face(0, 12, {sequence: 1}), 11);
+  feed(c, pcm(), 12); feed(c, stats(), 13); feed(c, terminal(), 14);
+  const result = c.finish();
+  assert.equal(result.faces.length, 24);
+  assert.equal(result.faces[1].at, 1 / 60);
+  assert.deepEqual(result.faces[0].values, face(0, 1).data.blendshapes[0]);
+});
+
+test('UTF8 full envelopes work and unrelated RTVI messages do not close the turn', () => {
+  const c = new ConvaiDataAudio();
+  const encoded = new TextEncoder().encode(JSON.stringify(pcm()));
+  feed(c, encoded, 1);
+  assert.equal(feed(c, {label: 'rtvi-ai', type: 'bot-llm-stopped', data: {}}, 2), false);
+  assert.equal(feed(c, {label: 'rtvi-ai', type: 'bot-tts-stopped', data: {}}, 3), false);
+  assert.equal(feed(c, {label: 'rtvi-ai', type: 'bot-started-speaking', data: {}}, 3), false);
+  assert.equal(feed(c, {label: 'rtvi-ai', type: 'bot-stopped-speaking', data: {}}, 3), false);
+  feed(c, face(), 4); feed(c, stats(), 5);
+  assert.equal(c.ready, false);
+  feed(c, terminal(), 6); assert.equal(c.ready, true);
+});
+
+test('repeated identical PCM is retained, not content-deduplicated', () => {
+  const c = new ConvaiDataAudio(), half = Buffer.alloc(3200, 0);
+  feed(c, pcm(half), 1); feed(c, pcm(half), 2);
+  feed(c, face(), 3); feed(c, stats(), 4); feed(c, terminal(), 5);
+  assert.equal(readPcmWav(Buffer.from(c.finish().audio, 'base64')).data.length, 6400);
+});
+
+test('stereo interleaving survives byte-for-byte without mono folding', () => {
+  const c = complete({audio: pcm(samples, {channels: 2}), faces: face(0, 12),
+    statistics: stats({total_blendshapes: 12, total_audio_duration_ms: 200})});
+  const decoded = readPcmWav(Buffer.from(c.finish().audio, 'base64'));
+  assert.equal(decoded.channels, 2); assert.deepEqual(decoded.data, samples);
+});
+
+test('known retired metadata is ignored; another current owner is a fatal boundary', () => {
+  const c = new ConvaiDataAudio({retiredOwners: [other]});
+  assert.equal(feed(c, stats({}, other)), false);
+  feed(c, face(), 1); feed(c, pcm(), 2); feed(c, stats(), 3); feed(c, terminal(), 4);
+  assert.equal(c.ready, true);
+  const changed = new ConvaiDataAudio(); feed(changed, face());
+  assert.throws(() => feed(changed, terminal(other), 1), /replaced the active speech owner/);
+  assert.equal(changed.ready, false);
+});
+
+test('cross-epoch reused response ID does not pass owner matching', () => {
+  const c = new ConvaiDataAudio(); feed(c, face());
+  assert.throws(() => feed(c, terminal({epoch: 2}), 1), /replaced the active speech owner/);
+});
+
+test('ownerless terminal is rejected; source PCM itself need not carry an owner', () => {
+  const c = new ConvaiDataAudio(); feed(c, pcm());
+  assert.throws(() => feed(c, wire({type: 'bot-turn-completed', was_interrupted: false}), 1), /no response owner/);
+});
+
+test('interruptions, aborts and matching facial cancellation never produce a WAV', () => {
+  for (const end of [terminal({was_interrupted: true}), terminal({was_aborted: true}),
+    wire({type: 'neurosync-blendshapes-cancel', ...owner, valid_through_frame_index: 2})]) {
+    const c = new ConvaiDataAudio(); feed(c, face()); feed(c, pcm()); feed(c, stats());
+    assert.throws(() => feed(c, end), /interrupted|aborted|cancelled/);
+    assert.throws(() => c.finish(), /interrupted|aborted|cancelled/);
+  }
+});
+
+test('transport closure and local cancellation reject partial delivery and ignore tails', () => {
+  for (const cancel of [c => c.transportClosed(), c => c.abort('explicit cancellation')]) {
+    const c = new ConvaiDataAudio(); feed(c, pcm(samples.subarray(0, 3200)), 1); cancel(c);
+    assert.equal(feed(c, pcm(samples.subarray(3200)), 2), false);
+    assert.throws(() => c.finish(), /closed|cancellation/);
+  }
+  const done = complete(); done.transportClosed(); assert.ok(done.finish().audio);
+});
+
+test('missing source data, stats, or terminal has no silence-based completion', () => {
+  for (const omit of ['audio', 'stats', 'terminal']) {
+    const c = new ConvaiDataAudio(); feed(c, face());
+    if (omit !== 'audio') feed(c, pcm());
+    if (omit !== 'stats') feed(c, stats());
+    if (omit !== 'terminal') feed(c, terminal());
+    assert.equal(c.ready, false); assert.throws(() => c.finish(), /complete audio/);
+  }
+});
+
+test('invalid PCM payload, WAV flag, alignment and unsupported format are rejected', () => {
+  const invalid = [pcm(samples, {audio: '!!=='}), pcm(samples, {audio: ''}),
+    pcm(Buffer.alloc(3)), pcm(samples, {includes_wav_header: true}),
+    pcm(samples, {sample_rate: 0}), pcm(samples, {sample_rate: 8000.5}),
+    pcm(samples, {channels: 0}), pcm(samples, {channels: 3})];
+  for (const message of invalid) {
+    const c = new ConvaiDataAudio(); assert.throws(() => feed(c, message), /PCM|samples/);
+    assert.ok(c.error); assert.equal(c.parts.length, 0);
+  }
+});
+
+test('rate/channel change or unreliable data cannot silently corrupt the reply', () => {
+  for (const change of [{sample_rate: 24000}, {channels: 2}]) {
+    const c = new ConvaiDataAudio(); feed(c, pcm(samples.subarray(0, 3200)));
+    assert.throws(() => feed(c, pcm(samples.subarray(3200), change), 1), /changed PCM format/);
+  }
+  assert.throws(() => feed(new ConvaiDataAudio(), pcm(), 0, 1), /reliable ordered/);
+});
+
+test('byte and duration ceilings reject overflow before WAV allocation', () => {
+  assert.throws(() => feed(new ConvaiDataAudio({maxBytes: 6398}), pcm()), /collection limit/);
+  assert.throws(() => feed(new ConvaiDataAudio({maxSeconds: 0.3}), pcm()), /collection limit/);
+  assert.throws(() => new ConvaiDataAudio({maxBytes: 24000001}), /limits/);
+  assert.throws(() => new ConvaiDataAudio({maxSeconds: 121}), /limits/);
+});
+
+test('source counts and declared duration must agree; excess samples fail', () => {
+  const wrongDuration = new ConvaiDataAudio(); feed(wrongDuration, pcm());
+  assert.throws(() => feed(wrongDuration, stats({total_audio_duration_ms: 500})), /declared duration/);
+  const excess = new ConvaiDataAudio(); feed(excess, stats()); feed(excess, pcm());
+  assert.throws(() => feed(excess, pcm(Buffer.alloc(2))), /declared output size/);
+  const conflict = new ConvaiDataAudio(); feed(conflict, stats());
+  assert.throws(() => feed(conflict, stats({total_audio_bytes: 8000, total_audio_duration_ms: 500})), /Conflicting/);
+});
+
+test('incomplete or malformed face data cannot discard otherwise verified voice', () => {
+  const malformed = face(); malformed.data.blendshapes[0] = [0];
+  for (const facial of [face(0, 12), face(1, 23), malformed,
+    face(0, 24, {fps: 30}), face(0, 24, {fps: 0})]) {
+    const c = complete({faces: facial});
+    assert.equal(c.ready, true);
+    const result = c.finish();
+    assert.deepEqual(readPcmWav(Buffer.from(result.audio, 'base64')).data, samples);
+    assert.deepEqual(result.faces, []); assert.ok(result.facialDiagnostic);
+  }
+});
+
+test('duplicate facial frames do not double their duration, conflicting duplicates disable faces only', () => {
+  const c = new ConvaiDataAudio(); feed(c, face()); feed(c, face(), 1);
+  feed(c, pcm(), 2); feed(c, stats(), 3); feed(c, terminal(), 4);
+  assert.equal(c.finish().faces.length, 24);
+  const conflict = new ConvaiDataAudio(); feed(conflict, face());
+  const altered = face(); altered.data.blendshapes[0][0] = 0.9;
+  feed(conflict, altered, 1); feed(conflict, pcm(), 2); feed(conflict, stats(), 3); feed(conflict, terminal(), 4);
+  assert.match(conflict.finish().facialDiagnostic, /Conflicting/);
+});
+
+test('invalid facial final counts and absent facial chunks leave original voice available', () => {
+  for (const facialStats of [{fps: 0}, {total_blendshapes: 0}, {total_blendshapes: 99}]) {
+    const c = complete({statistics: stats(facialStats)});
+    const result = c.finish(); assert.ok(result.audio); assert.ok(result.facialDiagnostic); assert.equal(result.faces.length, 0);
+  }
+  const c = new ConvaiDataAudio(); feed(c, pcm()); feed(c, stats()); feed(c, terminal());
+  assert.match(c.finish().facialDiagnostic, /incomplete/);
+});
+
+test('sealed results cannot be mutated by late data, and no native chunk is exposed', () => {
+  const c = complete(), result = c.finish();
+  assert.equal(feed(c, pcm()), false); assert.strictEqual(c.finish(), result);
+  assert.equal(result.stream, undefined); assert.equal(result.streamed, undefined);
+  assert.equal(c.parts.length, 0); assert.equal(c.frames.size, 0);
+});
+
+test('actual mixed wire envelopes finish on the top-level owned terminal event', () => {
+  const c = new ConvaiDataAudio();
+  feed(c, face(0, 14, {sequence: 1}), 10);
+  feed(c, {label: 'rtvi-ai', type: 'bot-started-speaking', data: {...owner, sequence: 3}}, 12);
+  feed(c, face(14, 10, {sequence: 4}), 14);
+  feed(c, pcm(), 20); feed(c, stats(), 21);
+  feed(c, {label: 'rtvi-ai', type: 'bot-stopped-speaking', data: {...owner, sequence: 17}}, 22);
+  assert.equal(c.ready, false);
+  feed(c, {label: 'rtvi-ai', type: 'bot-turn-completed', data: {...owner, sequence: 18, was_interrupted: false}}, 23);
+  assert.equal(c.ready, true);
+  const result = c.finish();
+  assert.deepEqual(readPcmWav(Buffer.from(result.audio, 'base64')).data, samples);
+  assert.equal(result.faces.length, 24);
+  assert.equal(result.timing.collectionCompleteMs, 23);
+});
+
+test('outer lifecycle type cannot be replaced by a contradictory nested type', () => {
+  const c = new ConvaiDataAudio(); feed(c, face()); feed(c, pcm()); feed(c, stats());
+  assert.throws(() => feed(c, {label: 'rtvi-ai', type: 'bot-stopped-speaking',
+    data: {...owner, type: 'bot-turn-completed', was_interrupted: false}}), /Conflicting.*types/);
+  assert.equal(c.ready, false);
+  const valid = new ConvaiDataAudio(); feed(valid, face()); feed(valid, pcm()); feed(valid, stats());
+  feed(valid, {label: 'rtvi-ai', type: 'bot-turn-completed', data: terminal().data});
+  assert.equal(valid.ready, true);
+});

@@ -6,6 +6,7 @@ import {RealtimeHost} from './realtime-host.mjs';
 import {TransportPool, endUserOptions, transportKey, SessionBindings} from './transport-pool.mjs';
 import {drainBlendshapes} from './blendshape-capture.mjs';
 import {PcmChunkStream} from './convai-audio-stream.mjs';
+import {ConvaiDataAudio} from './convai-data-audio.mjs';
 
 const deferred = () => {
   let resolve;
@@ -18,7 +19,8 @@ const clientSource = readFileSync(new URL('./realtime-client.mjs', import.meta.u
   .replace("import {ConvaiClient} from '@convai/web-sdk/vanilla';", '')
   .replace("import {drainBlendshapes} from './blendshape-capture.mjs';", '')
   .replace("import {endUserOptions, transportKey, SessionBindings} from './transport-pool.mjs';", '')
-  .replace("import {PcmChunkStream} from './convai-audio-stream.mjs';", '');
+  .replace("import {PcmChunkStream} from './convai-audio-stream.mjs';", '')
+  .replace("import {ConvaiDataAudio} from './convai-data-audio.mjs';", '');
 
 // Run the actual host and lease pool. Each page executes the host's browser
 // callbacks against its own window, without launching a browser or SDK network.
@@ -79,7 +81,8 @@ function fixture(t, {disconnectTimeoutMs, realClient = false, onDisconnect, crea
           }
         }
         runInNewContext(clientSource, {ConvaiClient: Client, window: page.window,
-          endUserOptions, transportKey, SessionBindings, drainBlendshapes, PcmChunkStream,
+          endUserOptions, transportKey, SessionBindings, drainBlendshapes, PcmChunkStream, ConvaiDataAudio,
+          TextDecoder, ArrayBuffer, Uint8Array,
           performance, setTimeout, clearTimeout, setInterval, clearInterval,
           btoa: data => Buffer.from(data, 'binary').toString('base64')});
         page.api = page.window.convaiRealtime;
@@ -95,7 +98,7 @@ function fixture(t, {disconnectTimeoutMs, realClient = false, onDisconnect, crea
   return {host, pool, browser, server, pages, events, gate};
 }
 
-test('discarded phone replies disconnect the SDK before closing and reconnect the retained session', async t => {
+test('explicitly discarded replies disconnect the SDK before closing and reconnect the retained session', async t => {
   const {host, pool, pages, events} = fixture(t, {realClient: true});
   const first = await host.reply(config, {discard: true});
   assert.equal(pool.entries.size, 0); assert.equal(pages[0].closed, true);
@@ -110,15 +113,49 @@ test('discarded phone replies disconnect the SDK before closing and reconnect th
   assert.equal(host.sessions.owners.size, 1);
 });
 
-test('idle disposal removes the audio owner immediately and awaits one SDK disconnect before page close', async t => {
+test('admitted phone replies reuse their scoped connection without waiting for teardown after every message', async t => {
+  const {host, pool, pages, events} = fixture(t, {realClient: true});
+  const first = await host.reply(config);
+  assert.equal(pool.entries.size, 1); assert.equal(pages[0].closed, false);
+  assert.equal(events.some(event => event.includes('sdk-disconnect')), false);
+  const second = await host.reply({...config, sessionId: first.sessionID, text: 'And then?'});
+  assert.equal(second.sessionID, first.sessionID);
+  assert.equal(pages.length, 1); assert.equal(pages[0].clients.length, 1);
+  assert.equal(second.timing.pageReused, true); assert.equal(second.timing.connectionReused, true);
+  assert.equal(events.some(event => event.includes('sdk-disconnect')), false);
+  await host.close();
+  assert.equal(pages[0].closed, true);
+  assert.equal(events.filter(event => event.endsWith(':sdk-disconnect:done')).length, 1);
+});
+
+test('retained phone sessions remain bound to their character, player and world/reset scope', async t => {
+  const {host, pages} = fixture(t, {realClient: true});
+  const first = await host.reply(config);
+  for (const changed of [{characterId: 'panam'}, {endUserId: 'another-player'}, {scope: 'phone:next-world'}]) {
+    await assert.rejects(host.reply({...config, ...changed, sessionId: first.sessionID}), /another user or scope/);
+  }
+  assert.equal(pages.length, 1, 'foreign session proposals never reach a new SDK connection');
+  const other = await host.reply({...config, characterId: 'panam'});
+  assert.equal(pages.length, 2); assert.notEqual(other.sessionID, first.sessionID);
+  assert.equal((await host.reply({...config, sessionId: first.sessionID})).timing.connectionReused, true);
+});
+
+test('the admitted phone bridge route retains successful replies rather than discarding their connection', () => {
+  const bridge = readFileSync(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
+  const route = bridge.slice(bridge.indexOf('const result = await phoneRealtime.reply('), bridge.indexOf('stagedKnowledgeTurn(prepared);'));
+  assert.match(route, /ttsEnabled: false/);
+  assert.match(route, /signal: options\.signal/);
+  assert.doesNotMatch(route, /discard\s*:\s*true/);
+});
+
+test('idle disposal awaits one SDK disconnect before page close', async t => {
   let disconnect;
   const {host, pool, pages, events, gate} = fixture(t, {onDisconnect: () => disconnect.promise});
   disconnect = gate();
   await host.warm(config);
-  const page = pages[0]; host.audioSinks.set(page, {token: 'retired-owner'});
+  const page = pages[0];
   const disposing = host.refreshIdle(config);
   await flush();
-  assert.equal(host.audioSinks.has(page), false);
   assert.equal(page.closed, false);
   assert.equal(pool.entries.size, 1, 'the retiring page remains counted until its disposal finishes');
   const first = host.disconnectPage(page), again = host.disconnectPage(page);

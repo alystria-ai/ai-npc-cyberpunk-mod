@@ -2,17 +2,14 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {runInNewContext} from 'node:vm';
-import {drainBlendshapes} from './blendshape-capture.mjs';
-import {BlendshapeQueue} from '../node_modules/@convai/web-sdk/dist/core/BlendshapeQueue.js';
 import {journalContext} from './quest-context.mjs';
 import {endUserOptions, transportKey, SessionBindings} from './transport-pool.mjs';
-import {PcmChunkStream} from './convai-audio-stream.mjs';
+import {ConvaiDataAudio} from './convai-data-audio.mjs';
 
 const source = readFileSync(new URL('./realtime-client.mjs', import.meta.url), 'utf8')
   .replace("import {ConvaiClient} from '@convai/web-sdk/vanilla';", '')
-  .replace("import {drainBlendshapes} from './blendshape-capture.mjs';", '')
   .replace("import {endUserOptions, transportKey, SessionBindings} from './transport-pool.mjs';", '')
-  .replace("import {PcmChunkStream} from './convai-audio-stream.mjs';", '');
+  .replace("import {ConvaiDataAudio} from './convai-data-audio.mjs';", '');
 const flush = () => new Promise(done => setImmediate(done));
 function manualTimers() {
   let now = 0, nextId = 0;
@@ -27,14 +24,18 @@ function manualTimers() {
     }
   };
 }
-function fixture({emitAudio, allowMic = false, timers, onConnect, onDisconnect, onDisableAudio} = {}) {
-  const clients = [], events = [], captures = [];
+function fixture({emitAudio, allowMic = false, timers, onConnect, onDisconnect, onDisableAudio, botReady = true} = {}) {
+  const clients = [], events = [];
   class Client {
     constructor(options) {
       this.options = options; this.characterId = options.characterId;
       this.characterSessionId = 'session-' + clients.length; this.handlers = new Map();
       this.chatMessages = []; this.state = {endUserId: options.endUserId || null}; this.blendshapeQueue = {length: 0, getPlaybackFps: () => 30, isConversationEnded: () => false};
-      this.room = {on() {}, startAudio: async () => {}, remoteParticipants: new Map(),
+      this.peer = {identity: 'convai-bot-' + clients.length, sid: 'different-participant-sid'};
+      this.roomHandlers = new Map();
+      this.room = {on: (name, callback) => this.roomHandlers.set(name, callback),
+        startAudio: async () => { throw Error('Browser playback must not start'); },
+        remoteParticipants: new Map([[this.peer.identity, this.peer]]),
         localParticipant: {audioTrackPublications: new Map(), unpublishTrack: async () => this.room.localParticipant.audioTrackPublications.clear()}};
       this.audioControls = {disableAudio: async () => {
         if (allowMic) events.push('microphone-disable');
@@ -53,7 +54,15 @@ function fixture({emitAudio, allowMic = false, timers, onConnect, onDisconnect, 
       clients.push(this);
     }
     on(name, callback) { this.handlers.set(name, callback); }
-    async connect() { await onConnect?.(this); this.isBotReady = true; }
+    data(message, options = {}) {
+      const participant = Object.hasOwn(options, 'participant') ? options.participant : this.peer;
+      this.roomHandlers.get('dataReceived')?.(message instanceof Uint8Array ? message
+        : new TextEncoder().encode(JSON.stringify(message)), participant, options.kind ?? 0);
+    }
+    async connect() {
+      await onConnect?.(this); this.isBotReady = true;
+      if (botReady) this.data({label: 'rtvi-ai', type: 'bot-ready', data: {}});
+    }
     async disconnect() {
       this.isBotReady = false;
       if (allowMic) events.push(['disconnect', clients.indexOf(this)]);
@@ -66,21 +75,41 @@ function fixture({emitAudio, allowMic = false, timers, onConnect, onDisconnect, 
     resetIdleTimer() { events.push('idle-reset'); }
     toggleStt() {}
   }
-  class Audio {
-    constructor() { events.push('audio-capture'); this.sampleRate = 48000; this.audioWorklet = {addModule: async () => {}}; }
-    async resume() {}
-    async close() {}
-  }
-  class Capture { constructor() { this.port = {}; captures.push(this); } connect() {} disconnect() {} }
+  class ForbiddenAudio { constructor() { throw Error('Browser audio recapture must not be used'); } }
   const window = {__convaiAudioChunk: emitAudio};
-  runInNewContext(source, {ConvaiClient: Client, AudioContext: Audio, AudioWorkletNode: Capture, drainBlendshapes,
-    endUserOptions, transportKey, SessionBindings, PcmChunkStream,
+  runInNewContext(source, {ConvaiClient: Client, AudioContext: ForbiddenAudio, AudioWorkletNode: ForbiddenAudio,
+    endUserOptions, transportKey, SessionBindings, ConvaiDataAudio, TextDecoder,
     window, performance, setTimeout: timers?.setTimeout ?? setTimeout, clearTimeout: timers?.clearTimeout ?? clearTimeout,
     setInterval, clearInterval,
     btoa: data => Buffer.from(data, 'binary').toString('base64')});
-  return {api: window.convaiRealtime, clients, events, captures};
+  return {api: window.convaiRealtime, clients, events};
 }
 const config = {key: 'test-key', characterId: 'alex', scope: 'group:alex,panam', text: 'Hello'};
+const wire = data => ({label: 'rtvi-ai', type: 'server-message', data});
+function audioFixture({seconds = .4, sequence = 1} = {}) {
+  const sampleRate = 8000, fps = 60, samples = Buffer.alloc(Math.round(seconds * sampleRate) * 2);
+  for (let i = 0; i < samples.length / 2; i++) samples.writeInt16LE([-32768, -1, 0, 1, 32767][i % 5], i * 2);
+  const owner = {response_id: 'speech-' + sequence, neurosync_turn_id: sequence, epoch: 1};
+  const frameCount = Math.round(seconds * fps);
+  return {samples, owner,
+    pcm: (bytes = samples) => wire({type: 'audio-data', audio: bytes.toString('base64'), sample_rate: sampleRate,
+      channels: 1, includes_wav_header: false}),
+    faces: wire({type: 'chunked-neurosync-blendshapes', ...owner, start_frame_index: 0, fps,
+      blendshapes: Array.from({length: frameCount}, (_, i) => Array(61).fill(i / frameCount))}),
+    stats: wire({type: 'blendshape-turn-stats', ...owner, sequence: 19, stats: {
+      total_audio_bytes: samples.length, total_audio_duration_ms: seconds * 1000,
+      total_blendshapes: frameCount, fps, was_interrupted: false}}),
+    terminal: wire({type: 'bot-turn-completed', ...owner, sequence: 18, was_interrupted: false})};
+}
+function finalText(client, text = 'Hello V.', id = 'reply') {
+  const rows = [...client.chatMessages, {id, type: 'bot-llm-text', content: text, isStreaming: false}];
+  client.chatMessages = rows; client.state.isThinking = false;
+  client.handlers.get('messagesChange')(rows);
+}
+function sendAudio(client, audio = audioFixture()) {
+  client.data(audio.faces); client.data(audio.pcm()); client.data(audio.stats); client.data(audio.terminal);
+  return audio;
+}
 
 test('automatic reactions send a game trigger without inventing a player utterance', async () => {
   const {api, events} = fixture();
@@ -221,39 +250,34 @@ test('idle readiness never reports or keeps alive a connection whose verified pr
   }
 });
 
-test('captured Convai audio reaches the native sink before the remote utterance finishes', async () => {
+test('reliable source PCM becomes one unchanged WAV before playback duration, after declared tail bytes arrive', async () => {
   const chunks = [];
-  const {api, clients, captures} = fixture({emitAudio: async (token, chunk) => {
-    assert.equal(token, 'native-stream-one'); chunks.push(chunk);
-  }});
+  const {api, clients} = fixture({emitAudio: async (...chunk) => chunks.push(chunk)});
   await api.warm(config);
   const pending = api.reply({...config, audioStreamToken: 'native-stream-one'}); pending.catch(() => {});
   await flush();
-  const client = clients[0], queue = client.blendshapeQueue = new BlendshapeQueue();
-  queue.startConversation();
-  queue.addChunk(Array.from({length: 90}, (_, index) => Array(61).fill(index / 100)),
-    {fps: 30, startFrameIndex: 0, responseId: 'spoken'});
-  queue.startBotSpeaking(); client.state.isSpeaking = true;
-  client.handlers.get('messagesChange')([{id: 'reply', type: 'bot-llm-text', content: 'Hello V. There is more to say.', isStreaming: false}]);
-  captures[0].port.onmessage({data: {at: 10, pcm: new Float32Array(96000).fill(.1)}});
-  await new Promise(done => setTimeout(done, 80));
-  assert.equal(chunks.length, 1);
-  assert.equal(chunks[0].duration, 1);
-  assert.equal(chunks[0].startSeconds, 0);
-  assert.equal(chunks[0].text, 'Hello V. There is more to say.');
-  assert.equal(chunks[0].faces[0].at, 0);
-  assert.equal(chunks[0].faces.at(-1).at, 1);
+  const client = clients[0], audio = audioFixture({seconds: 3.05}), started = performance.now();
+  client.state.isSpeaking = true; // SDK playback clocks do not own source PCM completion.
+  finalText(client, 'Hello V. There is more to say.');
+  client.data({label: 'rtvi-ai', type: 'bot-started-speaking', data: {}});
+  client.data(audio.faces);
+  client.data(audio.pcm(audio.samples.subarray(0, 16000)));
+  client.data(audio.stats); client.data(audio.terminal);
   let finished = false; pending.then(() => { finished = true; });
-  await flush(); assert.equal(finished, false);
-  captures[0].port.onmessage({data: {at: 12, pcm: new Float32Array(48000).fill(.2)}});
-  queue.stopBotSpeaking(); client.state.isSpeaking = false;
-  queue.endConversation({fps: 30, total_blendshapes: 90, total_audio_duration_ms: 3000}, {responseId: 'spoken'});
+  await new Promise(done => setTimeout(done, 80));
+  assert.equal(finished, false, 'matching terminal cannot truncate undeclared PCM tail');
+  client.data(audio.pcm(audio.samples.subarray(16000)));
   const result = await pending;
-  assert.equal(chunks.length, 3);
-  assert.equal(chunks[1].duration, 1); assert.equal(chunks[1].startSeconds, 1);
-  assert(Math.abs(chunks[1].faces[0].values[0] - .3) < 1e-6);
-  assert.equal(result.streamed, true); assert.equal(result.stream.chunks, 3); assert.equal(result.stream.duration, 3);
-  assert.equal(result.audio, undefined); assert.equal(result.faces.length, 0);
+  const wav = Buffer.from(result.audio, 'base64');
+  assert.deepEqual(wav.subarray(44), audio.samples);
+  assert.equal(wav.readUInt32LE(24), 8000); assert.equal(result.duration, 3.05);
+  assert.equal(result.faces.length, 183); assert.equal(result.faces[1].at, 1 / 60);
+  assert.equal(result.faces.at(-1).at, 182 / 60); assert.equal(result.stats.fps, 60);
+  assert.equal(result.streamed, false); assert.equal(result.stream, undefined); assert.equal(chunks.length, 0);
+  assert.equal(client.options.blendshapeConfig.output_fps, 30, 'provider frame clock may differ from request');
+  assert.equal(client.roomHandlers.has('trackSubscribed'), false);
+  assert.equal(result.timing.audioTransport, 'convai-data'); assert.equal(result.packetCount, 2);
+  assert(performance.now() - started < 2000, 'collection must not wait 3.05 seconds for browser playback');
   await api.close();
 });
 
@@ -270,6 +294,133 @@ test('microphone stop refreshes context on its original connection before disabl
   assert.equal(clients.length, 1);
   clients[0].handlers.get('messagesChange')([{id: 'voice-reply', type: 'bot-llm-text', content: 'I know the current objective.', isStreaming: false}]);
   assert.equal((await pending).text, 'I know the current objective.');
+  await api.close();
+});
+
+test('microphone reply returns the corrected final speech transcript without assistant text or duplicated segments', async () => {
+  const {api, clients} = fixture({allowMic: true});
+  const request = {...config, ttsEnabled: false};
+  await api.beginVoice(request);
+  const connection = clients[0], receive = connection.handlers.get('messagesChange');
+  const speech = {id: 'recognized-speech', type: 'user-transcription', content: 'Tell me about', isStreaming: true};
+  receive([speech]);
+  // The SDK grows the same bubble for final STT segments. A partial transcript
+  // is never a chat row and must not substitute for these recognized words.
+  connection.userTranscription = 'Tell me about the wrong place';
+  connection.handlers.get('userTranscriptionChange')?.(connection.userTranscription);
+  speech.content = 'Tell me about your time in the war';
+  receive([speech]);
+  const pending = api.finishVoice(request);
+  await flush();
+  const answer = {id: 'reply', type: 'bot-llm-text', content: 'Why do you want to know?', isStreaming: false};
+  // An intervening bot row causes final-user-transcription to append a new
+  // consolidated row; joining all user rows would duplicate the utterance.
+  receive([speech, answer, {id: 'consolidated-speech', type: 'user-transcription',
+    content: ' Tell me about your time\n in the war. ', isStreaming: false}]);
+  const result = await pending;
+  assert.equal(result.userText, 'Tell me about your time in the war.');
+  assert.equal(result.text, answer.content);
+  await api.close();
+});
+
+test('recognized final STT segments remain usable when the SDK never emits a consolidated transcription', async () => {
+  const {api, clients} = fixture({allowMic: true});
+  const request = {...config, ttsEnabled: false};
+  await api.beginVoice(request);
+  const speech = {id: 'recognized-speech', type: 'user-transcription', content: 'What do you', isStreaming: true};
+  clients[0].handlers.get('messagesChange')([speech]);
+  speech.content = 'What do you both think?';
+  const pending = api.finishVoice(request); await flush();
+  clients[0].handlers.get('messagesChange')([speech,
+    {id: 'reply', type: 'bot-llm-text', content: 'Let me think.', isStreaming: false}]);
+  assert.equal((await pending).userText, 'What do you both think?');
+  await api.close();
+});
+
+test('partial-only, malformed, and empty microphone transcripts never invent a group utterance', async () => {
+  for (const transcript of [undefined, {content: 'Unconfirmed text'}, {content: 42, isStreaming: false},
+    {content: ' \n\u0000\t ', isStreaming: false}]) {
+    const {api, clients} = fixture({allowMic: true});
+    const request = {...config, ttsEnabled: false};
+    await api.beginVoice(request);
+    clients[0].userTranscription = 'This is only a partial guess';
+    clients[0].handlers.get('userTranscriptionChange')?.(clients[0].userTranscription);
+    const pending = api.finishVoice(request); await flush();
+    clients[0].handlers.get('messagesChange')([
+      {id: 'not-stt', type: 'user-llm-text', content: 'Unverified input echo', isStreaming: false},
+      ...(transcript ? [{id: 'speech', type: 'user-transcription', ...transcript}] : []),
+      {id: 'reply', type: 'bot-llm-text', content: 'The character replies, but that is not V speaking.', isStreaming: false}
+    ]);
+    assert.equal(Object.hasOwn(await pending, 'userText'), false);
+    await api.close();
+  }
+});
+
+test('microphone transcript payload is bounded without splitting Unicode or exposing control bytes', async () => {
+  const {api, clients} = fixture({allowMic: true});
+  const request = {...config, ttsEnabled: false};
+  await api.beginVoice(request);
+  const pending = api.finishVoice(request); await flush();
+  clients[0].handlers.get('messagesChange')([
+    {id: 'speech', type: 'user-transcription', content: 'Hi\u0000\tthere ' + 'a'.repeat(1190) + '\u{1f30d} more', isStreaming: false},
+    {id: 'reply', type: 'bot-llm-text', content: 'I hear you.', isStreaming: false}
+  ]);
+  const {userText} = await pending;
+  assert.equal(userText, 'Hi there ' + 'a'.repeat(1190));
+  assert(userText.length <= 1200);
+  assert.doesNotMatch(userText, /[\u0000-\u001f\u007f\ud800-\udbff]$/);
+  await api.close();
+});
+
+test('reused sessions cannot replay a previous microphone transcript into a new voice or text turn', async () => {
+  const {api, clients} = fixture({allowMic: true});
+  const request = {...config, ttsEnabled: false};
+  await api.beginVoice(request);
+  let pending = api.finishVoice(request); await flush();
+  const connection = clients[0];
+  connection.chatMessages = [
+    {id: 'first-speech', type: 'user-transcription', content: 'First question.', isStreaming: false},
+    {id: 'first-answer', type: 'bot-llm-text', content: 'First answer.', isStreaming: false}
+  ];
+  connection.handlers.get('messagesChange')(connection.chatMessages);
+  assert.equal((await pending).userText, 'First question.');
+  await api.beginVoice({...request, sessionId: connection.characterSessionId});
+  pending = api.finishVoice(request); await flush();
+  connection.chatMessages.push({id: 'second-answer', type: 'bot-llm-text', content: 'Second answer.', isStreaming: false});
+  connection.handlers.get('messagesChange')(connection.chatMessages);
+  assert.equal(Object.hasOwn(await pending, 'userText'), false);
+  pending = api.reply(request); await flush();
+  connection.chatMessages.push(
+    {id: 'text-echo', type: 'user-transcription', content: 'Should not be a microphone result.', isStreaming: false},
+    {id: 'text-answer', type: 'bot-llm-text', content: 'Text answer.', isStreaming: false});
+  connection.handlers.get('messagesChange')(connection.chatMessages);
+  assert.equal(Object.hasOwn(await pending, 'userText'), false);
+  assert.equal(clients.length, 1);
+  await api.close();
+});
+
+test('cancelled microphone transcripts and late old-connection events cannot reach its replacement', async () => {
+  const {api, clients} = fixture({allowMic: true});
+  const original = {...config, ttsEnabled: false, endUserId: 'one-user'};
+  await api.beginVoice(original);
+  const obsolete = clients[0], oldSpeech = {id: 'old-speech', type: 'user-transcription',
+    content: 'Cancelled question.', isStreaming: false};
+  obsolete.handlers.get('messagesChange')([oldSpeech]);
+  const cancelled = api.finishVoice(original); cancelled.catch(() => {}); await flush();
+  await api.close();
+  await assert.rejects(cancelled, /cancelled/);
+  await api.beginVoice(original);
+  const pending = api.finishVoice(original); await flush();
+  obsolete.handlers.get('messagesChange')([oldSpeech,
+    {id: 'late-correction', type: 'user-transcription', content: 'Another cancelled question.', isStreaming: false},
+    {id: 'old-reply', type: 'bot-llm-text', content: 'Cancelled reply.', isStreaming: false}]);
+  clients[1].handlers.get('messagesChange')([
+    {id: 'new-speech', type: 'user-transcription', content: 'The current question.', isStreaming: false},
+    {id: 'new-reply', type: 'bot-llm-text', content: 'The current reply.', isStreaming: false}
+  ]);
+  const result = await pending;
+  assert.equal(result.userText, 'The current question.');
+  assert.equal(result.text, 'The current reply.');
   await api.close();
 });
 
@@ -395,7 +546,7 @@ test('warm is silent and an unused anonymous connection can prepare without reco
   await api.warm(config);
   const timing = await api.warm({...config, freshSession: true, sessionId: '-1'});
   assert.equal(clients.length, 1); assert.equal(timing.connectionReused, true);
-  assert.deepEqual(events, ['audio-capture']); // No prompt, generated reply, or microphone activation.
+  assert.deepEqual(events, []); // No prompt, generated reply, browser playback or microphone activation.
   assert.equal(clients[0].options.startWithAudioOn, false);
   assert.equal(clients[0].options.characterSessionId, '-1');
   await api.close();
@@ -429,9 +580,9 @@ test('isolated preparation never reuses a supplied persistent session or carries
 test('party keepalive resets only the service idle timer without dialogue or microphone', async () => {
   const {api, events} = fixture(); await api.warm(config);
   assert.equal(api.readiness(true).ready, true);
-  assert.deepEqual(events, ['audio-capture', 'idle-reset']);
+  assert.deepEqual(events, ['idle-reset']);
   await api.close(); assert.equal(api.readiness(true).ready, false);
-  assert.deepEqual(events, ['audio-capture', 'idle-reset']);
+  assert.deepEqual(events, ['idle-reset']);
 });
 
 test('text-only replies finish on LLM completion without audio, lipsync or microphone', async () => {
@@ -525,7 +676,7 @@ test('late SDK events from a disconnected user cannot populate or fail the next 
   const pending = api.reply(second); await flush();
   clients[0].handlers.get('messagesChange')([{id: 'old', type: 'bot-llm-text', content: 'Private to the other user.', isStreaming: false}]);
   for (const event of ['error', 'disconnect', 'llmNoResponse']) clients[0].handlers.get(event)();
-  clients[0].handlers.get('botOutput')({text: 'Old caption', spoken: true});
+  clients[0].data(wire({type: 'bot-turn-completed', response_id: 'old', was_interrupted: false}));
   let finished = false; pending.then(() => { finished = true; });
   await new Promise(done => setTimeout(done, 80));
   assert.equal(finished, false);
@@ -550,29 +701,259 @@ test('context permits explicit current-save relationships while keeping unsuppli
   await pending; await api.close();
 });
 
-test('ahead-delivered facial frames do not end a reply before its actual audio finishes', async () => {
-  const {api, clients, captures} = fixture();
+test('complete source audio and indexed faces still require final assistant text', async () => {
+  const {api, clients} = fixture();
   await api.warm(config);
   const pending = api.reply(config); await flush();
-  const client = clients[0], queue = client.blendshapeQueue = new BlendshapeQueue();
-  queue.startConversation();
-  queue.addChunk(Array.from({length: 60}, () => Array(61).fill(0.3)),
-    {fps: 30, startFrameIndex: 0, responseId: 'spoken'});
-  queue.endConversation({fps: 30, total_blendshapes: 60, total_audio_duration_ms: 2000}, {responseId: 'spoken'});
-  client.handlers.get('messagesChange')([{id: 'reply', type: 'bot-llm-text', content: 'Hello V.', isStreaming: false}]);
+  const client = clients[0];
+  sendAudio(client);
+  const text = {id: 'reply', type: 'bot-llm-text', content: 'Hello', isStreaming: true};
+  client.handlers.get('messagesChange')([text]);
   let finished = false; pending.then(() => { finished = true; });
   await new Promise(done => setTimeout(done, 80));
-  assert.equal(queue.length, 0); assert.equal(finished, false);
-  queue.startBotSpeaking(); client.state.isSpeaking = true;
-  const pcm = new Float32Array(48000).fill(0.1);
-  captures[0].port.onmessage({data: {at: 10, pcm}});
-  await new Promise(done => setTimeout(done, 80));
   assert.equal(finished, false);
-  captures[0].port.onmessage({data: {at: 11, pcm}});
-  queue.stopBotSpeaking(); client.state.isSpeaking = false;
+  text.content = 'Hello V.'; text.isStreaming = false;
+  client.handlers.get('messagesChange')([text]);
   const result = await pending;
-  assert.equal(result.faces.length, 60); assert.equal(result.facesFormat, 'arkit61');
-  assert.equal(result.faces[59].at, 59 / 30); assert.equal(result.facesTimebase, 'audio-seconds');
-  assert.equal(Buffer.from(result.audio, 'base64').readUInt32LE(40), 96000 * 2);
+  assert.equal(result.text, 'Hello V.'); assert.equal(result.faces.length, 24);
+  await api.close();
+});
+
+test('actual mixed wire envelopes finish one source WAV on owned top-level turn completion', async () => {
+  const {api, clients} = fixture();
+  await api.warm(config);
+  const pending = api.reply(config); pending.catch(() => {}); await flush();
+  const client = clients[0], audio = audioFixture({seconds: 3.05});
+  try {
+    finalText(client);
+    // The production provider sends PCM/faces/stats inside server-message.
+    // Owned start/stop flags are flat RTVI messages; the flat terminal omits
+    // label entirely (the one unlabeled packet in the captured response).
+    client.data({label: 'rtvi-ai', type: 'bot-started-speaking', ...audio.owner});
+    client.data(audio.faces); client.data(audio.pcm()); client.data(audio.stats);
+    client.data({label: 'rtvi-ai', type: 'bot-stopped-speaking', ...audio.owner});
+    // Missing-label support cannot admit unrelated protocols, ownerless
+    // completion or duplicate raw PCM without its server-message wrapper.
+    client.data({...audio.terminal.data, label: 'other-protocol'});
+    client.data({type: 'bot-turn-completed', was_interrupted: false});
+    client.data(audio.pcm().data);
+    assert.equal(api.diagnostics().turn.audio.terminalPresent, false);
+    assert.equal(api.diagnostics().turn.audio.byteCount, audio.samples.length);
+    client.data(audio.terminal.data);
+    assert.equal(api.diagnostics().turn.audio.terminalPresent, true);
+    assert.equal(api.diagnostics().turn.audio.ready, true);
+    const result = await pending;
+    assert.deepEqual(Buffer.from(result.audio, 'base64').subarray(44), audio.samples);
+    assert.equal(result.faces.length, 183);
+    assert.equal(result.faces[182].at, 182 / 60);
+    assert.equal(result.streamed, false);
+    // The same connection may receive generic UI flags after completion.
+    client.data({label: 'rtvi-ai', type: 'bot-stopped-speaking', data: {}});
+    client.data(wire({type: 'bot-stopped-speaking'}));
+    client.data(audio.terminal.data);
+    assert.equal(api.readiness().ready, true);
+  } finally { await api.close(); await pending.catch(() => {}); }
+});
+
+test('top-level completion preserves participant, reliability and response ownership requirements', async () => {
+  for (const failure of ['unowned', 'wrong-owner', 'unverified', 'lossy', 'conflicting-type']) {
+    const {api, clients} = fixture(); await api.warm(config);
+    const pending = api.reply(config); pending.catch(() => {}); await flush();
+    const client = clients[0], audio = audioFixture();
+    client.data(audio.faces); client.data(audio.pcm()); client.data(audio.stats); finalText(client);
+    const {type, ...data} = audio.terminal.data;
+    const options = {};
+    if (failure === 'unowned') {
+      delete data.response_id; delete data.neurosync_turn_id;
+    }
+    if (failure === 'wrong-owner') data.response_id = 'another-response';
+    if (failure === 'unverified') options.participant = undefined;
+    if (failure === 'lossy') options.kind = 1;
+    if (failure === 'conflicting-type') data.type = 'bot-stopped-speaking';
+    client.data({...(failure === 'unowned' ? {label: 'rtvi-ai'} : {}), type, data}, options);
+    try {
+      assert.equal(api.readiness().ready, false, failure);
+      await assert.rejects(pending, /owner|participant|reliable|conflict|type/i);
+      assert.equal(client.isBotReady, false);
+    } finally { await api.close(); await pending.catch(() => {}); }
+  }
+});
+
+test('diagnostic snapshots show stalled gates without revealing messages, credentials or owner IDs', async () => {
+  const {api, clients} = fixture();
+  const privateConfig = {...config, key: 'private-test-key', characterId: 'private-character-id',
+    endUserId: 'private-end-user-id', text: 'private-user-dialogue'};
+  await api.warm(privateConfig);
+  const pending = api.reply(privateConfig); pending.catch(() => {}); await flush();
+  const client = clients[0], audio = audioFixture();
+  const owner = {response_id: 'private-response-id', neurosync_turn_id: 1, epoch: 1};
+  try {
+    client.data({label: 'private-label', type: 'private-type', data: {text: 'private-wire-dialogue'}});
+    finalText(client, 'private-assistant-dialogue');
+    client.data(wire({...audio.faces.data, ...owner}));
+    client.data(audio.pcm());
+    client.data(wire({...audio.stats.data, ...owner}));
+    const snapshot = api.diagnostics();
+    assert.equal(snapshot.participantPinned, true);
+    assert.equal(snapshot.participantCurrent, true);
+    assert.equal(snapshot.turn.textComplete, true);
+    assert.equal(snapshot.turn.textCharacters, 'private-assistant-dialogue'.length);
+    assert.equal(snapshot.turn.llmRows, 1);
+    assert.equal(snapshot.turn.streamingLlmRows, 0);
+    assert.equal(snapshot.turn.audio.byteCount, audio.samples.length);
+    assert.equal(snapshot.turn.audio.expectedBytes, audio.samples.length);
+    assert.equal(snapshot.turn.audio.terminalPresent, false);
+    assert.equal(snapshot.turn.audio.ready, false);
+    assert.equal(snapshot.wire.outerTypes.other, 1);
+    assert.equal(snapshot.wire.matchingLabel, snapshot.wire.labelPresent - 1);
+    const encoded = JSON.stringify(snapshot);
+    assert.doesNotMatch(encoded, /private-|speech-1|convai-bot-|different-participant-sid|session-/);
+    snapshot.wire.outerTypes.other = 999;
+    assert.equal(api.diagnostics().wire.outerTypes.other, 1);
+    assert.equal(api.diagnostics().turn.audio.packetCount, 1);
+    await api.close('private-cancellation-reason');
+    const closed = api.diagnostics();
+    assert.equal(closed.activeTurn, false);
+    assert.equal(closed.previousTurn.errorCode, 'turn-failed-or-cancelled');
+    assert.doesNotMatch(JSON.stringify(closed), /private-|speech-1|convai-bot-|different-participant-sid|session-/);
+    await assert.rejects(pending, /private-cancellation-reason/);
+  } finally { await api.close(); await pending.catch(() => {}); }
+});
+
+test('voiced warmup pins the actual remote bot-ready participant before admitting a turn', async () => {
+  for (const ready of [{participant: undefined}, {participant: {identity: 'unknown'}}, {kind: 1}]) {
+    const {api, events} = fixture({botReady: false, onConnect: connection => {
+      connection.data({label: 'rtvi-ai', type: 'bot-ready', data: {}}, ready);
+    }});
+    await assert.rejects(api.reply(config), /participant could not be verified/);
+    assert.equal(api.readiness().ready, false);
+    assert.equal(events.some(event => Array.isArray(event) && event[0] === 'message'), false);
+    await api.close();
+  }
+});
+
+test('only reliable audio from the pinned current room participant can enter the WAV', async () => {
+  for (const failure of ['unknown', 'server-ambiguous', 'different-room-peer', 'replaced-peer', 'lossy']) {
+    const {api, clients} = fixture();
+    await api.warm(config);
+    const pending = api.reply(config); pending.catch(() => {}); await flush();
+    const client = clients[0], audio = audioFixture(), options = {};
+    if (failure === 'unknown') options.participant = {identity: 'outsider'};
+    if (failure === 'server-ambiguous') options.participant = undefined;
+    if (failure === 'different-room-peer') {
+      options.participant = {identity: 'another-room-peer'};
+      client.room.remoteParticipants.set(options.participant.identity, options.participant);
+    }
+    if (failure === 'replaced-peer') client.room.remoteParticipants.set(client.peer.identity, {...client.peer});
+    if (failure === 'lossy') options.kind = 1;
+    client.data(audio.pcm(), options);
+    await assert.rejects(pending, /unverified participant|reliable ordered/);
+    assert.equal(client.isBotReady, false); assert.equal(api.readiness().ready, false);
+    await api.close();
+  }
+});
+
+test('malformed source PCM and changed response ownership discard the connection instead of publishing partial audio', async () => {
+  for (const failure of ['json', 'pcm', 'response-owner', 'interrupted']) {
+    const {api, clients} = fixture(); await api.warm(config);
+    const pending = api.reply(config); pending.catch(() => {}); await flush();
+    const client = clients[0], audio = audioFixture();
+    client.data(audio.faces); client.data(audio.pcm(audio.samples.subarray(0, 3200)));
+    if (failure === 'json') client.data(new TextEncoder().encode('{bad json'));
+    if (failure === 'pcm') client.data(wire({...audio.pcm().data, audio: 'not base64'}));
+    if (failure === 'response-owner') client.data(wire({...audio.terminal.data, response_id: 'different-response'}));
+    if (failure === 'interrupted') client.data(wire({...audio.terminal.data, was_interrupted: true}));
+    await assert.rejects(pending, /Invalid Convai|active speech owner|interrupted/);
+    assert.equal(api.readiness().ready, false);
+    // These tail bytes belong to the discarded connection and are never reused.
+    client.data(audio.pcm(audio.samples.subarray(3200))); client.data(audio.stats); client.data(audio.terminal);
+    await api.warm(config); assert.equal(clients.length, 2);
+    await api.close();
+  }
+});
+
+test('a cancelled or disconnected PCM turn cannot contaminate a replacement connection', async () => {
+  for (const reason of ['cancel', 'disconnect']) {
+    const {api, clients} = fixture(); await api.warm(config);
+    const old = api.reply(config); old.catch(() => {}); await flush();
+    const obsolete = clients[0], audio = audioFixture();
+    obsolete.data(audio.pcm(audio.samples.subarray(0, 3200)));
+    if (reason === 'cancel') await api.close();
+    else obsolete.handlers.get('disconnect')();
+    await assert.rejects(old, /cancelled|closed/);
+    const pending = api.reply(config); await new Promise(done => setTimeout(done, 80));
+    obsolete.data(audio.pcm(audio.samples.subarray(3200))); obsolete.data(audio.stats); obsolete.data(audio.terminal);
+    sendAudio(clients[1], audioFixture({sequence: 2})); finalText(clients[1], 'New reply.');
+    const result = await pending;
+    assert.equal(result.text, 'New reply.'); assert.equal(result.packetCount, 1);
+    assert.equal(Buffer.from(result.audio, 'base64').readUInt32LE(40), audio.samples.length);
+    await api.close();
+  }
+});
+
+test('successful PCM turns reuse the pinned warm source and ignore retired owned metadata', async () => {
+  const {api, clients} = fixture(); await api.warm(config);
+  const client = clients[0], prior = audioFixture();
+  let pending = api.reply(config); await flush();
+  sendAudio(client, prior); finalText(client, 'First reply.', 'first'); await pending;
+  pending = api.reply(config); await flush();
+  client.data(prior.stats); client.data(prior.terminal);
+  sendAudio(client, audioFixture({sequence: 2})); finalText(client, 'Second reply.', 'second');
+  const result = await pending;
+  assert.equal(result.text, 'Second reply.'); assert.equal(result.packetCount, 1);
+  assert.equal(clients.length, 1); assert.equal(result.timing.connectionReused, true);
+  await api.close();
+});
+
+test('ownerless PCM outside a submitted turn retires the warm connection', async () => {
+  const {api, clients} = fixture(); await api.warm(config);
+  const pending = api.reply(config); await flush();
+  const audio = sendAudio(clients[0]); finalText(clients[0]); await pending;
+  clients[0].data(audio.pcm());
+  assert.equal(api.readiness().ready, false);
+  await api.warm(config); assert.equal(clients.length, 2);
+  await api.close();
+});
+
+test('idle readiness retires a warm source whose participant object left or was replaced', async () => {
+  for (const replace of [false, true]) {
+    const {api, clients, events} = fixture(); await api.warm(config);
+    const {room, peer} = clients[0];
+    if (replace) room.remoteParticipants.set(peer.identity, {...peer});
+    else room.remoteParticipants.delete(peer.identity);
+    assert.equal(api.readiness(true).ready, false);
+    assert.equal(events.includes('idle-reset'), false);
+    await api.close();
+  }
+});
+
+test('overlapping text or microphone starts are rejected without changing the active collector', async () => {
+  const {api, clients, events} = fixture({allowMic: true});
+  const first = api.reply(config); first.catch(() => {});
+  await assert.rejects(api.reply(config), /already active/);
+  await assert.rejects(api.beginVoice(config), /already active/);
+  await new Promise(done => setTimeout(done, 80));
+  await assert.rejects(api.reply(config), /already active/);
+  sendAudio(clients[0]); finalText(clients[0]); await first;
+  assert.equal(events.filter(event => Array.isArray(event) && event[0] === 'message').length, 1);
+  assert.equal(events.includes('microphone'), false);
+  await api.beginVoice(config);
+  await assert.rejects(api.beginVoice(config), /already active/);
+  await assert.rejects(api.reply(config), /already active/);
+  await api.close();
+});
+
+test('a microphone reply carries recognized V text alongside one source PCM WAV', async () => {
+  const {api, clients} = fixture({allowMic: true});
+  await api.beginVoice(config);
+  const client = clients[0];
+  client.chatMessages = [{id: 'speech', type: 'user-transcription', content: 'What do you both think?', isStreaming: false}];
+  client.handlers.get('messagesChange')(client.chatMessages);
+  const pending = api.finishVoice(config); await flush();
+  sendAudio(client); finalText(client, 'I have an idea.');
+  const result = await pending;
+  assert.equal(result.userText, 'What do you both think?'); assert.equal(result.text, 'I have an idea.');
+  assert.equal(result.streamed, false); assert.equal(result.packetCount, 1);
+  assert.equal(client.room.localParticipant.audioTrackPublications.size, 0);
   await api.close();
 });
