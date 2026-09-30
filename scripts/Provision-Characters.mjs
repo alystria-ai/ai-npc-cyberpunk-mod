@@ -4,6 +4,7 @@ import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
 import {isDeepStrictEqual} from 'node:util';
 import {apiCharacterName, characterPayload, characterMatches, verifyCharacter, verifyMemoryConfiguration, verifyStyleOnlyCharacter} from './character-payload.mjs';
+import {readProvisionState} from './provision-state.mjs';
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const runtime=resolve(root,'runtime');
@@ -27,10 +28,11 @@ await mkdir(runtime,{recursive:true});
 let lock;
 try{lock=await open(resolve(runtime,'character-provision.lock'),'wx');}
 catch{throw Error('Another profile provision may be running. Inspect runtime/character-provision.lock before retrying.');}
+try {
 await lock.writeFile(String(process.pid));
 const mappingPath=resolve(runtime,'characters.json'),verifiedPath=resolve(runtime,'characters-verified.json');
-const mapping=await read(mappingPath).catch(()=>({}));
-const verified=await read(verifiedPath).catch(()=>({}));
+const mapping=await readProvisionState(mappingPath);
+const verified=await readProvisionState(verifiedPath);
 const batch=resolve(runtime,'profile-enrichment',new Date().toISOString().replace(/[:.]/g,'-'));
 await mkdir(batch,{recursive:true});
 await atomic(resolve(batch,'mapping-before.json'),mapping);
@@ -149,4 +151,5 @@ try{
 }catch(error){
   report.error=error.message;await atomic(resolve(runtime,'profile-enrichment-report.json'),report);
   throw error;
+}
 }finally{await lock.close();await unlink(resolve(runtime,'character-provision.lock'));}

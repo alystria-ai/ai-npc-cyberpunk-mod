@@ -1,0 +1,216 @@
+{
+  "version": 1,
+  "files": [
+    {
+      "source": "mod/companion-equipment.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-equipment.lua"
+    },
+    {
+      "source": "mod/loot-observer.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/loot-observer.lua"
+    },
+    {
+      "source": "mod/loot-reactions.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/loot-reactions.lua"
+    },
+    {
+      "source": "mod/loot-probe.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/loot-probe.lua"
+    },
+    {
+      "source": "mod/battle-observer.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/battle-observer.lua"
+    },
+    {
+      "source": "mod/battle-reactions.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/battle-reactions.lua"
+    },
+    {
+      "source": "mod/quest-context.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/quest-context.lua"
+    },
+    {
+      "source": "mod/world-knowledge.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/world-knowledge.lua"
+    },
+    {
+      "source": "mod/journal-history.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/journal-history.lua"
+    },
+    {
+      "source": "mod/knowledge-probe.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/knowledge-probe.lua"
+    },
+    {
+      "source": "characters/world-knowledge.json",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/world-knowledge.json"
+    },
+    {
+      "source": "r6/scripts/CyberpunkConvai/PhoneChatTabs.reds",
+      "target": "r6/scripts/CyberpunkConvai/PhoneChatTabs.reds"
+    },
+    {
+      "source": "mod/phone-chat.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/phone-chat.lua"
+    },
+    {
+      "source": "mod/phone-chat-style.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/phone-chat-style.lua"
+    },
+    {
+      "source": "r6/scripts/CyberpunkConvai/PhoneChat.reds",
+      "target": "r6/scripts/CyberpunkConvai/PhoneChat.reds"
+    },
+    {
+      "source": "mod/facial-playback.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/facial-playback.lua"
+    },
+    {
+      "source": "mod/phone-layout.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/phone-layout.lua"
+    },
+    {
+      "source": "mod/companion-records.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-records.lua"
+    },
+    {
+      "source": "mod/face-probe.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/face-probe.lua"
+    },
+    {
+      "source": "r6/scripts/CyberpunkConvai/Face.reds",
+      "target": "r6/scripts/CyberpunkConvai/Face.reds"
+    },
+    {
+      "source": "r6/scripts/CyberpunkConvai/FaceFeature.reds",
+      "target": "r6/scripts/CyberpunkConvai/FaceFeature.reds"
+    },
+    {
+      "source": "runtime/facial-rig/package/convai_facial.archive",
+      "target": "archive/pc/mod/convai_facial.archive"
+    },
+    {
+      "source": "mod/companion-space.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-space.lua"
+    },
+    {
+      "source": "mod/companion-travel.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-travel.lua"
+    },
+    {
+      "source": "mod/companion-actuator.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-actuator.lua"
+    },
+    {
+      "source": "mod/companion-locomotion.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-locomotion.lua"
+    },
+    {
+      "source": "mod/companion-appearance.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-appearance.lua"
+    },
+    {
+      "source": "mod/companion-behavior.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-behavior.lua"
+    },
+    {
+      "source": "mod/companion-placement.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-placement.lua"
+    },
+    {
+      "source": "mod/mcm.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/mcm.lua"
+    },
+    {
+      "source": "mod/mcm-entry.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/mcm-entry.lua"
+    },
+    {
+      "source": "mod/manager-party.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/manager-party.lua"
+    },
+    {
+      "source": "mod/invitation-readiness.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/invitation-readiness.lua"
+    },
+    {
+      "source": "mod/manager.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/manager.lua"
+    },
+    {
+      "source": "characters/manager-characters.json",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/manager-characters.json"
+    },
+    {
+      "source": "mod/character-catalog.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/character-catalog.lua"
+    },
+    {
+      "source": "mod/group-chat.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/group-chat.lua"
+    },
+    {
+      "source": "characters/roster.json",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/conversation-characters.json"
+    },
+    {
+      "source": "mod/microphone.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/microphone.lua"
+    },
+    {
+      "source": "mod/speech.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/speech.lua"
+    },
+    {
+      "source": "r6/scripts/CyberpunkConvai/Speech.reds",
+      "target": "r6/scripts/CyberpunkConvai/Speech.reds"
+    },
+    {
+      "source": "mod/composer-input.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/composer-input.lua"
+    },
+    {
+      "source": "mod/subtitles.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/subtitles.lua"
+    },
+    {
+      "source": "mod/phone-input.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/phone-input.lua"
+    },
+    {
+      "source": "characters/phone-contacts.json",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/phone-contacts.json"
+    },
+    {
+      "source": "mod/init.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/init.lua"
+    },
+    {
+      "source": "mod/diagnostics.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/diagnostics.lua"
+    },
+    {
+      "source": "mod/companions.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companions.lua"
+    },
+    {
+      "source": "r6/scripts/CyberpunkConvai/Composer.reds",
+      "target": "r6/scripts/CyberpunkConvai/Composer.reds"
+    },
+    {
+      "source": "r6/scripts/CyberpunkConvai/Engagement.reds",
+      "target": "r6/scripts/CyberpunkConvai/Engagement.reds"
+    },
+    {
+      "source": "r6/scripts/CyberpunkConvai/Manager.reds",
+      "target": "r6/scripts/CyberpunkConvai/Manager.reds"
+    },
+    {
+      "source": "r6/scripts/CyberpunkConvai/PhoneContacts.reds",
+      "target": "r6/scripts/CyberpunkConvai/PhoneContacts.reds"
+    }
+  ],
+  "retiredNative": [
+    "r6/scripts/CyberpunkConvai/KnowledgeState.reds"
+  ]
+}

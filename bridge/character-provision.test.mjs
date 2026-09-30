@@ -72,7 +72,7 @@ async function styleOnlyFixture({includeUnmapped = false, apply = true} = {}, ru
   const root = await mkdtemp(join(tmpdir(), 'convai-style-repair-'));
   try {
     for (const dir of ['scripts', 'characters', 'runtime']) await mkdir(join(root, dir));
-    for (const name of ['Provision-Characters.mjs', 'character-payload.mjs', 'character-samples.mjs']) {
+    for (const name of ['Provision-Characters.mjs', 'character-payload.mjs', 'character-samples.mjs', 'provision-state.mjs']) {
       await copyFile(new URL('../scripts/' + name, import.meta.url), join(root, 'scripts', name));
     }
     const roster = [profile, ...(includeUnmapped ? [{...profile, key: 'unmapped-character'}] : [])];
@@ -152,11 +152,24 @@ test('style-only repair requires apply explicitly before any provider request', 
   });
 });
 
+test('corrupt provisioning state is preserved, releases its lock and never contacts the provider', async () => {
+  for (const filename of ['characters.json', 'characters-verified.json']) {
+    await styleOnlyFixture({}, async ({root, command}) => {
+      const path = join(root, 'runtime', filename), damaged = '{truncated local state';
+      await writeFile(path, damaged);
+      await assert.rejects(command(), /Invalid JSON/);
+      assert.equal(await readFile(path, 'utf8'), damaged);
+      await assert.rejects(readFile(join(root, 'requests.json')), {code: 'ENOENT'});
+      await assert.rejects(readFile(join(root, 'runtime/character-provision.lock')), {code: 'ENOENT'});
+    });
+  }
+});
+
 test('provisioner repairs an existing profile with empty speaking fields and preserves its ID', async () => {
   const root = await mkdtemp(join(tmpdir(), 'convai-provision-'));
   try {
     for (const dir of ['scripts', 'characters', 'runtime']) await mkdir(join(root, dir));
-    for (const name of ['Provision-Characters.mjs', 'character-payload.mjs', 'character-samples.mjs']) {
+    for (const name of ['Provision-Characters.mjs', 'character-payload.mjs', 'character-samples.mjs', 'provision-state.mjs']) {
       await copyFile(new URL('../scripts/' + name, import.meta.url), join(root, 'scripts', name));
     }
     await writeFile(join(root, 'characters/roster.json'), JSON.stringify([profile]));

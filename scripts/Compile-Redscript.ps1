@@ -7,6 +7,7 @@ param(
 $ErrorActionPreference = 'Stop'
 $game = [IO.Path]::GetFullPath($GameDirectory).TrimEnd('\')
 $project = [IO.Path]::GetFullPath($ProjectDirectory).TrimEnd('\')
+Import-Module (Join-Path $PSScriptRoot 'DevelopmentFiles.psm1') -Force
 if (-not [IO.File]::Exists((Join-Path $game 'engine\tools\scc.exe'))) { throw 'Redscript compiler was not found.' }
 
 # Compile an isolated copy so a running game never sees partially installed scripts.
@@ -20,13 +21,11 @@ Copy-Item -LiteralPath (Join-Path $game 'r6\cache\final.redscripts') -Destinatio
 
 $gameScripts = Join-Path $game 'r6\scripts'
 Get-ChildItem -LiteralPath $gameScripts -Force |
+    Where-Object { $_.Name -ine 'CyberpunkConvai' } |
     Copy-Item -Destination $scripts -Recurse -Force
-$own = Join-Path $project 'r6\scripts\CyberpunkConvai'
-if (-not [IO.Directory]::Exists($own)) { throw 'Project redscript sources are missing.' }
-$ownStage = Join-Path $scripts 'CyberpunkConvai'
-[IO.Directory]::CreateDirectory($ownStage) | Out-Null
-Get-ChildItem -LiteralPath $own -File -Filter '*.reds' |
-    Copy-Item -Destination $ownStage -Force
+# Compile exactly the owned native files that the installer ships, excluding
+# retired experiments even if they remain in source or an older installation.
+Copy-DevelopmentNativeStage -ProjectDirectory $project -ScriptsDirectory $scripts
 
 $deps = Join-Path $scripts '__CyberpunkConvaiCompilerDependencies'
 [IO.Directory]::CreateDirectory($deps) | Out-Null
