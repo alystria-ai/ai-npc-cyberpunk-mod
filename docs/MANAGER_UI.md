@@ -2,7 +2,7 @@
 
 The manager uses **Mod Configuration Menu 0.10.3 / API v2**, inside the game's
 native settings host. The user rejected the earlier HUD popup and suggested
-MCM. Its source remains for compatibility, but F5 and the manager diagnostic
+MCM. Its source remains for compatibility, but the manager shortcut and diagnostic
 no longer open it.
 
 ## Player flow
@@ -37,7 +37,7 @@ providers and native settings retain their own exit behavior.
   `GetMod('ModConfigurationMenuAPI').providers.registerProvider`. Produces the
   native schema and extends content search to the model catalogue. MCM files
   and preferences are never edited.
-- `mod/mcm-entry.lua`: F5 entry state machine. Activates the real
+- `mod/mcm-entry.lua`: manager shortcut entry state machine. Activates the real
   `OnSwitchToMCM` item after the pause host is established, then invokes the
   actual sidebar action observed for Companion Manager. No simulated keys.
   Pause/input ownership stays with MCM and vanilla. A bounded timeout leaves
@@ -180,8 +180,10 @@ The initial floor concern and crash after V died prompted the work in
 and the post-join confirmation appears. Save reload, model search, settings
 apply/revert and repeated close/reopen still need acceptance.
 
-The local manager binding remains F4. The distributed action name still mentions
-F5 as its reference default; the game's QuickSave mapping was not altered.
+The manager setup default is F4. `Set-DevelopmentBindings.ps1` fills only missing
+bindings and preserves existing F4 or custom choices. The game's QuickSave mapping
+is not altered. F6/F7 select private text/voice and F8/F9 select group text/voice;
+phone invitation controls use J/L.
 
 The one-shot `mcm-state:<nonce>` diagnostic writes `runtime/mcm-state.json`
 inside the installed mod. It reports the section, entry stage, party, feedback

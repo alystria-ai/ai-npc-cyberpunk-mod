@@ -1,132 +1,83 @@
-# Convai voice streaming
+# Convai speech transport
 
-## Why this path exists
+## September 30 audit: direct PCM, one native clip
 
-The SDK exposes a live decoded audio track. The original adapter captured it
-until the whole utterance ended, encoded a WAV, and only then gave Audioware
-the file. This added approximately the full spoken duration to first playback.
-Streaming now publishes actual captured PCM while that remote track is still
-playing. Provider time before the first audio packet is a separate delay and
-is not removed by this change.
+Convai receives one submitted player turn and generates its own speech. Local
+OmniVoice alone divides reply text into separately generated phrases. The retired
+Convai adapter instead captured the browser's real-time playback and divided
+that recording into native WAV files. Measured native handoffs left micro-gaps.
 
-No audio normalization, filters, resampling, fades, or voice regeneration are
-added. PCM uses the same mono PCM16 conversion as the preceding full-WAV path.
-The offline byte comparison reconstructs the original converted samples from
-all emitted segments and requires exact equality.
+The replacement requests the documented LiveKit data-only output. It collects
+original PCM16LE packets in reliable arrival order and writes one WAV header
+around those unchanged samples. One native Audioware clip represents the entire
+reply. There is no browser audio recapture, resampling, gain processing, silence
+removal, fade, or per-packet native playback.
 
-## Ownership and API
+NeuroSync frames use the provider's actual `fps` and `start_frame_index`; the
+requested rate is not treated as a measured rate. The source trial returned
+60 FPS despite a 30 FPS request. Audio and facial playback follow the same
+native cursor. Valid quiet articulation is not gated to neutral by RMS.
 
-The main bridge owns the current request, native files, and first `reply.json`
-publication. A browser page may emit only through the host's current random
-capability token. Each callback checks that exact page, token, host epoch,
-abort signal, sequence number, and cumulative audio clock before and after the
-awaited native callback. Existing session bindings still prevent moving a
-session between characters, users, save branches, audiences, or TTS routes.
+### Completion and ownership
 
-```js
-const stream = new ConvaiAudioStream({
-  input, streamId: randomUUID(), slots, readState, writeManifest,
-  current, signal, buildFace: buildFacialTimeline,
-});
-try {
-  const result = await realtime.reply(config, {
-    signal,
-    onAudioChunk: async chunk => {
-      const row = await stream.append(chunk);
-      if (chunk.index === 1) {
-        await publishFirstReply({
-          text: chunk.text, audio: row.audio, face: row.face,
-          stream: stream.descriptor(),
-        });
-      }
-    },
-  });
-  await stream.finish(result);
-  // Do not publish a second ordinary reply: result.streamed is true and its
-  // audio is intentionally absent. Store the final text/session as usual.
-} catch (error) {
-  await stream.fail(error);
-  // If the first reply was published, preserve the partial stream. Do not
-  // replace it with an ordinary error reply or replay its audio.
-}
-```
+- Each connection permits one submitted turn at a time. Existing player,
+  character, world, reset-epoch, audience and session guards remain in force.
+- Accept reliable data from the verified current room participant. The browser
+  adapter owns sender validation; the pure collector owns format and turn checks.
+- Audio packets have no response ID or offset. Preserve arrival order, including
+  repeated identical silence; never deduplicate PCM by content.
+- Match indexed metadata ownership, final byte statistics and clean turn
+  completion. Statistics or TTS-stop alone are not proof that all audio arrived.
+- Require the exact declared PCM byte total. Format changes, interruption,
+  inconsistent ownership, oversized output and missing data fail the turn.
+- Cancellation or failed collection discards the page before another turn.
+  This prevents untagged late audio entering a new conversation.
+- Bounds: 120 seconds, 24 MB PCM, reliable wire messages below 1 MB.
+- A malformed/incomplete facial timeline is reported and omitted while valid,
+  complete audio is retained. Existing facial fallback and final reset apply.
+- Phone text turns retain their exact scoped connection; no audio is requested.
+- The pinned SDK does not serialize `audio_config`. The host adds it only to
+  its own exact `/connect` POST after matching the admitted character/user.
+  Existing fields and headers are preserved.
 
-Text-only and speculative preparation calls cannot acquire a native audio
-sink. The ordinary full-reply method remains available when no callback is
-provided. Microphone capture retains its existing full-reply behavior; its
-stop operation can refresh silent context on the same verified connection,
-without reconnecting or changing its identity.
+### Measured evidence and limits
 
-## Native stream version 2
+One isolated Judy research request returned 3.05 seconds of mono 24 kHz PCM:
+31 packets, 146,400 sample bytes and 183 facial frames. Audio arrived over 1.062
+seconds (2.872 times playback rate); first audio was 2.287 seconds and complete
+audio 3.349 seconds after submission. This is one provider observation, not a
+latency guarantee. It used the existing research identity, no microphone and
+no player memory.
 
-Version 1 local voice phrase streams remain unchanged. Convai uses version 2:
+Offline replay through the production collector recreated the saved source WAV
+byte for byte (SHA-256
+`0585deb6adcf1ec048c269f5942a242c7df291ca9512dfa9db561488c139ecf5`).
+Statistics arrived before the PCM tail, and lifecycle sequence numbers arrived
+out of order. Tests cover both cases, malformed faces, owner changes, cancellation,
+interleaved stereo, silence and exact sample extrema.
 
-- Descriptor: `version`, `id`, `total: null`, `captionMode: "utterance"`,
-  `firstText`, `textComplete`, and `bufferedDuration`.
-- Manifest: the exact request/entity/generation owner, `streamId`,
-  `version: 2`, `complete`, `total`, `text`, `textComplete`,
-  `captionMode: "utterance"`, `bufferedDuration`, and ordered `chunks`.
-- Each chunk has `index`, contiguous `startSeconds`, cumulative/current
-  `text`, its native `audio` descriptor, chunk-local `face` timeline,
-  chunk-local spoken caption events, `timing`, and `readyAt`.
-- An open stream has `total: null`. Only final completion provides its exact
-  count. A short reply may contain one segment. A failed partial stream ends
-  with its available count and an `error`; it cannot prove full delivery.
-- Audio duration and native completion, not the producer's final response,
-  determine when group conversation can advance and when a delivery receipt
-  is eligible. The native implementation owns those checks.
+Collecting one complete clip removes native stitches, but delays playback until
+the full source audio is ready. Faster-than-playback delivery made that tradeoff
+promising in this trial; long replies or service/network stalls can still delay
+onset. The build/install/live status is recorded in
+[the development audit](DEVELOPMENT_AUDIT_2026-09-30.md). Byte equality does not
+establish audible or visual game acceptance.
 
-The transport segments are about one second each, including the second
-segment. A one-second first segment followed by a two-second segment would
-unnecessarily underrun when the input arrives at real time. A small 50 ms
-sample tail is held until finalization so a tiny last packet cannot become an
-invalid native WAV; every captured sample is retained unchanged.
-When available, a real waveform zero crossing within the preceding 12 ms is
-used for the file cut. This only moves the boundary; it does not add/remove
-samples or apply an audio fade.
+The former PCM-split module and its offline fixtures remain as historical
+regression evidence; production no longer calls it. A quiet-boundary-cut
+experiment was set aside without installation because it retained file handoffs.
+Omni's separate phrase producer and bounded read-ahead remain active.
 
-These segments are not subtitle phrases. One utterance caption survives file
-boundaries. Updated text and the final total duration revise that caption at
-the global native audio cursor. Neurosync frames are sliced at the same sample
-clock, with interpolated boundary poses; missing frame gaps are not stretched.
+The final real production-host smoke also passed after correcting the provider's
+mixed event envelopes and unlabelled owned terminal. It returned one 3.05-second
+WAV and 183 frames at 60 FPS; collection completed 3.046 seconds after submission.
+Cold connection setup took 3.909 seconds separately. No microphone, game playback
+or player memory participated in that isolated research request.
 
-Facial continuation uses producer-owned `speechSegment` metadata:
-`{version: 1, index, startSeconds, first, last}`. `last` becomes true only on
-the final captured tail, not because a network packet or current file ended.
-The generated native facial timeline carries the same fields in `segment`.
-Only the first segment eases in from neutral and only the last eases out;
-intermediate frames retain their actual boundary poses. Audio-envelope
-fallback also treats a file edge as a continuation, not a new silent frame.
-Real silence inside each segment still closes the mouth.
+### Provider references
 
-Native pose handoff must match the same request, entity, generation, and exact
-next segment/time. Missing or invalid replacement timelines, pauses, cancelled
-or replaced requests, lost targets, and final completion retain neutral cleanup.
-A long buffer underrun must not leave a held open mouth indefinitely. These
-rules affect facial controls only; no speech samples are processed.
-
-The final complete text is `result.text` from `RealtimeHost.reply()`. Calling
-`stream.finish(result)` puts it in the final manifest `text` with
-`textComplete: true`. The first `reply.json` may contain partial text, so group
-history must adopt that final text for the matching request at actual playback
-completion. Rewriting `reply.json` or playing the first chunk again is not a
-valid way to update history; failed partial streams cannot claim the full line
-was heard.
-
-## Bounds and recovery
-
-- Maximum utterance: 120 seconds and 128 segments.
-- Browser PCM queue: at most 12 seconds, including an awaiting callback.
-- Native producer: one playing segment and at most two ready segments.
-- Native file leases are reused only after exact consumer acknowledgement.
-- Callback acknowledgement is bounded to 15 seconds.
-- The original no-first-audio timeout remains 60 seconds; a started stream
-  may run up to the utterance limit plus a bounded completion allowance.
-- WebRTC cannot be paused by the native game's menu. If a long pause fills the
-  bounded queue, the stream fails explicitly instead of silently losing words
-  or keeping unbounded PCM. A later request starts a new stream.
-- Cancellation, target/world loss, changed identity, stale consumer state,
-  changed SDK face timeline, and host close prevent later publication.
+- [Convai audio data channel](https://github.com/Conv-AI/Convai-Documentation/blob/main/api-reference/core-api-reference/live-apis-beta/audio-data-via-data-channel.md)
+- [Convai Connect API](https://github.com/Conv-AI/Convai-Documentation/blob/main/api-reference/core-api-reference/live-apis-beta/connect-api.md)
 
 ## Microphone finish ownership
 
@@ -145,54 +96,10 @@ ordering for a valid finish, cancellation at 35 seconds, and delayed old
 shutdown/finish callbacks while a new recording exists. These do not replace
 an actual microphone and service check.
 
-## Timing and qualification
 
-`firstAudioMs` measures provider/transport time to the first captured signal.
-`firstChunkMs` measures time to the first publishable PCM segment; it is not a
-native playback measurement. `streamSinkWaitMs` and `streamDrainMs` expose local
-consumer delay separately from `audioEncodeMs`. No user identifier is copied
-from the warm registration receipt into these latency fields.
+## Historical capture-route measurements (superseded)
 
-Offline coverage includes early emission while the provider is still speaking,
-byte-identical PCM reconstruction, caption/face clocks, bounded read-ahead,
-pause/cancellation/errors, exact page/session ownership, and real producer
-manifests replayed through the Lua consumer. Facial boundary tests use the real
-PCM producer and prove nonzero adjacent poses continue, with neutral poses only
-at genuine utterance edges or real silent sections. A browser bundle also builds
-without Node-only dependencies. These checks do not establish audible in-game
-seamlessness, absence of visible rig interpolation artifacts, or measured
-first-native-playback improvement; those require the installed game test.
-
-Live conversations now supply the player's one persistent `endUserId`; see
-`docs/PLAYER_MEMORY.md`. Anonymous transport remains covered for legacy callers,
-but no archive registration worker participates in production routing. Both newly
-ready and reused connections verify the SDK before returning ready or sending input.
-The installed SDK represents anonymous identity as explicit `null`: missing,
-malformed, empty, or unexpected values fail closed instead of being normalized.
-An identified connection requires the exact requested user echo. Both modes
-also require the requested character getter to match. Mismatch closes only the
-offending connection and reports a generic error without the raw identifiers.
-Microphone finish and idle readiness recheck the previously verified identity.
-
-Warm results expose `registration: {verified, endUserId, characterId}` as an
-identity receipt. `endUserId` is the SDK's server-response state;
-`characterId` is its public connected-configuration getter. Anonymous connections
-are ready but have `registration.verified: false`, because they establish no
-player identity. Supplied and returned session IDs are recorded only after
-verification succeeds; preflight still rejects already-known conflicting
-owners. No credentials or registration metadata are added to speech logs.
-
-On retirement the host asks the SDK to disconnect, with a 2.5-second local
-deadline, before forcing page closure. Group shutdown gives all ready pages
-their grace period concurrently. This is not a provider extraction flush receipt.
-Microphone leases retain their host epoch, so a finish arriving during that
-disconnect grace cannot bind a retired session. Reply and stream files also
-recheck synchronous world/memory reset guards immediately before their final
-rename. The short commit uses a synchronous rename; writing audio and temporary
-files remains asynchronous.
-Phone text replies retire their transport after each completed turn while
-retaining the returned character session ID for continuation; companion world
-connections remain warm from spawn.
+These describe the retired browser-capture implementation, not the direct PCM route.
 
 ### Installed timing check, September 30
 

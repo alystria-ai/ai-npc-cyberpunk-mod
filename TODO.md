@@ -2,6 +2,32 @@
 
 ## September 30 — active continuation
 
+- [x] Implement F9 group microphone routing with the addressed speaker first,
+  frozen distinct audience, finalized recognized speech for later members,
+  one first reply, and lifecycle cancellation. F7 remains private. Source and
+  simulated adapter/transport checks pass; live microphone use is user-deferred.
+  See `docs/GROUP_VOICE.md`.
+- [x] Diagnose the reported micro-gaps and uneven lip sync. Retained Judy audio
+  contains seven completed files with estimated 15–32 ms handoff gaps. Convai
+  receives one text request; the adapter subdivides returned audio. Omni alone
+  splits reply text for TTS. Validated ARKit poses now survive quiet phonemes
+  instead of being gated to neutral by per-file RMS, with existing calibration.
+- [x] Replace Convai's browser recapture and separate clip handoffs with original
+  reliable PCM and indexed NeuroSync in one native WAV. The real production
+  transport check returned a complete 3.05-second clip and 183 frames at 60 FPS.
+  Handle the provider's mixed envelopes and unlabelled owned terminal. Keep
+  Omni's text/voice batching separate. Source `748511f`; installed without a
+  game restart. Quiet-boundary masking was set aside without installation.
+- [x] Complete the full system audit and confirmed fixes in
+  `docs/DEVELOPMENT_AUDIT_2026-09-30.md`, including methods and verification limits.
+  Final full suite: 1,159 passed, no failures/skips, including installed MCM.
+  Fixed connection retention, heartbeat reads, automatic-memory Forget targets,
+  phone persistence, native command ownership, worker hangs, quest-context
+  relevance, selectors, evidence validation, packaging and build freshness.
+  Local Git checkpoints preserve rollback; 42 installed files hash verified.
+- [ ] Activate this combined update with one CET reload and check Judy's Convai
+  F6 voice for continuity and facial cleanup. User question issued; acceptance
+  pending. Phone history across reload also remains a live follow-up.
 - [x] Add **Follow-up questions** (`followUpQuestions`) to organized Settings,
   default Off per the user's latest request. Local checkpoint `135264d`; 991
   tests passed with zero failures/skips, including installed MCM integration.
@@ -273,7 +299,7 @@ This is the running request and verification list. A checked item means the beha
 - [x] F8 group text: representative expanded group accepted with the addressed or nearest character first, up to two other distinct nearby profiles, listener-scoped context and sequential replies. Duplicate copies remain one speaker. Range-loss and stale-completion handling have executable coverage; group sessions remain separate from private sessions.
   - The 8ug8ear → Ana → Blue Moon test confirmed three replies in order and the addressed-only heading. The final-speaker follow-up policy exists; its optional setting is the current task above. Broader profile, voice and cancellation checks remain separate.
   - Live F8 exposed a silent substitution: addressing unconfigured 8ug8ear selected Alex. Fixed selection to report the addressed character's missing profile; F8 also requires at least two configured nearby speakers. The expanded 8ug8ear → Ana → Blue Moon round subsequently worked. Voice quality remains separate from the accepted turn order.
-- [ ] Implement the requested F9 group microphone entry and route, retaining F8's audience/order rules. Current source has the single-target F7 handler and no F9/group-microphone entry. The user deferred microphone testing; do not describe F9 as live-tested or merely awaiting acceptance.
+- [x] Implement the requested F9 group microphone entry and route, retaining F8's audience/order rules. See `docs/GROUP_VOICE.md` for lifecycle and transcript coverage. Audible microphone testing remains deferred.
 - [x] Use the same LLM model as the Dawnwalker mod and verify actual IDs/voices. Read-only inspection of Dawnwalker's Anca confirmed `fast-gemma-4-31b-it`; final Core API readback verified that model, exact descriptions and Kokoro voices for all 77 Cyberpunk profiles on September 28. Existing project IDs were retained.
 - [x] Give the selected managed companion a focused look and small natural adjustment before Talk; preserve subtle attention for the others. The user accepted Judy's attention step and the later two-companion gathering behavior. Gaze/distance selection and release remain part of the owned-companion controller.
 - [ ] Qualify attention for still ambient NPCs without taking over their quest/crowd ownership. Walking-pedestrian stopping is optional by the user's decision and must be safely reversible; the failed role-adoption experiment is retired.
@@ -294,7 +320,7 @@ This is the running request and verification list. A checked item means the beha
 - [x] Add custom cyan person-plus/person-minus icons beside the selected contact's message/call controls, using **J invite / L dismiss**. The user confirmed the actions, suppression of the normal shortcuts, in-row feedback while the phone stays open and the later increased key-to-icon spacing. The phone remains keyboard operated; no mouse-click support is claimed.
 - [x] Install the expanded 102-entry phone catalog rather than limiting controls to four profiles. It covers all 101 journal contacts plus Misty: 77 mappings to existing character records (including aliases), and 25 explicit unavailable entries for services, drones or unmapped physical characters. Record existence is verified and representative expanded contacts spawned/replied. No quest unlocks are changed.
 - [ ] Verify remaining mapped characters' actual spawn/follower compatibility and investigate unavailable physical models such as Delamain drones. Catalog inclusion alone does not establish that every contact is summonable.
-- [x] Preserve the requested control roles with the accepted local manager binding: **F4 manager**, **F6 single text**, **F8 group text**, plus phone **J invite / L dismiss**. The reference default remains F5 for the manager; the user's working F4 mapping overrides it locally. F7 is registered but its microphone check is user-deferred; F9 remains implementation work above.
+- [x] Preserve the requested control roles with the accepted local manager binding: **F4 manager**, **F6 single text**, **F8 group text**, plus phone **J invite / L dismiss**. The reference default remains F5 for the manager; the user's working F4 mapping overrides it locally. F7 and F9 are registered; microphone checks remain user-deferred.
 - [x] Use accepted native styling for world text input, phone controls/Chat and MCM; live keyboard typing, navigation and returning from Memory to Settings are confirmed.
 - [ ] Qualify remaining mouse/controller navigation, repeated close/reopen and exceptional screen-exit behavior. Phone Chat controller text entry is not implemented; source/framework success does not qualify every input method.
 
@@ -310,7 +336,7 @@ Port the intent to V and Cyberpunk systems; do not assume Dawnwalker APIs, Coen'
 - [x] Battle opening/ending reactions with default-On control. The user confirmed both with Judy; ten-minute cooldown and save-reset behavior have executable coverage. Pending replies wait for autonomous native speech within their original deadline. Combined loot is now implemented with live acceptance still pending in the loot entry; exploration merging remains deferred with its source feature.
 - [ ] Retain recent battle context: observed actor names, enemy types and relevant encounter progress. Adapt Dawnwalker's cleared-Horde-wave context only if Cyberpunk provides an equivalent verified event.
   - Current implementation records only hostile NPCs V looks at within forty metres during combat, capped at twelve entities, with optional verified Human/Android/Drone/Mech types. It retains the latest encounter for fifteen unpaused minutes and distinguishes witnesses from companions receiving reported facts. No kill, victory or wave count is inferred.
-- [ ] Complete cross-feature acceptance for microphone, mixed-provider group speech, broader facial rigs and gentle distance-based volume. Private F6 and three-speaker F8 text/voice/subtitles are already accepted; duplicate copies remain one speaker. F7 testing is user-deferred and F9 needs its entry/route implemented, as recorded above.
+- [ ] Complete cross-feature acceptance for microphone, mixed-provider group speech, broader facial rigs and gentle distance-based volume. Private F6 and three-speaker F8 text/voice/subtitles are already accepted; duplicate copies remain one speaker. F7/F9 live testing is user-deferred.
 - [ ] Ten interface languages with automatic detection and manual selection, English, Simplified Chinese, Traditional Chinese, Spanish, Brazilian Portuguese, French, German, Russian, Japanese and Korean (confirmed in the new reference). Keep interface language independent of conversation voices.
 - [ ] Optional multilingual conversation profile pack with separate character IDs and voices supporting 25 languages, including Russian, Spanish, French, Arabic and Japanese. Verify Convai voice capability and preserve the default Kokoro setup.
 - [ ] Optional native overhead subtitles above the current speaker, synchronized with actual speech timing. Keep the regular dialogue HUD as the default; retain complete short sentences and avoid unnecessary fragmentation. Updated to the user's September 30 preference, overriding the original Dawnwalker-derived default.

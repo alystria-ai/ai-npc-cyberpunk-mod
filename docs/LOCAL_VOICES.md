@@ -31,7 +31,7 @@ opt-out. FP8 remains an isolated candidate, not the installed voice precision.
   playing while the model is released. None of these changes restart the game.
 - Only one GPU render runs at once. Cancelling a turn discards its audio, but
   retains ownership of the worker until that render finishes. Queued cancelled
-  work is skipped. Shutdown uses pipe EOF and waits for the worker to release.
+  work is skipped. Shutdown uses pipe EOF. Startup and a phrase render have180-second and120-second deadlines. After completion or timeout, shutdown allows10 seconds for exit, then terminates only the owned child and waits5 seconds for confirmed exit. An unconfirmed exit blocks replacement workers.
 - WAV output has no added EQ, pitch/speed change, loudness normalization or
   denoising. It enters the existing native positional emitter and subtitles.
   Convai audio timings are discarded for local speech. Local phonetic lip sync
@@ -59,8 +59,8 @@ assets. This development setup is not yet a distributable installer.
 
 Use `scripts/Start-ConversationBridge.ps1` and
 `scripts/Stop-ConversationBridge.ps1` to own its lifetime. The stop script
-requests graceful shutdown of the identified bridge; it does not kill active
-CUDA work. The game runtime's `local-voice-state.json` records actual device,
+requests graceful shutdown of the identified bridge. The worker normally drains
+CUDA work through EOF; the bounded owned-child fallback above handles hangs. The game runtime's `local-voice-state.json` records actual device,
 parameter dtype, engine, steps, worker PID and residency. `settings.json`
 persists `omniSteps` and the bridge polls changes without a game restart.
 It also persists `voiceProvider` (`hybrid` or `convai`). Partial/invalid writes
