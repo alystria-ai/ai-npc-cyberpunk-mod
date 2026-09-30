@@ -25,8 +25,11 @@ no longer open it.
 
 Invitations and dismissals are queued while the page pauses gameplay. Their
 pending state appears immediately. They run once after the player returns to
-gameplay; paused spawn timers do not advance. Closing this menu returns to the
-normal pause menu, whose Resume/Escape action returns to gameplay.
+gameplay; paused spawn timers do not advance. Closing Companion Manager now
+returns to gameplay. The adapter waits for native Settings to accept the close
+and detach, then activates the real pause-menu Resume item once. MCM retains
+its unsaved-settings prompt; cancelling that prompt stays in Settings. Other
+providers and native settings retain their own exit behavior.
 
 ## Ownership
 
@@ -66,21 +69,58 @@ No MCM source or saved preferences are modified.
 Companion Manager uses one left edge and MCM's default red label colour
 (`MainColors.Red`) across section names, actions, read-only rows, toggles and selectors.
 Section names remain in the schema for organization and searching; their native
-presentation is a plain read-only row. Controls, selected/disabled values, hover
+category template and separators are retained. Controls, selected/disabled values, hover
 feedback and unsaved-change markers keep their native behaviour.
 
 The differing indentation came from the installed renderer: managed controls
 reserve a marker gutter and start their text at 48 units, actions start at 20,
 and read-only rows add a list-label inset inside a surface at 20. The adapter
 normalizes only its own rendered rows to 20 units, preserves the label's right
-edge, and keeps draft markers in the outer gutter. Resting labels bind to the
-native red token; MCM's global theme is not modified. All hooks are scoped
-to the active Companion Manager surface and reset for the next page.
+edge, and keeps draft markers in the outer gutter. Scaled category labels are
+aligned using their cumulative parent scale. Resting labels bind to the native
+red token; cyan option controls and MCM's global theme are not modified.
 
-The row-lifecycle harness covers the different native row shapes, repeated
-hover/restyling, draft markers, theme changes and leaving other providers alone.
+The first installed attempt was ineffective: the real renderer calls
+`McmUiBegin` with a provisional title, creates the rows, then publishes
+`McmUiSetContentTitle`. The live probe confirmed x=48 managed labels, x=24
+read-only labels and purple saved nondefault labels after that attempt.
+The final-title boundary now queues styling, with both exact title and active
+provider ownership checked. Begin clears ownership, including on MCM's global
+routes that retain the prior selected-mod key. Top-level `onUpdate` performs one
+bounded content lookup and one direct-child map; no widget lookup or setter runs
+inside a native observer. Hover-out queues another pass for the same controller;
+current hover highlights and cyan value controls are retained.
+
+The row-lifecycle harness covers the real provisional-title/rows/final-title/
+update order, rejects widget access inside native observers, and rejects more
+than one root lookup per pass. It also covers scaled headings, row shapes,
+hover/restyling, draft markers, cyan values and leaving other providers alone.
 This checks the adapter and scoping; visual acceptance still requires opening
 the installed manager in game after CET reload.
+
+The exit adapter also uses the final title and provider ownership. A close
+request alone does not resume gameplay: the same settings controller must
+actually detach. Reset, another Settings screen, a new world or a bounded
+timeout cancels pending resume. Nine focused lifecycle checks cover these
+paths; actual Escape and draft-modal behavior still need the in-game check.
+
+### Native crash and correction
+
+The first final-title implementation (`4fe8a9b`) crashed on F4 after CET reload.
+It was reverted in `c6ef43b`, installed and relaunched; the user confirmed the
+previous manager opens normally. The separate close-approach correction remains.
+
+The September 30 13:37 crash dump shows a reflected value constructor writing
+through a null destination (`Cyberpunk2077.exe+0x149340`, called from CET).
+[CET's RTTI executor](https://raw.githubusercontent.com/maximegmd/CyberEngineTweaks/v1.37.1/src/reverse/RTTIHelper.cpp)
+uses a 1 MiB scratch allocator shared by nested calls; its return construction
+does not check for failed allocation. The
+[allocator implementation](https://raw.githubusercontent.com/tiltedphoques/TiltedCore/v0.2.7/Code/core/src/ScratchAllocator.cpp)
+returns null when full and frees its space only at Reset. Repeated per-row tree
+walks inside the final-title observer fit that failure mechanism. The corrected
+version defers all widget operations and removes the repeated walks. Thirty-seven
+focused manager/exit checks, including installed MCM integration, pass; a live
+menu check is still required because Lua fixtures cannot emulate CET's allocator.
 
 The existing native voice/subtitle and legacy enabled flags remain compatible.
 No new redscript is required: **CET Reload All Mods** activates the adapter with

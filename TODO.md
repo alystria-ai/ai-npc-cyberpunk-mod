@@ -40,6 +40,11 @@
   visually check default-red labels, flat alignment, Esc returning to gameplay,
   and a companion staying put during a close approach. Reload/open request is
   pending with the user; no game restart required.
+  The first final-title update (`4fe8a9b`) crashed on F4 after reload and was
+  reverted in `c6ef43b`; the game was relaunched and the user confirmed the old
+  manager opens normally. The corrected implementation queues styling for
+  top-level update, performs one lookup/map, and passes 37 focused manager/exit
+  checks. Native crash evidence and limits are in `docs/MANAGER_UI.md`.
 - [ ] Hear a private On reply with a relevant question and no name prefix.
   Opt-in group listening remains unverified; live microphone testing is still
   deferred. See `docs/FOLLOW_UP_QUESTIONS.md`.

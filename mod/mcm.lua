@@ -33,14 +33,17 @@ local function active()
     return ok and data and data.activeModKey == MOD_KEY
 end
 
-local function findWidget(root, name, depth)
-    if not root then return nil end
+local function findWidget(root, name, depth, budget)
+    budget = budget or {left = 4096}
+    if not root or budget.left <= 0 then return nil end
+    budget.left = budget.left - 1
     if root:GetName() == CName.new(name) then return root end
     if depth <= 0 then return nil end
     local compound, count = pcall(function() return root:GetNumChildren() end)
     if compound then
-        for index = 0, count - 1 do
-            local found = findWidget(root:GetWidgetByIndex(index), name, depth - 1)
+        for index = 0, math.min(count, 1200) - 1 do
+            if budget.left <= 0 then return nil end
+            local found = findWidget(root:GetWidgetByIndex(index), name, depth - 1, budget)
             if found then return found end
         end
     end
@@ -68,37 +71,71 @@ local function redLabel(widget)
     if widget then widget:BindProperty(CName.new('tintColor'), CName.new('MainColors.Red')) end
 end
 
-local function styleRow(controller, id, kind)
-    if not presentation.active or not active() then return end
-    local content = contentWidgets(controller)
-    if not content then return end
-    presentation.rows[id] = kind
-    if kind == 'managed' then
-        local label = findWidget(content, id .. '_managed_label', 1)
-        local marker = findWidget(content, id .. '_managed_marker', 1)
-        alignLabel(label, 20)
-        redLabel(label)
-        if marker then
-            -- Keep the draft marker, without reserving a different text column
-            -- for editable controls. The marker occupies the outer gutter.
-            alignLabel(marker, 0)
-            marker:SetWidth(12)
+local function styleCategory(widget, parentLeft, parentScale, depth)
+    if depth <= 0 then return end
+    local margin = widget:GetMargin()
+    local left = parentLeft + margin.left * parentScale
+    if widget:GetName() == CName.new('label') then
+        -- The native category template is scaled (about 0.52 in the live
+        -- default layout). Align in content coordinates, not template units.
+        alignLabel(widget, margin.left + (20 - left) / parentScale)
+        redLabel(widget)
+        return
+    end
+    local scale = widget:GetScale()
+    local factor = parentScale * scale.X
+    if factor <= 0 then return end
+    local compound, count = pcall(function() return widget:GetNumChildren() end)
+    if compound then
+        for index = 0, math.min(count, 100) - 1 do
+            styleCategory(widget:GetWidgetByIndex(index), left, factor, depth - 1)
         end
-    else
-        local label
-        if kind == 'action' then label = findWidget(content, id .. '_label', 1)
-        else
-            local surface = findWidget(content, 'mcm_action_' .. id, 1)
-            label = surface and findWidget(surface, 'label', 1)
-            alignLabel(label, 0)
-        end
-        redLabel(label)
     end
 end
 
-local function safelyStyleRow(controller, id, kind)
-    local ok, err = pcall(styleRow, controller, id, kind)
-    if not ok then lastError = 'Settings presentation: ' .. tostring(err) end
+local function styleCompletedPage()
+    if not presentation.pending then return end
+    presentation.pending = false
+    if not presentation.active or not active() or not presentation.controller then return end
+    -- Called only by top-level onUpdate, never inside an observed native call.
+    -- CET shares a finite scratch arena across nested reflected calls. Walking
+    -- the UI from a native hook can exhaust it even if every getter is valid.
+    local content = contentWidgets(presentation.controller)
+    if not content then return end
+    local rows, widgets = {}, {}
+    for index = 0, math.min(content:GetNumChildren(), 1200) - 1 do
+        local widget = content:GetWidgetByIndex(index)
+        local name = NameToString(widget:GetName())
+        rows[#rows + 1] = {widget = widget, name = name}
+        widgets[name] = widget
+    end
+    for _, row in ipairs(rows) do
+        local widget, name = row.widget, row.name
+        local managed = name:match('^(.*)_managed_label$')
+        local marker = name:match('^(.*)_managed_marker$')
+        local label = name:match('^(.*)_label$')
+        local surface = name:match('^mcm_action_(.*)$')
+        if managed then
+            presentation.rows[managed] = 'managed'
+            alignLabel(widget, 20)
+            if not presentation.hovered[managed] then redLabel(widget) end
+            local draft = widgets[managed .. '_managed_marker']
+            if draft then alignLabel(draft, 0); draft:SetWidth(12) end
+        elseif marker then
+            -- The paired managed label handles this marker. Keep its colour.
+        elseif label then
+            presentation.rows[label] = 'action'
+            if not presentation.hovered[label] then redLabel(widget) end
+        elseif surface and widget:GetMargin().left <= 60 then
+            presentation.rows[surface] = 'readonly'
+            local text = findWidget(widget, 'label', 2, {left = 30})
+            alignLabel(text, 0)
+            if not presentation.hovered[surface] then redLabel(text) end
+        else
+            local owner = widget:GetController()
+            if owner and owner:IsA('SettingsCategoryController') then styleCategory(widget, 0, 1, 6) end
+        end
+    end
 end
 
 local function readonly(id, label, value, description)
@@ -416,7 +453,7 @@ end
 
 function M.configure(domain, companions, queueFactory, entryFactory, readiness)
     manager, queue = domain, queueFactory.new(companions, readiness)
-    entry = entryFactory.new(LABEL, function() return api ~= nil end, log)
+    entry = entryFactory.new(LABEL, function() return api ~= nil end, log, active)
     provider = {
         id = PROVIDER, registrationKey = 'cyberpunk-convai.manager.v1', apiVersion = 2,
         name = 'Cyberpunk Convai', shortName = 'CONVAI',
@@ -490,7 +527,7 @@ function M.install()
     Override('SettingsMainGameController', 'McmUiBegin', function(controller,
         title, subtitle, sidebarTitle, contentTitle, status, statusKind, transientOwner,
         showSidebarSearch, showContentSearch, listSelectionMode, wrapped)
-        presentation = {active = contentTitle == LABEL and active(), rows = {}}
+        presentation = {active = false, rows = {}}
         if contentTitle == LABEL and active() and actionFeedback
             and tostring(status):sub(1, 10) == 'Completed:' then
             status, statusKind = actionFeedback, 0
@@ -498,39 +535,26 @@ function M.install()
         return wrapped(title, subtitle, sidebarTitle, contentTitle, status, statusKind,
             transientOwner, showSidebarSearch, showContentSearch, listSelectionMode)
     end)
-    -- MCM uses separate layouts for actions, read-only rows and managed
-    -- controls. Its stock category template also has a different colour.
-    -- Keep our section names and native interactions, but use one label column
-    -- and ordinary label style throughout our page. No framework files or
-    -- other mods' settings are changed.
-    Override('SettingsMainGameController', 'McmUiAddCategory', function(controller,
-        id, label, description, frameworkId, wrapped)
-        if presentation.active and active() then
-            return controller:McmUiAddReadonly(id, label, description, '')
-        end
-        return wrapped(id, label, description, frameworkId)
+    ObserveAfter('SettingsMainGameController', 'McmUiSetContentTitle', function(controller, title)
+        local owned = title == LABEL and active()
+        -- Queue only Lua data here. No ink traversal, getters or setters.
+        presentation = {active = owned, pending = owned, rows = {}, hovered = {}, title = title, controller = controller}
     end)
-    ObserveAfter('SettingsMainGameController', 'McmUiAddReadonly', function(controller, id)
-        safelyStyleRow(controller, id, 'readonly')
+    Observe('SettingsMainGameController', 'OnUninitialize', function(controller)
+        if presentation.controller == controller then presentation = {active = false, rows = {}} end
     end)
-    ObserveAfter('SettingsMainGameController', 'McmUiAddActionSetting', function(controller, id)
-        safelyStyleRow(controller, id, 'action')
-    end)
-    for _, method in ipairs({'McmUiAddBool', 'McmUiBeginSelect'}) do
-        ObserveAfter('SettingsMainGameController', method, function(controller, id)
-            safelyStyleRow(controller, id, 'managed')
-        end)
-    end
     ObserveAfter('SettingsMainGameController', 'McmUiSetManagedLabelState', function(controller, id, hovered)
         -- Native hover remains visible. After leaving a changed row, only its
         -- draft marker carries the modified state; label text stays uniform.
-        if not hovered and presentation.rows[id] == 'managed' then
-            safelyStyleRow(controller, id, 'managed')
+        if presentation.active and presentation.controller == controller then
+            presentation.hovered[id] = hovered == true
+            if not hovered then presentation.pending = true end
         end
     end)
     ObserveAfter('SettingsMainGameController', 'McmUiEmitHover', function(controller, id, _, hovered)
-        if not hovered and presentation.rows[id] == 'readonly' then
-            safelyStyleRow(controller, id, 'readonly')
+        if presentation.active and presentation.controller == controller then
+            presentation.hovered[id] = hovered == true
+            if not hovered then presentation.pending = true end
         end
     end)
     Observe('SettingsMainGameController', 'McmUiEmitSearch', function(_, context, value)
@@ -565,6 +589,8 @@ function M.update(currentPlayer, worldReady)
     local now = os.time()
     if now >= pollAt then pollAt = now + 1; M.install() end
     if not active() then return end
+    local styleOk, styleError = pcall(styleCompletedPage)
+    if not styleOk then lastError = 'Settings presentation: ' .. tostring(styleError) end
     if searchFrames > 0 then
         searchFrames = searchFrames - 1
         if searchFrames == 0 then refreshQueued = true end
@@ -600,7 +626,10 @@ function M.update(currentPlayer, worldReady)
 end
 
 function M.inspect()
+    local rowCount = 0
+    for _ in pairs(presentation.rows) do rowCount = rowCount + 1 end
     return {available = api ~= nil, active = active(), view = view, entry = entry.state(),
+        presentation = {active = presentation.active, pending = presentation.pending, title = presentation.title, rows = rowCount},
         entryDetails = entry.inspect and entry.inspect() or nil,
         party = queue.list(), feedback = queue.message(), error = lastError,
         memory = manager.snapshot(player()).memory}
@@ -618,6 +647,7 @@ function M.resetSession()
     actionFeedback = nil
     memoryActionCommand = nil
     owner, lastSignature, refreshQueued = nil, '', true
+    presentation = {active = false, rows = {}}
     entry.reset()
 end
 

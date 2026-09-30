@@ -353,59 +353,84 @@ const mcmFixture = `
   end
 `;
 
-test('native settings row styling aligns control types, retains draft and hover state, and stays on our page', () => {
+test('native settings styling waits for the final title, aligns scaled rows and retains native controls', () => {
   run(`${mcmFixture}
     CName = {new = function(value) return value end}
+    NameToString = function(value) return value end
+    local nativeHook, rootReads = false, 0
     local function widget(name, left, width, color, children)
       local value = {name = name, left = left or 0, width = width or 200, color = color, children = children or {}}
-      function value:GetName() return self.name end
+      function value:GetName() assert(not nativeHook, 'widget traversal inside a native observer'); return self.name end
       function value:GetNumChildren() return #self.children end
       function value:GetWidgetByIndex(index) return self.children[index + 1] end
       function value:GetMargin() return {left = self.left, top = 48, right = 0, bottom = 0} end
-      function value:SetMargin(margin) self.left = margin.left; assert(margin.top == 48) end
+      function value:SetMargin(margin) assert(not nativeHook, 'widget setter inside a native observer'); self.left = margin.left; assert(margin.top == 48) end
       function value:GetWidth() return self.width end
       function value:SetWidth(width) self.width = width end
       function value:GetTintColor() return self.color end
       function value:SetTintColor(color) self.color = color end
-      function value:BindProperty(property, color) assert(property == 'tintColor'); self.color = color end
+      function value:BindProperty(property, color) assert(not nativeHook, 'widget binding inside a native observer'); assert(property == 'tintColor'); self.color = color end
+      function value:GetScale() return {X = self.scale or 1, Y = self.scale or 1} end
+      function value:GetController()
+        if self.name == 'settingsCategory' then return {IsA = function(_, class) return class == 'SettingsCategoryController' end} end
+      end
       return value
     end
     local content = widget('mcm_content_scroll_content')
     local root = widget('root', 0, 1000, nil, {content})
     local theme = 'native-label-colour'
-    function controller:GetRootWidget() return root end
+    function controller:GetRootWidget()
+      assert(not nativeHook, 'root traversal inside a native observer')
+      rootReads = rootReads + 1; return root
+    end
     function controller:McmUiAddReadonly(id)
       -- MCMContent.reds uses x=20 for the surface, while MCMRenderer.reds
       -- adds its frame-style list inset to the child label.
       local label = widget('label', 16, 184, theme)
       local surface = widget('mcm_action_' .. id, 20, 200, nil, {label})
       content.children[#content.children + 1] = surface
-      handlers.McmUiAddReadonly(self, id)
       return surface
     end
-    local function begin(title)
-      handlers.McmUiBegin(controller, 'MCM', '', 'Mods', title, '', 0, '', true, true, 0, function() end)
+    local function begin()
+      -- Real MCM renders the provisional title first, then rows, and only
+      -- publishes the actual provider title after all row construction.
+      handlers.McmUiBegin(controller, 'MCM', '', 'Mods', 'Mods', '', 0, '', true, true, 0, function() end)
+    end
+    local function finish(title)
+      nativeHook = true
+      handlers.McmUiSetContentTitle(controller, title)
+      nativeHook = false
+    end
+    local function frame()
+      local before = rootReads
+      mcm.update(player, false)
+      assert(rootReads <= before + 1, 'page tree was traversed again for each row')
     end
     local function managed(id, kind)
       local label = widget(id .. '_managed_label', 48, 300, 'modified')
       local marker = widget(id .. '_managed_marker', 20, 20, 'modified')
       content.children[#content.children + 1] = label
       content.children[#content.children + 1] = marker
-      handlers[kind](controller, id)
       return label, marker
     end
-    begin('Companion Manager')
-    local category = handlers.McmUiAddCategory(controller, 'category', 'Conversations', '', '', function()
-      error('our category retained a different native banner style')
-    end)
+    begin()
+    local category = widget('settingsCategory', 0, 1800, nil, {widget('label', 20, 1600, 'white')})
+    category.scale = 0.5
+    content.children[#content.children + 1] = category
     local heading = category.children[1]
-    assert(category.left + heading.left == 20 and heading.color == 'MainColors.Red')
     local toggle, marker = managed('toggle', 'McmUiAddBool')
     local select = managed('select', 'McmUiBeginSelect')
     local readonly = controller:McmUiAddReadonly('status')
     local action = widget('action_label', 20, 400, theme)
     content.children[#content.children + 1] = action
-    handlers.McmUiAddActionSetting(controller, 'action')
+    local cyanValue = widget('mcm_action_value', 620, 280, 'cyan')
+    content.children[#content.children + 1] = cyanValue
+    assert(toggle.left == 48 and toggle.color == 'modified', 'ownership was guessed from the provisional title')
+    finish('Companion Manager')
+    assert(toggle.left == 48 and rootReads == 0, 'native observer did work instead of deferring it')
+    frame()
+    assert(category.left + category.scale * heading.left == 20 and heading.color == 'MainColors.Red')
+    assert(cyanValue.left == 620 and cyanValue.color == 'cyan', 'native option styling changed')
     assert(toggle.left == action.left and select.left == action.left)
     assert(readonly.left + readonly.children[1].left == action.left)
     assert(toggle.width == 328 and select.width == 328, 'moving labels must preserve their right edge')
@@ -416,28 +441,41 @@ test('native settings row styling aligns control types, retains draft and hover 
     handlers.McmUiSetManagedLabelState(controller, 'toggle', true, true)
     assert(toggle.color == 'native-hover', 'hover feedback was flattened')
     toggle.color = 'modified'
+    nativeHook = true
     handlers.McmUiSetManagedLabelState(controller, 'toggle', false, true)
+    nativeHook = false
+    assert(toggle.color == 'modified', 'hover-out styling was not deferred')
+    frame()
     assert(toggle.color == 'MainColors.Red' and toggle.width == 328, 'restyling accumulated width or retained a different label colour')
     assert(marker.color == 'modified')
     readonly.children[1].color = 'native-hover'
     handlers.McmUiEmitHover(controller, 'status', '', true)
     assert(readonly.children[1].color == 'native-hover', 'read-only hover feedback was flattened')
     readonly.children[1].color = 'different-theme-colour'
+    nativeHook = true
     handlers.McmUiEmitHover(controller, 'status', '', false)
+    nativeHook = false
+    frame()
     assert(readonly.children[1].color == 'MainColors.Red', 'read-only hover-out did not restore default red')
     activeMod = 'another:mod'
-    begin('Another mod')
-    local original = false
-    handlers.McmUiAddCategory(controller, 'foreign', 'Other category', '', 'source', function(id, label, _, framework)
-      original = id == 'foreign' and label == 'Other category' and framework == 'source'
-    end)
+    begin()
     local foreign, foreignMarker = managed('foreign', 'McmUiAddBool')
-    assert(original and foreign.left == 48 and foreign.color == 'modified' and foreignMarker.width == 20)
+    finish('Another mod')
+    frame()
+    assert(foreign.left == 48 and foreign.color == 'modified' and foreignMarker.width == 20)
     activeMod = 'cyberpunk-convai:manager'
-    begin('Companion Manager')
+    begin()
+    local global = managed('global', 'McmUiAddBool')
+    finish('MCM Settings')
+    frame()
+    assert(global.left == 48 and global.color == 'modified', 'retained activeModKey leaked into another MCM route')
+    content.children = {}
+    begin()
     theme = 'changed-native-theme'
     controller:McmUiAddReadonly('new-category')
     local changed = managed('new-toggle', 'McmUiAddBool')
+    finish('Companion Manager')
+    frame()
     assert(changed.color == 'MainColors.Red', 'customized framework colours replaced the requested default red')
   `);
 });
