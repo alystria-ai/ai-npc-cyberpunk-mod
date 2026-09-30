@@ -11,9 +11,9 @@
   The retained live trace shows Loading → Preparing voices → Ready with the
   saved hybrid choice and about 2 GiB resident memory. A distinct live unsaved
   draft trace was not retained; that ordering has installed-MCM and host tests.
-  No additional warmup testing is requested.
-- [ ] Activate the already-prepared eye-contact height/head-strength controls
-  with the same Lua update and qualify their live behavior as the next TODO.
+- [x] Activate the prepared eye-contact controls with the same Lua update.
+  The user clarified that eye contact works fine and does not need further
+  work/testing. Preserve the accepted behavior and move to other features.
 
 ## September 30 — active continuation
 
@@ -407,16 +407,17 @@ This is the running request and verification list. A checked item means the beha
 Port the intent to V and Cyberpunk systems; do not assume Dawnwalker APIs, Coen's relationships, or Horde events exist here. Reference archives: `ref mods/DawnwalkerConvai 0.5.5 Scripts*` and `*Multilingual*`. These are requested features, not completed behavior.
 
 - [ ] Blend smiles, blinking and emotion-driven facial reactions with speech and lip sync; avoid competing face animations and restore normal expressions afterward.
-- [ ] Accept adjustable native eye contact in the game; retain the accepted
-  subtle side glance/full focused look and natural footstep behavior.
+- [x] Preserve accepted native eye contact: subtle side glance/full focused
+  look and natural footstep behavior. On October 1 the user explicitly said
+  eye contact works fine and declined further work/testing.
   - [x] Implement persistent height and head-strength selectors with unchanged
     defaults, native world-offset semantics, exact look-event replacement and
     movement independence. Source gate: 136 checks passed with installed MCM;
     label-copy follow-up: 31 passed, one environment-dependent MCM check skipped.
     See `docs/COMPANION_GAZE.md`.
-  - [ ] Install/activate the new selectors and check their native layout and
-    effect while V stands and crouches. The source is prepared; the current
-    running game retains the previous gaze modules during lip-sync diagnosis.
+  - [x] Installed the selectors in the October 1 Lua update. The separate
+    standing/crouching slider comparison is user-deferred; no claim of that
+    specific visual check is made.
 - [ ] Optional natural follow-up questions, **default Off** per the user's September 30 correction. In a group, only the final speaker may ask V a follow-up; coordinate turn completion so speakers do not repeatedly reopen the conversation. This is the active task at the top of the file.
 - Loot batches and their independent default-On setting have representative live acceptance. Combined battle/loot, Legendary equipment and storage-silence acceptance remain in the September 30 loot entry. Solo-exploration reactions are explicitly user-deferred pending reliable provenance; do not enable them merely to match the reference.
 - [x] Discuss the active quest and only objectives revealed in the current save. The user accepted Judy's live objective reply, and the trace confirmed refreshed context for **Freedom**. Hidden/completed branch exclusion and conversation routing are covered by the affected checks. See `docs/QUEST_CONTEXT.md`.
