@@ -5,7 +5,7 @@ import {drainBlendshapes} from './blendshape-capture.mjs';
 import {buildFacialTimeline, buildProviderFacialTimeline, SPEECH_TRACKS} from './facial-timeline.mjs';
 import {PcmChunkStream, sliceFaces} from './convai-audio-stream.mjs';
 
-const owner = {requestId: 'reply-1', entity: 'judy-copy-2'};
+const owner = {requestId: 'reply-1', entity: 'judy-copy-2', generation: 7};
 const values = amount => { const result = Array(61).fill(0); result[17] = amount; return result; };
 function audio({bits = 16, codec = 1, channels = 1, duration = 1.5, sample} = {}) {
   const rate = 24000, samples = Math.floor(duration * rate), align = channels * bits / 8;
@@ -83,6 +83,7 @@ test('continuous provider timelines accept ahead-delivered faces without reading
   assert.equal(line.version, 1);
   assert.equal(line.requestId, owner.requestId);
   assert.equal(line.entity, owner.entity);
+  assert.equal(line.generation, owner.generation);
   assert.equal(line.source, 'convai-arkit61');
   assert.equal(line.articulation, 'arkit61-open-v3');
   assert.equal(line.continuous, true);
@@ -131,6 +132,9 @@ test('continuous facial preparation rejects incomplete or malformed data without
     assert.equal(buildProviderFacialTimeline({...valid, ...change}, owner), undefined);
   }
   assert.equal(buildProviderFacialTimeline(valid, undefined), undefined);
+  for (const generation of [undefined, -1, 1.5, 2147483648, '7']) {
+    assert.equal(buildProviderFacialTimeline(valid, {...owner, generation}), undefined);
+  }
   assert.equal(buildProviderFacialTimeline(undefined, owner), undefined);
   // One unsampled tail interval is expected; more missing coverage is not.
   assert(buildProviderFacialTimeline({...valid, faces: faces.slice(0, -1)}, owner));

@@ -2,6 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import fengari from 'fengari';
+import {ConvaiContinuousSpeech} from './convai-continuous-speech.mjs';
 
 const source = name => readFileSync(new URL(`../mod/${name}.lua`, import.meta.url), 'utf8');
 const setup = `
@@ -110,6 +111,38 @@ function run(body) {
   const error=status===lua.LUA_OK?'':to_jsstring(lua.lua_tostring(vm,-1));
   lua.lua_close(vm);assert.equal(status,lua.LUA_OK,error);
 }
+
+// Exercise the actual JavaScript publisher/builder against the Lua consumer.
+// Hand-built face fixtures alone missed a required ownership field on the wire.
+const luaValue = value => Array.isArray(value) ? `{${value.map(luaValue).join(',')}}`
+  : value && typeof value === 'object' ? `{${Object.entries(value).filter(([,v])=>v!==undefined)
+    .map(([k,v])=>`[${JSON.stringify(k)}]=${luaValue(v)}`).join(',')}}`
+  : value == null ? 'nil' : JSON.stringify(value);
+
+test('real continuous publisher facial data is accepted by the actual Lua playback and rig owner', async()=>{
+  const input={requestId:'conversation-1',entity:'Judy-2',generation:7};
+  const token='12345678-1234-1234-1234-123456789abc';
+  let wire,reply;
+  const publisher=new ConvaiContinuousSpeech({input,profile:{key:'judy'},token,now:()=>1000000,
+    current:async()=>true,readControl:async()=>'{}',
+    writeState:async value=>{wire=structuredClone(value);return true;},
+    writeReply:async value=>{reply=structuredClone(value);return true;}});
+  const faces=Array.from({length:121},(_,index)=>{
+    const values=Array(61).fill(0);values[17]=.4;return {at:index/60,values};
+  });
+  await publisher.frame({version:1,token,sampleRate:24000,channels:1,receivedFrames:48000,
+    positionSeconds:.2,text:'Hello V.',textComplete:false,sourceComplete:false,ended:false,
+    underruns:0,state:'playing',faces,facesFormat:'arkit61',facesTimebase:'audio-seconds'});
+  assert(wire.face,'The production publisher must include its provider facial timeline');
+  run(`
+    assert(speech.start(context,${luaValue(reply)}))
+    put('runtime/continuous-speech.json',${luaValue(wire)});tick()
+    assert(face.active,'Production timeline rejected: '..tostring(face.error))
+    assert(features==1 and #judy.applied==1 and judy.applied[1].jaw_mid_open>0)
+    assert(face.generation==context.generation and face.requestId==context.requestId)
+    speech.stop('cancelled');assert(judy.resets==1 and not face.active)
+  `);
+});
 
 test('continuous playback authorizes only its exact live actor, with verified game volume and camera-relative pan',()=>run(`
 assert(begin());assert(control().allow and not control().paused and control().volumeKnown)

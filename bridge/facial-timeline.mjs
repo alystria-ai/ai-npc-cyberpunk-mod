@@ -170,6 +170,7 @@ export function buildFacialTimeline(result, owner) {
 // needed. Missing facial coverage never prevents the separate audio publisher.
 export function buildProviderFacialTimeline(result, owner) {
   if (!result || typeof owner?.requestId !== 'string' || typeof owner.entity !== 'string'
+      || !Number.isSafeInteger(owner.generation) || owner.generation < 0 || owner.generation > 2147483647
       || !Number.isFinite(result.duration) || result.duration <= 0 || result.duration > 120
       || typeof result.complete !== 'boolean') return undefined;
   const source = validFaces(result, result.duration);
@@ -184,5 +185,7 @@ export function buildProviderFacialTimeline(result, owner) {
   const window = right >= 0 ? source.slice(0, right + 1) : source;
   const line = renderTimeline({owner, duration: result.duration, source: window,
     first: true, last: result.complete});
-  return {...line, continuous: true, complete: result.complete};
+  // A growing timeline crosses repeated game polls; preserve the same load/
+  // request generation that the Lua owner uses to reject stale facial data.
+  return {...line, generation: owner.generation, continuous: true, complete: result.complete};
 }

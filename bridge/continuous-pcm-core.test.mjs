@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {ContinuousPcmCore, PcmClockHistory, PCM_LIMITS} from './continuous-pcm-core.mjs';
+import {ContinuousPcmCore, PcmClockHistory, PcmQuantumClock, PCM_LIMITS} from './continuous-pcm-core.mjs';
 
 const pcm = samples => {
   const bytes = new Uint8Array(samples.length * 2), view = new DataView(bytes.buffer);
@@ -127,4 +127,47 @@ test('device clock history includes partial-quantum starvation, holds and final 
   history.push(.4, .5, 1800, 1800, .4);
   assert.equal(history.at(.6), 1800);
   assert.throws(() => history.push(.45, .6, 1800, 1800, .45), /contiguous/);
+});
+
+test('the observed repeated browser quantum preserves all PCM and strict source continuity', () => {
+  const rate = 24000, rawFrame = 163456, offset = 161280;
+  const clock = new PcmQuantumClock(rate), history = new PcmClockHistory();
+  const input = Array.from({length: 384}, (_, i) => (i * 997 % 65536) - 32768);
+  const sound = core({sampleRate: rate, nowMs: rawFrame / rate * 1000});
+  sound.control(allowed, clock.controlTime(rawFrame) * 1000);
+  sound.append(pcm(input), 0); sound.end(input.length);
+  const actual = [], segments = [];
+  for (const reportedFrame of [rawFrame, rawFrame, rawFrame + 256]) {
+    const {outputs, segment} = render(sound, 128, clock.next(reportedFrame, 128));
+    actual.push(...outputs[0]); segments.push(segment);
+    history.push(segment.start, segment.end, segment.from + offset, segment.to + offset, segment.advancingEnd);
+  }
+  // These are the exact first offending live trace values. Only context time is
+  // remapped; the next source sample still follows 161408 without any gap/repeat.
+  assert.equal(segments[0].start, 6.810666666666667);
+  assert.equal(segments[0].end, 6.816000000000001);
+  assert.equal(segments[1].start, (rawFrame + 128) / rate);
+  assert.equal(segments[1].from + offset, 161408);
+  assert.equal(segments[1].to + offset, 161536);
+  assert.deepEqual(actual, input.map(value => value / 32768));
+  assert.equal(sound.playedFrames, input.length); assert.equal(sound.underruns, 0);
+  assert.equal(clock.corrections, 1); assert.equal(clock.repeatedQuanta, 1);
+  assert.equal(clock.maxLeadFrames, 128); assert.equal(clock.leadFrames, 0);
+  assert.equal(history.at(segments[2].end), offset + input.length);
+  assert.throws(() => history.push(segments[2].end, segments[2].end + .01,
+    offset + input.length + 1, offset + input.length + 2, segments[2].end + .01), /contiguous/);
+});
+
+test('quantum corrections do not accumulate an offset after the browser catches up', () => {
+  const clock = new PcmQuantumClock(24000);
+  const raw = [1024, 1024, 1152, 1408, 1536];
+  assert.deepEqual(raw.map(frame => clock.next(frame, 128)), [1024, 1152, 1280, 1408, 1536].map(frame => frame / 24000));
+  assert.equal(clock.corrections, 2); assert.equal(clock.repeatedQuanta, 1);
+  assert.equal(clock.maxLeadFrames, 128); assert.equal(clock.leadFrames, 0);
+  assert.equal(clock.controlTime(1536), 1536 / 24000);
+  assert.throws(() => clock.next(1408, 128), error => {
+    assert.equal(error.clockDiagnostic.previousRawFrame, 1536);
+    assert.equal(error.clockDiagnostic.nextRawFrame, 1408);
+    return /regressed/.test(error.message);
+  });
 });

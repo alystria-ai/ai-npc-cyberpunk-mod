@@ -89,7 +89,10 @@ export class ContinuousPcmPlayer {
 
   receive(message) {
     if (this.stopped || !message || message.token !== this.token) return;
-    if (message.type === 'failure') { this.fail(message.error || 'PCM renderer failed'); return; }
+    if (message.type === 'failure') {
+      if (message.clockDiagnostic) this.latest = {...this.latest, clockDiagnostic: message.clockDiagnostic};
+      this.fail(message.error || 'PCM renderer failed'); return;
+    }
     if (message.type !== 'state') return;
     try {
       const s = message.snapshot;

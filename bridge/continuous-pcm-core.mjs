@@ -19,6 +19,60 @@ export function playbackControl(value) {
   return {allow: value.allow, paused: value.paused, volume, pan};
 }
 
+// Chromium derives the worklet's currentTime from currentFrame. A live device
+// trace repeated both ends of one context quantum while the renderer supplied
+// the next 128 source samples. Give every supplied output quantum its own place
+// on the context timeline; never replay or discard PCM to repair that timestamp.
+export class PcmQuantumClock {
+  constructor(sampleRate) {
+    if (!Number.isInteger(sampleRate) || sampleRate < 8000 || sampleRate > 96000)
+      throw Error('Invalid PCM quantum sample rate');
+    this.sampleRate = sampleRate; this.previousRawFrame = null;
+    this.previousStartFrame = null; this.nextFrame = null;
+    this.corrections = 0; this.repeatedQuanta = 0;
+    this.leadFrames = 0; this.maxLeadFrames = 0; this.diagnostic = null;
+  }
+
+  next(rawFrame, frames) {
+    if (!Number.isSafeInteger(rawFrame) || rawFrame < 0
+        || !Number.isSafeInteger(frames) || frames < 1
+        || !Number.isSafeInteger(rawFrame + frames)) throw Error('Invalid PCM render quantum');
+    if (this.previousRawFrame !== null && rawFrame < this.previousRawFrame) {
+      const error = Error('PCM render frame clock regressed');
+      error.clockDiagnostic = {previousRawFrame: this.previousRawFrame,
+        previousStartFrame: this.previousStartFrame, previousEndFrame: this.nextFrame,
+        nextRawFrame: rawFrame, quantumFrames: frames};
+      throw error;
+    }
+    const startFrame = Math.max(rawFrame, this.nextFrame ?? rawFrame);
+    this.leadFrames = startFrame - rawFrame;
+    if (this.leadFrames) {
+      this.corrections++;
+      if (rawFrame === this.previousRawFrame) this.repeatedQuanta++;
+      this.maxLeadFrames = Math.max(this.maxLeadFrames, this.leadFrames);
+      this.diagnostic = {previousRawFrame: this.previousRawFrame,
+        previousStartFrame: this.previousStartFrame, previousEndFrame: this.nextFrame,
+        nextRawFrame: rawFrame, mappedStartFrame: startFrame, quantumFrames: frames};
+    }
+    this.previousRawFrame = rawFrame; this.previousStartFrame = startFrame;
+    this.nextFrame = startFrame + frames;
+    return startFrame / this.sampleRate;
+  }
+
+  controlTime(rawFrame) {
+    if (!Number.isSafeInteger(rawFrame) || rawFrame < 0) throw Error('Invalid PCM control frame clock');
+    // A MessagePort callback need not advance a render quantum. Refresh the
+    // lease at its latest mapped start, without consuming a single source frame.
+    return Math.max(rawFrame, this.previousStartFrame ?? rawFrame) / this.sampleRate;
+  }
+
+  snapshot() {
+    return {clockCorrections: this.corrections, clockRepeatedQuanta: this.repeatedQuanta,
+      clockLeadFrames: this.leadFrames, clockMaxLeadFrames: this.maxLeadFrames,
+      clockDiagnostic: this.diagnostic};
+  }
+}
+
 export class ContinuousPcmCore {
   constructor({sampleRate, channels, capacityFrames, startupSeconds = PCM_LIMITS.startupSeconds,
     nowMs = 0} = {}) {
