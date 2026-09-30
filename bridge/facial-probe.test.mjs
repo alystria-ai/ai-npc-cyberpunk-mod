@@ -127,6 +127,36 @@ test('articulation cancellation preserves delegate results and newer delegate ow
   assert(not probe.active and report.state=='shutdown')
 `));
 
+test('detail probe isolates lip lift and seal with a fixed jaw and restores its owner',()=>run(`
+  probe.start('judy-alvarez','detail')
+  for i=1,550 do convaiSpeech.update(1/60) end
+  assert(report.state=='completed' and report.restored and report.duration==9 and resets==1)
+  local seen={}
+  for _,sample in ipairs(report.samples) do
+    seen[sample.phase]=true
+    for track,value in pairs(sample.controls) do
+      assert(value==value and value>=0 and value<=.35)
+      assert(not track:match('eye') and not track:match('head'))
+    end
+    if sample.at>.4 and sample.at<7.4 then assert(sample.jaw==.14) end
+    if sample.phase=='upper' and sample.at>1.8 then
+      assert(sample.controls.lips_l_upper_raise==.06 and sample.controls.lips_r_upper_raise==.06)
+      assert(sample.controls.lips_l_lower_raise==0 and sample.controls.lips_together_up==0)
+    elseif sample.phase=='lower' and sample.at>3.8 then
+      assert(sample.controls.lips_l_lower_raise==.08 and sample.controls.lips_suck_dn==.06)
+      assert(sample.controls.lips_l_upper_raise==0 and sample.controls.lips_together_up==0)
+    elseif sample.phase=='seal' and sample.at>5.8 then
+      assert(sample.controls.lips_together_up==.35 and sample.controls.lips_together_dn==.35)
+      assert(sample.controls.lips_apart_up==0 and sample.controls.lips_l_lower_raise==0)
+    end
+  end
+  assert(seen.baseline and seen.upper and seen.lower and seen.seal and seen.neutral)
+  for _,value in pairs(frames[#frames]) do assert(value==0) end
+  assert(convaiSpeech.update==originalUpdate and not probe.active)
+  probe.start('judy-alvarez','detail'); menu=true; convaiSpeech.update(.1)
+  assert(report.state=='interrupted' and report.restored and resets==2)
+`));
+
 test('articulation rejects unsupported ownership or readiness, and resets before incoming speech applies',()=>run(`
   owned=false; assert(not pcall(probe.start,'judy-alvarez','articulation') and #frames==0)
   owned=true; ready=false; assert(not pcall(probe.start,'judy-alvarez','articulation') and #frames==0)
