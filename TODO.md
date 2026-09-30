@@ -65,7 +65,8 @@
     Direct second-monitor game-window captures prove these native channels
     work at High LOD. The v7 candidate adds separately calibrated lip contact
     and upper-lip lift; 78 source checks and two-rig geometry review pass.
-    Ordinary v7 speech and final naturalness remain unaccepted. See
+    V7 is installed and captured; the user reports "not bad, keep improving."
+    Visible closure and reset improve, but final naturalness remains open. See
     `docs/NATIVE_FACIAL_RETARGET_CALIBRATION.md` for captures and limitations.
 - [x] Add **Follow-up questions** (`followUpQuestions`) to organized Settings,
   default Off per the user's latest request. Local checkpoint `135264d`; 991

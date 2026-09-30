@@ -785,3 +785,36 @@ questions. Rig reference weights and successful feature calls do not establish
 the animated baseline or visible quality. Focused source checks, installation
 and live acceptance are recorded in the deep dive; the visual item stays open
 in `TODO.md` until the user accepts the actual speaking face.
+
+## October 1: rendered facial calibration and development method
+
+The user clarified that jaw opening is sufficient. A passive game trace then
+isolated slow browser snapshot serialization rather than source-frame scarcity.
+The exact same nested data takes 315 ms median through the old browser transfer
+and 13 ms as one bounded JSON string. Actual game observation after activation
+improves to 160 native poses during four seconds of speech; the user accepts
+the smoothness but still finds the articulation too dominated by the jaw.
+
+For the next comparison, capture Cyberpunk's verified HWND directly with Windows
+Graphics Capture. The desktop capture tool returned primary-display pixels for
+this second-monitor window, so those images were not treated as game evidence.
+The helper captures only the game surface, sends no input, retains original
+timestamped PNGs, and stops after a bounded reply/probe. Inspection crops do not
+replace those originals. See `docs/GAME_WINDOW_CAPTURE.md`.
+
+Calibrate fixed-jaw native shapes before changing production transfer curves.
+High-LOD captures resolve distinct round/wide lip poses, gentle upper lift, and
+clean contact at a separately calibrated 0.85 together weight. Replay original
+provider frames and combined/asymmetric cases on both Judy and Johnny before
+installation; use exact native controls, not an assumed generic morph range.
+V6 is user-reported better, not fully accepted. V7 adds contact/upper lift with
+78 focused checks and bounded geometry. Its captured reply shows visible lip
+contact and final reset; the user says "not bad, keep improving," so overall
+naturalness remains open.
+
+Checkpoint `a4e04c6` preserves this candidate. Its Lua adapter is selectively
+backed up, copied and hash checked, then activated through `speech-install` while
+speech is idle. The bridge restarts hidden to load the host mapping. The game
+stays running, the persistent identity compares unchanged, and unrelated gaze
+modules stay at the currently accepted live version. No provider test dialogue
+or new player identity is created by this installation.

@@ -33,8 +33,16 @@ rotation is unchanged. These measurements use reference tracks and reconstructed
 local bones, so they cannot certify skinning, teeth contact or rendered symmetry.
 
 Seventy-eight focused checks pass, including the real producer-to-Lua boundary,
-track-specific admission limits and reset. Ordinary v7 speech remains the live
-acceptance gate. Watch sharp consonant closure: one source sample jumps from
+track-specific admission limits and reset. V7 was installed without a game
+restart and captured during a real reply: 49 window frames over 4.47 seconds,
+with the first reply's native face reporting 137 applications and final reset.
+The retained mapped prefix reaches 3.2 seconds and is not marked complete;
+do not describe it as a complete raw provider capture. The user says "not bad,
+keep improving." The images show distinct open/narrow/closed shapes and a clean
+return to rest, without obvious upper-lip distortion at this view. Naturalness
+remains open, and still frames cannot certify motion quality across the cast.
+
+Watch sharp consonant closure: one retained research source sample jumps from
 zero MouthClose to 0.241 in one 60 Hz frame. No new smoothing is imposed before
 checking whether that closure is visibly abrupt.
 
@@ -47,6 +55,9 @@ Ignored evidence:
 - `runtime/lip-contact-geometry-20261001/FINDINGS.md`: scripts, two-rig replay,
   asymmetric stress cases and limits.
 - `runtime/lips-v7-tests-20261001.log`: focused source check receipt.
+- `runtime/speech-images-v7-20261001-012027`: actual v7 speech PNG sequence,
+  timing metadata and the last observed mapped prefix. A later reply was not
+  recorded by this bounded capture and must not be merged into its evidence.
 
 ## October 1: rendered shape contrast
 

@@ -239,12 +239,26 @@ reduces median transfer from 315 ms to 13 ms, with exact data equality. The
 implemented correction retains all ownership guards and the existing schedule;
 its 32 MiB UTF-8 limit does not expand the utterance or shape admission limits.
 Sixty focused checks passed, including the real browser/host seam; a subsequent
-14-test host gate includes explicit UTF-8 size validation. Live activation and
-fresh visible/temporal acceptance remain pending.
+14-test host gate includes explicit UTF-8 size validation. After activation,
+the next live capture records 160 native applications over a four-second
+source, 48 publication changes and a median publication gap of 91 ms. Samples
+remain behind verified heard audio. The user now describes the result as smooth
+but mostly jaw motion, accepting the temporal improvement while identifying
+the next shape-calibration problem.
 
 Ignored evidence: `runtime/live-facial-cadence-capture-20260930.json`,
 `runtime/snapshot-serialization-comparison-20260930.json`,
 `runtime/snapshot-host-boundary-20260930-tests.log`.
+
+The October 1 [native calibration record](NATIVE_FACIAL_RETARGET_CALIBRATION.md)
+adds direct window captures of fixed-jaw round/wide shapes, upper/lower lift
+and lip contact at High LOD. These confirm rendered native controls independently
+of the reconstructed solver. The user reports the live v6 shape change is better
+but still needs improvement. V7 adds separately calibrated contact and upper
+lift, passes 78 focused checks and two-rig combined/asymmetric geometry review,
+and is installed through the existing hot-load route. Its real reply capture
+shows distinct open/narrow/closed shapes and a final neutral pose. The user says
+"not bad, keep improving"; overall naturalness remains open.
 
 ### Repeatable steps
 

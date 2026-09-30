@@ -48,15 +48,18 @@ prompt in its initial descriptor and retains the original submitted memory
 receipt when completion refreshes quest context.
 
 NeuroSync maps to the managed character's supported facial feature. The
-`arkit61-native-v5` calibration keeps bounded jaw/opening curves and maps
+`arkit61-native-v7` calibration keeps bounded jaw/opening curves and maps
 mouth-corner stretch and lower-lip roll to the appropriate native deformation
 controls. Actual provider cadence is preserved up to 60 Hz. The game samples
 the face each frame from a confirmed already-heard cursor, with a small bounded
-past lag instead of future audio prediction. Individual upper-lip raisers remain
-restricted after the user's earlier distortion report. Its new jaw shoulder is
-calibrated against Judy/Johnny geometry and the accepted native probe, with the
-same zero, closure and maximum. Source-frame correctness
-is not visual acceptance. See [the native lip-sync deep dive](LIPSYNC_DEEP_DIVE_2026-09-30.md).
+past lag instead of future audio prediction. The accepted jaw curve is retained.
+Round/wide shapes, lip contact and upper lift now use separately rendered native
+ranges; upper lift is limited to 0.06 with reduced aggregate aperture after the
+earlier distortion report. Only the two lip-contact tracks admit up to 0.85.
+The user reports v6 improved and v7 "not bad, keep improving." V7's recorded
+reply shows visible closure and reset; final naturalness remains open.
+Source-frame correctness is not visual acceptance.
+See [native calibration](NATIVE_FACIAL_RETARGET_CALIBRATION.md).
 
 ### Browser snapshot transport
 
@@ -76,8 +79,12 @@ Final collected reply serialization remains a separate one-time cost.
 The passive game capture preceding this correction recorded 25 publication
 changes over a 6.8-second source, with median update gaps around 317 ms. It
 contained 206 face-sync calls but only 43 applications, despite game delta
-around 33 ms. No autosave pause was observed. The fast transport still needs
-an actual post-activation cadence and speaking-face check.
+around 33 ms. No autosave pause was observed. After activation, the second
+capture recorded 160 native applications over four seconds of speech, with
+48 publication changes and a median gap of 91 ms. All sampled positions stayed
+behind the verified heard cursor. The user confirmed smoother motion, while
+describing the shapes as mostly jaw movement; shape calibration is therefore
+tracked separately from this accepted temporal improvement.
 
 ### Research and development method
 
