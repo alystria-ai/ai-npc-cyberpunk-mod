@@ -381,6 +381,7 @@ function M.list()
             equipment=equipment.snapshot(e.equipment),
             focused=focused,focusLook=m.lookStyle=='full',ambientLook=m.lookStyle=='side',
             lookError=m.lookError,
+            eyeContactHeight=m.lookHeight,headFollowStrength=m.lookStrength,
             holding=m.kind=='hold',requestedGait=m.gait,routeTurning=m.stage=='orient',
             focusStepDone=p.attentionAnchor~=nil,
             acceptedPosition=p.parked and space.copy(p.parked),
@@ -446,6 +447,7 @@ function M.update(player,delta,focusEntity)
     local step=elapsed; elapsed=0
     local playerPosition=space.copy(player:GetWorldPosition())
     if not groupFrame then return end
+    local gazeSettings=M.gazeSettings and M.gazeSettings() or nil
     local lastReversal=groupFrame.reversal
 
     for _,entry in ipairs(entries) do
@@ -522,6 +524,7 @@ function M.update(player,delta,focusEntity)
                 position=entry.position,direction=entry.direction,speed=entry.speed,
                 playerGap=entry.playerGap,targetGap=entry.targetGap,facingError=entry.facingError,
                 selected=id==focusEntity,combat=fightingOk and fighting==true,
+                gazeSettings=gazeSettings,
                 motion=entry.motor.feedback,travelTarget=travelTarget,restTarget=restTarget,
                 comfortable=space.comfortable(entry.position,groupFrame,entry.lane,others,id),
                 nearGroup=space.nearGroup(entry.position,groupFrame,entry.lane,others,id),

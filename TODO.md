@@ -37,7 +37,7 @@
   with hash verification, fresh bundle and hidden bridge; nine native hashes
   unchanged and no game restart. CET activation and live acceptance are pending.
 - [x] Document the requested Lua-only Scripts ZIP and non-Lua Runtime ZIP in
-  `docs/PACKAGING.md` and `packaging/release-plan.json`. The 39 Lua files and
+  `docs/PACKAGING.md` and `packaging/release-plan.json`. The 40 Lua files and
   native/voice dependencies are inventoried. Portable bootstrap, relocation,
   distribution notices and archive-size qualification remain release work;
   no archives or GitHub release have been created.
@@ -361,7 +361,16 @@ This is the running request and verification list. A checked item means the beha
 Port the intent to V and Cyberpunk systems; do not assume Dawnwalker APIs, Coen's relationships, or Horde events exist here. Reference archives: `ref mods/DawnwalkerConvai 0.5.5 Scripts*` and `*Multilingual*`. These are requested features, not completed behavior.
 
 - [ ] Blend smiles, blinking and emotion-driven facial reactions with speech and lip sync; avoid competing face animations and restore normal expressions afterward.
-- [ ] Native head tracking with adjustable first-person eye contact; retain the accepted subtle side glance/full focused look and natural footstep behavior.
+- [ ] Accept adjustable native eye contact in the game; retain the accepted
+  subtle side glance/full focused look and natural footstep behavior.
+  - [x] Implement persistent height and head-strength selectors with unchanged
+    defaults, native world-offset semantics, exact look-event replacement and
+    movement independence. Source gate: 136 checks passed with installed MCM;
+    label-copy follow-up: 31 passed, one environment-dependent MCM check skipped.
+    See `docs/COMPANION_GAZE.md`.
+  - [ ] Install/activate the new selectors and check their native layout and
+    effect while V stands and crouches. The source is prepared; the current
+    running game retains the previous gaze modules during lip-sync diagnosis.
 - [ ] Optional natural follow-up questions, **default Off** per the user's September 30 correction. In a group, only the final speaker may ask V a follow-up; coordinate turn completion so speakers do not repeatedly reopen the conversation. This is the active task at the top of the file.
 - Loot batches and their independent default-On setting have representative live acceptance. Combined battle/loot, Legendary equipment and storage-silence acceptance remain in the September 30 loot entry. Solo-exploration reactions are explicitly user-deferred pending reliable provenance; do not enable them merely to match the reference.
 - [x] Discuss the active quest and only objectives revealed in the current save. The user accepted Judy's live objective reply, and the trace confirmed refreshed context for **Freedom**. Hidden/completed branch exclusion and conversation routing are covered by the affected checks. See `docs/QUEST_CONTEXT.md`.

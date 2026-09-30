@@ -16,6 +16,8 @@ local party, partySignature, previousStates = {}, '', {}
 local visible, selectedItem = {}, nil
 local localVoiceState, localVoiceSignature = {}, ''
 local localVoices = {['johnny-silverhand'] = true, ['judy-alvarez'] = true, ['panam-palmer'] = true}
+local eyeContactHeights = {-0.10, -0.05, 0, 0.05, 0.10}
+local headFollowStrengths = {0, 0.5, 1, 1.5}
 local memoryLoaded, memorySession, memorySequence, memoryConfirmSequence = false, nil, 0, 0
 local memorySelected, memoryConfirmation, memoryCommand, memoryNotice = nil, nil, nil, ''
 local memoryState, memoryRecoveryBlocked = {state = 'unavailable'}, false
@@ -244,6 +246,11 @@ local function sortNames(a, b)
     return left == right and a.key < b.key or left < right
 end
 
+local function isChoice(value, choices)
+    for _, choice in ipairs(choices) do if value == choice then return true end end
+    return false
+end
+
 local function loadSettings()
     if settingsLoaded then return end
     settingsLoaded = true
@@ -259,6 +266,12 @@ local function loadSettings()
     if type(settings.followUpQuestions) ~= 'boolean' then settings.followUpQuestions, settingsNeedSave = false, true end
     if type(settings.battleReactions) ~= 'boolean' then settings.battleReactions, settingsNeedSave = true, true end
     if type(settings.lootReactions) ~= 'boolean' then settings.lootReactions, settingsNeedSave = true, true end
+    if not isChoice(settings.eyeContactHeight, eyeContactHeights) then
+        settings.eyeContactHeight, settingsNeedSave = 0, true
+    end
+    if not isChoice(settings.headFollowStrength, headFollowStrengths) then
+        settings.headFollowStrength, settingsNeedSave = 1, true
+    end
     if settings.voiceProvider ~= 'hybrid' and settings.voiceProvider ~= 'convai' then
         settings.voiceProvider, settingsNeedSave = 'hybrid', true
     end
@@ -335,6 +348,21 @@ function M.lootReactions()
     return settings.lootReactions == true
 end
 
+-- Read by the ordinary companion update, never by a native menu callback.
+-- Applying settings only persists this policy; the actuator replaces its exact
+-- owned look request after gameplay resumes, without changing a movement ticket.
+function M.gazeSettings()
+    loadSettings()
+    return {eyeContactHeight = settings.eyeContactHeight, headFollowStrength = settings.headFollowStrength}
+end
+
+function M.gazeChoices()
+    local heights, strengths = {}, {}
+    for index, value in ipairs(eyeContactHeights) do heights[index] = value end
+    for index, value in ipairs(headFollowStrengths) do strengths[index] = value end
+    return heights, strengths
+end
+
 local function savedFeedback(message)
     if saveSettings() then say(message)
     else say(message .. ' The change is active, but could not be saved for next time.') end
@@ -349,6 +377,7 @@ end
 
 function M.configure(companionApi, profileList)
     companions, profiles, byKey, byRecord = companionApi, {}, {}, {}
+    companions.gazeSettings = M.gazeSettings
     for _, value in ipairs(profileList or {}) do
         if type(value.key) == 'string' and type(value.name) == 'string' and not byKey[value.key] then
             profiles[#profiles + 1], byKey[value.key] = value, value
@@ -789,6 +818,8 @@ function M.snapshot(player)
             followUpQuestions = settings.followUpQuestions,
             battleReactions = settings.battleReactions,
             lootReactions = settings.lootReactions,
+            eyeContactHeight = settings.eyeContactHeight,
+            headFollowStrength = settings.headFollowStrength,
             voiceProvider = settings.voiceProvider,
             omniSteps = settings.omniSteps, enabledByKey = enabled},
         localVoice = localVoiceState,
@@ -830,6 +861,12 @@ function M.applySettings(player, values)
         elseif key == 'voiceProvider' then
             if value ~= 'hybrid' and value ~= 'convai' then return false, 'Choose OmniVoice or Convai voices.' end
             nextSettings.voiceProvider = value
+        elseif key == 'eyeContactHeight' then
+            if not isChoice(value, eyeContactHeights) then return false, 'Choose an eye-contact height from the available settings.' end
+            nextSettings.eyeContactHeight = value
+        elseif key == 'headFollowStrength' then
+            if not isChoice(value, headFollowStrengths) then return false, 'Choose a head-follow strength from the available settings.' end
+            nextSettings.headFollowStrength = value
         elseif key == 'enabledByKey' then
             if type(value) ~= 'table' then return false, 'Invalid conversation settings.' end
             for profile, enabled in pairs(value) do

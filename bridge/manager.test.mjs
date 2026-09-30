@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync, readdirSync} from 'node:fs';
 import path from 'node:path';
 import fengari from 'fengari';
-import {companionModules, flatNavigation} from './companion-fixture.mjs';
+import {companionModules, companionEngine, flatNavigation} from './companion-fixture.mjs';
 
 const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
 const managerSource = readFileSync(new URL('../mod/manager.lua', import.meta.url), 'utf8');
@@ -49,11 +49,15 @@ const storage = `
       jsonFixtures[token] = value
       return token
     end
-    saved = value; return 'saved'
+    jsonSequence = jsonSequence + 1
+    local token = 'settings-json-' .. jsonSequence
+    jsonFixtures[token] = value
+    return token
   end}
   os.rename = function(from, to)
     if not files[from] or files[to] then return nil end
     files[to], files[from] = files[from], nil
+    if to == 'runtime/settings.json' then saved = jsonFixtures[files[to]] end
     return true
   end
   os.remove = function(path) files[path] = nil; return true end
@@ -243,6 +247,88 @@ test('follow-up questions migrate to Off and retain explicit saved On or Off cho
       manager.reset()
       assert(manager.followUpQuestions() == enabled, 'reload did not preserve the persisted choice')
     end
+  `);
+});
+
+test('gaze choices preserve accepted defaults, reject invalid settings and survive reset atomically', () => {
+  run(`${managerFixture}
+    manager.configure(api, profiles)
+    local values=manager.snapshot(player).settings
+    assert(values.eyeContactHeight==0 and values.headFollowStrength==1)
+    assert(saved.eyeContactHeight==0 and saved.headFollowStrength==1)
+    local heights,strengths=manager.gazeChoices()
+    assert(#heights==5 and heights[3]==0 and #strengths==4 and strengths[3]==1)
+    heights[3],strengths[3]=0.10,0
+    local current=api.gazeSettings(); current.eyeContactHeight=0.10
+    assert(manager.gazeSettings().eyeContactHeight==0,'a caller mutated persisted policy')
+    heights,strengths=manager.gazeChoices()
+    assert(heights[3]==0 and strengths[3]==1,'MCM mutated domain choices')
+    assert(manager.applySettings(player,{eyeContactHeight=0.05,headFollowStrength=1.5}))
+    assert(api.gazeSettings().eyeContactHeight==0.05 and api.gazeSettings().headFollowStrength==1.5)
+    for _,invalid in ipairs({-0.11,0.11,0.02,'0',false,math.huge,0/0}) do
+      assert(not manager.applySettings(player,{voice=false,eyeContactHeight=invalid}))
+      assert(manager.snapshot(player).settings.voice and manager.gazeSettings().eyeContactHeight==0.05)
+    end
+    for _,invalid in ipairs({-0.5,2,0.3,'1',false,math.huge,0/0}) do
+      assert(not manager.applySettings(player,{headFollowStrength=invalid}))
+      assert(manager.gazeSettings().headFollowStrength==1.5)
+    end
+    failSave=true
+    assert(not manager.applySettings(nil,{eyeContactHeight=0,headFollowStrength=1}))
+    assert(api.gazeSettings().eyeContactHeight==0.05 and api.gazeSettings().headFollowStrength==1.5)
+    failSave=false; manager.reset()
+    assert(api.gazeSettings().eyeContactHeight==0.05 and api.gazeSettings().headFollowStrength==1.5)
+    assert(manager.applySettings(nil,{eyeContactHeight=0,headFollowStrength=1}))
+    manager.reset()
+    assert(api.gazeSettings().eyeContactHeight==0 and api.gazeSettings().headFollowStrength==1)
+  `);
+});
+
+test('older settings migrate gaze independently and keep valid saved choices', () => {
+  run(`${managerFixture}
+    for _,value in ipairs({'missing',0.10,-0.05,0.02,'0',math.huge}) do
+      seed={version=2,enabledByKey={},headFollowStrength=0.5,future={keep='unchanged'}}
+      if value~='missing' then seed.eyeContactHeight=value end
+      files['runtime/settings.json'],saved='seed',nil
+      manager.configure(api,profiles)
+      local current=manager.snapshot(player).settings
+      local expected=(value==0.10 or value==-0.05) and value or 0
+      assert(current.eyeContactHeight==expected and current.headFollowStrength==0.5)
+      assert(saved.eyeContactHeight==expected and saved.headFollowStrength==0.5 and saved.future.keep=='unchanged')
+    end
+    for _,value in ipairs({'missing',0,1.5,0.3,'1',math.huge}) do
+      seed={version=2,enabledByKey={},eyeContactHeight=-0.10,future={keep='unchanged'}}
+      if value~='missing' then seed.headFollowStrength=value end
+      files['runtime/settings.json'],saved='seed',nil
+      manager.configure(api,profiles)
+      local current=manager.snapshot(player).settings
+      local expected=(value==0 or value==1.5) and value or 1
+      assert(current.headFollowStrength==expected and current.eyeContactHeight==-0.10)
+      assert(saved.headFollowStrength==expected and saved.eyeContactHeight==-0.10 and saved.future.keep=='unchanged')
+    end
+  `);
+});
+
+test('saved manager gaze reaches the real companion actuator only in the ordinary gameplay update', () => {
+  run(`${companionEngine}${storage}
+    local manager=(function() ${managerSource} end)()
+    manager.configure(companions,{{key='judy-alvarez',name='Judy Alvarez',records={'Character.Judy'}},
+      {key='panam-palmer',name='Panam Palmer',records={'Character.Panam'}}})
+    local one=spawn(); local two=spawn('panam-palmer'); tick(4)
+    local oldOne,oldTwo=next(one.looks),next(two.looks)
+    assert(oldOne and oldTwo and oldOne.offset.z==0 and oldOne.parts[1].weight==0.05)
+    local commandsOne,commandsTwo=#one.ai.commands,#two.ai.commands
+    assert(manager.applySettings(nil,{eyeContactHeight=0.10,headFollowStrength=1.5}))
+    assert(next(one.looks)==oldOne and next(two.looks)==oldTwo,'MCM Apply touched native actors in its callback')
+    tick(1)
+    local newOne,newTwo=next(one.looks),next(two.looks)
+    assert(newOne~=oldOne and newTwo~=oldTwo)
+    assert(newOne.targetPositionProvider.worldOffset.z==0.10 and newTwo.targetPositionProvider.worldOffset.z==0.10)
+    assert(#one.ai.commands==commandsOne and #two.ai.commands==commandsTwo)
+    manager.reset(); tick(1)
+    assert(next(one.looks)==newOne,'world/settings reset forgot persisted gaze policy')
+    assert(manager.applySettings(nil,{eyeContactHeight=0,headFollowStrength=1})); tick(1)
+    assert(next(one.looks).targetPositionProvider.worldOffset==nil and next(one.looks).parts[1].weight==0.05)
   `);
 });
 
@@ -855,6 +941,44 @@ test('MCM schema uses native controls, operates on current copies while paused, 
   `);
 });
 
+test('MCM gaze controls use ordinary selectors, persist and reset without native refresh in Apply', () => {
+  run(`${mcmFixture}
+    assert(invoke('tab:settings').ok)
+    for _,id in ipairs({'eyeContactHeight','headFollowStrength'}) do
+      local setting=row(id)
+      assert(setting and setting.type=='select' and setting.value==3 and setting.defaultValue==3)
+      assert(setting.capabilities.draft and setting.capabilities.reset)
+      assert(setting.color==nil and setting.indent==nil and setting.label:sub(1,1)~=' ')
+    end
+    assert(row('eyeContactHeight').elements[1]=='10 cm lower' and row('eyeContactHeight').elements[5]=='10 cm higher')
+    assert(row('headFollowStrength').elements[1]=='Eyes only' and row('headFollowStrength').elements[4]=='More')
+    local before=reloads
+    local result=registered.applyBatch('manager',{{id='eyeContactHeight',value=5},{id='headFollowStrength',value=4}})
+    assert(result.ok and result.atomic and not result.schemaChanged and reloads==before)
+    assert(saved.eyeContactHeight==0.10 and saved.headFollowStrength==1.5)
+    loaded=registered.loadMod('manager')
+    assert(row('eyeContactHeight').value==5 and row('headFollowStrength').value==4)
+    for _,invalid in ipairs({0,6,1.2,'1',false,math.huge,0/0}) do
+      assert(not registered.applyBatch('manager',{{id='voice',value=false},{id='eyeContactHeight',value=invalid}}).ok)
+      assert(manager.snapshot(player).settings.voice and saved.eyeContactHeight==0.10)
+    end
+    for _,invalid in ipairs({0,5,1.2,'1',false,math.huge,0/0}) do
+      assert(not registered.applyBatch('manager',{{id='headFollowStrength',value=invalid}}).ok)
+      assert(saved.headFollowStrength==1.5)
+    end
+    failSave=true
+    assert(not registered.applyBatch('manager',{{id='eyeContactHeight',value=3},{id='headFollowStrength',value=3}}).ok)
+    assert(saved.eyeContactHeight==0.10 and saved.headFollowStrength==1.5)
+    failSave=false
+    assert(registered.applyBatch('manager',{{id='eyeContactHeight',value=3},{id='headFollowStrength',value=3}}).ok)
+    assert(saved.eyeContactHeight==0 and saved.headFollowStrength==1)
+    loaded=registered.loadMod('manager')
+    assert(row('eyeContactHeight').value==3 and row('headFollowStrength').value==3)
+    drafts=true; mcm.update(player,false)
+    assert(reloads==before,'ordinary gaze settings disturbed an open MCM draft')
+  `);
+});
+
 test('MCM model search covers the full installed catalogue while exposing bounded result rows', () => {
   run(`${mcmFixture}
     assert(scans == 0)
@@ -1046,6 +1170,10 @@ test('installed MCM API accepts the provider, actions, draft transactions and dy
       assert(actual.setDraft(key .. ':voiceProvider', 2))
       assert(actual.setDraft(key .. ':subtitleStyle', 1))
       assert(actual.setDraft(key .. ':battleReactions', false))
+      assert(actual.getValue(key .. ':eyeContactHeight') == 3 and actual.getValue(key .. ':headFollowStrength') == 3)
+      assert(actual.setDraft(key .. ':eyeContactHeight', 5))
+      assert(actual.setDraft(key .. ':headFollowStrength', 4))
+      assert(manager.gazeSettings().eyeContactHeight == 0 and manager.gazeSettings().headFollowStrength == 1)
       assert(actual.getValue(key .. ':followUpQuestions') == false)
       assert(actual.setDraft(key .. ':followUpQuestions', true))
       assert(not manager.followUpQuestions(), 'draft must not change running conversations')
@@ -1061,11 +1189,18 @@ test('installed MCM API accepts the provider, actions, draft transactions and dy
       assert(actual.getValue(key .. ':subtitleStyle') == 1 and manager.subtitleStyle() == 'overhead')
       assert(not manager.battleReactions() and actual.getValue(key .. ':battleReactions') == false)
       assert(manager.followUpQuestions() and actual.getValue(key .. ':followUpQuestions') == true)
+      assert(actual.getValue(key .. ':eyeContactHeight') == 5 and actual.getValue(key .. ':headFollowStrength') == 4)
+      assert(manager.gazeSettings().eyeContactHeight == 0.10 and manager.gazeSettings().headFollowStrength == 1.5)
       assert(actual.setDraft(key .. ':subtitles', false))
       assert(actual.setDraft(key .. ':followUpQuestions', false))
       assert(actual.invokeAction(key .. ':permissions') == false)
       assert(actual.revert(key) and actual.getValue(key .. ':subtitles') == true)
       assert(manager.followUpQuestions() and actual.getValue(key .. ':followUpQuestions') == true)
+      assert(actual.resetDraft(key .. ':eyeContactHeight') and actual.resetDraft(key .. ':headFollowStrength'))
+      assert(manager.gazeSettings().eyeContactHeight == 0.10 and manager.gazeSettings().headFollowStrength == 1.5)
+      assert(actual.apply(key))
+      assert(actual.getValue(key .. ':eyeContactHeight') == 3 and actual.getValue(key .. ':headFollowStrength') == 3)
+      assert(manager.gazeSettings().eyeContactHeight == 0 and manager.gazeSettings().headFollowStrength == 1)
       assert(actual.invokeAction(key .. ':permissions') and mcm.inspect().view == 'permissions')
       assert(actual.getValue(key .. ':tab:settings') == 'Selected')
       assert(actual.invokeAction(key .. ':permissions:back') and mcm.inspect().view == 'settings')
@@ -1127,7 +1262,7 @@ test('native manager pages profiles, searches case-insensitively, and persists k
     request('toggle-profile:person-15')
     assert(manager.profileEnabled('person-15') == false)
     assert(saved.enabledByKey['person-15'] == false and saved.enabledByKey['viktor-vektor'] == false)
-    assert(saved.keep == 'preserved' and files['runtime/settings.json'] == 'saved')
+    assert(saved.keep == 'preserved' and json.decode(files['runtime/settings.json']) == saved)
     manager.reset(); manager.prepare(player)
     assert(manager.profileEnabled('person-15') == false and player.voice == false)
     request('tab:settings'); request('toggle:subtitles')

@@ -426,6 +426,18 @@ local function schema()
             setting('followUpQuestions', 'Follow-up questions', 'bool', snapshot.settings.followUpQuestions, false,
                 'Characters answer, then ask one brief, relevant question in ordinary conversations. They omit it when you say goodbye, ask for no questions or request an exact fixed reply. In a group, only the final speaker asks. When off, characters answer without inviting another turn. Automatic reactions never ask questions.'),
         })
+        local heights,strengths=manager.gazeChoices()
+        local heightIndex,strengthIndex=3,3
+        for index,value in ipairs(heights) do if snapshot.settings.eyeContactHeight==value then heightIndex=index end end
+        for index,value in ipairs(strengths) do if snapshot.settings.headFollowStrength==value then strengthIndex=index end end
+        categories[#categories + 1] = category('companion-behavior', 'Companion behavior', {
+            setting('eyeContactHeight', 'Eye contact height', 'select', heightIndex, 3,
+                'Raise or lower the point companions look at on V. Default uses V’s usual eye contact target.',
+                {'10 cm lower', '5 cm lower', 'Default', '5 cm higher', '10 cm higher'}),
+            setting('headFollowStrength', 'Head tracking strength', 'select', strengthIndex, 3,
+                'Choose how much companions turn their heads during eye contact. Eyes only relies on eye movement.',
+                {'Eyes only', 'Less', 'Gentle (default)', 'More'}),
+        })
         local voiceLabels = {ready = 'Ready', loading = 'Loading', warming = 'Preparing voices', speaking = 'Preparing a reply',
             error = 'Unavailable', waiting = 'Waiting for voice service', disabled = 'Not configured', stopped = 'Stopped',
             releasing = 'Releasing local voice memory', remote = 'Convai voices · Local model unloaded'}
@@ -505,6 +517,14 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
                 elseif key == 'voiceProvider' then
                     if change.value ~= 1 and change.value ~= 2 then return {ok = false, error = 'Choose OmniVoice or Convai voices.'} end
                     values.voiceProvider = change.value == 1 and 'hybrid' or 'convai'
+                elseif key == 'eyeContactHeight' or key == 'headFollowStrength' then
+                    local heights,strengths=manager.gazeChoices()
+                    local choices=key=='eyeContactHeight' and heights or strengths
+                    if type(change.value)~='number' or change.value~=change.value or change.value<1 or change.value>#choices
+                        or change.value~=math.floor(change.value) then
+                        return {ok = false, error = 'Choose an eye contact option.'}
+                    end
+                    values[key]=choices[change.value]
                 elseif key:sub(1, 8) == 'enabled:' then values.enabledByKey[key:sub(9)] = change.value
                 else return {ok = false, error = 'That setting is read-only.'} end
                 applied[#applied + 1] = key

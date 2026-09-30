@@ -63,9 +63,20 @@ local function cancel(s)
 end
 local function clearLook(s)
     if s.look and s.npc and s.npc:IsAttached() then
-        pcall(function() LookAtRemoveEvent.QueueRemoveLookatEvent(s.npc,s.look) end)
+        if s.clock<(s.lookRemoveRetryAt or 0) then return false,s.lookRemoveError end
+        local ok,accepted=pcall(function() return LookAtRemoveEvent.QueueRemoveLookatEvent(s.npc,s.look) end)
+        -- Keep the exact handle if removal fails; issuing a replacement while
+        -- its previous owner is unknown can leave two native look requests.
+        if not ok or accepted==false then
+            s.lookRemoveRetryAt=s.clock+3
+            s.lookRemoveError=ok and 'Native look removal refused' or tostring(accepted)
+            return false,s.lookRemoveError
+        end
     end
     s.look,s.lookStyle=nil,'none'
+    s.lookHeight,s.lookStrength=nil,nil
+    s.lookRemoveRetryAt,s.lookRemoveError=nil,nil
+    return true
 end
 function M.suspendHold(s)
     if s.cancellation then return false,'Owned movement cancellation is still pending' end
@@ -108,14 +119,17 @@ end
 function M.release(s)
     M.resumeHold(s)
     local released=cancel(s)
-    clearLook(s)
+    local lookReleased,lookError=clearLook(s)
+    s.lookError=not lookReleased and lookError or nil
     if released then s.feedback={}; s.issued=false end
-    return released
+    return released and lookReleased
 end
 function M.abandon(s)
     s.command,s.npc,s.look=nil,nil,nil
     s.cancellation=nil
     s.suspendedHold=nil
+    s.lookStyle,s.lookHeight,s.lookStrength='none',nil,nil
+    s.lookRemoveRetryAt,s.lookRemoveError=nil,nil
     s.feedback={}; s.issued=false
 end
 function M.ownsTravel(s,command)
@@ -160,12 +174,29 @@ function M.sense(s,at,speed,dt)
     return f
 end
 
-local function look(s,style,player)
-    if s.lookStyle==style then return end
-    clearLook(s)
-    if style=='none' then return end
+local function bounded(value,low,high,fallback)
+    return type(value)=='number' and value==value and value>=low and value<=high and value or fallback
+end
+local function look(s,style,player,settings)
+    local height=bounded(settings and settings.eyeContactHeight,-0.10,0.10,0)
+    local strength=bounded(settings and settings.headFollowStrength,0,1.5,1)
+    if style=='none' and not s.look then return end
+    if style~='none' and s.look and s.lookStyle==style and s.lookHeight==height and s.lookStrength==strength then return end
+    if style=='none' then
+        local cleared,err=clearLook(s)
+        if not cleared then error(err) end
+        return
+    end
+    -- Prepare before retiring the old request. SetEntityTarget's third
+    -- argument is targetOffsetEntity (local). Height must stay world-vertical,
+    -- so use the provider's separate worldOffset rather than tilting with an
+    -- attachment/camera. At zero, make exactly the accepted native request.
     local event=LookAtAddEvent.new()
     event:SetEntityTarget(player,CName.new('pla_default_tgt'),Vector4.new(0,0,0,0))
+    if height~=0 then
+        if not event.targetPositionProvider then error('Native eye-contact target provider unavailable') end
+        event.targetPositionProvider:SetWorldOffset(Vector4.new(0,0,height,0))
+    end
     event:SetStyle(Enum.new('animLookAtStyle','Normal'))
     event.bodyPart=CName.new('Eyes')
     event.request.limits.softLimitDegrees=style=='full' and 70 or 45
@@ -173,10 +204,17 @@ local function look(s,style,player)
     event.request.limits.backLimitDegrees=120
     event.request.limits.hardLimitDistance=5
     local head,chest=LookAtPartRequest.new(),LookAtPartRequest.new()
-    head.partName,head.weight,head.suppress,head.mode=CName.new('Head'),style=='full' and 0.18 or 0.05,1,0
+    head.partName,head.weight,head.suppress,head.mode=CName.new('Head'),(style=='full' and 0.18 or 0.05)*strength,1,0
     chest.partName,chest.weight,chest.suppress,chest.mode=CName.new('Chest'),0,0,0
     event:SetAdditionalPartsArray({head,chest})
-    s.npc:QueueEvent(event); s.look,s.lookStyle=event,style
+    local cleared,err=clearLook(s)
+    if not cleared then error(err) end
+    -- Claim before QueueEvent: a native exception may follow its side effect.
+    -- A retry must retire this exact event before adding another.
+    s.look=event
+    local accepted=s.npc:QueueEvent(event)
+    if accepted==false then error('Native look request refused') end
+    s.lookStyle,s.lookHeight,s.lookStrength=style,height,strength
 end
 
 local function validate(s,intent,c)
@@ -241,7 +279,7 @@ function M.apply(s,decision,c,canPlan)
     if not intent then return false end
     local style=decision.look or 'none'
     if style=='none' or s.clock>=(s.lookRetryAt or 0) then
-        local ok,err=pcall(look,s,style,c.player)
+        local ok,err=pcall(look,s,style,c.player,c.gazeSettings)
         s.lookError=not ok and tostring(err) or nil
         if not ok then s.lookRetryAt=s.clock+3 end
     end

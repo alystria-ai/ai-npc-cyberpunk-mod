@@ -1,0 +1,161 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import fengari from 'fengari';
+import {companionEngine} from './companion-fixture.mjs';
+
+const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
+function run(code) {
+  const state = lauxlib.luaL_newstate(); lualib.luaL_openlibs(state);
+  const result = lauxlib.luaL_dostring(state, to_luastring(code));
+  const error = result === lua.LUA_OK ? '' : to_jsstring(lua.lua_tostring(state, -1));
+  lua.lua_close(state); assert.equal(result, lua.LUA_OK, error);
+}
+
+const fixture = `${companionEngine}
+  local actuator=dofile('companion-actuator.lua')
+  local id=system:CreateEntity({position=Vector4.new(1.5,0)})
+  local npc=system:GetEntity(id)
+  local motor=actuator.new(npc)
+  local context={player=player,gazeSettings=nil}
+  local decision={look='side',operation={ticket='held',kind='hold'}}
+  local function apply(dt)
+    actuator.sense(motor,npc.pos,0,dt or 0.1)
+    actuator.apply(motor,decision,context,false)
+  end
+  local function countLooks()
+    local count=0; for _ in pairs(npc.looks) do count=count+1 end; return count
+  end
+`;
+
+test('default gaze retains the accepted attachment, limits, head weights and zero chest', () => run(`${fixture}
+  apply()
+  local first=motor.look
+  assert(first and first.target==player and first.slot=='pla_default_tgt')
+  assert(first.offset.x==0 and first.offset.y==0 and first.offset.z==0)
+  assert(first.offset.w==0 and first.parts[1].weight==0.05 and first.parts[2].weight==0)
+  assert(first.targetPositionProvider.worldOffset==nil,'default unexpectedly changed the native target provider')
+  assert(first.request.limits.softLimitDegrees==45 and first.request.limits.hardLimitDegrees==100)
+  assert(first.request.calculatePositionInParentSpace==nil,'default changed native target-space policy')
+  for i=1,20 do apply() end
+  assert(motor.look==first and countLooks()==1 and #npc.ai.commands==1)
+  decision.look='full'; apply()
+  assert(motor.look~=first and not npc.looks[first] and motor.look.parts[1].weight==0.18)
+  assert(motor.look.parts[2].weight==0 and countLooks()==1 and #npc.ai.commands==1)
+  assert(motor.look.request.limits.softLimitDegrees==70 and motor.look.request.limits.hardLimitDegrees==120)
+`));
+
+test('changing gaze replaces exactly one owned request without issuing a movement command', () => run(`${fixture}
+  local foreign={}; npc.looks[foreign]=true
+  apply(); local first=motor.look; local held=npc.ai.commands[1]
+  context.gazeSettings={eyeContactHeight=0.10,headFollowStrength=1.5}; apply()
+  local changed=motor.look
+  assert(changed~=first and not npc.looks[first] and npc.looks[foreign])
+  assert(changed.offset.z==0 and changed.targetPositionProvider.worldOffset.z==0.10)
+  assert(math.abs(changed.parts[1].weight-0.075)<0.00001)
+  assert(changed.parts[2].weight==0 and countLooks()==2)
+  assert(#npc.ai.commands==1 and npc.ai.commands[1]==held and held.state=='Executing')
+  for i=1,20 do apply() end
+  assert(motor.look==changed and countLooks()==2 and #npc.ai.commands==1)
+  context.gazeSettings={eyeContactHeight=0,headFollowStrength=1}; apply()
+  assert(motor.look.offset.z==0 and motor.look.targetPositionProvider.worldOffset==nil and motor.look.parts[1].weight==0.05)
+  assert(not npc.looks[changed] and npc.looks[foreign] and #npc.ai.commands==1)
+  decision.look='full'; context.gazeSettings={eyeContactHeight=-0.10,headFollowStrength=0}; apply()
+  assert(motor.look.offset.z==0 and motor.look.targetPositionProvider.worldOffset.z==-0.10)
+  assert(motor.look.parts[1].weight==0 and motor.look.parts[2].weight==0)
+  assert(#npc.ai.commands==1,'head-follow setting changed body/locomotion ownership')
+`));
+
+test('invalid runtime policy uses safe defaults instead of unbounded tracking', () => run(`${fixture}
+  for _,settings in ipairs({{eyeContactHeight=math.huge,headFollowStrength=math.huge},
+      {eyeContactHeight=-0.11,headFollowStrength=-1},{eyeContactHeight='0.1',headFollowStrength='1.5'},
+      {eyeContactHeight=0/0,headFollowStrength=0/0}}) do
+    context.gazeSettings=settings; apply()
+    assert(motor.look.offset.z==0 and motor.look.parts[1].weight==0.05)
+  end
+  assert(countLooks()==1 and #npc.ai.commands==1)
+`));
+
+test('a failed native removal retains its exact owner and never adds a second look', () => run(`${fixture}
+  apply(); local first=motor.look
+  local originalRemove=LookAtRemoveEvent.QueueRemoveLookatEvent
+  local removed,blocked={},true
+  LookAtRemoveEvent.QueueRemoveLookatEvent=function(actor,event)
+    assert(actor==npc); removed[#removed+1]=event
+    if blocked then error('simulated removal failure') end
+    return originalRemove(actor,event)
+  end
+  context.gazeSettings={eyeContactHeight=0.05,headFollowStrength=0.5}; apply()
+  assert(motor.look==first and npc.looks[first] and countLooks()==1 and motor.lookError)
+  apply(); assert(#removed==1 and countLooks()==1,'failure ignored the look retry interval')
+  blocked=false; apply(3.1)
+  assert(#removed==2 and removed[1]==first and removed[2]==first)
+  assert(motor.look~=first and not npc.looks[first] and countLooks()==1)
+  assert(not motor.lookError and #npc.ai.commands==1)
+`));
+
+test('a QueueEvent exception after its side effect is retired before a replacement', () => run(`${fixture}
+  local originalQueue=npc.QueueEvent
+  local first=true
+  npc.QueueEvent=function(self,event)
+    originalQueue(self,event)
+    if first then first=false; error('simulated queue exception after side effect') end
+  end
+  apply(); local partial=motor.look
+  assert(partial and npc.looks[partial] and motor.lookError and countLooks()==1)
+  apply(3.1)
+  assert(motor.look~=partial and not npc.looks[partial] and countLooks()==1 and not motor.lookError)
+  decision.look='none'; apply()
+  assert(not motor.look and countLooks()==0)
+`));
+
+test('combat retries a refused exact look removal with a bounded interval and no replacement', () => run(`${fixture}
+  apply(); local owned=motor.look
+  local originalRemove=LookAtRemoveEvent.QueueRemoveLookatEvent
+  local attempts,refused=0,true
+  LookAtRemoveEvent.QueueRemoveLookatEvent=function(actor,event)
+    attempts=attempts+1; assert(actor==npc and event==owned)
+    if refused then return false end
+    return originalRemove(actor,event)
+  end
+  decision={look='none',operation={ticket='combat',kind='release'}}
+  for i=1,12 do apply() end
+  assert(attempts==1 and motor.look==owned and npc.looks[owned] and countLooks()==1)
+  assert(#active(npc)==0 and #npc.ai.commands==1,'cleanup submitted a social movement replacement')
+  refused=false; apply(3.1)
+  assert(attempts==2 and not motor.look and not npc.looks[owned] and countLooks()==0)
+`));
+
+test('combat removes the owned look and world abandonment does not query destroyed handles', () => run(`${fixture}
+  local foreign={}; npc.looks[foreign]=true
+  context.gazeSettings={eyeContactHeight=-0.05,headFollowStrength=1.5}; apply()
+  local owned=motor.look
+  decision={look='none',operation={ticket='combat',kind='release'}}; apply()
+  assert(not motor.look and not npc.looks[owned] and npc.looks[foreign])
+  assert(#active(npc)==0)
+  context.gazeSettings={eyeContactHeight=0.10,headFollowStrength=0.5}
+  for i=1,10 do apply() end
+  assert(not motor.look and countLooks()==1,'a setting change during combat created a social look')
+  decision={look='full',operation={ticket='after-combat',kind='hold'}}; apply()
+  assert(motor.look and motor.look.targetPositionProvider.worldOffset.z==0.10 and math.abs(motor.look.parts[1].weight-0.09)<0.00001)
+  npc.IsAttached=function() error('destroyed NPC queried') end
+  actuator.abandon(motor)
+  assert(not motor.npc and not motor.look and motor.lookStyle=='none' and not motor.lookHeight and not motor.lookStrength)
+`));
+
+test('the real companion update applies settings to independent copies and dismissal preserves the other owner', () => run(`${companionEngine}
+  local policy={eyeContactHeight=0,headFollowStrength=1}
+  companions.gazeSettings=function() return policy end
+  local one=spawn(); local two=spawn('panam-palmer'); tick(4)
+  local firstOne,firstTwo=next(one.looks),next(two.looks)
+  assert(firstOne and firstTwo and firstOne~=firstTwo)
+  local commandsOne,commandsTwo=#one.ai.commands,#two.ai.commands
+  policy={eyeContactHeight=0.05,headFollowStrength=0.5}; tick(1)
+  local changedOne,changedTwo=next(one.looks),next(two.looks)
+  assert(changedOne~=firstOne and changedTwo~=firstTwo and changedOne~=changedTwo)
+  assert(changedOne.target==player and changedTwo.target==player)
+  assert(changedOne.targetPositionProvider.worldOffset.z==0.05 and changedTwo.targetPositionProvider.worldOffset.z==0.05)
+  assert(#one.ai.commands==commandsOne and #two.ai.commands==commandsTwo)
+  assert(companions.dismiss(companions.list()[1].serial))
+  assert(not next(one.looks) and two.looks[changedTwo] and not two.looks[changedOne])
+  assert(#companions.list()==1)
+`));

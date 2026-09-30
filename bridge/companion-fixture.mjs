@@ -48,7 +48,10 @@ export const companionEngine = `
     SetEntity=function(self,e) self.entity=e end} end}
   LookAtPartRequest={new=function() return {} end}
   LookAtAddEvent={new=function() return {request={limits={}},
-    SetEntityTarget=function(self,target) self.target=target end,
+    SetEntityTarget=function(self,target,slot,offset)
+      self.target,self.slot,self.offset=target,slot,offset
+      self.targetPositionProvider={SetWorldOffset=function(provider,value) provider.worldOffset=value end}
+    end,
     SetStyle=function() end,
     SetAdditionalPartsArray=function(self,parts) self.parts=parts end} end}
   LookAtRemoveEvent={QueueRemoveLookatEvent=function(npc,event) npc.looks[event]=nil end}
