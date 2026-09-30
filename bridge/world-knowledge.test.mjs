@@ -81,6 +81,39 @@ test('journal aliases preserve exact captured identity without inventing a numer
   assert.equal(wrongKey.diagnostics.counts.unknown, 1);
 });
 
+test('native journal selectors reject invalid collector configuration before the pack is admitted', () => {
+  const base = {questKey: 'the-choice', evidenceRefs: ['native-branch'], nativePath: 'quests/side_quest/the_choice',
+    nativeClass: 'gameJournalQuest', expectedHash: '123', questHash: '-1'};
+  const valid = pack(); valid.journalAllowlist['123'] = base;
+  assert.equal(validateKnowledgePack(valid).ok, true);
+  for (const change of [
+    {nativeClass: 'InvalidClass'}, {nativeClass: undefined}, {nativePath: undefined}, {nativePath: ''},
+    {nativePath: 'x'.repeat(513)}, {nativePath: 'é'.repeat(257)}, {nativePath: 'quests\nsecret'},
+    {expectedHash: '124'}, {expectedHash: 4294967296}, {questHash: '-2147483649'}, {questHash: '1e3'},
+    {allowRetiredChoiceGroup: false}, {allowRetiredChoiceGroup: true, retiredGroupEvidenceRefs: ['native-branch']},
+  ]) {
+    const input = pack(); input.journalAllowlist['123'] = {...base, ...change};
+    assert.equal(validateKnowledgePack(input).ok, false, JSON.stringify(change));
+  }
+  const alias = pack(); alias.journalAllowlist.alias = {questKey: 'the-choice', evidenceRefs: ['native-branch']};
+  assert.equal(validateKnowledgePack(alias).ok, false);
+  const signed = pack(); signed.journalAllowlist['4294967295'] = {...base, expectedHash: -1};
+  assert.equal(validateKnowledgePack(signed).ok, true);
+});
+
+test('retired phone choice groups require cited, bounded evidence on the exact supported selector', () => {
+  const entry = {questKey: 'the-choice', evidenceRefs: ['native-branch'], nativePath: 'contacts/judy/choice',
+    nativeClass: 'gameJournalPhoneChoiceEntry', allowRetiredChoiceGroup: true, retiredGroupEvidenceRefs: ['native-branch']};
+  const valid = pack(); valid.journalAllowlist.choice = entry;
+  assert.equal(validateKnowledgePack(valid).ok, true);
+  for (const change of [{retiredGroupEvidenceRefs: []}, {retiredGroupEvidenceRefs: ['live-outcome']},
+    {retiredGroupEvidenceRefs: ['native-branch', 'native-branch']}, {evidenceRefs: {}},
+    {nativeClass: 'gameJournalPhoneMessage'}]) {
+    const input = pack(); input.journalAllowlist.choice = {...entry, ...change};
+    assert.equal(validateKnowledgePack(input).ok, false);
+  }
+});
+
 test('missing, explicit unknown, absent and ambiguous zero never qualify as a false choice', () => {
   const zero = rule({condition: {...condition('choice_a', 0), guard: stage}});
   for (const row of [undefined, {status: 'unknown'}, observation(0), observation(0, {present: false}), observation(0, {present: 'unknown'})]) {

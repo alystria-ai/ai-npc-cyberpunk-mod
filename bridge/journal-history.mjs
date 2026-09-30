@@ -102,7 +102,7 @@ const FRAMING = "The following bounded observations are from V's revealed game j
 
 /** Filtered context only. No durable-memory events are produced by this layer. */
 export function selectJournalHistory({snapshot, generation, worldToken, profileKey, query = '', questCatalog = [],
-  maxChars = 6000, now = Date.now()} = {}) {
+  maxChars = 6000, now = Date.now(), trackedQuestId} = {}) {
   const current = parseJournalHistory(snapshot);
   const limit = Number.isSafeInteger(maxChars) ? Math.max(0, Math.min(maxChars, LIMIT.output)) : 6000;
   const diagnostics = {status: 'unavailable', selected: [], omitted: 0};
@@ -122,6 +122,13 @@ export function selectJournalHistory({snapshot, generation, worldToken, profileK
     const objectiveHits = row.objectives.reduce((sum, objective) => sum + Math.min(2, matching(objective.text, tokens)), 0);
     const isTracked = current.tracked.status === 'known' && current.tracked.questId === row.id;
     const isRelated = related(row, profileKey, questCatalog?.quests ?? questCatalog);
+    // The separately captured tracked-journal block already carries the fresh
+    // current objective. Keep this older inventory only for questions about its
+    // history; never spend a second prompt block repeating the same objective.
+    if (row.id === trackedQuestId && !historyQuestion) return null;
+    // Character association and active status rank relevant results, but must
+    // not summon several unrelated quests for a greeting or a casual question.
+    if (!isTracked && !titleHits && !objectiveHits && !(historyQuestion && row.state !== 'active')) return null;
     const score = (isTracked ? 1000 : 0) + titleHits * 70 + Math.min(60, objectiveHits * 5)
       + (isRelated ? 40 : 0) + (row.state === 'active' ? 10 : historyQuestion ? 2 : 0);
     return score > 0 ? {row, score, isTracked, isRelated} : null;

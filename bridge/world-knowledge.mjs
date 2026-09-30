@@ -12,6 +12,14 @@ const LIFEPATHS = new Set(['nomad', 'streetkid', 'corpo']);
 const CHANNELS = new Set(['private', 'group', 'phone']);
 const CATEGORIES = new Set(['quest', 'relationship', 'decision', 'identity', 'world']);
 const SOURCE_KINDS = new Set(['native', 'live', 'official', 'community']);
+const JOURNAL_CLASSES = new Set(['gameJournalQuest', 'gameJournalQuestPhase', 'gameJournalQuestObjective',
+  'gameJournalQuestSubObjective', 'gameJournalPhoneChoiceEntry', 'gameJournalPhoneMessage']);
+const journalHash = value => {
+  const number = typeof value === 'number' ? value
+    : typeof value === 'string' && /^-?\d+$/.test(value) ? Number(value) : NaN;
+  return Number.isInteger(number) && number >= -2147483648 && number <= 4294967295
+    ? number < 0 ? number + 4294967296 : number : null;
+};
 const integer = value => Number.isInteger(value) && value >= -2147483648 && value <= 2147483647;
 const count = (value, maximum) => Number.isSafeInteger(value) && value >= 0 && value <= maximum;
 const plain = value => value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -176,6 +184,25 @@ function preparePack(value) {
         fail('invalid-inventory-entry', path); continue;
       }
       refs(row.evidenceRefs, `${path}.${key}`, true);
+      if (type === 'journal') {
+        // Match the Lua collector's executable selector contract. A single
+        // malformed selector otherwise disables the entire collector at load.
+        const selectedByPath = row.nativePath !== undefined || row.nativeClass !== undefined;
+        if (selectedByPath && (typeof row.nativePath !== 'string' || !row.nativePath.length
+          || Buffer.byteLength(row.nativePath) > 512 || /[\u0000-\u001f\u007f]/u.test(row.nativePath)
+          || !JOURNAL_CLASSES.has(row.nativeClass))
+          || journalHash(key) === null && !selectedByPath
+          || row.expectedHash !== undefined && (journalHash(row.expectedHash) === null
+            || journalHash(key) !== null && journalHash(key) !== journalHash(row.expectedHash))
+          || row.questHash !== undefined && journalHash(row.questHash) === null) fail('invalid-journal-selector', `${path}.${key}`);
+        if (row.allowRetiredChoiceGroup !== undefined && (row.allowRetiredChoiceGroup !== true
+          || row.nativeClass !== 'gameJournalPhoneChoiceEntry'
+          || !stringList(row.retiredGroupEvidenceRefs, 16, identifier, 1)
+          || !Array.isArray(row.evidenceRefs)
+          || row.retiredGroupEvidenceRefs.some(ref => !row.evidenceRefs.includes(ref)))) {
+          fail('invalid-retired-group-evidence', `${path}.${key}`);
+        }
+      }
       result.set(key, row);
     }
     return result;

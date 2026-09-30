@@ -200,6 +200,22 @@ test('context filters history by query and character catalog while keeping curre
   assert.deepEqual(output.events, []);
 });
 
+test('greetings do not inject unrelated active or character-associated quests', () => {
+  const extra = structuredClone(snapshot); extra.quests.push(quest('4', 'Another Active Quest', 'active'));
+  const output = select({snapshot: extra, query: 'hi', trackedQuestId: '1', questCatalog: {quests: [
+    {key: 'pyramid-song', title: 'Pyramid Song', nativeIds: ['sq_2'], characters: ['judy-alvarez']}]}});
+  assert.deepEqual(output.diagnostics.selected, []);
+  assert.doesNotMatch(output.context, /Current Quest|Pyramid Song|Another Active Quest|Meet Hanako/);
+  assert.deepEqual(select({snapshot: extra, query: 'hi'}).diagnostics.selected, ['1']);
+  assert.deepEqual(select({snapshot: extra, query: 'What about Pyramid Song?', trackedQuestId: '1'}).diagnostics.selected, ['2']);
+});
+
+test('explicit history questions retain past objectives from the tracked quest as well as completed jobs', () => {
+  const output = select({query: 'What have we completed so far?', trackedQuestId: '1'});
+  assert.deepEqual(output.diagnostics.selected, ['1', '2', '3']);
+  assert.match(output.context, /Current Quest|Pyramid Song/);
+});
+
 test('generic history cannot create memories or infer hidden choice outcomes from completed status', () => {
   const output = select({query: 'What quests have we completed?'});
   assert.match(output.context, /"status":"succeeded"/);

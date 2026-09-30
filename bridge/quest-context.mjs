@@ -101,8 +101,12 @@ export function withConversationKnowledge(input, {knowledgeContext = '', generat
     && Number.isFinite(now) && Number.isFinite(age) && age >= -1000 && age <= 5000;
   const projected = current && typeof knowledgeContext === 'string' && knowledgeContext.length <= 12000
     ? knowledgeContext.trim() : '';
+  const trackedJournal = parseJournal(result.journal);
+  const trackedHash = trackedJournal?.status === 'active' ? Number(trackedJournal.quest.id) : NaN;
+  const trackedQuestId = Number.isInteger(trackedHash) && trackedHash >= -2147483648 && trackedHash <= 4294967295
+    ? String(trackedHash < 0 ? trackedHash + 4294967296 : trackedHash) : undefined;
   const history = result.journalHistory === undefined ? '' : selectJournalHistory({snapshot: result.journalHistory,
-    generation, worldToken, profileKey: result.profileKey, query: result.text, questCatalog, now}).context;
+    generation, worldToken, profileKey: result.profileKey, query: result.text, questCatalog, now, trackedQuestId}).context;
   result[TRUSTED_KNOWLEDGE] = Object.freeze({identity: contextIdentity(result), knowledgeContext: projected, historyContext: history});
   return result;
 }

@@ -35,6 +35,35 @@ test('partial rule coverage counts researched alternatives honestly', async () =
   assert.deepEqual(result.errors, []);
   assert.equal(result.counts.outcomesWithReviewedRules, 1);
   assert.equal(result.counts.outcomesUnmapped, 1);
+  assert.equal(result.counts.legacyJsonPointers, 1);
+  assert.equal(result.verified[0].jsonIntegrity, 'legacy-unbound');
+  assert.match(result.exportIntegrity.note, /not bound to its original export/);
+});
+
+test('recorded JSON export hashes reject stale decoded contents even when original raw bytes still match', async () => {
+  const input = fixture();
+  const jsonRaw = Buffer.from(JSON.stringify((await input.loadArtifact()).json));
+  const jsonSha256 = createHash('sha256').update(jsonRaw).digest('hex');
+  input.inventory.assets[0].jsonSha256 = jsonSha256;
+  input.pack.evidence[0].native.jsonSha256 = jsonSha256;
+  input.loadArtifact = async () => ({raw, jsonRaw});
+  const output = await verifyNativeEvidence({...input, requireJsonHashes: true});
+  assert.deepEqual(output.errors, []);
+  assert.equal(output.counts.jsonHashBoundPointers, 1);
+  assert.equal(output.counts.legacyJsonPointers, 0);
+  input.loadArtifact = async () => ({raw, jsonRaw: Buffer.from(jsonRaw.toString().replace('value":1', 'value":2'))});
+  assert.match((await verifyNativeEvidence(input)).errors.join('\n'), /JSON export hash mismatch/);
+  input.loadArtifact = async () => ({raw, jsonRaw, json: {Data: {graph: {node: {}}}}});
+  assert.deepEqual((await verifyNativeEvidence(input)).errors, []); // Exact bytes determine decoded evidence.
+  input.pack.evidence[0].native.jsonSha256 = '0'.repeat(64);
+  assert.match((await verifyNativeEvidence(input)).errors.join('\n'), /JSON export hash mismatch/);
+});
+
+test('strict future builds reject legacy exports and supplied current hashes never retroactively qualify them', async () => {
+  const input = fixture();
+  input.loadArtifact = async () => ({raw, json: (await fixture().loadArtifact()).json, jsonSha256: 'a'.repeat(64)});
+  assert.match((await verifyNativeEvidence({...input, requireJsonHashes: true})).errors.join('\n'), /fresh export evidence required/);
+  assert.equal((await verifyNativeEvidence(input)).verified[0].jsonIntegrity, 'legacy-unbound');
 });
 test('overridden resources, modified bytes and missing pointers cannot qualify', async () => {
   for (const mutate of [input => input.inventory.assets[0].winner = false,

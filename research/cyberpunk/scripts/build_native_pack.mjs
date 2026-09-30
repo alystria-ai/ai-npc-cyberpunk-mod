@@ -70,9 +70,9 @@ export function mergeNativePacks(parts, profileKeys) {
 }
 
 /** Authored semantics require review; these checks prove the cited artifact exists unchanged. */
-export async function verifyNativeEvidence({pack, inventory, loadArtifact, decisions}) {
+export async function verifyNativeEvidence({pack, inventory, loadArtifact, decisions, requireJsonHashes = false}) {
   const errors = [], verified = [], assets = new Map((inventory.assets || []).filter(row => row.winner).map(row => [row.jsonPath, row]));
-  const cached = new Map();
+  const cached = new Map(), legacyJsonPaths = new Set();
   for (const evidence of pack.evidence) {
     if (evidence.kind !== 'native') continue;
     const refs = [evidence.native, ...(evidence.nativeRefs || [])];
@@ -86,15 +86,30 @@ export async function verifyNativeEvidence({pack, inventory, loadArtifact, decis
       try {
         if (!cached.has(reference.jsonPath)) {
           const artifact = await loadArtifact(asset);
-          cached.set(reference.jsonPath, {...artifact, rawSha256: hash(artifact.raw)});
+          cached.set(reference.jsonPath, {...artifact, rawSha256: hash(artifact.raw),
+            // Hash and reopen the exact exported bytes when present. A hash
+            // calculated only for today's report cannot authenticate an older
+            // export; qualification needs an earlier manifest/reference hash.
+            ...(artifact.jsonRaw !== undefined ? {jsonSha256: hash(artifact.jsonRaw),
+              json: JSON.parse(artifact.jsonRaw.toString('utf8').replace(/^\uFEFF/, ''))} : {})});
         }
         const artifact = cached.get(reference.jsonPath);
         if (artifact.rawSha256 !== reference.assetSha256) throw Error('Native binary hash mismatch');
+        const declared = [reference.jsonSha256, asset.jsonSha256].filter(value => value !== undefined);
+        if (declared.length && (declared.some(value => typeof value !== 'string' || !/^[a-f0-9]{64}$/.test(value))
+          || artifact.jsonRaw === undefined || declared.some(value => value !== artifact.jsonSha256))) {
+          throw Error('Native JSON export hash mismatch');
+        }
+        if (!declared.length) {
+          legacyJsonPaths.add(reference.jsonPath);
+          if (requireJsonHashes) throw Error('Legacy JSON export has no recorded hash; fresh export evidence required');
+        }
         const pointed = jsonPointer(artifact.json, reference.jsonPointer);
         if (reference.expectedType !== undefined && pointed?.$type !== reference.expectedType) throw Error('Native node type mismatch');
         if (own(reference, 'expectedValue') && !equal(pointed, reference.expectedValue)) throw Error('Native value mismatch');
         verified.push({evidenceId: evidence.id, jsonPath: reference.jsonPath, jsonPointer: reference.jsonPointer,
           assetSha256: reference.assetSha256, jsonSha256: artifact.jsonSha256,
+          jsonIntegrity: declared.length ? 'hash-verified' : 'legacy-unbound',
           archive: asset.archive, archiveEntrySha1: asset.archiveEntrySha1, depotPath: asset.depotPath});
       } catch (error) { errors.push(`${evidence.id}: ${error.message}`); }
     }
@@ -118,8 +133,13 @@ export async function verifyNativeEvidence({pack, inventory, loadArtifact, decis
     decisionId: decision.id, questKey: decision.questKey, outcomeKey: outcome.key,
     rules: mapped.get(`${decision.id}/${outcome.key}`) || [],
   })));
-  return {errors, verified, outcomes, counts: {enabledRules: pack.rules.filter(enabled).length,
+  return {errors, verified, outcomes, exportIntegrity: {policy: requireJsonHashes ? 'require-recorded-json-hash' : 'legacy-compatible',
+    legacyJsonPaths: [...legacyJsonPaths].sort(), note: legacyJsonPaths.size
+      ? 'Legacy raw binary hashes and pointers were checked; decoded JSON is not bound to its original export. No retroactive qualification is implied.'
+      : 'All cited JSON exports matched a recorded hash.'}, counts: {enabledRules: pack.rules.filter(enabled).length,
     citedArtifacts: cached.size, verifiedEvidencePointers: verified.length, outcomesResearched: outcomes.length,
+    jsonHashBoundPointers: verified.filter(row => row.jsonIntegrity === 'hash-verified').length,
+    legacyJsonPointers: verified.filter(row => row.jsonIntegrity === 'legacy-unbound').length,
     outcomesWithReviewedRules: outcomes.filter(row => row.rules.length).length,
     outcomesUnmapped: outcomes.filter(row => !row.rules.length).length}};
 }
@@ -160,13 +180,15 @@ async function main() {
       if (local.startsWith('..') || isAbsolute(local) || (await stat(path)).size > 128 * 1024 * 1024) throw Error('Native artifact outside budget/root');
     }
     const [raw, jsonRaw] = await Promise.all([readFile(rawPath), readFile(jsonPath)]);
-    return {raw, json: JSON.parse(jsonRaw.toString('utf8').replace(/^\uFEFF/, '')), jsonSha256: hash(jsonRaw)};
+    return {raw, jsonRaw};
   };
-  const result = await verifyNativeEvidence({pack, inventory, loadArtifact, decisions});
+  const result = await verifyNativeEvidence({pack, inventory, loadArtifact, decisions,
+    requireJsonHashes: process.argv.includes('--require-json-hashes')});
   errors.push(...result.errors);
   const report = {version: 1, builtAt: new Date().toISOString(), errors, ...result.counts,
-    verified: result.verified, outcomes: result.outcomes,
-    qualification: errors.length ? 'rejected' : 'source-verified-not-live-qualified'};
+    verified: result.verified, outcomes: result.outcomes, exportIntegrity: result.exportIntegrity,
+    qualification: errors.length ? 'rejected' : result.counts.legacyJsonPointers
+      ? 'source-reviewed-legacy-export-unbound-not-live-qualified' : 'source-verified-not-live-qualified'};
   await mkdir(resolve(research, 'generated'), {recursive: true});
   await writeFile(resolve(research, 'generated/native-coverage.json'), JSON.stringify(report, null, 2) + '\n');
   if (!errors.length) {

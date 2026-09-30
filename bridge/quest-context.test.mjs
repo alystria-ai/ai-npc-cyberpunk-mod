@@ -110,6 +110,23 @@ test('only the internal attachment adds reviewed knowledge and selected journal 
   assert.equal(conversationContext({...trusted}), context);
 });
 
+test('the authoritative tracked objective is sent once while unrelated journal history stays out of greetings', () => {
+  const supplied = knowledgeInput(); supplied.text = 'hi';
+  supplied.journal = {version: 1, status: 'active', quest: {id: '-1', title: 'Current shared quest',
+    objectives: [{id: '43', text: 'Meet the current contact.', tracked: true}]}};
+  const history = supplied.journalHistory;
+  history.tracked = {status: 'known', questId: '4294967295', objectiveId: '43'};
+  history.quests[0] = {...history.quests[0], id: '4294967295', title: 'Current shared quest', state: 'active', lane: 'active',
+    objectives: [{...history.quests[0].objectives[0], text: 'Meet the current contact.', state: 'active'}]};
+  history.coverage.active = historyCoverage(1); history.coverage.history = historyCoverage(0);
+  const context = conversationContext(withConversationKnowledge(supplied, knowledgeOptions));
+  assert.equal(context.split('Meet the current contact.').length - 1, 1);
+  assert.equal(context.split('Current shared quest').length - 1, 1);
+  assert.match(context, /Reviewed current-save fact/);
+  supplied.journal = {version: 1, status: 'unavailable'};
+  assert.match(conversationContext(withConversationKnowledge(supplied, knowledgeOptions)), /Meet the current contact/);
+});
+
 test('trusted context cannot survive IPC or be reused for another request, character, audience or mutated capture', () => {
   const trusted = withConversationKnowledge(knowledgeInput(), knowledgeOptions);
   for (const changed of [parseInput(JSON.stringify(trusted)), {...trusted, requestId: '101-1-10ULL'},
