@@ -10,7 +10,7 @@ pieces of content separate in the JSON body:
 | --- | --- | --- |
 | `backstory` | Identity, factual background, conditional story knowledge, relationships and knowledge limits | `backstory` |
 | `speaking_style_description` | Tone, mannerisms, speaking rules and delivery guidance | `speakingStyleDescription` |
-| `speaking_style_sample_dialogues` | Original examples of how the character talks, formatted as one string | `speakingStyleSampleDialogues` |
+| `speaking_style_sample_dialogues` | Original spoken utterances, separated by blank lines, without speaker labels or player prompts | `speakingStyleSampleDialogues` |
 
 Do not append the last two to the biography. `charName` names the character,
 `voiceType` selects the Convai voice, and this project also sends
@@ -26,7 +26,7 @@ curl --location 'https://api.convai.com/character/create' \
     "voiceType": "<SELECTED_VOICE_VALUE>",
     "backstory": "A fictional mechanic living in Night City.",
     "speaking_style_description": "Direct and friendly, with concise practical explanations.",
-    "speaking_style_sample_dialogues": "V: Got a minute?\nDemo Companion: Sure. Tell me what needs fixing."
+    "speaking_style_sample_dialogues": "Sure. Tell me what needs fixing.\n\nThat noise means trouble. Give me a second to find where it starts."
   }'
 ```
 
@@ -40,6 +40,17 @@ The endpoint and basic name/voice/backstory fields are described in the
 The two speaking-style request names above follow the integration example
 supplied on September 29, 2026. Their update/readback was verified against all
 79 existing mod profiles; the older public base-API examples omit them.
+
+Sample dialogues are examples of the words the character should speak. Do not
+prefix them with the character's name, `Character:`, or another speaker label,
+and do not include V's side of an exchange in this API field. The model can copy
+that transcript formatting into its spoken response. This was observed with
+`8ug8ear:` appearing in actual generated speech. Preserve any useful prompt/answer
+pairs in the research dossier; the profile builder exports only the original
+character response. Natural references to other characters remain intact.
+Archived dialogue-style pilot payloads are retained as historical evidence;
+their older transcript examples deliberately fail the current production
+preflight and must be reformatted before reuse.
 
 ## Updating existing characters and checking readback
 
@@ -64,14 +75,31 @@ npm run profiles:plan
 node scripts/Provision-Characters.mjs --apply
 # A focused run uses the same implementation:
 .\scripts\Provision-Characters.ps1 -Apply -Only judy-alvarez
+# Repair only speaking style and samples of already mapped existing characters:
+node scripts/Provision-Characters.mjs --apply --existing-style-only
+# Optional focused equivalent:
+.\scripts\Provision-Characters.ps1 -Apply -ExistingStyleOnly -Only 8ug8ear
 ```
 
 Both entry points plan by default; `--apply` or `-Apply` performs remote writes.
 The PowerShell script delegates to the Node implementation so their payloads,
 ownership checks and readback cannot drift apart.
 
+Use `--apply --existing-style-only` for a speaking-style repair. It requires all
+selected IDs to be mapped, unique, and owned before the first write. It never
+creates or adopts characters, and the request contains only `charID`,
+`speaking_style_description`, and `speaking_style_sample_dialogues`. Fresh
+before/readback snapshots must agree on every other returned field, including
+biography, voice, model details, memory policy, moderation and other settings.
+Only the edit timestamp and the API's dynamic memory credit estimates are
+excluded. The final character list also verifies that the existing model
+configuration is unchanged. Local ID mappings and full-profile verification
+hashes are not rewritten; the repair has its own mode in the readback report.
+
 - `Build-CharacterProfiles.mjs` separates all named and ambient profiles.
 - `character-payload.mjs` maps the three roster strings to their exact API keys.
+- `character-samples.mjs` exports response-only examples for both profile builders
+  and rejects leaked transcript labels before provisioning writes to the API.
 - Provisioning validates every selected profile before writing, keeps existing
   IDs, backs up previous remote values, and verifies all three fields afterward.
 - Existing memory configuration is compared before and after each update.
@@ -81,7 +109,8 @@ ownership checks and readback cannot drift apart.
 - `profile-text/*.txt` labels the three fields for local review. These complete
   review documents must never be uploaded wholesale as `backstory`.
 - The existing v2 ownership marker is retained for interrupted-create recovery;
-  generated profile revision 3 describes the new three-field content format.
+  generated profile revision 5 adds response-only speaking examples. This format
+  change does not create a new character or change player memory.
 
 Credentials are read from ignored `runtime/convai-key.txt` (`api-key=...`) or
 `CYBERPUNK_CONVAI_KEY_FILE`. Remote snapshots, mappings and verification reports

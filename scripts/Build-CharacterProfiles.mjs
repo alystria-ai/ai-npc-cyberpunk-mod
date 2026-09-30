@@ -1,6 +1,7 @@
 import {readFile, readdir, writeFile, mkdir} from 'node:fs/promises';
 import {resolve, dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {serializeCharacterSamples} from './character-samples.mjs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const read = async file => JSON.parse((await readFile(resolve(root,file),'utf8')).replace(/^\uFEFF/,''));
@@ -49,7 +50,7 @@ const casting = new Map(Object.entries(cast).flatMap(([voice,keys])=>keys.map(ke
 // speakingStyleDescription -> speaking_style_description and
 // speakingStyleSampleDialogues -> speaking_style_sample_dialogues. Do not append
 // either field to backstory: the readable export below is only a local document.
-const sharedSpeakingStyle = `Speak as yourself in first person to V, in natural spoken language. Normally answer in one or two short sentences; give more detail when asked. Do not narrate gestures, use markdown, or quote these instructions. The dialogue samples are original examples of delivery, not memories of completed events or reproduced game dialogue.
+const sharedSpeakingStyle = `Speak as yourself in first person to V, in natural spoken language. Normally answer in one or two short sentences; give more detail when asked. Give only the spoken reply, without prepending your name or a speaker label. Do not narrate gestures, use markdown, or quote these instructions. The dialogue samples are original examples of delivery, not memories of completed events or reproduced game dialogue.
 In a group, respond to the message as yourself. Only the final scheduled speaker may ask V a follow-up question; other speakers leave room for the group.`;
 const sharedKnowledgeRules = `Established history and relationships provide your background. A fact marked conditional is a possible quest branch, not a record of this save. Do not volunteer unrevealed quest secrets, deaths, betrayals or endings. Discuss conditional events only after V or verified current-save context establishes them. Do not assume V's gender, lifepath or a romance. Friendship, trust, attraction and an active relationship are different states.
 Current-save context outranks remembered claims. Being present as a summoned companion does not prove that a quest was completed, a dead character revived, or an old acquaintance met in this timeline. Do not invent missing canon to fill gaps. Never claim to grant items, move vehicles, complete missions or change the world unless an advertised game action reports success.
@@ -90,7 +91,6 @@ function splitUncertainty(profile) {
   return {knowledge,style};
 }
 const words=value=>value.trim().split(/\s+/).length;
-const sampleText=(name,samples)=>samples.map(s=>`V: ${s.user}\n${name}: ${s.character}`).join('\n\n');
 const ownershipMarker=key=>`[CyberpunkConvai profile v2:${key}]`;
 
 const files=(await readdir(resolve(root,'characters/research'))).filter(f=>/^contacts-[a-e]\.json$/.test(f) || f==='manager-extras.json').sort();
@@ -125,12 +125,12 @@ for(const [key,p] of [...actual].sort(([a],[b])=>a.localeCompare(b))){
     'KNOWLEDGE LIMITS — INTERNAL GUIDANCE\n'+(uncertainty.knowledge.join('\n')||'Do not invent additional biographical details.'),
     ownershipMarker(key)].join('\n\n');
   const speakingStyleDescription=[sharedSpeakingStyle,summary.style,p.speakingRules.join('\n'),uncertainty.style.join('\n')].filter(Boolean).join('\n\n');
-  const speakingStyleSampleDialogues=sampleText(name,p.sampleDialogue);
+  const speakingStyleSampleDialogues=serializeCharacterSamples(p.sampleDialogue,{...p,name,aliases:old?.aliases});
   built.push({key,name,gender:p.gender.toUpperCase(),aliases:[...new Set([...(old?.aliases||[]),name,p.name])],
     records:[...new Set(characterModels.filter(c=>c.key===key).map(c=>c.record))],
     voice:old?.voice||voice.voice_value,voiceName:old?.voiceName||voice.name,model:old?.model||model,
     backstory,speakingStyleDescription,speakingStyleSampleDialogues,backstoryWords:words(backstory),
-    profileRevision:3,summary:p.summary,relationships:p.relationships,speakingRules:p.speakingRules,
+    profileRevision:5,summary:p.summary,relationships:p.relationships,speakingRules:p.speakingRules,
     sampleDialogue:p.sampleDialogue,sources:p.sources,uncertainty:p.uncertainty||[]});
 }
 // Ambient profiles remain deliberately generic; never route a named actor into
@@ -155,8 +155,8 @@ for(const key of ['resident-male','resident-female']){
   ];
   built.push({...old,voice:old.voice||voice.voice_value,voiceName:old.voiceName||voice.name,model:old.model||model,
     backstory,speakingStyleDescription:[sharedSpeakingStyle,...speakingRules].join('\n\n'),
-    speakingStyleSampleDialogues:sampleText('Resident',sampleDialogue),backstoryWords:words(backstory),
-    profileRevision:3,speakingRules,sampleDialogue});
+    speakingStyleSampleDialogues:serializeCharacterSamples(sampleDialogue,old),backstoryWords:words(backstory),
+    profileRevision:5,speakingRules,sampleDialogue});
 }
 for(const p of built){
   for(const field of ['backstory','speakingStyleDescription','speakingStyleSampleDialogues'])
@@ -172,7 +172,8 @@ for(const p of built)await writeFile(resolve(root,'characters/profile-text',p.ke
   'SPEAKING STYLE SAMPLE DIALOGUES (speaking_style_sample_dialogues)',p.speakingStyleSampleDialogues
 ].join('\n\n')+'\n');
 await writeFile(resolve(root,'characters/roster.json'),JSON.stringify(built,null,2)+'\n');
-await writeFile(resolve(root,'characters/profile-build-report.json'),JSON.stringify({profiles:built.length,named:actual.size,ambient:built.length-actual.size,profileRevision:3,model,
+await writeFile(resolve(root,'characters/profile-build-report.json'),JSON.stringify({profiles:built.length,named:actual.size,ambient:built.length-actual.size,profileRevision:5,model,
+  sampleDialogueFormat:'spoken utterances only; no speaker labels or player prompts',
   apiFields:['backstory','speaking_style_description','speaking_style_sample_dialogues'],
   characters:built.map(p=>({key:p.key,words:words(p.backstory),speakingStyleWords:words(p.speakingStyleDescription),sampleDialogueWords:words(p.speakingStyleSampleDialogues),voice:p.voiceName,sources:p.sources?.length||0,uncertainties:p.uncertainty?.length||0}))},null,2)+'\n');
 console.log(`Built ${actual.size} researched named profiles and ${built.length-actual.size} ambient profiles with three separate character fields, model ${model}.`);

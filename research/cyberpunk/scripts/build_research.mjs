@@ -2,6 +2,7 @@ import {readFile, readdir, mkdir, writeFile} from 'node:fs/promises';
 import {resolve, dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
+import {serializeCharacterSamples} from '../../../scripts/character-samples.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, '../../..');
@@ -78,6 +79,8 @@ export function validateResearch({roster, dossiers, maps}) {
     if (!text(profile.backstory) || !text(profile.speakingStyleDescription)) error(where, 'Separate biography/style fields required');
     if (array(profile.speakingStyleSampleDialogues).length < 6 || !profile.speakingStyleSampleDialogues.every(text)) error(where, 'At least six original delivery examples required');
     if (new Set(array(profile.speakingStyleSampleDialogues)).size !== array(profile.speakingStyleSampleDialogues).length) error(where, 'Duplicate dialogue examples');
+    try { serializeCharacterSamples(profile.speakingStyleSampleDialogues, expected.get(dossier.key) || dossier); }
+    catch (exception) { error(where, exception.message); }
     if (!array(dossier.intrinsicClaims).length) error(where, 'No individual supported identity claims');
     for (const claim of array(dossier.intrinsicClaims)) {
       references(claim, ids, `${where}/${claim.id}`);
@@ -132,19 +135,15 @@ export function buildProfiles(roster, dossiers) {
       `[CyberpunkConvai profile v2:${old.key}]`].join('\n\n');
     const speakingStyleDescription = [dossier.profile.speakingStyleDescription.trim(),
       'Speak naturally to V, usually in one or two sentences unless asked for detail. '
+        + 'Give only the spoken reply, without prepending your name or a speaker label. '
         + 'No stage directions or markdown. Dialogue samples are original delivery examples, not memories. '
         + 'In a group, only the final scheduled speaker may ask V a follow-up. Never reveal private conversation history to a group.'].join('\n\n');
     const {sampleDialogue: retiredExamples, speakingRules: retiredStyle, relationships: retiredRelationships, ...preserved} = old;
     return {...preserved, kind: dossier.kind, summary: dossier.profile.backstory.trim(), backstory, speakingStyleDescription,
-      // Several researched examples include an original V prompt and the
-      // character's answer. Preserve those roles instead of attributing V to
-      // the companion with an extra prefix.
-      speakingStyleSampleDialogues: dossier.profile.speakingStyleSampleDialogues.map(line => {
-        const sample = line.trim();
-        const named = [old.name, ...(old.aliases || [])].some(name => sample.startsWith(`${name}: `));
-        return /^V:\s/u.test(sample) || named ? sample : `${old.name}: ${sample}`;
-      }).join('\n\n'),
-      profileRevision: 4, backstoryWords: backstory.split(/\s+/).length,
+      // Keep the research transcript in its dossier; the API field is examples
+      // of this character's speech only, with no V prompt or speaker prefix.
+      speakingStyleSampleDialogues: serializeCharacterSamples(dossier.profile.speakingStyleSampleDialogues, old),
+      profileRevision: 5, backstoryWords: backstory.split(/\s+/).length,
       researchRevision: fingerprint(dossier), researchPath: `research/cyberpunk/dossiers/${old.key}.json`,
       sources: dossier.sources, uncertainty: dossier.uncertainties};
   });
@@ -173,7 +172,7 @@ export async function buildResearch({applyProfiles = false} = {}) {
     await writeFile(resolve(root, 'characters/roster.json'), JSON.stringify(profiles, null, 2) + '\n');
     const settingsPath = resolve(root, 'characters/profile-settings.json');
     const settings = JSON.parse(await readFile(settingsPath, 'utf8'));
-    await writeFile(settingsPath, JSON.stringify({...settings, profileRevision: 4, profileSource: 'research/cyberpunk/dossiers'}, null, 2) + '\n');
+    await writeFile(settingsPath, JSON.stringify({...settings, profileRevision: 5, profileSource: 'research/cyberpunk/dossiers'}, null, 2) + '\n');
     await mkdir(resolve(root, 'characters/profile-text'), {recursive: true});
     for (const profile of profiles) await writeFile(resolve(root, 'characters/profile-text', profile.key + '.txt'), [
       'BACKSTORY (backstory)', profile.backstory,
@@ -183,7 +182,8 @@ export async function buildResearch({applyProfiles = false} = {}) {
     await writeFile(resolve(root, 'characters/profile-build-report.json'), JSON.stringify({
       profiles: profiles.length, named: dossiers.filter(row => row.kind === 'named').length,
       ambient: dossiers.filter(row => row.kind === 'ambient').length,
-      profileRevision: 4, model: settings.model, source: 'research/cyberpunk/dossiers',
+      profileRevision: 5, model: settings.model, source: 'research/cyberpunk/dossiers',
+      sampleDialogueFormat: 'spoken utterances only; no speaker labels or player prompts',
       apiFields: ['backstory', 'speaking_style_description', 'speaking_style_sample_dialogues'],
       characters: profiles.map(profile => ({key: profile.key, words: profile.backstoryWords,
         speakingStyleWords: profile.speakingStyleDescription.split(/\s+/).length,

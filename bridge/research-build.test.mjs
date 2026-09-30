@@ -1,7 +1,9 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
+import {readFile, readdir} from 'node:fs/promises';
 import {validateResearch, buildProfiles} from '../research/cyberpunk/scripts/build_research.mjs';
 import {characterPayload} from '../scripts/character-payload.mjs';
+import {serializeCharacterSamples} from '../scripts/character-samples.mjs';
 
 function fixture() {
   const source = {id: 'guide', url: 'https://example.org/quest', title: 'Quest guide',
@@ -76,10 +78,47 @@ test('profile update preserves model and voice while separating style, samples a
   assert.deepEqual(profile.records, ['Character.judy']);
   input.dossiers[0].profile.speakingStyleSampleDialogues[0] = 'V: Are you busy?\nJudy: Got a minute. Make it count.';
   const paired = buildProfiles(input.roster, input.dossiers)[0].speakingStyleSampleDialogues;
-  assert.match(paired, /^V: Are you busy\?/);
-  assert.doesNotMatch(paired, /Judy: V:/);
+  assert.match(paired, /^Got a minute\. Make it count\./);
+  assert.doesNotMatch(paired, /V:|Judy:/);
+  assert.equal(input.dossiers[0].profile.speakingStyleSampleDialogues[0], 'V: Are you busy?\nJudy: Got a minute. Make it count.');
   input.dossiers[0].profile.speakingStyleSampleDialogues[0] = 'Good news: we made it.';
-  assert.match(buildProfiles(input.roster, input.dossiers)[0].speakingStyleSampleDialogues, /^Judy: Good news: we made it\./);
+  assert.match(buildProfiles(input.roster, input.dossiers)[0].speakingStyleSampleDialogues, /^Good news: we made it\./);
+});
+
+test('sample serialization keeps spoken words and third-party names without importing either transcript role', () => {
+  const profile = {key: 'judy-alvarez', name: 'Judy Alvarez', aliases: ['Judy Álvarez']};
+  assert.equal(serializeCharacterSamples([
+    'V: Is Rogue here?\nJudy: Rogue knows this place better than I do.',
+    'Judy Álvarez: Good news: we made it.',
+    {user: 'Know a netrunner?', character: 'Ask Nix. He might know.'},
+  ], profile), 'Rogue knows this place better than I do.\n\nGood news: we made it.\n\nAsk Nix. He might know.');
+  assert.throws(() => serializeCharacterSamples(['V: Hey.\nPanam: Wrong speaker.'], profile), /Unrecognized paired dialogue/);
+  assert.throws(() => serializeCharacterSamples(['V: Hey.\nJudy: Hello.\nV: Another turn.'], profile), /Unrecognized paired dialogue/);
+  assert.throws(() => serializeCharacterSamples(['Character: Hello.'], profile), /without speaker labels/);
+  assert.throws(() => serializeCharacterSamples(['character: Hello.'], profile), /without speaker labels/);
+  assert.equal(serializeCharacterSamples(['v: Hey.\njudy: Hello.', 'judy álvarez: Good to see you.'], profile), 'Hello.\n\nGood to see you.');
+});
+
+test('every checked-in profile exports only its original response while preserving research and catalog identity', async () => {
+  const roster = JSON.parse(await readFile(new URL('../characters/roster.json', import.meta.url), 'utf8'));
+  const directory = new URL('../research/cyberpunk/dossiers/', import.meta.url);
+  const dossiers = await Promise.all((await readdir(directory)).filter(name => name.endsWith('.json'))
+    .map(async name => JSON.parse(await readFile(new URL(name, directory), 'utf8'))));
+  const researchBefore = JSON.stringify(dossiers), byKey = new Map(dossiers.map(dossier => [dossier.key, dossier]));
+  const generated = buildProfiles(roster, dossiers);
+  for (const [index, profile] of generated.entries()) {
+    const original = byKey.get(profile.key).profile.speakingStyleSampleDialogues;
+    const expected = original.map(example => example.startsWith('V: ')
+      ? example.slice(example.indexOf('\n') + 1).replace(/^[^:]+: /u, '') : example);
+    assert.equal(profile.speakingStyleSampleDialogues, expected.join('\n\n'), profile.key);
+    for (const field of ['key', 'name', 'voice', 'voiceName', 'model', 'aliases', 'records']) {
+      assert.deepEqual(profile[field], roster[index][field], `${profile.key}/${field}`);
+    }
+    characterPayload(profile);
+  }
+  assert.equal(JSON.stringify(dossiers), researchBefore);
+  const bugbear = generated.find(profile => profile.key === '8ug8ear');
+  assert.doesNotMatch(bugbear.speakingStyleSampleDialogues, /8ug8ear:|^V:/mu);
 });
 
 test('malformed outcomes report validation errors rather than crash or claim full coverage', () => {

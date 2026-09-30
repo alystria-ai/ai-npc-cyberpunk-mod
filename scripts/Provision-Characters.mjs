@@ -2,11 +2,14 @@ import {readFile, writeFile, rename, mkdir, open, unlink} from 'node:fs/promises
 import {dirname, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
-import {apiCharacterName, characterPayload, characterMatches, verifyCharacter, verifyMemoryConfiguration} from './character-payload.mjs';
+import {isDeepStrictEqual} from 'node:util';
+import {apiCharacterName, characterPayload, characterMatches, verifyCharacter, verifyMemoryConfiguration, verifyStyleOnlyCharacter} from './character-payload.mjs';
 
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const runtime=resolve(root,'runtime');
 const args=process.argv.slice(2),apply=args.includes('--apply');
+const existingStyleOnly=args.includes('--existing-style-only');
+if(existingStyleOnly&&!apply)throw Error('--existing-style-only requires --apply; this mode only repairs mapped, existing characters.');
 const onlyIndex=args.indexOf('--only');
 const only=onlyIndex<0?null:new Set(args[onlyIndex+1].split(','));
 const read=async path=>JSON.parse((await readFile(path,'utf8')).replace(/^\uFEFF/,''));
@@ -31,7 +34,7 @@ const verified=await read(verifiedPath).catch(()=>({}));
 const batch=resolve(runtime,'profile-enrichment',new Date().toISOString().replace(/[:.]/g,'-'));
 await mkdir(batch,{recursive:true});
 await atomic(resolve(batch,'mapping-before.json'),mapping);
-const report={started:new Date().toISOString(),profiles:[],completed:false};
+const report={started:new Date().toISOString(),mode:existingStyleOnly?'existing-style-only':'full-profile',profiles:[],completed:false};
 let lastRequest=0;
 const delay=ms=>new Promise(done=>setTimeout(done,ms));
 async function api(endpoint,body,canRetry=true){
@@ -61,6 +64,16 @@ const apiName=apiCharacterName;
 try{
   const cloud=await api('/character/list',{});
   const owned=new Map(cloud.characters.map(p=>[p.character_id,p]));
+  if(existingStyleOnly){
+    // Preflight the entire selection before writing any profile. This mode may
+    // neither create a character nor adopt/recover an ID from matching names.
+    for(const profile of selected){
+      const id=mapping[profile.key],before=owned.get(id);
+      if(!id||!before)throw Error('Style-only repair requires an existing owned mapping: '+profile.key);
+      if([...Object.values(mapping)].filter(value=>value===id).length!==1)throw Error('Style-only repair requires a unique character mapping: '+profile.key);
+      if(typeof before.personalised_prompt_config?.MODEL!=='string'||!before.personalised_prompt_config.MODEL)throw Error('Style-only repair cannot verify the existing model: '+profile.key);
+    }
+  }
   for(const profile of selected){
     if(!profile.voice.startsWith('convai-kokoro-')||!profile.backstory||!profile.model)throw Error('Incomplete profile: '+profile.key);
     const payload=payloads.get(profile.key);
@@ -87,33 +100,52 @@ try{
     }else{
       before??=await api('/character/get',{charID:id});
       await atomic(resolve(batch,profile.key+'-before.json'),before);
+      if(existingStyleOnly&&before.character_id!==id)throw Error('Style-only repair received a different character: '+profile.key);
       const model=owned.get(id)?.personalised_prompt_config?.MODEL;
-      if(!characterMatches(before,payload)||model!==profile.model){
-        const result=await api('/character/update',{charID:id,...payload});
+      const styleChanged=before.speaking_style?.description!==payload.speaking_style_description
+        ||before.speaking_style?.sample_dialogues!==payload.speaking_style_sample_dialogues;
+      if(existingStyleOnly?styleChanged:(!characterMatches(before,payload)||model!==profile.model)){
+        const fields=existingStyleOnly?{speaking_style_description:payload.speaking_style_description,
+          speaking_style_sample_dialogues:payload.speaking_style_sample_dialogues}:payload;
+        const result=await api('/character/update',{charID:id,...fields});
         if(result.STATUS!=='SUCCESS')throw Error('Profile update did not confirm success: '+profile.key);
       }
     }
     const actual=await api('/character/get',{charID:id});
     await atomic(resolve(batch,profile.key+'-readback.json'),actual);
-    verifyCharacter(id,actual,payload,profile.key);
-    if(before)verifyMemoryConfiguration(before,actual,profile.key);
+    if(existingStyleOnly)verifyStyleOnlyCharacter(id,before,actual,payload,profile.key);
+    else{
+      verifyCharacter(id,actual,payload,profile.key);
+      if(before)verifyMemoryConfiguration(before,actual,profile.key);
+    }
     await atomic(resolve(batch,profile.key+'-verified.json'),actual);
-    verified[profile.key]=hash;await atomic(verifiedPath,verified);
-    report.profiles.push({key:profile.key,id,created,backstoryVerified:true,speakingStyleVerified:true,sampleDialoguesVerified:true,voiceVerified:true,modelVerified:false,words:profile.backstory.split(/\s+/).length,memoryEnabled:actual.memory_settings?.enabled===true,memoryConfigurationPreserved:before?true:null});
+    // A style-only repair does not certify that the unrelated cloud fields
+    // match this local roster, so leave full-profile verification hashes alone.
+    if(!existingStyleOnly){verified[profile.key]=hash;await atomic(verifiedPath,verified);}
+    report.profiles.push({key:profile.key,id,created,backstoryVerified:true,speakingStyleVerified:true,sampleDialoguesVerified:true,voiceVerified:true,modelVerified:false,words:actual.backstory.split(/\s+/).length,memoryEnabled:actual.memory_settings?.enabled===true,memoryConfigurationPreserved:before?true:null,
+      ...(existingStyleOnly?{nonStyleFieldsPreserved:true}: {})});
     await atomic(resolve(runtime,'profile-enrichment-report.json'),report);
-    console.log('Verified '+profile.name+': separate biography, speaking style, dialogue samples and Kokoro voice.');
+    console.log(existingStyleOnly?'Verified '+profile.name+': repaired speaking style and samples; existing settings preserved.'
+      :'Verified '+profile.name+': separate biography, speaking style, dialogue samples and Kokoro voice.');
   }
   const final=await api('/character/list',{});
   for(const item of report.profiles){
     const expected=selected.find(p=>p.key===item.key),actual=final.characters.find(p=>p.character_id===item.id);
     item.model=actual?.personalised_prompt_config?.MODEL;
-    item.modelVerified=item.model===expected.model;
+    item.modelVerified=existingStyleOnly
+      ? isDeepStrictEqual(actual?.personalised_prompt_config,owned.get(item.id)?.personalised_prompt_config)
+      : item.model===expected.model;
     if(!item.modelVerified)throw Error('Model readback mismatch: '+item.key);
+  }
+  if(existingStyleOnly){
+    const currentMapping=await read(mappingPath);
+    if(!isDeepStrictEqual(currentMapping,mapping))throw Error('Character mappings changed during style-only repair. Inspect mapping-before.json.');
+    report.mappingPreserved=true;
   }
   report.completed=true;report.finished=new Date().toISOString();
   await atomic(resolve(runtime,'profile-enrichment-report.json'),report);
   await atomic(resolve(batch,'report.json'),report);
-  console.log('Verified '+report.profiles.length+' profiles, including the reference LLM model.');
+  console.log('Verified '+report.profiles.length+' profiles, including '+(existingStyleOnly?'their unchanged existing settings and mappings.':'the reference LLM model.'));
 }catch(error){
   report.error=error.message;await atomic(resolve(runtime,'profile-enrichment-report.json'),report);
   throw error;

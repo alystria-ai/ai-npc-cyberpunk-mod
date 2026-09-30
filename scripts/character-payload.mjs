@@ -1,6 +1,7 @@
 // Convai's create/update request uses three separate flat text fields.
 // Readback nests the latter two under speaking_style. See docs/CHARACTER_API.md.
 import {isDeepStrictEqual} from 'node:util';
+import {assertPlainSampleDialogues} from './character-samples.mjs';
 
 export const apiCharacterName = profile => profile.name
   .replace(/[^\p{L}\p{N} ]/gu, ' ').replace(/\s+/g, ' ').trim();
@@ -12,6 +13,7 @@ export function characterPayload(profile) {
       throw Error(`Missing ${field} for ${profile.key}; rebuild the character profiles.`);
     }
   }
+  assertPlainSampleDialogues(profile.speakingStyleSampleDialogues, profile);
   return {
     charName: apiCharacterName(profile),
     voiceType: profile.voice,
@@ -45,4 +47,27 @@ export function verifyMemoryConfiguration(before, actual, key) {
   if (!isDeepStrictEqual(configuration(before), configuration(actual))) {
     throw Error(`Memory configuration changed during profile update: ${key}. Inspect the saved before/readback snapshots.`);
   }
+}
+
+export function verifyStyleOnlyCharacter(id, before, actual, expected, key) {
+  if (before?.character_id !== id || actual?.character_id !== id
+      || actual.speaking_style?.description !== expected.speaking_style_description
+      || actual.speaking_style?.sample_dialogues !== expected.speaking_style_sample_dialogues) {
+    throw Error(`Style-only readback mismatch: ${key}.`);
+  }
+  // Compare every returned non-style field, including future provider settings.
+  // The edit timestamp and estimated credit costs may change independently of
+  // configuration. No account settings, memory policy, biography, voice or model
+  // selection are intentionally changed by this repair.
+  const unchanged = value => {
+    const {speaking_style, timestamp, memory_settings, ...rest} = value;
+    const {description, sample_dialogues, ...otherStyleSettings} = speaking_style || {};
+    return {...rest, speaking_style: otherStyleSettings,
+      memory_settings: Object.fromEntries(Object.entries(memory_settings || {})
+      .filter(([field]) => !['ltm_min_credit_cost_e8', 'kb_min_credit_cost_e8'].includes(field)))};
+  };
+  if (!isDeepStrictEqual(unchanged(before), unchanged(actual))) {
+    throw Error(`A non-style character field changed during style-only update: ${key}. Inspect the saved before/readback snapshots.`);
+  }
+  verifyMemoryConfiguration(before, actual, key);
 }

@@ -10,6 +10,11 @@ Current save outcomes are not inferred from spawning a companion. A summoned Jac
 
 The Convai profile uses three separate fields: biography in `backstory`, delivery guidance in `speaking_style_description`, and original examples in `speaking_style_sample_dialogues`. The last two must not be embedded in the biography. The roster stores them as `speakingStyleDescription` and `speakingStyleSampleDialogues`; readable exports label all three sections. See [the API request and readback contract](../docs/CHARACTER_API.md).
 
+The API's sample field contains only the character's spoken words, separated by
+blank lines. Do not add name/speaker prefixes or V's prompt: the model may say
+those labels aloud. Source research can retain paired examples; both builders
+export only the original character response and preserve third-party names.
+
 `profile-settings.json` records the model verified through the reference character's Core API data. `kokoro-voices.json` is the public voice selection data read from Convai on the recorded date. Voice casting is editorial; these are Kokoro voices, not replicas of the original actors.
 
 ## Build and apply
