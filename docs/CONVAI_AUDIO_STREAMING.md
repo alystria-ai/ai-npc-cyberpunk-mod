@@ -48,7 +48,7 @@ prompt in its initial descriptor and retains the original submitted memory
 receipt when completion refreshes quest context.
 
 NeuroSync maps to the managed character's supported facial feature. The
-`arkit61-native-v8` calibration keeps bounded jaw/opening curves and maps
+`arkit61-native-v10` calibration keeps bounded jaw/opening curves and maps
 mouth-corner stretch and lower-lip roll to the appropriate native deformation
 controls. Actual provider cadence is preserved up to 60 Hz. The game samples
 the face each frame from a confirmed already-heard cursor, with a small bounded
@@ -61,6 +61,11 @@ reply shows visible closure and reset; final naturalness remains open.
 V8 adds the previously discarded upper-lip roll signal, capped at 0.06. Its
 paired native replay shows restrained contour change and final reset; the
 continuous provider/audio path is unchanged.
+V9 adds independent lower-lip depression/retraction, confirmed against the
+actual bone hierarchy and a native directional probe. V10 preserves JawOpen
+independently of MouthClose: the rig's together controls close the lips over
+the open jaw. Both paired spoken comparisons reset normally. Jaw size/cap,
+source timing, PCM and the local Omni path are preserved.
 Source-frame correctness is not visual acceptance.
 See [native calibration](NATIVE_FACIAL_RETARGET_CALIBRATION.md).
 

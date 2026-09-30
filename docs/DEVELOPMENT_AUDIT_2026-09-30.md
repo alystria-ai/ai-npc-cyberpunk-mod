@@ -828,3 +828,20 @@ naturalness remains open; neither CPU geometry nor sparse window frames prove
 all-character quality. The bridge is restored on v8 afterward, and no capture
 worker remains running. The new replay module is registered in both development
 and proposed release manifests, excluding its private fixtures and recordings.
+
+Further hierarchy-based inspection identified native lower_raise controls as
+actual downward/backward lower-lip motion, despite their names. V9 maps each
+provider LowerDown signal independently and reduces duplicate aperture motion.
+V10 removes the jaw's MouthClose multiplier after a native 0.14–0.40 jaw/0.85
+contact sweep visibly seals and resets. Thus lip contact can retain its native
+jaw-dependent correctives. Both same-audio voiced comparisons complete with
+normal resets; the source/audio path and accepted jaw ceiling remain unchanged.
+The 100-check focused set passes, and the normal bridge is restored on v10.
+
+The screenshot helper now supports a bounded exact face-region crop and fixed
+sampling buckets. Observed capture rises from roughly 6.5 FPS to 24–28 FPS in the
+latest comparisons, with retained original timestamps. PNG context is saved
+before readiness, avoiding a first-frame encoding delay. No synthetic frames,
+player input or desktop fallback are used. Broad naturalness, expression blend
+and other characters' actual rendering remain open; numeric and sampled visual
+evidence are not blanket acceptance of every face.

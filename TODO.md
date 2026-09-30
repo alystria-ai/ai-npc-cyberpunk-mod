@@ -75,6 +75,14 @@
     comparisons without asking the user to send every F6 message. This is a
     modest contour improvement; overall naturalness and other rendered rigs
     remain open. All captures are bounded and the normal bridge is restored.
+  - Continued with actual model-space hierarchy analysis: v9 preserves separate
+    left/right LowerDown motion, while v10 separates JawOpen from MouthClose
+    so lip contact uses the native open-jaw correctives. Directional and full
+    jaw-range closure probes are visually inspected on Judy. Both paired voiced
+    comparisons complete and reset; v10 is live without a game/CET restart.
+    100 focused checks pass. Cropped captures now observe roughly 24–28 FPS,
+    supporting brief-transition inspection. Overall naturalness, expressions
+    and other characters' rendered qualification remain open.
 - [x] Add **Follow-up questions** (`followUpQuestions`) to organized Settings,
   default Off per the user's latest request. Local checkpoint `135264d`; 991
   tests passed with zero failures/skips, including installed MCM integration.

@@ -30,11 +30,25 @@ appearance or replace the same-source speech comparison.
 
 One hundred focused checks pass, including source-order semantics, closure
 independent from jaw, lip contact during quiet audio, stable growing prefixes,
-actual feature delivery and cleanup. Ordinary v10 replay is the next gate.
+actual feature delivery and cleanup. The paired v9/v10 spoken replay completed
+with 335/326 native applications, 239/227 cropped frames over about 8.63 seconds,
+and both final resets. In the inspected closure sequence the lips contact and
+release without an obvious pop, tear or teeth gap; jaw motion no longer has an
+artificial source-closure multiplier. Head idle and capture timing differ, so
+the images do not establish a quantitative perceptual improvement. Overall
+naturalness and Johnny's rendered response remain separate acceptance work.
+
+V10 is loaded in the restored normal reply bridge, with no game restart or
+CET reload. The comparison used the same frozen audio; no new provider dialogue
+or memory was created by the replay. All bounded capture workers have exited.
 
 Ignored evidence: `runtime/closure-images-20261001-021411`,
 `runtime/jaw-independence-v9-20261001/FINDINGS.md`, and
-`runtime/lips-v10-tests-20261001.log`.
+`runtime/lips-v10-tests-20261001.log`. Spoken images:
+`runtime/speech-motion-arkit61-native-v9-20261001-021940` and
+`runtime/speech-motion-arkit61-native-v10-20261001-021951`. The enlarged closure
+inspection sheet is `runtime/lip-replay-source-20261001/v9-v10-closure-motion.png`;
+original frames and their actual timestamps remain the evidence.
 
 ## October 1: independent lower-lip motion
 
