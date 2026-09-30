@@ -1,5 +1,9 @@
 # Phone transcript and session ownership
 
+> Historical save/ledger design. Current phone routing uses the player's one
+> persistent ID and exact transient world/reset ownership. See
+> [PLAYER_MEMORY.md](../../docs/PLAYER_MEMORY.md). Legacy fixtures remain readable.
+
 Version 1, September 30, 2026. This implements the phone boundary described in
 `FORMAT.md`, `RUNTIME_CONTRACT.md`, and `MEMORY_API_AUDIT.md`. It does not infer a
 campaign from a contact, NPC, game PID, wall clock, quest title, or save filename.

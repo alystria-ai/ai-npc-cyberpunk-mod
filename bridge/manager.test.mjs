@@ -23,6 +23,7 @@ function run(code) {
 
 const storage = `
   local files, saved, seed, extras = {}, nil, {}, nil
+  local jsonFixtures, jsonSequence, fileWrites = {}, 0, {}
   local failSave = false
   io = {open = function(path, mode)
     if mode == 'rb' then
@@ -30,14 +31,26 @@ const storage = `
       return {read = function() return files[path] end, close = function() return true end}
     end
     if failSave then return nil end
-    return {write = function(_, value) files[path] = value; return true end, close = function() return true end}
+    return {write = function(_, value)
+      fileWrites[#fileWrites + 1] = {path = path, value = value}
+      files[path] = value; return true
+    end, close = function() return true end}
   end}
   json = {decode = function(value)
+    if jsonFixtures[value] then return jsonFixtures[value] end
     if value == 'seed' then return seed end
     if value == 'extras' then return extras end
     if value == 'saved' then return saved end
     error('unexpected JSON fixture')
-  end, encode = function(value) saved = value; return 'saved' end}
+  end, encode = function(value)
+    if value.action == 'clear' then
+      jsonSequence = jsonSequence + 1
+      local token = 'memory-json-' .. jsonSequence
+      jsonFixtures[token] = value
+      return token
+    end
+    saved = value; return 'saved'
+  end}
   os.rename = function(from, to)
     if not files[from] or files[to] then return nil end
     files[to], files[from] = files[from], nil
@@ -309,6 +322,246 @@ const mcmFixture = `
   end
 `;
 
+const memoryFixture = `
+  local memoryClock = 1800000000
+  os.time = function() return memoryClock end
+  local memoryStatus
+  local function publishMemory(count, characters, state, command, updated)
+    memoryStatus = {version = 1, updated = updated or memoryClock * 1000.0,
+      state = state or 'ready', talkedToCount = count, characters = characters, command = command,
+      endUserId = '12345678-1234-4234-9234-123456789abc'}
+    jsonFixtures['memory-status'] = memoryStatus
+    files['runtime/memory-status.json'] = 'memory-status'
+  end
+  local function memoryWrites()
+    local count = 0
+    for _, write in ipairs(fileWrites) do if write.path == 'runtime/memory-command.json.tmp' then count = count + 1 end end
+    return count
+  end
+  local function memoryRequest()
+    local raw = files['runtime/memory-command.json']
+    return raw and json.decode(raw) or nil
+  end
+  local function memoryResult(command, state)
+    return {id = command.id, scope = command.scope, profileKey = command.profileKey, state = state,
+      message = 'Provider detail contains player 12345678-1234-4234-9234-123456789abc'}
+  end
+  local function reloadMemory()
+    loaded = registered.loadMod('manager')
+    return manager.snapshot(player).memory
+  end
+  local function token() return assert(manager.snapshot(player).memory.confirmation).token end
+`;
+
+test('native Memory settings use the contacted count and full catalogue without inviting a character or exposing identity', () => {
+  run(`${mcmFixture}${memoryFixture}
+    assert(invoke('tab:settings').ok)
+    assert(row('memory-service').value == 'Unavailable' and row('memory:forget-all').disabled)
+    assert(not invoke('memory:forget-all').ok and memoryWrites() == 0)
+    publishMemory(3, {{profileKey = 'johnny-silverhand'}, {profileKey = 'person-20'}, {profileKey = 'viktor-vektor'}})
+    reloadMemory()
+    assert(row('memory-count').value == '3' and not row('memory:forget-all').disabled)
+    assert(row('memory:forget-character').disabled, 'selection must be explicit')
+    assert(invoke('memory:choose').ok and row('memory:next'))
+    assert(not row('memory:select:person-20'))
+    handlers.McmUiEmitSearch(nil, 'content', 'pErSoN 20')
+    for _ = 1, 6 do mcm.update(player, false) end
+    assert(row('memory:select:person-20') and not row('memory:select:person-19'))
+    assert(invoke('memory:select:person-20').ok)
+    assert(row('memory:choose').value == 'Person 20' and not row('memory:forget-character').disabled)
+    assert(#members == 0 and #spawned == 0 and memoryWrites() == 0)
+    assert(saved.memoryProfileKey == nil and saved.endUserId == nil)
+    for _, category in ipairs(loaded.categories) do
+      for _, value in ipairs(category.settings) do
+        local text = tostring(value.label) .. tostring(value.value) .. tostring(value.description)
+        assert(not text:find(memoryStatus.endUserId, 1, true), 'raw player identity reached MCM')
+      end
+    end
+    assert(row('memory-chat-history').description:find('saved Chat messages remain', 1, true))
+    manager.selectMemoryCharacter('person-19'); reloadMemory()
+    assert(row('memory:forget-character').disabled and not invoke('memory:forget-character').ok)
+  `);
+});
+
+test('memory clear needs a separate confirmation, cancel sends nothing and deliberate double activation sends one command', () => {
+  run(`${mcmFixture}${memoryFixture}
+    publishMemory(2, {{profileKey = 'johnny-silverhand'}, {profileKey = 'person-20'}})
+    assert(invoke('tab:settings').ok)
+    assert(invoke('memory:forget-all').ok)
+    local cancelled = token()
+    assert(row('memory-confirmation').value:find('all 2 characters', 1, true))
+    assert(memoryWrites() == 0 and memoryRequest() == nil)
+    assert(not manager.beginMemoryClear('all'))
+    assert(invoke('memory:cancel:' .. cancelled).ok)
+    assert(row('memory-feedback').value == 'Memory clear cancelled.')
+    assert(not manager.confirmMemoryClear(cancelled) and memoryWrites() == 0)
+    assert(manager.selectMemoryCharacter('person-20'))
+    reloadMemory()
+    assert(invoke('memory:forget-character').ok)
+    local confirmation = token()
+    assert(confirmation ~= cancelled)
+    assert(row('memory-confirmation').value:find('Person 20', 1, true))
+    assert(not invoke('memory:forget-character').ok and memoryWrites() == 0)
+    assert(invoke('memory:confirm:' .. confirmation).ok)
+    local command = assert(memoryRequest())
+    assert(command.version == 1 and command.action == 'clear' and command.scope == 'character')
+    assert(command.profileKey == 'person-20' and command.issuedAt == memoryClock * 1000.0)
+    assert(command.id:match('^%x+%-%x+%-%x+%-%x+%-%x+:%d+$'))
+    assert(command.id:sub(15, 15) == '4' and command.id:sub(20, 20):match('[89ab]'))
+    assert(command.endUserId == nil and memoryWrites() == 1)
+    assert(row('memory-feedback').value:find('Clearing memories', 1, true))
+    assert(row('memory:forget-character').disabled and row('memory:forget-all').disabled)
+    assert(not invoke('memory:confirm:' .. confirmation).ok)
+    assert(not manager.confirmMemoryClear(confirmation) and not manager.beginMemoryClear('all'))
+    for _ = 1, 25 do mcm.update(player, false) end
+    assert(memoryWrites() == 1, 'pending cloud work was sent again')
+  `);
+});
+
+test('memory completion requires exact ID, scope, profile and a current result; old success cannot complete a later request', () => {
+  run(`${mcmFixture}${memoryFixture}
+    publishMemory(2, {{profileKey = 'johnny-silverhand'}, {profileKey = 'person-20'}})
+    assert(invoke('tab:settings').ok)
+    assert(manager.selectMemoryCharacter('johnny-silverhand'))
+    reloadMemory(); assert(invoke('memory:forget-character').ok)
+    assert(invoke('memory:confirm:' .. token()).ok)
+    local first = memoryRequest()
+    local wrong = memoryResult(first, 'succeeded'); wrong.id = 'unrelated'
+    publishMemory(2, nil, 'ready', wrong); assert(reloadMemory().command.state == 'pending')
+    wrong = memoryResult(first, 'succeeded'); wrong.scope, wrong.profileKey = 'all', nil
+    publishMemory(2, nil, 'ready', wrong); assert(reloadMemory().command.state == 'pending')
+    wrong = memoryResult(first, 'succeeded'); wrong.profileKey = 'person-20'
+    publishMemory(2, nil, 'ready', wrong); assert(reloadMemory().command.state == 'pending')
+    publishMemory(2, nil, 'ready', memoryResult(first, 'succeeded'), first.issuedAt - 1)
+    assert(reloadMemory().command.state == 'pending')
+    publishMemory(2, nil, 'ready', memoryResult(first, 'succeeded'))
+    assert(reloadMemory().command.state == 'succeeded')
+    assert(row('memory-feedback').value:find('confirmed for Johnny Silverhand', 1, true))
+    assert(not row('memory-feedback').value:find(memoryStatus.endUserId, 1, true))
+    publishMemory(2, nil, 'ready', memoryResult(first, 'failed'), first.issuedAt - 1)
+    assert(reloadMemory().command.state == 'succeeded', 'late state replaced known completion')
+    publishMemory(2, nil)
+    reloadMemory(); assert(invoke('memory:forget-all').ok)
+    assert(invoke('memory:confirm:' .. token()).ok)
+    local second = memoryRequest()
+    assert(first.id ~= second.id and second.id:sub(-2) == ':2' and second.scope == 'all' and second.profileKey == nil)
+    publishMemory(2, nil, 'ready', memoryResult(first, 'succeeded'))
+    assert(reloadMemory().command.state == 'pending')
+    wrong = memoryResult(second, 'succeeded'); wrong.scope, wrong.profileKey = 'character', 'johnny-silverhand'
+    publishMemory(2, nil, 'ready', wrong); assert(reloadMemory().command.state == 'pending')
+    publishMemory(2, nil, 'ready', memoryResult(second, 'failed'))
+    assert(reloadMemory().command.state == 'failed')
+    assert(row('memory-feedback').value:find('could not confirm', 1, true))
+    assert(not row('memory-feedback').value:find(memoryStatus.endUserId, 1, true))
+    assert(memoryWrites() == 2)
+  `);
+});
+
+test('pending memory commands survive manager, save and Lua reloads without a retry or timeout success', () => {
+  run(`${mcmFixture}${memoryFixture}
+    math.randomseed(42)
+    publishMemory(1, {{profileKey = 'person-20'}})
+    assert(invoke('tab:settings').ok)
+    assert(manager.selectMemoryCharacter('person-20'))
+    reloadMemory(); assert(invoke('memory:forget-character').ok)
+    assert(invoke('memory:confirm:' .. token()).ok)
+    local command, raw = memoryRequest(), files['runtime/memory-command.json']
+    manager.reset(); player.hash = 'player-2'; mcm.resetSession()
+    assert(reloadMemory().command.id == command.id)
+    assert(manager.snapshot(player).memory.command.state == 'pending' and memoryWrites() == 1)
+    memoryClock = memoryClock + 60
+    local state = reloadMemory()
+    assert(state.state == 'unavailable' and state.command.state == 'pending')
+    assert(row('memory-feedback').value:find('Waiting for the result', 1, true))
+    assert(not manager.beginMemoryClear('all') and files['runtime/memory-command.json'] == raw)
+    manager = (function() ${managerSource} end)()
+    manager.configure(api, profiles)
+    state = manager.snapshot(player).memory
+    assert(state.command.id == command.id and state.command.state == 'pending' and memoryWrites() == 1)
+    publishMemory(1, nil, 'unavailable', memoryResult(command, 'succeeded'), command.issuedAt + 1000)
+    state = manager.snapshot(player).memory
+    assert(state.command.state == 'succeeded' and state.state == 'unavailable')
+    assert(not manager.beginMemoryClear('all') and memoryWrites() == 1)
+    publishMemory(1, nil)
+    math.randomseed(42)
+    assert(manager.beginMemoryClear('all'))
+    local nextToken = manager.snapshot(player).memory.confirmation.token
+    assert(manager.confirmMemoryClear(nextToken))
+    assert(memoryRequest().id ~= command.id and memoryWrites() == 2, 'fresh Lua RNG reused a command ID')
+  `);
+});
+
+test('memory confirmation is cancelled on save reset, rejects a changed all count and handles service loss before submission', () => {
+  run(`${mcmFixture}${memoryFixture}
+    publishMemory(2, nil)
+    assert(invoke('tab:settings').ok and invoke('memory:forget-all').ok)
+    local first = token()
+    publishMemory(3, nil)
+    assert(not manager.confirmMemoryClear(first) and memoryWrites() == 0)
+    reloadMemory(); assert(not row('memory-confirmation'))
+    assert(invoke('memory:forget-all').ok)
+    local second = token()
+    publishMemory(3, nil, 'unavailable')
+    reloadMemory(); assert(row('memory:confirm:' .. second).disabled)
+    assert(not invoke('memory:confirm:' .. second).ok and memoryWrites() == 0)
+    assert(invoke('memory:cancel:' .. second).ok and memoryWrites() == 0)
+    publishMemory(3, nil)
+    reloadMemory(); assert(invoke('memory:forget-all').ok)
+    local third = token()
+    mcm.resetSession(); reloadMemory()
+    assert(not manager.confirmMemoryClear(third) and not row('memory-confirmation'))
+    assert(memoryWrites() == 0 and memoryRequest() == nil)
+  `);
+});
+
+test('failed command publication shows failure, does not retry and leaves an earlier durable command intact', () => {
+  run(`${mcmFixture}${memoryFixture}
+    publishMemory(1, nil)
+    assert(invoke('tab:settings').ok and invoke('memory:forget-all').ok)
+    local first = token()
+    failSave = true
+    assert(not invoke('memory:confirm:' .. first).ok)
+    failSave = false
+    reloadMemory()
+    assert(row('memory-feedback').value:find('could not be sent', 1, true))
+    assert(not manager.confirmMemoryClear(first) and memoryWrites() == 0 and memoryRequest() == nil)
+    assert(invoke('memory:forget-all').ok and invoke('memory:confirm:' .. token()).ok)
+    local command, raw = memoryRequest(), files['runtime/memory-command.json']
+    publishMemory(1, nil, 'ready', memoryResult(command, 'succeeded')); reloadMemory()
+    assert(invoke('memory:forget-all').ok)
+    local failing = token()
+    local rename = os.rename
+    os.rename = function(from, to)
+      if from == 'runtime/memory-command.json.tmp' then return nil end
+      return rename(from, to)
+    end
+    assert(not invoke('memory:confirm:' .. failing).ok)
+    os.rename = rename
+    for _ = 1, 10 do mcm.update(player, false) end
+    assert(files['runtime/memory-command.json'] == raw and memoryRequest().id == command.id)
+    assert(not files['runtime/memory-command.json.tmp'] and not files['runtime/memory-command.json.previous'])
+    assert(not manager.confirmMemoryClear(failing) and memoryWrites() == 2)
+  `);
+});
+
+test('memory recovery reads an interrupted publication backup and blocks a corrupt previous request', () => {
+  run(`${managerFixture}${memoryFixture}
+    publishMemory(1, nil)
+    local prior = {version = 1, id = 'saved-ui-session:4', action = 'clear', scope = 'all', issuedAt = memoryClock * 1000.0}
+    jsonFixtures.previous = prior
+    files['runtime/memory-command.json.previous'] = 'previous'
+    manager.configure(api, profiles)
+    assert(manager.snapshot(player).memory.command.id == prior.id)
+    assert(not manager.beginMemoryClear('all') and memoryWrites() == 0)
+    files['runtime/memory-command.json.previous'] = 'corrupt'
+    manager = (function() ${managerSource} end)()
+    manager.configure(api, profiles)
+    local state = manager.snapshot(player).memory
+    assert(state.state == 'unavailable' and state.feedback:find('could not be read', 1, true))
+    assert(not manager.beginMemoryClear('all') and memoryWrites() == 0)
+  `);
+});
+
 test('MCM schema uses native controls, operates on current copies while paused, and preserves setting drafts', () => {
   run(`${mcmFixture}
     assert(registered.apiVersion == 2 and registered.listMods().mods[1].name == 'Companion Manager')
@@ -465,11 +718,11 @@ test('installed MCM API accepts the provider, actions, draft transactions and dy
         const key = `modules/${file.replaceAll('\\', '/').slice(0, -4)}`;
         return `package.preload[${JSON.stringify(key)}] = function()\n${readFileSync(path.join(root, 'modules', file), 'utf8')}\nend`;
       }).join('\n');
-    run(`${mcmFixture}
+    run(`${mcmFixture}${memoryFixture}
       mcm.shutdown()
       local encoded, jsonSequence = {}, 0
       json = {encode = function(value) jsonSequence = jsonSequence + 1; local id = 'json-' .. jsonSequence; encoded[id] = value; return id end,
-        decode = function(value) return encoded[value] or saved or {} end}
+        decode = function(value) return encoded[value] or jsonFixtures[value] or saved or {} end}
       ${preloads}
       local core = require('modules/core')
       core.init()
@@ -482,12 +735,16 @@ test('installed MCM API accepts the provider, actions, draft transactions and dy
       assert(actual.invokeAction(key .. ':invite:johnny-silverhand'))
       assert(#spawned == 0 and #mcm.inspect().party == 1)
       assert(actual.invokeAction(key .. ':tab:settings'))
+      publishMemory(2, {{profileKey = 'johnny-silverhand'}, {profileKey = 'person-20'}})
+      assert(actual.reloadMod(key))
+      assert(actual.getValue(key .. ':memory-count') == '2')
       assert(actual.setDraft(key .. ':voice', false))
       assert(actual.setDraft(key .. ':omniSteps', 1))
       assert(actual.setDraft(key .. ':voiceProvider', 2))
       assert(actual.setDraft(key .. ':subtitleStyle', 1))
       assert(actual.setDraft(key .. ':battleReactions', false))
       assert(actual.invokeAction(key .. ':tab:characters') == false)
+      assert(actual.invokeAction(key .. ':memory:forget-all') == false and memoryWrites() == 0)
       local ok, err = actual.apply(key)
       assert(ok, err)
       assert(actual.getValue(key .. ':voice') == false and actual.getValue(key .. ':omniSteps') == 1)
@@ -496,6 +753,26 @@ test('installed MCM API accepts the provider, actions, draft transactions and dy
       assert(manager.snapshot(player).settings.voiceProvider == 'convai')
       assert(actual.getValue(key .. ':subtitleStyle') == 1 and manager.subtitleStyle() == 'overhead')
       assert(not manager.battleReactions() and actual.getValue(key .. ':battleReactions') == false)
+      assert(actual.invokeAction(key .. ':memory:choose'))
+      assert(actual.invokeAction(key .. ':memory:next'))
+      assert(actual.invokeAction(key .. ':memory:select:person-20'))
+      assert(actual.getValue(key .. ':memory:choose') == 'Person 20' and #members == 0)
+      assert(actual.invokeAction(key .. ':memory:forget-character'))
+      local cancelToken = token()
+      assert(actual.invokeAction(key .. ':memory:cancel:' .. cancelToken) and memoryWrites() == 0)
+      assert(actual.invokeAction(key .. ':memory:forget-all'))
+      local confirmToken = token()
+      assert(actual.invokeAction(key .. ':memory:confirm:' .. confirmToken))
+      local command = assert(memoryRequest())
+      assert(command.scope == 'all' and command.profileKey == nil and memoryWrites() == 1)
+      assert(actual.invokeAction(key .. ':memory:confirm:' .. confirmToken) == false)
+      assert(actual.invokeAction(key .. ':memory:forget-all') == false)
+      local old = memoryResult(command, 'succeeded'); old.id = 'another-command'
+      publishMemory(2, nil, 'ready', old); assert(actual.reloadMod(key))
+      assert(manager.snapshot(player).memory.command.state == 'pending')
+      publishMemory(2, nil, 'ready', memoryResult(command, 'succeeded')); assert(actual.reloadMod(key))
+      assert(actual.getValue(key .. ':memory-feedback'):find('Memory clear confirmed', 1, true))
+      assert(memoryWrites() == 1 and #spawned == 0, 'memory controls caused world work or retried')
       assert(actual.invokeAction(key .. ':tab:party'))
       assert(actual.invokeAction(key .. ':dismiss:queued:1'))
       assert(#mcm.inspect().party == 0 and #spawned == 0)

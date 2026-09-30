@@ -163,8 +163,61 @@ without Node-only dependencies. These checks do not establish audible in-game
 seamlessness, absence of visible rig interpolation artifacts, or measured
 first-native-playback improvement; those require the installed game test.
 
-Warm results additionally expose `registration: {verified, endUserId,
-characterId}` for the memory registration worker. `endUserId` is the SDK's
-server-response state; `characterId` is its public connected-configuration
-getter. Missing or mismatched echoes remain unverified, including anonymous
-connections. No credentials or registration metadata are added to speech logs.
+Live conversations now supply the player's one persistent `endUserId`; see
+`docs/PLAYER_MEMORY.md`. Anonymous transport remains covered for legacy callers,
+but no archive registration worker participates in production routing. Both newly
+ready and reused connections verify the SDK before returning ready or sending input.
+The installed SDK represents anonymous identity as explicit `null`: missing,
+malformed, empty, or unexpected values fail closed instead of being normalized.
+An identified connection requires the exact requested user echo. Both modes
+also require the requested character getter to match. Mismatch closes only the
+offending connection and reports a generic error without the raw identifiers.
+Microphone finish and idle readiness recheck the previously verified identity.
+
+Warm results expose `registration: {verified, endUserId, characterId}` as an
+identity receipt. `endUserId` is the SDK's server-response state;
+`characterId` is its public connected-configuration getter. Anonymous connections
+are ready but have `registration.verified: false`, because they establish no
+player identity. Supplied and returned session IDs are recorded only after
+verification succeeds; preflight still rejects already-known conflicting
+owners. No credentials or registration metadata are added to speech logs.
+
+On retirement the host asks the SDK to disconnect, with a 2.5-second local
+deadline, before forcing page closure. Group shutdown gives all ready pages
+their grace period concurrently. This is not a provider extraction flush receipt.
+Microphone leases retain their host epoch, so a finish arriving during that
+disconnect grace cannot bind a retired session. Reply and stream files also
+recheck synchronous world/memory reset guards immediately before their final
+rename. The short commit uses a synchronous rename; writing audio and temporary
+files remains asynchronous.
+Phone text replies retire their transport after each completed turn while
+retaining the returned character session ID for continuation; companion world
+connections remain warm from spawn.
+
+### Installed timing check, September 30
+
+The first v2 Convai reply completed eight native segments. The user reported
+that onset still felt slow. Its existing cursor-based onset estimate was
+5.05 seconds from bridge admission: first source audio 2.16 seconds, first
+PCM chunk 3.26 seconds, publication 4.80 seconds. Subsequent segment gaps were
+19–27 ms. The onset estimate can run late by the age of the sampled speech-state
+file; it is not an acoustic measurement.
+
+The accepted request contained 516 KB, mostly historical journal entries.
+`current()` reparsed it and computed two identities, each revalidating the
+complete input. Ten such checks occurred before first publication. On the
+captured request, 24 warmed offline trials measured 73.39 ms median for the old
+guard versus 2.63 ms for reading and comparing its exact accepted bytes.
+
+The bridge now validates the request at admission and compares exact original
+bytes during playback, while retaining reaction, world, owner and cancellation
+checks. Any replacement, including changed context under the same request ID,
+invalidates the old request. The one-second PCM buffer and original audio are
+unchanged. New metrics separately record pre-transport preparation and native
+preparation of the first chunk.
+
+Two subsequent live Judy replies estimated onset at 4.06 and 3.70 seconds,
+with warm connections and first provider audio at 2.24 and 2.07 seconds.
+First-chunk native preparation took 93 and 103 ms. The user confirmed that it
+felt better. This is an installed before/after observation, not a controlled
+provider benchmark or a guarantee for future network conditions.

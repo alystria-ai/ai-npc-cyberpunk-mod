@@ -1,5 +1,9 @@
 # Bounded player identities and save-aware memory
 
+> Historical design, superseded September 30. The current runtime uses exactly
+> one persistent ID and natural conversation memory with explicit Forget controls.
+> See [PLAYER_MEMORY.md](../../docs/PLAYER_MEMORY.md); do not resume this prototype.
+
 Updated 2026-09-30. This contract supersedes the earlier proposal to send a different Convai end-user ID for every branch or group. Production memory remains gated off pending native save and provider qualification. **Observed correction:** the deployed provider rejects anonymous connections when that character's global LTM setting is enabled (HTTP 400). The remaining candidate is explicit REST with global LTM disabled; its disposable qualification is recorded separately. Local tests are not proof of this compatibility.
 
 ## Product invariants

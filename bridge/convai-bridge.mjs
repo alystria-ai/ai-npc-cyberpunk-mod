@@ -1,8 +1,7 @@
-import {readFile, writeFile, rename, stat, mkdir} from 'node:fs/promises';
+import {readFile, stat, mkdir} from 'node:fs/promises';
 import {resolve, dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {parseInput, profileFor} from './protocol.mjs';
-import {requestReply} from './convai-client.mjs';
 import {audioReady} from './speech-audio.mjs';
 import {buildFacialTimeline} from './facial-timeline.mjs';
 import {PhoneticLipsync} from './phonetic-lipsync.mjs';
@@ -20,11 +19,13 @@ import {LOCAL_VOICE_KEYS} from './resident-voice.mjs';
 import {VoiceSelection} from './voice-selection.mjs';
 import {PhoneChat, parsePhoneState} from './phone-chat.mjs';
 import {GameLaunchIdentity, identifyGameLaunch} from './game-launch.mjs';
-import {KnowledgeService} from './knowledge-service.mjs';
-import {KnowledgeRouter} from './conversation-knowledge.mjs';
+import {PlayerMemory} from './player-memory.mjs';
+import {PlayerMemoryApi} from './player-memory-api.mjs';
+import {PlayerMemoryControl} from './player-memory-control.mjs';
+import {PlayerKnowledge} from './player-knowledge.mjs';
 import {ConvaiAudioStream} from './convai-audio-stream.mjs';
-import {PhoneKnowledge} from './phone-knowledge.mjs';
-import {KnowledgeCloud} from './knowledge-cloud.mjs';
+import {PlayerPhoneKnowledge, playerPhoneGeneration} from './player-phone-knowledge.mjs';
+import {atomicFile as atomic} from './guarded-file.mjs';
 
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const stateDirectory = resolve(process.env.CYBERPUNK_CONVAI_STATE || resolve(project, 'runtime'));
@@ -53,32 +54,21 @@ await mkdir(runtime, {recursive: true});
 
 const knowledgePack = JSON.parse(await readFile(resolve(project, 'characters/world-knowledge.json'), 'utf8'));
 const questCatalog = JSON.parse(await readFile(resolve(project, 'research/cyberpunk/generated/quest-catalog.json'), 'utf8'));
-const knowledgePolicy = JSON.parse(await readFile(resolve(stateDirectory, 'knowledge-policy.json'), 'utf8').catch(() => '{}'));
-// Live conversations stay anonymous. A bounded, shared provider ID may only
-// archive explicit REST memories after save restoration and the API qualify.
-// Loading a save or changing a party must never allocate a provider identity.
-const restArchiveEnabled = knowledgePolicy.version === 1 && knowledgePolicy.nativeQualified === true
-  && knowledgePolicy.providerQualified === true && knowledgePolicy.remoteSlotsQualified === true
-  && knowledgePolicy.mode === 'explicit-rest-anonymous-live-v1'
-  && knowledgePolicy.enabled === true;
-const knowledge = await KnowledgeService.open({runtimeDir: runtime,
-  ledgerPath: resolve(stateDirectory, 'quest-memory.json'), pack: knowledgePack,
-  cloudQualified: restArchiveEnabled, restMemoryEnabled: restArchiveEnabled,
-  factIdentityEnabled: knowledgePolicy.nativeQualified === true && knowledgePolicy.nativeStorage === 'quest-facts-v1'});
-let worldSession = null, knowledgePolling = false, memoryBinding = '';
+// One local player ID is shared across all characters and saves. No save facts,
+// branch IDs, manual memory archive or provider-ID pool participates in routing.
+let worldSession = null, knowledgePolling = false, memoryQuiescing = 0;
+const currentBoundary = () => worldSession?.ready === true
+  && Date.now() - worldSession.updated < 5000
+  ? {worldToken: worldSession.token, generation: worldSession.generation} : null;
 const worldCurrent = boundary => {
-  const current = knowledge.saveIdentity;
-  if (current.status === 'verified') return current.worldGeneration === boundary.generation && current.worldToken === boundary.worldToken;
-  return worldSession?.ready === true && Date.now() - worldSession.updated < 5000
-    && worldSession.token === boundary.worldToken && worldSession.generation === boundary.generation;
+  const current = currentBoundary();
+  return !!current && current.worldToken === boundary.worldToken && current.generation === boundary.generation;
 };
-const knowledgeRouter = new KnowledgeRouter({service: knowledge, questCatalog,
-  identifiedEnabled: false, isWorldCurrent: worldCurrent});
-const phoneKnowledge = new PhoneKnowledge({router: knowledgeRouter, service: knowledge,
-  getBoundary: () => worldSession?.ready && Date.now() - worldSession.updated < 5000
-    ? {worldToken: worldSession.token, generation: worldSession.generation} : null});
-const knowledgeCloud = new KnowledgeCloud({coordinator: knowledge, key, ids, policy: knowledgePolicy,
-  qualificationPath: resolve(stateDirectory, 'memory-qualification/receipt.json')});
+const playerMemory = await PlayerMemory.open({path: resolve(stateDirectory, 'player-memory.json'),
+  characterIds: ids, provider: new PlayerMemoryApi({key, characterIds: ids}), quiesce: quiescePlayerMemory});
+const knowledgeRouter = new PlayerKnowledge({playerMemory, pack: knowledgePack, questCatalog,
+  isWorldCurrent: worldCurrent, getBoundary: currentBoundary});
+const phoneKnowledge = new PlayerPhoneKnowledge({router: knowledgeRouter, getBoundary: currentBoundary});
 const phoneRealtime = new RealtimeHost();
 const knowledgeTurns = new Map();
 function rememberKnowledgeTurn(prepared) {
@@ -112,24 +102,32 @@ try { phoneSessions = JSON.parse(await readFile(phoneSessionPath, 'utf8')) || {}
 const phone = new PhoneChat({
   contacts: JSON.parse(await readFile(resolve(project, 'characters/phone-contacts.json'), 'utf8')), ids,
   contextFor: options => phoneKnowledge.prepareContext(options),
+  contextCurrent: context => phoneKnowledge.current(context),
+  contextCurrentSync: context => phoneKnowledge.currentSync(context),
   reply: async options => {
     const prepared = await phoneKnowledge.preparedFor(options);
     if (!await knowledgeRouter.current(prepared)) throw Error('Phone world changed');
     const remote = prepared.remoteConfig || {};
-    if ((options.endUserId || null) !== (remote.endUserId || null)) throw Error('Phone memory binding changed');
+    if (options.characterId !== prepared.guard.characterId
+        || options.endUserId !== remote.endUserId || options.scope !== prepared.scope
+        || options.sessionKey !== prepared.sessionKey
+        || options.remoteGeneration !== playerPhoneGeneration(prepared.guard)) throw Error('Phone memory binding changed');
+    const admitted = await admitPlayerConversation(prepared, {signal: options.signal});
     await knowledgeRouter.submitted(prepared);
     throwIfCancelled(options.signal);
     if (!await knowledgeRouter.current(prepared)) throw Error('Phone world changed');
     rememberKnowledgeTurn(prepared);
-    const result = await phoneRealtime.reply({key, characterId: options.characterId, sessionId: options.sessionId,
-      scope: prepared.scope || 'phone', ...remote, context: conversationContext(prepared.input),
-      text: options.input.text, ttsEnabled: false}, {signal: options.signal});
+    const result = await phoneRealtime.reply({key, characterId: options.characterId,
+      sessionId: admitted.reconnectRequired ? undefined : options.sessionId,
+      scope: prepared.scope, ...remote,
+      context: conversationContext(prepared.input),
+      text: options.input.text, ttsEnabled: false}, {signal: options.signal, discard: true});
     if (!await knowledgeRouter.current(prepared)) throw Error('Phone world changed');
     await knowledgeRouter.activity(prepared, 'generated-reply', {replyText: result.text});
     stagedKnowledgeTurn(prepared);
     return result;
   },
-  publish: value => atomic(phoneOutput, JSON.stringify(value)),
+  publish: (value, options) => atomic(phoneOutput, JSON.stringify(value), options),
   sessions: phoneSessions, saveSessions: value => atomic(phoneSessionPath, JSON.stringify(value)),
 });
 let phonePolling = false;
@@ -170,7 +168,7 @@ const slots = new SpeechSlots({depot: audioDepot, readState: readSpeechState});
 let streamWriting = Promise.resolve(), streaming = 0;
 function writeStreamManifest(document, current) {
   const job = streamWriting.catch(() => {}).then(async () => {
-    if (await current()) await atomic(resolve(runtime, 'speech-stream.json'), JSON.stringify(document));
+    if (await current()) await atomic(resolve(runtime, 'speech-stream.json'), JSON.stringify(document), {isCurrent: current, isCurrentSync: current.sync});
   });
   streamWriting = job; return job;
 }
@@ -197,7 +195,7 @@ const realtimeConfig = input => ({key, characterId: ids[input.profileKey], sessi
   scope: routeFor(input)?.scope || conversationScope(input), ...(routeFor(input)?.remoteConfig || {}),
   context: conversationContext(input), text: battleTrigger(input), reaction: input.reaction,
   ttsEnabled: !localVoice.usesProfile(input.profileKey)});
-const warmRoute = (profile, scope) => knowledgeRouter.configFor(profile, scope,
+const warmRoute = (profile, scope) => memoryQuiescing ? null : knowledgeRouter.configFor(profile, scope,
   {worldToken: worldSession?.token, generation: worldSession?.generation});
 const connections = new PartyConnections({host: realtime,
   isKnown: profile => Object.hasOwn(ids, profile) && !!warmRoute(profile, 'private'),
@@ -261,18 +259,6 @@ async function synthesizePhrase(profile, text, options) {
   }
 }
 
-async function atomic(path, data) {
-  const temp = path + '.' + randomUUID() + '.tmp';
-  await writeFile(temp, data);
-  for (let attempt = 0; ; attempt++) {
-    try { await rename(temp, path); return; }
-    catch (error) {
-      if (attempt >= 4 || !['EPERM', 'EACCES', 'EBUSY'].includes(error.code)) throw error;
-      await new Promise(done => setTimeout(done, 20));
-    }
-  }
-}
-
 async function status(state, detail = '') {
   await atomic(statusPath, JSON.stringify({state, detail: detail.slice(0, 200), updated: Date.now()}));
 }
@@ -288,9 +274,10 @@ async function streamConvaiReply(input, profile, current, signal) {
       const row = await stream.append(chunk);
       if (chunk.index !== 1) return;
       if (!await current()) throw Error('Conversation changed before playback');
-      await atomic(replyPath, JSON.stringify({requestId: input.requestId, generation: input.generation,
+      const committed = await atomic(replyPath, JSON.stringify({requestId: input.requestId, generation: input.generation,
         entity: input.entity, profile: profile.key, text: chunk.text, audio: row.audio, face: row.face,
-        stream: stream.descriptor(), updated: Date.now()}));
+        stream: stream.descriptor(), updated: Date.now()}), {signal, isCurrent: current, isCurrentSync: current.sync});
+      if (!committed || !await current()) throw Error('Conversation changed before playback');
       livePublished.add(input);
       await measure(input, {transport: 'realtime', publishedAt: Date.now(),
         firstChunkReceivedAt: chunkReceivedAt, firstChunkNativePreparationMs: Date.now() - chunkReceivedAt,
@@ -307,8 +294,6 @@ async function streamConvaiReply(input, profile, current, signal) {
 }
 
 async function respond(input, profile, {signal, prepared, current} = {}) {
-  const scopedSession = sessionKey(input);
-  const context = conversationContext(input);
   if (await audioReady(runtime)) {
     if (prepared) {
       try { return await prepared; }
@@ -320,9 +305,9 @@ async function respond(input, profile, {signal, prepared, current} = {}) {
   }
   prefetch.invalidate(); prepared?.cancel();
   throwIfCancelled(signal);
-  return requestReply({key, characterId: ids[profile.key], text: context ? context
-      + (input.reaction ? '\nAutomatic game event: ' : '\nV says: ') + battleTrigger(input) : battleTrigger(input),
-    sessionId: sessions.get(scopedSession) || '-1', voice: false, signal});
+  // Text-only replies keep the same identified transport when native playback
+  // is unavailable; legacy HTTP does not document the player-memory binding.
+  return {...await realtime.reply({...realtimeConfig(input), ttsEnabled: false}, {signal}), transport: 'realtime'};
 }
 
 async function publishResult(input, profile, result, current = async () => true, signal) {
@@ -348,7 +333,7 @@ async function publishResult(input, profile, result, current = async () => true,
       await atomic(resolve(runtime, 'last-speech-timing.json'), JSON.stringify({
         requestId: input.requestId, faces: result.faces, facesFormat: result.facesFormat,
         captions: result.captions, duration: audio.duration, face,
-      }));
+      }), {signal, isCurrent: current, isCurrentSync: current.sync});
     } catch (error) {
       audio = undefined; face = undefined; stream = undefined;
       audioError = 'Voice could not be prepared; showing the written reply.';
@@ -356,9 +341,10 @@ async function publishResult(input, profile, result, current = async () => true,
     }
   }
   if (!await current()) return false;
-  await atomic(replyPath, JSON.stringify({requestId: input.requestId, generation: input.generation,
+  const committed = await atomic(replyPath, JSON.stringify({requestId: input.requestId, generation: input.generation,
     entity: input.entity, profile: profile.key, text: result.text, audio, face, audioError,
-    stream: stream?.descriptor(), updated: Date.now()}));
+    stream: stream?.descriptor(), updated: Date.now()}), {signal, isCurrent: current, isCurrentSync: current.sync});
+  if (!committed || !await current()) return false;
   (result.transport === 'realtime' ? realtimeSessions : sessions).set(sessionKey(input), result.sessionID);
   if (result.transport === 'realtime') connections.used(input, result.timing);
   prefetch.published(input, result.text);
@@ -398,21 +384,78 @@ const mic = new MicrophoneSession({hostFactory: () => realtime.voiceChannel(),
     const spoken = await synthesizeReply(input, {...result, transport: 'realtime'}, signal);
     await knowledgeRouter.activity(prepared, 'generated-reply', {replyText: result.text});
     stagedKnowledgeTurn(prepared);
-    await publishResult(input, profileFor(input, roster), spoken, async () => {
+    const current = async () => {
       if (stopped || signal?.aborted) return false;
       const latest = JSON.parse(await readFile(micPath, 'utf8').catch(() => '{}'));
       return latest.input?.requestId === input.requestId && latest.action !== 'cancel' && await knowledgeRouter.current(prepared);
-    }, signal);
+    };
+    current.sync = () => !stopped && !signal?.aborted && knowledgeRouter.currentSync(prepared);
+    await publishResult(input, profileFor(input, roster), spoken, current, signal);
   },
   onError: async (input, error) => {
     console.error('[CyberpunkConvai] Microphone:', error.message);
     const prepared = microphoneKnowledge.get(input.requestId);
-    if (prepared && !await knowledgeRouter.current(prepared)) return;
-    await atomic(resolve(runtime, 'microphone-state.json'), JSON.stringify({state: 'error', requestId: input.requestId, updated: Date.now()}));
+    const current = async () => {
+      if (stopped || (prepared && !await knowledgeRouter.current(prepared))) return false;
+      let latest; try { latest = JSON.parse(await readFile(micPath, 'utf8')); } catch { return false; }
+      return latest.input?.requestId === input.requestId && latest.action !== 'cancel';
+    };
+    current.sync = () => !stopped && (!prepared || knowledgeRouter.currentSync(prepared));
+    if (!await current()) return;
+    await atomic(resolve(runtime, 'microphone-state.json'), JSON.stringify({state: 'error', requestId: input.requestId, updated: Date.now()}), {isCurrent: current, isCurrentSync: current.sync});
     await atomic(replyPath, JSON.stringify({requestId: input.requestId, generation: input.generation,
-      entity: input.entity, error: 'Voice conversation failed. Check your microphone and try again.'}));
+      entity: input.entity, error: 'Voice conversation failed. Check your microphone and try again.'}), {isCurrent: current, isCurrentSync: current.sync});
   },
 });
+
+async function resetLiveRoutes({cancelTurns = true} = {}) {
+  // Clearing cloud memory must retire injected provider context and session
+  // history too. No native/save data or persistent player identity is changed.
+  if (cancelTurns) {
+    active?.controller.abort();
+    phone.close(); phoneKnowledge.clear();
+    await cancelMicrophone();
+  }
+  prefetch.invalidate();
+  await Promise.allSettled([realtime.close(), phoneRealtime.close()]);
+  await connections.clear();
+  sessions.clear(); realtimeSessions.clear(); knowledgeTurns.clear();
+  partyObserved = ''; prewarmObserved = ''; prefetchObserved = '';
+}
+
+async function quiescePlayerMemory({signal} = {}) {
+  throwIfCancelled(signal);
+  memoryQuiescing++;
+  try {
+    await resetLiveRoutes();
+    throwIfCancelled(signal);
+    return {quiesced: true};
+  } finally { memoryQuiescing--; }
+}
+
+async function admitPlayerConversation(prepared, {signal} = {}) {
+  throwIfCancelled(signal);
+  if (!prepared?.sendAllowed || !await knowledgeRouter.current(prepared)) throw Error('Conversation world changed');
+  // Automatic battle/loot replies never activate an unused character's memory.
+  if (prepared.input.reaction) return {reconnectRequired: false};
+  const admitted = await playerMemory.beginConversation({profileKey: prepared.route.profileKey,
+    guard: prepared.guard, source: 'player',
+    channel: prepared.route.transport === 'microphone' ? 'microphone' : prepared.route.channel,
+    requestId: prepared.input.requestId || prepared.input.id, signal});
+  throwIfCancelled(signal);
+  if (!await knowledgeRouter.current(prepared)) throw Error('Conversation memory changed');
+  const reconnectRequired = admitted.reconnectRequired === true || admitted.memoryEnabledNow === true;
+  if (reconnectRequired) {
+    // Memory is injected at connect. Discard pages warmed before this first
+    // actual conversation enabled the character's provider memory setting.
+    memoryQuiescing++;
+    try { await resetLiveRoutes({cancelTurns: false}); }
+    finally { memoryQuiescing--; }
+    throwIfCancelled(signal);
+    if (!await knowledgeRouter.current(prepared)) throw Error('Conversation world changed');
+  }
+  return {reconnectRequired};
+}
 
 async function pollMicrophone() {
   if (micPolling || stopped) return;
@@ -451,6 +494,8 @@ async function pollMicrophone() {
         await cancelMicrophone();
         const prepared = await knowledgeRouter.prepare({...input, source: 'microphone'},
           {worldToken: worldSession?.token, generation: worldSession?.generation});
+        try { await admitPlayerConversation(prepared); }
+        catch (error) { await mic.onError(input, error); return; }
         await knowledgeRouter.submitted(prepared);
         preparedInputs.set(prepared.input, prepared); microphoneKnowledge.clear();
         microphoneKnowledge.set(input.requestId, prepared); rememberKnowledgeTurn(prepared);
@@ -549,6 +594,8 @@ async function processInput(request, prepared) {
     return submitted !== null && submitted === request.raw && await reactionCurrent(input)
       && (!knowledgeTurn || await knowledgeRouter.current(knowledgeTurn));
   };
+  current.sync = () => !controller.signal.aborted && active === request && !stopped
+    && (!knowledgeTurn || knowledgeRouter.currentSync(knowledgeTurn));
   try {
     await cancelMicrophone();
     stages.cancelMicrophoneMs = performance.now() - preparationStarted;
@@ -557,7 +604,7 @@ async function processInput(request, prepared) {
     if (!profile || !ids[profile.key]) {
       await status('unmatched-npc', `No verified profile for ${input.name} (${input.bodyType})`);
       await atomic(replyPath, JSON.stringify({...input, text: undefined,
-        error: `${input.name} does not have a conversation profile configured yet.`}));
+        error: `${input.name} does not have a conversation profile configured yet.`}), {signal: controller.signal, isCurrent: current, isCurrentSync: current.sync});
       return;
     }
     knowledgeTurn = await knowledgeRouter.prepare(input, {worldToken: worldSession?.token, generation: worldSession?.generation});
@@ -566,6 +613,9 @@ async function processInput(request, prepared) {
     if (!await current()) return;
     // No speculative user turn may enter identified character memory.
     if (knowledgeTurn.remoteConfig?.endUserId) { prepared?.cancel(); prepared = undefined; }
+    const memoryStarted = performance.now();
+    await admitPlayerConversation(knowledgeTurn, {signal: controller.signal});
+    stages.memoryAdmissionMs = performance.now() - memoryStarted;
     await knowledgeRouter.submitted(knowledgeTurn);
     stages.submissionRecordedMs = performance.now() - preparationStarted;
     if (!await current()) return;
@@ -600,7 +650,7 @@ async function processInput(request, prepared) {
     await status('error', error.message).catch(() => {});
     if (input) await atomic(replyPath, JSON.stringify({requestId: input.requestId,
       generation: input.generation, entity: input.entity,
-      error: 'The conversation service could not reply. Please try again.'})).catch(() => {});
+      error: 'The conversation service could not reply. Please try again.'}), {signal: controller.signal, isCurrent: current, isCurrentSync: current.sync}).catch(() => {});
     console.error('[CyberpunkConvai] Bridge request failed:', error.message);
   } finally {
     if (knowledgeTurn && (controller.signal.aborted || !await current())) await cancelKnowledgeTurn(knowledgeTurn);
@@ -610,7 +660,7 @@ async function processInput(request, prepared) {
 
 let lastAudioHeartbeat = 0;
 async function pollPrefetch() {
-  if (prefetchPolling || stopped) return;
+  if (prefetchPolling || stopped || memoryQuiescing) return;
   prefetchPolling = true;
   try {
     prefetch.prune();
@@ -675,19 +725,6 @@ async function pollPrefetch() {
 }
 
 const deliveredReceipts = new Set();
-let cloudPolling = false;
-async function pollCloud() {
-  if (cloudPolling || stopped || !restArchiveEnabled || active || streaming || mic.current || micPolling || polling || phone.active) return;
-  cloudPolling = true;
-  try {
-    const result = await knowledgeCloud.pump();
-    // Do not reconnect speech with an archive ID for automatic recall. Only
-    // locally verified current-save records are supplied in dynamic context.
-    await atomic(resolve(runtime, 'knowledge-cloud-status.json'), JSON.stringify({version: 1, updated: Date.now(),
-      status: result.status, processed: result.processed || 0, acknowledged: result.acknowledged || 0,
-      reasons: result.reasons || [], archiveOnly: true, providerIdLimit: 3}));
-  } finally { cloudPolling = false; }
-}
 async function recordDelivery(receipt) {
   if (!receipt || typeof receipt.requestId !== 'string') return;
   const entry = knowledgeTurns.get(receipt.requestId);
@@ -712,24 +749,14 @@ async function pollKnowledge() {
     const valid = session?.version === 1 && typeof session.token === 'string' && session.token.length <= 200
       && Number.isSafeInteger(session.generation) && session.generation > 0 && typeof session.ready === 'boolean'
       && Number.isFinite(session.updated) && session.updated <= Date.now() + 1000 && Date.now() - session.updated < 5000;
-    const priorWorld = worldSession?.ready ? worldSession.token : null;
+    const priorWorld = worldSession?.ready ? JSON.stringify([worldSession.token, worldSession.generation]) : null;
     worldSession = valid ? session : null;
-    const nextWorld = worldSession?.ready ? worldSession.token : null;
-    await knowledge.refresh();
-    const owner = knowledge.saveIdentity;
-    // A short autosave/read interval cannot adopt a new identity. The original
-    // turn guards remain mandatory; native/world changes invalidate all routes.
-    const nextBinding = owner.status === 'verified'
-      ? JSON.stringify([owner.userId, owner.campaignId, owner.branchId, owner.activationId, owner.generation]) : memoryBinding;
-    if ((priorWorld && priorWorld !== nextWorld) || (memoryBinding && nextBinding !== memoryBinding)) {
-      knowledgeCloud.cancel();
-      phoneKnowledge.clear();
-      active?.controller.abort(); prefetch.invalidate(); phone.close();
-      await Promise.allSettled([mic.cancel(), connections.clear(), realtime.close(), phoneRealtime.close()]);
-      sessions.clear(); realtimeSessions.clear(); knowledgeTurns.clear();
-      partyObserved = ''; prewarmObserved = ''; prefetchObserved = '';
+    const nextWorld = worldSession?.ready ? JSON.stringify([worldSession.token, worldSession.generation]) : null;
+    if (priorWorld && priorWorld !== nextWorld) {
+      memoryQuiescing++;
+      try { await resetLiveRoutes(); }
+      finally { memoryQuiescing--; }
     }
-    memoryBinding = nextBinding;
     const speech = await readSpeechState();
     if (Number.isFinite(speech.updated) && Date.now() - speech.updated < 5000) await recordDelivery(speech.lastDelivery);
     let phoneDelivery;
@@ -739,10 +766,11 @@ async function pollKnowledge() {
       for (const receipt of phoneDelivery.receipts) await recordDelivery(receipt);
     }
     await atomic(resolve(runtime, 'knowledge-status.json'), JSON.stringify({version: 1, updated: Date.now(),
-      reason: knowledge.status().reason, bound: owner.status === 'verified', identifiedMemory: false,
-      restArchiveEnabled, providerIdLimit: 3, restPool: knowledge.restPoolStatus(),
+      reason: nextWorld ? 'current-world' : 'world-unavailable',
+      bound: playerMemory.status().available === true, identifiedMemory: true,
+      memoryMode: 'natural-conversations', providerIdLimit: 1,
       rules: knowledgePack.rules.filter(rule => rule.reviewed && /verified$/.test(rule.status)).length,
-      nativeGeneration: owner.generation, currentWorld: !!nextWorld}));
+      worldGeneration: worldSession?.generation, currentWorld: !!nextWorld}));
   } finally { knowledgePolling = false; }
 }
 
@@ -782,6 +810,9 @@ async function pollSettings(checkShutdown = true) {
     }
   } finally { settingsPolling = false; }
 }
+const memoryControl = await PlayerMemoryControl.open({memory: playerMemory,
+  commandPath: resolve(runtime, 'memory-command.json'),
+  publish: value => atomic(resolve(runtime, 'memory-status.json'), JSON.stringify(value))});
 await status('waiting');
 await pollSettings(false);
 await pollKnowledge();
@@ -793,18 +824,18 @@ const prefetchTimer = setInterval(() => { void pollPrefetch().catch(error => con
 const settingsTimer = setInterval(() => { void pollSettings().catch(error => console.error('[CyberpunkConvai] Settings poll:', error.message)); }, 500);
 const phoneTimer = setInterval(() => { void pollPhone().catch(error => console.error('[CyberpunkConvai] Phone poll:', error.message)); }, 150);
 const knowledgeTimer = setInterval(() => { void pollKnowledge().catch(error => console.error('[CyberpunkConvai] Knowledge poll:', error.message)); }, 500);
-const cloudTimer = setInterval(() => { void pollCloud().catch(error => console.error('[CyberpunkConvai] Memory sync:', error.message)); }, 5000);
+const memoryTimer = setInterval(() => { void memoryControl.poll().catch(error => console.error('[CyberpunkConvai] Memory control:', error.message)); }, 500);
 async function shutdown() {
   if (stopped) return;
   stopped = true; active?.controller.abort(); prefetch.invalidate();
   phone.close(); clearInterval(phoneTimer);
   phoneKnowledge.clear();
   clearInterval(knowledgeTimer);
-  clearInterval(cloudTimer);
+  clearInterval(memoryTimer);
   clearInterval(timer); clearInterval(micTimer); clearInterval(prefetchTimer); clearInterval(settingsTimer);
   await Promise.allSettled([localVoice.close(), mic.cancel(), connections.clear()]);
   await Promise.allSettled([realtime.close(), phoneRealtime.close()]);
-  await knowledgeCloud.close(); await knowledge.close();
+  await memoryControl.close(); await playerMemory.close();
   await Promise.allSettled([metricsWriting, connectionMetricsWriting, voiceMetricsWriting]);
   await status('stopped'); process.exit(0);
 }

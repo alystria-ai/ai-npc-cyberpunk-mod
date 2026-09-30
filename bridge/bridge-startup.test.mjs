@@ -1,12 +1,13 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {spawn} from 'node:child_process';
-import {mkdtemp, mkdir, readFile, writeFile, rename, rm, realpath} from 'node:fs/promises';
+import {mkdtemp, mkdir, readFile, writeFile, rm, realpath} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {basename, dirname, join} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {setTimeout as sleep} from 'node:timers/promises';
-import {QuestMemoryLedger} from './quest-memory.mjs';
+import {PlayerMemory} from './player-memory.mjs';
+import {atomicFile} from './guarded-file.mjs';
 
 const bridge = fileURLToPath(new URL('./convai-bridge.mjs', import.meta.url));
 const prefix = 'cyberpunk-bridge-startup-';
@@ -14,8 +15,7 @@ async function readJson(path) {
   try { return JSON.parse(await readFile(path, 'utf8')); } catch { return null; }
 }
 async function atomicJson(path, value) {
-  const pending = `${path}.test-write`;
-  await writeFile(pending, JSON.stringify(value)); await rename(pending, path);
+  return atomicFile(path, JSON.stringify(value));
 }
 async function until(read, accepts, label, log, timeout = 10000) {
   const deadline = Date.now() + timeout;
@@ -54,12 +54,12 @@ globalThis.fetch = forbidden('fetch'); globalThis.WebSocket = forbidden('WebSock
 syncBuiltinESMExports();
 `;
 
-test('real bridge starts anonymously in isolated storage, rejects stale worlds and shuts down without a ledger lock',
+test('real bridge retains one player ID across world changes without provider, browser or archive activity',
   {timeout: 40000}, async () => {
     const folder = await mkdtemp(join(tmpdir(), prefix));
     const state = join(folder, 'state'), game = join(folder, 'game');
     const runtime = join(game, 'bin', 'x64', 'plugins', 'cyber_engine_tweaks', 'mods', 'CyberpunkConvai', 'runtime');
-    const control = join(state, 'bridge-control.json'), ledgerPath = join(state, 'quest-memory.json');
+    const control = join(state, 'bridge-control.json'), memoryPath = join(state, 'player-memory.json');
     const sideEffects = join(folder, 'forbidden-side-effects.log'), guardFile = join(folder, 'guard.mjs');
     let child, closed = null, output = '', errors = '';
     const log = () => `exit=${JSON.stringify(closed)}\nstdout=${output}\nstderr=${errors}`;
@@ -69,7 +69,6 @@ test('real bridge starts anonymously in isolated storage, rejects stale worlds a
         writeFile(join(state, 'convai-key.txt'), 'api-key=isolated-test-key-not-a-real-credential\n'),
         writeFile(join(state, 'characters.json'), '{}'),
         writeFile(join(state, 'local-voices.json'), '{}'),
-        writeFile(join(state, 'knowledge-policy.json'), JSON.stringify({version: 1, enabled: false})),
         writeFile(join(runtime, 'settings.json'), JSON.stringify({voiceProvider: 'convai'})),
         writeFile(guardFile, sideEffectGuard),
       ]);
@@ -87,10 +86,13 @@ test('real bridge starts anonymously in isolated storage, rejects stale worlds a
       await until(() => readJson(bridgeStatus), value => value?.state === 'waiting', 'bridge did not reach waiting', log);
       const initial = await until(() => readJson(knowledgeStatus), value => value?.version === 1,
         'knowledge status was not published', log);
-      assert.equal(initial.bound, false); assert.equal(initial.identifiedMemory, false); assert.equal(initial.currentWorld, false);
+      assert.equal(initial.bound, true); assert.equal(initial.identifiedMemory, true); assert.equal(initial.currentWorld, false);
+      assert.equal(initial.memoryMode, 'natural-conversations'); assert.equal(initial.providerIdLimit, 1);
       assert.equal(closed, null, log());
-      const lock = await readJson(`${ledgerPath}.lock`);
-      assert.equal(lock?.pid, child.pid, 'the isolated bridge owns its isolated ledger lock');
+      const lock = await readJson(`${memoryPath}.lock`);
+      assert.equal(lock?.pid, child.pid, 'the isolated bridge owns its isolated player-memory lock');
+      const identity = await readJson(`${memoryPath}.identity`);
+      assert.match(identity?.endUserId ?? '', /^[0-9a-f-]{36}$/);
       const voice = await until(() => readJson(join(runtime, 'local-voice-state.json')),
         value => value?.provider === 'convai', 'Convai-only settings were not applied', log);
       assert.equal(voice.configured, false); assert.equal(voice.bridgePid, child.pid);
@@ -101,14 +103,14 @@ test('real bridge starts anonymously in isolated storage, rejects stale worlds a
         await atomicJson(sessionFile, {version: 1, updated: writtenAt, ...value});
         const status = await until(() => readJson(knowledgeStatus), result => result?.updated >= writtenAt
           && result.currentWorld === expected, `world heartbeat was not ${expected ? 'accepted' : 'invalidated'}`, log);
-        assert.equal(status.bound, false); assert.equal(status.identifiedMemory, false);
+        assert.equal(status.bound, true); assert.equal(status.identifiedMemory, true);
+        assert.deepEqual(await readJson(`${memoryPath}.identity`), identity);
+        assert.equal((await readJson(join(runtime, 'memory-status.json')))?.talkedToCount, 0);
         return status;
       }
-      // Local lifecycle tokens can support current dynamic context without
-      // claiming persistent identity. No chat requests or character IDs exist.
+      // World boundaries isolate current facts and transient sessions. Their
+      // transitions never allocate another player ID or contact a provider.
       await publishSession({token: 'test-local-world-1', generation: 1, ready: true}, true);
-      let binding = await readJson(join(runtime, 'knowledge-binding.json'));
-      assert.equal(binding?.status, 'unavailable'); assert.equal(binding?.identity?.authoritative, false);
       await publishSession({token: 'test-local-world-1', generation: 1, ready: true, updated: Date.now() - 7000}, false);
       await publishSession({token: 'test-local-world-2', generation: 2, ready: true}, true);
       await publishSession({token: 'test-local-world-2', generation: 2, ready: false}, false);
@@ -120,18 +122,20 @@ test('real bridge starts anonymously in isolated storage, rejects stale worlds a
       await until(async () => closed, value => value !== null, 'shutdown control did not end the bridge', log, 10000);
       assert.deepEqual(closed, {code: 0, signal: null}, log());
       assert.equal((await readJson(bridgeStatus))?.state, 'stopped');
-      binding = await readJson(join(runtime, 'knowledge-binding.json'));
-      assert.equal(binding?.reason, 'closed');
-      await assert.rejects(readFile(`${ledgerPath}.lock`), {code: 'ENOENT'});
-      const reopened = await QuestMemoryLedger.load({path: ledgerPath});
+      assert.equal((await readJson(join(runtime, 'memory-status.json')))?.state, 'unavailable');
+      await assert.rejects(readFile(`${memoryPath}.lock`), {code: 'ENOENT'});
+      for (const retiredPath of [join(state, 'quest-memory.json'), join(runtime, 'knowledge-binding.json')]) {
+        await assert.rejects(readFile(retiredPath), {code: 'ENOENT'});
+      }
+      const reopened = await PlayerMemory.open({path: memoryPath, characterIds: {}});
       try {
-        assert.equal(reopened.identity, null, 'anonymous heartbeats did not create a bound save identity');
-        assert.equal(reopened.status().bound, false);
-        assert.equal(reopened.status().branches, 0);
-        assert.equal(reopened.status().episodes, 0);
-        assert.deepEqual(reopened.status().outbox, {});
+        assert.equal((await readJson(memoryPath)).endUserId, identity.endUserId);
+        assert.deepEqual(await readJson(`${memoryPath}.identity`), identity);
+        assert.equal(reopened.status().available, true);
+        assert.equal(reopened.status().talkedToCount, 0);
+        assert.deepEqual(reopened.status().actions, []);
       } finally { await reopened.close(); }
-      await assert.rejects(readFile(`${ledgerPath}.lock`), {code: 'ENOENT'});
+      await assert.rejects(readFile(`${memoryPath}.lock`), {code: 'ENOENT'});
       const forbidden = await readFile(sideEffects, 'utf8').catch(error => error.code === 'ENOENT' ? '' : Promise.reject(error));
       assert.equal(forbidden, '', `bridge attempted an external side effect: ${forbidden}`);
       assert.doesNotMatch(errors, /poll:|Forbidden side effect|Unhandled|uncaught|TypeError|ReferenceError/, log());

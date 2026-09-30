@@ -18,9 +18,9 @@ local function copy(value)
 end
 local files,encoded,serial,events,hooks,hotkeys={},{},0,{},{},{}
 local allowNative,attached,dead,preGame,paused=false,true,false,false,false
-local nativeCalls,versionReads,factReads,historyReads,stateUpdates=0,0,0,0,0
+local nativeCalls,versionReads,factReads,historyReads,saveIdentityReads=0,0,0,0,0
 local now,gameVersion,factValue,journalVersion=1000,'2.31',1,1
-local nativeMissing,afterSnapshot,failPath=false,nil,nil
+local collectorReady,afterReady,failPath=true,nil,nil
 local order={}
 local function record(value)order[#order+1]=value end
 local function noop()end
@@ -39,22 +39,17 @@ io={open=function(path,mode)
 end}
 os.time=function()return now end
 os.remove=function(path)files[path]=nil;return true end
-os.rename=function(from,to)if not files[from]then return nil end;files[to],files[from]=files[from],nil;return true end
+os.rename=function(from,to)
+ if not files[from]then return nil end;files[to],files[from]=files[from],nil
+ if to=='runtime/world-session.json'and json.decode(files[to]).ready==false then record('world:unavailable')end
+ return true
+end
 local function stored(path)return files[path]and json.decode(files[path])end
 local function put(path,value)files[path]=json.encode(value)end
 local profiles={{key='judy-alvarez',name='Judy',records={}}, {key='alex',name='Alex',records={}},
  {key='resident-male',name='Resident',records={}}}
 put('conversation-characters.json',profiles)
 put('world-knowledge.json',{version=1,gameVersions={'2.31'},factAllowlist={observed_fact={evidenceRefs={'reviewed-proof'}}},journalAllowlist={}})
-local function frame(generation,branch)
- local activation=string.rep('a',32);branch=branch or string.rep('b',32)
- return {version=1,status='ready',generation=generation,worldToken=generation..':'..activation..':'..branch,
- identity={version=1,status='available',authoritative=true,confidence='native-live',generation=generation,
- activationId=activation,campaignId=string.rep('c',32),branchId=branch,branchEpoch=1,ledgerSequence=0,
- userId='10000000-1000-4000-8000-100000000001',localUserId='10000000-1000-4000-8000-100000000001',
- checkpointId='checkpoint-one'},inspection={generation=generation}}
-end
-local nativeFrame=frame(7)
 local player=setmetatable({}, {__index=function()return noop end})
 function player:IsAttached()return attached end
 function player:IsDeadNoStatPool()return dead end
@@ -75,27 +70,27 @@ ObserveAfter=ObserveBefore
 local phoneOptions,worldOptions,historyOptions
 local microphone=(function()${microphoneSource}end)()
 local group=(function()${groupSource}end)()
-local state={inspect=function()return nativeMissing and {status='unavailable'}or copy(nativeFrame.inspection)end,
- snapshot=function()
-  local value=nativeMissing and {version=1,status='unavailable',reason='native-missing'}or copy(nativeFrame)
-  if afterSnapshot then afterSnapshot()end
-  return value
- end,update=function()stateUpdates=stateUpdates+1 end,
- invalidate=function(reason)record('knowledge:'..reason)end}
+local function collectionReady()
+ local ready=attached and not dead and collectorReady
+ if afterReady then local callback=afterReady;afterReady=nil;callback()end
+ return ready
+end
 local modules={
- ['knowledge-state.lua']={new=function(options)return state end},
+ ['knowledge-state.lua']={new=function()
+  saveIdentityReads=saveIdentityReads+1;error('The Lua world adapter must not load native save identity')
+ end},
  ['world-knowledge.lua']={new=function(options)
   worldOptions=options
   options.now=function()return now end;options.cpuNow=function()return 0 end
   options.utcNow=function()return '2026-09-30T12:00:00Z'end
-  options.adapter={isReady=function()return attached and not dead end,
+  options.adapter={isReady=collectionReady,
    readFact=function()factReads=factReads+1;return factValue end,readJournal=function()return nil end,
    readLifepath=function()return 'nomad'end}
   return (function()${worldSource}end)().new(options)
  end},
  ['journal-history.lua']={new=function(options)
   historyOptions=options;options.now=function()return now end
-  options.adapter={isReady=function()return attached and not dead end,
+  options.adapter={isReady=collectionReady,
    roots=function(lane)
     historyReads=historyReads+1
     return {rows=lane=='active'and{{id='100',nativeId='q001',kind='quest',state='active',title='Current quest'}}or{},
@@ -106,7 +101,7 @@ local modules={
  end},
  ['microphone.lua']=microphone,['group-chat.lua']=group,
  ['companions.lua']={connectionProfiles=function()return{}end,abandon=function()record('companions')end,
-  dismissAll=noop,conversationCandidates=function()return{}end,registerPhoneContacts=noop,update=noop},
+  dismissAll=function()record('dismiss-all')end,conversationCandidates=function()return{}end,registerPhoneContacts=noop,update=noop},
  ['subtitles.lua']={configure=noop,install=noop,update=noop,clear=noop,abandon=function()record('subtitles')end},
  ['speech.lua']={clearEntity=noop,update=noop,stop=noop,abandon=function()record('speech')end},
  ['character-catalog.lua']={build=function()return {records={}}end},
@@ -145,35 +140,39 @@ function run(body) {
 }
 
 test('actual module and onInit remain inert; collection starts only in attached gameplay', () => run(`
- assert(nativeCalls==0 and factReads==0 and historyReads==0 and stateUpdates==0)
+ assert(nativeCalls==0 and factReads==0 and historyReads==0 and saveIdentityReads==0)
  events.onInit();assert(nativeCalls==0 and versionReads==0)
  attached=false;allowNative=true;events.onUpdate(0)
  assert(factReads==0 and historyReads==0 and versionReads==0)
  assert(stored('runtime/world-session.json').ready==false)
  attached=true;events.onUpdate(0)
  assert(versionReads==1 and factReads==1 and historyReads==1)
- assert(worldOptions.currentGeneration()==7 and historyOptions.currentGeneration()==7)
- assert(worldOptions.currentWorldToken()==nativeFrame.worldToken)
+ local live=stored('runtime/world-session.json')
+ assert(live.ready and live.token:find('lua-world-',1,true)==1 and live.generation>=1)
+ assert(worldOptions.currentGeneration()==live.generation and historyOptions.currentGeneration()==live.generation)
+ assert(worldOptions.currentWorldToken()==live.token and historyOptions.currentWorldToken()==live.token)
+ assert(saveIdentityReads==0)
 `));
 
-test('private sends use fresh native world generation and audience, preserving battle and loot payloads', () => run(`
- start();local first=input('first')
+test('private sends use the fresh Lua world and audience, preserving battle and loot payloads', () => run(`
+ start();local live=stored('runtime/world-session.json');local first=input('first')
  first.battle={version=1,status='ended'};first.loot={batch='loot-kept'};first.reaction={kind='loot'}
  assert(runtime.send(first));local out=stored('runtime/last-input.json')
- assert(out.generation==999 and out.worldKnowledge.generation==7)
- assert(out.worldKnowledge.worldToken==nativeFrame.worldToken and out.worldKnowledge.identity.status=='verified')
+ assert(out.generation==999 and out.worldKnowledge.generation==live.generation)
+ assert(out.worldKnowledge.worldToken==live.token and out.worldKnowledge.identity.status=='unknown')
+ assert(out.worldKnowledge.identity.userId==nil and out.worldKnowledge.identity.campaignId==nil)
  assert(out.worldKnowledge.audience.channel=='private'and #out.worldKnowledge.audience.profileKeys==1)
  assert(out.worldKnowledge.audience.profileKeys[1]=='judy-alvarez' and out.worldKnowledge.facts.observed_fact.value==1)
- assert(out.journalHistory.generation==7 and out.journalHistory.worldToken==nativeFrame.worldToken)
+ assert(out.journalHistory.generation==live.generation and out.journalHistory.worldToken==live.token)
  assert(out.battle.status=='ended'and out.loot.batch=='loot-kept'and out.reaction.kind=='loot')
  factValue=2;now=now+1;runtime.step(0);out.worldKnowledge.facts.observed_fact.value=999
  assert(runtime.send(input('second')))
  assert(stored('runtime/last-input.json').worldKnowledge.facts.observed_fact.value==2)
- assert(versionReads==1,'pack was repeatedly configured')
+ assert(versionReads==1,'pack was repeatedly configured');assert(saveIdentityReads==0)
 `));
 
-test('anonymous fallback supports current facts and rotates only transient scope on explicit load', () => run(`
- nativeMissing=true;start();assert(runtime.send(input('anonymous')))
+test('current facts do not require native save identity and transient world ownership rotates on load', () => run(`
+ start();assert(runtime.send(input('no-native-identity')))
  local before=stored('runtime/world-session.json');local out=stored('runtime/last-input.json')
  assert(before.ready and before.token:find('lua-world-',1,true)==1)
  assert(out.worldKnowledge.status=='ready'and out.worldKnowledge.identity.status=='unknown')
@@ -184,7 +183,7 @@ test('anonymous fallback supports current facts and rotates only transient scope
  local after=stored('runtime/world-session.json')
  assert(after.ready and after.token~=before.token and after.generation>before.generation)
  assert(runtime.send(input('next-world')))
- assert(stored('runtime/last-input.json').worldKnowledge.identity.status=='unknown')
+ assert(stored('runtime/last-input.json').worldKnowledge.identity.status=='unknown'and saveIdentityReads==0)
 `));
 
 test('unsupported live version fails closed for reviewed facts while ordinary chat still sends', () => run(`
@@ -225,7 +224,8 @@ test('actual group preview and dispatch capture the exact current audience and r
  local prepared=group.preview(2,now,live)
  local preview=stored('runtime/group-prefetch.json').input
  assert(preview.worldKnowledge.audience.channel=='group'and #preview.worldKnowledge.audience.profileKeys==2)
- assert(preview.worldKnowledge.audience.profileKeys[2]=='alex'and preview.worldKnowledge.identity.status=='verified')
+ assert(preview.worldKnowledge.audience.profileKeys[2]=='alex'and preview.worldKnowledge.identity.status=='unknown')
+ assert(preview.worldKnowledge.worldToken==stored('runtime/world-session.json').token)
  now=now+1;factValue=3;runtime.step(0)
  group.completed(first.requestId,true);local next=group.next(3,now,live)
  assert(next.requestId==prepared.requestId and runtime.send(next))
@@ -235,65 +235,73 @@ test('actual group preview and dispatch capture the exact current audience and r
 
 test('a world change during capture prevents request publication', () => run(`
  start();assert(runtime.send(input('before')));local prior=files['runtime/last-input.json']
- afterSnapshot=function()nativeFrame=frame(8);afterSnapshot=nil end
+ local before=stored('runtime/world-session.json')
+ afterReady=function()hooks.OnGameRestored()end
  assert(runtime.send(input('racing'))==false)
  assert(files['runtime/last-input.json']==prior)
- assert(stored('runtime/world-session.json').token==nativeFrame.worldToken)
+ assert(not stored('runtime/world-session.json').ready)
+ events.onUpdate(0);local after=stored('runtime/world-session.json')
+ assert(after.ready and after.token~=before.token and after.generation>before.generation)
 `));
 
 test('private and microphone sends recheck world ownership after existing journal capture hooks', () => run(`
  start()
- modules['quest-context.lua'].capture=function()nativeFrame=frame(8);return {version=1,status='untracked'}end
+ modules['quest-context.lua'].capture=function()hooks.OnGameRestored();return {version=1,status='untracked'}end
  assert(runtime.send(input('journal-race'))==false and files['runtime/last-input.json']==nil)
- nativeFrame=frame(7);runtime.step(0)
- microphone.captureJournal=function()nativeFrame=frame(8);return {version=1,status='untracked'}end
+ events.onUpdate(0)
+ microphone.captureJournal=function()hooks.OnGameRestored();return {version=1,status='untracked'}end
  assert(microphone.begin(input('mic-journal-race'))==false and files['runtime/microphone-command.json']==nil)
  microphone.captureJournal=function()return {version=1,status='untracked'}end
- runtime.step(0);assert(microphone.begin(input('mic-finish-race')))
- microphone.captureBattle=function()nativeFrame=frame(9);return {version=1,status='none'}end
+ events.onUpdate(0);assert(microphone.begin(input('mic-finish-race')))
+ microphone.captureBattle=function()hooks.OnGameRestored();return {version=1,status='none'}end
  assert(microphone.finish()==nil and stored('runtime/microphone-command.json').action=='cancel')
 `));
 
-test('detach and death invalidate identity before actor cleanup, and shutdown publishes unavailable', () => run(`
+test('death retires the Lua world before actor cleanup, and shutdown publishes unavailable', () => run(`
  start();assert(runtime.send(input('pending')))
  order={};allowNative=false;hooks.OnDeath()
- assert(order[1]=='knowledge:player died'and order[2]=='companions')
+ assert(order[1]=='world:unavailable'and order[2]=='companions')
  assert(runtime.pending()==nil and not stored('runtime/world-session.json').ready)
  hooks.OnTakeControl();allowNative=true;events.onUpdate(0)
  order={};events.onShutdown()
- assert(order[1]=='knowledge:shutdown'and not stored('runtime/world-session.json').ready)
+ assert(order[1]=='world:unavailable'and not stored('runtime/world-session.json').ready)
 `));
 
-test('a branch change cancels pending private, microphone and group work without dismissing actors', () => run(`
+test('save restoration retires private, microphone and group work without dismissing actors', () => run(`
  start();assert(runtime.send(input('pending')))
  assert(microphone.begin(input('recording')))
  group.start('round',{{entity='1ULL',profileKey='judy-alvarez',name='Judy'}},'Hello')
- order={};nativeFrame=frame(7,string.rep('e',32));events.onUpdate(0)
+ local before=stored('runtime/world-session.json')
+ order={};hooks.OnGameRestored();events.onUpdate(0)
  assert(runtime.pending()==nil and microphone.context==nil and group.round==nil)
- for _,value in ipairs(order)do assert(value~='companions','activation change removed actor ownership')end
- assert(stored('runtime/world-session.json').token==nativeFrame.worldToken)
+ for _,value in ipairs(order)do assert(value~='dismiss-all','loading a world deleted actors')end
+ local after=stored('runtime/world-session.json')
+ assert(after.ready and after.token~=before.token and after.generation>before.generation)
 `));
 
-test('phone callbacks share one captured world and reject stale history after a branch change', () => run(`
- start();local binding=phoneOptions.captureBinding(player)
- assert(binding.generation==7 and binding.localUserId)
+test('phone callbacks share the Lua world and reject captured history after a save restore', () => run(`
+ start();local live=stored('runtime/world-session.json');local binding=phoneOptions.captureBinding(player)
+ assert(binding.generation==live.generation and binding.status=='unavailable'and binding.authoritative==false)
+ assert(binding.localUserId==nil and binding.campaignId==nil)
  local world=phoneOptions.captureWorldKnowledge(player,'alex',binding)
  local history=phoneOptions.captureJournalHistory(player,'alex',binding)
  assert(world.audience.channel=='phone'and #world.audience.profileKeys==1 and world.audience.profileKeys[1]=='alex')
+ assert(world.identity.status=='unknown'and world.worldToken==live.token)
  assert(history.generation==world.generation and history.worldToken==world.worldToken)
- phoneOptions.captureWorldKnowledge(player,'alex',binding);nativeFrame=frame(7,string.rep('d',32))
+ phoneOptions.captureWorldKnowledge(player,'alex',binding);hooks.OnGameRestored()
  assert(phoneOptions.captureJournalHistory(player,'alex',binding).status=='unavailable')
 `));
 
 test('phone delivery publication is bounded, deduplicated and retains the original request world', () => run(`
- start();local original=nativeFrame.worldToken;nativeFrame=frame(8)
+ start();local live=stored('runtime/world-session.json');local original=live.token;hooks.OnGameRestored();events.onUpdate(0)
  for i=1,20 do phoneOptions.onDelivered({version=1,id='delivery-'..i,sequence=i,requestId='request-'..i,
   source='phone-ui',state='accepted',partial=false,cancelled=false,completedAt=now*1000,
-  profileKey='alex',contact='alex',world='phone-world',binding='original-phone-binding',generation=7,worldToken=original,
+  profileKey='alex',contact='alex',world='phone-world',binding='original-phone-binding',generation=live.generation,worldToken=original,
   text='not a receipt field',nativeHandle={bad=true}})end
  local value=stored('runtime/knowledge-phone-delivery.json')
  assert(#value.receipts==16 and value.receipts[1].id=='delivery-5')
- assert(value.receipts[16].generation==7 and value.receipts[16].worldToken==original)
+ assert(value.receipts[16].generation==live.generation and value.receipts[16].worldToken==original)
+ assert(stored('runtime/world-session.json').token~=original)
  assert(value.receipts[1].text==nil and value.receipts[1].nativeHandle==nil)
  local before=files['runtime/knowledge-phone-delivery.json']
  phoneOptions.onDelivered(value.receipts[16]);phoneOptions.onDelivered({id='invalid',source='other'})
@@ -301,7 +309,7 @@ test('phone delivery publication is bounded, deduplicated and retains the origin
 `));
 
 test('microphone begin and finish capture fresh facts without changing request ownership', () => run(`
- start();local context=input('mic')
+ start();local live=stored('runtime/world-session.json');local context=input('mic')
  assert(microphone.begin(context))
  local initial=stored('runtime/microphone-command.json')
  assert(initial.action=='start'and initial.input.worldKnowledge.facts.observed_fact.value==1)
@@ -309,31 +317,37 @@ test('microphone begin and finish capture fresh facts without changing request o
  assert(microphone.finish()==context)
  local final=stored('runtime/microphone-command.json')
  assert(final.action=='finish'and final.input.worldKnowledge.facts.observed_fact.value==4)
- assert(final.input.requestId=='mic'and final.input.generation==999 and final.input.worldKnowledge.generation==7)
+ assert(final.input.requestId=='mic'and final.input.generation==999 and final.input.worldKnowledge.generation==live.generation)
+ assert(final.input.worldKnowledge.worldToken==live.token and final.input.worldKnowledge.identity.status=='unknown')
  assert(final.input.journal.serial==2 and final.input.battle.status=='none')
 `));
 
 test('microphone recording cancels on world change or failed finish write without submitting stale facts', () => run(`
- start();assert(microphone.begin(input('mic-stale')));nativeFrame=frame(8)
+ start();assert(microphone.begin(input('mic-stale')));hooks.OnGameRestored()
  assert(microphone.finish()==nil and microphone.context==nil)
  assert(stored('runtime/microphone-command.json').action=='cancel')
- runtime.step(0);assert(microphone.begin(input('mic-write')))
+ events.onUpdate(0);assert(microphone.begin(input('mic-write')))
  failPath='runtime/microphone-command.json'
  assert(microphone.finish()==nil and microphone.context==nil and microphone.knowledgeOwner==nil)
  failPath=nil;assert(microphone.begin(input('mic-update')))
- nativeFrame=frame(9);microphone.update(player)
+ hooks.OnGameRestored();microphone.update(player)
  assert(microphone.context==nil and stored('runtime/microphone-command.json').action=='cancel')
 `));
 
-test('brief same-world autosave preserves ownership and defers microphone finish until fresh capture is safe', () => run(`
- start();assert(microphone.begin(input('saving-mic')))
- local token=nativeFrame.worldToken;nativeFrame.status='paused';nativeFrame.reason='save-in-progress'
- order={};events.onUpdate(0)
- assert(stored('runtime/world-session.json').ready and stored('runtime/world-session.json').token==token)
- assert(runtime.send(input('save-blocked'))==false and #order==0)
- assert(microphone.finish()==nil and microphone.context and microphone.finishPending)
- assert(stored('runtime/microphone-command.json').action=='start')
- nativeFrame.status='ready';runtime.step(0)
- assert(microphone.update(player).requestId=='saving-mic')
- assert(stored('runtime/microphone-command.json').action=='finish'and not microphone.finishPending)
+test('temporary collector unavailability preserves the Lua world and omits old facts until fresh capture recovers', () => run(`
+ start();local context=input('saving-mic');assert(microphone.begin(context))
+ local live=stored('runtime/world-session.json');collectorReady=false
+ order={};runtime.step(0)
+ local stalled=stored('runtime/world-session.json')
+ assert(stalled.ready and stalled.token==live.token and stalled.generation==live.generation and #order==0)
+ assert(microphone.update(player)==nil and microphone.context==context)
+ assert(microphone.finish()==context)
+ local unavailable=stored('runtime/microphone-command.json')
+ assert(unavailable.action=='finish'and unavailable.input.worldKnowledge.status=='unavailable')
+ assert(unavailable.input.worldKnowledge.facts==nil and unavailable.input.journalHistory.status=='unavailable')
+ collectorReady=true;factValue=6;now=now+1;runtime.step(0)
+ assert(microphone.begin(input('after-save'))and microphone.finish())
+ local recovered=stored('runtime/microphone-command.json').input
+ assert(recovered.worldKnowledge.status=='ready'and recovered.worldKnowledge.facts.observed_fact.value==6)
+ assert(recovered.worldKnowledge.worldToken==live.token and recovered.worldKnowledge.generation==live.generation)
 `));

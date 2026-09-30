@@ -1,10 +1,28 @@
 # Cyberpunk Convai overhaul
 
-## September 30 — deep character knowledge and save-scoped memory
+## September 30 — player memory simplification
+
+The latest user decision replaces save/timeline memory with **one persistent
+player ID across all saves and characters**, natural conversation memory, and
+explicit Forget controls. No proactive memory creation for unused characters.
+See `docs/PLAYER_MEMORY.md` for the current runtime contract.
+
+- [ ] Install and live-check the single-ID route across private, group, phone
+  and microphone chat; source routing and isolated startup tests are available.
+- [ ] Live-check **Settings → Memory**, its unspawned character picker,
+  inline Confirm/Cancel and exact clear feedback. All targets only contacted
+  profiles. The player ID remains the same after both clears.
+- [ ] Live-check the wider Convai ARKit mouth-opening correction. Controlled
+  facial/audio tests pass; visible acceptance remains pending.
+- Native/save/fact identity and explicit memory-seeding/archive experiments
+  are superseded. Keep their research as historical evidence, outside production.
+
+## September 30 — deep character knowledge
 
 This is the new granular knowledge request, separate from the already accepted
-tracked-objective feature below. Snapshot: generated research reports at
-2026-09-29 22:30 UTC (September 30 locally).
+tracked-objective feature below. Research counts are from generated reports at
+2026-09-29 22:40 UTC (September 30 locally); rollout status includes the later
+Core readback, live streamed reply, read-only identity probe and reviewed prompt pilot.
 
 - [x] Create a dedicated `research/cyberpunk/` workspace with repeatable public
   collection, installed-resource extraction, source manifests and exact evidence
@@ -14,32 +32,48 @@ tracked-objective feature below. Snapshot: generated research reports at
   covers all 79 and all 618 example entries; all 16 findings were corrected.
   See `research/cyberpunk/PROFILE_CROSS_REVIEW.md` and its city peer review.
 - [x] Cross-reference the current narrative corpus: 253 quest keys, 704 decisions
-  and 1,160 outcomes. Compile 165 source-verified native rules linked to 160
-  outcomes, with 259 artifacts and 3,154 checked pointers. This is source evidence,
+  and 1,160 outcomes. Compile 172 source-verified native rules linked to 166
+  outcomes, with 271 artifacts and 3,467 checked pointers. This is source evidence,
   not confirmation that every rule has run in the game.
-- [ ] Expand the remaining 1,000 explicitly unmapped outcomes. They stay excluded
+- [ ] Expand the remaining 994 explicitly unmapped outcomes. They stay excluded
   from executable context/memory until exact conditions, narrative meaning and
   audience are verified. See `research/cyberpunk/generated/native-coverage.json`.
-- [ ] Apply the expanded researched profile content through the three separate
-  Core API fields and verify readback. The earlier completed field-separation
-  repair below is not a claim that this new content has been applied.
-- [ ] Install and live-check the granular context across private, phone, group
-  and microphone routes. Source integration and controlled checks are ready;
-  the earlier read-only 2.31 capture is narrower than full runtime acceptance.
-- [ ] Resolve the native save-identity startup regression. `KnowledgeState.reds`
-  is quarantined and excluded from installers; removing it restored startup and
-  same-save loading. The Codeware native initialization evidence is documented in
-  `research/cyberpunk/SAVE_IDENTITY.md`; no repair or durable restore is claimed.
+- [x] Apply the researched baseline through the three separate Core API fields:
+  all 79 profiles' exact field hashes and selected model passed readback.
+  Existing character IDs and voice assignments were preserved. This is separate
+  from the new style experiment.
+- [x] Record 36 measured text replies for the Johnny/Judy/Panam prompting pilot.
+- [x] Complete model-authored blind review: baseline 72.29/100, added directions
+  66.46, directions plus native examples 68.44. No broad production style change
+  is justified by this small run; the researched baseline remains in place.
+- [ ] Follow up individual prompting hypotheses with fresh/repeated scenarios
+  and user conversation/listening checks. These scores do not establish human
+  preference. See `research/cyberpunk/dialogue-style/UNBLINDED_REVIEW.md`.
+- [x] Checkpoint knowledge (`857af7c`) and streaming (`27d6c55`); install the new
+  Lua/context/audio update with the quarantined native class excluded.
+- [ ] Complete live checks of granular context across private, phone, group and
+  microphone routes. The new runtime is active; the earlier
+  read-only 2.31 capture is narrower than full runtime acceptance.
+- The native save-identity component remains quarantined and excluded from
+  installers. The one-ID policy does not need it; repair is no longer a gate.
+- [x] Run the installed read-only identity probe: all 43 fact reads returned zero,
+  current world scope was accepted and the restore observer registered.
+- [x] Observe actual `OnGameRestored` delivery during the user's save reload:
+  one restore and two successful read-only samples, with zero fact writes.
+  This event now retires transient world work; it stores no save identity.
 - [x] Qualify explicit memory API ownership using a disposable character and
   separate A/B users. Add/list/get isolation, cross-user HTTP 403, memory cleanup
   and temporary-character deletion passed. This did not enable production memory.
-- [ ] Enable durable production memory only after native identity, restore and
-  extraction/recall qualification. **Production memory remains OFF.** Automatic
-  extraction and in-game conversational recall are not established by the REST
-  probe. See `research/cyberpunk/MEMORY_QUALIFICATION.md`.
-- [ ] Install and audibly check the new Convai PCM streaming path. Its source and
-  offline byte-preservation/lifecycle checks are ready; it is **not installed**,
-  and no native playback latency or seamlessness result is claimed.
+- Explicit REST archive qualification is superseded by the user's natural
+  conversation-memory decision. Preserve the disposable evidence; do not resume
+  its automated probes or `/memory/add` work.
+- [x] Complete one live streamed Convai reply in eight chunks: about 2.16 s to
+  first provider audio on a warm connection and 5.05 s from request to estimated
+  native speech. The user still finds it slow.
+- [x] User accepted improved response timing after the raw-input cancellation
+  guard removed repeated 515 KB parsing. Observed native-onset estimates fell
+  from 5.05 s to 4.06/3.70 s; this was not a controlled provider benchmark.
+- [ ] Broader audible continuity, face timing and cancellation acceptance.
 
 Detailed design, evidence boundaries and remaining steps are in
 `research/cyberpunk/README.md` and `research/cyberpunk/WORK_PLAN.md`.

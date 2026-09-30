@@ -16,6 +16,9 @@ local party, partySignature, previousStates = {}, '', {}
 local visible, selectedItem = {}, nil
 local localVoiceState, localVoiceSignature = {}, ''
 local localVoices = {['johnny-silverhand'] = true, ['judy-alvarez'] = true, ['panam-palmer'] = true}
+local memoryLoaded, memorySession, memorySequence, memoryConfirmSequence = false, nil, 0, 0
+local memorySelected, memoryConfirmation, memoryCommand, memoryNotice = nil, nil, nil, ''
+local memoryState, memoryRecoveryBlocked = {state = 'unavailable'}, false
 local render
 
 local function readJSON(path)
@@ -32,6 +35,208 @@ end
 
 local function say(message)
     feedback, dirty = clean(message, 400), true
+end
+
+local function wholeNumber(value)
+    return type(value) == 'number' and value == value and value >= 0 and value < math.huge and value == math.floor(value)
+end
+
+local function validMemoryCommand(value)
+    return type(value) == 'table' and value.version == 1 and value.action == 'clear'
+        and type(value.id) == 'string' and #value.id > 0 and #value.id <= 160
+        and wholeNumber(value.issuedAt)
+        and ((value.scope == 'character' and type(value.profileKey) == 'string' and #value.profileKey > 0)
+            or (value.scope == 'all' and value.profileKey == nil))
+end
+
+local function memoryTarget(value)
+    if value.scope == 'all' then return 'all characters you have talked to' end
+    local profile = byKey[value.profileKey]
+    return profile and profile.name or 'the selected character'
+end
+
+local function updateMemory()
+    -- This request is durable. Save changes reset world/menu work, but do not
+    -- erase or retry a cloud clear whose outcome is still unknown.
+    if not memoryLoaded then
+        memoryLoaded = true
+        local target = 'runtime/memory-command.json'
+        local file = io.open(target, 'rb')
+        if not file then target = target .. '.previous'; file = io.open(target, 'rb') end
+        if file then
+            local raw = file:read('*a'); file:close()
+            local ok, previous = pcall(json.decode, raw)
+            if ok and validMemoryCommand(previous) then
+                memorySequence = tonumber(previous.id:match(':(%d+)$')) or 0
+                memoryCommand = {id = previous.id, scope = previous.scope, profileKey = previous.profileKey,
+                    issuedAt = previous.issuedAt, state = 'pending'}
+            else memoryRecoveryBlocked = true end
+        end
+    end
+    local state = readJSON('runtime/memory-status.json')
+    local valid = state and state.version == 1 and wholeNumber(state.updated) and wholeNumber(state.talkedToCount)
+        and (state.state == 'ready' or state.state == 'unavailable')
+    local now = os.time() * 1000.0
+    local fresh = valid and state.updated >= now - 15000 and state.updated <= now + 5000
+    memoryState.state = fresh and state.state == 'ready' and not memoryRecoveryBlocked and 'ready' or 'unavailable'
+    if valid then
+        memoryState.talkedToCount = state.talkedToCount
+        memoryState.characters = type(state.characters) == 'table' and {} or nil
+        if memoryState.characters then
+            for _, character in ipairs(state.characters) do
+                if type(character) == 'table' and type(character.profileKey) == 'string' then
+                    memoryState.characters[character.profileKey] = true
+                end
+            end
+        end
+        local result = state.command
+        if memoryCommand and memoryCommand.state == 'pending' and type(result) == 'table' and result.id == memoryCommand.id
+            and result.scope == memoryCommand.scope and result.profileKey == memoryCommand.profileKey
+            and state.updated >= memoryCommand.issuedAt
+            and (result.state == 'succeeded' or result.state == 'failed') then
+            -- Provider messages can contain IDs or raw errors. The page uses
+            -- its own player-facing text and never displays those messages.
+            memoryCommand.state = result.state
+        end
+    end
+end
+
+local function memoryCanClear(scope, key)
+    if memoryCommand and memoryCommand.state == 'pending' then
+        return false, 'A memory clear is awaiting its result. It will not be sent again.'
+    end
+    if memoryState.state ~= 'ready' then return false, 'The memory service is unavailable. Reopen this page after it reconnects.' end
+    if scope == 'all' then
+        if not memoryState.talkedToCount or memoryState.talkedToCount == 0 then
+            return false, 'You have not talked to any characters yet.'
+        end
+    elseif scope == 'character' then
+        if not byKey[key] then return false, 'Choose a character from the catalogue first.' end
+        if memoryState.talkedToCount == 0 or (memoryState.characters and not memoryState.characters[key]) then
+            return false, 'You have not talked to this character yet.'
+        end
+    else return false, 'Choose a memory clear action from Settings.' end
+    return true
+end
+
+local function memorySnapshot()
+    local selectedProfile = byKey[memorySelected]
+    local canCharacter = memoryCanClear('character', memorySelected)
+    local canAll = memoryCanClear('all')
+    local result = {state = memoryState.state, talkedToCount = memoryState.talkedToCount,
+        selectedKey = memorySelected, selectedName = selectedProfile and selectedProfile.name or nil,
+        canClearCharacter = canCharacter, canClearAll = canAll, characters = memoryState.characters,
+        feedback = memoryNotice}
+    if memoryRecoveryBlocked then
+        result.feedback = 'A previous memory request could not be read. The memory service must reconcile it before another clear.'
+    end
+    if memoryCommand then
+        local target = memoryTarget(memoryCommand)
+        result.command = {id = memoryCommand.id, scope = memoryCommand.scope, profileKey = memoryCommand.profileKey,
+            state = memoryCommand.state}
+        if memoryCommand.state == 'pending' then
+            result.feedback = memoryState.state == 'ready' and ('Clearing memories for ' .. target .. '…')
+                or ('Waiting for the result of clearing memories for ' .. target .. '. Reopen this page after the memory service reconnects.')
+        elseif memoryNotice == '' then
+            if memoryCommand.state == 'succeeded' then result.feedback = 'Memory clear confirmed for ' .. target .. '.'
+            else result.feedback = 'The memory service could not confirm the clear for ' .. target .. '. Review the service before choosing Forget again.' end
+        end
+    end
+    if memoryConfirmation then
+        result.confirmation = {token = memoryConfirmation.token, scope = memoryConfirmation.scope,
+            profileKey = memoryConfirmation.profileKey, count = memoryConfirmation.count,
+            target = memoryTarget(memoryConfirmation)}
+    end
+    return result
+end
+
+function M.selectMemoryCharacter(key)
+    if not byKey[key] then return false, 'Choose a character from the catalogue.' end
+    memorySelected, memoryConfirmation, memoryNotice = key, nil, ''
+    return true, byKey[key].name .. ' selected for memory controls.'
+end
+
+function M.beginMemoryClear(scope)
+    updateMemory()
+    local ok, reason = memoryCanClear(scope, memorySelected)
+    if not ok then return false, reason end
+    if memoryConfirmation then return false, 'Use Confirm or Cancel for the current memory request.' end
+    memoryConfirmSequence = memoryConfirmSequence + 1
+    memoryConfirmation = {token = tostring(memoryConfirmSequence), scope = scope,
+        profileKey = scope == 'character' and memorySelected or nil, count = memoryState.talkedToCount}
+    return true, 'Review the memory clear below, then choose Confirm or Cancel.'
+end
+
+function M.cancelMemoryClear(token)
+    if not memoryConfirmation or memoryConfirmation.token ~= token then return false, 'That confirmation is no longer active.' end
+    memoryConfirmation, memoryNotice = nil, 'Memory clear cancelled.'
+    return true, memoryNotice
+end
+
+function M.cancelMemoryConfirmation()
+    memoryConfirmation = nil
+end
+
+local function memorySessionUUID()
+    local uuid = ('xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'):gsub('[xy]', function(kind)
+        local value = math.random(0, 15)
+        return string.format('%x', kind == 'y' and (value % 4 + 8) or value)
+    end)
+    -- Also keep command IDs distinct if a fresh Lua VM repeats its RNG seed.
+    if memoryCommand and memoryCommand.id:sub(1, #uuid) == uuid then
+        local suffix = tonumber(uuid:sub(-1), 16) or 0
+        uuid = uuid:sub(1, -2) .. string.format('%x', (suffix + 1) % 16)
+    end
+    return uuid
+end
+
+local function writeMemoryCommand(value)
+    local encoded, payload = pcall(json.encode, value)
+    if not encoded then return false end
+    local target, temporary, backup = 'runtime/memory-command.json', 'runtime/memory-command.json.tmp',
+        'runtime/memory-command.json.previous'
+    local file = io.open(temporary, 'wb')
+    if not file then return false end
+    local written = file:write(payload)
+    local closed = file:close()
+    if not written or not closed then os.remove(temporary); return false end
+    local existing = io.open(target, 'rb')
+    if existing then
+        existing:close(); os.remove(backup)
+        if not os.rename(target, backup) then os.remove(temporary); return false end
+    end
+    if not os.rename(temporary, target) then
+        if existing then os.rename(backup, target) end
+        os.remove(temporary)
+        return false
+    end
+    os.remove(backup)
+    return true
+end
+
+function M.confirmMemoryClear(token)
+    updateMemory()
+    local confirmation = memoryConfirmation
+    if not confirmation or confirmation.token ~= token then return false, 'That confirmation is no longer active.' end
+    local ok, reason = memoryCanClear(confirmation.scope, confirmation.profileKey)
+    if not ok then return false, reason end
+    if confirmation.scope == 'all' and confirmation.count ~= memoryState.talkedToCount then
+        memoryConfirmation = nil
+        return false, 'The character count changed. Review Forget all memories again.'
+    end
+    memorySession = memorySession or memorySessionUUID()
+    memorySequence = memorySequence + 1
+    local command = {version = 1, id = memorySession .. ':' .. memorySequence, action = 'clear',
+        scope = confirmation.scope, profileKey = confirmation.profileKey, issuedAt = os.time() * 1000.0}
+    memoryConfirmation = nil
+    if not writeMemoryCommand(command) then
+        memoryNotice = 'The memory clear request could not be sent. Check the memory service before trying again.'
+        return false, memoryNotice
+    end
+    memoryCommand = {id = command.id, scope = command.scope, profileKey = command.profileKey,
+        issuedAt = command.issuedAt, state = 'pending'}
+    memoryNotice = ''
+    return true, 'Memory clear requested. Waiting for the memory service to confirm it.'
 end
 
 local function sortNames(a, b)
@@ -173,6 +378,7 @@ function M.reset()
     dirty, feedback, partyClock = true, '', 0
     party, partySignature, previousStates, visible, selectedItem = {}, '', {}, {}, nil
     localVoiceState, localVoiceSignature = {}, ''
+    memoryConfirmation = nil
 end
 
 local function updateLocalVoice()
@@ -567,6 +773,7 @@ function M.snapshot(player)
     if player then initialize(player) else loadSettings() end
     updateParty()
     updateLocalVoice()
+    updateMemory()
     local enabled = {}
     for key, value in pairs(settings.enabledByKey) do enabled[key] = value end
     return {
@@ -578,6 +785,7 @@ function M.snapshot(player)
             voiceProvider = settings.voiceProvider,
             omniSteps = settings.omniSteps, enabledByKey = enabled},
         localVoice = localVoiceState,
+        memory = memorySnapshot(),
         scan = {started = scanStarted, finished = scanFinished, error = scanError,
             count = #models, read = math.max(0, modelIndex - 1), total = #(modelRows or models)},
     }

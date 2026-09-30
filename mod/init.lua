@@ -19,10 +19,9 @@ convaiBattleReactions = battles
 local lootObserver = dofile('loot-observer.lua')
 local loot = dofile('loot-reactions.lua').new()
 convaiLootObserver, convaiLootReactions = lootObserver, loot
--- Construction is inert. Native identity inspection and collection start only
--- after onUpdate has confirmed an attached, alive player in the loaded world.
-local knowledgeState
-local knowledgeAllowed, knowledgeEpoch, knowledgePoll, knowledgeInvalidated = false, 0, 0, false
+-- World tokens cancel old work after reloads. The bridge owns the one persistent
+-- player ID; collecting game context never creates or changes that ID.
+local knowledgeAllowed, knowledgeEpoch, knowledgeInvalidated = false, 0, false
 local knowledgeFrame, knowledgeChanged, knowledgeConfigured = nil, false, false
 local knowledgePhoneCapture, knowledgePhoneReceipts = nil, {}
 local knowledgeLaunch = 'lua-world-' .. tostring(os.time()) .. '-' .. tostring(math.random(100000000, 999999999))
@@ -37,17 +36,13 @@ end
 local function sameKnowledgeOwner(a, b)
     return a and b and a.session == b.session and a.generation == b.generation and a.worldToken == b.worldToken
 end
-knowledgeState = dofile('knowledge-state.lua').new({currentGeneration = function()
-    if not knowledgeAllowed then return nil end
-    return knowledgeState.inspect().generation
-end})
 local worldKnowledge = dofile('world-knowledge.lua').new({
     currentGeneration = function() return knowledgeFrame and knowledgeFrame.generation end,
     currentWorldToken = function() return knowledgeFrame and knowledgeFrame.worldToken end})
 local journalHistory = dofile('journal-history.lua').new({
     currentGeneration = function() return knowledgeFrame and knowledgeFrame.generation end,
     currentWorldToken = function() return knowledgeFrame and knowledgeFrame.worldToken end})
-convaiKnowledgeState, convaiWorldKnowledge = knowledgeState, worldKnowledge
+convaiWorldKnowledge = worldKnowledge
 
 local function publishWorldSession(frame, ready, force)
     local now = os.time()
@@ -65,14 +60,8 @@ end
 
 local function refreshKnowledgeFrame()
     if not knowledgeAllowed then return knowledgeUnavailable() end
-    local ok, frame = pcall(knowledgeState.snapshot)
-    if not ok or type(frame) ~= 'table' then frame = knowledgeUnavailable('native-read-failed') end
-    if frame.status ~= 'ready' and frame.status ~= 'paused' then
-        -- This token isolates anonymous transports on explicit Lua lifecycle
-        -- boundaries. It grants no persistent identity or inherited memory.
-        frame = {version = 1, status = 'ready', anonymous = true, generation = knowledgeEpoch + 1,
-            worldToken = knowledgeLaunch .. '-' .. (knowledgeEpoch + 1), identity = knowledgeUnavailable(frame.reason)}
-    end
+    local frame = {version = 1, status = 'ready', generation = knowledgeEpoch + 1,
+        worldToken = knowledgeLaunch .. '-' .. (knowledgeEpoch + 1)}
     if knowledgeFrame and not sameKnowledgeOwner(knowledgeOwner(knowledgeFrame), knowledgeOwner(frame)) then
         knowledgeChanged = true
         worldKnowledge:reset(nil, 'world-binding-changed'); journalHistory:reset()
@@ -88,9 +77,8 @@ local function invalidateKnowledge(reason)
     local before = knowledgeFrame
     knowledgeAllowed, knowledgeFrame, knowledgePhoneCapture = false, nil, nil
     publishWorldSession(before, false, true)
-    knowledgeEpoch, knowledgePoll, knowledgeChanged = knowledgeEpoch + 1, 0, false
+    knowledgeEpoch, knowledgeChanged = knowledgeEpoch + 1, false
     knowledgeInvalidated = true
-    knowledgeState.invalidate(reason)
     worldKnowledge:reset(nil, reason); journalHistory:reset()
 end
 
@@ -109,11 +97,6 @@ local function configureKnowledge()
 end
 
 local function updateKnowledge(delta)
-    knowledgePoll = knowledgePoll + math.max(tonumber(delta) or 0, 1 / 60)
-    if knowledgePoll >= 0.1 then
-        knowledgePoll = 0
-        knowledgeState.update()
-    end
     local before = refreshKnowledgeFrame()
     if before.status == 'paused' then return end
     if before.status ~= 'ready' then
@@ -136,16 +119,9 @@ local function captureKnowledge(context, channel)
     if context.group then
         for _, key in ipairs(context.group.audience or {}) do audience.profileKeys[#audience.profileKeys + 1] = key end
     elseif context.profileKey then audience.profileKeys[1] = context.profileKey end
+    -- Canonical decisions come from the current world. A provider's recalled
+    -- conversation is never proof that this save took a particular branch.
     local identity = {status = 'unknown'}
-    local native = before.identity
-    local named = true
-    for _, key in ipairs(audience.profileKeys) do
-        if key == 'resident-male' or key == 'resident-female' then named = false end
-    end
-    if named and type(native) == 'table' and native.status == 'available' and native.authoritative == true then
-        identity = {status = 'verified', userId = native.userId or native.localUserId,
-            playthroughId = native.playthroughId or native.campaignId, branchId = native.branchId, checkpointId = native.checkpointId}
-    end
     local world, history = knowledgeUnavailable(before.reason), knowledgeUnavailable(before.reason)
     if before.status == 'ready' then
         local binding = {generation = before.generation, worldToken = before.worldToken, audience = audience, identity = identity}
@@ -167,10 +143,10 @@ end
 local function capturePhoneBinding()
     local frame = refreshKnowledgeFrame()
     if frame.status ~= 'ready' then return knowledgeUnavailable(frame.reason) end
-    local value = frame.identity or knowledgeUnavailable('identity-unavailable')
-    -- Preserve the native load generation even before a user binding is ready.
-    value.generation = frame.generation
-    return value
+    -- Phone history keeps its existing local storage policy. Provider routing
+    -- uses the bridge's persistent player ID and this live-world generation.
+    return {version = 1, status = 'unavailable', authoritative = false,
+        generation = frame.generation}
 end
 
 local function publishPhoneDelivery(receipt)
@@ -1064,6 +1040,12 @@ registerForEvent('onInit', function()
     end)
     ObserveAfter('PlayerPuppet', 'OnGameAttached', function() worldSuspended = false end)
     ObserveAfter('PlayerPuppet', 'OnTakeControl', function() worldSuspended = false end)
+    ObserveAfter('PlayerSystem', 'OnGameRestored', function()
+        -- Observed on a real load in the read-only probe. This clears old
+        -- transient references without writing anything into the save.
+        abandonSession('save restored')
+        worldSuspended = false
+    end)
     log('Game adapter initialized; press the bound talk-by-text key while facing an NPC')
     -- Requests are one-shot commands. A CET reload must not replay a spawn or
     -- other game mutation left in the request file by an earlier session.

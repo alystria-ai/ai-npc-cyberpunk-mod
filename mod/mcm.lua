@@ -8,7 +8,7 @@ local view, modelQuery, modelPage, assigning = 'characters', '', 1, nil
 local actions, hooksInstalled, refreshQueued = {}, false, false
 local owner, lastSignature, pollAt, searchFrames, snapshotAt = nil, '', 0, 0, 0
 local lastError = ''
-local actionFeedback
+local actionFeedback, memoryActionCommand
 local log = function(message)
     local file = io.open('runtime/mcm.log', 'a')
     if file then file:write(os.date('!%Y-%m-%dT%H:%M:%SZ'), ' ', message, '\n'); file:close() end
@@ -85,6 +85,50 @@ local function profileDescription(profile, snapshot)
         .. '\nInvitations create separate companion copies, including characters outside your phone contacts.'
 end
 
+local function memorySettings(snapshot)
+    local memory = snapshot.memory
+    local pending = memory.command and memory.command.state == 'pending'
+    local rows = {
+        readonly('memory-identity', 'Player memory', 'Shared across your saves',
+            'Characters remember actual conversations with you. Your player identity stays the same across saves and after forgetting. Current game context describes the world you have loaded.'),
+        readonly('memory-service', 'Memory service', memory.state == 'ready' and 'Ready' or 'Unavailable',
+            memory.state == 'ready' and 'Memories can be managed here.'
+                or 'Reopen this page after the memory service reconnects. A pending clear keeps waiting for its own result.'),
+        readonly('memory-count', 'Characters you have talked to',
+            memory.talkedToCount and (tostring(memory.talkedToCount) .. (memory.state == 'ready' and '' or ' · Last reported')) or 'Unavailable',
+            'Forget all memories applies to these characters. Visiting the catalogue or inviting a companion does not add anyone to this count.'),
+        action('memory:choose', 'Selected character', memory.selectedName or 'Choose a character',
+            'Choose any character from the catalogue. They do not need to be in your current party.',
+            function(context) return navigate('memory-characters', context) end, not pending and not memory.confirmation),
+    }
+    if memory.feedback ~= '' then rows[#rows + 1] = readonly('memory-feedback', 'Memory result', memory.feedback, memory.feedback) end
+    local confirmation = memory.confirmation
+    if confirmation then
+        local description = confirmation.scope == 'all'
+            and ('Clear memories about you for all ' .. confirmation.count .. ' characters you have talked to?')
+            or ('Clear ' .. confirmation.target .. '’s memories about conversations with you?')
+        description = description .. ' Your player identity stays the same. Phone Chat messages are managed separately.'
+        rows[#rows + 1] = readonly('memory-confirmation', 'Confirm memory clear', description, description)
+        rows[#rows + 1] = action('memory:confirm:' .. confirmation.token, 'Confirm', 'Forget memories', description,
+            function() return manager.confirmMemoryClear(confirmation.token) end,
+            confirmation.scope == 'all' and memory.canClearAll or confirmation.scope == 'character' and memory.canClearCharacter)
+        rows[#rows + 1] = action('memory:cancel:' .. confirmation.token, 'Cancel', 'Keep memories',
+            'Cancel this request before anything is sent.', function() return manager.cancelMemoryClear(confirmation.token) end)
+    else
+        rows[#rows + 1] = action('memory:forget-character', 'Forget selected character', 'Forget',
+            memory.selectedName and ('Clear ' .. memory.selectedName .. '’s memories about conversations with you. Review an inline confirmation first.')
+                or 'Choose a character before clearing their memories about you.',
+            function() return manager.beginMemoryClear('character') end, memory.canClearCharacter)
+        rows[#rows + 1] = action('memory:forget-all', 'Forget all memories',
+            memory.talkedToCount and ('Forget (' .. memory.talkedToCount .. ' characters)') or 'Forget',
+            'Clear memories about you for every character you have talked to. Your player identity is retained. Review an inline confirmation first.',
+            function() return manager.beginMemoryClear('all') end, memory.canClearAll)
+    end
+    rows[#rows + 1] = readonly('memory-chat-history', 'Phone Chat messages', 'Managed separately',
+        'Disappearing messages clears the local Chat history and drafts on the next game launch. Forget controls clear character memories about you; saved Chat messages remain available.')
+    return rows
+end
+
 local function schema()
     local currentPlayer = player()
     owner = identity(currentPlayer)
@@ -94,7 +138,7 @@ local function schema()
     local navigation = {}
     for _, tab in ipairs({{'characters', 'Characters'}, {'party', 'Current party'},
         {'models', 'Model browser'}, {'settings', 'Settings'}}) do
-        local selected = view == tab[1] or (tab[1] == 'settings' and view == 'permissions')
+        local selected = view == tab[1] or (tab[1] == 'settings' and (view == 'permissions' or view == 'memory-characters'))
         navigation[#navigation + 1] = action('tab:' .. tab[1], tab[2], selected and 'Selected' or 'Open',
             'Browse ' .. tab[2]:lower() .. '. ' .. modelQuery,
             function(context) return navigate(tab[1], context) end, not selected)
@@ -191,6 +235,41 @@ local function schema()
                 function() return queue.invite(key) end, canInvite)
         end
         categories[#categories + 1] = category('models', 'Installed character models', rows)
+    elseif view == 'memory-characters' then
+        local matches = {}
+        local query = modelQuery:lower()
+        for _, profile in ipairs(snapshot.profiles) do
+            if query == '' or (profile.name .. ' ' .. profile.key .. ' ' .. table.concat(profile.aliases or {}, ' ')):lower():find(query, 1, true) then
+                matches[#matches + 1] = profile
+            end
+        end
+        local pages = math.max(1, math.ceil(#matches / MODEL_PAGE_SIZE))
+        modelPage = math.max(1, math.min(modelPage, pages))
+        rows[#rows + 1] = action('memory:back', 'Back to settings', 'Back',
+            'Return to the memory controls.', function(context) return navigate('settings', context) end)
+        rows[#rows + 1] = readonly('memory-character-page', 'Choose a character', 'Page ' .. modelPage .. ' / ' .. pages,
+            'Search by character name using Search settings. ' .. modelQuery .. '\nThe character can be outside your current party.')
+        if modelPage > 1 then
+            rows[#rows + 1] = action('memory:previous', 'Previous characters', 'Previous', modelQuery,
+                function() modelPage = modelPage - 1; return true end)
+        end
+        if modelPage < pages then
+            rows[#rows + 1] = action('memory:next', 'More characters', 'Next', modelQuery,
+                function() modelPage = modelPage + 1; return true end)
+        end
+        for index = (modelPage - 1) * MODEL_PAGE_SIZE + 1, math.min(modelPage * MODEL_PAGE_SIZE, #matches) do
+            local profile = matches[index]
+            local key = profile.key
+            rows[#rows + 1] = action('memory:select:' .. key, profile.name,
+                snapshot.memory.selectedKey == key and 'Selected' or 'Choose',
+                'Select ' .. profile.name .. ' for memory controls. This does not invite them or change their conversation settings.',
+                function(context)
+                    local ok, reason = manager.selectMemoryCharacter(key)
+                    if ok then navigate('settings', context) end
+                    return ok, reason
+                end)
+        end
+        categories[#categories + 1] = category('memory-characters', 'Character memories', rows)
     elseif view == 'permissions' then
         for _, profile in ipairs(snapshot.profiles) do
             rows[#rows + 1] = setting('enabled:' .. profile.key, profile.name, 'bool',
@@ -230,6 +309,8 @@ local function schema()
             function(context) return navigate('permissions', context) end)
         categories[#categories + 1] = category('playback', 'Conversation settings', rows,
             'Use Apply to save changed settings, or Revert to discard them.')
+        categories[#categories + 1] = category('memory', 'Memory', memorySettings(snapshot),
+            'Characters build memories through your conversations and keep them across saves.')
     end
     return {name = LABEL, description = 'Your companions, character models and conversation settings.', categories = categories}
 end
@@ -254,6 +335,11 @@ function M.configure(domain, companions, queueFactory, entryFactory)
             if id ~= MOD or not actions[actionId] then return {ok = false, error = 'Reopen the manager; that action is no longer available.'} end
             local ok, reason = actions[actionId](context)
             actionFeedback = ok == true and reason or nil
+            memoryActionCommand = nil
+            if ok == true and actionId:match('^memory:confirm:') then
+                local command = manager.snapshot(player()).memory.command
+                memoryActionCommand = command and command.id or nil
+            end
             return {ok = ok == true, error = ok ~= true and reason or nil, schemaChanged = ok == true}
         end,
         applyBatch = function(id, changes)
@@ -312,7 +398,7 @@ function M.install()
             transientOwner, showSidebarSearch, showContentSearch, listSelectionMode)
     end)
     Observe('SettingsMainGameController', 'McmUiEmitSearch', function(_, context, value)
-        if context == 'content' and view == 'models' and active() then
+        if context == 'content' and (view == 'models' or view == 'memory-characters') and active() then
             modelQuery, modelPage, searchFrames = tostring(value or ''):sub(1, 100), 1, 6
         end
     end)
@@ -358,6 +444,12 @@ function M.update(currentPlayer, worldReady)
         local snapshot = manager.snapshot(currentPlayer)
         local signature = {queue.message(), tostring(queue.count()), snapshot.localVoice.state or '',
             snapshot.localVoice.provider or '', tostring(snapshot.localVoice.pending)}
+        local memory = snapshot.memory
+        if memory.command and memory.command.id == memoryActionCommand then actionFeedback = memory.feedback end
+        signature[#signature + 1] = table.concat({memory.state, tostring(memory.talkedToCount), memory.feedback,
+            memory.selectedKey or '', memory.confirmation and memory.confirmation.token or '',
+            memory.command and memory.command.id or '', memory.command and memory.command.scope or '',
+            memory.command and memory.command.profileKey or '', memory.command and memory.command.state or ''}, '|')
         for _, member in ipairs(queue.list()) do
             signature[#signature + 1] = table.concat({member.id, member.state or '', member.profileKey or '', member.error or ''}, '|')
         end
@@ -374,14 +466,17 @@ end
 function M.inspect()
     return {available = api ~= nil, active = active(), view = view, entry = entry.state(),
         entryDetails = entry.inspect and entry.inspect() or nil,
-        party = queue.list(), feedback = queue.message(), error = lastError}
+        party = queue.list(), feedback = queue.message(), error = lastError,
+        memory = manager.snapshot(player()).memory}
 end
 
 function M.resetSession()
     -- The logical player ID can be reused by a loaded save. Explicitly reset
     -- pending work instead of relying on that ID to detect a new world.
     queue.bind(nil)
+    manager.cancelMemoryConfirmation()
     actionFeedback = nil
+    memoryActionCommand = nil
     owner, lastSignature, refreshQueued = nil, '', true
     entry.reset()
 end

@@ -1,5 +1,9 @@
 # Quest memory runtime contract
 
+> Historical prototype, superseded September 30 by the user's one-ID natural
+> memory policy. This ledger/archive module is outside production routing.
+> Current behavior: [PLAYER_MEMORY.md](../../docs/PLAYER_MEMORY.md).
+
 Status: implemented isolated modules; production routing and native integration are owned by the bridge coordinator. This file documents code behavior, not proof of in-game operation or automatic cloud recall.
 
 **Current provider policy:** one persistent REST archive user initially, maximum three per player registry, shared across all characters and reused across saves. Normal live sessions remain anonymous. Historical ledger fields named `endUserId` are local scope keys and must never be sent to Convai. Only the coordinator's separate `restEndUserId` may be used by the explicit REST worker. [Three-ID design and limitations](THREE_ID_MEMORY_DESIGN.md) supersedes the former remote namespace proposal.

@@ -12,21 +12,27 @@ All **79 character dossiers** have independent static review coverage across
 [CITY_PROFILE_PEER_REVIEW.md](CITY_PROFILE_PEER_REVIEW.md). The corpus contains
 618 original dialogue examples. The review corrected future-event assumptions,
 historical-era leakage, private-audience instructions and speaker attribution.
-This is approval of the authored content and compiler output, not a claim that
-the expanded profiles have been applied to production characters.
+The researched baseline has now been applied through the three separate Core
+API fields for all 79 profiles, with exact field hashes and the selected model
+verified by readback. This rollout is distinct from the new prompting experiment.
 
-The existing generated reports, built at 2026-09-29 22:30 UTC, distinguish the
+The existing generated reports, built at 2026-09-29 22:40 UTC, distinguish the
 following coverage:
 
 | Layer | Current result | Qualification |
 | --- | --- | --- |
 | Authored narrative | 253 quest keys, 704 decisions, 1,160 outcomes | Researched and cross-referenced; not all executable |
-| Reviewed native pack | 165 enabled rules linked to 160 distinct outcomes | Source-verified; not live-qualified |
-| Native evidence | 259 cited artifacts, 3,154 verified pointers | Exact hashes and JSON locations checked |
-| Remaining narrative outcomes | 1,000 explicitly unmapped | Excluded from executable knowledge and memory |
+| Reviewed native pack | 172 enabled rules linked to 166 distinct outcomes | Source-verified; not live-qualified |
+| Native evidence | 271 cited artifacts, 3,467 verified pointers | Exact hashes and JSON locations checked |
+| Remaining narrative outcomes | 994 explicitly unmapped | Excluded from executable knowledge and memory |
+| Researched Core profiles | 79 of 79 baseline profiles applied | Three fields and selected model verified by exact readback |
+| Prompting pilot | 36 measured text replies; blinded review complete | Model-authored scores do not justify a broad style change; baseline retained |
 | Native save identity | Startup regression isolated to the added component | Quarantined; durable save/branch identity unavailable |
-| Convai memory API | Disposable A/B explicit ownership check passed | Production memory remains **OFF** |
-| New Convai PCM streaming | Source implementation and offline checks ready | Not installed; audible latency/seamlessness unverified |
+| World restore lifecycle | Actual restore callback observed; new Lua lifecycle tests pass | Retires transient work; no save/fact identity writes |
+| Provider player identity | One persistent ID for all characters and saves | Durable local core and isolated real-bridge startup verified; live rollout pending |
+| Natural Convai memory | Enable only on actual player conversation; explicit Forget controls | Ownership/clear fixtures pass; actual recall and deletion acceptance pending |
+| Save branches and explicit REST archive | Superseded by the user's single-ID decision | Historical modules/probes retained outside production routing |
+| New Lua/context and Convai PCM streaming update | Installed; one live streamed reply completed in eight chunks | User still reports slow response; further route and latency checks remain |
 
 See [generated/coverage.json](generated/coverage.json) and
 [generated/native-coverage.json](generated/native-coverage.json) for exact keys,
@@ -45,9 +51,11 @@ for the inspected implementation and provider sources.
 
 ## The new data flow
 
-This is the implemented design and its qualification path. The quarantined
-native identity boundary currently prevents production durable-memory use;
-anonymous current-world context has a separate lifecycle scope.
+The current route uses one bridge-owned player ID, fresh game context and natural
+conversation memory. Native save identity and manual archive modules are outside
+the production import graph. [Current runtime contract](../../docs/PLAYER_MEMORY.md)
+and [provider details](PLAYER_MEMORY_API.md) replace the earlier three-ID design.
+Source/framework checks are distinct from the remaining live acceptance.
 
 ```mermaid
 flowchart TD
@@ -58,9 +66,11 @@ flowchart TD
   D --> G[Character and audience resolver]
   F --> G
   G --> H[Replacing dynamic context]
-  G --> I[Local branch-scoped event ledger]
-  J[Verified restored save checkpoint] --> I
-  I --> K[Eligible Convai memory projection]
+  H --> I[Actual player conversation]
+  L[One persistent player ID] --> I
+  I --> K[Natural character memory]
+  M[Confirmed Forget action] --> N[Cancel sessions and clear exact pair]
+  N --> K
 ```
 
 ### Character identity and delivery
@@ -75,8 +85,16 @@ The production builder keeps `backstory`, `speaking_style_description`, and
 `speaking_style_sample_dialogues` separate. Dialogue examples are newly written
 delivery examples, not copied game lines or memories. Future choices and endings
 stay in conditional research records instead of being placed in static biography.
-The rollout plan preserves existing character IDs, model and voice assignments.
-Its production application and exact API readback remain separate steps.
+The baseline rollout preserved existing character IDs, model and voice
+assignments; all 79 profiles' separate fields and model passed readback.
+
+The [dialogue prompting pilot](dialogue-style/README.md) recorded 36 measured
+text replies for Johnny, Judy and Panam. Its [completed blind review and
+unblinding](dialogue-style/UNBLINDED_REVIEW.md) gave model-authored means of
+72.29/100 for the baseline, 66.46 for added interaction directions and 68.44 for
+directions plus native examples. This small qualitative pilot does not justify
+a broad production style change. The researched baseline remains in place;
+these scores do not establish human preference or audible response quality.
 
 ### What establishes a choice
 
@@ -103,29 +121,23 @@ recollection. Group output must be permitted for every listener.
 
 ### Memory and loading earlier saves
 
-The following restore protocol is implemented and covered by controlled tests,
-but its native save component is quarantined after a startup failure. It must
-not be described as working in a loaded game until startup and save/load
-qualification succeed. See [SAVE_IDENTITY.md](SAVE_IDENTITY.md).
+The latest user decision is one ID retaining natural character memories across
+all saves. A real `OnGameRestored` event was observed with zero fact writes.
+The Lua adapter uses it to cancel old requests, clear transient references and
+publish a new world token. The provider ID remains unchanged.
 
-The local ledger is the authority for verified events. It records provenance,
-campaign, branch, character, permitted audience and checkpoint. The native save
-stores opaque IDs and a ledger cursor, not dialogue or API credentials. Ledger
-append and native cursor updates use a checked handshake so stale callbacks
-cannot advance a different loaded save.
+The first actual player conversation verifies and enables the mod-owned profile.
+Spawn/warmup, automatic reactions and quest capture do not activate memory for
+unused characters. No `/memory/add` or background quest archive runs. Provider
+extraction and recall are automatic; current quest choices come from fresh
+dynamic context and take precedence over recalled conversations from other saves.
 
-Restoring a save forks from its proven saved prefix before identified cloud
-connections resume. This prevents newer memories from an abandoned timeline
-being reused. Same-session bridge/CET restarts reconcile the exact cursor instead
-of guessing from a filename or the latest save on disk. Private world and phone
-can share a character's memory identity; their request streams remain separate.
-Each exact group audience has its own cloud namespace.
-
-Dynamic context does not itself prove a long-term-memory write. Only qualified
-episodes enter the explicit memory queue; submitted, uncertain and acknowledged
-writes are distinct states. A timed-out add is reconciled rather than blindly
-retried. Convai's automatic conversation extraction is also a reason to disable
-speculative LLM replies for identified sessions. Connection prewarming remains.
+Companion Manager exposes confirmed character/all Forget actions. All only clears
+contacted characters. Durable epochs fence old output, sessions disconnect, and
+the exact player/character pair is deleted and checked for empty readback.
+Inconclusive outcomes remain failed; no automatic retry occurs on restart.
+Convai provides no documented extraction flush barrier. Actual recall and a
+confirmed provider deletion remain live acceptance tasks.
 
 Disappearing phone messages are a local display-retention setting. They do not
 erase character memory. Legacy unscoped sessions/transcripts are preserved as
@@ -142,6 +154,7 @@ unassigned data rather than silently attributed to the first save loaded.
 | `generated/native-coverage.json` | Reviewed native outcome coverage and exact remaining gaps |
 | `generated/world-knowledge.json` | Validated runtime pack; no full scraped source text |
 | `PROFILE_CROSS_REVIEW.md`, `CITY_PROFILE_PEER_REVIEW.md` | Independent coverage of all 79 static profiles and resolved findings |
+| `dialogue-style/` | Primary-source prompting research, 36 measured replies and completed model-authored blind evaluation |
 | `SAVE_IDENTITY.md`, `MEMORY_QUALIFICATION.md` | Quarantined native boundary and bounded disposable API evidence |
 | `cache/public/` | Ignored, inert fetched source content and manifests |
 | `cache/game/` | Ignored installed-resource exports, topology and localization evidence |
@@ -184,13 +197,20 @@ denials. The test memories and temporary character were removed and cleanup
 verified. This does not prove automatic dialogue extraction, cancelled-turn
 exclusion, native restore, or conversational recall. Production memory is OFF.
 
-The [Convai streaming source](../../docs/CONVAI_AUDIO_STREAMING.md) can publish
+The [Convai streaming update](../../docs/CONVAI_AUDIO_STREAMING.md) can publish
 PCM before the remote utterance finishes and has byte-preservation/ownership
-checks. It has not been installed for an audible game test; no measured native
-playback improvement is claimed here.
+checks. One live reply completed in eight chunks. With a warm connection, first
+provider audio arrived at about 2.16 seconds; request to estimated native speech
+start was 5.05 seconds. These are trace-based timings, and the user still found
+the response slow. A subsequent guard avoids repeatedly parsing/hashing the
+same roughly 515 KB packet: the offline check fell from 73 to 3 ms. Its live
+end-to-end gain is pending; audible continuity and facial timing remain separate
+qualification work.
 
-[WORK_PLAN.md](WORK_PLAN.md) records the remaining profile rollout, anonymous
-context installation, native-identity repair and live checks. The existing
+[WORK_PLAN.md](WORK_PLAN.md) records the remaining prompt follow-up,
+anonymous context/voice checks, identity and archive qualification. Local
+checkpoints are `857af7c` for the researched knowledge work and `27d6c55` for
+streaming. The existing
 simple tracked-objective feature remains a separate user-accepted capability;
 the new granular pack is not marked complete merely because its source checks
 pass.

@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import fengari from 'fengari';
-import {PhoneChat, parsePhoneState, parsePhoneBinding, phoneBindingKey, phoneScope} from './phone-chat.mjs';
+import {PhoneChat, parsePhoneState, parsePhoneBinding, phoneBindingKey, phoneScope, parsePlayerPhoneContext} from './phone-chat.mjs';
 
 const now = 100000;
 const binding = (overrides = {}) => ({version: 1, status: 'available', authoritative: true, confidence: 'native-live',
@@ -36,6 +36,80 @@ async function finish(chat, value) { await chat.accept(value); await chat.active
 const memory = (save, remoteGeneration = 'remote-generation-1') => ({status: 'available',
   identity: {userId: save.localUserId, campaignId: save.campaignId, branchId: save.branchId, remoteGeneration},
   endUserId: `private-${save.branchId}-${remoteGeneration}`});
+const playerContext = (overrides = {}) => ({status: 'player', endUserId: 'one-persistent-player',
+  scope: `phone:world:${'a'.repeat(24)}`, sessionKey: 'b'.repeat(64), remoteGeneration: 'c'.repeat(64), ...overrides});
+const unknownState = (overrides = {}) => state({saveIdentity: {version: 1, status: 'unavailable', generation: 1}, ...overrides});
+
+test('stable player contexts require bounded exact phone, session and reset route fields', async () => {
+  const context = playerContext(); assert.deepEqual(parsePlayerPhoneContext(context), context);
+  assert.equal(Object.isFrozen(parsePlayerPhoneContext(context)), true);
+  for (const value of [playerContext({endUserId: ''}), playerContext({endUserId: 'x'.repeat(257)}),
+    playerContext({endUserId: 'another player'}), playerContext({scope: `private:world:${'a'.repeat(24)}`}),
+    playerContext({scope: 'phone'}), playerContext({sessionKey: 'b'.repeat(65)}),
+    playerContext({remoteGeneration: 'unverified-reset'})]) assert.equal(parsePlayerPhoneContext(value), null);
+  for (const options of [{contextFor: () => playerContext()},
+    {contextFor: () => playerContext({scope: `group:world:${'a'.repeat(24)}`}), contextCurrent: () => true}]) {
+    const {chat, calls, output} = fixture(async () => ({text: 'Must not send', sessionID: 'invalid'}), options);
+    await finish(chat, unknownState());
+    assert.equal(calls.length, 0); assert.equal(output.at(-1).state, 'error');
+  }
+});
+
+test('same player and contact still require exact scope, session key and reset epoch session reuse', async () => {
+  let context = playerContext(); const writes = [];
+  const {chat, calls} = fixture(async () => ({text: 'Scoped reply', sessionID: `player-session-${calls.length}`}),
+    {contextFor: () => context, contextCurrent: () => true, saveSessions: async value => writes.push(value)});
+  await finish(chat, unknownState());
+  await finish(chat, unknownState({request: {id: 'world-1-2', contact: 'judy', text: 'Same route'}}));
+  assert.deepEqual(calls.map(value => value.sessionId), ['-1', 'player-session-1']);
+  context = playerContext({sessionKey: 'd'.repeat(64)});
+  await finish(chat, unknownState({request: {id: 'world-1-3', contact: 'judy', text: 'New session route'}}));
+  context = playerContext({sessionKey: 'd'.repeat(64), remoteGeneration: 'e'.repeat(64)});
+  await finish(chat, unknownState({request: {id: 'world-1-4', contact: 'judy', text: 'Forgotten memory'}}));
+  context = playerContext({scope: `phone:world:${'f'.repeat(24)}`, sessionKey: 'd'.repeat(64), remoteGeneration: 'e'.repeat(64)});
+  await finish(chat, unknownState({request: {id: 'world-1-5', contact: 'judy', text: 'Changed world partition'}}));
+  assert.deepEqual(calls.slice(2).map(value => value.sessionId), ['-1', '-1', '-1']);
+  assert.equal(new Set(calls.map(value => value.endUserId)).size, 1); assert.equal(writes.length, 0);
+  assert.equal(calls[4].scope, context.scope); assert.equal(calls[4].sessionKey, context.sessionKey);
+  assert.equal(calls[4].remoteGeneration, context.remoteGeneration);
+});
+
+test('resetting the selected route while its guard awaits cannot admit a provider send', async () => {
+  const guard = defer(), entered = defer();
+  const {chat, calls, output} = fixture(async () => ({text: 'Must not send', sessionID: 'invalid'}),
+    {contextFor: () => playerContext(), contextCurrent: () => { entered.resolve(); return guard.promise; }});
+  await chat.accept(unknownState()); const work = chat.active.work; await entered.promise;
+  guard.resolve(false); await work;
+  assert.equal(calls.length, 0); assert.equal(output.filter(value => value.state === 'reply').length, 0);
+  assert.equal(chat.transientSessions.size, 0);
+});
+
+test('a reply queued before forget is checked again at publication and cannot enter the cleared history', async () => {
+  const provider = defer(), queue = defer(), queued = defer(); let epochCurrent = true;
+  const {chat, output} = fixture(() => provider.promise,
+    {contextFor: () => playerContext(), contextCurrent: () => epochCurrent});
+  await chat.accept(unknownState()); const work = chat.active.work;
+  const emit = chat.emit.bind(chat);
+  chat.emit = (active, value) => { if (value.state === 'reply') queued.resolve(); return emit(active, value); };
+  chat.writes = queue.promise;
+  provider.resolve({text: 'Queued before forget', sessionID: 'queued-old-session'}); await queued.promise;
+  epochCurrent = false; queue.resolve(); await work;
+  assert.equal(output.filter(value => value.state === 'reply').length, 0);
+});
+
+test('superseding a player phone request with another contact blocks the first asynchronous reply', async () => {
+  const old = defer(), entered = defer();
+  const {chat, calls, output} = fixture(args => {
+    if (args.profileKey === 'judy-alvarez') { entered.resolve(); return old.promise; }
+    return {text: 'Panam reply', sessionID: 'panam-player-session'};
+  }, {contextFor: ({profileKey}) => playerContext({sessionKey: (profileKey === 'judy-alvarez' ? 'b' : 'd').repeat(64)}),
+    contextCurrent: () => true});
+  await chat.accept(unknownState()); const work = chat.active.work; await entered.promise;
+  await finish(chat, unknownState({request: {id: 'world-1-2', contact: 'panam', text: 'Panam instead'}}));
+  assert.equal(calls[0].signal.aborted, true);
+  old.resolve({text: 'Judy reply from superseded turn', sessionID: 'obsolete'}); await work;
+  assert.deepEqual(output.filter(value => value.state === 'reply').map(value => value.contact), ['panam']);
+});
 
 test('phone sessions isolate two contacts, users, campaigns and rollback branches', async () => {
   let saved;
