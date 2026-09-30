@@ -7,9 +7,18 @@ local function position(p)
     local world=WorldPosition.new(); world:SetVector4(vector(p))
     local spec=AIPositionSpec.new(); spec:SetWorldPosition(world); return spec
 end
+-- RED4ext.SDK Game Reflection: AI/CommandState.hpp. Native AIComponent keeps
+-- NotExecuting in its active-command list, so it is never proof of cancellation.
+local function stateName(label)
+    return label:match('^AICommandState%s*:%s*(%w+)%s*%(%d+%)$') or label
+end
 local function active(label)
-    return label:find('Executing',1,true) and not label:find('NotExecuting',1,true)
-        or label:find('Enqueued',1,true)
+    local name=stateName(label)
+    return name=='Executing' or name=='Enqueued' or name=='NotExecuting'
+end
+local function terminal(label)
+    local name=stateName(label)
+    return name=='Success' or name=='Failure' or name=='Cancelled' or name=='Interrupted'
 end
 function M.new(npc)
     return {npc=npc,clock=0,issued=false,lookStyle='none',feedback={},commands=0,events={}}
@@ -26,12 +35,6 @@ local function cancel(s)
         pending={command=s.command,requested=false}
         s.cancellation=pending
     end
-    local function terminal(label)
-        return label:find('Success',1,true) or label:find('Succeeded',1,true)
-            or label:find('Failure',1,true) or label:find('Cancelled',1,true)
-            or label:find('Interrupted',1,true) or label:find('NotExecuting',1,true)
-            or label=='Stopped'
-    end
     local ok,finished=pcall(function()
         if not s.npc or not s.npc:IsAttached() then error('Movement owner is unavailable') end
         local ai=s.npc:GetAIControllerComponent()
@@ -44,7 +47,7 @@ local function cancel(s)
             -- a side effect. Retain this exact handle and send at most once.
             pending.requested=true
             local accepted
-            if state:find('Enqueued',1,true) then accepted=ai:CancelCommand(pending.command)
+            if stateName(state)~='Executing' then accepted=ai:CancelCommand(pending.command)
             else accepted=ai:StopExecutingCommand(pending.command,true) end
             if accepted==false then error('Native movement cancellation refused') end
             pending.state=tostring(ai:GetCommandState(pending.command))
@@ -75,16 +78,14 @@ function M.suspendHold(s)
         local ai=s.npc:GetAIControllerComponent()
         local state=tostring(ai:GetCommandState(held.command))
         local accepted
-        if state:find('Enqueued',1,true) then accepted=ai:CancelCommand(held.command)
+        if stateName(state)=='Enqueued' or stateName(state)=='NotExecuting' then accepted=ai:CancelCommand(held.command)
         elseif active(state) then accepted=ai:StopExecutingCommand(held.command,true) end
         if accepted==false then error('The native AI refused to release the owned idle hold') end
         record(s,'hold-suspended')
     end
     local state=tostring(s.npc:GetAIControllerComponent():GetCommandState(held.command))
     if active(state) then return false,'Waiting for the owned idle hold to stop' end
-    if not (state:find('Success',1,true) or state:find('Failure',1,true)
-        or state:find('Cancelled',1,true) or state:find('Interrupted',1,true)
-        or state:find('NotExecuting',1,true)) then return false,'Owned idle hold state unavailable' end
+    if not terminal(state) then return false,'Owned idle hold state unavailable' end
     held.ready=true
     return true
 end
@@ -142,7 +143,7 @@ function M.sense(s,at,speed,dt)
         f.failed=not ok or label:find('Failure',1,true)~=nil
             or label:find('Cancelled',1,true)~=nil or label:find('Interrupted',1,true)~=nil
             or (label:find('NotExecuting',1,true)~=nil and f.age>1.5)
-        f.complete=ok and (label:find('Success',1,true)~=nil or label:find('Succeeded',1,true)~=nil)
+        f.complete=ok and stateName(label)=='Success'
         if s.stage=='orient' then f.complete,f.failed=false,false end
         if s.kind=='move' and s.stage~='orient' and s.target and space.ground(at,s.target)>0.8 then
             if not s.progress or space.ground(s.progress.position,at)>0.3 then

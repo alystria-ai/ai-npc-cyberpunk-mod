@@ -71,7 +71,7 @@ export const companionEngine = `
       if self.onSend then self.onSend(cmd) end
     end
     function ai:GetCommandState(cmd) return cmd.state end
-    function ai:StopExecutingCommand(cmd) cmd.state='Stopped' end
+    function ai:StopExecutingCommand(cmd) cmd.state='Success' end
     function ai:CancelCommand(cmd) cmd.state='Cancelled' end
     local npc={id={hash=tostring(sequence)},pos=spec.position,forward=Vector4.new(0,1),ai=ai,looks={},spec=spec}
     function npc:GetEntityID() return self.id end

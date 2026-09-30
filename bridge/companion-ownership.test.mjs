@@ -60,9 +60,12 @@ test('combat release keeps the retiring command owned without issuing a social r
   assert(#active(npc)==1 and #npc.ai.commands==commands+1)
 `));
 
-test('queued cancellation uses CancelCommand once and waits for its asynchronous terminal state', () => run(`
+for (const pendingState of ['Enqueued', 'NotExecuting']) {
+test(`${pendingState} uses CancelCommand once and waits for its asynchronous terminal state`, () => run(`
   local npc=spawn(); tick(4)
-  local first=active(npc)[1]; first.state='Enqueued'
+  local first=active(npc)[1]; first.state='${pendingState}'
+  local enum={NotExecuting=0,Enqueued=1,Executing=2,Cancelled=3,Interrupted=4,Success=5,Failure=6}
+  npc.ai.GetCommandState=function(_,command) return 'AICommandState : '..command.state..' ('..enum[command.state]..')' end
   local cancelled=0
   npc.ai.CancelCommand=function(_,command) assert(command==first); cancelled=cancelled+1; return true end
   npc.ai.StopExecutingCommand=function() error('queued command was treated as executing') end
@@ -73,6 +76,23 @@ test('queued cancellation uses CancelCommand once and waits for its asynchronous
   first.state='Cancelled'; companions.update(player,0.1)
   assert(#npc.ai.commands==count+1 and #active(npc)==1)
 `));
+}
+
+for (const terminalState of ['Cancelled', 'Interrupted', 'Success', 'Failure']) {
+test(`actual CET ${terminalState} enum text releases the exact retired native handle`, () => run(`
+  local npc=spawn(); tick(4)
+  local first=active(npc)[1]; local count=#npc.ai.commands
+  local enum={NotExecuting=0,Enqueued=1,Executing=2,Cancelled=3,Interrupted=4,Success=5,Failure=6}
+  npc.ai.GetCommandState=function(_,command) return 'AICommandState : '..command.state..' ('..enum[command.state]..')' end
+  npc.ai.StopExecutingCommand=function() return true end
+  player.pos.y=7
+  companions.update(player,0.1)
+  assert(#npc.ai.commands==count)
+  first.state='${terminalState}'
+  companions.update(player,0.1)
+  assert(#npc.ai.commands==count+1 and #active(npc)==1)
+`));
+}
 
 test('world abandonment drops a pending cancellation without querying destroyed native objects', () => run(`
   local npc=spawn(); tick(4)

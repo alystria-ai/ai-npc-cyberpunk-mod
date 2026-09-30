@@ -28,7 +28,8 @@ io.open=function(path,mode)
  if mode=='rb' then if not files[path]then return nil end
   return {read=function()return files[path]end,close=function()end}
  end
- return {write=function(_,value)files[path]=value;writes[#writes+1]={path=path,value=clone(values[value])}end,close=function()end}
+ return {write=function(self,value)files[path]=value;writes[#writes+1]={path=path,value=clone(values[value])};return self end,
+  close=function()return true end}
 end
 os.time=function()return clock end
 os.remove=function(path)files[path]=nil;return true end

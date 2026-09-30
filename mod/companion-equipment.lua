@@ -20,8 +20,18 @@ local function commandState(ai, command)
     if value == nil then error('Equipment command state unavailable') end
     return tostring(value)
 end
-local function executing(state)
-    return state:find('Executing', 1, true) and not state:find('NotExecuting', 1, true)
+-- Game Reflection AI::CommandState; NotExecuting is still owned/active in
+-- AIComponent.OnCommandStateChanged, not an acknowledged terminal state.
+local function stateName(state)
+    return state:match('^AICommandState%s*:%s*(%w+)%s*%(%d+%)$') or state
+end
+local function active(state)
+    local name=stateName(state)
+    return name=='Executing' or name=='Enqueued' or name=='NotExecuting'
+end
+local function terminal(state)
+    local name=stateName(state)
+    return name=='Success' or name=='Failure' or name=='Cancelled' or name=='Interrupted'
 end
 
 function M.new(npc)
@@ -33,35 +43,46 @@ end
 -- attachments, inventory, or the movement actuator's command reference.
 local function cancel(s)
     s.handoff,s.handoffAt,s.handoffReady=false,nil,nil
-    if not s.command then return true end
-    if s.cancelFailed then return false end
-    local ok, err = pcall(function()
-        if not s.npc or not s.npc:IsAttached() then return end
+    if not s.command then s.cancellation=nil; return true end
+    local pending=s.cancellation
+    if not pending or pending.command~=s.command then
+        pending={command=s.command,requested=false}; s.cancellation=pending
+    end
+    local ok, ended = pcall(function()
+        if not s.npc or not s.npc:IsAttached() then return true end
         local ai = s.npc:GetAIControllerComponent()
-        local state = commandState(ai, s.command)
+        local state = commandState(ai, pending.command)
         s.commandState = state
+        if terminal(state) then return true end
+        if not active(state) then error('Equipment command state unknown') end
+        if pending.requested or s.cancelFailed then return false end
+        pending.requested=true
         local result
-        if state:find('Enqueued', 1, true) then result = ai:CancelCommand(s.command)
-        elseif executing(state) then result = ai:StopExecutingCommand(s.command, true)
-        elseif not (state:find('Success', 1, true) or state:find('Failure', 1, true)
-            or state:find('Cancelled', 1, true) or state:find('Interrupted', 1, true)
-            or state:find('NotExecuting', 1, true)) then error('Equipment command state unknown') end
+        if stateName(state)=='Executing' then result=ai:StopExecutingCommand(pending.command,true)
+        else result=ai:CancelCommand(pending.command) end
         if result == false then error('Native equipment cancellation refused') end
+        s.commandState=commandState(ai,pending.command)
+        return terminal(s.commandState)
     end)
     if not ok then
         s.cancelFailed, s.armed, s.phase = true, false, 'failed'
-        s.reason, s.error = 'Equipment cancellation unavailable', tostring(err)
+        s.reason, s.error = 'Equipment cancellation unavailable', tostring(ended)
         return false
     end
-    s.command, s.finishedAt = nil, nil
+    if not ended then
+        if not s.cancelFailed then s.phase,s.reason='cancelling','Waiting for native holster cancellation' end
+        return false
+    end
+    s.command, s.finishedAt, s.cancellation = nil, nil, nil
     return true
 end
 
 function M.release(s)
     if not s then return end
-    cancel(s)
+    s.releaseRequested=true
+    local released=cancel(s)
     s.armed, s.readySince = false, nil
-    if not s.cancelFailed then s.phase, s.reason = 'released', 'Managed copy dismissed' end
+    if released then s.phase, s.reason = 'released', 'Managed copy dismissed' end
 end
 
 function M.abandon(s)
@@ -69,6 +90,7 @@ function M.abandon(s)
     -- Called after detach/death/world teardown. No native reads or cancellation.
     s.npc, s.command, s.finishedAt, s.readySince = nil, nil, nil, nil
     s.handoff,s.handoffAt,s.handoffReady=false,nil,nil
+    s.cancellation,s.releaseRequested=nil,nil
     s.armed, s.phase, s.reason = false, 'abandoned', 'Native lifetime ended'
 end
 
@@ -110,19 +132,13 @@ local function tick(s, player, idle, acquireHold)
     if not flag(npc:IsAttached(), 'NPC attachment') or flag(npc:IsDeadNoStatPool(), 'NPC life') then
         M.abandon(s); return
     end
-    if s.cancelFailed and s.command then
+    if (s.cancelFailed or s.cancellation) and s.command then
         -- A failed cancellation cannot hold the walking controller hostage or
         -- erase our native command reference. Observe it until it ends; do not
         -- submit replacements or repeatedly invoke the failing cancel method.
-        local state=commandState(npc:GetAIControllerComponent(),s.command)
-        s.commandState=state
-        if state:find('Success',1,true) or state:find('Failure',1,true)
-            or state:find('Cancelled',1,true) or state:find('Interrupted',1,true)
-            or state:find('NotExecuting',1,true) then
-            s.command=nil
-            s.reason='Native holster ended after cancellation failed'
-        end
-        return
+        if not cancel(s) then return end
+        if s.releaseRequested then s.phase,s.reason='released','Managed copy dismissed'; return end
+        if s.cancelFailed then s.reason='Native holster ended after cancellation failed'; return end
     end
     if not player or not flag(player:IsAttached(), 'Player attachment')
         or flag(player:IsDeadNoStatPool(), 'Player life') then
@@ -170,7 +186,7 @@ local function tick(s, player, idle, acquireHold)
         s.commandState = state
         local hand = s.hands[s.slot]
         local occupied = hand.present and not hand.fists
-        if state:find('Success', 1, true) and not occupied then
+        if stateName(state)=='Success' and not occupied then
             s.command, s.finishedAt, s.readySince = nil, nil, nil
             s.phase, s.reason = 'waiting', 'Hand cleared; allow the native animation to settle'
             local remaining = false
@@ -186,7 +202,7 @@ local function tick(s, player, idle, acquireHold)
         if s.clock - s.issuedAt >= commandSeconds then
             failAttempt(s, 'Native holster timed out'); return
         end
-        if not executing(state) and not state:find('Enqueued', 1, true) then
+        if not active(state) then
             s.finishedAt = s.finishedAt or s.clock
             -- A terminal command is not proof of a cleared hand. Give queued
             -- attachment events a short grace, then retry once at most.

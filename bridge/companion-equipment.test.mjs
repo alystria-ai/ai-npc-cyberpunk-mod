@@ -177,6 +177,56 @@ test('rejected cancellation retains ownership and prevents further commands', ()
  m.abandon(s);assert(not m.snapshot(s).active)
 `));
 
+const nativeStateText = `
+ local enum={NotExecuting=0,Enqueued=1,Executing=2,Cancelled=3,Interrupted=4,Success=5,Failure=6}
+ function ai:GetCommandState(command)
+  return 'AICommandState : '..command.state..' ('..enum[command.state]..')'
+ end
+`;
+
+for (const pendingState of ['NotExecuting', 'Enqueued', 'Executing']) {
+  test(`native ${pendingState} holster cancellation retains ownership until confirmed terminal`, () => run(`
+    ${nativeStateText}
+    ai.nextState='${pendingState}';tick(3);local owned=s.command;assert(owned)
+    local requests=0
+    ai.CancelCommand=function(_,command)
+      assert('${pendingState}'~='Executing' and command==owned);requests=requests+1;return true
+    end
+    ai.StopExecutingCommand=function(_,command)
+      assert('${pendingState}'=='Executing' and command==owned);requests=requests+1;return true
+    end
+    npc.scene=true;tick(.25)
+    assert(s.command==owned and requests==1 and not m.holdsMovement(s))
+    npc.scene=false;tick(8)
+    assert(s.command==owned and #ai.commands==1 and requests==1,'pending cancellation was forgotten/repeated')
+    owned.state='Cancelled';tick(3)
+    assert(s.command~=owned and #ai.commands==2,'terminal cancellation did not allow later settled cleanup')
+  `));
+}
+
+for (const terminalState of ['Cancelled', 'Interrupted', 'Success', 'Failure']) {
+  test(`failed equipment cancellation recognizes native ${terminalState}, never NotExecuting, as terminal`, () => run(`
+    ${nativeStateText}
+    tick(3);local owned=s.command;ai.refuseCancel=true;npc.scene=true;tick(.25)
+    assert(s.command==owned and m.snapshot(s).cancellationFailed)
+    owned.state='NotExecuting';npc.scene=false;tick(5)
+    assert(s.command==owned and #ai.commands==1 and #ai.stopped==1 and #ai.cancelled==0)
+    owned.state='${terminalState}';tick(.25)
+    assert(not s.command and #ai.commands==1,'verified terminal command handle was retained')
+  `));
+}
+
+test('dismiss and world abandonment retain then drop asynchronous holster cancellation safely', () => run(`
+  ${nativeStateText}
+  tick(3);local owned=s.command;local stops=0
+  ai.StopExecutingCommand=function()stops=stops+1;return true end
+  m.release(s);assert(s.command==owned and stops==1 and not m.holdsMovement(s))
+  tick(3);assert(s.command==owned and stops==1 and #ai.commands==1)
+  npc.IsAttached=function()error('native actor already torn down')end
+  npc.GetAIControllerComponent=function()error('native AI already torn down')end
+  m.abandon(s);m.update(s,player,1,true);assert(not m.snapshot(s).active)
+`));
+
 test('equipment waits for confirmed owned-hold release and bounds a failed handoff', () => run(`
  local requests=0;handoff=function()requests=requests+1;return false,'Still stopping'end
  tick(3);assert(m.holdsMovement(s) and #ai.commands==0)

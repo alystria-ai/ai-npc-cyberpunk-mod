@@ -287,13 +287,13 @@ test('arrival requires actual settling before gaze can take over; losing gaze do
   player.pos=Vector4.new(0,8); tick(); tick(3)
   npc.pos=Vector4.new(1.5,6); tick(2,npc.id.hash)
   local approach=last(npc,'AIMoveToCommand')
-  npc.pos=approach.movementTarget.position; approach.state='Succeeded'
+  npc.pos=approach.movementTarget.position; approach.state='Success'
   tick(1,npc.id.hash)
   assert(not companions.list()[1].focused, 'arrival momentum must settle before the turn')
   tick(4,npc.id.hash)
   local step=last(npc,'AIMoveToCommand')
   assert(step~=approach and step.rotateEntityTowardsFacingTarget==true)
-  npc.pos=step.movementTarget.position; step.state='Succeeded'; tick(1,npc.id.hash)
+  npc.pos=step.movementTarget.position; step.state='Success'; tick(1,npc.id.hash)
   tick(3); tick(3,npc.id.hash)
   assert(last(npc,'AIMoveToCommand')==step, 'a glance away cannot cause a second sideways shuffle')
 `));
