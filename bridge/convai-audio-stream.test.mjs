@@ -245,7 +245,7 @@ test('host microphone context refresh uses the owned lease and rejects identity 
   for (const change of [null, {characterId: 'panam'}, {endUserId: 'save-two'}, {scope: 'group:judy,panam'},
     {ttsEnabled: false}, {sessionId: 'foreign-session'}, {freshSession: true}]) {
     const host = new RealtimeHost(), owner = {}, evaluated = [], released = [];
-    host.voiceLease = {owner, config: original, sessionID: 'mic-session',
+    host.voiceLease = {owner, config: original, epoch: host.epoch, sessionID: 'mic-session',
       value: {evaluate: async (fn, config) => { evaluated.push(config); return {sessionID: 'mic-session', text: 'Hello'}; },
         context: () => ({clearPermissions: async () => {}})},
       release: async options => released.push(options)};

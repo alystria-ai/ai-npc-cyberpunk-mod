@@ -24,12 +24,18 @@ export const transportKey = config => JSON.stringify([...sessionIdentity(config)
 // a different user/save namespace or audience. TTS changes keep that ownership.
 export class SessionBindings {
   constructor() { this.owners = new Map(); }
+  check(config) { if (!config.freshSession) this.validate(config, config.sessionId); }
   accept(config) { if (!config.freshSession) this.bind(config, config.sessionId); }
-  bind(config, sessionId) {
-    if (sessionId == null || sessionId === '' || sessionId === '-1') return;
+  validate(config, sessionId) {
+    if (sessionId == null || sessionId === '' || sessionId === '-1') return null;
     if (typeof sessionId !== 'string') throw Error('Invalid conversation session');
     const owner = JSON.stringify(sessionIdentity(config)), previous = this.owners.get(sessionId);
     if (previous !== undefined && previous !== owner) throw Error('Conversation session belongs to another user or scope');
+    return owner;
+  }
+  bind(config, sessionId) {
+    const owner = this.validate(config, sessionId);
+    if (owner === null) return;
     this.owners.set(sessionId, owner);
   }
 }

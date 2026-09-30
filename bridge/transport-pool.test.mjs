@@ -1,10 +1,22 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {TransportPool, transportKey} from './transport-pool.mjs';
+import {TransportPool, transportKey, SessionBindings} from './transport-pool.mjs';
 import {RealtimeHost} from './realtime-host.mjs';
 
 const deferred = () => { let resolve; const promise = new Promise(done => { resolve = done; }); return {promise, resolve}; };
 const flush = () => new Promise(done => setImmediate(done));
+
+test('session preflight validates existing ownership without recording an unverified new owner', () => {
+  const sessions = new SessionBindings();
+  const first = {characterId: 'judy', scope: 'private', sessionId: 'proposed-session'};
+  sessions.check(first); assert.equal(sessions.owners.size, 0);
+  const verified = {...first, endUserId: 'registered-user'};
+  sessions.check(verified); sessions.accept(verified);
+  assert.equal(sessions.owners.size, 1);
+  assert.throws(() => sessions.check(first), /another user or scope/);
+  assert.throws(() => sessions.check({...first, sessionId: 42}), /Invalid conversation session/);
+  assert.equal(sessions.owners.size, 1);
+});
 function fixture(limit = 3) {
   const live = new Set(), disposed = [], pool = new TransportPool({limit,
     create: async key => { const page = {key}; live.add(page); assert.ok(live.size <= limit); return page; },
@@ -177,6 +189,21 @@ test('a returned or supplied session cannot cross host pages into another user o
   await host.warm({...first, sessionId: 'restored-verified-session'});
   await assert.rejects(host.warm({...first, endUserId: 'opaque-user-b', sessionId: 'restored-verified-session'}), /another user or scope/);
   await host.close();
+});
+
+test('host discards provider-rejected startup without recording its proposed session owner', async () => {
+  for (const method of ['warm', 'reply', 'beginVoice']) {
+    const {host, pages} = hostFixture();
+    const anonymous = {characterId: 'judy', scope: 'private', ttsEnabled: false};
+    await host.warm(anonymous);
+    pages[0].evaluate = async () => { throw Error('Convai provider identity could not be verified'); };
+    await assert.rejects(host[method]({...anonymous, sessionId: 'rejected-proposal'}), /provider identity/);
+    assert.equal(pages[0].closed, true);
+    assert.equal(host.sessions.owners.has('rejected-proposal'), false);
+    await host.warm({...anonymous, endUserId: 'approved-registration-user', sessionId: 'rejected-proposal'});
+    assert.equal(host.sessions.owners.has('rejected-proposal'), true);
+    await host.close();
+  }
 });
 
 test('host idle refresh closes only the exact configuration and preserves session ownership', async () => {

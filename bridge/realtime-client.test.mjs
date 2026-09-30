@@ -27,7 +27,7 @@ function manualTimers() {
     }
   };
 }
-function fixture({emitAudio, allowMic = false, timers, onDisconnect, onDisableAudio} = {}) {
+function fixture({emitAudio, allowMic = false, timers, onConnect, onDisconnect, onDisableAudio} = {}) {
   const clients = [], events = [], captures = [];
   class Client {
     constructor(options) {
@@ -53,7 +53,7 @@ function fixture({emitAudio, allowMic = false, timers, onDisconnect, onDisableAu
       clients.push(this);
     }
     on(name, callback) { this.handlers.set(name, callback); }
-    async connect() { this.isBotReady = true; }
+    async connect() { await onConnect?.(this); this.isBotReady = true; }
     async disconnect() {
       this.isBotReady = false;
       if (allowMic) events.push(['disconnect', clients.indexOf(this)]);
@@ -100,13 +100,125 @@ test('warm registration reports the actual SDK end-user echo and rejects missing
   assert.equal(first.registration.verified, true);
   assert.equal(first.registration.endUserId, identified.endUserId);
   assert.equal(first.registration.characterId, config.characterId);
+  assert.equal((await api.warm(identified)).connectionReused, true);
   clients[0].state.endUserId = null;
-  assert.equal((await api.warm(identified)).registration.verified, false);
-  clients[0].state.endUserId = 'another-user';
-  assert.equal((await api.warm(identified)).registration.verified, false);
+  await assert.rejects(api.warm(identified), /provider identity could not be verified/);
+  assert.equal(clients[0].isBotReady, false);
+  await api.warm(identified);
+  clients[1].state.endUserId = 'another-user';
+  await assert.rejects(api.warm(identified), /provider identity could not be verified/);
+  assert.equal(clients[1].isBotReady, false);
   await api.close();
   assert.equal((await api.warm({...config, ttsEnabled: false})).registration.verified, false);
   await api.close();
+});
+
+test('new and reused anonymous connections require explicit SDK null instead of normalizing an invalid identity', async () => {
+  for (const reuse of [false, true]) for (const echo of ['foreign-provider-user', '', ' ', 0, false, {}, [], undefined]) {
+    const {api, clients, events} = fixture({onConnect: connection => {
+      if (!reuse) connection.state.endUserId = echo;
+    }});
+    const anonymous = {...config, ttsEnabled: false};
+    if (reuse) { await api.warm(anonymous); clients[0].state.endUserId = echo; }
+    await assert.rejects(api.warm(anonymous), error => error.message === 'Convai provider identity could not be verified');
+    assert.equal(clients[0].isBotReady, false); assert.equal(api.readiness().ready, false);
+    assert.equal(Object.hasOwn(clients[0].options, 'endUserId'), false);
+    assert.deepEqual(events, []);
+    await api.close();
+  }
+});
+
+test('provider identity rejection precedes text, reactions, prepared input and microphone startup', async () => {
+  for (const reuse of [false, true]) for (const mode of ['reply', 'reaction', 'prepared', 'beginVoice']) {
+    const {api, clients, events} = fixture({allowMic: true, onConnect: connection => {
+      if (!reuse) connection.state.endUserId = 'unexpected-user';
+    }});
+    const anonymous = {...config, ttsEnabled: false};
+    if (reuse) { await api.warm(anonymous); clients[0].state.endUserId = 'unexpected-user'; }
+    const method = mode === 'beginVoice' ? mode : 'reply';
+    const extra = mode === 'reaction' ? {reaction: {kind: 'battle'}} : mode === 'prepared' ? {freshSession: true, sessionId: '-1'} : {};
+    await assert.rejects(api[method]({...anonymous, ...extra}), /provider identity could not be verified/);
+    assert.equal(events.includes('microphone'), false);
+    assert.equal(events.some(row => Array.isArray(row) && ['context', 'message', 'trigger'].includes(row[0])), false);
+    assert.equal(clients[0].isBotReady, false);
+    await api.close();
+  }
+});
+
+test('dedicated identified registration requires the exact provider user and character on newly ready connections', async () => {
+  for (const change of [connection => { connection.state.endUserId = null; },
+    connection => { connection.state.endUserId = 'different-user'; },
+    connection => { connection.characterId = 'different-character'; },
+    connection => { connection.characterId = undefined; }]) {
+    const {api, clients, events} = fixture({onConnect: change});
+    await assert.rejects(api.warm({...config, ttsEnabled: false, endUserId: 'approved-registration-user'}),
+      error => error.message === 'Convai provider identity could not be verified');
+    assert.equal(clients[0].isBotReady, false); assert.deepEqual(events, []);
+    await api.close();
+  }
+  const {api, clients} = fixture();
+  await api.warm({...config, ttsEnabled: false});
+  clients[0].characterId = 'different-character';
+  await assert.rejects(api.warm({...config, ttsEnabled: false}), /provider identity could not be verified/);
+  await api.close();
+});
+
+test('rejected startup does not record its supplied or returned session as a verified owner', async () => {
+  for (const sessionId of ['rejected-supplied-session', 'rejected-returned-session']) {
+    let connects = 0;
+    const {api, clients} = fixture({onConnect: connection => {
+      if (++connects === 1) {
+        connection.state.endUserId = 'wrong-user';
+        connection.characterSessionId = 'rejected-returned-session';
+      }
+    }});
+    await assert.rejects(api.warm({...config, ttsEnabled: false, sessionId: 'rejected-supplied-session'}), /provider identity/);
+    const receipt = await api.warm({...config, ttsEnabled: false, endUserId: 'approved-registration-user', sessionId});
+    assert.equal(receipt.registration.verified, true); assert.equal(clients.length, 2);
+    await api.close();
+  }
+});
+
+test('delayed identity rejection closes its exact connection without clearing a later valid owner', async () => {
+  let releaseDisconnect;
+  const delayed = new Promise(done => { releaseDisconnect = done; });
+  const {api, clients} = fixture({onDisconnect: connection => connection === clients[0] ? delayed : undefined});
+  const anonymous = {...config, ttsEnabled: false};
+  await api.warm(anonymous); clients[0].state.endUserId = 'wrong-user';
+  const rejected = api.warm(anonymous); rejected.catch(() => {});
+  await flush();
+  const current = await api.warm({...anonymous, characterId: 'panam'});
+  assert.equal(current.ready, true);
+  releaseDisconnect(); await assert.rejects(rejected, /provider identity/);
+  assert.equal(clients[1].isBotReady, true); assert.equal(api.readiness().ready, true);
+  assert.equal((await api.warm({...anonymous, characterId: 'panam'})).connectionReused, true);
+  await api.close();
+});
+
+test('microphone finish cancels a provider identity drift before refreshed context or audio submission', async () => {
+  const {api, clients, events} = fixture({allowMic: true});
+  const anonymous = {...config, ttsEnabled: false, context: 'Recording context.'};
+  await api.beginVoice(anonymous);
+  clients[0].state.endUserId = 'unexpected-user';
+  await assert.rejects(api.finishVoice({...anonymous, context: 'Finish context.'}), /provider identity/);
+  assert.equal(events.includes('microphone-disable'), false);
+  assert.equal(events.filter(row => Array.isArray(row) && row[0] === 'context').length, 1);
+  assert.equal(events.includes('microphone-stop'), true); assert.equal(api.readiness().ready, false);
+  await api.close();
+});
+
+test('idle readiness never reports or keeps alive a connection whose verified provider identity changed', async () => {
+  for (const identified of [false, true]) {
+    const {api, clients, events} = fixture();
+    await api.warm({...config, ttsEnabled: false, ...(identified ? {endUserId: 'registration-user'} : {})});
+    assert.equal(api.readiness(true).ready, true);
+    clients[0].state.endUserId = 'changed-provider-user';
+    assert.equal(api.readiness(true).ready, false);
+    await flush();
+    assert.equal(clients[0].isBotReady, false);
+    assert.deepEqual(events, ['idle-reset']);
+    await api.close();
+  }
 });
 
 test('captured Convai audio reaches the native sink before the remote utterance finishes', async () => {

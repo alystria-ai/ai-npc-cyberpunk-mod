@@ -9,7 +9,33 @@ import {validateConvaiAudioChunk} from './convai-audio-stream.mjs';
 const pageKey = transportKey;
 
 export class RealtimeHost {
-  constructor() { this.epoch = 0; this.sessions = new SessionBindings(); this.audioSinks = new Map(); }
+  constructor({disconnectTimeoutMs = 2500} = {}) {
+    this.epoch = 0; this.sessions = new SessionBindings(); this.audioSinks = new Map();
+    this.disconnects = new WeakMap(); this.disconnectTimeoutMs = disconnectTimeoutMs;
+  }
+  disconnectPage(page) {
+    if (!page || page.isClosed?.()) return Promise.resolve();
+    this.audioSinks.delete(page);
+    if (this.disconnects.has(page)) return this.disconnects.get(page);
+    const task = (async () => {
+      let timer;
+      try {
+        // Give the official SDK its normal session-end path before destroying
+        // the page. This is a bounded local disconnect, not a cloud flush ack.
+        await Promise.race([
+          Promise.resolve().then(() => page.evaluate(async () => {
+            await window.convaiRealtime?.close('Conversation ended');
+          })).catch(() => {}),
+          new Promise(resolve => { timer = setTimeout(resolve, this.disconnectTimeoutMs); }),
+        ]);
+      } finally { clearTimeout(timer); }
+    })();
+    this.disconnects.set(page, task); return task;
+  }
+  async disposePage(page) {
+    await this.disconnectPage(page);
+    await page?.close({runBeforeUnload: false}).catch(() => {});
+  }
   async start({signal} = {}) {
     throwIfCancelled(signal);
     if (this.closing) await this.closing;
@@ -55,7 +81,7 @@ export class RealtimeHost {
           await page.waitForFunction(() => !!window.convaiRealtime);
           return page;
         } catch (error) { await page.close().catch(() => {}); throw error; }
-      }, dispose: async page => { this.audioSinks.delete(page); await page?.close({runBeforeUnload: false}).catch(() => {}); }});
+      }, dispose: page => this.disposePage(page)});
       if (this.retained) await this.pool.retain(this.retained.keys, this.retained.options);
     } catch (error) { await browser?.close(); server.close(); throw error; }
   }
@@ -82,7 +108,7 @@ export class RealtimeHost {
     if (onAudioChunk !== undefined && (typeof onAudioChunk !== 'function' || method !== 'reply'
         || config.ttsEnabled === false || discard)) throw Error('Only submitted voiced replies can stream native audio');
     const key = pageKey(config);
-    this.sessions.accept(config);
+    this.sessions.check(config);
     const started = performance.now();
     await this.start({signal});
     throwIfCancelled(signal);
@@ -104,6 +130,7 @@ export class RealtimeHost {
       const result = await abortable(lease.value.evaluate(({config, method}) => window.convaiRealtime[method](config), {config, method}), signal);
       throwIfCancelled(signal);
       if (epoch !== this.epoch) throw cancelled();
+      this.sessions.accept(config);
       this.sessions.bind(config, result.sessionID);
       failed = false;
       const host = {browserStartupMs: startupMs, poolWaitMs, pageReused: lease.reused, pages: this.pool?.entries.size || 0};
@@ -149,7 +176,7 @@ export class RealtimeHost {
     config = {...config};
     delete config.audioStreamToken;
     const key = pageKey(config);
-    this.sessions.accept(config);
+    this.sessions.check(config);
     if (this.voiceLease) throw Error('Microphone connection is already running');
     await this.start({signal});
     const epoch = this.epoch;
@@ -158,13 +185,14 @@ export class RealtimeHost {
       throwIfCancelled(signal);
       if (epoch !== this.epoch) throw cancelled();
       if (this.voiceLease) throw Error('Microphone connection is already running');
-      lease.owner = owner; lease.config = config; this.voiceLease = lease;
+      lease.owner = owner; lease.config = config; lease.epoch = epoch; this.voiceLease = lease;
       // This is the only code path that grants microphone permission.
       await lease.value.context().grantPermissions(['microphone'], {origin: new URL(lease.value.url()).origin});
       throwIfCancelled(signal);
       const result = await lease.value.evaluate(config => window.convaiRealtime.beginVoice(config), config);
       throwIfCancelled(signal);
       if (epoch !== this.epoch || this.voiceLease !== lease) throw cancelled();
+      this.sessions.accept(config);
       this.sessions.bind(config, result.sessionID);
       lease.sessionID = result.sessionID;
       return result;
@@ -179,16 +207,18 @@ export class RealtimeHost {
     if (!lease || lease.owner !== owner) throw Error('Microphone connection is not running');
     let failed = true;
     try {
+      if (lease.epoch !== this.epoch || this.closing) throw cancelled();
       if (config !== undefined) {
         config = {...config}; delete config.audioStreamToken;
         if (config.freshSession || transportKey(config) !== transportKey(lease.config)
             || (config.sessionId && config.sessionId !== lease.config.sessionId && config.sessionId !== lease.sessionID)) {
           throw Error('Microphone reply identity changed');
         }
-        this.sessions.accept(config);
+        this.sessions.check(config);
       }
       const result = await lease.value.evaluate(config => window.convaiRealtime.finishVoice(config), config);
-      if (this.voiceLease !== lease) throw cancelled();
+      if (lease.epoch !== this.epoch || this.voiceLease !== lease) throw cancelled();
+      this.sessions.accept(config || lease.config);
       this.sessions.bind(lease.config, result.sessionID);
       failed = false; return result;
     }
@@ -211,9 +241,13 @@ export class RealtimeHost {
     this.audioSinks.clear();
     const pool = this.pool, browser = this.browser, server = this.server, starting = this.starting;
     this.closing = (async () => {
-      // Closing the browser immediately also cancels page evaluations and mic
-      // acquisition; do not wait for a complete response before cancelling.
-      await Promise.allSettled([pool?.close(), browser?.close(), starting]);
+      // Retire every ready page in parallel; total grace is one deadline, not
+      // one deadline per companion. Closing the pool immediately fences leases.
+      const grace = Promise.allSettled([...pool?.entries.values() || []]
+        .map(entry => this.disconnectPage(entry.value)));
+      const disposing = pool?.close();
+      await grace;
+      await Promise.allSettled([disposing, browser?.close(), starting]);
       server?.close();
       this.pool = this.browser = this.server = this.voiceLease = null;
     })().finally(() => { this.closing = null; });

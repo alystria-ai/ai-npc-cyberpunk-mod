@@ -3,7 +3,7 @@ import {drainBlendshapes} from './blendshape-capture.mjs';
 import {endUserOptions, transportKey, SessionBindings} from './transport-pool.mjs';
 import {PcmChunkStream} from './convai-audio-stream.mjs';
 
-let client, identity, context, source, capture, prime, remote, turn, micTimer;
+let client, identity, context, source, capture, prime, remote, turn, micTimer, verifiedProvider;
 let initialSession, submitted = false, epoch = 0, ttsEnabled = true;
 const sessions = new SessionBindings();
 // The game owns its 30-second recording finish and supplies fresh context.
@@ -27,7 +27,7 @@ async function close(reason = 'Conversation cancelled') {
   clearTimeout(micTimer);
   micTimer = null;
   if (previous.turn) { previous.turn.error = reason; previous.turn.stream?.abort(); }
-  client = context = source = capture = prime = remote = identity = turn = null;
+  client = context = source = capture = prime = remote = identity = turn = verifiedProvider = null;
   initialSession = null; submitted = false;
   // Closing is cancellation, never an implicit microphone submission. Start
   // transport shutdown before stopping hardware; do not call disableAudio,
@@ -48,13 +48,16 @@ async function close(reason = 'Conversation cancelled') {
 async function connect(config) {
   const started = performance.now();
   const desired = transportKey(config);
-  sessions.accept(config);
+  sessions.check(config);
   const sessionMatches = !config.sessionId || config.sessionId === initialSession || config.sessionId === client?.characterSessionId;
   // Preparation can reuse a warmed *unused* anonymous connection. It can
   // never append speculative dialogue to a previously used character session.
   if (identity === desired && client?.isBotReady && sessionMatches
       && (!config.freshSession || (initialSession === '-1' && !submitted))) {
-    return {connectionMs: performance.now() - started, connectionReused: true, ...registration(config)};
+    const connection = client, receipt = await verifyProviderIdentity(config, connection);
+    if (client !== connection) throw Error('Conversation startup cancelled');
+    sessions.accept(config);
+    return {connectionMs: performance.now() - started, connectionReused: true, ...receipt};
   }
   await close();
   const connectionEpoch = epoch;
@@ -123,21 +126,38 @@ async function connect(config) {
     if (!currentConnection()) throw Error('Conversation startup cancelled');
     return connection.isBotReady;
   }, 20000, 'Convai character did not become ready');
-  sessions.bind(config, connection.characterSessionId);
+  await verifyProviderIdentity(config, connection);
+  if (!currentConnection()) throw Error('Conversation startup cancelled');
   if (ttsEnabled) await connection.room.startAudio();
   if (prime) { prime.muted = true; prime.volume = 0; }
   connection.room.remoteParticipants.forEach(p => p.audioTrackPublications.forEach(pub => { if (pub.track) attach(pub.track); }));
-  return {connectionMs: performance.now() - started, connectionReused: false, ...registration(config)};
+  const receipt = await verifyProviderIdentity(config, connection);
+  if (!currentConnection()) throw Error('Conversation startup cancelled');
+  sessions.accept(config);
+  sessions.bind(config, connection.characterSessionId);
+  return {connectionMs: performance.now() - started, connectionReused: false, ...receipt};
 }
 
-function registration(config) {
-  const ready = client?.isBotReady === true;
-  const endUserId = typeof client?.state?.endUserId === 'string' ? client.state.endUserId : null;
-  const characterId = typeof client?.characterId === 'string' ? client.characterId : null;
+async function verifyProviderIdentity(config, connection) {
+  const ready = connection?.isBotReady === true;
+  const endUserId = connection?.state?.endUserId;
+  const characterId = connection?.characterId;
+  const anonymous = config.endUserId === undefined || config.endUserId === null;
   // endUserId is the server response exposed by SDK state. characterId is the
   // public getter for the connected SDK configuration, not an invented echo.
-  return {ready, registration: {verified: ready && typeof config.endUserId === 'string' && !!config.endUserId
-    && endUserId === config.endUserId && characterId === config.characterId, endUserId, characterId}};
+  // This SDK reports anonymous ready connections as explicit null. Never turn
+  // malformed, absent, or unexpected identities into a trustworthy null.
+  if (!ready || typeof characterId !== 'string' || characterId !== config.characterId
+      || (anonymous ? endUserId !== null : endUserId !== config.endUserId)) {
+    const reason = 'Convai provider identity could not be verified';
+    // Verification can overlap a later startup. Only clear the globals when
+    // this exact connection still owns them; never close its replacement.
+    if (client === connection) await close(reason);
+    else { try { await connection?.disconnect(); } catch {} }
+    throw Error(reason);
+  }
+  if (client === connection) verifiedProvider = {connection, characterId, endUserId};
+  return {ready: true, registration: {verified: !anonymous, endUserId, characterId}};
 }
 
 function encodeWav(chunks, rate) {
@@ -159,7 +179,8 @@ function beginTurn(timing = {}, config = {}) {
   submitted = true;
   const {ready: _ready, registration: _registration, ...connectionTiming} = timing;
   const current = turn = {before: new Set(client.chatMessages.map(m => m.id)), chunks: [], faces: [], captions: [], text: '', origin: null, lastSignal: 0,
-    started: performance.now(), epoch, timing: connectionTiming, ttsEnabled, textComplete: false};
+    started: performance.now(), epoch, timing: connectionTiming, ttsEnabled, textComplete: false,
+    providerIdentity: {characterId: config.characterId, endUserId: config.endUserId ?? null}};
   if (ttsEnabled && config.audioStreamToken) {
     if (typeof config.audioStreamToken !== 'string' || config.audioStreamToken.length > 80
         || typeof window.__convaiAudioChunk !== 'function') throw Error('Native audio stream sink is unavailable');
@@ -275,10 +296,12 @@ async function finishVoice(config) {
         || (config.sessionId && config.sessionId !== initialSession && config.sessionId !== client.characterSessionId)) {
       await close('Microphone reply identity changed'); throw Error('Microphone reply identity changed');
     }
-    // Same leased connection, new verified context. Updating before mute keeps
-    // the fresh facts ahead of the end-of-input notification to the service.
-    updateContext(config);
   }
+  await verifyProviderIdentity(current.providerIdentity, client);
+  if (turn !== current || current.epoch !== epoch || !current.recording) throw Error('Microphone finish cancelled');
+  // Same leased connection, new verified context. Updating before mute keeps
+  // the fresh facts ahead of the end-of-input notification to the service.
+  if (config !== undefined) updateContext(config);
   current.recording = false;
   await disableMic();
   if (turn !== current || current.epoch !== epoch) throw Error('Microphone finish cancelled');
@@ -286,7 +309,11 @@ async function finishVoice(config) {
 }
 
 function readiness(keepAlive = false) {
-  const ready = !!client?.isBotReady;
+  let ready = client?.isBotReady === true && verifiedProvider?.connection === client;
+  if (ready && (client.characterId !== verifiedProvider.characterId || client.state?.endUserId !== verifiedProvider.endUserId)) {
+    ready = false;
+    void close('Convai provider identity could not be verified').catch(() => {});
+  }
   if (ready && keepAlive) client.resetIdleTimer();
   return {ready};
 }
