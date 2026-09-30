@@ -5,6 +5,8 @@ import fengari from 'fengari';
 
 const source = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8');
 const questSource = readFileSync(new URL('../mod/quest-context.lua', import.meta.url), 'utf8');
+const invitationSource = readFileSync(new URL('../mod/invitation-readiness.lua', import.meta.url), 'utf8');
+const partyQueueSource = readFileSync(new URL('../mod/manager-party.lua', import.meta.url), 'utf8');
 const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
 
 // Execute the complete adapter and its real tracked-journal collector. Storage,
@@ -14,8 +16,11 @@ function run(body) {
   const state = lauxlib.luaL_newstate();
   lualib.luaL_openlibs(state);
   try {
-    const result = lauxlib.luaL_dostring(state, to_luastring(`${fixture}\n(function()\n${source}\nend)()\n${body}\nassertClean()`));
-    assert.equal(result, lua.LUA_OK, result === lua.LUA_OK ? '' : to_jsstring(lua.lua_tostring(state, -1)));
+    const program = `${fixture}\n(function()\n${source}\nend)()\n${body}\nassertClean()`;
+    const result = lauxlib.luaL_dostring(state, to_luastring(program));
+    const error = result === lua.LUA_OK ? '' : to_jsstring(lua.lua_tostring(state, -1));
+    const line = Number(/\]:(\d+):/.exec(error)?.[1]);
+    assert.equal(result, lua.LUA_OK, error + (line ? `\n${program.split('\n')[line - 1]}` : ''));
   } finally { lua.lua_close(state); }
 }
 
@@ -24,9 +29,9 @@ local function copy(value)
     if type(value) ~= 'table' then return value end
     local result = {}; for key, child in pairs(value) do result[key] = copy(child) end; return result
 end
-local clock, tearingDown = 1790760000, false
+local clock, tearingDown = 1790760000.0, false
 local events, before, after, hotkeys, files, encoded, modules = {}, {}, {}, {}, {}, {}, {}
-local stats = {forbidden = {}, trace = {}, publications = {}, loads = {}, logs = {}, io = {}, starts = {}, received = {}, journalReads = 0}
+local stats = {forbidden = {}, trace = {}, publications = {}, loads = {}, logs = {}, io = {}, starts = {}, received = {}, journalReads = 0, spawned = 0}
 local function note(kind, value) stats.trace[#stats.trace + 1] = {kind = kind, value = copy(value)} end
 local function deny(kind)
     stats.forbidden[#stats.forbidden + 1] = kind
@@ -85,22 +90,22 @@ registerHotkey = function(name, _, callback) hotkeys[name] = callback end
 ObserveBefore = function(class, method, callback) before[class .. '.' .. method] = callback end
 ObserveAfter = function(class, method, callback) after[class .. '.' .. method] = callback end
 
-local player = {attached = true, dead = false}
+local player = {attached = true, dead = false, phoneOpen = false, phoneRequest = ''}
 function player:IsAttached() nativeRead('IsAttached'); return self.attached end
 function player:IsDeadNoStatPool() nativeRead('IsDeadNoStatPool'); return self.dead end
 function player:ConvaiComposerOpen() return false end
 function player:ConvaiHasSubmission() return false end
-function player:ConvaiPhoneIsOpen() return false end
-function player:ConvaiPhoneTakeRequest() return '' end
+function player:ConvaiPhoneIsOpen() return self.phoneOpen end
+function player:ConvaiPhoneTakeRequest() local value = self.phoneRequest; self.phoneRequest = ''; return value end
 function player:ConvaiManagerVoice() return true end
 function player:ConvaiManagerSubtitles() return true end
 function player:ConvaiPhoneFeedback(value) note('feedback', value) end
 function player:ConvaiEndFocus() note('end-focus') end
 function player:ConvaiCloseManager() note('close-manager') end
 local requests = {IsPreGame = function() nativeRead('IsPreGame'); return false end,
-    IsGamePaused = function() return false end, GetGameVersion = function() return '2.31' end}
+    IsGamePaused = function() return player.phoneOpen end, GetGameVersion = function() return '2.31' end}
 local definitions = {UI_System = {IsInMenu = 'in-menu'}}
-local board = {GetBool = function() return false end}
+local board = {GetBool = function() return player.phoneOpen end}
 local targeting = {GetTargetParts = function() return nil, {} end,
     GetObjectClosestToCrosshair = function() return nil end, GetLookAtObject = function() return nil end,
     GetCrosshairData = function() return {x = 0, y = 0, z = 0}, {x = 0, y = 1, z = 0} end}
@@ -149,11 +154,32 @@ setJournal('Initial revealed quest', 'Meet Judy at the current entrance.')
 Game.GetJournalManager = function() nativeRead('GetJournalManager'); return journal end
 
 local function noOp() end
-local companions = {configure = noOp, connectionProfiles = function() return {} end, list = function() return {} end,
+local members = {}
+local companions = {configure = noOp, connectionProfiles = function()
+    local result = {}; for _, member in ipairs(members) do if member.profileKey then result[#result + 1] = member.profileKey end end
+    return result
+end, list = function() return copy(members) end,
     registerPhoneContacts = noOp, update = noOp, ownsTravelCommand = function() return true end,
     conversationCandidates = function() return {} end,
     abandon = noOp,
     dismissAll = function() note('companions-dismiss-all') end}
+function companions.definition(key)
+    if key == 'judy-alvarez' then return {name = 'Judy', id = 'Character.Judy', profileKey = key, profileName = 'Judy'} end
+end
+function companions.phoneContactKey(contact) if contact == 'judy' then return 'judy-alvarez', nil, 'Judy' end end
+function companions.spawn(key, job)
+    local allowed, reason = companions.canSpawn(key, job); assert(allowed, reason)
+    stats.spawned = stats.spawned + 1
+    members[#members + 1] = {serial = stats.spawned, key = key, name = 'Judy', profileKey = job.profileKey, state = 'ready'}
+    if companions.onPartyChanged then companions.onPartyChanged() end
+    return stats.spawned
+end
+function companions.setProfile(serial, key, name)
+    for _, member in ipairs(members) do if member.serial == serial then member.profileKey, member.profileName = key, name; return true end end
+end
+function companions.dismiss(serial)
+    for index, member in ipairs(members) do if member.serial == serial then table.remove(members, index); return true end end
+end
 local subtitles = {configure = noOp, install = noOp, update = noOp,
     abandon = function() note('subtitles-abandon') end, clear = noOp}
 local speech = {transcript = noOp, clearEntity = noOp, update = noOp,
@@ -168,8 +194,13 @@ local phone = {configure = function(_, _, options) stats.phoneOptions = options 
 local manager = {subtitleStyle = 'game', configure = noOp, profileEnabled = function() return true end,
     battleReactions = function() return false end, lootReactions = function() return false end,
     update = noOp, reset = function() note('manager-reset') end}
-local mcm = {configure = noOp, install = noOp, update = noOp, shutdown = noOp,
-    resetSession = function() note('mcm-reset') end}
+local partyQueue
+local mcm = {configure = function(_, suppliedCompanions, factory, _, readiness)
+    partyQueue = factory.new(suppliedCompanions, readiness)
+end, install = noOp, update = function(_, worldReady)
+    partyQueue.bind('fixture-player'); if worldReady then partyQueue.flush() end
+end, party = function() return partyQueue end, shutdown = function() partyQueue.bind(nil) end,
+    resetSession = function() note('mcm-reset'); partyQueue.bind(nil) end}
 local battles = {capture = function() return {version = 1, status = 'unavailable'} end,
     reset = function() note('battles-reset') end, update = noOp,
     status = function() return {state = 'idle'} end, closingWindow = function() return nil end,
@@ -206,7 +237,7 @@ modules = {
     ['battle-observer.lua'] = {sample = function() return {available = true, blocked = false, combat = false} end},
     ['battle-reactions.lua'] = {new = function() return battles end},
     ['loot-reactions.lua'] = {new = function() return loot end}, ['loot-observer.lua'] = lootObserver,
-    ['manager-party.lua'] = {}, ['mcm-entry.lua'] = {}, ['companion-locomotion.lua'] = {install = noOp},
+    ['manager-party.lua'] = (function() ${partyQueueSource} end)(), ['mcm-entry.lua'] = {}, ['companion-locomotion.lua'] = {install = noOp},
     ['composer-input.lua'] = {install = noOp}, ['phone-input.lua'] = {install = noOp},
     ['world-knowledge.lua'] = {new = function(options)
         worldOptions = options; worldCollector = collector('world-collector', options); return worldCollector
@@ -218,6 +249,7 @@ dofile = function(path)
     stats.loads[path] = (stats.loads[path] or 0) + 1
     if prohibited(path) then deny('module ' .. path) end
     if path == 'quest-context.lua' then return (function() ${questSource} end)() end
+    if path == 'invitation-readiness.lua' then return (function() ${invitationSource} end)() end
     return assert(modules[path], 'Unexpected mod dependency: ' .. path)
 end
 files['conversation-characters.json'] = json.encode({{key = 'judy-alvarez', name = 'Judy'}})
@@ -242,7 +274,7 @@ local function primeSessions()
     companions.session, speech.requestId, subtitles.line = 'old-party', 'old-playback', 'old-caption'
     microphone.context, group.round, phone.pending = {id = 'old-microphone'}, {stage = 'waiting', participants = {}}, {id = 'old-phone'}
 end
-companions.abandon = function() note('companions-abandon'); companions.session = nil end
+companions.abandon = function() note('companions-abandon'); companions.session = nil; members = {} end
 speech.abandon = function() note('speech-abandon'); speech.requestId = nil end
 subtitles.abandon = function() note('subtitles-abandon'); subtitles.line = nil end
 microphone.cancel = function()
@@ -262,6 +294,63 @@ local function assertClean()
     end
 end
 `;
+
+test('phone Invite prepares during zero-delta pause and creates no actor until memory and connection are ready', () => run(`
+events.onInit(); events.onUpdate(0)
+player.phoneOpen, player.phoneRequest = true, '+judy'
+events.onUpdate(0)
+local request = json.decode(assert(files['runtime/companion-invitations.json']))
+assert(request.version == 1 and #request.invitations == 1)
+local job = request.invitations[1]
+assert(job.profileKey == 'judy-alvarez' and job.modelKey == 'judy-alvarez')
+assert(stats.spawned == 0 and partyQueue.count() == 1)
+local function receipt(state)
+    files['runtime/companion-invitations-state.json'] = json.encode({version = 1,
+        worldToken = request.worldToken, generation = request.generation, updated = clock * 1000, bridgePid = 99,
+        invitations = {{id = job.id, revision = job.revision, modelKey = job.modelKey, profileKey = job.profileKey, state = state}}})
+end
+receipt('memory'); events.onUpdate(0); assert(stats.spawned == 0)
+receipt('connecting'); events.onUpdate(0); assert(stats.spawned == 0)
+assert(partyQueue.list()[1].state == 'connecting')
+receipt('ready'); events.onUpdate(0); assert(stats.spawned == 0)
+assert(partyQueue.list()[1].state == 'ready-to-join')
+local heartbeat = published()
+clock = clock + 2; receipt('ready'); events.onUpdate(0)
+assert(published().updated > heartbeat.updated and stats.spawned == 0)
+assert(files['runtime/party-connections.json']:find('"updated":' .. tostring(clock * 1000), 1, true))
+player.phoneOpen = false; events.onUpdate(0.1)
+assert(stats.spawned == 1 and #members == 1)
+assert(members[1].profileKey == 'judy-alvarez')
+events.onUpdate(0.1); events.onUpdate(0.1)
+assert(stats.spawned == 1 and #json.decode(files['runtime/companion-invitations.json']).invitations == 0)
+local allowed = companions.canSpawn('judy-alvarez', nil)
+assert(allowed == false, 'a legacy direct spawn bypassed preparation')
+`));
+
+test('phone cancellation and save restoration reject earlier ready invitation receipts', () => run(`
+events.onInit(); events.onUpdate(0)
+player.phoneOpen, player.phoneRequest = true, '+judy'; events.onUpdate(0)
+local original = json.decode(files['runtime/companion-invitations.json'])
+local job = original.invitations[1]
+local obsolete = {version = 1, worldToken = original.worldToken, generation = original.generation,
+    updated = clock * 1000, bridgePid = 99,
+    invitations = {{id = job.id, revision = job.revision, modelKey = job.modelKey, profileKey = job.profileKey, state = 'ready'}}}
+player.phoneRequest = '-judy'; events.onUpdate(0)
+assert(partyQueue.count() == 0 and stats.spawned == 0)
+files['runtime/companion-invitations-state.json'] = json.encode(obsolete)
+player.phoneOpen = false; events.onUpdate(0.1); assert(stats.spawned == 0)
+player.phoneOpen, player.phoneRequest = true, '+judy'; events.onUpdate(0)
+assert(partyQueue.count() == 1 and stats.spawned == 0)
+after['PlayerSystem.OnGameRestored'](); events.onUpdate(0)
+assert(partyQueue.count() == 0 and stats.spawned == 0)
+player.phoneRequest = '+judy'; events.onUpdate(0)
+local current = json.decode(files['runtime/companion-invitations.json'])
+assert(current.worldToken ~= original.worldToken and current.generation > original.generation)
+assert(current.invitations[1].id ~= job.id)
+files['runtime/companion-invitations-state.json'] = json.encode(obsolete)
+player.phoneOpen = false; events.onUpdate(0.1)
+assert(stats.spawned == 0 and partyQueue.count() == 1)
+`));
 
 test('real init installs world lifecycle hooks and current tracked quest capture without persistent native identity', () => run(`
 assert(type(events.onInit) == 'function' and type(events.onUpdate) == 'function')

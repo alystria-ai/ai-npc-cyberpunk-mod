@@ -51,6 +51,21 @@ test('accepted spawns immediately publish unique identities; last dismissal and 
     companions.dismissAll()
     assert(changes[#changes]=='')
     assert(not companions.spawn('unknown') and changes[#changes]=='')
+    -- The real creation adapter must enforce production readiness, including
+    -- calls from a retired manager/diagnostic and profile overrides at spawn.
+    local beforeGate = created
+    companions.canSpawn = function(key, job)
+      return type(job)=='table' and job.key==key and job.verified==true, 'Preparation is not ready.'
+    end
+    assert(not companions.spawn('judy-alvarez') and created==beforeGate)
+    assert(not companions.spawn('judy-alvarez',{key='judy-alvarez',verified=false}) and created==beforeGate)
+    local preparedCopy = assert(companions.spawn('judy-alvarez',{
+      key='judy-alvarez', verified=true, profileKey='panam-palmer', profileName='Panam'}))
+    assert(created==beforeGate+1 and changes[#changes]=='panam-palmer')
+    assert(companions.list()[1].profileKey=='panam-palmer')
+    companions.dismiss(preparedCopy)
+    companions.canSpawn = function() error('Preparation unavailable') end
+    assert(not companions.spawn('judy-alvarez') and created==beforeGate+1)
   `;
   const result = lauxlib.luaL_dostring(state, to_luastring(program));
   const error = result === lua.LUA_OK ? '' : to_jsstring(lua.lua_tostring(state, -1));

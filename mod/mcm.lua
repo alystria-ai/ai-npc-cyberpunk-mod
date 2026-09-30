@@ -82,7 +82,7 @@ local function profileDescription(profile, snapshot)
     end
     return (profile.summary or profile.name) .. '\n\nVoice: ' .. voice
         .. '\nConversation: ' .. (snapshot.settings.enabledByKey[profile.key] ~= false and 'On' or 'Off')
-        .. '\nInvitations create separate companion copies, including characters outside your phone contacts.'
+        .. '\nInvitations create separate companion copies, including characters outside your phone contacts. Memory and connection preparation starts immediately; the copy joins when ready after you return to gameplay.'
 end
 
 local function memorySettings(snapshot)
@@ -90,7 +90,7 @@ local function memorySettings(snapshot)
     local pending = memory.command and memory.command.state == 'pending'
     local rows = {
         readonly('memory-identity', 'Player memory', 'Shared across your saves',
-            'Characters remember actual conversations with you. Your player identity stays the same across saves and after forgetting. Current game context describes the world you have loaded.'),
+            'Invited characters are prepared immediately. Natural memories are created when you actually talk to them. One player identity is shared across all saves and stays the same after forgetting. Current game context describes the world you have loaded.'),
         readonly('memory-service', 'Memory service', memory.state == 'ready' and 'Ready' or 'Unavailable',
             memory.state == 'ready' and 'Memories can be managed here.'
                 or 'Reopen this page after the memory service reconnects. A pending clear keeps waiting for its own result.'),
@@ -138,7 +138,8 @@ local function schema()
     local navigation = {}
     for _, tab in ipairs({{'characters', 'Characters'}, {'party', 'Current party'},
         {'models', 'Model browser'}, {'settings', 'Settings'}}) do
-        local selected = view == tab[1] or (tab[1] == 'settings' and (view == 'permissions' or view == 'memory-characters'))
+        local selected = view == tab[1] or (tab[1] == 'settings'
+            and (view == 'permissions' or view == 'memory' or view == 'memory-characters'))
         navigation[#navigation + 1] = action('tab:' .. tab[1], tab[2], selected and 'Selected' or 'Open',
             'Browse ' .. tab[2]:lower() .. '. ' .. modelQuery,
             function(context) return navigate(tab[1], context) end, not selected)
@@ -146,7 +147,7 @@ local function schema()
     local categories = {category('navigation', 'Companion Manager', navigation)}
     local message = queue.message()
     local status = {readonly('party-count', 'Companions', queue.count() .. ' / 8',
-        'Manage separate copies of the same or different characters. Invitations and dismissals take effect when you leave the menu.')}
+        'Includes reserved invitations and current companions. Invited characters prepare while the menu is open, then join when ready after you return to gameplay. Dismissals take effect in gameplay.')}
     if message ~= '' then status[#status + 1] = readonly('feedback', message, '', message) end
     categories[#categories + 1] = category('party-status', 'Your group', status)
     local rows = {}
@@ -161,14 +162,25 @@ local function schema()
                 profileDescription(profile, snapshot), function() return queue.invite(key) end, canInvite and available)
         end
         categories[#categories + 1] = category('characters', 'Characters', rows,
-            'Search a character by name. Invite another copy at any time; your party can have up to eight companions.')
+            'Search a character by name. Each invitation reserves a place and starts preparation immediately. Your party can have up to eight copies, including pending invitations.')
     elseif view == 'party' then
         if #party == 0 then rows[#rows + 1] = readonly('empty-party', 'Your party is empty', '', 'Invite someone from Characters or Model browser.') end
-        local states = {ready = 'Following', spawning = 'Joining', queued = 'Invited', leaving = 'Leaving', failed = 'Unavailable', missing = 'Missing'}
+        local states = {ready = 'Following', spawning = 'Joining', queued = 'Waiting to join',
+            ['preparing-memory'] = 'Preparing memory', connecting = 'Connecting', ['ready-to-join'] = 'Ready to join',
+            leaving = 'Leaving', failed = 'Unavailable', missing = 'Missing'}
+        local descriptions = {
+            ['preparing-memory'] = 'Preparing this character with your player identity and current world context. This copy has a reserved place. You can change its conversation profile or cancel the invitation.',
+            connecting = 'Connecting this character for conversation. This copy has a reserved place. You can change its conversation profile or cancel the invitation.',
+            ['ready-to-join'] = 'Preparation is complete. This copy will join when you return to gameplay. You can still change its conversation profile or cancel the invitation.',
+            queued = 'This invitation has a reserved place and will join when you return to gameplay. You can change its conversation profile or cancel it.',
+            spawning = 'Joining your party. The character is still being attached to the world.',
+            failed = 'This copy could not become ready. Review the error, choose another conversation profile or cancel the invitation.',
+        }
         for _, member in ipairs(party) do
             local id, display = member.id, member.name .. ' · ' .. (member.serial and ('#' .. member.serial) or 'invited copy')
             rows[#rows + 1] = readonly('state:' .. id, display, states[member.state] or member.state,
-                member.error or (member.state == 'queued' and 'Will join when you return to gameplay.' or 'This is a separate, mod-owned companion.'))
+                (descriptions[member.state] or 'This is a separate, mod-owned companion.')
+                    .. (member.error and ('\n' .. member.error) or ''))
             rows[#rows + 1] = action('assign:' .. id, 'Conversation', member.profileName or 'Choose a profile',
                 'Choose the personality for ' .. display .. '. The character model stays the same.',
                 function(context) assigning, view = id, 'assignment'; clearSearch(context); return true end,
@@ -235,6 +247,12 @@ local function schema()
                 function() return queue.invite(key) end, canInvite)
         end
         categories[#categories + 1] = category('models', 'Installed character models', rows)
+    elseif view == 'memory' then
+        rows = memorySettings(snapshot)
+        table.insert(rows, 1, action('memory:settings', 'Back to settings', 'Back',
+            'Return to conversation settings.', function(context) return navigate('settings', context) end))
+        categories[#categories + 1] = category('memory', 'Memory', rows,
+            'Characters build memories through your conversations and keep them across saves.')
     elseif view == 'memory-characters' then
         local matches = {}
         local query = modelQuery:lower()
@@ -245,8 +263,8 @@ local function schema()
         end
         local pages = math.max(1, math.ceil(#matches / MODEL_PAGE_SIZE))
         modelPage = math.max(1, math.min(modelPage, pages))
-        rows[#rows + 1] = action('memory:back', 'Back to settings', 'Back',
-            'Return to the memory controls.', function(context) return navigate('settings', context) end)
+        rows[#rows + 1] = action('memory:back', 'Back to memory', 'Back',
+            'Return to the memory controls.', function(context) return navigate('memory', context) end)
         rows[#rows + 1] = readonly('memory-character-page', 'Choose a character', 'Page ' .. modelPage .. ' / ' .. pages,
             'Search by character name using Search settings. ' .. modelQuery .. '\nThe character can be outside your current party.')
         if modelPage > 1 then
@@ -265,12 +283,14 @@ local function schema()
                 'Select ' .. profile.name .. ' for memory controls. This does not invite them or change their conversation settings.',
                 function(context)
                     local ok, reason = manager.selectMemoryCharacter(key)
-                    if ok then navigate('settings', context) end
+                    if ok then navigate('memory', context) end
                     return ok, reason
                 end)
         end
         categories[#categories + 1] = category('memory-characters', 'Character memories', rows)
     elseif view == 'permissions' then
+        rows[#rows + 1] = action('permissions:back', 'Back to settings', 'Back',
+            'Return to conversation settings.', function(context) return navigate('settings', context) end)
         for _, profile in ipairs(snapshot.profiles) do
             rows[#rows + 1] = setting('enabled:' .. profile.key, profile.name, 'bool',
                 snapshot.settings.enabledByKey[profile.key] ~= false, true,
@@ -278,45 +298,53 @@ local function schema()
         end
         categories[#categories + 1] = category('permissions', 'Character conversations', rows)
     else
-        rows = {
+        categories[#categories + 1] = category('conversation-controls', 'Conversations', {
+            action('permissions', 'Character conversations', 'Manage',
+                'Enable or disable each character’s participation in AI conversations.',
+                function(context) return navigate('permissions', context) end),
+            action('memory', 'Memory', 'Manage',
+                'Choose a character, review memory status and manage memories from your conversations.',
+                function(context) return navigate('memory', context) end),
+        })
+        local voiceLabels = {ready = 'Ready', loading = 'Loading', warming = 'Preparing voices', speaking = 'Preparing a reply',
+            error = 'Unavailable', waiting = 'Waiting for voice service', disabled = 'Not configured', stopped = 'Stopped',
+            releasing = 'Releasing local voice memory', remote = 'Convai voices · Local model unloaded'}
+        local voiceStatus = snapshot.localVoice.pending and 'Changing after the current reply'
+            or voiceLabels[snapshot.localVoice.state] or 'Waiting for voice service'
+        categories[#categories + 1] = category('voices', 'Voices', {
             setting('voice', 'Voice playback', 'bool', snapshot.settings.voice, true, 'Play voiced replies from your companions.'),
-            setting('subtitles', 'Subtitles', 'bool', snapshot.settings.subtitles, true, 'Show companion replies using the selected subtitle display.'),
-            setting('subtitleStyle', 'Subtitle display', 'select', snapshot.settings.subtitleStyle == 'overhead' and 1 or 2, 2,
-                'Use the regular dialogue HUD by default, or place subtitles above the speaking companion. The Subtitles switch controls both.',
-                {'Above speaker', 'Dialogue HUD'}),
-            setting('battleReactions', 'React to battles', 'bool', snapshot.settings.battleReactions, true,
-                'A nearby companion can make one short comment as combat starts and another afterward. Ten-minute cooldown after a fight; conversations and story scenes take priority. Loading a save resets the cooldown.'),
-            setting('lootReactions', 'React to collected loot', 'bool', snapshot.settings.lootReactions, true,
-                'Companions can comment after you finish collecting world loot. Storage transfers stay silent. A ten-minute cooldown spaces ordinary comments; newly acquired Legendary equipment has a separate two-minute cooldown. Loot can join a post-battle comment.'),
-            setting('disappearingMessages', 'Disappearing messages', 'bool', snapshot.settings.disappearingMessages, false,
-                'Clear the phone Chat history and drafts when you next launch the game. Characters keep their Convai conversation memory. Loading a save or reloading mods does not clear messages.'),
             setting('voiceProvider', 'Companion voices', 'select', snapshot.settings.voiceProvider == 'convai' and 2 or 1, 1,
                 'OmniVoice gives Johnny, Judy and Panam their prepared local voices. Convai uses each character’s configured online voice and releases the local model’s GPU memory. Other characters always use Convai. Changes wait for the current reply to finish.',
                 {'OmniVoice + Convai (default)', 'Convai for all characters'}),
             setting('omniSteps', 'Local voice quality', 'select', snapshot.settings.omniSteps == 16 and 1 or 2, 2,
                 'Applies while OmniVoice is selected. 32 steps gives the preferred quality; 16 steps is faster. One shared model stays loaded until you select Convai or stop the voice service.',
                 {'16 steps · Faster', '32 steps · Higher quality (default)'}),
-        }
-        local voiceLabels = {ready = 'Ready', loading = 'Loading', warming = 'Preparing voices', speaking = 'Preparing a reply',
-            error = 'Unavailable', waiting = 'Waiting for voice service', disabled = 'Not configured', stopped = 'Stopped',
-            releasing = 'Releasing local voice memory', remote = 'Convai voices · Local model unloaded'}
-        local voiceStatus = snapshot.localVoice.pending and 'Changing after the current reply'
-            or voiceLabels[snapshot.localVoice.state] or 'Waiting for voice service'
-        rows[#rows + 1] = readonly('voice-status', 'Voice service', voiceStatus,
-            'OmniVoice stays warm while selected. Switching back from Convai prepares the model again; no game restart is needed.')
-        rows[#rows + 1] = action('permissions', 'Character conversations', 'Manage',
-            'Enable or disable each character’s participation in AI conversations.',
-            function(context) return navigate('permissions', context) end)
-        categories[#categories + 1] = category('playback', 'Conversation settings', rows,
+            readonly('voice-status', 'Voice service', voiceStatus,
+                'OmniVoice stays warm while selected. Switching back from Convai prepares the model again; no game restart is needed.'),
+        }, 'Use Apply to save changed settings, or Revert to discard them.')
+        categories[#categories + 1] = category('subtitles', 'Subtitles', {
+            setting('subtitles', 'Subtitles', 'bool', snapshot.settings.subtitles, true, 'Show companion replies using the selected subtitle display.'),
+            setting('subtitleStyle', 'Subtitle display', 'select', snapshot.settings.subtitleStyle == 'overhead' and 1 or 2, 2,
+                'Use the regular dialogue HUD by default, or place subtitles above the speaking companion. The Subtitles switch controls both.',
+                {'Above speaker', 'Dialogue HUD'}),
+        })
+        categories[#categories + 1] = category('reactions', 'Automatic reactions', {
+            setting('battleReactions', 'React to battles', 'bool', snapshot.settings.battleReactions, true,
+                'A nearby companion can make one short comment as combat starts and another afterward. Ten-minute cooldown after a fight; conversations and story scenes take priority. Loading a save resets the cooldown.'),
+            setting('lootReactions', 'React to collected loot', 'bool', snapshot.settings.lootReactions, true,
+                'Companions can comment after you finish collecting world loot. Storage transfers stay silent. A ten-minute cooldown spaces ordinary comments; newly acquired Legendary equipment has a separate two-minute cooldown. Loot can join a post-battle comment.'),
+        })
+        categories[#categories + 1] = category('phone-messages', 'Phone messages', {
+            setting('disappearingMessages', 'Disappearing messages', 'bool', snapshot.settings.disappearingMessages, false,
+                'Clear the phone Chat history and drafts when you next launch the game. Characters keep their Convai conversation memory. Loading a save or reloading mods does not clear messages.'),
+        },
             'Use Apply to save changed settings, or Revert to discard them.')
-        categories[#categories + 1] = category('memory', 'Memory', memorySettings(snapshot),
-            'Characters build memories through your conversations and keep them across saves.')
     end
     return {name = LABEL, description = 'Your companions, character models and conversation settings.', categories = categories}
 end
 
-function M.configure(domain, companions, queueFactory, entryFactory)
-    manager, queue = domain, queueFactory.new(companions)
+function M.configure(domain, companions, queueFactory, entryFactory, readiness)
+    manager, queue = domain, queueFactory.new(companions, readiness)
     entry = entryFactory.new(LABEL, function() return api ~= nil end, log)
     provider = {
         id = PROVIDER, registrationKey = 'cyberpunk-convai.manager.v1', apiVersion = 2,
@@ -385,7 +413,8 @@ function M.install()
     hooksInstalled = true
     entry.install()
     -- MCM's stock action banner says "Completed" when a request is accepted.
-    -- Our world work is deferred until unpause; render its actual queue message
+    -- Preparation may run while paused; actor creation waits for gameplay.
+    -- Render the actual queue message
     -- only on our page and only for the action that supplied that message.
     Override('SettingsMainGameController', 'McmUiBegin', function(controller,
         title, subtitle, sidebarTitle, contentTitle, status, statusKind, transientOwner,
@@ -468,6 +497,10 @@ function M.inspect()
         entryDetails = entry.inspect and entry.inspect() or nil,
         party = queue.list(), feedback = queue.message(), error = lastError,
         memory = manager.snapshot(player()).memory}
+end
+
+function M.party()
+    return queue
 end
 
 function M.resetSession()

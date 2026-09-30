@@ -45,6 +45,7 @@ $targets = @(
     @{ From = (Join-Path $project 'mod\mcm.lua'); To = (Join-Path $game 'bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai\mcm.lua') },
     @{ From = (Join-Path $project 'mod\mcm-entry.lua'); To = (Join-Path $game 'bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai\mcm-entry.lua') },
     @{ From = (Join-Path $project 'mod\manager-party.lua'); To = (Join-Path $game 'bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai\manager-party.lua') },
+    @{ From = (Join-Path $project 'mod\invitation-readiness.lua'); To = (Join-Path $game 'bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai\invitation-readiness.lua') },
     @{ From = (Join-Path $project 'mod\manager.lua'); To = (Join-Path $game 'bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai\manager.lua') },
     @{ From = (Join-Path $project 'characters\manager-characters.json'); To = (Join-Path $game 'bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai\manager-characters.json') },
     @{ From = (Join-Path $project 'mod\character-catalog.lua'); To = (Join-Path $game 'bin\x64\plugins\cyber_engine_tweaks\mods\CyberpunkConvai\character-catalog.lua') },

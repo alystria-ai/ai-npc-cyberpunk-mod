@@ -6,10 +6,17 @@ One persistent Convai `endUserId` belongs to this local player. Every named
 character and every conversation channel uses that ID. Loading another save,
 reloading CET, restarting the bridge, and either Forget action retain it.
 
-Characters build provider memory from actual conversations. The first player
-message enables memory on that verified mod-owned character profile. Spawning,
-warming connections, reading quests, and automatic battle/loot triggers never
-enable an unused profile or add it to the contacted registry. This runtime has
+Selecting **Invite** prepares the character's verified mod-owned memory
+configuration, then warms its connection. The NPC appears only after both steps
+complete. Preparation enables and checks the profile's memory settings; it
+does not create saved memories or add the character to the contacted registry.
+Characters build provider memory naturally from actual conversations. The
+first player message records contact and reuses the prepared verification, so
+the prepared connection stays warm. A player send without an invitation verifies
+the configuration before sending.
+
+Spawning, reading quests, and automatic battle/loot triggers never add a
+character to the contacted registry or create saved memories. This runtime has
 no `/memory/add`, quest-seeding worker, save-identity component, branch archive,
 or pool of provider IDs.
 
@@ -58,7 +65,8 @@ Forget preserves the player ID and saved local Phone Chat messages. The separate
 
 ## Implementation and checks
 
-- `bridge/player-memory.mjs`: durable identity, conversation admission and clears.
+- `bridge/player-memory.mjs`: durable identity, invitation preparation,
+  conversation admission and clears.
 - `bridge/player-memory-api.mjs`: verified ownership and bounded Core API calls.
 - `bridge/player-knowledge.mjs`: fresh current-world and audience routing.
 - `bridge/player-phone-knowledge.mjs`: immutable phone request/session ownership.
@@ -71,16 +79,32 @@ fixtures and make no production provider requests. API details and limitations
 are in `research/cyberpunk/PLAYER_MEMORY_API.md`; native UI behavior is described
 in `docs/PLAYER_MEMORY_UI.md`.
 
-September 30 coordinated verification: **926 tests passed, zero failed or
+Earlier September 30 coordinated verification: **926 tests passed, zero failed or
 skipped**, including the installed MCM API framework fixture and the real bridge
 startup with provider/browser/GPU side effects trapped. The realtime browser
 bundle also built successfully. A separate read-only production check confirmed
-Judy's exact profile ID, ownership marker and memory-settings schema; memory
-remained disabled before her first actual message. These checks do not establish
-rendered UI acceptance, natural recall or a real Forget result.
+Judy's exact profile ID, ownership marker and memory-settings schema. At that
+checkpoint, before invitation preparation was added, memory remained disabled
+until her first actual message. These checks do not establish rendered UI
+acceptance, natural recall or a real Forget result.
 
-The coordinated update is installed and hash verified. The running bridge
+That earlier coordinated update was installed and hash verified. The running bridge
 reported a matching player identity anchor and fresh ready Memory status, with
 zero contacted characters before the first actual message. Cyberpunk was
 launched for the user check; visible menu, reply and recall acceptance remains
-pending. Main feature checkpoint: `a361f13`.
+pending. Main feature checkpoint: `a361f13`. Invitation preparation described
+above is a subsequent source change; the earlier installation checks do not
+qualify its installed or in-game behavior.
+
+`prepareCharacter({profileKey, guard?, signal?})` checks the exact durable registry
+and identity anchor, then shares the same bounded enable flight and in-process
+verification cache as `beginConversation`. Its frozen result contains
+`endUserId`, `guard`, `memoryEnabled`, `memoryEnabledNow`, `changed`, and
+`reconnectRequired`. The obligation remains pending even if all waiting callers
+cancel after a shared enable completes. The transport owner disposes the old
+character routes, then calls `acknowledgeConnectionRefresh({profileKey, guard})`
+before warming a replacement. A later first actual player send records contact and returns
+`memoryEnabledNow: false` and `reconnectRequired: false` for that prepared state.
+Cancelling one caller leaves other shared callers running; explicit clear and
+close abort shared verification and invalidate old guards. Preparation itself
+does not write the registry, issue a memory-data request, or seed provider LTM.

@@ -9,6 +9,7 @@ const microphoneSource = source('microphone');
 const groupSource = source('group-chat');
 const worldSource = source('world-knowledge');
 const historySource = source('journal-history');
+const invitationSource = source('invitation-readiness');
 const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
 
 const fixture = `
@@ -76,6 +77,7 @@ local function collectionReady()
  return ready
 end
 local modules={
+ ['invitation-readiness.lua']=(function()${invitationSource}end)(),
  ['knowledge-state.lua']={new=function()
   saveIdentityReads=saveIdentityReads+1;error('The Lua world adapter must not load native save identity')
  end},

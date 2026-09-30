@@ -14,7 +14,8 @@ import {conversationContext} from './quest-context.mjs';
 import {battleTrigger, reactionLeaseValid} from './battle-context.mjs';
 import {GroupPrefetch, inputIdentity, validatePrefetch, parsePrewarm} from './group-prefetch.mjs';
 import {throwIfCancelled} from './transport-pool.mjs';
-import {PartyConnections} from './party-connections.mjs';
+import {PartyConnections, parsePartyConnections} from './party-connections.mjs';
+import {CompanionInvitations} from './companion-invitations.mjs';
 import {LOCAL_VOICE_KEYS} from './resident-voice.mjs';
 import {VoiceSelection} from './voice-selection.mjs';
 import {PhoneChat, parsePhoneState} from './phone-chat.mjs';
@@ -198,6 +199,7 @@ const realtimeConfig = input => ({key, characterId: ids[input.profileKey], sessi
 const warmRoute = (profile, scope) => memoryQuiescing ? null : knowledgeRouter.configFor(profile, scope,
   {worldToken: worldSession?.token, generation: worldSession?.generation});
 const connections = new PartyConnections({host: realtime,
+  canWarm: () => !stopped && !memoryQuiescing && !active && !mic.current && !micPolling,
   isKnown: profile => Object.hasOwn(ids, profile) && !!warmRoute(profile, 'private'),
   configFor: (profile, scope) => {
     const route = warmRoute(profile, scope);
@@ -209,6 +211,12 @@ const connections = new PartyConnections({host: realtime,
     connectionMetricsWriting = connectionMetricsWriting.catch(() => {}).then(() => atomic(resolve(runtime, 'party-connection-state.json'), JSON.stringify(state)));
     return connectionMetricsWriting;
   },
+});
+const invitations = new CompanionInvitations({memory: playerMemory, connections,
+  currentWorld: currentBoundary,
+  isKnown: profile => Object.hasOwn(ids, profile),
+  isCurrentGuard: guard => playerMemory.isCurrent(guard),
+  publish: (value, options) => atomic(resolve(runtime, 'companion-invitations-state.json'), JSON.stringify(value), options),
 });
 
 function measure(input, values) {
@@ -417,6 +425,7 @@ async function resetLiveRoutes({cancelTurns = true} = {}) {
     await cancelMicrophone();
   }
   prefetch.invalidate();
+  await invitations.clear('world-or-memory-reset');
   await Promise.allSettled([realtime.close(), phoneRealtime.close()]);
   await connections.clear();
   sessions.clear(); realtimeSessions.clear(); knowledgeTurns.clear();
@@ -438,21 +447,27 @@ async function admitPlayerConversation(prepared, {signal} = {}) {
   if (!prepared?.sendAllowed || !await knowledgeRouter.current(prepared)) throw Error('Conversation world changed');
   // Automatic battle/loot replies never activate an unused character's memory.
   if (prepared.input.reaction) return {reconnectRequired: false};
-  const admitted = await playerMemory.beginConversation({profileKey: prepared.route.profileKey,
+  await playerMemory.beginConversation({profileKey: prepared.route.profileKey,
     guard: prepared.guard, source: 'player',
     channel: prepared.route.transport === 'microphone' ? 'microphone' : prepared.route.channel,
     requestId: prepared.input.requestId || prepared.input.id, signal});
   throwIfCancelled(signal);
   if (!await knowledgeRouter.current(prepared)) throw Error('Conversation memory changed');
-  const reconnectRequired = admitted.reconnectRequired === true || admitted.memoryEnabledNow === true;
+  const refresh = {profileKey: prepared.route.profileKey, guard: prepared.guard};
+  const reconnectRequired = playerMemory.connectionRefreshRequired(refresh)
+    || connections.needsRetirement(prepared.route.profileKey);
   if (reconnectRequired) {
-    // Memory is injected at connect. Discard pages warmed before this first
-    // actual conversation enabled the character's provider memory setting.
-    memoryQuiescing++;
-    try { await resetLiveRoutes({cancelTurns: false}); }
-    finally { memoryQuiescing--; }
+    // Invited companions completed this before spawning. A first conversation
+    // with an existing world NPC still prepares on demand, retiring only that
+    // character's pre-enable routes rather than everyone else's warm pages.
+    await connections.retireInvitation(prepared.route.profileKey, {signal});
+    const host = prepared.route.channel === 'phone' ? phoneRealtime : realtime;
+    const config = {...realtimeConfig(prepared.input), ttsEnabled: prepared.route.channel === 'phone'
+      ? false : !localVoice.usesProfile(prepared.route.profileKey)};
+    if (!await host.refreshIdle(config)) throw Error('The character connection is still releasing. Please try again.');
     throwIfCancelled(signal);
     if (!await knowledgeRouter.current(prepared)) throw Error('Conversation world changed');
+    playerMemory.acknowledgeConnectionRefresh(refresh);
   }
   return {reconnectRequired};
 }
@@ -664,16 +679,25 @@ async function pollPrefetch() {
   prefetchPolling = true;
   try {
     prefetch.prune();
+    // Lua publishes party membership before releasing an attached invitation.
+    // Read its reservation first, then the later membership publication so the
+    // prepared private page survives the ownership handoff in this poll.
+    let invitationRequest;
+    try { invitationRequest = JSON.parse(await readFile(resolve(runtime, 'companion-invitations.json'), 'utf8')); } catch {}
     const partyRaw = await readFile(partyPath, 'utf8').catch(() => '');
+    let partySnapshot; try { partySnapshot = JSON.parse(partyRaw); } catch {}
     if (partyRaw && partyRaw !== partyObserved) {
-      let snapshot; try { snapshot = JSON.parse(partyRaw); } catch {}
-      const change = connections.ingest(snapshot);
+      const change = connections.ingest(partySnapshot);
       if (change) {
         partyObserved = partyRaw;
         if (change.removed.includes(active?.input.profileKey)) active.controller.abort();
         if (change.removed.length) prefetch.invalidate();
       }
     }
+    // A Windows replace can briefly leave a file absent. Preserve the last
+    // fresh reservation on that frame; expiry/world guards still fail closed.
+    if (parsePartyConnections(partySnapshot)) invitations.ingest(invitationRequest);
+    await invitations.poll();
     await connections.maintain();
     if (partyWasFresh && connections.stale) {
       prefetch.invalidate(); active?.controller.abort(); await mic.cancel(); await realtime.close();
@@ -833,6 +857,7 @@ async function shutdown() {
   clearInterval(knowledgeTimer);
   clearInterval(memoryTimer);
   clearInterval(timer); clearInterval(micTimer); clearInterval(prefetchTimer); clearInterval(settingsTimer);
+  await invitations.clear('service-stopped');
   await Promise.allSettled([localVoice.close(), mic.cancel(), connections.clear()]);
   await Promise.allSettled([realtime.close(), phoneRealtime.close()]);
   await memoryControl.close(); await playerMemory.close();

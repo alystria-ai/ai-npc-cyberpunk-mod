@@ -7,6 +7,15 @@ player ID across all saves and characters**, natural conversation memory, and
 explicit Forget controls. No proactive memory creation for unused characters.
 See `docs/PLAYER_MEMORY.md` for the current runtime contract.
 
+- [ ] Verify the new **Settings → Memory → Manage** submenu and grouped Settings
+  page in the game. Character conversations and Memory each have a parent return.
+- [ ] Verify preparation begins at **Invite**, including while MCM or Contacts
+  pauses the game. No NPC may appear until memory configuration and an identified
+  private connection are ready. The pending invitation remains cancellable.
+- [ ] Compare the first F6 reply after preparation with the measured 19.6-second
+  onset: the earlier trace spent 8.9 seconds admitting memory and 6.0 seconds
+  waiting behind connection preparation. Verify the ready page survives spawn.
+
 - [x] Install the single-ID memory runtime and native MCM controls. September 30:
   926 checks passed with zero failures/skips, the browser bundle rebuilt, Lua
   files/catalogues hash verified, and the bridge reports a matching identity

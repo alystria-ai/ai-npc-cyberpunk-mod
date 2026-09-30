@@ -24,6 +24,7 @@ convaiLootObserver, convaiLootReactions = lootObserver, loot
 local knowledgeAllowed, knowledgeEpoch, knowledgeInvalidated = false, 0, false
 local knowledgeFrame, knowledgeChanged, knowledgeConfigured = nil, false, false
 local knowledgePhoneCapture, knowledgePhoneReceipts = nil, {}
+local invitations
 local knowledgeLaunch = 'lua-world-' .. tostring(os.time()) .. '-' .. tostring(math.random(100000000, 999999999))
 local worldSessionSignature, worldSessionAt = nil, nil
 local function knowledgeUnavailable(reason)
@@ -77,6 +78,7 @@ local function invalidateKnowledge(reason)
     local before = knowledgeFrame
     knowledgeAllowed, knowledgeFrame, knowledgePhoneCapture = false, nil, nil
     publishWorldSession(before, false, true)
+    if invitations then invitations.bind(nil) end
     knowledgeEpoch, knowledgeChanged = knowledgeEpoch + 1, false
     knowledgeInvalidated = true
     worldKnowledge:reset(nil, reason); journalHistory:reset()
@@ -223,7 +225,22 @@ phoneChat.configure(profiles, manager, {
         return knowledgeUnavailable('phone-world-changed')
     end,
     onDelivered = publishPhoneDelivery})
-mcm.configure(manager, companions, dofile('manager-party.lua'), dofile('mcm-entry.lua'))
+invitations = dofile('invitation-readiness.lua').new({
+    world = function()
+        if not knowledgeAllowed or not knowledgeFrame or knowledgeFrame.status ~= 'ready' then return nil end
+        return {worldToken = knowledgeFrame.worldToken, generation = knowledgeFrame.generation}
+    end,
+    isKnown = function(key) return supportedProfiles[key] == true end})
+convaiInvitations = invitations
+companions.canSpawn = function(key, job)
+    if type(job) ~= 'table' or job.key ~= key then
+        return false, 'Invite this character from the phone or Companion Manager first.'
+    end
+    local state = invitations.status(job)
+    if state.state == 'ready' or state.state == 'model-only' then return true end
+    return false, 'Memory and connection preparation must finish before this character can join.'
+end
+mcm.configure(manager, companions, dofile('manager-party.lua'), dofile('mcm-entry.lua'), invitations)
 convaiManager = mcm
 local catalog = characterCatalog.build(profiles)
 for record, profile in pairs(characterCatalog.build(profiles).records) do
@@ -247,7 +264,7 @@ local gazeLost = 0
 local gazePoll = 0
 local focusedCrowd = nil
 local releasedCrowd = nil
-local pendingPhoneAction = nil
+local lastPhoneInvitation = nil
 local automatic, battleSample, battlePeople, battlePoll = nil, nil, {}, 0
 local lastAutomatic = nil
 local cancelAutomatic = function() end
@@ -938,22 +955,12 @@ local function openManager()
 end
 
 local function processPhoneAction(player)
-    if player:ConvaiPhoneIsOpen() then return end
-    if not pendingPhoneAction then
-        local ok, request = pcall(function() return player:ConvaiPhoneTakeRequest() end)
-        if not ok or not request or request == '' then return end
-        pendingPhoneAction = request
-    end
-    -- Contact screens pause the world. Let the request run once gameplay
-    -- resumes so entity creation and the first follower command have a frame.
-    local menuOk, inMenu = pcall(function()
-        local definitions = Game.GetAllBlackboardDefs()
-        return Game.GetBlackboardSystem():Get(definitions.UI_System)
-            :GetBool(definitions.UI_System.IsInMenu)
-    end)
-    if not menuOk or inMenu then return end
-    local request = pendingPhoneAction
-    pendingPhoneAction = nil
+    local queue = mcm.party and mcm.party()
+    if not queue then return end
+    -- Reading a request and reserving preparation are safe while Contacts pauses
+    -- simulation. Only the shared queue's gameplay flush may create an entity.
+    local ok, request = pcall(function() return player:ConvaiPhoneTakeRequest() end)
+    if not ok or not request or request == '' then return end
     local join, contactId = request:sub(1, 1) == '+', request:sub(2)
     local key, reason, name = companions.phoneContactKey(contactId)
     if not key then
@@ -962,23 +969,52 @@ local function processPhoneAction(player)
         return
     end
     if join then
-        local serial, err = companions.spawn(key)
-        log(serial and ('Phone spawn requested for ' .. key .. ' #' .. serial)
-            or ('Phone join failed for ' .. key .. ': ' .. tostring(err)))
-        player:ConvaiPhoneFeedback(serial and (name .. ' is joining you.') or tostring(err))
+        local accepted, message = queue.invite(key)
+        log(accepted and ('Phone preparation requested for ' .. key)
+            or ('Phone join failed for ' .. key .. ': ' .. tostring(message)))
+        if accepted then
+            local party = queue.list()
+            for index = #party, 1, -1 do
+                if party[index].key == key and not party[index].serial then
+                    lastPhoneInvitation = {id = party[index].id}
+                    break
+                end
+            end
+        end
+        player:ConvaiPhoneFeedback(tostring(message))
         return
     end
-    local party = companions.list()
+    local party = queue.list()
     for index = #party, 1, -1 do
         if party[index].key == key then
-            companions.dismiss(party[index].serial)
-            log('Phone dismissed ' .. key .. ' #' .. party[index].serial)
-            player:ConvaiPhoneFeedback(name .. ': dismissed one companion.')
+            local accepted, message = queue.dismiss(party[index].id)
+            if lastPhoneInvitation and lastPhoneInvitation.id == party[index].id then lastPhoneInvitation = nil end
+            log('Phone dismissal requested for ' .. key)
+            player:ConvaiPhoneFeedback(tostring(message))
             return
         end
     end
     log('Phone dismiss: no active copy of ' .. key)
     player:ConvaiPhoneFeedback(name .. ' is not in your group.')
+end
+
+local function updatePhoneInvitationFeedback(player)
+    if not lastPhoneInvitation then return end
+    local queue = mcm.party and mcm.party()
+    if not queue then return end
+    for _, member in ipairs(queue.list()) do
+        if member.id == lastPhoneInvitation.id then
+            if member.state == lastPhoneInvitation.state then return end
+            lastPhoneInvitation.state = member.state
+            local message = member.name .. ': preparing memory...'
+            if member.state == 'connecting' then message = member.name .. ': connecting...'
+            elseif member.state == 'ready-to-join' then message = member.name .. ' is ready. Close the phone to join.'
+            elseif member.state == 'failed' then message = member.name .. ': preparation failed. Cancel and invite again.' end
+            pcall(function() player:ConvaiPhoneFeedback(message) end)
+            return
+        end
+    end
+    lastPhoneInvitation = nil
 end
 
 registerHotkey('cyberpunk_convai_text', 'Cyberpunk Convai: talk by text', function() beginText(false) end)
@@ -1006,7 +1042,7 @@ local function abandonSession(reason)
     phoneChat.abandon()
     active, pending, focusUntil, focusMode, focusEntity = nil, nil, nil, nil, nil
     pendingKnowledgeOwner = nil
-    focusedCrowd, releasedCrowd, pendingPhoneAction = nil, nil, nil
+    focusedCrowd, releasedCrowd, lastPhoneInvitation = nil, nil, nil
     phoneCatalogReady = false
     resetGaze()
     manager.reset()
@@ -1097,6 +1133,13 @@ registerForEvent('onUpdate', function(delta)
     -- menu adapter needs these frames even when delta is zero; followers don't.
     local mcmOk, mcmError = pcall(mcm.update, menuPlayer, worldReady)
     if not mcmOk then log('MCM update failed: ' .. tostring(mcmError)) end
+    local phoneActionOk, phoneActionError = pcall(processPhoneAction, menuPlayer)
+    if not phoneActionOk then log('Phone action failed: ' .. tostring(phoneActionError)) end
+    local invitationOk, invitationError = pcall(invitations.update)
+    if not invitationOk then log('Invitation preparation failed: ' .. tostring(invitationError)) end
+    updatePhoneInvitationFeedback(menuPlayer)
+    -- Retain prepared and attached party connections while game time is paused.
+    publishPartyConnections(false)
     local phoneOk, phoneError = pcall(phoneLayout.refresh)
     if not phoneOk then phoneLayout.lastError = tostring(phoneError) end
     local styleOk, styleError = pcall(phoneChatStyle.refresh)
@@ -1147,11 +1190,9 @@ registerForEvent('onUpdate', function(delta)
         if not ok then log('Phone catalog registration failed: ' .. tostring(err)) end
         phoneCatalogReady = ok
     end
-    processPhoneAction(player)
     local managerOk, managerError = pcall(manager.update, player, 0.1)
     if not managerOk then log('Manager update failed: ' .. tostring(managerError)) end
     if worldReady then companions.update(player, elapsedPoll, focusEntity) end
-    publishPartyConnections(false)
     updateGroup(player)
     local battleOk, battleError = pcall(updateBattles, player, elapsedPoll, worldReady)
     if not battleOk then

@@ -6,9 +6,9 @@ import {RealtimeHost} from './realtime-host.mjs';
 const flush = () => new Promise(done => setImmediate(done));
 const deferred = () => { let resolve, reject; const promise = new Promise((done, fail) => { resolve = done; reject = fail; }); return {promise, resolve, reject}; };
 const profiles = ['alex', 'judy', 'panam', 'kerry', 'viktor', 'misty', 'river', 'jackie'];
-function fixture() {
+function fixture({canWarm = () => true} = {}) {
   let time = 100000;
-  const live = new Map(), calls = [], reports = [], pending = [];
+  const live = new Map(), calls = [], reports = [], pending = [], refreshes = [];
   const host = {fail: false, defer: false,
     async retain(configs, options) {
       assert.equal(options.protect, true); assert.ok(configs.length <= CONNECTION_LIMIT);
@@ -27,18 +27,24 @@ function fixture() {
     },
     async readiness(config, {keepAlive}) {
       assert.equal(keepAlive, true);
-      const present = live.has(connectionKey(config.characterId, config.scope));
-      return {present, ready: present};
+      const page = live.get(connectionKey(config.characterId, config.scope));
+      return {present: !!page, ready: !!page && page.ready !== false, busy: page?.busy === true};
+    },
+    async refreshIdle(config) {
+      const identity = connectionKey(config.characterId, config.scope);
+      refreshes.push(identity);
+      if (live.get(identity)?.busy) return false;
+      live.delete(identity); return true;
     },
   };
-  const connections = new PartyConnections({host, now: () => time,
+  const connections = new PartyConnections({host, now: () => time, canWarm,
     isKnown: profile => [...profiles, 'nearby'].includes(profile),
     configFor: (profile, scope) => ({key: 'secret-key', characterId: profile, scope, sessionId: 'secret-session'}),
     onState: state => reports.push(state),
   });
   const heartbeat = members => connections.ingest({updated: time, profiles: members});
   const step = async (ms = 500) => { time += ms; await connections.maintain(); await flush(); };
-  return {connections, host, live, calls, reports, pending, heartbeat, step, now: () => time};
+  return {connections, host, live, calls, reports, pending, refreshes, heartbeat, step, now: () => time};
 }
 
 test('party protocol preserves slot order, deduplicates profiles, and rejects oversized or future snapshots', () => {
@@ -183,4 +189,131 @@ test('voice session cleanup only closes its own lease and leaves party browser o
   await channel.beginVoice({characterId: 'alex', scope: 'private'});
   await channel.finishVoice(); await channel.close();
   assert.equal(grants, 1); assert.equal(discarded, false); assert.equal(closed, 0);
+});
+
+test('invitation retention hands the same private page to party membership and releases only the last owner', async () => {
+  const f = fixture();
+  await f.connections.setInvitations(['judy', 'judy']);
+  assert.deepEqual(f.connections.invitations, ['judy']);
+  assert.equal((await f.connections.warmInvitation('judy')).ready, true);
+  const page = f.live.get(connectionKey('judy', 'private'));
+  f.heartbeat(['judy']); await f.connections.setInvitations([]);
+  assert.equal(f.live.get(connectionKey('judy', 'private')), page);
+  assert.equal(f.connections.entries.get(connectionKey('judy', 'private')).role, 'party');
+  await f.step(); assert.equal(f.calls.length, 1);
+  f.heartbeat([]); await f.step(); assert.equal(f.live.size, 0);
+});
+
+test('eight party and invitation identities fit the protected allocation and ninth reservation fails', async () => {
+  const f = fixture(); f.heartbeat(profiles.slice(0, 5));
+  await f.connections.setInvitations(profiles.slice(5));
+  assert.equal(f.connections.plan().length, CONNECTION_LIMIT);
+  assert.equal(f.connections.plan().filter(row => row.scope === 'private').length, 8);
+  assert.throws(() => f.connections.setInvitations([...profiles.slice(5), 'nearby']), /limit/);
+  assert.deepEqual(f.connections.invitations, profiles.slice(5));
+  await f.connections.clear();
+});
+
+test('foreground dispatch gating preserves ready pages and explicit warm shares the maintenance attempt', async () => {
+  let allowed = false;
+  const f = fixture({canWarm: () => allowed});
+  await f.connections.setInvitations(['judy']);
+  assert.equal((await f.connections.warmInvitation('judy')).gated, true);
+  await f.step(0); assert.equal(f.calls.length, 0);
+  allowed = true; f.host.defer = true; await f.step(0);
+  const first = f.connections.warmInvitation('judy');
+  await flush(); assert.equal(f.calls.length, 1);
+  f.pending[0].resolve(); await first;
+  const page = f.live.get(connectionKey('judy', 'private'));
+  allowed = false;
+  assert.equal((await f.connections.warmInvitation('judy')).ready, true);
+  await f.step(); assert.equal(f.live.get(connectionKey('judy', 'private')), page);
+  assert.equal(f.calls.length, 1); await f.connections.clear();
+});
+
+test('explicit invitations honor the two-start cap and stagger without blocking behind the foreground gate', async () => {
+  const f = fixture(); f.host.defer = true;
+  await f.connections.setInvitations(['alex', 'judy', 'panam']);
+  const alex = f.connections.warmInvitation('alex'); await flush();
+  assert.equal((await f.connections.warmInvitation('judy')).gated, true);
+  await f.step(500);
+  const judy = f.connections.warmInvitation('judy'); await flush();
+  assert.equal((await f.connections.warmInvitation('panam')).gated, true);
+  assert.equal(f.calls.length, 2);
+  f.pending[0].resolve(); f.pending[1].resolve(); await Promise.all([alex, judy]);
+  await f.connections.clear();
+});
+
+test('scoped memory retirement discards only the target private and group pages', async () => {
+  const f = fixture(); f.heartbeat(['alex', 'judy']);
+  for (let i = 0; i < 4; i++) await f.step(i ? 500 : 0);
+  const other = new Map([...f.live].filter(([key]) => JSON.parse(key)[0] === 'judy'));
+  const old = f.connections.entries.get(connectionKey('alex', 'private'));
+  await f.connections.retireInvitation('alex');
+  assert.deepEqual(f.refreshes, [connectionKey('alex', 'private'), connectionKey('alex', 'group:alex,judy')]);
+  assert.equal(f.connections.entries.get(connectionKey('alex', 'private')).state, 'waiting');
+  assert.notEqual(f.connections.entries.get(connectionKey('alex', 'private')), old);
+  for (const [key, page] of other) assert.equal(f.live.get(key), page);
+  await f.connections.clear();
+});
+
+test('scoped retirement fences a pending warm before disposal and blocks new target dispatch', async () => {
+  const f = fixture(); f.host.defer = true; f.heartbeat(['alex', 'judy']);
+  await f.step(0);
+  const key = connectionKey('alex', 'private'), old = f.connections.entries.get(key);
+  const retiring = f.connections.retireInvitation('alex');
+  await flush(); assert.equal(old.controller.signal.aborted, true);
+  const renewed = f.connections.entries.get(key);
+  assert.notEqual(renewed, old);
+  assert.equal((await f.connections.warmInvitation('alex')).gated, true);
+  assert.equal(f.calls.length, 1);
+  f.pending[0].resolve(); await retiring;
+  assert.equal(renewed.state, 'waiting'); assert.equal(f.live.has(key), false);
+  assert.equal(f.refreshes.includes(connectionKey('judy', 'private')), false);
+  await f.connections.clear();
+});
+
+test('a busy target lease rejects retirement without closing that lease or another profile page', async () => {
+  const f = fixture(); f.heartbeat(['alex', 'judy']);
+  await f.step(0); await f.step(500);
+  const key = connectionKey('alex', 'private'), page = f.live.get(key), other = f.live.get(connectionKey('judy', 'private'));
+  page.busy = true;
+  await assert.rejects(f.connections.retireInvitation('alex'), /busy/);
+  assert.equal(f.live.get(key), page); assert.equal(f.live.get(connectionKey('judy', 'private')), other);
+  assert.equal(f.connections.retiring.size, 0);
+  await f.connections.clear();
+});
+
+test('busy retirement remains required until disposal succeeds and cannot make an old SDK page ready', async () => {
+  let allowed = true;
+  const f = fixture({canWarm: () => allowed}); f.heartbeat(['alex', 'judy']);
+  await f.step(0); await f.step(500);
+  const key = connectionKey('alex', 'private'), page = f.live.get(key), other = f.live.get(connectionKey('judy', 'private'));
+  page.busy = true;
+  await assert.rejects(f.connections.retireInvitation('alex'), /busy/);
+  assert.equal(f.connections.needsRetirement('alex'), true);
+  assert.equal((await f.connections.invitationReadiness('alex')).ready, false);
+  f.connections.used({profileKey: 'alex'}, {});
+  assert.equal(f.connections.entries.get(key).state, 'waiting', 'an old submitted turn cannot remove disposal debt');
+  page.busy = false; allowed = false; await f.step(500);
+  assert.equal((await f.connections.warmInvitation('alex')).gated, true);
+  assert.equal(f.live.get(key), page); assert.equal(f.calls.length, 2);
+  allowed = true;
+  assert.equal((await f.connections.warmInvitation('alex')).ready, true);
+  assert.equal(f.connections.needsRetirement('alex'), false);
+  assert.notEqual(f.live.get(key), page); assert.equal(f.live.get(connectionKey('judy', 'private')), other);
+  await f.connections.clear();
+});
+
+test('cancelled retirement retains its exact pending disposal until a later owner finishes it', async () => {
+  const f = fixture(); f.host.defer = true; f.heartbeat(['alex']); await f.step(0);
+  const controller = new AbortController(), retiring = f.connections.retireInvitation('alex', {signal: controller.signal});
+  controller.abort(); await assert.rejects(retiring, {name: 'AbortError'});
+  assert.equal(f.connections.needsRetirement('alex'), true);
+  f.pending[0].resolve(); await flush();
+  assert.equal((await f.connections.invitationReadiness('alex')).ready, false);
+  await f.connections.retireInvitation('alex');
+  assert.equal(f.connections.needsRetirement('alex'), false);
+  assert.deepEqual(f.refreshes, [connectionKey('alex', 'private')]);
+  await f.connections.clear();
 });

@@ -10,14 +10,21 @@ import {randomUUID} from 'node:crypto';
  * read-only operations. They neither contact a profile nor call the provider.
  * The router owns channel/world/session scope; only identity reset epochs live here.
  *
+ * Await prepareCharacter({profileKey,guard,signal}) when the player invites a
+ * character, before warming a connection or spawning. It verifies the mod-owned
+ * profile's memory configuration without recording contact or creating memory.
  * Await beginConversation({profileKey, guard, source:'player', channel, requestId,
  * signal}) immediately before an admitted PLAYER send. Never call it on warm,
  * spawn, routing, unsolicited NPC dialogue or battle reactions. It durably records
- * the contacted character and verifies natural memory on a mod-owned profile.
+ * the contacted character and reuses verified preparation or verifies on demand.
  * provider.enableMemory({profileKey,characterId,endUserId,signal}) must return
  * {enabled:true, changed:boolean} after ownership verification and readback.
  * A reconnectRequired receipt means old warmed sessions must be replaced BEFORE
- * sending; this module does not open sessions. No explicit memory seeding exists.
+ * warming/sending; this module does not open sessions. After all old transports
+ * are disposed, acknowledgeConnectionRefresh({profileKey,guard}) consumes that
+ * obligation. Cancellation cannot silently consume it. A later PLAYER send
+ * reuses completed preparation without replacing its prepared connection.
+ * No explicit memory seeding exists.
  *
  * Explicit clearCharacter({profileKey,actionId,signal}) / clearAll({actionId,signal})
  * preserve the UUID, durably advance epochs, and invoke quiesce before deletion.
@@ -203,6 +210,7 @@ export class PlayerMemory {
   #files; #path; #anchorPath; #lockPath; #lockRaw; #anchorRaw; #diskRaw; #state; #ids;
   #provider; #quiesce; #timeoutMs; #mutation = Promise.resolve(); #closed = false; #fault = null;
   #enables = new Map(); #verified = new Set(); #enableReceipts = new Map(); #enableUnknown = new Set(); #activeClears = new Map();
+  #reconnectPending = new Set();
   #controllers = new Set(); #fences = new Set();
 
   static async open({path, characterIds, provider, quiesce, timeoutMs = 15000, fsImpl = fs} = {}) {
@@ -353,31 +361,14 @@ export class PlayerMemory {
       clearTimeout(timer); combined.removeEventListener('abort', abort); this.#controllers.delete(controller);
     }
   }
-  async beginConversation({profileKey, guard, source = 'player', channel = 'private', requestId, signal} = {}) {
-    this.#ready();
-    if (source !== 'player') fail('PLAYER_SEND_REQUIRED');
-    if (!CHANNELS.has(channel)) fail('INVALID_CHANNEL');
-    if (requestId !== undefined && !(token(requestId) || integer(requestId))) fail('INVALID_REQUEST_ID');
-    const characterId = this.#id(profileKey), admitted = guard ?? this.route(profileKey, {channel}).guard;
-    const verifiedAtAdmission = this.#verified.has(characterId), unknownAtAdmission = this.#enableUnknown.has(characterId);
-    if (admitted.characterId !== characterId || !this.isCurrent(admitted)) fail('STALE_TURN');
-    if (signal?.aborted) fail('CANCELLED');
-    if (typeof this.#provider?.enableMemory !== 'function') fail('MEMORY_UNAVAILABLE');
-    // Established contacts often need no mutation or cloud call. They still
-    // cannot bypass local identity/registry integrity checks on actual sends.
-    if (this.#state.characters[characterId]?.contacted) {
-      const checking = this.#mutation.then(() => this.#verifyStorage());
-      this.#mutation = checking.catch(() => {});
-      await checking;
-    }
-    if (!this.#state.characters[characterId]?.contacted) await this.#persist(next => {
-      if (!this.isCurrent(admitted) || signal?.aborted) fail('STALE_TURN');
-      if (!Object.hasOwn(next.characters, characterId) && Object.keys(next.characters).length >= MAX_CHARACTERS) fail('CHARACTER_LIMIT');
-      if (!next.characters[characterId]?.contacted) next.characters[characterId] = {
-        profileKey, characterEpoch: next.characters[characterId]?.characterEpoch ?? 0, contacted: true};
-    });
+  async #checkStorage() {
+    const checking = this.#mutation.then(() => this.#verifyStorage());
+    this.#mutation = checking.catch(() => {});
+    await checking;
+  }
+  async #ensureEnabled({profileKey, characterId, admitted, verifiedAtAdmission, signal}) {
     if (!this.isCurrent(admitted) || signal?.aborted) fail('STALE_TURN');
-    let changed = false, reconnectRequired = unknownAtAdmission;
+    let changed = false;
     if (!this.#verified.has(characterId)) {
       let flight = this.#enables.get(characterId);
       if (!flight) {
@@ -387,25 +378,79 @@ export class PlayerMemory {
           endUserId: this.#state.endUserId, signal: combined}), {controller, write: true}).then(receipt => {
           if (receipt?.enabled !== true || typeof receipt.changed !== 'boolean') throw new PlayerMemoryError('ENABLE_UNVERIFIED', {writeUncertain: true});
           if (!this.isCurrent(admitted)) throw new PlayerMemoryError('STALE_TURN');
-          this.#enableReceipts.set(characterId, {changed: receipt.changed,
-            reconnectRequired: receipt.changed || this.#enableUnknown.has(characterId)});
+          this.#enableReceipts.set(characterId, {changed: receipt.changed});
+          if (receipt.changed || this.#enableUnknown.has(characterId)) this.#reconnectPending.add(characterId);
           this.#verified.add(characterId); this.#enableUnknown.delete(characterId);
           return receipt;
         }).catch(error => { this.#enableUnknown.add(characterId); throw error; })
           .finally(() => { if (this.#enables.get(characterId) === flight) this.#enables.delete(characterId); });
         this.#enables.set(characterId, flight);
       }
-      // A caller's cancellation doesn't cancel another admitted player's shared
-      // enable. This wait is bounded independently; clear/close abort the flight.
+      // A caller's cancellation doesn't cancel another caller's shared enable.
+      // Each wait is bounded independently; clear/close abort the shared flight.
       const receipt = await this.#bounded(() => flight.promise, {signal});
-      changed = receipt.changed; reconnectRequired ||= changed;
+      changed = receipt.changed;
     } else if (!verifiedAtAdmission) {
-      // Another concurrent admission may finish verification during this one's
-      // durable contact write. It belongs to the same first-admission wave and
-      // still needs the receipt telling its caller to replace pre-enable warmth.
+      // Another concurrent preparation/admission can finish verification during
+      // this caller's storage check/write. Its pre-enable warmth still needs the
+      // first-wave receipt. Callers admitted after preparation reuse the cache.
       const receipt = this.#enableReceipts.get(characterId);
-      changed = receipt?.changed === true; reconnectRequired ||= receipt?.reconnectRequired === true;
+      changed = receipt?.changed === true;
     }
+    if (signal?.aborted || !this.isCurrent(admitted)) fail('STALE_TURN');
+    // The shared enable may finish after every waiting invitation was cancelled.
+    // Keep this obligation until the transport owner explicitly confirms disposal.
+    return {changed, reconnectRequired: this.#reconnectPending.has(characterId)};
+  }
+  connectionRefreshRequired({profileKey, guard} = {}) {
+    this.#ready();
+    const characterId = this.#id(profileKey);
+    if (!guard || guard.characterId !== characterId || !this.isCurrent(guard)) fail('STALE_TURN');
+    return this.#reconnectPending.has(characterId);
+  }
+  acknowledgeConnectionRefresh({profileKey, guard} = {}) {
+    const required = this.connectionRefreshRequired({profileKey, guard});
+    if (!this.#verified.has(guard.characterId)) fail('ENABLE_UNVERIFIED');
+    this.#reconnectPending.delete(guard.characterId);
+    return required;
+  }
+  async prepareCharacter({profileKey, guard, signal} = {}) {
+    this.#ready();
+    const characterId = this.#id(profileKey), admitted = guard ?? this.route(profileKey).guard;
+    const verifiedAtAdmission = this.#verified.has(characterId);
+    if (admitted.characterId !== characterId || !this.isCurrent(admitted)) fail('STALE_TURN');
+    if (signal?.aborted) fail('CANCELLED');
+    if (typeof this.#provider?.enableMemory !== 'function') fail('MEMORY_UNAVAILABLE');
+    // Every invitation checks the exact durable identity/registry, including
+    // cached and never-contacted profiles. Preparation performs no disk writes.
+    await this.#checkStorage();
+    const {changed, reconnectRequired} = await this.#ensureEnabled({profileKey, characterId, admitted,
+      verifiedAtAdmission, signal});
+    if (signal?.aborted || !this.isCurrent(admitted)) fail('STALE_TURN');
+    return Object.freeze({...this.route(profileKey), memoryEnabled: true,
+      memoryEnabledNow: changed, changed, reconnectRequired});
+  }
+  async beginConversation({profileKey, guard, source = 'player', channel = 'private', requestId, signal} = {}) {
+    this.#ready();
+    if (source !== 'player') fail('PLAYER_SEND_REQUIRED');
+    if (!CHANNELS.has(channel)) fail('INVALID_CHANNEL');
+    if (requestId !== undefined && !(token(requestId) || integer(requestId))) fail('INVALID_REQUEST_ID');
+    const characterId = this.#id(profileKey), admitted = guard ?? this.route(profileKey, {channel}).guard;
+    const verifiedAtAdmission = this.#verified.has(characterId);
+    if (admitted.characterId !== characterId || !this.isCurrent(admitted)) fail('STALE_TURN');
+    if (signal?.aborted) fail('CANCELLED');
+    if (typeof this.#provider?.enableMemory !== 'function') fail('MEMORY_UNAVAILABLE');
+    // Established contacts often need no mutation or cloud call. They still
+    // cannot bypass local identity/registry integrity checks on actual sends.
+    if (this.#state.characters[characterId]?.contacted) await this.#checkStorage();
+    if (!this.#state.characters[characterId]?.contacted) await this.#persist(next => {
+      if (!this.isCurrent(admitted) || signal?.aborted) fail('STALE_TURN');
+      if (!Object.hasOwn(next.characters, characterId) && Object.keys(next.characters).length >= MAX_CHARACTERS) fail('CHARACTER_LIMIT');
+      if (!next.characters[characterId]?.contacted) next.characters[characterId] = {
+        profileKey, characterEpoch: next.characters[characterId]?.characterEpoch ?? 0, contacted: true};
+    });
+    const {changed, reconnectRequired} = await this.#ensureEnabled({profileKey, characterId, admitted,
+      verifiedAtAdmission, signal});
     if (signal?.aborted || !this.isCurrent(admitted)) fail('STALE_TURN');
     return Object.freeze({...this.route(profileKey, {channel}), memoryEnabled: true, memoryEnabledNow: changed, reconnectRequired});
   }
@@ -444,6 +489,7 @@ export class PlayerMemory {
     if ([...fenced].some(id => this.#fences.has(id))) fail('CLEAR_IN_PROGRESS');
     for (const id of fenced) {
       this.#fences.add(id); this.#verified.delete(id); this.#enableReceipts.delete(id); this.#enables.get(id)?.controller.abort();
+      this.#reconnectPending.delete(id);
     }
     const running = this.#runClear({scope, profileKey, characterId, actionId, targets, fenced, signal});
     this.#activeClears.set(actionId, {scope, profileKey, promise: running});

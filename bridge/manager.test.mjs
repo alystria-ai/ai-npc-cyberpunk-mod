@@ -322,6 +322,34 @@ const mcmFixture = `
   end
 `;
 
+const invitationFixture = `
+  local readiness = {jobs = {}, receipts = {}, cancellations = {}, prepareCalls = 0}
+  function readiness.bind(value) readiness.owner = value end
+  function readiness.prepare(job)
+    readiness.prepareCalls = readiness.prepareCalls + 1
+    readiness.jobs[job.id] = {id = job.id, revision = job.revision, key = job.key, profileKey = job.profileKey}
+    readiness.receipts[job.id] = {state = job.profileKey and 'memory' or 'model-only'}
+    return true
+  end
+  function readiness.status(job) return readiness.receipts[job.id] end
+  function readiness.cancel(job)
+    readiness.cancellations[job.id] = true
+    readiness.jobs[job.id], readiness.receipts[job.id] = nil, nil
+  end
+  function readiness.spawned(job, serial) readiness.lastSpawn = {id = job.id, serial = serial} end
+  function readiness.finish(job) readiness.lastFinished = job.id end
+  function readiness.update() readiness.updates = (readiness.updates or 0) + 1 end
+  mcm.shutdown()
+  local queueFactory = (function() ${queueSource} end)()
+  mcm.configure(manager, api, {new = function(companions, preparation)
+    assert(companions == api and preparation == readiness, 'MCM dropped the invitation readiness argument')
+    return queueFactory.new(companions, preparation)
+  end}, entryFactory, readiness)
+  mcm.install()
+  loaded = registered.loadMod('manager')
+  local party = assert(mcm.party())
+`;
+
 const memoryFixture = `
   local memoryClock = 1800000000
   os.time = function() return memoryClock end
@@ -350,12 +378,43 @@ const memoryFixture = `
     loaded = registered.loadMod('manager')
     return manager.snapshot(player).memory
   end
+  local function openMemory()
+    assert(invoke('tab:settings').ok and invoke('memory').ok)
+  end
   local function token() return assert(manager.snapshot(player).memory.confirmation).token end
 `;
 
-test('native Memory settings use the contacted count and full catalogue without inviting a character or exposing identity', () => {
+test('native Memory submenu has consistent parent navigation and preserves an unissued confirmation', () => {
   run(`${mcmFixture}${memoryFixture}
+    publishMemory(1, {{profileKey = 'person-20'}})
     assert(invoke('tab:settings').ok)
+    assert(row('memory').type == 'action' and row('memory').value == 'Manage')
+    assert(not row('memory:choose') and not row('memory-count'), 'memory controls leaked into the Settings page')
+    assert(invoke('permissions').ok and mcm.inspect().view == 'permissions')
+    assert(row('tab:settings').value == 'Selected' and row('tab:settings').disabled)
+    assert(invoke('permissions:back').ok and mcm.inspect().view == 'settings')
+    assert(invoke('memory').ok and mcm.inspect().view == 'memory')
+    assert(row('tab:settings').value == 'Selected' and row('tab:settings').disabled)
+    assert(invoke('memory:choose').ok and mcm.inspect().view == 'memory-characters')
+    assert(row('tab:settings').value == 'Selected' and row('memory:back').label == 'Back to memory')
+    handlers.McmUiEmitSearch(nil, 'content', 'Person 20')
+    for _ = 1, 6 do mcm.update(player, false) end
+    assert(invoke('memory:back').ok and mcm.inspect().view == 'memory')
+    assert(invoke('memory:choose').ok and row('memory:next'), 'return retained the picker search')
+    assert(invoke('memory:next').ok and invoke('memory:select:person-20').ok)
+    assert(mcm.inspect().view == 'memory' and row('memory:choose').value == 'Person 20')
+    assert(invoke('memory:forget-character').ok)
+    local confirmation = token()
+    assert(invoke('memory:settings').ok and mcm.inspect().view == 'settings')
+    assert(invoke('memory').ok and token() == confirmation and row('memory-confirmation'))
+    assert(invoke('memory:cancel:' .. confirmation).ok and memoryWrites() == 0)
+    assert(#members == 0 and #spawned == 0)
+  `);
+});
+
+test('native Memory controls use the contacted count and full catalogue without inviting a character or exposing identity', () => {
+  run(`${mcmFixture}${memoryFixture}
+    openMemory()
     assert(row('memory-service').value == 'Unavailable' and row('memory:forget-all').disabled)
     assert(not invoke('memory:forget-all').ok and memoryWrites() == 0)
     publishMemory(3, {{profileKey = 'johnny-silverhand'}, {profileKey = 'person-20'}, {profileKey = 'viktor-vektor'}})
@@ -386,7 +445,7 @@ test('native Memory settings use the contacted count and full catalogue without 
 test('memory clear needs a separate confirmation, cancel sends nothing and deliberate double activation sends one command', () => {
   run(`${mcmFixture}${memoryFixture}
     publishMemory(2, {{profileKey = 'johnny-silverhand'}, {profileKey = 'person-20'}})
-    assert(invoke('tab:settings').ok)
+    openMemory()
     assert(invoke('memory:forget-all').ok)
     local cancelled = token()
     assert(row('memory-confirmation').value:find('all 2 characters', 1, true))
@@ -421,7 +480,7 @@ test('memory clear needs a separate confirmation, cancel sends nothing and delib
 test('memory completion requires exact ID, scope, profile and a current result; old success cannot complete a later request', () => {
   run(`${mcmFixture}${memoryFixture}
     publishMemory(2, {{profileKey = 'johnny-silverhand'}, {profileKey = 'person-20'}})
-    assert(invoke('tab:settings').ok)
+    openMemory()
     assert(manager.selectMemoryCharacter('johnny-silverhand'))
     reloadMemory(); assert(invoke('memory:forget-character').ok)
     assert(invoke('memory:confirm:' .. token()).ok)
@@ -461,7 +520,7 @@ test('pending memory commands survive manager, save and Lua reloads without a re
   run(`${mcmFixture}${memoryFixture}
     math.randomseed(42)
     publishMemory(1, {{profileKey = 'person-20'}})
-    assert(invoke('tab:settings').ok)
+    openMemory()
     assert(manager.selectMemoryCharacter('person-20'))
     reloadMemory(); assert(invoke('memory:forget-character').ok)
     assert(invoke('memory:confirm:' .. token()).ok)
@@ -494,7 +553,7 @@ test('pending memory commands survive manager, save and Lua reloads without a re
 test('memory confirmation is cancelled on save reset, rejects a changed all count and handles service loss before submission', () => {
   run(`${mcmFixture}${memoryFixture}
     publishMemory(2, nil)
-    assert(invoke('tab:settings').ok and invoke('memory:forget-all').ok)
+    openMemory(); assert(invoke('memory:forget-all').ok)
     local first = token()
     publishMemory(3, nil)
     assert(not manager.confirmMemoryClear(first) and memoryWrites() == 0)
@@ -517,7 +576,7 @@ test('memory confirmation is cancelled on save reset, rejects a changed all coun
 test('failed command publication shows failure, does not retry and leaves an earlier durable command intact', () => {
   run(`${mcmFixture}${memoryFixture}
     publishMemory(1, nil)
-    assert(invoke('tab:settings').ok and invoke('memory:forget-all').ok)
+    openMemory(); assert(invoke('memory:forget-all').ok)
     local first = token()
     failSave = true
     assert(not invoke('memory:confirm:' .. first).ok)
@@ -655,6 +714,54 @@ test('native MCM action banner describes the queued invitation and leaves other 
   `);
 });
 
+test('native MCM shows invitation preparation and keeps reserved copies editable until actual attachment', () => {
+  run(`${mcmFixture}${invitationFixture}
+    assert(invoke('invite:johnny-silverhand').ok)
+    local id = party.list()[1].id
+    assert(readiness.prepareCalls == 1 and readiness.jobs[id].profileKey == 'johnny-silverhand')
+    assert(#spawned == 0 and party.count() == 1 and row('party-count').value == '1 / 8')
+    local rendered
+    handlers.McmUiBegin({}, 'MCM', '', 'Mods', 'Companion Manager', 'Completed: Johnny Silverhand', 1, '', true, true, 0,
+      function(title, subtitle, sidebar, content, message) rendered = message end)
+    assert(rendered:lower():find('prepar', 1, true) and not rendered:find('Completed:', 1, true))
+    assert(not rendered:find('joined your group', 1, true))
+    assert(invoke('tab:party').ok)
+    assert(row('state:' .. id).value == 'Preparing memory')
+    assert(row('dismiss:' .. id).value == 'Cancel invitation' and not row('assign:' .. id).disabled)
+    readiness.receipts[id] = {state = 'connecting'}
+    readiness.update(); mcm.update(player, false)
+    loaded = registered.loadMod('manager')
+    assert(row('state:' .. id).value == 'Connecting' and #spawned == 0)
+    local revision = readiness.jobs[id].revision
+    assert(invoke('assign:' .. id).ok and invoke('assign-profile:person-1').ok)
+    assert(readiness.prepareCalls == 2 and readiness.jobs[id].profileKey == 'person-1')
+    assert(readiness.jobs[id].revision ~= revision and row('state:' .. id).value == 'Preparing memory')
+    readiness.receipts[id] = {state = 'error', error = 'Preparation service unavailable'}
+    loaded = registered.loadMod('manager')
+    assert(row('state:' .. id).value == 'Unavailable')
+    assert(row('state:' .. id).description:find('Preparation service unavailable', 1, true))
+    assert(not row('assign:' .. id).disabled and row('dismiss:' .. id).value == 'Cancel invitation')
+    assert(invoke('dismiss:' .. id).ok and readiness.cancellations[id])
+    assert(party.count() == 0 and row('party-count').value == '0 / 8' and #spawned == 0)
+
+    -- Phone and native actions receive the same queue and reserved capacity.
+    assert(party.invite('johnny-silverhand'))
+    id = party.list()[1].id
+    readiness.receipts[id] = {state = 'ready'}
+    loaded = registered.loadMod('manager')
+    assert(row('state:' .. id).value == 'Ready to join' and row('party-count').value == '1 / 8')
+    mcm.update(player, false)
+    assert(#spawned == 0, 'readiness created an actor while gameplay was paused')
+    mcm.update(player, true)
+    loaded = registered.loadMod('manager')
+    assert(#spawned == 1 and row('state:live:1').value == 'Joining')
+    assert(not party.message():find('joined your group', 1, true), 'accepted spawn was reported as joined')
+    members[1].state = 'ready'; mcm.update(player, true)
+    loaded = registered.loadMod('manager')
+    assert(row('state:live:1').value == 'Following' and party.message():find('joined your group', 1, true))
+  `);
+});
+
 test('F5 goes through the real Mods entry and selects only its own native sidebar action', () => {
   run(`
     local callbacks, stageEvents, activated, selected, closed = {}, {}, 0, nil, 0
@@ -718,7 +825,7 @@ test('installed MCM API accepts the provider, actions, draft transactions and dy
         const key = `modules/${file.replaceAll('\\', '/').slice(0, -4)}`;
         return `package.preload[${JSON.stringify(key)}] = function()\n${readFileSync(path.join(root, 'modules', file), 'utf8')}\nend`;
       }).join('\n');
-    run(`${mcmFixture}${memoryFixture}
+    run(`${mcmFixture}${invitationFixture}${memoryFixture}
       mcm.shutdown()
       local encoded, jsonSequence = {}, 0
       json = {encode = function(value) jsonSequence = jsonSequence + 1; local id = 'json-' .. jsonSequence; encoded[id] = value; return id end,
@@ -733,18 +840,30 @@ test('installed MCM API accepts the provider, actions, draft transactions and dy
       local key = 'cyberpunk-convai:manager'
       assert(actual.openMod(key))
       assert(actual.invokeAction(key .. ':invite:johnny-silverhand'))
-      assert(#spawned == 0 and #mcm.inspect().party == 1)
+      assert(#spawned == 0 and #mcm.inspect().party == 1 and readiness.prepareCalls == 1)
+      assert(actual.getValue(key .. ':party-count') == '1 / 8')
+      assert(actual.invokeAction(key .. ':tab:party'))
+      assert(actual.getValue(key .. ':state:queued:1') == 'Preparing memory')
+      readiness.receipts['queued:1'] = {state = 'connecting'}
+      assert(actual.reloadMod(key) and actual.getValue(key .. ':state:queued:1') == 'Connecting')
+      assert(actual.invokeAction(key .. ':assign:queued:1'))
+      assert(actual.invokeAction(key .. ':assign-profile:person-1'))
+      assert(readiness.prepareCalls == 2 and readiness.jobs['queued:1'].profileKey == 'person-1')
+      readiness.receipts['queued:1'] = {state = 'ready'}
+      assert(actual.reloadMod(key) and actual.getValue(key .. ':state:queued:1') == 'Ready to join')
+      mcm.update(player, false); assert(#spawned == 0)
       assert(actual.invokeAction(key .. ':tab:settings'))
       publishMemory(2, {{profileKey = 'johnny-silverhand'}, {profileKey = 'person-20'}})
       assert(actual.reloadMod(key))
-      assert(actual.getValue(key .. ':memory-count') == '2')
+      assert(actual.getValue(key .. ':memory') == 'Manage' and actual.getValue(key .. ':memory-count') == nil)
       assert(actual.setDraft(key .. ':voice', false))
       assert(actual.setDraft(key .. ':omniSteps', 1))
       assert(actual.setDraft(key .. ':voiceProvider', 2))
       assert(actual.setDraft(key .. ':subtitleStyle', 1))
       assert(actual.setDraft(key .. ':battleReactions', false))
       assert(actual.invokeAction(key .. ':tab:characters') == false)
-      assert(actual.invokeAction(key .. ':memory:forget-all') == false and memoryWrites() == 0)
+      assert(actual.invokeAction(key .. ':memory') == false and memoryWrites() == 0)
+      assert(mcm.inspect().view == 'settings', 'a pending draft allowed submenu navigation')
       local ok, err = actual.apply(key)
       assert(ok, err)
       assert(actual.getValue(key .. ':voice') == false and actual.getValue(key .. ':omniSteps') == 1)
@@ -753,10 +872,24 @@ test('installed MCM API accepts the provider, actions, draft transactions and dy
       assert(manager.snapshot(player).settings.voiceProvider == 'convai')
       assert(actual.getValue(key .. ':subtitleStyle') == 1 and manager.subtitleStyle() == 'overhead')
       assert(not manager.battleReactions() and actual.getValue(key .. ':battleReactions') == false)
+      assert(actual.setDraft(key .. ':subtitles', false))
+      assert(actual.invokeAction(key .. ':permissions') == false)
+      assert(actual.revert(key) and actual.getValue(key .. ':subtitles') == true)
+      assert(actual.invokeAction(key .. ':permissions') and mcm.inspect().view == 'permissions')
+      assert(actual.getValue(key .. ':tab:settings') == 'Selected')
+      assert(actual.invokeAction(key .. ':permissions:back') and mcm.inspect().view == 'settings')
+      assert(actual.invokeAction(key .. ':memory') and mcm.inspect().view == 'memory')
+      assert(actual.getValue(key .. ':memory-count') == '2' and actual.getValue(key .. ':tab:settings') == 'Selected')
+      assert(actual.invokeAction(key .. ':memory:choose') and mcm.inspect().view == 'memory-characters')
+      assert(actual.getValue(key .. ':tab:settings') == 'Selected')
+      assert(actual.invokeAction(key .. ':memory:back') and mcm.inspect().view == 'memory')
       assert(actual.invokeAction(key .. ':memory:choose'))
       assert(actual.invokeAction(key .. ':memory:next'))
       assert(actual.invokeAction(key .. ':memory:select:person-20'))
-      assert(actual.getValue(key .. ':memory:choose') == 'Person 20' and #members == 0)
+      assert(mcm.inspect().view == 'memory' and actual.getValue(key .. ':memory:choose') == 'Person 20' and #members == 0)
+      assert(actual.invokeAction(key .. ':memory:settings') and mcm.inspect().view == 'settings')
+      assert(actual.getValue(key .. ':memory:choose') == nil and actual.getValue(key .. ':memory') == 'Manage')
+      assert(actual.invokeAction(key .. ':memory') and actual.getValue(key .. ':memory:choose') == 'Person 20')
       assert(actual.invokeAction(key .. ':memory:forget-character'))
       local cancelToken = token()
       assert(actual.invokeAction(key .. ':memory:cancel:' .. cancelToken) and memoryWrites() == 0)
@@ -775,7 +908,7 @@ test('installed MCM API accepts the provider, actions, draft transactions and dy
       assert(memoryWrites() == 1 and #spawned == 0, 'memory controls caused world work or retried')
       assert(actual.invokeAction(key .. ':tab:party'))
       assert(actual.invokeAction(key .. ':dismiss:queued:1'))
-      assert(#mcm.inspect().party == 0 and #spawned == 0)
+      assert(#mcm.inspect().party == 0 and #spawned == 0 and readiness.cancellations['queued:1'])
       assert(actual.invokeAction(key .. ':tab:models'))
       for _ = 1, 126 do mcm.update(player, false) end
       assert(actual.reloadMod(key))

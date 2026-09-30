@@ -1,15 +1,29 @@
 # Player memory in Companion Manager
 
-**Companion Manager → Settings → Memory** uses the existing native MCM API v2
-provider. It explains that characters build memories through actual conversations
-with the player and retain those memories across saves. The player identity stays
-the same after either Forget action. Its raw ID is never included in the page.
+**Companion Manager → Settings → Memory → Manage** opens its own page through the
+native MCM API v2 provider. Invited characters are prepared immediately with the
+player identity and current world context. Natural memories are created when the
+player actually talks to them and are retained across saves. One player identity
+is shared across all saves and stays the same after either Forget action. Its raw
+ID is never included in the page.
 
 ## Player controls
+
+Settings groups controls under **Conversations**, **Voices**, **Subtitles**,
+**Automatic reactions**, and **Phone messages**. Conversations offers separate
+**Manage** actions for Character conversations and Memory. Voice playback,
+provider, quality and service status appear together; the simple switches remain
+on the Settings page.
+
+Memory has its own picker, status, Forget controls and inline confirmation rows.
+**Back to settings** returns from Memory or Character conversations to Settings.
+Settings stays selected in the navigation while either page or the memory picker
+is open.
 
 - **Selected character** opens a searchable catalogue picker, with at most 18
   character results per page. A character can be selected without inviting them,
   spawning a copy, unlocking a phone contact, or changing a conversation setting.
+  Choosing a character or using **Back to memory** returns to the Memory page.
 - **Forget selected character** clears the selected character's memories about
   conversations with this player. The character does not have to be spawned.
   When the bridge supplies its talked-to registry, characters without an actual
@@ -32,6 +46,26 @@ into `settings.json`.
 **Phone Chat messages** are a separate control. **Disappearing messages** clears
 the local Chat history and drafts at the next game launch. Forget actions clear
 character memories about the player; saved Chat messages remain available.
+
+## Invitation preparation
+
+Inviting a character reserves one of the eight party places and starts preparation
+while the menu is open. The companion count includes those reservations.
+**Current party** shows **Preparing memory**, **Connecting**, then **Ready to
+join**. A legacy invitation shows **Waiting to join**. Pending copies can be
+canceled or assigned a different conversation profile; reassignment prepares the
+new profile before it can join. A failed preparation shows **Unavailable** and
+its error, with the same profile and cancellation actions available.
+
+**Ready to join** means preparation is complete. The copy enters the world after
+gameplay resumes and shows **Joining** while it attaches. It shows **Following**
+and reports that it joined only after the actor is usable. Accepting an invitation
+does not count as a conversation or create natural memories about the player.
+
+MCM receives the optional readiness object as the fifth argument to
+`configure(domain, companions, queueFactory, entryFactory, readiness)`. Its public
+`party()` returns the same reservation queue used by native actions and phone
+invitations. Only the gameplay call to that queue's `flush()` creates actors.
 
 ## Bridge contract
 
@@ -112,12 +146,19 @@ request only through a fresh, deliberate confirmation.
 
 ## Verification and live reload
 
-On September 30, all **24 checks passed** in `bridge/manager.test.mjs`, including
+On September 30, all **26 checks passed** in `bridge/manager.test.mjs`, including
 the installed MCM API's real core/catalogue/draft/action modules executed in the
 local Lua fixture. Those checks cover unspawned catalogue selection, contacted
 counts, inline cancellation, double activation, exact result matching, late
 status, service loss, save and Lua resets, failed publication and backup recovery.
+They also cover Memory submenu navigation, picker and parent returns, selected
+Settings navigation, retained confirmation, and Apply/Revert across the grouped
+settings. The installed framework rejects submenu navigation while drafts remain.
 Existing party, playback, model scanning and owned-companion checks also pass.
+Invitation checks exercise the actual reservation queue with deferred readiness,
+including preparing and connecting labels, reassignment, failure and cancellation,
+paused readiness and actor attachment. The installed framework also accepts those
+readiness rows and actions alongside the grouped settings and memory controls.
 The fixture does not write the installed MCM data directory or call production
 memory APIs.
 
@@ -128,14 +169,18 @@ $env:CYBERPUNK_MCM_API = 'E:\SteamLibrary\steamapps\common\Cyberpunk 2077\bin\x6
 node --test bridge/manager.test.mjs
 ```
 
-The updated Lua files and catalogues were installed and hash verified on
-September 30, and the bridge published a fresh ready Memory status with zero
+The earlier memory-controls build was installed and hash verified on September 30,
+and the bridge published a fresh ready Memory status with zero
 contacted characters before the first actual message. Cyberpunk was closed and
-then launched, so this launch requires no CET reload. Future Lua-only changes
-can use **CET Reload All Mods**; this page adds no native script or save component.
+then launched. The Memory submenu and Settings grouping described here have been
+verified in the local framework fixture. Their rendered pages need acceptance
+after installing or reloading the updated Lua file. Lua-only changes can use
+**CET Reload All Mods**; this page adds no native script or save component.
 
-In-game acceptance should inspect **Settings → Memory**, choose an unspawned
+In-game acceptance should open **Settings → Memory → Manage**, choose an unspawned
 catalogue character, open and cancel a confirmation, and check the bridge count
-and availability feedback. A real destructive Forget check requires the user's
-explicit choice of target. Reload/save behavior and the rendered native page have
+and availability feedback. Verify **Back to memory** from the picker and
+**Back to settings** from both Memory and Character conversations. A real
+destructive Forget check requires the user's explicit choice of target.
+Reload/save behavior and the rendered native page have
 not been accepted in game by these source/framework checks.

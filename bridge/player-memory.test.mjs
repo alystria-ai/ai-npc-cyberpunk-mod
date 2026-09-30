@@ -62,6 +62,248 @@ test('empty mappings are valid local startup state; unknown routing fails withou
   await memory.close(); await open({characterIds: {}}); assert.equal(calls.length, 0);
 });
 
+test('invitation preparation verifies an unused profile without contact, memory data or durable changes', async t => {
+  const {memory, provider, path, calls} = await fixture(t);
+  provider.addMemory = async () => { throw Error('Invitation must not create long-term memory'); };
+  const before = await fs.readFile(path, 'utf8'), anchor = await fs.readFile(path + '.identity', 'utf8');
+  const route = memory.route('judy');
+  const prepared = await memory.prepareCharacter({profileKey: 'judy', guard: route.guard});
+  assert.deepEqual(prepared, {...route, memoryEnabled: true, memoryEnabledNow: true, changed: true, reconnectRequired: true});
+  assert.equal(Object.isFrozen(prepared), true); assert.equal(Object.isFrozen(prepared.guard), true);
+  assert.equal(memory.status().talkedToCount, 0); assert.deepEqual(memory.status().characters, []);
+  assert.equal(await fs.readFile(path, 'utf8'), before);
+  assert.equal(await fs.readFile(path + '.identity', 'utf8'), anchor);
+  assert.deepEqual(calls.map(row => row.kind), ['enable']);
+  assert.equal(calls[0].characterId, ids.judy); assert.equal(calls[0].endUserId, route.endUserId);
+  const repeated = await memory.prepareCharacter({profileKey: 'judy'});
+  assert.deepEqual(repeated, {...route, memoryEnabled: true, memoryEnabledNow: false, changed: false, reconnectRequired: true});
+  assert.equal(memory.acknowledgeConnectionRefresh({profileKey: 'judy', guard: route.guard}), true);
+  assert.equal((await memory.prepareCharacter({profileKey: 'judy'})).reconnectRequired, false);
+  assert.equal(calls.length, 1); assert.equal(await fs.readFile(path, 'utf8'), before);
+});
+
+test('the first actual player send records contact and keeps a completed invitation connection warm', async t => {
+  const {memory, path, calls} = await fixture(t);
+  const prepared = await memory.prepareCharacter({profileKey: 'judy'});
+  assert.equal(memory.status().talkedToCount, 0);
+  memory.acknowledgeConnectionRefresh({profileKey: 'judy', guard: prepared.guard});
+  const first = await talk(memory, 'judy', {guard: prepared.guard, channel: 'group', requestId: 'first-prepared-send'});
+  assert.deepEqual(first, {endUserId: prepared.endUserId, guard: prepared.guard,
+    memoryEnabled: true, memoryEnabledNow: false, reconnectRequired: false});
+  assert.equal(memory.status().talkedToCount, 1);
+  const disk = JSON.parse(await fs.readFile(path, 'utf8'));
+  assert.deepEqual(disk.characters, {[ids.judy]: {profileKey: 'judy', characterEpoch: 0, contacted: true}});
+  assert.equal(disk.revision, 1); assert.deepEqual(disk.actions, []);
+  for (const channel of ['private', 'phone', 'microphone']) {
+    const receipt = await talk(memory, 'judy', {channel});
+    assert.equal(receipt.reconnectRequired, false); assert.equal(receipt.memoryEnabledNow, false);
+    assert.deepEqual(receipt.guard, prepared.guard);
+  }
+  assert.deepEqual(calls.map(row => row.kind), ['enable']);
+});
+
+test('simultaneous invitations and actual sends share one enable and preserve first-wave reconnect receipts', async t => {
+  const gate = deferred(); let enables = 0;
+  const {memory, provider, path} = await fixture(t);
+  provider.enableMemory = async () => { enables++; return gate.promise; };
+  const guard = memory.route('judy').guard;
+  const invitations = Array.from({length: 6}, () => memory.prepareCharacter({profileKey: 'judy', guard}));
+  await until(() => enables === 1);
+  assert.equal(memory.status().talkedToCount, 0);
+  const sends = [talk(memory, 'judy', {guard, channel: 'phone'}), talk(memory, 'judy', {guard, channel: 'group'})];
+  await until(() => memory.status().talkedToCount === 1);
+  gate.resolve({enabled: true, changed: true});
+  const [prepared, admitted] = await Promise.all([Promise.all(invitations), Promise.all(sends)]);
+  assert.equal(enables, 1);
+  for (const receipt of [...prepared, ...admitted]) {
+    assert.equal(receipt.memoryEnabled, true); assert.equal(receipt.memoryEnabledNow, true);
+    assert.equal(receipt.reconnectRequired, true); assert.deepEqual(receipt.guard, guard);
+  }
+  assert.ok(prepared.every(receipt => receipt.changed === true));
+  assert.equal(Object.keys(JSON.parse(await fs.readFile(path, 'utf8')).characters).length, 1);
+  memory.acknowledgeConnectionRefresh({profileKey: 'judy', guard});
+  const later = await talk(memory, 'judy');
+  assert.equal(later.reconnectRequired, false); assert.equal(later.memoryEnabledNow, false);
+});
+
+test('cancelling one invitation does not cancel another invitation or an actual send sharing its enable', async t => {
+  const gate = deferred(), cancelled = new AbortController(); let enables = 0, providerSignal;
+  const {memory, provider} = await fixture(t);
+  provider.enableMemory = async ({signal}) => { enables++; providerSignal = signal; return gate.promise; };
+  const abandoned = memory.prepareCharacter({profileKey: 'judy', signal: cancelled.signal}); abandoned.catch(() => {});
+  const preparing = memory.prepareCharacter({profileKey: 'judy'});
+  const sending = talk(memory, 'judy');
+  await until(() => enables === 1 && memory.status().talkedToCount === 1);
+  cancelled.abort(); await assert.rejects(abandoned, {code: 'CANCELLED'});
+  assert.equal(providerSignal.aborted, false);
+  gate.resolve({enabled: true, changed: true});
+  const receipts = await Promise.all([preparing, sending]);
+  assert.equal(enables, 1); assert.ok(receipts.every(row => row.memoryEnabled && row.reconnectRequired));
+  memory.acknowledgeConnectionRefresh({profileKey: 'judy', guard: receipts[0].guard});
+  assert.equal((await talk(memory, 'judy')).reconnectRequired, false);
+});
+
+test('pre-cancelled, unknown and mismatched-guard preparations do no provider or contact work', async t => {
+  const {memory, path, calls} = await fixture(t);
+  const before = await fs.readFile(path, 'utf8'), cancelled = new AbortController(); cancelled.abort();
+  await assert.rejects(memory.prepareCharacter({profileKey: 'judy', signal: cancelled.signal}), {code: 'CANCELLED'});
+  await assert.rejects(memory.prepareCharacter({profileKey: 'missing'}), {code: 'UNKNOWN_CHARACTER'});
+  await assert.rejects(memory.prepareCharacter({profileKey: 'judy', guard: memory.route('panam').guard}), {code: 'STALE_TURN'});
+  assert.equal(memory.status().talkedToCount, 0); assert.equal(calls.length, 0);
+  assert.equal(await fs.readFile(path, 'utf8'), before);
+});
+
+test('cancelled preparation cannot consume a shared enable that completes after its last waiter leaves', async t => {
+  const {memory, provider, path} = await fixture(t), gate = deferred(), cancelled = new AbortController();
+  const before = await fs.readFile(path, 'utf8'); let entered = false;
+  provider.enableMemory = async () => { entered = true; return gate.promise; };
+  const preparation = memory.prepareCharacter({profileKey: 'judy', signal: cancelled.signal});
+  preparation.catch(() => {}); await until(() => entered);
+  cancelled.abort(); await assert.rejects(preparation, {code: 'CANCELLED'});
+  gate.resolve({enabled: true, changed: true});
+  const guard = memory.route('judy').guard;
+  await until(() => memory.connectionRefreshRequired({profileKey: 'judy', guard}));
+  const retry = await memory.prepareCharacter({profileKey: 'judy'});
+  assert.equal(retry.memoryEnabledNow, false); assert.equal(retry.reconnectRequired, true);
+  assert.equal(memory.status().talkedToCount, 0); assert.equal(await fs.readFile(path, 'utf8'), before);
+  const send = await talk(memory, 'judy');
+  assert.equal(send.reconnectRequired, true, 'a real send must still dispose pre-enable transports');
+  memory.acknowledgeConnectionRefresh({profileKey: 'judy', guard});
+  assert.equal((await talk(memory, 'judy')).reconnectRequired, false);
+});
+
+test('only a current verified character guard can acknowledge connection disposal', async t => {
+  const {memory} = await fixture(t), old = memory.route('judy').guard;
+  assert.throws(() => memory.acknowledgeConnectionRefresh({profileKey: 'judy', guard: old}), {code: 'ENABLE_UNVERIFIED'});
+  await memory.prepareCharacter({profileKey: 'judy'});
+  await memory.prepareCharacter({profileKey: 'panam'});
+  assert.throws(() => memory.acknowledgeConnectionRefresh({profileKey: 'judy', guard: memory.route('panam').guard}), {code: 'STALE_TURN'});
+  memory.acknowledgeConnectionRefresh({profileKey: 'judy', guard: old});
+  assert.equal(memory.connectionRefreshRequired({profileKey: 'panam', guard: memory.route('panam').guard}), true);
+  await memory.clearCharacter({profileKey: 'judy', actionId: 'refresh-guard'});
+  const next = await memory.prepareCharacter({profileKey: 'judy'});
+  assert.throws(() => memory.acknowledgeConnectionRefresh({profileKey: 'judy', guard: old}), {code: 'STALE_TURN'});
+  assert.equal(memory.connectionRefreshRequired({profileKey: 'judy', guard: next.guard}), true);
+});
+
+test('preparation fails closed without a memory provider and leaves the unused profile uncontacted', async t => {
+  const {memory, path, calls} = await fixture(t, {provider: {}});
+  const before = await fs.readFile(path, 'utf8');
+  await assert.rejects(memory.prepareCharacter({profileKey: 'judy'}), {code: 'MEMORY_UNAVAILABLE'});
+  assert.equal(memory.status().talkedToCount, 0); assert.equal(calls.length, 0);
+  assert.equal(await fs.readFile(path, 'utf8'), before);
+});
+
+test('a failed invitation never contacts the profile; verified retry resolves uncertain configuration before warming', async t => {
+  const {memory, provider, path} = await fixture(t);
+  const before = await fs.readFile(path, 'utf8');
+  provider.enableMemory = async () => ({enabled: true});
+  await assert.rejects(memory.prepareCharacter({profileKey: 'judy'}), {code: 'ENABLE_UNVERIFIED', writeUncertain: true});
+  assert.equal(memory.status().talkedToCount, 0); assert.equal(await fs.readFile(path, 'utf8'), before);
+  provider.enableMemory = async () => ({enabled: true, changed: false});
+  const prepared = await memory.prepareCharacter({profileKey: 'judy'});
+  assert.equal(prepared.reconnectRequired, true); assert.equal(prepared.changed, false);
+  assert.equal(prepared.memoryEnabledNow, false); assert.equal(memory.status().talkedToCount, 0);
+  memory.acknowledgeConnectionRefresh({profileKey: 'judy', guard: prepared.guard});
+  const first = await talk(memory, 'judy', {guard: prepared.guard});
+  assert.equal(first.reconnectRequired, false); assert.equal(first.memoryEnabledNow, false);
+});
+
+test('a bounded preparation timeout leaves no contact or trusted cache after a late provider result', async t => {
+  const gate = deferred();
+  const {memory, provider, path} = await fixture(t, {timeoutMs: 25});
+  const before = await fs.readFile(path, 'utf8');
+  provider.enableMemory = () => gate.promise;
+  await assert.rejects(memory.prepareCharacter({profileKey: 'judy'}), {code: 'TIMEOUT'});
+  assert.equal(memory.status().talkedToCount, 0); assert.equal(await fs.readFile(path, 'utf8'), before);
+  gate.resolve({enabled: true, changed: true});
+  let verifiedAgain = 0;
+  provider.enableMemory = async () => { verifiedAgain++; return {enabled: true, changed: false}; };
+  const prepared = await memory.prepareCharacter({profileKey: 'judy'});
+  assert.equal(verifiedAgain, 1); assert.equal(prepared.reconnectRequired, true);
+  assert.equal(prepared.changed, false); assert.equal(memory.status().talkedToCount, 0);
+  memory.acknowledgeConnectionRefresh({profileKey: 'judy', guard: prepared.guard});
+  assert.equal((await talk(memory, 'judy')).reconnectRequired, false);
+});
+
+for (const scope of ['character', 'all']) test(`${scope} clear fences abort unused-profile preparation and late results cannot restore its cache`, async t => {
+  const gate = deferred(); let entered = false, providerSignal;
+  const {memory, provider, calls} = await fixture(t);
+  provider.enableMemory = async ({signal}) => { entered = true; providerSignal = signal; return gate.promise; };
+  const before = memory.route('judy');
+  const preparing = memory.prepareCharacter({profileKey: 'judy', guard: before.guard}); preparing.catch(() => {});
+  await until(() => entered);
+  const clearing = scope === 'character' ? memory.clearCharacter({profileKey: 'judy', actionId: 'prepare-reset'})
+    : memory.clearAll({actionId: 'prepare-reset'});
+  assert.equal(providerSignal.aborted, true); assert.equal(memory.isCurrent(before.guard), false);
+  await assert.rejects(memory.prepareCharacter({profileKey: 'judy'}), {code: 'MEMORY_CLEAR_PENDING'});
+  assert.equal((await clearing).state, 'succeeded'); await assert.rejects(preparing);
+  gate.resolve({enabled: true, changed: true});
+  assert.equal(memory.status().talkedToCount, 0); assert.deepEqual(calls.map(row => row.kind), ['quiesce']);
+  await assert.rejects(memory.prepareCharacter({profileKey: 'judy', guard: before.guard}), {code: 'STALE_TURN'});
+  let verifiedAgain = 0;
+  provider.enableMemory = async () => { verifiedAgain++; return {enabled: true, changed: false}; };
+  const prepared = await memory.prepareCharacter({profileKey: 'judy'});
+  assert.equal(verifiedAgain, 1); assert.equal(prepared.reconnectRequired, true);
+  assert.equal(prepared.endUserId, before.endUserId); assert.equal(memory.status().talkedToCount, 0);
+  if (scope === 'character') assert.equal(prepared.guard.characterEpoch, before.guard.characterEpoch + 1);
+  else assert.equal(prepared.guard.resetEpoch, before.guard.resetEpoch + 1);
+  memory.acknowledgeConnectionRefresh({profileKey: 'judy', guard: prepared.guard});
+  assert.equal((await talk(memory, 'judy', {guard: prepared.guard})).reconnectRequired, false);
+});
+
+test('forgetting a prepared unused profile invalidates completed verification without deleting any memories', async t => {
+  const {memory, provider, calls} = await fixture(t);
+  const prepared = await memory.prepareCharacter({profileKey: 'judy'}); calls.length = 0;
+  const cleared = await memory.clearCharacter({profileKey: 'judy', actionId: 'prepared-no-contact'});
+  assert.equal(cleared.state, 'succeeded'); assert.equal(cleared.providerEmptyObserved, false);
+  assert.equal(memory.isCurrent(prepared.guard), false); assert.equal(memory.status().talkedToCount, 0);
+  assert.deepEqual(calls.map(row => row.kind), ['quiesce']);
+  let verifies = 0;
+  provider.enableMemory = async () => { verifies++; return {enabled: true, changed: false}; };
+  const next = await memory.prepareCharacter({profileKey: 'judy'});
+  assert.equal(verifies, 1); assert.equal(next.reconnectRequired, false);
+  assert.equal(next.endUserId, prepared.endUserId); assert.equal(memory.status().talkedToCount, 0);
+});
+
+test('closing aborts invitation preparation and reopening retains identity while requiring a fresh verification', async t => {
+  const gate = deferred(); let entered = false, providerSignal;
+  const {memory, provider, open, path} = await fixture(t);
+  const before = await fs.readFile(path, 'utf8'), identity = memory.route('judy').endUserId;
+  provider.enableMemory = async ({signal}) => { entered = true; providerSignal = signal; return gate.promise; };
+  const preparing = memory.prepareCharacter({profileKey: 'judy'}); preparing.catch(() => {});
+  await until(() => entered); await memory.close();
+  assert.equal(providerSignal.aborted, true); await assert.rejects(preparing);
+  await assert.rejects(memory.prepareCharacter({profileKey: 'judy'}), {code: 'CLOSED'});
+  gate.resolve({enabled: true, changed: true});
+  let verifies = 0;
+  provider.enableMemory = async () => { verifies++; return {enabled: true, changed: false}; };
+  const reopened = await open();
+  const prepared = await reopened.prepareCharacter({profileKey: 'judy'});
+  assert.equal(prepared.endUserId, identity); assert.equal(verifies, 1);
+  assert.equal(reopened.status().talkedToCount, 0); assert.equal(await fs.readFile(path, 'utf8'), before);
+});
+
+test('an unused-profile invitation checks registry integrity before sending any provider request', async t => {
+  const {memory, path, calls} = await fixture(t);
+  const guard = memory.route('judy').guard;
+  await fs.writeFile(path, 'tampered');
+  await assert.rejects(memory.prepareCharacter({profileKey: 'judy'}), {code: 'REGISTRY_CHANGED'});
+  assert.equal(calls.length, 0); assert.equal(memory.isCurrent(guard), false);
+  assert.equal(memory.status().available, false); assert.equal(memory.status().talkedToCount, 0);
+  assert.equal(await fs.readFile(path, 'utf8'), 'tampered');
+});
+
+test('cached invitation verification still checks the exact identity anchor and fails closed on corruption', async t => {
+  const {memory, path, calls} = await fixture(t);
+  const prepared = await memory.prepareCharacter({profileKey: 'judy'}), before = await fs.readFile(path, 'utf8');
+  await fs.writeFile(path + '.identity', 'broken anchor');
+  await assert.rejects(memory.prepareCharacter({profileKey: 'judy'}), {code: 'IDENTITY_CHANGED'});
+  assert.deepEqual(calls.map(row => row.kind), ['enable']);
+  assert.equal(memory.isCurrent(prepared.guard), false); assert.equal(memory.status().available, false);
+  assert.equal(memory.status().talkedToCount, 0); assert.equal(await fs.readFile(path, 'utf8'), before);
+});
+
 test('non-player sources cannot contact or enable any character', async t => {
   const {memory, calls} = await fixture(t);
   for (const source of ['warm', 'spawn', 'npc', 'battle', 'submitted']) {
@@ -83,6 +325,7 @@ test('concurrent admitted sends contact once, share one verified enable, and req
     assert.equal(receipt.memoryEnabled, true); assert.equal(receipt.memoryEnabledNow, true);
     assert.equal(receipt.reconnectRequired, true); assert.deepEqual(receipt.guard, guard);
   }
+  memory.acknowledgeConnectionRefresh({profileKey: 'judy', guard});
   const subsequent = await talk(memory, 'judy');
   assert.equal(subsequent.memoryEnabledNow, false); assert.equal(subsequent.reconnectRequired, false);
   assert.equal(Object.keys(JSON.parse(await fs.readFile(path, 'utf8')).characters).length, 1);
@@ -188,6 +431,7 @@ test('accepted but unconfirmed clear persists, blocks sends and never retries on
   assert.equal(first.state, 'failed'); assert.equal(first.uncertain, true);
   assert.throws(() => memory.route('judy'), {code: 'MEMORY_CLEAR_PENDING'});
   await assert.rejects(memory.beginConversation({profileKey: 'judy'}), {code: 'MEMORY_CLEAR_PENDING'});
+  await assert.rejects(memory.prepareCharacter({profileKey: 'judy'}), {code: 'MEMORY_CLEAR_PENDING'});
   const before = calls.length;
   assert.deepEqual(await memory.clearCharacter({profileKey: 'judy', actionId: 'unconfirmed'}), first);
   await memory.close(); const reopened = await open();

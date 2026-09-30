@@ -130,9 +130,17 @@ local function attachFollower(entry, player)
     return true
 end
 
-function M.spawn(key)
+function M.spawn(key, invitation)
     local definition = records[key]
     if not definition then return nil, 'Unknown companion' end
+    -- Production installs a preparation guard. Keep the engine mutation behind
+    -- the exact invitation even if an older menu or diagnostic calls spawn.
+    if M.canSpawn then
+        local checked, allowed, reason = pcall(M.canSpawn, key, invitation)
+        if not checked or allowed ~= true then
+            return nil, checked and reason or 'Companion preparation is unavailable.'
+        end
+    end
     if #entries >= #slots then return nil, 'Your party has eight copies. Dismiss one first.' end
     local player = Game.GetPlayer()
     local system = Game.GetDynamicEntitySystem()
@@ -187,9 +195,11 @@ function M.spawn(key)
         return nil, 'The game could not create a copy of this model.'
     end
     serial = serial + 1
+    local assignedKey, assignedName = definition.profileKey, definition.profileName or definition.name
+    if invitation then assignedKey, assignedName = invitation.profileKey, invitation.profileName or definition.name end
     local entry = {
         serial = serial, key = key, name = definition.name, slot = freeSlot, lane = freeLane,
-        profileKey = definition.profileKey, profileName = definition.profileName or definition.name,
+        profileKey = assignedKey, profileName = assignedName,
         record = definition.id or tostring(recordID),
         spawnRecord = spawnRecordName or definition.id or tostring(recordID),
         entityID = entityID, system = system, state = 'spawning',
@@ -198,7 +208,7 @@ function M.spawn(key)
         person = behavior.new(serial),
     }
     entries[#entries + 1] = entry
-    -- Start connection setup while the engine is attaching the new copy.
+    -- Transfer the invitation's prepared connection to the attaching copy.
     if M.onPartyChanged then pcall(M.onPartyChanged) end
     return serial
 end
