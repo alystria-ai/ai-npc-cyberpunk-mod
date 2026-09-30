@@ -7,8 +7,11 @@
   bounded preview lease; routing stays fixed for current replies, Apply reuses
   the prepared worker, and Revert/close safely release preview-only memory.
   82 focused checks pass, including installed MCM. See `docs/VOICE_PREPARATION.md`.
-- [ ] Verify an actual unsaved selector change reaches Loading → Preparing
-  voices → Ready, then validate Apply/revert behavior against the resident worker.
+- [x] User confirmed the new loading flow works and asked to stop further checks.
+  The retained live trace shows Loading → Preparing voices → Ready with the
+  saved hybrid choice and about 2 GiB resident memory. A distinct live unsaved
+  draft trace was not retained; that ordering has installed-MCM and host tests.
+  No additional warmup testing is requested.
 - [ ] Activate the already-prepared eye-contact height/head-strength controls
   with the same Lua update and qualify their live behavior as the next TODO.
 
