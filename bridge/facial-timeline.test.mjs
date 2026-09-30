@@ -3,11 +3,11 @@ import assert from 'node:assert/strict';
 import {BlendshapeQueue} from '../node_modules/@convai/web-sdk/dist/core/BlendshapeQueue.js';
 import {drainBlendshapes} from './blendshape-capture.mjs';
 import {buildFacialTimeline, SPEECH_TRACKS} from './facial-timeline.mjs';
-import {PcmChunkStream} from './convai-audio-stream.mjs';
+import {PcmChunkStream, sliceFaces} from './convai-audio-stream.mjs';
 
 const owner = {requestId: 'reply-1', entity: 'judy-copy-2'};
 const values = amount => { const result = Array(61).fill(0); result[17] = amount; return result; };
-function audio({bits = 16, codec = 1, channels = 1, duration = 1.5} = {}) {
+function audio({bits = 16, codec = 1, channels = 1, duration = 1.5, sample} = {}) {
   const rate = 24000, samples = Math.floor(duration * rate), align = channels * bits / 8;
   const data = Buffer.alloc(44 + samples * align);
   data.write('RIFF'); data.writeUInt32LE(data.length - 8, 4); data.write('WAVEfmt ', 8);
@@ -15,7 +15,8 @@ function audio({bits = 16, codec = 1, channels = 1, duration = 1.5} = {}) {
   data.writeUInt32LE(rate, 24); data.writeUInt32LE(rate * align, 28); data.writeUInt16LE(align, 32);
   data.writeUInt16LE(bits, 34); data.write('data', 36); data.writeUInt32LE(samples * align, 40);
   for (let n = 0; n < samples; n++) {
-    const t = n / rate, level = t >= 0.6 && t < 0.9 ? 0 : Math.sin(2 * Math.PI * 240 * t) * 0.2;
+    const t = n / rate, level = sample ? sample(t)
+      : t >= 0.6 && t < 0.9 ? 0 : Math.sin(2 * Math.PI * 240 * t) * 0.2;
     for (let channel = 0; channel < channels; channel++) {
       const offset = 44 + n * align + channel * bits / 8;
       if (codec === 3) data.writeFloatLE(level, offset);
@@ -25,6 +26,68 @@ function audio({bits = 16, codec = 1, channels = 1, duration = 1.5} = {}) {
   return data;
 }
 const weight = (line, sample, track) => line.frames[sample][line.tracks.indexOf(track) + 1];
+
+test('quiet consonant closure survives voiced neighbours without an RMS-driven neutral flash', () => {
+  const wav = audio({duration: .6, sample: at => Math.sin(2 * Math.PI * 240 * at)
+    * (at >= .26 && at < .34 ? .001 : .2)});
+  const faces = Array.from({length: 19}, (_, frame) => {
+    const at = frame / 30, pose = values(.6);
+    if (at >= .26 && at < .34) pose[18] = 1;
+    return {at, values: pose};
+  });
+  const input = {audio: wav.toString('base64'), faces, facesFormat: 'arkit61', facesTimebase: 'audio-seconds'};
+  const before = structuredClone(input), line = buildFacialTimeline(input, owner);
+  assert(weight(line, 7, 'jaw_mid_open') > .2);
+  assert.equal(weight(line, 9, 'jaw_mid_open'), 0);
+  assert.equal(weight(line, 9, 'lips_together_up'), .2);
+  assert.equal(weight(line, 9, 'lips_together_dn'), .2);
+  assert(weight(line, 11, 'jaw_mid_open') > .2);
+  assert.deepEqual(input, before);
+});
+
+test('whole and split ARKit timelines retain identical quiet articulation through a PCM file boundary', () => {
+  const wav = audio({duration: 1.6, sample: at => Math.sin(2 * Math.PI * 240 * at)
+    * (at >= .74 && at < .88 ? .001 : at < .8 ? .2 : .05)});
+  const faces = Array.from({length: 49}, (_, frame) => {
+    const at = frame / 30, pose = values(.45);
+    pose[18] = at >= .74 && at < .88 ? 1 : 0;
+    pose[19] = .3; pose[20] = .2;
+    return {at, values: pose};
+  });
+  const common = {facesFormat: 'arkit61', facesTimebase: 'audio-seconds'};
+  const whole = buildFacialTimeline({...common, audio: wav.toString('base64'), faces}, owner);
+  const split = [0, .8].map((startSeconds, part) => {
+    const pcm = wav.subarray(44 + Math.round(startSeconds * 48000), 44 + Math.round((startSeconds + .8) * 48000));
+    const bytes = Buffer.concat([wav.subarray(0, 44), pcm]);
+    bytes.writeUInt32LE(bytes.length - 8, 4); bytes.writeUInt32LE(pcm.length, 40);
+    return buildFacialTimeline({...common, audio: bytes.toString('base64'),
+      faces: sliceFaces(faces, startSeconds, startSeconds + .8),
+      speechSegment: {version: 1, index: part + 1, startSeconds, first: part === 0, last: part === 1}}, owner);
+  });
+  assert.equal(weight(whole, 24, 'lips_together_up'), .2);
+  for (let part = 0; part < split.length; part++) {
+    for (let frame = 0; frame < split[part].frames.length; frame++) {
+      // The final fade can round a floating-point half-unit differently when
+      // expressed as local time. Agreement must stay within stored precision.
+      split[part].frames[frame].slice(1).forEach((value, track) => {
+        assert(Math.abs(value - whole.frames[part * 24 + frame][track + 1]) <= .000100001,
+          `part ${part + 1}, frame ${frame}, track ${track}`);
+      });
+    }
+  }
+  assert.deepEqual(split[0].frames.at(-1).slice(1), split[1].frames[0].slice(1));
+});
+
+test('valid provider poses own quiet audio while missing trailing frames and completion still return to neutral', () => {
+  const faces = Array.from({length: 23}, (_, frame) => ({at: frame / 30, values: values(.6)}));
+  const line = buildFacialTimeline({audio: audio({duration: 1, sample: () => 0}).toString('base64'),
+    faces, facesFormat: 'arkit61', facesTimebase: 'audio-seconds'}, owner);
+  assert.equal(line.source, 'convai-arkit61');
+  assert(weight(line, 6, 'jaw_mid_open') > .2); // No inferred rest over a provider-owned pose.
+  assert(line.frames[26].slice(1).every(value => value === 0)); // >100ms beyond the last captured pose.
+  assert(line.frames[0].slice(1).every(value => value === 0));
+  assert(line.frames.at(-1).slice(1).every(value => value === 0));
+});
 
 test('capture preserves every ahead-delivered frame and its indexed timestamp across SDK batches', () => {
   const queue = new BlendshapeQueue(), captured = [];
@@ -46,9 +109,10 @@ test('capture preserves every ahead-delivered frame and its indexed timestamp ac
   assert.equal(captured.length, 1); assert.ok(captured[0].values[17] > 0.89);
 });
 
-test('ARKIT-61 mouth controls follow the actual order, close during silence and exclude gaze', () => {
+test('ARKIT-61 mouth controls follow the actual order, preserve provider rest and exclude gaze', () => {
   const wav = audio(), before = Buffer.from(wav);
   const faces = Array.from({length: 45}, (_, n) => {
+    if (n >= 18 && n < 27) return {at: n / 30, values: values(0)};
     const v = values(0.8); v[18] = n >= 30 ? 1 : 0; v[19] = 0.6; v[20] = 0.4;
     v[24] = 1; v[52] = 1; // Standard-52 jaw index / head yaw must not drive jaw.
     return {at: n / 30, values: v};
@@ -81,7 +145,7 @@ test('Convai opening strengthens small and medium jaw motion without forcing res
     const line = lines[index], jaw = weight(line, 6, 'jaw_mid_open');
     assert(jaw > .35 * amounts[index]);
     assert(jaw > weight(lines[index - 1], 6, 'jaw_mid_open'));
-    assert(line.frames[22].slice(1).every(value => value === 0)); // Recorded silence, not a weak vowel.
+    assert.equal(weight(line, 22, 'jaw_mid_open'), jaw); // Quiet PCM cannot erase a valid provider pose.
     assert(line.frames[0].slice(1).every(value => value === 0));
     assert(line.frames.at(-1).slice(1).every(value => value === 0));
   }
@@ -166,7 +230,7 @@ test('ARKIT continuation keeps the actual mouth pose across native files and eas
   assert.equal(lines[2].frames.at(-1)[jaw], 0);
   assert(lines[2].frames.at(-2)[jaw] < .352);
   assert.deepEqual(lines.map(line => line.segment), segments);
-  assert(lines.every(line => line.frames[22].slice(1).every(value => value === 0))); // Real silence still closes the mouth.
+  assert(lines.every(line => weight(line, 22, 'jaw_mid_open') === .352));
 });
 
 test('audio-envelope fallback does not create artificial neutral frames at continuation file edges', () => {
@@ -194,6 +258,9 @@ test('malformed boundary claims cannot opt out of facial cleanup', () => {
   assert.equal(ordinary.segment, undefined);
   assert(ordinary.frames[0].slice(1).every(value => value === 0));
   assert(ordinary.frames.at(-1).slice(1).every(value => value === 0));
+  const last = buildFacialTimeline({...common,
+    speechSegment: {version: 1, index: 128, startSeconds: 119, first: false, last: true}}, owner);
+  assert.equal(last.segment.index, 128);
 });
 
 test('real PCM producer flags only the captured final tail and builds connected facial boundaries', async () => {

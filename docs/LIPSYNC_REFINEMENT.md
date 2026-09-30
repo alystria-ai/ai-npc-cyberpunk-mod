@@ -140,3 +140,24 @@ opening, preserved consonant closure, and absence of upper-lip distortion.**
 Behavioral tests cover weak/mid/strong input, monotonic bounded travel,
 MouthClose, real silence, unchanged waveform/provider arrays, upper-lip limits,
 unrelated articulation, and matching poses through real PCM chunk boundaries.
+
+## September 30: preserve quiet provider articulation
+
+The later Judy reply contained six isolated all-zero facial frames between
+non-neutral frames. One jaw sequence was `0.0715 -> 0 -> 0.0383` in 66 ms.
+The per-file PCM energy floor gated every ARKit track, discarding legitimate
+quiet articulation. A neutral interval at one file join was genuine silence;
+that interval alone was not evidence of a faulty facial handoff.
+
+For validated `arkit61` data, source frames now own articulation and rest;
+PCM loudness no longer gates those frames. The established jaw curve and
+upper-lip limits are unchanged. Local phonetic/envelope paths are unchanged.
+Provider-neutral frames close the mouth, a missing source tail expires after
+100 ms, and first/final easing and pause/cancel/unload cleanup remain in place.
+A provider that itself holds an expression during silence can retain that
+expression until it changes or expires; this fix does not invent silent poses.
+
+The quiet-closure and whole-versus-split reproducers failed before correction.
+The focused face tests now pass, including identical boundary poses and
+agreement within stored 0.0001 precision away from boundaries. Raw source
+arrays and PCM are unchanged. Rendered improvement still needs a live check.

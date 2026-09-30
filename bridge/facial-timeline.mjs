@@ -88,7 +88,14 @@ export function buildFacialTimeline(result, owner) {
   const wav = readPcmWav(Buffer.from(result.audio, 'base64'));
   const segment = speechSegment(result.speechSegment, wav.duration);
   const first = segment ? segment.first : true, last = segment ? segment.last : true;
-  const envelope = amplitude(wav, segment), source = validFaces(result, wav.duration), frames = [];
+  const source = validFaces(result, wav.duration), frames = [];
+  // Provider articulation includes quiet closures and anticipatory shapes.
+  // Per-file RMS normalization cannot distinguish these from rest: gating it
+  // erased whole 33ms poses and made a file cut change the same mouth shape.
+  // Trust valid ARKit timing/neutral poses; retain energy for local fallback.
+  // A held provider pose may remain during its silent audio until the source
+  // changes, expires below, or the utterance ends. Do not invent neutral poses.
+  const envelope = source ? [] : amplitude(wav, segment);
   let cues;
   if (!source && result.mouthCuesFormat === 'rhubarb-phonetic-v1') {
     try { cues = validateMouthCues({metadata: {duration: wav.duration}, mouthCues: result.mouthCues}, wav.duration); }
@@ -105,7 +112,7 @@ export function buildFacialTimeline(result, owner) {
     const level = (envelope[energyIndex] || 0) * (1 - energyFrame + energyIndex)
       + (envelope[energyIndex + 1] ?? (segment && !last ? envelope[energyIndex] || 0 : 0)) * (energyFrame - energyIndex);
     let values = zero();
-    if (level > 0 || cues) {
+    if (source || level > 0 || cues) {
       if (source) {
         while (index + 1 < source.length && source[index + 1].at <= at) index++;
         const left = source[index], right = source[index + 1];
