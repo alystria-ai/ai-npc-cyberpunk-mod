@@ -494,13 +494,15 @@ if request:match('^party%-combat%-state:') then
     if file then file:write(json.encode(report)); file:close() end
     return
 end
-if request:match('^party%-face%-probe:') then
+if request:match('^party%-face%-probe:') or request:match('^party%-face%-articulation:') then
+    local mode = request:match('^party%-face%-articulation:') and 'articulation' or 'jaw'
     local key = request:match('^party%-face%-probe:([^:]+):')
+        or request:match('^party%-face%-articulation:([^:]+):')
     local stage = 'load'
     local ok, err = xpcall(function()
         local probe = dofile('face-probe.lua')
         stage = 'start'
-        if key == 'cancel' then probe.stop('cancelled') else probe.start(key) end
+        if key == 'cancel' then probe.stop('cancelled') else probe.start(key, mode) end
     end, function(value)
         return debug and debug.traceback and debug.traceback(tostring(value), 2) or tostring(value)
     end)
