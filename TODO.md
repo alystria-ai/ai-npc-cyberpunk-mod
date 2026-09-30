@@ -1,5 +1,17 @@
 # Cyberpunk Convai overhaul
 
+## October 1 — immediate voice preparation and remaining controls
+
+- [x] Implement Omni model loading/warmup immediately when its MCM selector
+  changes, before Apply or a conversation. Supported draft events drive a
+  bounded preview lease; routing stays fixed for current replies, Apply reuses
+  the prepared worker, and Revert/close safely release preview-only memory.
+  82 focused checks pass, including installed MCM. See `docs/VOICE_PREPARATION.md`.
+- [ ] Verify an actual unsaved selector change reaches Loading → Preparing
+  voices → Ready, then validate Apply/revert behavior against the resident worker.
+- [ ] Activate the already-prepared eye-contact height/head-strength controls
+  with the same Lua update and qualify their live behavior as the next TODO.
+
 ## September 30 — active continuation
 
 - [x] Implement F9 group microphone routing with the addressed speaker first,

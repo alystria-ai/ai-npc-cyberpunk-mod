@@ -11,6 +11,7 @@ const companionsSource = readFileSync(new URL('../mod/companions.lua', import.me
 const queueSource = readFileSync(new URL('../mod/manager-party.lua', import.meta.url), 'utf8');
 const mcmSource = readFileSync(new URL('../mod/mcm.lua', import.meta.url), 'utf8');
 const entrySource = readFileSync(new URL('../mod/mcm-entry.lua', import.meta.url), 'utf8');
+const voicePreviewSource = readFileSync(new URL('../mod/voice-preview.lua', import.meta.url), 'utf8');
 
 function run(code) {
   const state = lauxlib.luaL_newstate();
@@ -400,6 +401,11 @@ test('MCM waits for NPC attachment, reports late failures once and discards noti
 
 const mcmFixture = `
   ${managerFixture}
+  local originalDofile = dofile
+  dofile = function(path)
+    if path == 'voice-preview.lua' then return (function() ${voicePreviewSource} end)() end
+    return originalDofile(path)
+  end
   manager.configure(api, profiles)
   local handlers, registered, loaded, activeMod = {}, nil, nil, nil
   local drafts, reloads = false, 0
@@ -649,6 +655,63 @@ const memoryFixture = `
   end
   local function token() return assert(manager.snapshot(player).memory.confirmation).token end
 `;
+
+test('voice preparation status updates its owned readonly text without discarding an MCM draft', () => {
+  run(`${mcmFixture}
+    local clock, nativeHook, rootReads = 1000, false, 0
+    os.time = function() return clock end
+    CName = {new = function(value) return value end}
+    NameToString = function(value) return value end
+    local value = {text = 'Before preparation', writes = 0}
+    function value:GetName() return 'cyberpunk-convai:manager:voice-status_value' end
+    function value:GetController() return nil end
+    function value:SetText(text)
+      assert(not nativeHook, 'status touched ink inside the native callback')
+      self.text, self.writes = text, self.writes + 1
+    end
+    local content = {GetName = function() return 'mcm_content_scroll_content' end,
+      GetNumChildren = function() return 1 end, GetWidgetByIndex = function() return value end}
+    function controller:GetRootWidget()
+      assert(not nativeHook, 'status traversed ink inside the native callback')
+      rootReads = rootReads + 1; return content
+    end
+    jsonFixtures['voice-runtime'] = {state = 'loading', provider = 'convai',
+      previewActive = true, previewProvider = 'hybrid', preparationOnly = true, updated = clock * 1000}
+    files['runtime/local-voice-state.json'] = 'voice-runtime'
+    assert(invoke('tab:settings').ok)
+    drafts = true
+    nativeHook = true; handlers.McmUiSetContentTitle(controller, 'Companion Manager'); nativeHook = false
+    assert(rootReads == 0 and value.writes == 0)
+    local before = reloads
+    mcm.update(player, false)
+    assert(value.text == 'Loading' and value.writes == 1 and rootReads == 1)
+    clock = clock + 1; jsonFixtures['voice-runtime'].state = 'warming'; mcm.update(player, false)
+    assert(value.text == 'Preparing voices' and value.writes == 2)
+    clock = clock + 1; jsonFixtures['voice-runtime'].state = 'ready'; mcm.update(player, false)
+    assert(value.text == 'Ready · Unsaved selection' and value.writes == 3)
+    jsonFixtures['voice-runtime'].pending = true
+    for _, state in ipairs({'loading', 'warming', 'ready'}) do
+      clock = clock + 1; jsonFixtures['voice-runtime'].state = state; mcm.update(player, false)
+      local labels = {loading = 'Loading', warming = 'Preparing voices', ready = 'Ready'}
+      assert(value.text == labels[state] .. ' · After current reply', 'applied preparation progress was hidden')
+    end
+    jsonFixtures['voice-runtime'].previewActive = false
+    clock = clock + 1; mcm.update(player, false)
+    assert(value.text == 'Ready · After current reply', 'Apply was mislabeled as unsaved')
+    jsonFixtures['voice-runtime'].pending = false
+    clock = clock + 1; mcm.update(player, false)
+    assert(value.text == 'Ready', 'absence of a draft was mislabeled as unsaved')
+    jsonFixtures['voice-runtime'].previewActive = true
+    jsonFixtures['voice-runtime'].previewProvider = 'convai'
+    clock = clock + 1; mcm.update(player, false)
+    assert(value.text == 'Ready', 'Convai draft was mislabeled as an unsaved Omni selection')
+    assert(reloads == before and drafts, 'read-only status discarded or reloaded a draft')
+    local writes = value.writes
+    handlers.OnUninitialize(controller)
+    clock = clock + 1; jsonFixtures['voice-runtime'].state = 'remote'; mcm.update(player, false)
+    assert(value.writes == writes, 'detached settings text was touched')
+  `);
+});
 
 test('native Memory submenu has consistent parent navigation and preserves an unissued confirmation', () => {
   run(`${mcmFixture}${memoryFixture}
@@ -1191,6 +1254,24 @@ test('installed MCM API accepts the provider, actions, draft transactions and dy
       assert(manager.followUpQuestions() and actual.getValue(key .. ':followUpQuestions') == true)
       assert(actual.getValue(key .. ':eyeContactHeight') == 5 and actual.getValue(key .. ':headFollowStrength') == 4)
       assert(manager.gazeSettings().eyeContactHeight == 0.10 and manager.gazeSettings().headFollowStrength == 1.5)
+      -- Exercise the shipped public draft bus/getValue seam, not a synthetic
+      -- native selector hook. Preparation is immediate, settings are not.
+      function controller:GetRootWidget() return nil end
+      handlers.McmUiSetContentTitle(controller, 'Companion Manager')
+      assert(actual.setDraft(key .. ':voiceProvider', 1))
+      assert(files['runtime/voice-preview.json'] == nil, 'draft callback performed filesystem IO')
+      mcm.update(player, false)
+      local preview = json.decode(files['runtime/voice-preview.json'])
+      assert(preview.active and preview.provider == 'hybrid' and preview.steps == 16)
+      assert(manager.snapshot(player).settings.voiceProvider == 'convai')
+      assert(actual.revert(key)); mcm.update(player, false)
+      assert(not json.decode(files['runtime/voice-preview.json']).active)
+      assert(manager.snapshot(player).settings.voiceProvider == 'convai')
+      assert(actual.setModDraftsToDefaults(key)); mcm.update(player, false)
+      preview = json.decode(files['runtime/voice-preview.json'])
+      assert(preview.active and preview.provider == 'hybrid' and preview.steps == 32)
+      assert(actual.revert(key)); mcm.update(player, false)
+      assert(not json.decode(files['runtime/voice-preview.json']).active)
       assert(actual.setDraft(key .. ':subtitles', false))
       assert(actual.setDraft(key .. ':followUpQuestions', false))
       assert(actual.invokeAction(key .. ':permissions') == false)

@@ -21,6 +21,10 @@ opt-out. FP8 remains an isolated candidate, not the installed voice precision.
 - While OmniVoice is selected, the bridge starts one hidden worker and warms
   all three references before accepting local speech. It stays loaded without
   idle eviction. Changing steps updates the next reply without reloading weights.
+- October 1: switching the MCM selector to OmniVoice now begins that preparation
+  from the draft immediately, before Apply. Apply reuses the prepared worker;
+  Revert or leaving unsaved Settings cancels preview-only residency. Current
+  replies keep their original route. See [VOICE_PREPARATION.md](VOICE_PREPARATION.md).
 - Selecting Convai waits for the current conversation reply (including every
   streamed phrase or microphone response) to finish. Subsequent replies use the
   character's configured Convai voice. The old worker finishes outstanding CUDA

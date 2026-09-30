@@ -19,6 +19,7 @@ import {PartyConnections, parsePartyConnections} from './party-connections.mjs';
 import {CompanionInvitations} from './companion-invitations.mjs';
 import {LOCAL_VOICE_KEYS} from './resident-voice.mjs';
 import {VoiceSelection} from './voice-selection.mjs';
+import {VoicePreviewLease} from './voice-preview.mjs';
 import {PhoneChat, parsePhoneState} from './phone-chat.mjs';
 import {GameLaunchIdentity, identifyGameLaunch} from './game-launch.mjs';
 import {PlayerMemory} from './player-memory.mjs';
@@ -878,18 +879,22 @@ if (initial) {
 const controlPath = resolve(stateDirectory, 'bridge-control.json');
 let controlsObserved = await readFile(controlPath, 'utf8').catch(() => '');
 let settingsPolling = false, lastVoiceHeartbeat = 0;
+const voicePreview = new VoicePreviewLease();
 async function pollSettings(checkShutdown = true) {
   if (settingsPolling || stopped) return;
   settingsPolling = true;
   try {
+    // Read the draft first. Apply saves settings before withdrawing its lease,
+    // so a completed Apply cannot be combined with an older settings snapshot
+    // and accidentally retire the already-warmed model.
+    const preview = voicePreview.observe(await readFile(resolve(runtime, 'voice-preview.json'), 'utf8').catch(() => ''));
     // A transient rename/partial settings write must not reset the selected quality.
     const raw = await readFile(resolve(runtime, 'settings.json'), 'utf8').catch(() => '');
     let settings; try { settings = JSON.parse(raw); } catch {}
-    localVoice.request(settings);
     const previousProvider = localVoice.provider;
     // Every phrase of an accepted turn keeps its original provider and quality.
     // Microphone startup and input polling also own a boundary before `active`.
-    if (localVoice.applyWhenIdle(active || streaming || polling || micPolling || mic.current || prefetchPolling)) {
+    if (localVoice.update(settings, preview, active || streaming || polling || micPolling || mic.current || prefetchPolling)) {
       prefetch.invalidate(); prefetchObserved = '';
       if (localVoice.provider !== previousProvider) await connections.reconfigure(LOCAL_VOICE_KEYS);
     }

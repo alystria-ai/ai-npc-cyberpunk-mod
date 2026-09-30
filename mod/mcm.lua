@@ -10,6 +10,7 @@ local owner, lastSignature, pollAt, searchFrames, snapshotAt = nil, '', 0, 0, 0
 local lastError = ''
 local actionFeedback, memoryActionCommand
 local presentation = {active = false, rows = {}}
+local voicePreview = dofile('voice-preview.lua').new()
 local log = function(message)
     local file = io.open('runtime/mcm.log', 'a')
     if file then file:write(os.date('!%Y-%m-%dT%H:%M:%SZ'), ' ', message, '\n'); file:close() end
@@ -121,6 +122,7 @@ local function styleCompletedPage()
         rows[#rows + 1] = {widget = widget, name = name}
         widgets[name] = widget
     end
+    presentation.voiceStatus = widgets[MOD_KEY .. ':voice-status_value']
     for _, row in ipairs(rows) do
         local widget, name = row.widget, row.name
         local managed = name:match('^(.*)_managed_label$')
@@ -201,6 +203,35 @@ local function profileDescription(profile, snapshot)
     return (profile.summary or profile.name) .. '\n\nVoice: ' .. voice
         .. '\nConversation: ' .. (snapshot.settings.enabledByKey[profile.key] ~= false and 'On' or 'Off')
         .. '\nInvitations create separate companion copies, including characters outside your phone contacts. Memory and connection preparation starts immediately; the copy joins when ready after you return to gameplay.'
+end
+
+local function voiceServiceLabel(state)
+    local labels = {ready = 'Ready', loading = 'Loading', warming = 'Preparing voices', speaking = 'Preparing a reply',
+        error = 'Unavailable', waiting = 'Waiting for voice service', disabled = 'Not configured', stopped = 'Stopped',
+        releasing = 'Releasing local voice memory', remote = 'Convai voices · Local model unloaded'}
+    if state.pending then
+        if state.preparationOnly then
+            return (labels[state.state] or 'Waiting for voice service') .. ' · After current reply'
+        end
+        return 'Changing after the current reply'
+    end
+    if state.preparationOnly and state.previewActive and state.previewProvider == 'hybrid' and state.state == 'ready' then
+        return 'Ready · Unsaved selection'
+    end
+    local preview = voicePreview.inspect()
+    if preview.active and preview.provider == 'hybrid' and state.state == 'remote' then return 'Preparing voices' end
+    return labels[state.state] or 'Waiting for voice service'
+end
+
+local function updateVoiceStatus(snapshot)
+    if view ~= 'settings' or not presentation.active or not presentation.voiceStatus then return end
+    local text = voiceServiceLabel(snapshot.localVoice)
+    if text ~= presentation.voiceStatusText then
+        -- Updating this read-only value preserves MCM's draft selectors. As
+        -- with styling, ink access stays in top-level update, never its hooks.
+        presentation.voiceStatus:SetText(text)
+        presentation.voiceStatusText = text
+    end
 end
 
 local function memorySettings(snapshot)
@@ -438,21 +469,17 @@ local function schema()
                 'Choose how much companions turn their heads during eye contact. Eyes only relies on eye movement.',
                 {'Eyes only', 'Less', 'Gentle (default)', 'More'}),
         })
-        local voiceLabels = {ready = 'Ready', loading = 'Loading', warming = 'Preparing voices', speaking = 'Preparing a reply',
-            error = 'Unavailable', waiting = 'Waiting for voice service', disabled = 'Not configured', stopped = 'Stopped',
-            releasing = 'Releasing local voice memory', remote = 'Convai voices · Local model unloaded'}
-        local voiceStatus = snapshot.localVoice.pending and 'Changing after the current reply'
-            or voiceLabels[snapshot.localVoice.state] or 'Waiting for voice service'
+        local voiceStatus = voiceServiceLabel(snapshot.localVoice)
         categories[#categories + 1] = category('voices', 'Voices', {
             setting('voice', 'Voice playback', 'bool', snapshot.settings.voice, true, 'Play voiced replies from your companions.'),
             setting('voiceProvider', 'Companion voices', 'select', snapshot.settings.voiceProvider == 'convai' and 2 or 1, 1,
-                'OmniVoice gives Johnny, Judy and Panam their prepared local voices. Convai uses each character’s configured online voice and releases the local model’s GPU memory. Other characters always use Convai. Changes wait for the current reply to finish.',
+                'OmniVoice gives Johnny, Judy and Panam their prepared local voices. Selecting it starts preparing the model immediately. Apply saves your choice; Revert cancels the preview. Convai uses configured online voices and releases the local model after Apply. Other characters always use Convai. Current replies finish with their original voice.',
                 {'OmniVoice + Convai (default)', 'Convai for all characters'}),
             setting('omniSteps', 'Local voice quality', 'select', snapshot.settings.omniSteps == 16 and 1 or 2, 2,
                 'Applies while OmniVoice is selected. 32 steps gives the preferred quality; 16 steps is faster. One shared model stays loaded until you select Convai or stop the voice service.',
                 {'16 steps · Faster', '32 steps · Higher quality (default)'}),
             readonly('voice-status', 'Voice service', voiceStatus,
-                'OmniVoice stays warm while selected. Switching back from Convai prepares the model again; no game restart is needed.'),
+                'OmniVoice starts preparing as soon as you select it here and stays warm after Apply. Revert or leaving without saving cancels the preview; no game restart is needed.'),
         }, 'Use Apply to save changed settings, or Revert to discard them.')
         categories[#categories + 1] = category('subtitles', 'Subtitles', {
             setting('subtitles', 'Subtitles', 'bool', snapshot.settings.subtitles, true, 'Show companion replies using the selected subtitle display.'),
@@ -542,6 +569,7 @@ local function connect()
     local registered, err = found.providers.registerProvider(provider)
     if not registered then lastError = tostring(err); return false end
     api = found
+    voicePreview.bind(api)
     api.refreshProvider(PROVIDER)
     log('Companion Manager registered with MCM API v2')
     return true
@@ -623,6 +651,10 @@ function M.update(currentPlayer, worldReady)
     entry.update()
     local now = os.time()
     if now >= pollAt then pollAt = now + 1; M.install() end
+    -- Read MCM's supported effective draft values from top-level update. The
+    -- drafts.changed listener only marks this work pending in its callback.
+    voicePreview.update(currentOwner ~= nil and view == 'settings' and presentation.active and active(),
+        presentation.controllerKey, function() return manager.snapshot(currentPlayer).settings end)
     if not active() then return end
     local styleOk, styleError = pcall(styleCompletedPage)
     if not styleOk then lastError = 'Settings presentation: ' .. tostring(styleError) end
@@ -639,8 +671,11 @@ function M.update(currentPlayer, worldReady)
     if now >= snapshotAt then
         snapshotAt = now + 1
         local snapshot = manager.snapshot(currentPlayer)
+        local statusOk, statusError = pcall(updateVoiceStatus, snapshot)
+        if not statusOk then lastError = 'Voice service presentation: ' .. tostring(statusError) end
         local signature = {queue.message(), tostring(queue.count()), snapshot.localVoice.state or '',
-            snapshot.localVoice.provider or '', tostring(snapshot.localVoice.pending)}
+            snapshot.localVoice.provider or '', tostring(snapshot.localVoice.pending),
+            tostring(snapshot.localVoice.previewActive), tostring(snapshot.localVoice.preparationOnly)}
         local memory = snapshot.memory
         if memory.command and memory.command.id == memoryActionCommand then actionFeedback = memory.feedback end
         signature[#signature + 1] = table.concat({memory.state, tostring(memory.talkedToCount), memory.feedback,
@@ -667,6 +702,7 @@ function M.inspect()
         presentation = {active = presentation.active, pending = presentation.pending, title = presentation.title, rows = rowCount},
         entryDetails = entry.inspect and entry.inspect() or nil,
         party = queue.list(), feedback = queue.message(), error = lastError,
+        voicePreview = voicePreview.inspect(),
         memory = manager.snapshot(player()).memory}
 end
 
@@ -683,12 +719,14 @@ function M.resetSession()
     memoryActionCommand = nil
     owner, lastSignature, refreshQueued = nil, '', true
     presentation = {active = false, rows = {}}
+    voicePreview.reset()
     entry.reset()
 end
 
 function M.shutdown()
     queue.bind(nil)
     entry.reset()
+    voicePreview.shutdown()
     if api then pcall(api.providers.unregisterProvider, PROVIDER, provider.registrationKey) end
     api = nil
     presentation = {active = false, rows = {}}

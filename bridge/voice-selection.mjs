@@ -1,8 +1,9 @@
 import {ResidentVoice, LOCAL_VOICE_KEYS, voiceSteps} from './resident-voice.mjs';
 import {abortable, throwIfCancelled} from './transport-pool.mjs';
 
-// Provider changes commit only at a conversation boundary. Retiring CUDA work
-// completes through EOF before another resident worker may start.
+// Routing changes commit only at a conversation boundary. Model preparation
+// can begin from a settings draft while that routing remains unchanged.
+// Retiring CUDA work completes through EOF before a replacement may start.
 export class VoiceSelection {
   constructor(config = {}, options = {}) {
     this.config = config; this.options = options;
@@ -19,28 +20,58 @@ export class VoiceSelection {
     if ([16, 32].includes(settings?.omniSteps)) this.requestedSteps = settings.omniSteps;
   }
   get pending() { return this.provider !== this.requestedProvider || this.steps !== this.requestedSteps; }
+  get wantsLocal() {
+    return this.configured && !this.closed && (this.provider === 'hybrid'
+      || this.requestedProvider === 'hybrid' || this.preview?.provider === 'hybrid');
+  }
+  setPreview(preview) {
+    const next = preview && ['hybrid','convai'].includes(preview.provider) && [16,32].includes(preview.steps)
+      ? {provider:preview.provider, steps:preview.steps} : null;
+    const changed = this.preview?.provider !== next?.provider || this.preview?.steps !== next?.steps;
+    this.preview = next;
+    return changed;
+  }
+  prepare(preview) {
+    if (this.closed) return;
+    const changed = this.setPreview(preview);
+    this.reconcile();
+    if (changed) this.publish();
+  }
+  update(settings, preview, busy) {
+    if (this.closed) return false;
+    this.request(settings);
+    const previewChanged = this.setPreview(preview);
+    const applied = this.applyWhenIdle(busy);
+    this.reconcile();
+    if (previewChanged && !applied) this.publish();
+    return applied;
+  }
+  reconcile() {
+    if (this.wantsLocal) void this.start().catch(() => {});
+    else if (this.client) this.retire();
+  }
   publish(state = this.state, extra = {}) {
     this.state = state;
     const value = {...this.details, version: 1, state, provider: this.provider,
       requestedProvider: this.requestedProvider, pending: this.pending, steps: this.steps,
       requestedSteps: this.requestedSteps, configured: this.configured, bridgePid: process.pid,
+      previewActive: !!this.preview, previewProvider: this.preview?.provider,
+      preparationOnly: this.provider === 'convai' && this.wantsLocal,
       updated: Date.now(), ...extra};
     try { Promise.resolve(this.options.onState?.(value)).catch(() => {}); } catch {}
   }
   applyWhenIdle(busy) {
     if (!this.pending || this.closed) return false;
-    if (busy) { this.publish(); return false; }
-    const changedProvider = this.provider !== this.requestedProvider;
+    if (busy) { this.reconcile(); this.publish(); return false; }
     this.provider = this.requestedProvider; this.steps = this.requestedSteps;
-    if (changedProvider && this.provider === 'convai') this.retire();
-    else if (changedProvider) void this.start().catch(() => {});
-    else this.client?.setSteps(this.steps);
+    this.client?.setSteps(this.steps);
+    this.reconcile();
     this.publish();
     return true;
   }
   start() {
     if (this.closed) return Promise.reject(Error('Voice service is closed'));
-    if (this.provider === 'convai' || !this.configured) {
+    if (!this.wantsLocal) {
       this.publish(this.releasing ? 'releasing' : (this.provider === 'convai' ? 'remote' : 'disabled'));
       return Promise.resolve();
     }
@@ -50,7 +81,8 @@ export class VoiceSelection {
       if (this.client !== client || this.closed) return;
       this.details = value; this.publish(value.state);
     }});
-    client.setSteps(this.steps);
+    client.setSteps(this.provider === 'hybrid' ? this.steps
+      : this.preview?.provider === 'hybrid' ? this.preview.steps : this.requestedSteps);
     this.publish(this.releasing ? 'releasing' : 'loading');
     this.starting = this.retiring.then(async () => {
       if (this.client !== client || this.closed) return;
@@ -90,7 +122,7 @@ export class VoiceSelection {
   }
   close() {
     if (this.closed) return this.retiring;
-    this.closed = true;
+    this.closed = true; this.preview = null;
     return this.retire();
   }
 }

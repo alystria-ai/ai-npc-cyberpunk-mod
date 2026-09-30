@@ -115,3 +115,55 @@ test('malformed settings retain the valid selection; a withdrawn pending change 
   assert.equal(h.voice.provider, 'hybrid'); assert.equal(h.workers.length, 1);
   await h.voice.close(); assert.equal(h.voice.state, 'stopped');
 });
+
+test('a draft warms one model before Apply while saved routing stays Convai',async()=>{
+  const h=fixture();
+  h.voice.update({voiceProvider:'convai',omniSteps:32},null,false);await tick();
+  assert.equal(h.workers.length,0,'initial saved Convai does not create a speculative worker');
+  h.voice.update({voiceProvider:'convai',omniSteps:32},{provider:'hybrid',steps:16},true);
+  await tick();await h.voice.start();
+  assert.equal(h.workers.length,1);assert.equal(h.workers[0].starts,1);
+  assert.equal(h.voice.provider,'convai');assert.equal(h.voice.usesProfile('judy-alvarez'),false);
+  assert.equal(h.voice.pending,false);assert.equal(h.states.at(-1).preparationOnly,true);
+  assert.equal(h.states.at(-1).previewActive,true);
+  h.voice.update({voiceProvider:'hybrid',omniSteps:16},null,false);
+  await h.voice.synthesize('judy-alvarez','Hi');
+  assert.equal(h.workers.length,1);assert.equal(h.workers[0].starts,1);
+  assert.equal(h.workers[0].calls[0].steps,16);assert.equal(h.states.at(-1).preparationOnly,false);
+  await h.voice.close();
+});
+
+test('committed Omni prepares during a remote reply and changes routing only afterward',async()=>{
+  const h=fixture({holdWarm:true});h.voice.update({voiceProvider:'convai'},null,false);
+  assert.equal(h.voice.update({voiceProvider:'hybrid',omniSteps:16},null,true),false);
+  await tick();assert.equal(h.workers[0].starts,1);
+  assert.equal(h.voice.provider,'convai');assert.equal(h.voice.steps,32);
+  h.workers[0].warm.resolve();await h.voice.start();
+  assert(h.voice.update({voiceProvider:'hybrid',omniSteps:16},null,false));
+  assert.equal(h.voice.provider,'hybrid');assert.equal(h.voice.steps,16);
+  assert.equal(h.workers[0].starts,1);await h.voice.close();
+});
+
+test('Revert releases preview-only memory; rapid reselect waits for confirmed retirement',async()=>{
+  const h=fixture({holdClose:true});h.voice.update({voiceProvider:'convai'},null,false);
+  h.voice.prepare({provider:'hybrid',steps:32});await h.voice.start();
+  h.voice.update({voiceProvider:'convai'},null,true);await tick();
+  assert.equal(h.workers[0].closes,1);assert.equal(h.voice.state,'releasing');
+  h.voice.prepare({provider:'hybrid',steps:16});await tick();
+  assert.equal(h.workers[1].starts,0);
+  h.workers[0].released.resolve();await h.voice.start();
+  assert.equal(h.workers[1].starts,1);assert.equal(h.peak(),1);
+  h.workers[1].released.resolve();await h.voice.close();assert.equal(h.live(),0);
+});
+
+test('a remote draft does not unload an applied Omni choice or alter an owned turn',async()=>{
+  const h=fixture();await h.voice.start();
+  h.voice.update({voiceProvider:'hybrid',omniSteps:32},{provider:'convai',steps:16},true);
+  assert.equal(h.workers[0].closes,0);assert.equal(h.voice.provider,'hybrid');
+  await h.voice.synthesize('judy-alvarez','Current phrase');
+  assert.equal(h.workers[0].calls[0].steps,32);
+  h.voice.update({voiceProvider:'convai',omniSteps:16},null,true);
+  assert.equal(h.workers[0].closes,0);
+  h.voice.update({voiceProvider:'convai',omniSteps:16},null,false);await h.voice.retiring;
+  assert.equal(h.workers[0].closes,1);assert.equal(h.live(),0);
+});
