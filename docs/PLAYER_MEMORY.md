@@ -96,7 +96,10 @@ pending. Main feature checkpoint: `a361f13`. Invitation preparation described
 above was subsequently installed in `9290ab3`: 983 checks passed, copied Lua and
 catalogues were hash verified, and the restarted service reported ready memory
 with the same identity anchor and one existing contacted character. Cyberpunk
-was launched. Rendered UI, invitation and first-send latency checks remain pending.
+was launched. Judy subsequently joined after the user closed the manager, and
+her first F6 send reused the prepared page/SDK with 7.8 ms memory admission and
+about 4.9 seconds to native playback. Rendered Memory-page acceptance remains
+pending; detailed evidence is in `docs/COMPANION_INVITATIONS.md`.
 
 `prepareCharacter({profileKey, guard?, signal?})` checks the exact durable registry
 and identity anchor, then shares the same bounded enable flight and in-process

@@ -17,9 +17,11 @@ See `docs/PLAYER_MEMORY.md` for the current runtime contract.
 - [ ] Verify preparation begins at **Invite**, including while MCM or Contacts
   pauses the game. No NPC may appear until memory configuration and an identified
   private connection are ready. The pending invitation remains cancellable.
-- [ ] Compare the first F6 reply after preparation with the measured 19.6-second
-  onset: the earlier trace spent 8.9 seconds admitting memory and 6.0 seconds
-  waiting behind connection preparation. Verify the ready page survives spawn.
+- [x] Verify the prepared page survives Judy's invitation and first F6 send.
+  September 30 live trace: page and SDK connection reused, memory admission
+  7.8 ms, pool wait 0.073 ms, native playback onset about 4.9 seconds versus the
+  earlier 19.6-second trace. This is one observed turn, not a provider guarantee.
+  The user confirmed Judy joined after closing the manager.
 
 - [x] Install the single-ID memory runtime and native MCM controls. September 30:
   926 checks passed with zero failures/skips, the browser bundle rebuilt, Lua

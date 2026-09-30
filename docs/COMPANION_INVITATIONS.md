@@ -78,12 +78,21 @@ send the first F6 message. This Lua-only update uses **CET Reload All Mods**.
 
 September 30 source verification: the full suite passed **983 checks**, with
 zero failures or skips, including the installed MCM framework fixture. The new
-modules also passed JavaScript syntax and Git whitespace checks. Live invite,
-rendered settings and first-message timing acceptance remain pending.
+modules also passed JavaScript syntax and Git whitespace checks. Rendered
+preparation labels and the organized Settings/Memory page remain to be accepted.
 
 Installation checkpoint: `9290ab3` was installed with the Lua-only installer and
 all copied files passed SHA-256 comparison. The restarted bridge reported ready
 memory, the same registry/identity anchor, one existing contacted character,
 Convai voice mode and no startup errors. Cyberpunk was launched for the paused
-Invite check. This confirms installation and service startup; the live checks
-above still require the player's save and menu interaction.
+Invite check.
+
+The user then confirmed Judy joined **after closing the manager**. Her first F6
+turn at 07:01:04 UTC reused both the retained browser page and the SDK connection.
+Measured admission was 7.8 ms, transport queue waiting 0.073 ms, first provider
+audio 2,999 ms and first playable chunk 4,066 ms after transport start. The native
+playback position gave an estimated onset of **4,895 ms after submission**,
+compared with the earlier 19,628 ms trace. The full reply was generated in 7,143
+ms while its earlier chunks were already playing. These are individual observed
+turns, not a controlled provider benchmark or an assurance for every response.
+The safe timing summary is in ignored `runtime/invitation-latency-live.json`.
