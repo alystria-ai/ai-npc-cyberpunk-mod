@@ -84,3 +84,59 @@ The recognizer still supplies nine acoustic categories, not a full phoneme
 alignment or a trained 3D performance. English transcript-guided recognition
 was previously measured much slower and has not replaced this low-latency path.
 Emotion, smiles and blink coordination remain separate TODO items.
+
+## Convai opening calibration, September 30
+
+After switching from local OmniVoice to Convai voice, the user reported a
+smaller mouth opening. The voice selection also selects a different facial
+source: OmniVoice uses the local phonetic poses above; Convai supplies timed
+ARKit-61/Neurosync values. Those values were still being retargeted with the
+earlier `0.35 * JawOpen * (1 - MouthClose)` mapping. This is a difference in our
+retargeting, not evidence that the voice audio needs processing.
+
+The Convai path now reports `articulation: arkit61-open-v2`:
+
+- A fixed monotonic curve increases small and medium jaw openings. Its maximum
+  is 0.40, the same ceiling as the locally accepted D-vowel pose. Zero remains
+  zero; there is no minimum opening or adaptive peak normalization.
+- MouthClose still gates the jaw after calibration. A full closed-mouth pose
+  keeps the jaw and aperture at zero; the existing closure weights are unchanged.
+- Upper and lower aperture receive smaller increases, retaining their existing
+  0.12 and 0.16 ceilings. The individual left/right upper-lip raisers stay zero.
+- Funnel, purse, lateral stretch, tongue and other reserved channels are
+  unchanged. The local phonetic and audio-envelope paths are unchanged.
+- Calibration is a function of the current provider pose, not the speaker or
+  the range of values in a file. Matching continuation poses therefore remain
+  equal across audio chunks. Real silence, pause/cancel cleanup, and first/final
+  boundary easing retain their existing behavior. PCM is not changed.
+
+### Captured Judy reply
+
+The five Convai segments of request `1790723645-3-11078476ULL` contain 155 native
+face frames. The last three-frame audio-envelope tail is excluded and unchanged.
+The full reply lasts 5.0347 seconds. The preserved source identity is the
+installed `speech-stream.json` SHA256
+`962d7cf98b2ab3bafe9c6b4a403a60f0eef76521b8bca3d26a1f7895ca06499f`.
+
+The manifest retains mapped native frames rather than raw ARKit arrays. For
+this offline comparison, effective ARKit inputs were recovered from the previous
+linear mapping and replayed through the old and new actual builders with the
+matching captured WAV files. The round trip reproduced old weights within
+0.0001, their stored rounding precision. These are predicted native weights,
+not a new rendered or audible test.
+
+| Control | Active median before → after | Active p95 before → after | Peak before → after |
+| --- | --- | --- | --- |
+| Jaw | 0.0237 → 0.0397 | 0.1150 → 0.1756 | 0.1606 → 0.2332 |
+| Upper aperture | 0.0290 → 0.0334 | 0.0706 → 0.0764 | 0.0786 → 0.0840 |
+| Lower aperture | 0.0414 → 0.0451 | 0.1180 → 0.1217 | 0.1600 → 0.1600 |
+
+“Active” excludes zero weights separately for each control. No neutral frames
+became non-neutral, and no unrelated articulation weights changed in this replay.
+The shape remains bounded, but visual comfort across different rigs is not
+proven by these numbers. **Judy still needs an in-game check for sufficient
+opening, preserved consonant closure, and absence of upper-lip distortion.**
+
+Behavioral tests cover weak/mid/strong input, monotonic bounded travel,
+MouthClose, real silence, unchanged waveform/provider arrays, upper-lip limits,
+unrelated articulation, and matching poses through real PCM chunk boundaries.

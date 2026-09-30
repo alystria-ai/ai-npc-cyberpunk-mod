@@ -66,12 +66,18 @@ function validFaces(result, duration) {
 
 // SDK 1.7.0 lipsync-helpers/arkitOrder61.js: JawOpen is index 17, not
 // standard ARKit-52's index 24. Never infer a mapping from vector length alone.
+// Convai's continuous JawOpen values are much smaller than the local phonetic
+// vowel targets. Lift small/mid openings without a minimum opening or per-file
+// normalization: zero remains zero and identical poses stay identical across
+// chunk boundaries. The .40 jaw ceiling matches the accepted local D vowel;
+// aperture ceilings and the distortion-prone individual upper raisers stay put.
+const opening = (value, lift) => value + lift * value * (1 - value);
 function mapArkit(v) {
   const a = index => clamp(v[index]);
-  const closed = a(18), open = a(17) * (1 - closed);
-  return [0.35 * open,
-    0.12 * Math.max(open, (a(39) + a(40)) / 2) * (1 - closed),
-    0.16 * Math.max(open, (a(37) + a(38)) / 2) * (1 - closed),
+  const closed = a(18), seal = 1 - closed, jaw = a(17), open = jaw * seal;
+  return [0.40 * opening(jaw, .50) * seal,
+    0.12 * opening(Math.max(open, (a(39) + a(40)) / 2), .20) * seal,
+    0.16 * opening(Math.max(open, (a(37) + a(38)) / 2), .12) * seal,
     0.20 * closed, 0.20 * closed,
     0.30 * a(19), 0.30 * a(19), 0.28 * a(20), 0.28 * a(20),
     0.20 * a(29), 0.20 * a(30), ...PHONETIC_TRACKS.map(() => 0)];
@@ -127,5 +133,6 @@ export function buildFacialTimeline(result, owner) {
   frames.push([wav.duration, ...poseAt(wav.duration)]);
   return {version: 1, requestId: owner.requestId, entity: owner.entity, duration: wav.duration,
     source: source ? 'convai-arkit61' : cues ? 'local-phonetic' : 'audio-envelope',
-    articulation: cues ? 'coarticulated-v4' : undefined, ...(segment ? {segment} : {}), tracks: [...SPEECH_TRACKS], frames};
+    articulation: source ? 'arkit61-open-v2' : cues ? 'coarticulated-v4' : undefined,
+    ...(segment ? {segment} : {}), tracks: [...SPEECH_TRACKS], frames};
 }
