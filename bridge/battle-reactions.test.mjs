@@ -91,6 +91,36 @@ assert(policy.capture().status=='none')
 sample.available=false; tick(1,false); assert(policy.capture().status=='unavailable' and not offer(false))
 `));
 
+test('battle reactions belong to witnessed copies, while shared character context remains deduplicated', () => run(fixture + `
+tick(1,true); tick(3,true)
+local original=people[1]
+local replacement={entity='99ULL',profileKey='judy-alvarez',distance=2,available=true}
+-- The opening window is still live, but this exact copy has not attended it.
+people={replacement}
+assert(not offer(false),'A fresh copy inherited the original opening witness')
+people={original}; assert(offer(false))
+tick(1,false); tick(4,false); tick(4,false)
+assert(policy.closingWindow(people) and offer(false))
+people={replacement}
+assert(not policy.closingWindow(people),'A fresh copy reserved the closing window')
+assert(not offer(false),'A fresh copy inherited the original closing witness')
+-- Reassigning a witnessed entity to a different profile is not that witness.
+people={{entity=original.entity,profileKey='alex',distance=2,available=true}}
+assert(not offer(false))
+people={original}; assert(offer(false))
+local context=policy.capture()
+assert(#context.witnesses==2 and context.witnesses[1]=='alex' and context.witnesses[2]=='judy-alvarez')
+`));
+
+test('a newly arrived copy can witness ongoing combat, but duplicate samples use one bounded witness slot', () => run(fixture + `
+people={people[1]}; tick(1,true)
+for _=1,20 do tick(0,true)end
+people={{entity='99ULL',profileKey='judy-alvarez',distance=2,available=true}}
+tick(1,true); tick(1,false); tick(4,false); tick(4,false)
+assert(policy.closingWindow(people) and offer(false).person.entity=='99ULL')
+assert(#policy.capture().witnesses==1)
+`));
+
 test('paused simulation never advances reaction windows and group questions keep one battle snapshot', () => run(fixture + `
 tick(1,true); now=now+100; tick(0,true); assert(not offer(false))
 tick(2,true); assert(offer(false))
@@ -214,10 +244,12 @@ local request=automatic.requestId
 assert(speech.target==people[1].npc and focusUntil==nil,'Automatic speech must not seize attention')
 local leaseIndex=tonumber(files['runtime/reaction-lease.json']:match('%d+'))
 assert(encoded[leaseIndex].requestId==request and encoded[leaseIndex].valid)
--- A prior manual focus grace period must not cancel this automatic request.
-focusUntil=now-1;local function endFocus()end
+-- A prior focus grace period is not the pending request's reply deadline.
+-- Leave it deferred while that request or its speech owns the conversation.
+local expiredFocus=now-1
+focusUntil=expiredFocus;local focusEnds=0;local function endFocus()focusEnds=focusEnds+1 end
 ${focusExpiry}
-assert(pending==automatic and focusUntil==nil)
+assert(pending==automatic and focusUntil==expiredFocus and focusEnds==0)
 -- Simulate a manual input taking ownership before the next frame.
 pending={requestId='manual'};active={};speech.requestId=request
 now=now+.5;updateBattles(player,.5,true)
@@ -228,6 +260,8 @@ assert(evidence.guard.worldReady and evidence.guard.speaker.present and evidence
 leaseIndex=tonumber(files['runtime/reaction-lease.json']:match('%d+'))
 assert(not encoded[leaseIndex].valid)
 active,pending,speech.requestId=nil,nil,nil
+${focusExpiry}
+assert(focusUntil==nil and focusEnds==1,'Idle focus must release after the request is retired')
 -- A later battle is a fresh event; a blocked scene cancels it before delivery.
 resetSessionFixture(); sample.combat=false;updateBattles(player,.5,true)
 sample.combat=true;for _=1,6 do now=now+.5;updateBattles(player,.5,true)end
@@ -288,6 +322,18 @@ assert(pending==context and generation==sentGeneration and context.reaction.expi
 speakerReady,speakerBusy=false,true
 assert(not reactionCanDeliver(context,player) and pending==context)
 assert(reactionCanDeliver({requestId='manual'},player),'Manual conversation policy is unchanged')
+`));
+
+test('the live coordinator does not request a closing for a replacement copy of a witnessed character', () => run(adapterFixture + `
+openBattle();local original=people[1]
+finishAutomatic();endBattle()
+people={{entity='99ULL',profileKey='judy-alvarez',distance=2,available=true,name='Judy',npc='new-judy'}}
+waitGame(4)
+assert(not automatic and not pending and #requests==1,'A replacement copy sent a retrospective battle request')
+assert(not battles.closingWindow(battlePeople),'A replacement copy blocked unrelated loot reactions')
+-- A surviving original witness can still speak within the same closing window.
+people={original};advance(.5)
+assert(automatic and automatic.reaction.phase=='end' and automatic.entity==original.entity and #requests==2)
 `));
 
 test('a held reaction keeps its original expiry and yields to manual or native story interruption', () => run(adapterFixture + `

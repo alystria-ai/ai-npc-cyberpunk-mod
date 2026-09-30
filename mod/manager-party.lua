@@ -191,10 +191,11 @@ function M.new(companions, readiness)
                 if readiness then readiness.finish(job) end
                 report(member.name .. ' joined your group.' .. (job.warning and (' ' .. job.warning) or ''))
                 attaching[serial] = nil
-            elseif not member or member.state == 'failed' or member.state == 'missing' then
+            elseif not member or member.state == 'failed' or member.state == 'missing' or member.state == 'dead' then
                 if readiness then readiness.cancel(job) end
                 report(job.name .. ' could not join: ' ..
-                    (member and member.error or 'The character was removed before joining.'), true)
+                    (member and member.error or (member and member.state == 'dead'
+                        and 'The character died before joining.' or 'The character was removed before joining.')), true)
                 attaching[serial] = nil
             end
         end

@@ -7,6 +7,11 @@ local function copy(value)
     return result
 end
 
+local function witnessed(encounter, person)
+    local profiles = encounter.witnessActors[person.entity]
+    return profiles and profiles[person.profileKey] == true
+end
+
 function M.new()
     local self = {}
     local clock, serial, cooldown, initialized = 0, 0, 0, false
@@ -28,12 +33,18 @@ function M.new()
                 serial = serial + 1
                 current = {id = 'battle-' .. serial, state = 'fighting', started = clock,
                     eligible = not first and enabled and not sample.blocked and now >= cooldown,
-                    opponents = {}, seen = {}, witnesses = {}, count = 0, witnessCount = 0}
+                    opponents = {}, seen = {}, witnesses = {}, witnessActors = {}, count = 0, witnessCount = 0}
             end
             current.quiet = nil
             for _, person in ipairs(people or {}) do
-                if not sample.blocked and person.profileKey and person.distance <= 20
-                    and not current.witnesses[person.profileKey] and current.witnessCount < 8 then
+                if not sample.blocked and type(person.entity) == 'string' and #person.entity > 0 and #person.entity <= 128
+                    and type(person.profileKey) == 'string' and #person.profileKey > 0 and #person.profileKey <= 128
+                    and person.distance <= 20 and not witnessed(current, person) and current.witnessCount < 8 then
+                    -- Memories/context can be shared by character profile, but
+                    -- only the particular copies present witnessed this fight.
+                    local profiles = current.witnessActors[person.entity] or {}
+                    profiles[person.profileKey] = true
+                    current.witnessActors[person.entity] = profiles
                     current.witnesses[person.profileKey], current.witnessCount = true, current.witnessCount + 1
                 end
             end
@@ -81,7 +92,7 @@ function M.new()
         local elapsed = clock - current.ended
         if elapsed > 40 then return nil end
         for _, person in ipairs(people or {}) do
-            if current.witnesses[person.profileKey] and person.distance <= 20
+            if witnessed(current, person) and person.distance <= 20
                 and (person.available ~= false or person.voiceBusy == true) then
                 return {encounter = current.id, elapsed = elapsed, remaining = 40 - elapsed}
             end
@@ -103,7 +114,7 @@ function M.new()
         end
         local chosen
         for _, person in ipairs(people or {}) do
-            if person.available ~= false and current.witnesses[person.profileKey] and person.distance <= 20 then
+            if person.available ~= false and witnessed(current, person) and person.distance <= 20 then
                 if not chosen then chosen = person end
                 if person.profileKey ~= lastSpeaker then chosen = person; break end
             end

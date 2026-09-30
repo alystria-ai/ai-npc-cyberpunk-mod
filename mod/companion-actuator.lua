@@ -20,13 +20,43 @@ local function record(s,kind)
         commandID=s.command and tonumber(s.command.id) or nil,target=s.target and space.copy(s.target)}
 end
 local function cancel(s)
-    if s.command and s.npc and s.npc:IsAttached() then
-        local ai=s.npc:GetAIControllerComponent()
-        local ok,state=pcall(function() return tostring(ai:GetCommandState(s.command)) end)
-        if ok and state:find('Enqueued',1,true) then ai:CancelCommand(s.command)
-        elseif ok and active(state) then ai:StopExecutingCommand(s.command,true) end
+    if not s.command then s.cancellation=nil; return true end
+    local pending=s.cancellation
+    if not pending or pending.command~=s.command then
+        pending={command=s.command,requested=false}
+        s.cancellation=pending
     end
-    s.command=nil
+    local function terminal(label)
+        return label:find('Success',1,true) or label:find('Succeeded',1,true)
+            or label:find('Failure',1,true) or label:find('Cancelled',1,true)
+            or label:find('Interrupted',1,true) or label:find('NotExecuting',1,true)
+            or label=='Stopped'
+    end
+    local ok,finished=pcall(function()
+        if not s.npc or not s.npc:IsAttached() then error('Movement owner is unavailable') end
+        local ai=s.npc:GetAIControllerComponent()
+        local state=tostring(ai:GetCommandState(pending.command))
+        pending.state=state
+        if terminal(state) then return true end
+        if not active(state) then error('Native movement command state unavailable') end
+        if not pending.requested then
+            -- Cancellation can complete asynchronously, or refuse/throw after
+            -- a side effect. Retain this exact handle and send at most once.
+            pending.requested=true
+            local accepted
+            if state:find('Enqueued',1,true) then accepted=ai:CancelCommand(pending.command)
+            else accepted=ai:StopExecutingCommand(pending.command,true) end
+            if accepted==false then error('Native movement cancellation refused') end
+            pending.state=tostring(ai:GetCommandState(pending.command))
+            return terminal(pending.state) and true or false
+        end
+        return false
+    end)
+    if not ok then pending.error=tostring(finished); return false end
+    if not finished then return false end
+    s.command,s.cancellation=nil,nil
+    s.issued=false
+    return true
 end
 local function clearLook(s)
     if s.look and s.npc and s.npc:IsAttached() then
@@ -35,6 +65,7 @@ local function clearLook(s)
     s.look,s.lookStyle=nil,'none'
 end
 function M.suspendHold(s)
+    if s.cancellation then return false,'Owned movement cancellation is still pending' end
     local held=s.suspendedHold
     if not held then
         if s.kind~='hold' or not s.command then return false,'No owned idle hold to release' end
@@ -75,10 +106,14 @@ end
 
 function M.release(s)
     M.resumeHold(s)
-    cancel(s); clearLook(s); s.feedback={}; s.issued=false
+    local released=cancel(s)
+    clearLook(s)
+    if released then s.feedback={}; s.issued=false end
+    return released
 end
 function M.abandon(s)
     s.command,s.npc,s.look=nil,nil,nil
+    s.cancellation=nil
     s.suspendedHold=nil
     s.feedback={}; s.issued=false
 end
@@ -116,6 +151,10 @@ function M.sense(s,at,speed,dt)
             f.stalled=f.active and s.clock-s.progress.at>2.8 and speed<0.2
         else s.progress=nil end
     elseif s.failed then f.failed=true; f.error=s.error end
+    if s.cancellation then
+        f.cancelling=true
+        f.error=s.cancellation.error or 'Waiting for native movement cancellation'
+    end
     s.feedback=f
     return f
 end
@@ -171,7 +210,7 @@ local function validate(s,intent,c)
 end
 
 local function submit(s,command)
-    cancel(s)
+    if not cancel(s) then return false end
     s.command=command -- Claim ownership before the native callback can run.
     local accepted=s.npc:GetAIControllerComponent():SendCommand(command)
     if accepted==false then s.command=nil; error('The native AI refused the movement command') end
@@ -179,6 +218,7 @@ local function submit(s,command)
     s.commands=s.commands+1
     s.failed,s.error,s.progress=false,nil,nil
     record(s,'submit')
+    return true
 end
 local function walk(s,intent,c)
     local cmd=NewObject('AIMoveToCommand')
@@ -204,16 +244,21 @@ function M.apply(s,decision,c,canPlan)
         s.lookError=not ok and tostring(err) or nil
         if not ok then s.lookRetryAt=s.clock+3 end
     end
-    if intent.kind=='release' then M.release(s); s.ticket=intent.ticket; s.kind='release'; return false end
+    if intent.kind=='release' then
+        if M.release(s) then s.ticket=intent.ticket; s.kind='release' end
+        return false
+    end
+    if s.cancellation and not cancel(s) then return false end
     local changed=s.ticket~=intent.ticket
     if changed then
-        cancel(s)
+        if not cancel(s) then return false end
         s.ticket,s.kind,s.face=intent.ticket,intent.kind,intent.face
         s.issued,s.failed,s.error,s.stage=false,false,nil,nil
         s.target=nil
     end
     if intent.kind=='hold' then
         if s.issued and not s.feedback.complete and not s.feedback.failed then return false end
+        if not cancel(s) then return false end
         local command=NewObject('AIHoldPositionCommand'); command.duration=40
         s.stage='holding'; submit(s,command); return false
     end
@@ -221,6 +266,7 @@ function M.apply(s,decision,c,canPlan)
         if s.issued and s.feedback.failed then return false end
         if s.issued and s.feedback.active and (s.gait==intent.gait or s.clock-s.issuedAt<0.9) then return false end
         if s.issued and s.clock-s.issuedAt<0.65 then return false end
+        if not cancel(s) then return false end
         local command=NewObject('AIFollowTargetCommand')
         command.target=c.player
         command.desiredDistance=1.7+math.floor((c.slot-1)/2)*0.3
@@ -232,6 +278,7 @@ function M.apply(s,decision,c,canPlan)
     end
     if intent.kind=='turn' then
         if s.issued or s.failed then return false end
+        if not cancel(s) then return false end
         local command=NewObject('AIRotateToCommand')
         command.target=position(intent.goal)
         command.angleTolerance=8; command.angleOffset=0; command.speed=95
@@ -241,7 +288,7 @@ function M.apply(s,decision,c,canPlan)
 
     if s.stage=='orient' then
         local error=space.angle(c.direction,space.bearing(c.position,s.target))
-        if error<25 or s.clock-s.issuedAt>2.2 then walk(s,intent,c) end
+        if (error<25 or s.clock-s.issuedAt>2.2) and cancel(s) then walk(s,intent,c) end
         return false
     end
     if s.issued and intent.finish then return false end
@@ -254,6 +301,7 @@ function M.apply(s,decision,c,canPlan)
     if not canPlan then return false end
     local target,err=validate(s,intent,c)
     if not target then s.failed,s.error=true,err; record(s,'route-rejected'); return true end
+    if not cancel(s) then return true end
     s.target,s.gait=target,intent.gait
     if not s.issued and intent.finish and not intent.face and c.speed<0.18
         and space.ground(c.position,target)>1.0
