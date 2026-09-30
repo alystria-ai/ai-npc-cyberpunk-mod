@@ -7,6 +7,11 @@ player ID across all saves and characters**, natural conversation memory, and
 explicit Forget controls. No proactive memory creation for unused characters.
 See `docs/PLAYER_MEMORY.md` for the current runtime contract.
 
+- [x] Install invitation preparation and organized Settings from `9290ab3`.
+  September 30: 983 checks passed with no failures/skips; Lua/catalogue copies
+  were hash verified. The restarted bridge reports ready memory, the same
+  identity anchor and one existing contacted character. Cyberpunk was launched.
+  The live checks below remain pending.
 - [ ] Verify the new **Settings → Memory → Manage** submenu and grouped Settings
   page in the game. Character conversations and Memory each have a parent return.
 - [ ] Verify preparation begins at **Invite**, including while MCM or Contacts

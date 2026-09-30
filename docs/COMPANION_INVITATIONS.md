@@ -80,3 +80,10 @@ September 30 source verification: the full suite passed **983 checks**, with
 zero failures or skips, including the installed MCM framework fixture. The new
 modules also passed JavaScript syntax and Git whitespace checks. Live invite,
 rendered settings and first-message timing acceptance remain pending.
+
+Installation checkpoint: `9290ab3` was installed with the Lua-only installer and
+all copied files passed SHA-256 comparison. The restarted bridge reported ready
+memory, the same registry/identity anchor, one existing contacted character,
+Convai voice mode and no startup errors. Cyberpunk was launched for the paused
+Invite check. This confirms installation and service startup; the live checks
+above still require the player's save and menu interaction.

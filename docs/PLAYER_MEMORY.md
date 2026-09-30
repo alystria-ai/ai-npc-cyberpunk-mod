@@ -93,8 +93,10 @@ reported a matching player identity anchor and fresh ready Memory status, with
 zero contacted characters before the first actual message. Cyberpunk was
 launched for the user check; visible menu, reply and recall acceptance remains
 pending. Main feature checkpoint: `a361f13`. Invitation preparation described
-above is a subsequent source change; the earlier installation checks do not
-qualify its installed or in-game behavior.
+above was subsequently installed in `9290ab3`: 983 checks passed, copied Lua and
+catalogues were hash verified, and the restarted service reported ready memory
+with the same identity anchor and one existing contacted character. Cyberpunk
+was launched. Rendered UI, invitation and first-send latency checks remain pending.
 
 `prepareCharacter({profileKey, guard?, signal?})` checks the exact durable registry
 and identity anchor, then shares the same bounded enable flight and in-process

@@ -173,8 +173,9 @@ The earlier memory-controls build was installed and hash verified on September 3
 and the bridge published a fresh ready Memory status with zero
 contacted characters before the first actual message. Cyberpunk was closed and
 then launched. The Memory submenu and Settings grouping described here have been
-verified in the local framework fixture. Their rendered pages need acceptance
-after installing or reloading the updated Lua file. Lua-only changes can use
+verified in the local framework fixture and installed in `9290ab3`, with file
+hashes checked and Cyberpunk launched. Their rendered pages need acceptance in
+the player's save. Lua-only changes can use
 **CET Reload All Mods**; this page adds no native script or save component.
 
 In-game acceptance should open **Settings → Memory → Manage**, choose an unspawned
