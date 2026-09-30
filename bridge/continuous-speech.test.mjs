@@ -165,9 +165,9 @@ test('real continuous publisher facial data is accepted by the actual Lua playba
     assert(face.active,'Production timeline rejected: '..tostring(face.error))
     assert(features==1 and #judy.applied==1 and judy.applied[1].jaw_mid_open>0)
     local native=judy.applied[1]
-    assert(math.abs(native.lips_l_stretch-.06)<.000001)
-    assert(math.abs(native.lips_l_corner_stretch-.04)<.000001)
-    assert(math.abs(native.lips_r_corner_stretch-.02)<.000001)
+    assert(math.abs(native.lips_l_stretch-.07)<.000001)
+    assert(math.abs(native.lips_l_corner_stretch-.1725)<.000001)
+    assert(math.abs(native.lips_r_corner_stretch-.115)<.000001)
     assert(math.abs(native.lips_suck_dn-.06)<.000001)
     assert(native.lips_l_upper_raise==0 and native.lips_r_upper_raise==0)
     assert(face.generation==context.generation and face.requestId==context.requestId)

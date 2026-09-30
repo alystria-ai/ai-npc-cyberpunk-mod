@@ -40,11 +40,11 @@ test('provider stretch reaches the native mouth corners and lower roll keeps its
   const input = {faces, facesFormat: 'arkit61', facesTimebase: 'audio-seconds',
     audio: wav.toString('base64')}, before = structuredClone(input);
   const line = buildFacialTimeline(input, owner);
-  assert.equal(line.articulation, 'arkit61-native-v5');
-  assert.equal(weight(line, 12, 'lips_l_stretch'), .036);
-  assert.equal(weight(line, 12, 'lips_r_stretch'), .06);
-  assert.equal(weight(line, 12, 'lips_l_corner_stretch'), .024);
-  assert.equal(weight(line, 12, 'lips_r_corner_stretch'), .04);
+  assert.equal(line.articulation, 'arkit61-native-v6');
+  assert.equal(weight(line, 12, 'lips_l_stretch'), .042);
+  assert.equal(weight(line, 12, 'lips_r_stretch'), .07);
+  assert.equal(weight(line, 12, 'lips_l_corner_stretch'), .1294);
+  assert.equal(weight(line, 12, 'lips_r_corner_stretch'), .1725);
   assert.equal(weight(line, 12, 'lips_suck_dn'), .12);
   assert.equal(weight(line, 12, 'lips_l_upper_raise'), 0);
   assert.equal(weight(line, 12, 'lips_r_upper_raise'), 0);
@@ -84,6 +84,35 @@ test('source-specific corner and roll mapping survives growing prefixes without 
   assert.deepEqual({...input}, before);
 });
 
+test('round and wide source shapes have readable independent contrast within the rendered native endpoints', () => {
+  const make = (funnel, purse, stretch) => {
+    const pose = values(.2); pose[19]=funnel; pose[20]=purse; pose[29]=stretch; pose[30]=stretch;
+    return buildProviderFacialTimeline({duration:1,complete:false,facesFormat:'arkit61',facesTimebase:'audio-seconds',
+      faces:Array.from({length:61},(_,frame)=>({at:frame/60,values:[...pose]}))},owner);
+  };
+  const baseline=make(0,0,0),round=make(.5,.5,0),wide=make(0,0,.5),maximum=make(1,1,1);
+  for(const line of [round,wide,maximum]){
+    assert.equal(weight(line,12,'jaw_mid_open'),weight(baseline,12,'jaw_mid_open'));
+    assert.equal(weight(line,12,'lips_apart_up'),weight(baseline,12,'lips_apart_up'));
+    assert.equal(weight(line,12,'lips_apart_dn'),weight(baseline,12,'lips_apart_dn'));
+    assert.equal(weight(line,12,'lips_l_upper_raise'),0);
+    assert.equal(weight(line,12,'lips_r_upper_raise'),0);
+  }
+  assert(weight(round,12,'lips_l_funnel')>.24);
+  assert(weight(round,12,'lips_l_purse')>.20);
+  assert.equal(weight(round,12,'lips_l_corner_stretch'),0);
+  assert(weight(wide,12,'lips_l_corner_stretch')>.15);
+  assert.equal(weight(wide,12,'lips_l_funnel'),0);
+  assert.equal(weight(wide,12,'lips_l_purse'),0);
+  for(const [track,ceiling] of Object.entries({lips_l_funnel:.32,lips_l_purse:.28,
+    lips_l_corner_stretch:.23,lips_l_stretch:.14})){
+    assert.equal(weight(baseline,12,track),0);
+    assert.equal(weight(maximum,12,track),ceiling);
+    const motion=[0,.01,.05,.1,.25,.5,1].map(value=>weight(make(value,value,value),12,track));
+    for(let index=1;index<motion.length;index++)assert(motion[index]>motion[index-1]);
+  }
+});
+
 test('provider native retarget keeps bounded independent weights without changing jaw, aperture, or closure calibration', () => {
   for (const amount of [-10, 0, .1, .5, 1, 10]) {
     const pose = values(.25); pose[18] = .3; pose[19] = .4; pose[20] = .2;
@@ -94,8 +123,8 @@ test('provider native retarget keeps bounded independent weights without changin
     const baseline = make(pose);
     pose[29] = amount; pose[30] = amount; pose[31] = amount;
     const changed = make(pose), bounded = Math.max(0, Math.min(1, amount));
-    assert.equal(weight(changed, 12, 'lips_l_stretch'), Math.round(.12 * bounded * 10000) / 10000);
-    assert.equal(weight(changed, 12, 'lips_l_corner_stretch'), Math.round(.08 * bounded * 10000) / 10000);
+    assert.equal(weight(changed, 12, 'lips_l_stretch'), Math.round(.14 * bounded * 10000) / 10000);
+    assert.equal(weight(changed, 12, 'lips_l_corner_stretch'), Math.round(.23 * (3 * bounded / (1 + 2 * bounded)) * 10000) / 10000);
     assert.equal(weight(changed, 12, 'lips_suck_dn'), Math.round(.20 * bounded * 10000) / 10000);
     for (const track of changed.tracks.filter(track => !/stretch/.test(track) && track !== 'lips_suck_dn')) {
       assert.deepEqual(changed.frames.map((_, sample) => weight(changed, sample, track)),
@@ -117,7 +146,7 @@ test('60 Hz provider poses preserve a single-frame jaw and pucker peak at its or
   assert.equal(line.frames.length, 61);
   assert.equal(line.frames[7][0], 7 / 60);
   assert.equal(weight(line, 7, 'jaw_mid_open'), .3636);
-  assert.equal(weight(line, 7, 'lips_l_purse'), .224);
+  assert.equal(weight(line, 7, 'lips_l_purse'), .2635);
   assert.equal(weight(line, 6, 'jaw_mid_open'), 0);
   assert.equal(weight(line, 8, 'jaw_mid_open'), 0);
   assert.equal(line.frames.at(-1)[0], 1);
@@ -163,7 +192,7 @@ test('continuous provider timelines accept ahead-delivered faces without reading
   assert.equal(line.entity, owner.entity);
   assert.equal(line.generation, owner.generation);
   assert.equal(line.source, 'convai-arkit61');
-  assert.equal(line.articulation, 'arkit61-native-v5');
+  assert.equal(line.articulation, 'arkit61-native-v6');
   assert.equal(line.continuous, true);
   assert.equal(line.complete, false);
   assert.equal(line.duration, .513);
@@ -312,10 +341,10 @@ test('ARKIT-61 mouth controls follow the actual order, preserve provider rest an
   const line = buildFacialTimeline({audio: wav.toString('base64'), faces,
     facesFormat: 'arkit61', facesTimebase: 'audio-seconds'}, owner);
   assert.equal(line.source, 'convai-arkit61'); assert.deepEqual(wav, before);
-  assert.equal(line.articulation, 'arkit61-native-v5');
+  assert.equal(line.articulation, 'arkit61-native-v6');
   assert.equal(weight(line, 6, 'jaw_mid_open'), 0.3902);
-  assert.equal(weight(line, 6, 'lips_l_funnel'), 0.18);
-  assert.equal(weight(line, 6, 'lips_l_purse'), 0.112);
+  assert.equal(weight(line, 6, 'lips_l_funnel'), 0.2743);
+  assert.equal(weight(line, 6, 'lips_l_purse'), 0.2036);
   assert.ok(line.frames[22].slice(1).every(x => x === 0));
   assert.equal(weight(line, 36, 'jaw_mid_open'), 0);
   assert.equal(weight(line, 36, 'lips_together_up'), 0.2);
@@ -370,8 +399,8 @@ test('the fixed native k10 jaw shoulder does not normalize its weak pose to each
   const complete = buildFacialTimeline({...input, audio: capturedWav.toString('base64')}, owner);
   assert.equal(weight(complete, 30, 'jaw_mid_open'), .1034);
   assert.equal(weight(complete, 30, 'lips_together_up'), .05);
-  assert.equal(weight(complete, 30, 'lips_l_corner_stretch'), .048);
-  assert.equal(weight(complete, 30, 'lips_r_corner_stretch'), .024);
+  assert.equal(weight(complete, 30, 'lips_l_corner_stretch'), .1882);
+  assert.equal(weight(complete, 30, 'lips_r_corner_stretch'), .1294);
   assert.equal(weight(complete, 30, 'lips_suck_dn'), .04);
   assert.equal(weight(complete, 30, 'lips_l_upper_raise'), 0);
   assert.equal(weight(complete, 30, 'lips_r_upper_raise'), 0);
@@ -410,10 +439,10 @@ test('Convai aperture calibration keeps upper-lip caps and unrelated articulatio
   assert.deepEqual(judy.frames, johnny.frames); // No per-speaker or per-file peak normalization.
   assert.equal(weight(judy, 6, 'lips_apart_up'), .041);
   assert.equal(weight(judy, 6, 'lips_apart_dn'), .0848);
-  for (const [track, expected] of Object.entries({lips_l_funnel: .18, lips_r_funnel: .18,
-    lips_l_purse: .112, lips_r_purse: .112, lips_l_stretch: .036, lips_r_stretch: .06,
+  for (const [track, expected] of Object.entries({lips_l_funnel: .2743, lips_r_funnel: .2743,
+    lips_l_purse: .2036, lips_r_purse: .2036, lips_l_stretch: .042, lips_r_stretch: .07,
     lips_l_upper_raise: 0, lips_r_upper_raise: 0, tongue_mid_tip_up: 0,
-    lips_l_corner_stretch: .024, lips_r_corner_stretch: .04})) assert.equal(weight(judy, 6, track), expected);
+    lips_l_corner_stretch: .1294, lips_r_corner_stretch: .1725})) assert.equal(weight(judy, 6, track), expected);
   for (const amount of [-100, 0, .05, .25, .8, 1, 100]) {
     const saturated = {...input, faces: input.faces.map(frame => ({at: frame.at,
       values: frame.values.map((value, index) => [17, 37, 38, 39, 40].includes(index) ? amount : value)}))};

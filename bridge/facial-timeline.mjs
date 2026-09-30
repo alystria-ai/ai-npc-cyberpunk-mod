@@ -85,27 +85,31 @@ function facialFps(source) {
 // rotation on Judy/Johnny. A fixed k10 shoulder expands those small/mid poses:
 // zero remains zero, and identical source poses stay identical across replies
 // and prefixes. The .40 ceiling is unchanged. CPU replay's peak remained below
-// the previously accepted .348 jaw probe; this still needs visual acceptance.
+// the previously accepted .348 jaw probe; the user accepted this opening range.
 // Aperture limits and the distortion-prone individual upper raisers stay put.
 // See docs/NATIVE_FACIAL_RETARGET_CALIBRATION.md for calibration and limits.
 const opening = (value, lift) => value + lift * value * (1 - value);
+const shapeResponse = (value, drive) => drive * value / (1 + (drive - 1) * value);
 function mapArkit(v) {
   const a = index => clamp(v[index]);
   const closed = a(18), seal = 1 - closed, jaw = a(17), open = jaw * seal;
   // ARKit MouthStretch describes the mouth corner. Judy's native "stretch"
   // primarily shapes the inner/lower lip; corner_stretch moves the actual
-  // corner. Share the previous .20 budget across both native shapes instead of
-  // discarding that distinction. MouthRollLower rolls the lip inward, matching
-  // the native suck_dn pose. These are source-driven, not invented idle poses.
-  // See docs/NATIVE_FACIAL_RETARGET_CALIBRATION.md for the actual rig evidence.
-  const articulation = {lips_l_corner_stretch: .08 * a(29), lips_r_corner_stretch: .08 * a(30),
+  // corner. The steady-jaw in-game comparison visibly resolved .23 corner /
+  // .14 inner stretch, and .32 funnel / .28 purse. Fixed shoulders make the
+  // provider's small/mid lip signals readable within those tested endpoints.
+  // Zero remains neutral; pose strength never depends on another frame/reply.
+  // MouthRollLower keeps its source-driven inward lip pose.
+  const articulation = {lips_l_corner_stretch: .23 * shapeResponse(a(29), 3),
+    lips_r_corner_stretch: .23 * shapeResponse(a(30), 3),
     lips_suck_dn: .20 * a(31)};
   return [0.40 * (10 * jaw / (1 + 9 * jaw)) * seal,
     0.12 * opening(Math.max(open, (a(39) + a(40)) / 2), .20) * seal,
     0.16 * opening(Math.max(open, (a(37) + a(38)) / 2), .12) * seal,
     0.20 * closed, 0.20 * closed,
-    0.30 * a(19), 0.30 * a(19), 0.28 * a(20), 0.28 * a(20),
-    0.12 * a(29), 0.12 * a(30), ...PHONETIC_TRACKS.map(track => articulation[track] ?? 0)];
+    .32 * shapeResponse(a(19), 4), .32 * shapeResponse(a(19), 4),
+    .28 * shapeResponse(a(20), 4), .28 * shapeResponse(a(20), 4),
+    .14 * a(29), .14 * a(30), ...PHONETIC_TRACKS.map(track => articulation[track] ?? 0)];
 }
 
 function renderTimeline({owner, duration, segment, source, cues, envelope = [], first, last, sampleRate}) {
@@ -155,7 +159,7 @@ function renderTimeline({owner, duration, segment, source, cues, envelope = [], 
   frames.push([duration, ...poseAt(duration)]);
   return {version: 1, requestId: owner.requestId, entity: owner.entity, duration,
     source: source ? 'convai-arkit61' : cues ? 'local-phonetic' : 'audio-envelope',
-    articulation: source ? 'arkit61-native-v5' : cues ? 'coarticulated-v4' : undefined,
+    articulation: source ? 'arkit61-native-v6' : cues ? 'coarticulated-v4' : undefined,
     ...(segment ? {segment} : {}), tracks: [...SPEECH_TRACKS], frames};
 }
 

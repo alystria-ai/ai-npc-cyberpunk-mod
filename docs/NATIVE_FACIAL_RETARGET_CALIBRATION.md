@@ -1,8 +1,62 @@
 # Native facial retarget calibration
 
-September 30, 2026. This is a source and CPU rig inspection. The live v4
-comparison still had weak opening. The v5 opening comparison below is prepared
-in source and has not been activated or accepted visually in the game.
+## October 1: rendered shape contrast
+
+The user accepted v5's jaw opening and the smoothness after the browser snapshot
+fix, but described normal speech as mostly up/down jaw movement. They changed
+LOD from Low to High; the saved `LODPreset` was independently confirmed as High.
+
+Direct game-window capture now provides rendered evidence. With jaw held at
+0.14, funnel 0.32/purse 0.28 visibly round Judy's lips, while corner stretch
+0.23/inner stretch 0.14 visibly widen them. The complete seven-and-a-half-second
+test returned to neutral. These channels work on the running High-LOD rig;
+this does not establish what the earlier Low setting rendered.
+
+The normal v5 speech capture shows much weaker lip contrast. The v6 comparison
+keeps the accepted jaw curve and uses fixed shoulders for the existing lip
+signals, bounded by the endpoints just rendered:
+
+| Source | v6 native response |
+| --- | --- |
+| Funnel | `0.32 * (4*x / (1+3*x))` to each native funnel |
+| Pucker | `0.28 * (4*x / (1+3*x))` to each native purse |
+| Left/right stretch | `0.23 * (3*x / (1+2*x))` to the corresponding corner, plus `0.14*x` inner stretch |
+
+Zero still means zero; one frame's calibration is independent of the rest of the
+reply. Jaw, closure, aperture, lower roll, timing, local Omni articulation and
+the zeroed individual upper raisers are preserved.
+
+An independent replay of all 445 retained source frames on Judy/Johnny found
+finite geometry and an exactly unchanged jaw. Median lip-shape contribution
+increases from 0.74 to 2.34 mm on Judy and 0.90 to 2.88 mm on Johnny in local
+bone space. Across the capture, it stays below 76.3 percent of the larger
+context-matched rounded/wide probe's translation and 72.5 percent of its rotation.
+Native influences do not erase these injected signals. These are bounded
+geometry results, not acceptance of the new spoken animation.
+
+Seventy-five focused source checks pass, including original producer-to-Lua
+field delivery, independent constant-jaw round/wide inputs, bounds, source
+immutability, 60 Hz timing, reset and native probe lifecycle. The fresh v6
+speech rendering remains the acceptance gate.
+
+Ignored evidence:
+
+- `runtime/articulation-images-20261001-001511`: complete native pose capture,
+  original PNGs, phase metadata and an enlarged inspection contact sheet.
+- `runtime/speech-images-high-lod-20261001-002049`: partial normal v5 speech
+  capture. Its trigger missed the opening portion; do not describe it as a full
+  reply recording.
+- `runtime/lip-contrast-geometry-20261001/FINDINGS.md`: reproducible two-rig CPU
+  comparison and limitations.
+- `runtime/lip-contrast-v6-tests-20261001.log`.
+
+See [game window capture](GAME_WINDOW_CAPTURE.md) for the direct HWND tool and
+the multi-monitor capture limitation found during this check.
+
+## Earlier calibration record
+
+The following September 30 sections record the earlier v4/v5 source and CPU
+checks. Subsequent rendered results are stated above.
 
 ## What the provider and rig actually represent
 
