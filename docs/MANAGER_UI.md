@@ -61,6 +61,27 @@ dismissal actions describe their queued work instead of the stock "Completed"
 text. Other providers and failure messages retain MCM's ordinary rendering.
 No MCM source or saved preferences are modified.
 
+## Uniform settings labels — September 30
+
+Companion Manager uses one left edge and MCM's default red label colour
+(`MainColors.Red`) across section names, actions, read-only rows, toggles and selectors.
+Section names remain in the schema for organization and searching; their native
+presentation is a plain read-only row. Controls, selected/disabled values, hover
+feedback and unsaved-change markers keep their native behaviour.
+
+The differing indentation came from the installed renderer: managed controls
+reserve a marker gutter and start their text at 48 units, actions start at 20,
+and read-only rows add a list-label inset inside a surface at 20. The adapter
+normalizes only its own rendered rows to 20 units, preserves the label's right
+edge, and keeps draft markers in the outer gutter. Resting labels bind to the
+native red token; MCM's global theme is not modified. All hooks are scoped
+to the active Companion Manager surface and reset for the next page.
+
+The row-lifecycle harness covers the different native row shapes, repeated
+hover/restyling, draft markers, theme changes and leaving other providers alone.
+This checks the adapter and scoping; visual acceptance still requires opening
+the installed manager in game after CET reload.
+
 The existing native voice/subtitle and legacy enabled flags remain compatible.
 No new redscript is required: **CET Reload All Mods** activates the adapter with
 the installed dependencies. The separate dry-emitter change remains staged.

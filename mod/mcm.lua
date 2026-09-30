@@ -9,6 +9,7 @@ local actions, hooksInstalled, refreshQueued = {}, false, false
 local owner, lastSignature, pollAt, searchFrames, snapshotAt = nil, '', 0, 0, 0
 local lastError = ''
 local actionFeedback, memoryActionCommand
+local presentation = {active = false, rows = {}}
 local log = function(message)
     local file = io.open('runtime/mcm.log', 'a')
     if file then file:write(os.date('!%Y-%m-%dT%H:%M:%SZ'), ' ', message, '\n'); file:close() end
@@ -30,6 +31,74 @@ local function active()
     if not api then return false end
     local ok, data = pcall(api.getDiagnostics)
     return ok and data and data.activeModKey == MOD_KEY
+end
+
+local function findWidget(root, name, depth)
+    if not root then return nil end
+    if root:GetName() == CName.new(name) then return root end
+    if depth <= 0 then return nil end
+    local compound, count = pcall(function() return root:GetNumChildren() end)
+    if compound then
+        for index = 0, count - 1 do
+            local found = findWidget(root:GetWidgetByIndex(index), name, depth - 1)
+            if found then return found end
+        end
+    end
+end
+
+local function contentWidgets(controller)
+    -- Native ink wrappers do not reliably expose private redscript fields.
+    -- The content canvas and row names are emitted by MCM's native renderer.
+    return findWidget(controller:GetRootWidget(), 'mcm_content_scroll_content', 18)
+end
+
+local function alignLabel(widget, left)
+    if not widget then return end
+    local margin = widget:GetMargin()
+    local extra = margin.left - left
+    if extra == 0 then return end
+    margin.left = left
+    widget:SetMargin(margin)
+    widget:SetWidth(widget:GetWidth() + extra)
+end
+
+local function redLabel(widget)
+    -- The requested resting colour is MCM's default red label token, even if
+    -- another row or a customized framework theme currently has a cyan tint.
+    if widget then widget:BindProperty(CName.new('tintColor'), CName.new('MainColors.Red')) end
+end
+
+local function styleRow(controller, id, kind)
+    if not presentation.active or not active() then return end
+    local content = contentWidgets(controller)
+    if not content then return end
+    presentation.rows[id] = kind
+    if kind == 'managed' then
+        local label = findWidget(content, id .. '_managed_label', 1)
+        local marker = findWidget(content, id .. '_managed_marker', 1)
+        alignLabel(label, 20)
+        redLabel(label)
+        if marker then
+            -- Keep the draft marker, without reserving a different text column
+            -- for editable controls. The marker occupies the outer gutter.
+            alignLabel(marker, 0)
+            marker:SetWidth(12)
+        end
+    else
+        local label
+        if kind == 'action' then label = findWidget(content, id .. '_label', 1)
+        else
+            local surface = findWidget(content, 'mcm_action_' .. id, 1)
+            label = surface and findWidget(surface, 'label', 1)
+            alignLabel(label, 0)
+        end
+        redLabel(label)
+    end
+end
+
+local function safelyStyleRow(controller, id, kind)
+    local ok, err = pcall(styleRow, controller, id, kind)
+    if not ok then lastError = 'Settings presentation: ' .. tostring(err) end
 end
 
 local function readonly(id, label, value, description)
@@ -306,7 +375,7 @@ local function schema()
                 'Choose a character, review memory status and manage memories from your conversations.',
                 function(context) return navigate('memory', context) end),
             setting('followUpQuestions', 'Follow-up questions', 'bool', snapshot.settings.followUpQuestions, false,
-                'Characters may ask a brief, relevant follow-up in ordinary conversations. In a group, only the final speaker may ask. When off, characters answer without inviting another turn. Automatic reactions never start a question.'),
+                'Characters answer, then ask one brief, relevant question in ordinary conversations. They omit it when you say goodbye, ask for no questions or request an exact fixed reply. In a group, only the final speaker asks. When off, characters answer without inviting another turn. Automatic reactions never ask questions.'),
         })
         local voiceLabels = {ready = 'Ready', loading = 'Loading', warming = 'Preparing voices', speaking = 'Preparing a reply',
             error = 'Unavailable', waiting = 'Waiting for voice service', disabled = 'Not configured', stopped = 'Stopped',
@@ -421,12 +490,48 @@ function M.install()
     Override('SettingsMainGameController', 'McmUiBegin', function(controller,
         title, subtitle, sidebarTitle, contentTitle, status, statusKind, transientOwner,
         showSidebarSearch, showContentSearch, listSelectionMode, wrapped)
+        presentation = {active = contentTitle == LABEL and active(), rows = {}}
         if contentTitle == LABEL and active() and actionFeedback
             and tostring(status):sub(1, 10) == 'Completed:' then
             status, statusKind = actionFeedback, 0
         end
         return wrapped(title, subtitle, sidebarTitle, contentTitle, status, statusKind,
             transientOwner, showSidebarSearch, showContentSearch, listSelectionMode)
+    end)
+    -- MCM uses separate layouts for actions, read-only rows and managed
+    -- controls. Its stock category template also has a different colour.
+    -- Keep our section names and native interactions, but use one label column
+    -- and ordinary label style throughout our page. No framework files or
+    -- other mods' settings are changed.
+    Override('SettingsMainGameController', 'McmUiAddCategory', function(controller,
+        id, label, description, frameworkId, wrapped)
+        if presentation.active and active() then
+            return controller:McmUiAddReadonly(id, label, description, '')
+        end
+        return wrapped(id, label, description, frameworkId)
+    end)
+    ObserveAfter('SettingsMainGameController', 'McmUiAddReadonly', function(controller, id)
+        safelyStyleRow(controller, id, 'readonly')
+    end)
+    ObserveAfter('SettingsMainGameController', 'McmUiAddActionSetting', function(controller, id)
+        safelyStyleRow(controller, id, 'action')
+    end)
+    for _, method in ipairs({'McmUiAddBool', 'McmUiBeginSelect'}) do
+        ObserveAfter('SettingsMainGameController', method, function(controller, id)
+            safelyStyleRow(controller, id, 'managed')
+        end)
+    end
+    ObserveAfter('SettingsMainGameController', 'McmUiSetManagedLabelState', function(controller, id, hovered)
+        -- Native hover remains visible. After leaving a changed row, only its
+        -- draft marker carries the modified state; label text stays uniform.
+        if not hovered and presentation.rows[id] == 'managed' then
+            safelyStyleRow(controller, id, 'managed')
+        end
+    end)
+    ObserveAfter('SettingsMainGameController', 'McmUiEmitHover', function(controller, id, _, hovered)
+        if not hovered and presentation.rows[id] == 'readonly' then
+            safelyStyleRow(controller, id, 'readonly')
+        end
     end)
     Observe('SettingsMainGameController', 'McmUiEmitSearch', function(_, context, value)
         if context == 'content' and (view == 'models' or view == 'memory-characters') and active() then
@@ -521,6 +626,7 @@ function M.shutdown()
     entry.reset()
     if api then pcall(api.providers.unregisterProvider, PROVIDER, provider.registrationKey) end
     api = nil
+    presentation = {active = false, rows = {}}
 end
 
 return M
