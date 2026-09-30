@@ -224,6 +224,28 @@ Ninety-three combined focused checks pass for the opening candidate and passive
 probe, including the actual producer-to-Lua seam. Their activation and fresh
 visual/cadence result remain separate; do not replace those with the CPU result.
 
+The user then clarified that v5 opens sufficiently; the remaining complaint is
+wooden, mostly up/down motion. Preserve that opening range. The first passive
+capture isolates a temporal delivery problem: 222 captured updates, 206 sync
+calls, 43 applications and only 25 publication changes over a 6.8-second voice.
+Median game delta is 33 ms, but median publication gap is 317 ms. No autosave
+pause was involved. The report's 61.736-second elapsed total includes its armed
+wait; the captured speech rows span 7.78 seconds and must be used separately.
+
+A provider-free GPU-disabled browser experiment reproduces the bottleneck:
+Playwright recursively transfers all 481 × 61 facial coefficients on every
+snapshot. Passing the identical snapshot as JSON through the actual host helper
+reduces median transfer from 315 ms to 13 ms, with exact data equality. The
+implemented correction retains all ownership guards and the existing schedule;
+its 32 MiB UTF-8 limit does not expand the utterance or shape admission limits.
+Sixty focused checks passed, including the real browser/host seam; a subsequent
+14-test host gate includes explicit UTF-8 size validation. Live activation and
+fresh visible/temporal acceptance remain pending.
+
+Ignored evidence: `runtime/live-facial-cadence-capture-20260930.json`,
+`runtime/snapshot-serialization-comparison-20260930.json`,
+`runtime/snapshot-host-boundary-20260930-tests.log`.
+
 ### Repeatable steps
 
 1. Inspect Judy's actual rig and facial setup, including influence suppression

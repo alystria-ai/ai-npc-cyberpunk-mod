@@ -1,7 +1,8 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {runInNewContext} from 'node:vm';
-import {RealtimeHost} from './realtime-host.mjs';
+import {RealtimeHost, continuousSnapshotForHost, CONTINUOUS_SNAPSHOT_JSON_LIMIT} from './realtime-host.mjs';
+import {ConvaiContinuousSpeech} from './convai-continuous-speech.mjs';
 import {TransportPool} from './transport-pool.mjs';
 
 const config = {key: 'offline-test-key', characterId: 'judy', endUserId: 'offline-player',
@@ -21,6 +22,57 @@ async function until(predicate, message, timeout = 1500) {
   }
 }
 const playbackControl = {allow: true, paused: false, volume: 0.75, pan: -0.2};
+
+test('snapshot transport returns one JSON string and preserves the public numeric object exactly', async () => {
+  const snapshot={version:1,token:'offline',positionSeconds:.12345678912345678,
+    faces:[{at:1/60,values:Array.from({length:61},(_,index)=>index/100)}],
+    state:'playing',ended:false,text:'Offline test',error:null};
+  let serialized;
+  const page={evaluate:async(fn,payload)=>{
+    assert.equal(payload,'offline');
+    serialized=runInNewContext(`(${fn.toString()})(payload)`,{
+      window:{convaiRealtime:{continuousSnapshot:()=>snapshot}},payload});
+    assert.equal(typeof serialized,'string','large facial values must bypass the recursive object serializer');
+    return serialized;
+  }};
+  assert.deepEqual(await continuousSnapshotForHost(page,'offline'),snapshot);
+});
+
+test('absent continuous snapshots remain absent through JSON transport',async()=>{
+  for(const raw of [undefined,null,'null'])
+    assert.equal(await continuousSnapshotForHost({evaluate:async()=>raw},'offline'),null);
+});
+
+test('corrupted, oversized and non-object snapshot responses fail without exposing their contents',async()=>{
+  for(const raw of ['{"private":"not diagnostic data"',123,{},'123','[]',
+    'x'.repeat(CONTINUOUS_SNAPSHOT_JSON_LIMIT+1)]){
+    await assert.rejects(continuousSnapshotForHost({evaluate:async()=>raw},'offline'),error=>{
+      assert.match(error.message,/Invalid continuous browser snapshot/);
+      assert(!error.message.includes('private')&&!error.message.includes('diagnostic data'));
+      return true;
+    });
+  }
+});
+
+test('JSON decoding cannot bypass downstream finite device-clock validation',async()=>{
+  const input={requestId:'offline',entity:'offline',generation:1};
+  let writes=0;
+  const producer=new ConvaiContinuousSpeech({input,profile:{key:'offline'},token:'offline',current:async()=>true,
+    readControl:async()=>'',writeState:async()=>{writes++;return true;},writeReply:async()=>true});
+  const value={version:1,token:'offline',sampleRate:24000,channels:1,receivedFrames:12000,
+    positionSeconds:NaN,text:'Offline',textComplete:false,sourceComplete:false,ended:false,underruns:0,state:'playing'};
+  const decoded=await continuousSnapshotForHost({evaluate:async()=>JSON.stringify(value)},'offline');
+  assert.equal(decoded.positionSeconds,null);
+  await assert.rejects(producer.frame(decoded),/Invalid continuous speech state/);
+  assert.equal(writes,0);
+});
+
+test('snapshot size ceiling counts UTF-8 bytes rather than only string characters',async()=>{
+  const raw=JSON.stringify('中'.repeat(Math.floor(CONTINUOUS_SNAPSHOT_JSON_LIMIT/3)+1));
+  assert(raw.length<CONTINUOUS_SNAPSHOT_JSON_LIMIT);
+  await assert.rejects(continuousSnapshotForHost({evaluate:async()=>raw},'offline'),
+    /Invalid continuous browser snapshot size/);
+});
 
 // Run the real host and lease pool against independent fake browser windows.
 // No browser startup, provider request, real microphone permission, or audio
@@ -119,6 +171,19 @@ test('continuous reply uses the exact host token and stays leased until playback
   const calls = page.controls.length;
   await sleep(90);
   assert.equal(page.controls.length, calls, 'the control pump stops at playback completion');
+});
+
+test('a foreign decoded snapshot never reaches the frame callback or playback control', {timeout:4000},async t=>{
+  const {host,pages,track}=fixture(t);
+  let callbacks=0;
+  const pending=track(host.reply(config,{liveSpeech:{token:'owned',onFrame:async()=>{
+    callbacks++;return playbackControl;
+  }}}));
+  await until(()=>pages[0]?.activeToken,'reply did not begin');
+  const page=pages[0];
+  page.window.convaiRealtime.continuousSnapshot=()=>({token:'foreign',state:'playing',position:.2});
+  await sleep(100);page.finish();await pending;
+  assert.equal(callbacks,0);assert.equal(page.controls.length,0);
 });
 
 test('slow frame callbacks are serialized and cannot accumulate control writes', {timeout: 4000}, async t => {

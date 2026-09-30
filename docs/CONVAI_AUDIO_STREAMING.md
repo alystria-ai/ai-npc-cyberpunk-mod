@@ -58,6 +58,27 @@ calibrated against Judy/Johnny geometry and the accepted native probe, with the
 same zero, closure and maximum. Source-frame correctness
 is not visual acceptance. See [the native lip-sync deep dive](LIPSYNC_DEEP_DIVE_2026-09-30.md).
 
+### Browser snapshot transport
+
+The same public continuous snapshot crosses Playwright as one bounded JSON
+string, then is parsed in the host. Returning every pose/number as a nested
+object caused a large recursive-serialization cost. A paired GPU-disabled
+browser test with 481 poses × 61 channels measured about 315 ms median for
+the old transfer versus 13 ms through the new host helper, with exact data
+equality. These are local transport measurements, not Convai inference speed.
+
+The encoded response is limited to 32 MiB in UTF-8 before parsing; ordinary
+utterance, coefficient, token, generation, current-input and audible-drain
+validation is unchanged. All asynchronous/synchronous ownership guards remain.
+The existing 40 ms poll schedule is retained for this isolated correction.
+Final collected reply serialization remains a separate one-time cost.
+
+The passive game capture preceding this correction recorded 25 publication
+changes over a 6.8-second source, with median update gaps around 317 ms. It
+contained 206 face-sync calls but only 43 applications, despite game delta
+around 33 ms. No autosave pause was observed. The fast transport still needs
+an actual post-activation cadence and speaking-face check.
+
 ### Research and development method
 
 The official [data-channel documentation](https://github.com/Conv-AI/Convai-Documentation/blob/main/api-reference/core-api-reference/live-apis-beta/audio-data-via-data-channel.md)

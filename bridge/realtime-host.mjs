@@ -9,6 +9,32 @@ const pageKey = transportKey;
 // The documentation's example uses live.convai.com; do not redirect the SDK.
 const CONVAI_CONNECT_URL = 'https://realtime-api.convai.com/connect';
 
+// Source facial messages allow 120 seconds at 120 Hz, with 61 finite numbers
+// per pose. Even 24-character JSON numbers fit below 24 MiB at that ceiling;
+// 32 MiB leaves room for pose timestamps, metadata and bounded reply text.
+// This is a transport ceiling, not a larger utterance/facial admission limit.
+export const CONTINUOUS_SNAPSHOT_JSON_LIMIT = 32 * 1024 * 1024;
+
+export async function continuousSnapshotForHost(page, token, signal) {
+  // Playwright recursively encodes every number in a returned object. Passing
+  // the existing public snapshot as one JSON string avoids that cost without
+  // changing a coefficient, PCM packet, device clock or ownership field.
+  const raw = await abortable(page.evaluate(token => {
+    const value = window.convaiRealtime.continuousSnapshot(token);
+    return value == null ? null : JSON.stringify(value);
+  }, token), signal);
+  if (raw == null) return null;
+  if (typeof raw !== 'string' || raw.length > CONTINUOUS_SNAPSHOT_JSON_LIMIT
+      || Buffer.byteLength(raw, 'utf8') > CONTINUOUS_SNAPSHOT_JSON_LIMIT)
+    throw Error('Invalid continuous browser snapshot size');
+  let value;
+  try { value = JSON.parse(raw); }
+  catch { throw Error('Invalid continuous browser snapshot encoding'); }
+  if (value !== null && (typeof value !== 'object' || Array.isArray(value)))
+    throw Error('Invalid continuous browser snapshot shape');
+  return value;
+}
+
 // SDK 1.7 does not serialize audio_config. Patch only its owned LiveKit connect
 // request, leaving authentication, session and memory fields intact. Source
 // PCM arrives before playback and is passed unchanged to one continuous sink.
@@ -145,7 +171,7 @@ export class RealtimeHost {
     if (signal?.aborted) cancel();
     const check = () => { throwIfCancelled(controller.signal); if (!current()) throw cancelled(); };
     let settled = false;
-    const snapshot = () => abortable(page.evaluate(token => window.convaiRealtime.continuousSnapshot(token), token), controller.signal);
+    const snapshot = () => continuousSnapshotForHost(page, token, controller.signal);
     const request = Promise.resolve().then(() => {
       check();
       return page.evaluate(({config, method}) => window.convaiRealtime[method](config),
