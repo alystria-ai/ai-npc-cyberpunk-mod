@@ -185,6 +185,35 @@ test('upper-roll probe compares independent depth motion and its contact interac
   assert(report.state=='interrupted' and report.restored and resets==2)
 `));
 
+test('lower-lip directional probe separates aperture, each half, paired motion and neutral reset',()=>run(`
+  probe.start('judy-alvarez','lower')
+  for i=1,580 do convaiSpeech.update(1/60) end
+  assert(report.state=='completed' and report.restored and report.duration==9.5 and resets==1)
+  local seen={}
+  for _,sample in ipairs(report.samples) do
+    seen[sample.phase]=true
+    for _,value in pairs(sample.controls) do assert(value==value and value>=0 and value<=.14) end
+    if sample.at>.4 and sample.at<7.9 then assert(sample.jaw==.14) end
+    if sample.phase=='aperture' and sample.at>1.6 then
+      assert(sample.controls.lips_apart_dn==.12 and sample.controls.lips_l_lower_raise==0)
+    elseif sample.phase=='small-lower' and sample.at>2.9 then
+      assert(sample.controls.lips_l_lower_raise==.06 and sample.controls.lips_r_lower_raise==.06)
+    elseif sample.phase=='left-lower' and sample.at>4.2 then
+      assert(sample.controls.lips_l_lower_raise==.12 and sample.controls.lips_r_lower_raise==0)
+    elseif sample.phase=='right-lower' and sample.at>5.5 then
+      assert(sample.controls.lips_r_lower_raise==.12 and sample.controls.lips_l_lower_raise==0)
+    elseif sample.phase=='both-lower' and sample.at>6.8 then
+      assert(sample.controls.lips_l_lower_raise==.12 and sample.controls.lips_r_lower_raise==.12)
+    end
+  end
+  assert(seen.baseline and seen.aperture and seen['small-lower'] and seen['left-lower']
+    and seen['right-lower'] and seen['both-lower'] and seen.neutral)
+  for _,value in pairs(frames[#frames]) do assert(value==0) end
+  assert(convaiSpeech.update==originalUpdate and not probe.active)
+  probe.start('judy-alvarez','lower');convaiSpeech.requestId='new-real-speech';convaiSpeech.update(.1)
+  assert(report.state=='interrupted' and report.restored and resets==2)
+`));
+
 test('articulation rejects unsupported ownership or readiness, and resets before incoming speech applies',()=>run(`
   owned=false; assert(not pcall(probe.start,'judy-alvarez','articulation') and #frames==0)
   owned=true; ready=false; assert(not pcall(probe.start,'judy-alvarez','articulation') and #frames==0)
@@ -265,6 +294,12 @@ test('actual diagnostics routes the articulation trigger and cancellation withou
   diagnose(); assert(probe.active and report.mode=='articulation' and report.duration==7.5)
   request='party-face-articulation:cancel:bounded-test'; diagnose()
   assert(report.state=='cancelled' and resets==1 and not probe.active)
+  for _,mode in ipairs({'roll','lower'}) do
+    request='party-face-'..mode..':judy-alvarez:bounded-test';diagnose()
+    assert(probe.active and report.mode==mode)
+    request='party-face-'..mode..':cancel:bounded-test';diagnose()
+    assert(report.state=='cancelled' and not probe.active)
+  end
   request='party-face-probe:judy-alvarez:old-test'; diagnose()
   assert(probe.active and report.mode=='jaw' and report.duration==5)
   probe.stop('cancelled')

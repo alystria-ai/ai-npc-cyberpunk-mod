@@ -56,9 +56,9 @@ Each frame retains its actual capture timestamp and crop coordinates.
 Fixed sampling buckets replace the previous relative-to-last-frame throttle,
 which could skip almost every second arrival. Low-compression lossless PNGs of
 the small region avoid the full-screen PNG cost. The first four-second live
-check captured 100 frames at an observed 24.83 FPS, with median38.1 ms/p95 56.6 ms
-gaps (`runtime/capture-cadence-20261001-015556`). Requested30 FPS is not proof of
-actual30 FPS; inspect the manifest and preserve irregular timing in comparisons.
+check captured 100 frames at an observed 24.83 FPS, with median 38.1 ms/p95 56.6 ms
+gaps (`runtime/capture-cadence-20261001-015556`). Requested 30 FPS is not proof of
+actual 30 FPS; inspect the manifest and preserve irregular timing in comparisons.
 
 ## Repeatable local speech comparison
 

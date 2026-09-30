@@ -1,5 +1,42 @@
 # Native facial retarget calibration
 
+## October 1: independent lower-lip motion
+
+The v8 map collapsed provider LowerDownLeft/Right into one aggregate aperture.
+Hierarchy reconstruction on both native rigs resolves the misleading native
+names: paired `lips_*_lower_raise` at 0.12 moves Judy's center lower lip down
+0.662 mm and back 0.489 mm, and Johnny's down 0.694 mm/back 0.534 mm. Native
+`lips_apart_dn` mainly moves it down; `suck_dn` rolls it upward and inward.
+These are different anatomical actions. LowerDown is not inferred to be an
+F/V phoneme or an instruction to press the lip against the upper teeth.
+
+The live directional probe holds jaw 0.14 and upper aperture 0.04, then compares
+lower aperture, paired lower controls at 0.06, each half at 0.12, and both at
+0.12. The full sequence resets. Its 271 captured frames include all stages;
+the lower controls add separation and contour change without obvious distortion
+at this view. Hair, idle motion and limited pixel resolution constrain precise
+surface measurements. No jaw gain or gaze behavior changes in this comparison.
+
+V9 maps each source LowerDown signal independently through
+`0.12 * (2*x/(1+x)) * (1-MouthClose)`. Aggregate lower aperture receives the same
+two-thirds maximum budget reduction used for upper lift, avoiding full stacking
+of the two downward actions. The accepted jaw, closure, upper lift/roll, rounding,
+widening, audio and timing remain unchanged. Existing native fields suffice.
+
+On the 445-frame source, per-side lower motion is median 0.048 and peak 0.1153;
+remaining lower aperture peaks at 0.0537. Against v8, the outer lower lip gains
+up to 0.367 mm down/0.465 mm back on Judy and 0.395/0.531 mm on Johnny. All
+frames and 120 stress combinations per rig are finite with unchanged jaw.
+Ninety-nine focused checks pass, including original source ordering, independent
+left/right signals, closure, untouched audio and actual JS-to-Lua feature values.
+The next gate is the same-source spoken comparison; geometry alone does not
+qualify conversational naturalness.
+
+Ignored evidence: `runtime/lower-lip-direction-20261001/FINDINGS.md`,
+`runtime/lower-lip-images-20261001-020045`, and
+`runtime/lips-v9-tests-20261001.log`. The mouth-close/jaw coupling is a separate
+known semantic issue; it is deliberately preserved for this comparison.
+
 ## October 1: restore upper-lip roll
 
 After the user found v7 "not bad" and requested further improvement, the next
