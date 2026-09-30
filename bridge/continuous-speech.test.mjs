@@ -153,6 +153,7 @@ test('real continuous publisher facial data is accepted by the actual Lua playba
   const faces=Array.from({length:121},(_,index)=>{
     const values=Array(61).fill(0);values[17]=.4;
     values[29]=.5;values[30]=.25;values[31]=.3;
+    values[18]=.25;values[39]=.4;values[40]=.2;
     return {at:index/60,values};
   });
   await publisher.frame({version:1,token,sampleRate:24000,channels:1,receivedFrames:48000,
@@ -169,7 +170,8 @@ test('real continuous publisher facial data is accepted by the actual Lua playba
     assert(math.abs(native.lips_l_corner_stretch-.1725)<.000001)
     assert(math.abs(native.lips_r_corner_stretch-.115)<.000001)
     assert(math.abs(native.lips_suck_dn-.06)<.000001)
-    assert(native.lips_l_upper_raise==0 and native.lips_r_upper_raise==0)
+    assert(math.abs(native.lips_together_up-.68)<.000001 and math.abs(native.lips_together_dn-.68)<.000001)
+    assert(math.abs(native.lips_l_upper_raise-.0257)<.000001 and math.abs(native.lips_r_upper_raise-.015)<.000001)
     assert(face.generation==context.generation and face.requestId==context.requestId)
     speech.stop('cancelled');assert(judy.resets==1 and not face.active)
   `);

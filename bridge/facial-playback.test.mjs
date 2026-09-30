@@ -127,6 +127,21 @@ test('native apply failure and muting clean up once without breaking the speech 
   assert(speech.state=='muted' and not face.active and judy.resets==2)
 `));
 
+test('only native lip-contact tracks admit the calibrated larger range',()=>run(`
+  local c,r=input(judy,'contact')
+  r.face.tracks={'jaw_mid_open','lips_together_up','lips_together_dn'}
+  r.face.frames={{0,0,0,0},{.5,.14,.85,.85},{2,0,0,0}}
+  assert(speech.start(c,r) and face.active)
+  cursor=.5;speech.update(.1)
+  assert(judy.frames[#judy.frames].lips_together_up==.85)
+  speech.stop('cancelled');assert(judy.resets==1)
+  c,r=input(judy,'bad-contact');r.face.tracks={'lips_together_up'}
+  r.face.frames={{0,0},{.5,.8501},{2,0}}
+  assert(speech.start(c,r) and not face.active);speech.stop('cancelled')
+  c,r=input(judy,'bad-jaw');r.face.frames[2][2]=.51
+  assert(speech.start(c,r) and not face.active)
+`));
+
 test('reserved upper lip and active corner controls reach the native feature and clear with the same owner', () => run(`
   local c,r=input(judy,'articulation')
   r.face.source='local-phonetic'; r.face.articulation='coarticulated-v4'

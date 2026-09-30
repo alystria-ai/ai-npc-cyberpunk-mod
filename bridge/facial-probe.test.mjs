@@ -135,7 +135,8 @@ test('detail probe isolates lip lift and seal with a fixed jaw and restores its 
   for _,sample in ipairs(report.samples) do
     seen[sample.phase]=true
     for track,value in pairs(sample.controls) do
-      assert(value==value and value>=0 and value<=.35)
+      local cap=track:match('^lips_together_') and .85 or .35
+      assert(value==value and value>=0 and value<=cap)
       assert(not track:match('eye') and not track:match('head'))
     end
     if sample.at>.4 and sample.at<7.4 then assert(sample.jaw==.14) end
@@ -146,7 +147,7 @@ test('detail probe isolates lip lift and seal with a fixed jaw and restores its 
       assert(sample.controls.lips_l_lower_raise==.08 and sample.controls.lips_suck_dn==.06)
       assert(sample.controls.lips_l_upper_raise==0 and sample.controls.lips_together_up==0)
     elseif sample.phase=='seal' and sample.at>5.8 then
-      assert(sample.controls.lips_together_up==.35 and sample.controls.lips_together_dn==.35)
+      assert(sample.controls.lips_together_up==.85 and sample.controls.lips_together_dn==.85)
       assert(sample.controls.lips_apart_up==0 and sample.controls.lips_l_lower_raise==0)
     end
   end

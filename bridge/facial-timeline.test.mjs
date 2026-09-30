@@ -40,7 +40,7 @@ test('provider stretch reaches the native mouth corners and lower roll keeps its
   const input = {faces, facesFormat: 'arkit61', facesTimebase: 'audio-seconds',
     audio: wav.toString('base64')}, before = structuredClone(input);
   const line = buildFacialTimeline(input, owner);
-  assert.equal(line.articulation, 'arkit61-native-v6');
+  assert.equal(line.articulation, 'arkit61-native-v7');
   assert.equal(weight(line, 12, 'lips_l_stretch'), .042);
   assert.equal(weight(line, 12, 'lips_r_stretch'), .07);
   assert.equal(weight(line, 12, 'lips_l_corner_stretch'), .1294);
@@ -113,6 +113,31 @@ test('round and wide source shapes have readable independent contrast within the
   }
 });
 
+test('lip contact and upper lift retain independent source cues and stay within their rendered ranges', () => {
+  const make=(close,left,right)=>{
+    const pose=values(.1);pose[18]=close;pose[39]=left;pose[40]=right;
+    return buildProviderFacialTimeline({duration:1,complete:false,facesFormat:'arkit61',facesTimebase:'audio-seconds',
+      faces:Array.from({length:61},(_,frame)=>({at:frame/60,values:[...pose]}))},owner);
+  };
+  const rest=make(0,0,0),left=make(0,.5,0),closed=make(1,1,1);
+  assert.equal(weight(rest,12,'lips_together_up'),0);
+  assert.equal(weight(rest,12,'lips_l_upper_raise'),0);
+  assert.equal(weight(left,12,'lips_l_upper_raise'),.04);
+  assert.equal(weight(left,12,'lips_r_upper_raise'),0);
+  assert.equal(weight(left,12,'jaw_mid_open'),weight(rest,12,'jaw_mid_open'));
+  assert.equal(weight(closed,12,'lips_together_up'),.85);
+  assert.equal(weight(closed,12,'jaw_mid_open'),0);
+  assert.equal(weight(closed,12,'lips_l_upper_raise'),0);
+  const contacts=[0,.01,.05,.1,.25,.5,1].map(c=>weight(make(c,0,0),12,'lips_together_up'));
+  for(let i=1;i<contacts.length;i++)assert(contacts[i]>contacts[i-1]);
+  for(const amount of [0,.05,.2,.5,1]){
+    const line=make(0,amount,amount);
+    assert(weight(line,12,'lips_l_upper_raise')<=.06);
+    assert(weight(line,12,'lips_r_upper_raise')<=.06);
+    assert(weight(line,12,'lips_apart_up')<=.12);
+  }
+});
+
 test('provider native retarget keeps bounded independent weights without changing jaw, aperture, or closure calibration', () => {
   for (const amount of [-10, 0, .1, .5, 1, 10]) {
     const pose = values(.25); pose[18] = .3; pose[19] = .4; pose[20] = .2;
@@ -130,7 +155,8 @@ test('provider native retarget keeps bounded independent weights without changin
       assert.deepEqual(changed.frames.map((_, sample) => weight(changed, sample, track)),
         baseline.frames.map((_, sample) => weight(baseline, sample, track)), `unrelated ${track}`);
     }
-    assert(changed.frames.every(frame => frame.slice(1).every(value => Number.isFinite(value) && value >= 0 && value <= .4)));
+    assert(changed.frames.every(frame => frame.slice(1).every((value,index) => Number.isFinite(value) && value >= 0
+      && value <= (changed.tracks[index].startsWith('lips_together_') ? .85 : .4))));
   }
 });
 
@@ -192,7 +218,7 @@ test('continuous provider timelines accept ahead-delivered faces without reading
   assert.equal(line.entity, owner.entity);
   assert.equal(line.generation, owner.generation);
   assert.equal(line.source, 'convai-arkit61');
-  assert.equal(line.articulation, 'arkit61-native-v6');
+  assert.equal(line.articulation, 'arkit61-native-v7');
   assert.equal(line.continuous, true);
   assert.equal(line.complete, false);
   assert.equal(line.duration, .513);
@@ -260,8 +286,8 @@ test('quiet consonant closure survives voiced neighbours without an RMS-driven n
   const before = structuredClone(input), line = buildFacialTimeline(input, owner);
   assert(weight(line, 7, 'jaw_mid_open') > .2);
   assert.equal(weight(line, 9, 'jaw_mid_open'), 0);
-  assert.equal(weight(line, 9, 'lips_together_up'), .2);
-  assert.equal(weight(line, 9, 'lips_together_dn'), .2);
+  assert.equal(weight(line, 9, 'lips_together_up'), .85);
+  assert.equal(weight(line, 9, 'lips_together_dn'), .85);
   assert(weight(line, 11, 'jaw_mid_open') > .2);
   assert.deepEqual(input, before);
 });
@@ -285,7 +311,7 @@ test('whole and split ARKit timelines retain identical quiet articulation throug
       faces: sliceFaces(faces, startSeconds, startSeconds + .8),
       speechSegment: {version: 1, index: part + 1, startSeconds, first: part === 0, last: part === 1}}, owner);
   });
-  assert.equal(weight(whole, 24, 'lips_together_up'), .2);
+  assert.equal(weight(whole, 24, 'lips_together_up'), .85);
   for (let part = 0; part < split.length; part++) {
     for (let frame = 0; frame < split[part].frames.length; frame++) {
       // The final fade can round a floating-point half-unit differently when
@@ -341,13 +367,13 @@ test('ARKIT-61 mouth controls follow the actual order, preserve provider rest an
   const line = buildFacialTimeline({audio: wav.toString('base64'), faces,
     facesFormat: 'arkit61', facesTimebase: 'audio-seconds'}, owner);
   assert.equal(line.source, 'convai-arkit61'); assert.deepEqual(wav, before);
-  assert.equal(line.articulation, 'arkit61-native-v6');
+  assert.equal(line.articulation, 'arkit61-native-v7');
   assert.equal(weight(line, 6, 'jaw_mid_open'), 0.3902);
   assert.equal(weight(line, 6, 'lips_l_funnel'), 0.2743);
   assert.equal(weight(line, 6, 'lips_l_purse'), 0.2036);
   assert.ok(line.frames[22].slice(1).every(x => x === 0));
   assert.equal(weight(line, 36, 'jaw_mid_open'), 0);
-  assert.equal(weight(line, 36, 'lips_together_up'), 0.2);
+  assert.equal(weight(line, 36, 'lips_together_up'), .85);
   assert.ok(line.frames.at(-1).slice(1).every(x => x === 0));
   assert.equal(line.frames.at(-1)[0], 1.5);
   assert.equal(line.tracks.some(x => /eye|head|neck/.test(x)), false);
@@ -374,8 +400,8 @@ test('Convai opening strengthens small and medium jaw motion without forcing res
   assert.equal(weight(make(.35, 1), 6, 'jaw_mid_open'), 0);
   assert.equal(weight(make(.35, 1), 6, 'lips_apart_up'), 0);
   assert.equal(weight(make(.35, 1), 6, 'lips_apart_dn'), 0);
-  assert.equal(weight(make(.35, 1), 6, 'lips_together_up'), .2);
-  assert.equal(weight(make(.35, 1), 6, 'lips_together_dn'), .2);
+  assert.equal(weight(make(.35, 1), 6, 'lips_together_up'), .85);
+  assert.equal(weight(make(.35, 1), 6, 'lips_together_dn'), .85);
 });
 
 test('the fixed native k10 jaw shoulder does not normalize its weak pose to each reply or prefix range', () => {
@@ -398,7 +424,7 @@ test('the fixed native k10 jaw shoulder does not normalize its weak pose to each
   assert.equal(weight(differentRange, 30, 'jaw_mid_open'), .1034);
   const complete = buildFacialTimeline({...input, audio: capturedWav.toString('base64')}, owner);
   assert.equal(weight(complete, 30, 'jaw_mid_open'), .1034);
-  assert.equal(weight(complete, 30, 'lips_together_up'), .05);
+  assert.equal(weight(complete, 30, 'lips_together_up'), .68);
   assert.equal(weight(complete, 30, 'lips_l_corner_stretch'), .1882);
   assert.equal(weight(complete, 30, 'lips_r_corner_stretch'), .1294);
   assert.equal(weight(complete, 30, 'lips_suck_dn'), .04);
@@ -419,7 +445,7 @@ test('the jaw shoulder stays monotonic through a continuous vowel and yields to 
     for (let frame = 4; frame <= 64; frame++) {
       assert(weight(line, frame, 'jaw_mid_open') >= weight(line, frame - 1, 'jaw_mid_open'));
       assert(weight(line, frame, 'jaw_mid_open') <= .4 * (1 - closure) + .0001);
-      assert(Math.abs(weight(line, frame, 'lips_together_up') - .2 * closure) < .0001);
+      assert(Math.abs(weight(line, frame, 'lips_together_up') - .85 * (12*closure/(1+11*closure))) < .0001);
       assert.equal(weight(line, frame, 'lips_l_upper_raise'), 0);
       assert.equal(weight(line, frame, 'lips_r_upper_raise'), 0);
       if (closure === 1) assert.equal(weight(line, frame, 'jaw_mid_open'), 0);
@@ -437,11 +463,11 @@ test('Convai aperture calibration keeps upper-lip caps and unrelated articulatio
   const johnny = buildFacialTimeline(input, {...owner, entity: 'johnny-copy-1'});
   assert.deepEqual(input, before); // Neither waveform nor provider values are rewritten.
   assert.deepEqual(judy.frames, johnny.frames); // No per-speaker or per-file peak normalization.
-  assert.equal(weight(judy, 6, 'lips_apart_up'), .041);
+  assert.equal(weight(judy, 6, 'lips_apart_up'), .0254);
   assert.equal(weight(judy, 6, 'lips_apart_dn'), .0848);
   for (const [track, expected] of Object.entries({lips_l_funnel: .2743, lips_r_funnel: .2743,
     lips_l_purse: .2036, lips_r_purse: .2036, lips_l_stretch: .042, lips_r_stretch: .07,
-    lips_l_upper_raise: 0, lips_r_upper_raise: 0, tongue_mid_tip_up: 0,
+    lips_l_upper_raise: .02, lips_r_upper_raise: .0343, tongue_mid_tip_up: 0,
     lips_l_corner_stretch: .1294, lips_r_corner_stretch: .1725})) assert.equal(weight(judy, 6, track), expected);
   for (const amount of [-100, 0, .05, .25, .8, 1, 100]) {
     const saturated = {...input, faces: input.faces.map(frame => ({at: frame.at,

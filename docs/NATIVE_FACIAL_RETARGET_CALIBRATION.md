@@ -1,5 +1,53 @@
 # Native facial retarget calibration
 
+## October 1: lip contact and independent upper lift
+
+The user found the rendered v6 speech better but still in need of substantial
+improvement. The full retained reply has 492 mapped frames, 142 native pose
+applications and a completed reset. It shows stronger round/wide shapes, but
+the lips often remain parted and the upper lip has little independent motion.
+
+A separate silent native comparison holds the jaw at 0.14. Together weights
+of 0.35 still leave a tooth gap; 0.85 closes Judy's lips cleanly. Paired upper
+raisers at 0.06, with aggregate upper aperture reduced to 0.04, produce a gentle
+visible lift at High LOD. These are rendered endpoints, not a claim that all
+intermediate speech combinations are natural.
+
+The v7 candidate keeps the accepted jaw and v6 round/wide curves and adds:
+
+- Native together controls: `0.85 * (12*c / (1+11*c))`, from source MouthClose.
+- Independent upper raisers: `0.06 * (2*u / (1+u)) * (1-c)` per side.
+- Aggregate upper aperture is reduced by up to two thirds as the independent
+  upper-lip lift takes over, to avoid stacking the earlier distortion-prone lift.
+
+The Lua validator admits weights up to 0.85 only for the two together tracks.
+All other limits, audio, source timing, rest, ownership and cleanup are retained.
+The local Omni articulation path is unchanged.
+
+Independent native geometry replay matches the production JS mapping exactly
+for 445 real source frames. All frames and 1,152 combined/asymmetric stress
+cases per rig are finite. Real contact peaks at 0.6734, upper raise at 0.0512,
+and aggregate upper aperture at 0.0405. Whole-pose peak local lip translation
+changes from 7.389 to 7.401 mm on Judy and 10.287 to 10.491 mm on Johnny; peak
+rotation is unchanged. These measurements use reference tracks and reconstructed
+local bones, so they cannot certify skinning, teeth contact or rendered symmetry.
+
+Seventy-eight focused checks pass, including the real producer-to-Lua boundary,
+track-specific admission limits and reset. Ordinary v7 speech remains the live
+acceptance gate. Watch sharp consonant closure: one source sample jumps from
+zero MouthClose to 0.241 in one 60 Hz frame. No new smoothing is imposed before
+checking whether that closure is visibly abrupt.
+
+Ignored evidence:
+
+- `runtime/speech-images-v6-20261001-004508`: complete v6 game-window sequence
+  and sanitized mapped timeline; the user's improvement report applies to v6.
+- `runtime/lip-detail-images-20261001-010003`: upper/lower lift and 0.35 contact.
+- `runtime/lip-contact-images-20261001-010515`: 0.85 contact and neutral reset.
+- `runtime/lip-contact-geometry-20261001/FINDINGS.md`: scripts, two-rig replay,
+  asymmetric stress cases and limits.
+- `runtime/lips-v7-tests-20261001.log`: focused source check receipt.
+
 ## October 1: rendered shape contrast
 
 The user accepted v5's jaw opening and the smoothness after the browser snapshot
@@ -37,7 +85,9 @@ geometry results, not acceptance of the new spoken animation.
 Seventy-five focused source checks pass, including original producer-to-Lua
 field delivery, independent constant-jaw round/wide inputs, bounds, source
 immutability, 60 Hz timing, reset and native probe lifecycle. The fresh v6
-speech rendering remains the acceptance gate.
+speech rendering was subsequently captured; the user reports an improvement
+but does not yet accept the overall quality. The next contact/lift comparison
+is described above.
 
 Ignored evidence:
 

@@ -14,6 +14,11 @@ local allowed = {
 local function finite(value)
     return type(value) == 'number' and value == value and value > -math.huge and value < math.huge
 end
+local function trackLimit(track)
+    -- Native lip contact is a jaw corrective, with a different calibrated
+    -- range. Do not raise the bound on other mouth, tongue or reserved tracks.
+    return (track == 'lips_together_up' or track == 'lips_together_dn') and .85 or .5
+end
 local function owns(actor, entity)
     return actor and convaiCompanions and convaiCompanions.owns(actor)
         and tostring(actor:GetEntityID().hash) == (entity or M.entity)
@@ -65,7 +70,7 @@ function M.start(context, timeline, actor, duration, expectedSegment)
                 and finite(frame[1]) and frame[1] >= 0 and frame[1] <= duration
                 and frame[1] > previous, 'Invalid facial frame time')
             for i = 2, #frame do
-                assert(finite(frame[i]) and frame[i] >= 0 and frame[i] <= 0.5, 'Invalid facial weight')
+                assert(finite(frame[i]) and frame[i] >= 0 and frame[i] <= trackLimit(timeline.tracks[i-1]), 'Invalid facial weight')
             end
             previous = frame[1]
         end
@@ -135,7 +140,7 @@ function M.updateContinuous(context, timeline, actor, duration)
                 and finite(frame[1]) and frame[1] >= 0 and frame[1] <= duration
                 and frame[1] > previous, 'Invalid facial frame time')
             for index = 2, #frame do
-                assert(finite(frame[index]) and frame[index] >= 0 and frame[index] <= .5, 'Invalid facial weight')
+                assert(finite(frame[index]) and frame[index] >= 0 and frame[index] <= trackLimit(timeline.tracks[index-1]), 'Invalid facial weight')
             end
             previous = frame[1]
         end

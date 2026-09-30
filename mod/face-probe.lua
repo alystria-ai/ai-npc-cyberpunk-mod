@@ -22,7 +22,10 @@ local detailNeutral = {0,0,0,0,0,0,0,0,0,0}
 local detailBase = {.14,.08,.10,0,0,0,0,0,0,0}
 local detailUpper = {.14,.04,.10,0,0,.06,.06,0,0,0}
 local detailLower = {.14,.08,.04,0,0,0,0,.08,.08,.06}
-local detailSeal = {.14,0,0,.35,.35,0,0,0,0,0}
+-- Contact poses use a different native range from jaw/rounding. The reference
+-- rig uses together weights around 1 for bilabials; .35 left a visible gap.
+-- CPU sweeps on Judy/Johnny support a separate rendered check at .85 here.
+local detailSeal = {.14,0,0,.85,.85,0,0,0,0,0}
 local detailKeys = {{0,detailNeutral},{.4,detailBase},{1.4,detailBase},
     {1.8,detailUpper},{3.4,detailUpper},{3.8,detailLower},{5.4,detailLower},
     {5.8,detailSeal},{7.4,detailSeal},{8,detailNeutral},{9,detailNeutral}}

@@ -60,6 +60,13 @@
   installation and fresh rendered acceptance are recorded in the deep dive;
   numeric checks alone do not close this item.
   Phone history across reload remains a separate live follow-up.
+  - October 1: the user accepts jaw opening and smoother motion, and reports
+    that v6's stronger round/wide shapes are better but need more improvement.
+    Direct second-monitor game-window captures prove these native channels
+    work at High LOD. The v7 candidate adds separately calibrated lip contact
+    and upper-lip lift; 78 source checks and two-rig geometry review pass.
+    Ordinary v7 speech and final naturalness remain unaccepted. See
+    `docs/NATIVE_FACIAL_RETARGET_CALIBRATION.md` for captures and limitations.
 - [x] Add **Follow-up questions** (`followUpQuestions`) to organized Settings,
   default Off per the user's latest request. Local checkpoint `135264d`; 991
   tests passed with zero failures/skips, including installed MCM integration.
