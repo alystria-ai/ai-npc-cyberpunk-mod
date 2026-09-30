@@ -179,3 +179,60 @@ test('validate group metadata and isolate private and group session scopes', () 
   assert.match(groupContext({group}), /Do not ask V a question/);
   assert.match(groupContext({group:{...group,index:3}}), /final speaker/);
 });
+
+test('voice round freezes its audience, owns the first microphone reply and forwards only recognized V text', () => check(`
+  local enabled=true
+  group.captureFollowUpQuestions=function()return enabled end
+  group.captureJournal=function()return {serial=1}end
+  group.captureBattle=function()return {serial=1}end
+  local participants={alex,judy,panam}
+  local first=group.startVoice('voice-round',participants,9,100)
+  assert(first.profileKey=='alex'and first.group.index==1 and first.group.total==3)
+  assert(first.text=='[Microphone]'and first.followUpQuestions==true)
+  assert(group.round.stage=='recording'and group.next(10,101,live)==nil)
+  assert(not group.received(first.requestId,'too early',false,{},nil,'Hello'))
+  participants[1]=judy;alex.profileKey='changed'
+  assert(group.round.participants[1].profileKey=='alex')
+  assert(not group.voiceSubmitted({requestId='wrong'}))
+  first.journal={serial=2};first.battle={serial=3};enabled=false
+  assert(group.voiceSubmitted(first)and group.round.stage=='waiting')
+  assert(not group.voiceSubmitted(first)and group.next(10,101,live)==nil)
+  assert(group.received(first.requestId,'Hi V',false,{'alex','judy','panam'},nil,'How was your night?'))
+  local prepared=group.preview(10,102,live)
+  assert(prepared.profileKey=='judy'and prepared.text=='How was your night?')
+  assert(prepared.journal.serial==2 and prepared.battle.serial==3 and prepared.followUpQuestions==true)
+  assert(prepared.group.heard[1].text=='Hi V'and group.round.stage=='playing')
+  assert(not group.received(first.requestId,'duplicate',false,{},nil,'Wrong text'))
+  group.completed(first.requestId,true)
+  assert(group.next(11,104,live).requestId==prepared.requestId)
+`));
+
+test('missing, malformed and oversized first microphone transcripts cancel the remainder without synthetic prompts', () => check(`
+  local values={false,'','  ','[Microphone]',string.rep('a',1201),string.char(192,175),
+    string.rep(string.char(240,159,152,128),601),string.char(237,160,128),'bad'..string.char(0)}
+  for _,value in ipairs(values)do
+    local first=group.startVoice('voice-round',{judy,panam},1,100)
+    group.voiceSubmitted(first)
+    assert(group.received(first.requestId,'First reply',false,{'judy','panam'},nil,value))
+    assert(group.round==nil and group.next(2,101,live)==nil and group.preview(2,101,live)==nil)
+  end
+  local first=group.startVoice('error',{judy,panam},1,100)
+  group.voiceSubmitted(first);group.received(first.requestId,'',true,{},nil,'Recognized but failed')
+  assert(group.round==nil)
+  first=group.startVoice('cancelled',{judy,panam},2,101)
+  group.cancel();assert(not group.voiceSubmitted(first))
+  assert(not group.received(first.requestId,'late',false,{},nil,'Late text'))
+`));
+
+test('recognized speech accepts the exact UTF-16 limit and a streamed first reply waits for final assistant text', () => check(`
+  local text=string.rep(string.char(240,159,152,128),600)
+  local first=group.startVoice('unicode',{judy,panam},1,100);group.voiceSubmitted(first)
+  local observed={requestId=first.requestId,generation=first.generation,entity=first.entity,streamVersion=2,
+    streamId='voice-stream',text='First phrase',textComplete=false,finished=false,failed=false,delivered=false}
+  group.captureReply=function()return observed end
+  group.received(first.requestId,'First phrase',false,{'judy','panam'},{version=2,id='voice-stream'},text)
+  assert(group.round.text==text and not group.preview(2,101,live))
+  observed.text='The whole first reply';observed.textComplete=true
+  assert(group.preview(2,102,live).text==text)
+  group.cancel();assert(not group.completed(first.requestId,true))
+`));

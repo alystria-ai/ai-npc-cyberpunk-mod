@@ -1,6 +1,8 @@
--- A local transcript belongs to a user/campaign/branch. Unknown identity is
--- session-only; a contact name cannot identify a save or authorize old memory.
+-- Display history and provider delivery have separate ownership. The current
+-- single-player policy retains local transcripts across saves; world/generation
+-- guards still prevent a delayed reply from crossing a load or memory reset.
 local M = {serial = 0, tick = 0, history = {}, drafts = {}, catalog = {}}
+local LOCAL_HISTORY = 'phone-local-player:v1'
 local function copy(value)
     if type(value) ~= 'table' then return value end
     local result = {}; for key, item in pairs(value) do result[key] = copy(item) end
@@ -19,6 +21,8 @@ local function binding(value)
     value = type(value) == 'table' and value or {}
     local unknown = {version=1,status='unavailable',authoritative=false}
     if integer(value.generation, 1) then unknown.generation = value.generation end
+    -- Explicit local UI policy, never proof of native identity or cloud routing.
+    if value.historyScope == 'local-player-v1' then unknown.historyScope = value.historyScope end
     if value.version ~= 1 or value.status ~= 'available' or value.authoritative ~= true
         or (value.confidence ~= 'native-live' and value.confidence ~= 'native-restored') or not userID(value.localUserId)
         or not nativeID(value.campaignId) or not nativeID(value.branchId) or not nativeID(value.activationId)
@@ -33,6 +37,10 @@ end
 local function bindingKey(value)
     local key = scope(value)
     return key and key..':'..value.branchEpoch..':'..value.generation..':'..value.activationId or 'session:'..tostring(value.generation or 0)
+end
+local function displayScope(value)
+    if value.historyScope == 'local-player-v1' then return LOCAL_HISTORY end
+    return scope(value)
 end
 local function capture(callback, ...)
     if type(callback) ~= 'function' then return nil end
@@ -52,7 +60,11 @@ end
 local function write(path, value)
     local encoded, text = pcall(json.encode, value); if not encoded then return false end
     local f = io.open(path .. '.tmp', 'wb'); if not f then return false end
-    local ok = pcall(function() f:write(text); f:close() end); if not ok then pcall(function() f:close() end); return false end
+    local written, closed
+    local ok = pcall(function() written = f:write(text); closed = f:close() end)
+    if not ok or not written or not closed then
+        pcall(function() f:close() end); os.remove(path .. '.tmp'); return false
+    end
     if os.rename(path .. '.tmp', path) then return true end
     -- Windows cannot always replace an existing file with rename. Keep the old
     -- complete document until its replacement has actually been moved in.
@@ -88,22 +100,48 @@ function M.configure(profiles, manager, options)
     M.captureJournalHistory = options.captureJournalHistory or M.captureJournalHistory
     M.onDelivered = options.onDelivered or M.onDelivered
     local stored, raw = read('runtime/phone-history.json')
+    local damaged
+    if not stored then
+        local recovered = read('runtime/phone-history.json.previous')
+        if recovered then stored, damaged = recovered, raw end
+    end
     local legacy = stored or (raw and {unparsed=raw}) or {}
     stored = stored or {}
     if stored.version == 3 and type(stored.buckets) == 'table' then M.store = stored
     else M.store = {version=3,buckets={},legacy={copy(legacy)},launchPolicies={}} end
     M.store.launchPolicies = M.store.launchPolicies or {}
     M.store.legacy = M.store.legacy or {}
+    if damaged then M.store.legacy[#M.store.legacy + 1] = {reason='damaged-primary',unparsed=damaged} end
+    -- Select only the exact prior displayed session for the one-time policy
+    -- migration. Do not combine unrelated legacy campaign/session buckets.
+    local prior = read('runtime/phone-chat-input.json')
+    M.previousDisplayScope = nil
+    if prior and (prior.version == 1 or prior.version == 2) and type(prior.world) == 'string'
+        and #prior.world <= 100 and prior.world:match('^[A-Za-z0-9%-]+$') then
+        local key = 'session:' .. prior.world
+        local bucket = M.store.buckets[key]
+        if type(bucket) == 'table' and bucket.sessionOnly == true
+            and bindingKey(binding(bucket.identity)) == bindingKey(binding(prior.saveIdentity)) then
+            M.previousDisplayScope = key
+        end
+    end
     M.disappearOnLaunch = manager.disappearingMessages and manager.disappearingMessages() or false
     M.captureDrafts = false
 end
 
 local function selectBucket(value)
-    local key = scope(value) or 'session:'..M.world
+    local stable = displayScope(value)
+    local key = stable or 'session:'..M.world
     local stored = M.store.buckets[key]
-    if type(stored) ~= 'table' or not scope(value) or scope(binding(stored.identity)) ~= scope(value) then
+    if type(stored) ~= 'table' and key == LOCAL_HISTORY and M.previousDisplayScope then
+        local previous = M.store.buckets[M.previousDisplayScope]
+        stored = {identity=copy(value),history=copy(previous.history or {}),drafts=copy(previous.drafts or {}),
+            launch=previous.launch,sessionOnly=false,migratedFrom=M.previousDisplayScope}
+        M.store.buckets[key] = stored
+    end
+    if type(stored) ~= 'table' or not stable or displayScope(binding(stored.identity)) ~= stable then
         if stored then M.store.legacy[#M.store.legacy+1] = {reason='scope-conflict',scope=key,data=copy(stored)} end
-        stored = {identity=copy(value),history={},drafts={},sessionOnly=scope(value) == nil}
+        stored = {identity=copy(value),history={},drafts={},sessionOnly=stable == nil}
         M.store.buckets[key] = stored
     end
     M.scope, M.bucket, M.history, M.drafts, M.launch = key, stored, {}, {}, stored.launch
@@ -154,6 +192,7 @@ function M.update(player, delta)
     local currentBinding = binding(capture(M.captureBinding, player))
     local currentKey = bindingKey(currentBinding)
     local changed = not M.world or currentKey ~= M.bindingKey
+        or displayScope(currentBinding) ~= displayScope(M.saveIdentity or {})
     if changed then
         if M.world then M.abandon() end
         M.world = tostring(os.time()) .. '-' .. tostring(math.random(100000000, 999999999))

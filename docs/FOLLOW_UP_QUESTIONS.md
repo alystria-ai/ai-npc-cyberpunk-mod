@@ -12,10 +12,10 @@ the player explicitly requests. On asks the character to answer and add one brie
 relevant follow-up in their own voice. It omits that question when V says goodbye,
 explicitly requests no questions, or requests an exact fixed reply.
 
-Private F6, F7 microphone and phone Chat share this policy. For F8 group text,
+Private F6, F7 microphone and phone Chat share this policy. For F8 group text and F9 group voice,
 only the final remaining scheduled speaker may ask a follow-up when enabled.
 Automatic battle and loot comments never ask questions, with either setting.
-F9 group microphone is still separate unfinished work.
+F9 now has source/fixture coverage; live microphone testing remains user-deferred.
 
 ## Turn ownership
 

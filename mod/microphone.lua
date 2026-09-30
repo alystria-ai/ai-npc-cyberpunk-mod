@@ -31,41 +31,59 @@ local function command(action, context)
     return true
 end
 
-function M.cancel()
-    if M.context then command('cancel', M.context) end
+local function clear()
     M.context, M.state, M.started, M.knowledgeOwner, M.finishPending = nil, nil, nil, nil, nil
+    M.targetValid = nil
 end
 
-function M.begin(context)
-    M.cancel()
-    if not capture(context) then return false end
-    context.journal = M.captureJournal and M.captureJournal()
-    context.battle = M.captureBattle and M.captureBattle()
-    context.followUpQuestions = type(M.captureFollowUpQuestions) == 'function' and M.captureFollowUpQuestions() == true
-    if not currentOwner() then M.knowledgeOwner = nil; return false end
-    if not command('start', context) then M.knowledgeOwner = nil; return false end
-    M.context, M.state, M.started = context, 'starting', os.time()
+function M.cancel(reason)
+    local context = M.context
+    if context then command('cancel', context) end
+    clear()
+    if context and type(M.onCancelled) == 'function' then M.onCancelled(context, reason or 'cancelled') end
+end
+
+function M.received(requestId)
+    if not M.context or M.context.requestId ~= requestId or M.state ~= 'reply' then return false end
+    clear()
     return true
 end
 
-function M.finish()
-    if not M.context then return nil end
-    local captured, reason = capture(M.context, M.knowledgeOwner)
+function M.begin(context, targetValid)
+    M.cancel('replaced')
+    if not capture(context) then return false end
+    context.journal = M.captureJournal and M.captureJournal()
+    context.battle = M.captureBattle and M.captureBattle()
+    if context.followUpQuestions == nil then
+        context.followUpQuestions = type(M.captureFollowUpQuestions) == 'function' and M.captureFollowUpQuestions() == true
+    end
+    if not currentOwner() then M.knowledgeOwner = nil; return false end
+    if not command('start', context) then M.knowledgeOwner = nil; return false end
+    M.context, M.state, M.started = context, 'starting', os.time()
+    M.targetValid = targetValid
+    return true
+end
+
+function M.finish(mode)
+    local context = M.context
+    if not context or M.state == 'reply' or (mode and mode ~= (context.group and 'group' or 'private')) then return nil end
+    local captured, reason = capture(context, M.knowledgeOwner)
     if not captured then
         if reason == 'save-in-progress' then M.finishPending = true else M.cancel() end
         return nil
     end
     M.finishPending = nil
-    M.context.journal = M.captureJournal and M.captureJournal()
-    M.context.battle = M.captureBattle and M.captureBattle()
+    context.journal = M.captureJournal and M.captureJournal()
+    context.battle = M.captureBattle and M.captureBattle()
+    if M.context ~= context then return nil end
     local current, problem = currentOwner()
     if not current then
         if problem == 'save-in-progress' then M.finishPending = true else M.cancel() end
         return nil
     end
-    if not command('finish', M.context) then M.cancel(); return nil end
+    if not command('finish', context) then M.cancel('finish-write-failed'); return nil end
     M.state = 'reply'
-    return M.context
+    return context
 end
 
 function M.update(player)
@@ -77,7 +95,11 @@ function M.update(player)
     end
     local defs = Game.GetAllBlackboardDefs()
     if Game.GetBlackboardSystem():Get(defs.UI_System):GetBool(defs.UI_System.IsInMenu) then
-        M.cancel(); return nil
+        M.cancel('menu'); return nil
+    end
+    if type(M.targetValid) == 'function' then
+        local ok, valid = pcall(M.targetValid, M.context)
+        if not ok or not valid then M.cancel('target-lost'); return nil end
     end
     local f = io.open('runtime/microphone-state.json', 'rb')
     if f then
@@ -85,10 +107,10 @@ function M.update(player)
         if ok and value.requestId == M.context.requestId then
             if value.state == 'recording' and M.state == 'starting' then
                 M.state = 'recording'; M.started = os.time()
-                player:ConvaiPhoneFeedback('Listening - press F7 again to finish')
+                player:ConvaiPhoneFeedback('Listening - press ' .. (M.context.group and 'F9' or 'F7') .. ' again to finish')
             elseif value.state == 'error' then
                 player:ConvaiPhoneFeedback('Microphone unavailable. Check your Windows input device.')
-                M.context, M.state, M.knowledgeOwner = nil, nil, nil
+                M.cancel('microphone-error')
             end
         end
     end

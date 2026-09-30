@@ -282,6 +282,8 @@ function runLua(program) {
   lua.lua_close(vm); assert.equal(result, lua.LUA_OK, error);
 }
 const adapter = readFileSync(new URL('../mod/phone-chat.lua', import.meta.url), 'utf8');
+const productionPhoneBinding = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8')
+  .match(/local function capturePhoneBinding\(\)[\s\S]*?\r?\nend/)[0];
 const setup = `
 local files, values, serial, clock = {}, {}, 0, 100
 local function clone(v)
@@ -294,7 +296,7 @@ io.open=function(path, mode)
   if mode=='rb' then if not files[path] then return end
     return {read=function() return files[path] end, close=function() end}
   end
-  return {write=function(_,v) files[path]=v end, close=function() end}
+  return {write=function(self,v) files[path]=v;return self end, close=function() return true end}
 end
 os.time=function() return clock end
 os.remove=function(path) files[path]=nil end
@@ -488,6 +490,110 @@ assert(stored.buckets[firstScope].sessionOnly and stored.buckets[firstScope].his
 saveBinding={version=1,status='available',authoritative=true,confidence='native-live',localUserId='user-1',
  campaignId=string.rep('a',32),branchId=string.rep('b',32),branchEpoch=1,ledgerSequence=10,generation=2,activationId=string.rep('c',32)}
 update();assert(not m.history.judy and m.scope:match('^phone%-v1:'))
+`));
+
+test('current single-player display history survives CET reload and save generation changes without accepting stale replies', () => runLua(setup + `
+local frame={status='ready',generation=1}
+local function refreshKnowledgeFrame()return frame end
+${productionPhoneBinding}
+saveBinding=capturePhoneBinding()
+update();draft='Remember this';submission={contact='judy',text=draft};update()
+local pending=m.pending
+put('runtime/phone-chat-output.json',{world=m.world,binding=m.bindingKey,id=pending.id,contact='judy',state='reply',text='I remember, V.'})
+update();draft='Keep this draft';update();clock=clock+1;update()
+local originalScope=m.scope;assert(originalScope=='phone-local-player:v1' and m.bindingKey=='session:1')
+m.abandon();m=newModule();configure();update()
+assert(m.scope==originalScope and #m.history.judy==2 and draft=='Keep this draft')
+contact='panam';draft='';update();assert(not m.history.panam and #paints[#paints].lines==0)
+submission={contact='panam',text='Cancelled by load'};update();local cancelled=m.pending
+frame.generation=2;saveBinding=capturePhoneBinding();update()
+assert(m.scope==originalScope and #m.history.judy==2 and m.drafts.panam=='Cancelled by load' and not m.pending)
+assert(m.bindingKey=='session:2' and m.world~=cancelled.id:match('^(.*)%-%d+$'))
+put('runtime/phone-chat-output.json',{world=cancelled.id:match('^(.*)%-%d+$'),binding='session:1',id=cancelled.id,contact='panam',state='reply',text='Wrong world'})
+update();assert(#m.history.panam==1 and m.history.panam[1].sent)
+`));
+
+test('local display policy migrates only the exact prior session and preserves all legacy source buckets', () => runLua(setup + `
+saveBinding={version=1,status='unavailable',generation=1};update()
+submission={contact='judy',text='Previous UI session'};update()
+local legacyScope=m.scope;m.abandon()
+local stored=json.decode(files['runtime/phone-history.json'])
+stored.buckets['session:unrelated-world']={identity=saveBinding,sessionOnly=true,history={panam={{text='Unrelated',sent=false}}},drafts={}}
+put('runtime/phone-history.json',stored)
+saveBinding.historyScope='local-player-v1';m=newModule();configure();update()
+assert(m.scope=='phone-local-player:v1' and m.history.judy[1].text=='Previous UI session' and m.drafts.judy=='Previous UI session')
+assert(not m.history.panam,'Do not merge unrelated histories into the visible conversation')
+stored=json.decode(files['runtime/phone-history.json'])
+assert(stored.buckets[m.scope].migratedFrom==legacyScope)
+assert(stored.buckets[legacyScope].history.judy[1].text=='Previous UI session')
+assert(stored.buckets['session:unrelated-world'].history.panam[1].text=='Unrelated')
+`));
+
+test('migration does not guess a legacy bucket when the prior display receipt is missing or mismatched', () => runLua(setup + `
+saveBinding={version=1,status='unavailable',generation=1};update()
+submission={contact='judy',text='Archived session'};update();local oldScope=m.scope;m.abandon()
+local prior=json.decode(files['runtime/phone-chat-input.json']);prior.saveIdentity.generation=99;put('runtime/phone-chat-input.json',prior)
+saveBinding.historyScope='local-player-v1';m=newModule();configure();update()
+assert(not m.history.judy and m.scope=='phone-local-player:v1')
+local stored=json.decode(files['runtime/phone-history.json'])
+assert(stored.buckets[oldScope].history.judy[1].text=='Archived session')
+`));
+
+test('single-player disappearing messages clear only on a verified new game launch', () => runLua(setup + `
+saveBinding={version=1,status='unavailable',generation=1,historyScope='local-player-v1'}
+update();put('runtime/phone-game-launch.json',{world=m.world,launch='20-2000'});update()
+submission={contact='judy',text='Persistent until next launch'};update();local pending=m.pending
+put('runtime/phone-chat-output.json',{world=m.world,binding=m.bindingKey,id=pending.id,contact='judy',state='reply',text='Still here'})
+update();disappearing=true;m.abandon();m=newModule();configure();update()
+assert(not paints[#paints].allowed and #m.history.judy==2,'Missing launch token hides history without clearing it')
+put('runtime/phone-game-launch.json',{world=m.world,launch='20-2000'});update()
+assert(#m.history.judy==2 and paints[#paints].allowed,'CET reload is not a game launch')
+saveBinding.generation=2;update();put('runtime/phone-game-launch.json',{world=m.world,launch='20-2000'});update()
+assert(#m.history.judy==2,'Save loading is not a game launch')
+m.abandon();m=newModule();configure();update()
+put('runtime/phone-game-launch.json',{world=m.world,launch='21-2100'});update()
+assert(not m.history.judy and paints[#paints].allowed)
+`));
+
+test('temporary unavailable startup frame cannot replace the persistent local display bucket', () => runLua(setup + `
+saveBinding={version=1,status='unavailable',generation=1,historyScope='local-player-v1'};update()
+submission={contact='judy',text='Keep through startup'};update();m.abandon()
+saveBinding={version=1,status='unavailable'};m=newModule();configure();update()
+assert(not m.history.judy)
+saveBinding={version=1,status='unavailable',generation=2,historyScope='local-player-v1'};update()
+assert(m.history.judy[1].text=='Keep through startup' and m.drafts.judy=='Keep through startup')
+`));
+
+test('phone history recovers the last complete replacement when its primary file is missing or malformed', () => runLua(setup + `
+saveBinding={version=1,status='unavailable',generation=1,historyScope='local-player-v1'};update()
+submission={contact='judy',text='Recover me'};update();m.abandon()
+local backup=files['runtime/phone-history.json']
+for _,bad in ipairs({false,'damaged-primary-bytes'})do
+ files['runtime/phone-history.json.previous']=backup
+ files['runtime/phone-history.json']=bad or nil
+ m=newModule();configure();update()
+ assert(m.history.judy[1].text=='Recover me' and m.drafts.judy=='Recover me')
+ if bad then
+  local stored=json.decode(files['runtime/phone-history.json']);local found=false
+  for _,entry in ipairs(stored.legacy)do if entry.unparsed==bad then found=true end end
+  assert(found,'Keep the malformed primary for recovery rather than dropping it')
+ end
+end
+`));
+
+for (const fault of ['write', 'close']) test(`phone ${fault} failure cannot publish a partial outgoing request or discard the draft`, () => runLua(setup + `
+update();local previous=files['runtime/phone-chat-input.json'];local originalOpen=io.open
+io.open=function(path,mode)
+ if path=='runtime/phone-chat-input.json.tmp' and mode=='wb'then
+  return {write=function(self,value)files[path]='partial-bytes';return ${fault === 'write' ? "nil,'disk full'" : 'self'} end,
+   close=function()return ${fault === 'close' ? "nil,'flush failed'" : 'true'} end}
+ end
+ return originalOpen(path,mode)
+end
+draft='Preserve this draft';submission={contact='judy',text=draft};update()
+assert(not m.pending and not m.history.judy)
+assert(m.drafts.judy=='Preserve this draft' and m.errors.judy:find('Unable to send'))
+assert(files['runtime/phone-chat-input.json']==previous and not files['runtime/phone-chat-input.json.tmp'])
 `));
 
 test('fresh capture accompanies phone submissions and a binding change during capture cancels publication', () => runLua(setup + `

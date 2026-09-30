@@ -145,10 +145,11 @@ end
 local function capturePhoneBinding()
     local frame = refreshKnowledgeFrame()
     if frame.status ~= 'ready' then return knowledgeUnavailable(frame.reason) end
-    -- Phone history keeps its existing local storage policy. Provider routing
-    -- uses the bridge's persistent player ID and this live-world generation.
+    -- Local display history follows the single-player policy across saves.
+    -- This hint grants no native identity/cloud authority: provider routing
+    -- still uses the bridge's player ID and exact live-world generation.
     return {version = 1, status = 'unavailable', authoritative = false,
-        generation = frame.generation}
+        generation = frame.generation, historyScope = 'local-player-v1'}
 end
 
 local function publishPhoneDelivery(receipt)
@@ -488,36 +489,80 @@ local function updateGaze(player, elapsed)
     resetGaze()
 end
 
+local function selectConversation(player, groupMode, singleKey)
+    local npc, reason = targetAtCrosshair()
+    local candidates = groupMode and companions.conversationCandidates(player, 8) or {}
+    if groupMode then
+        local enabled = {}
+        for _, candidate in ipairs(candidates) do
+            if profileEnabled(player, candidate.profileKey) then enabled[#enabled + 1] = candidate end
+        end
+        candidates = enabled
+    end
+    if not npc and groupMode and candidates[1] then npc = candidates[1].npc end
+    if not npc then player:ConvaiPhoneFeedback(reason); return nil end
+    local key, name, bodyType = profileIdentity(npc)
+    if not key or not supportedProfiles[key] then
+        player:ConvaiPhoneFeedback(name .. ' does not have a conversation profile configured yet.')
+        log('Conversation unavailable: profile=' .. tostring(key))
+        return nil
+    end
+    if not profileEnabled(player, key) then log('Companion disabled in manager: ' .. name); return nil end
+    local primary = {npc = npc, name = name, entity = tostring(npc:GetEntityID().hash), bodyType = bodyType, profileKey = key}
+    local participants = groupMode and groupChat.choose(primary, candidates, supportedProfiles) or nil
+    if participants and #participants < 2 then
+        player:ConvaiPhoneFeedback('Group chat needs two characters nearby. Use ' .. singleKey .. ' for one person.')
+        return nil
+    end
+    return primary, participants
+end
+
+local function voiceTargetValid(npc, context)
+    local player = Game.GetPlayer()
+    if not npc or not player or tostring(npc:GetEntityID().hash) ~= context.entity
+        or not npc:IsAttached() or npc:IsDeadNoStatPool() then return false end
+    local pos, origin = npc:GetWorldPosition(), player:GetWorldPosition()
+    return (pos.x - origin.x)^2 + (pos.y - origin.y)^2 + (pos.z - origin.z)^2 <= 144
+end
+
+microphone.onCancelled = function(context)
+    if pending and pending.requestId == context.requestId then pending, pendingKnowledgeOwner = nil, nil end
+    local round = groupChat.round
+    if round and context.group and round.id == context.group.id then groupChat.cancel() end
+    warmConversation(nil, nil)
+end
+
+local function cancelVoice(reason)
+    local round = groupChat.round
+    local ownsRound = round and round.mode == 'voice'
+    if not microphone.context and not ownsRound then return end
+    if ownsRound and pending and pending.group and pending.group.id == round.id then
+        pending, pendingKnowledgeOwner = nil, nil
+    end
+    microphone.cancel(reason)
+    if ownsRound then groupChat.cancel() end
+    speech.stop(reason); subtitles.clear()
+    warmConversation(nil, nil)
+    focusUntil = os.time() + 1
+end
+
+local function acceptVoiceSubmission(context)
+    if not context then return false end
+    if context.group and not groupChat.voiceSubmitted(context) then
+        microphone.cancel('stale-group'); return false
+    end
+    pending, pendingKnowledgeOwner = context, microphone.knowledgeOwner
+    pending.sentAt, focusUntil = os.time(), os.time() + 90
+    return true
+end
+
 local function beginText(groupMode)
     local ok, err = pcall(function()
         local player = Game.GetPlayer()
         if not player or not gameplayCanAcquire(player) then return end
-        local npc, reason = targetAtCrosshair()
-        local candidates = groupMode and companions.conversationCandidates(player, 8) or {}
-        if groupMode then
-            local enabled = {}
-            for _, candidate in ipairs(candidates) do
-                if profileEnabled(player, candidate.profileKey) then enabled[#enabled + 1] = candidate end
-            end
-            candidates = enabled
-        end
-        if not npc and groupMode and candidates[1] then npc = candidates[1].npc end
-        if not npc then log(reason); return end
-        local key, name, bodyType = profileIdentity(npc)
-        local identity = tostring(npc:GetEntityID().hash)
-        if not key or not supportedProfiles[key] then
-            player:ConvaiPhoneFeedback(name .. ' does not have a conversation profile configured yet.')
-            log('Conversation unavailable: profile=' .. tostring(key))
-            return
-        end
-        if not profileEnabled(player, key) then log('Companion disabled in manager: ' .. name); return end
-        local primary = {npc = npc, name = name, entity = identity, bodyType = bodyType, profileKey = key}
-        local participants = groupMode and groupChat.choose(primary, candidates, supportedProfiles) or nil
-        if participants and #participants == 0 then player:ConvaiPhoneFeedback('No configured characters are nearby'); return end
-        if participants and #participants < 2 then
-            player:ConvaiPhoneFeedback('Group chat needs two characters nearby. Use F6 for one person.')
-            return
-        end
+        local primary, participants = selectConversation(player, groupMode, 'F6')
+        if not primary then return end
+        local npc, key, name, bodyType, identity = primary.npc, primary.profileKey, primary.name, primary.bodyType, primary.entity
         generation = generation + 1
         if not player:ConvaiOpenComposer(name) then
             log('Native composer unavailable (check redscript and Codeware)')
@@ -549,44 +594,52 @@ local function beginText(groupMode)
     if not ok then log('Open failed: ' .. tostring(err)) end
 end
 
-local function toggleVoice()
+local function toggleVoice(groupMode)
     local player = Game.GetPlayer()
     if not player then return end
-    if microphone.context and microphone.state ~= 'reply' then
-        pending = microphone.finish()
-        if not pending then pendingKnowledgeOwner = nil; return end
-        pendingKnowledgeOwner = microphone.knowledgeOwner
-        pending.sentAt = os.time()
-        focusUntil = os.time() + 90
-        return
-    end
-    if not gameplayCanAcquire(player) then return end
     local ok, err = pcall(function()
-        local npc, reason = targetAtCrosshair()
-        if not npc then player:ConvaiPhoneFeedback(reason); return end
-        local key, name, body = profileIdentity(npc)
-        if not key or not supportedProfiles[key] then
-            player:ConvaiPhoneFeedback(name .. ' does not have a conversation profile configured yet.'); return
+        local mode = groupMode and 'group' or 'private'
+        if microphone.context then
+            local recordingMode = microphone.context.group and 'group' or 'private'
+            if recordingMode ~= mode then
+                player:ConvaiPhoneFeedback('Use ' .. (recordingMode == 'group' and 'F9' or 'F7') .. ' to finish this recording.')
+                return
+            end
+            if not gameplayCanAcquire(player) or (microphone.targetValid and not microphone.targetValid(microphone.context)) then
+                cancelVoice('microphone-unavailable'); return
+            end
+            if microphone.state ~= 'reply' then acceptVoiceSubmission(microphone.finish(mode)) end
+            return
         end
-        if not profileEnabled(player, key) then return end
+        if not gameplayCanAcquire(player) then return end
+        local primary, participants = selectConversation(player, groupMode, 'F7')
+        if not primary then return end
+        local npc, key, name, body, entity = primary.npc, primary.profileKey, primary.name, primary.bodyType, primary.entity
         generation = generation + 1
         cancelAutomatic('microphone')
+        microphone.cancel('new-conversation')
         groupChat.cancel()
-        warmConversation(nil, nil)
+        warmConversation(participants, key)
         speech.stop('microphone'); subtitles.clear()
         speech.target = npc
-        local entity = tostring(npc:GetEntityID().hash)
-        local context = {generation = generation, entity = entity, name = name, bodyType = body,
-            profileKey = key, text = '[Microphone]', sentAt = os.time()}
-        context.requestId = tostring(os.time()) .. '-' .. tostring(generation) .. '-' .. entity
-        if microphone.begin(context) then
+        local context
+        if groupMode then
+            context = groupChat.startVoice('group-' .. tostring(os.time()) .. '-' .. tostring(generation), participants, generation, os.time())
+        else
+            context = {generation = generation, entity = entity, name = name, bodyType = body,
+                profileKey = key, text = '[Microphone]', sentAt = os.time()}
+            context.requestId = tostring(os.time()) .. '-' .. tostring(generation) .. '-' .. entity
+        end
+        active, pending, pendingKnowledgeOwner = nil, nil, nil
+        if microphone.begin(context, function() return voiceTargetValid(npc, context) end) then
             beginFocus(player, npc)
             focusMode, focusEntity, focusUntil = 'chat', entity, os.time() + 120
-            active, pending = nil, nil
             player:ConvaiPhoneFeedback('Connecting microphone - wait for Listening')
+        else
+            groupChat.cancel(); warmConversation(nil, nil)
         end
     end)
-    if not ok then microphone.cancel(); log('Microphone failed: ' .. tostring(err)) end
+    if not ok then cancelVoice('microphone-error'); groupChat.cancel(); log('Microphone failed: ' .. tostring(err)) end
 end
 
 local function sendRequest(context)
@@ -899,6 +952,13 @@ local function updateGroup(player)
     if not round then return end
     if not player then groupChat.cancel(); return end
     local live = groupAudience(player)
+    if round.mode == 'voice' then
+        if not live[round.participants[1].entity] then cancelVoice('group-primary-lost'); return end
+        if round.stage == 'recording' then
+            if not microphone.context or microphone.context.requestId ~= round.requestId then cancelVoice('recording-cancelled') end
+            return
+        end
+    end
     local deliveryFailed = speech.state == 'target-lost' or speech.state == 'error'
         or speech.state == 'playback-failed'
     if round.stage == 'playing' and round.reply then
@@ -919,6 +979,7 @@ local function updateGroup(player)
     elseif round.stage == 'playing' and not speech.requestId and not subtitles.line then
         groupChat.completed(round.requestId, not deliveryFailed)
     end
+    if groupChat.round ~= round then return end
     if round.stage ~= 'next' or not gameplayCanAcquire(player) then return end
     generation = generation + 1
     local context, actor = groupChat.next(generation, os.time(), live)
@@ -1026,7 +1087,8 @@ end
 
 registerHotkey('cyberpunk_convai_text', 'Cyberpunk Convai: talk by text', function() beginText(false) end)
 registerHotkey('cyberpunk_convai_group_text', 'Cyberpunk Convai: group text chat (F8)', function() beginText(true) end)
-registerHotkey('cyberpunk_convai_voice', 'Cyberpunk Convai: talk by voice (F7)', toggleVoice)
+registerHotkey('cyberpunk_convai_voice', 'Cyberpunk Convai: talk by voice (F7)', function() toggleVoice(false) end)
+registerHotkey('cyberpunk_convai_group_voice', 'Cyberpunk Convai: group voice chat (F9)', function() toggleVoice(true) end)
 registerHotkey('cyberpunk_convai_diagnostic', 'Cyberpunk Convai: capture NPC diagnostic', captureNpcDiagnostic)
 registerHotkey('cyberpunk_convai_manager', 'Cyberpunk Convai: companion manager', openManager)
 
@@ -1136,6 +1198,9 @@ registerForEvent('onUpdate', function(delta)
             and not menuPlayer:ConvaiComposerOpen()
     end)
     worldReady = worldOk and worldReady
+    -- Menu updates can have zero simulation delta. Cancel recording/group work
+    -- here, before the slower gameplay poll, so pause cannot submit a late turn.
+    if not worldReady then cancelVoice('menu') end
     -- CET still calls onUpdate while native menus pause the simulation. The
     -- menu adapter needs these frames even when delta is zero; followers don't.
     local mcmOk, mcmError = pcall(mcm.update, menuPlayer, worldReady)
@@ -1184,10 +1249,7 @@ registerForEvent('onUpdate', function(delta)
     poll = 0
     local player = Game.GetPlayer()
     local voiceSubmission = microphone.update(player)
-    if voiceSubmission then
-        pending = voiceSubmission; pending.sentAt = os.time(); focusUntil = os.time() + 90
-        pendingKnowledgeOwner = microphone.knowledgeOwner
-    end
+    if voiceSubmission then acceptVoiceSubmission(voiceSubmission) end
     if not player then
         abandonSession('world unavailable during update')
         return
@@ -1210,15 +1272,11 @@ registerForEvent('onUpdate', function(delta)
             log('Battle observation skipped: ' .. tostring(battleError))
         end
     end
-    if focusUntil and not active and not speech.requestId and os.time() >= focusUntil then
+    if focusUntil and not active and not pending and not speech.requestId and os.time() >= focusUntil then
         endFocus(player)
         focusUntil = nil
         focusMode = nil
         focusEntity = nil
-        if pending and not pending.reaction then
-            log('Reply timed out: generation=' .. pending.generation)
-            pending = nil
-        end
     end
     if focusedCrowd and not focusedCrowd.checked and os.time() > focusedCrowd.at then
         focusedCrowd.checked = true
@@ -1251,6 +1309,27 @@ registerForEvent('onUpdate', function(delta)
             microphone.cancel(); groupChat.cancel()
         end
     end
+    if pending and os.time() - pending.sentAt >= 90 then
+        -- The request owns its deadline. Focus expiry must never discard only
+        -- pending while leaving a microphone/group waiting forever. Retire it
+        -- before reading replies so a result at/after the deadline stays late.
+        local expired = pending
+        if not expired.reaction then player:ConvaiPhoneFeedback('No reply arrived. Check that the Convai bridge is running.') end
+        log('Conversation timed out: generation=' .. expired.generation)
+        local round = groupChat.round
+        if expired.reaction then
+            cancelAutomatic('reply-timeout')
+        elseif (microphone.context and microphone.context.requestId == expired.requestId)
+            or (round and round.mode == 'voice' and expired.group and round.id == expired.group.id) then
+            -- Publishes cancel for the native microphone owner as well as
+            -- retiring the Lua round and any prepared next-speaker response.
+            cancelVoice('reply-timeout')
+        else
+            groupChat.received(expired.requestId, '', true, {})
+        end
+        pending, pendingKnowledgeOwner = nil, nil
+        focusUntil = os.time() + 1
+    end
     if pending then
         local replyFile = io.open('runtime/reply.json', 'rb')
         if replyFile then
@@ -1270,7 +1349,8 @@ registerForEvent('onUpdate', function(delta)
                 end)
                 if shown then
                     local _, listeners = groupAudience(player)
-                    groupChat.received(pending.requestId, reply.text, reply.error ~= nil or (not speech.requestId and not subtitles.line), listeners, reply.stream)
+                    groupChat.received(pending.requestId, reply.text, reply.error ~= nil or (not speech.requestId and not subtitles.line), listeners, reply.stream, reply.userText)
+                    if type(microphone.received) == 'function' then microphone.received(pending.requestId) end
                     log('Conversation result: generation=' .. pending.generation .. ' error=' .. tostring(reply.error ~= nil))
                     if automatic and pending.requestId == automatic.requestId then
                         automatic.shown = reply.error == nil
@@ -1283,13 +1363,6 @@ registerForEvent('onUpdate', function(delta)
                     pending = nil
                 end
             end
-        end
-        if pending and os.time() - pending.sentAt > 90 then
-            if not pending.reaction then player:ConvaiPhoneFeedback('No reply arrived. Check that the Convai bridge is running.') end
-            log('Conversation timed out: generation=' .. pending.generation)
-            groupChat.received(pending.requestId, '', true, {})
-            pending = nil
-            focusUntil = os.time() + 1
         end
     end
     local ok, ready = pcall(function() return player:ConvaiHasSubmission() end)

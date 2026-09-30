@@ -25,11 +25,23 @@ function M.cancel()
     prepareChanged(nil)
 end
 
-function M.start(id, participants, text)
+local function startRound(id, participants, text)
     M.cancel()
-    M.round = {id = id, participants = participants, text = text, index = 0, stage = 'next', heard = {},
+    -- Own a snapshot of the audience. Camera changes, party edits and mutable
+    -- candidate lists must not redirect a recording to another actor/profile.
+    local frozen = {}
+    for _, person in ipairs(participants) do
+        local row = {}
+        for _, key in ipairs({'entity', 'profileKey', 'name', 'bodyType', 'npc'}) do row[key] = person[key] end
+        frozen[#frozen + 1] = row
+    end
+    M.round = {id = id, participants = frozen, text = text, index = 0, stage = 'next', heard = {},
         followUpQuestions = type(M.captureFollowUpQuestions) == 'function' and M.captureFollowUpQuestions() == true,
         journal = M.captureJournal and M.captureJournal(), battle = M.captureBattle and M.captureBattle()}
+end
+
+function M.start(id, participants, text)
+    startRound(id, participants, text)
 end
 
 local function makeInput(r, index, generation, now, live, includePlaying)
@@ -56,6 +68,56 @@ local function makeInput(r, index, generation, now, live, includePlaying)
         followUpQuestions = r.followUpQuestions,
         group = {id = r.id, index = index, total = total, audience = audience, heard = heard}}
     return input
+end
+
+function M.startVoice(id, participants, generation, now)
+    if type(participants) ~= 'table' or #participants < 2 then return nil end
+    startRound(id, participants, nil)
+    local r, live = M.round, {}
+    for _, person in ipairs(r.participants) do live[person.entity] = true end
+    local input = makeInput(r, 1, generation, now, live, false)
+    input.text = '[Microphone]'
+    r.mode, r.index, r.stage = 'voice', 1, 'recording'
+    r.requestId, r.generation, r.entity = input.requestId, input.generation, input.entity
+    return input
+end
+
+function M.voiceSubmitted(input)
+    local r = M.round
+    if not r or r.mode ~= 'voice' or r.stage ~= 'recording' or not input
+        or input.requestId ~= r.requestId or input.generation ~= r.generation or input.entity ~= r.entity
+        or not input.group or input.group.id ~= r.id then return false end
+    -- The microphone refreshed these at finish. Later members discuss that same
+    -- utterance, with fresh world knowledge attached by the normal send path.
+    r.journal, r.battle = input.journal, input.battle
+    r.stage = 'waiting'
+    return true
+end
+
+local function recognizedText(value)
+    if type(value) ~= 'string' or #value > 4800 or not value:find('%S') or value == '[Microphone]' then return nil end
+    -- LuaJIT has no utf8 library. Count UTF-16 units to match the transport's
+    -- 1200-unit limit, rejecting malformed UTF-8 rather than truncating speech.
+    local units, index = 0, 1
+    while index <= #value do
+        local first, count, code = value:byte(index), 1, 0
+        if first < 128 then code = first
+        elseif first >= 194 and first <= 223 then count, code = 2, first - 192
+        elseif first >= 224 and first <= 239 then count, code = 3, first - 224
+        elseif first >= 240 and first <= 244 then count, code = 4, first - 240
+        else return nil end
+        for offset = 1, count - 1 do
+            local byte = value:byte(index + offset)
+            if not byte or byte < 128 or byte > 191 then return nil end
+            code = code * 64 + byte - 128
+        end
+        if code == 0 or (count == 3 and code < 2048) or (count == 4 and code < 65536)
+            or code > 1114111 or (code >= 55296 and code <= 57343) then return nil end
+        units = units + (code > 65535 and 2 or 1)
+        if units > 1200 then return nil end
+        index = index + count
+    end
+    return value
 end
 
 local function sameContext(a, b)
@@ -125,9 +187,16 @@ function M.next(generation, now, live)
     return input, speaker.npc
 end
 
-function M.received(requestId, text, failed, listeners, stream)
+function M.received(requestId, text, failed, listeners, stream, userText)
     local r = M.round
     if not r or r.requestId ~= requestId or r.stage ~= 'waiting' then return false end
+    if r.mode == 'voice' and r.index == 1 then
+        local recognized = recognizedText(userText)
+        -- The first reply already belongs to the actual microphone utterance.
+        -- Without its finalized transcript, never invent a prompt for others.
+        if failed or not recognized then M.cancel(); return true end
+        r.text = recognized
+    end
     r.stage = failed and 'next' or 'playing'
     r.reply = failed and nil or {speaker = r.participants[r.index].name, text = text, listeners = listeners}
     if r.reply and type(stream) == 'table' and stream.version == 2 then
