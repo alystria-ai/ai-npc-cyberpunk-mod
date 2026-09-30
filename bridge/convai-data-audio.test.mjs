@@ -25,6 +25,48 @@ function complete({audio = pcm(), faces = face(), statistics = stats(), end = te
   return c;
 }
 
+test('incremental PCM waits for a verified owner and drains each exact packet once with sample offsets', () => {
+  const c = new ConvaiDataAudio();
+  feed(c, pcm(samples.subarray(0, 3200)), 10);
+  assert.deepEqual(c.drainPcm(), [], 'unowned PCM cannot enter playback');
+  feed(c, face(), 11);
+  const first = c.drainPcm();
+  assert.equal(first.length, 1); assert.equal(first[0].offsetFrames, 0);
+  assert.deepEqual(Buffer.from(first[0].bytes), samples.subarray(0, 3200));
+  assert.deepEqual(c.drainPcm(), []);
+  // The caller may transfer or mutate its copy without damaging archival PCM.
+  first[0].bytes.fill(99);
+  feed(c, pcm(samples.subarray(3200)), 20);
+  const second = c.drainPcm();
+  assert.equal(second[0].offsetFrames, 1600);
+  assert.deepEqual(Buffer.from(second[0].bytes), samples.subarray(3200));
+  feed(c, stats(), 21); feed(c, terminal(), 22);
+  assert.deepEqual(readPcmWav(Buffer.from(c.finish().audio, 'base64')).data, samples);
+});
+
+test('continuous finish validates exact totals without encoding a WAV and retains indexed faces for playback', () => {
+  const c = complete();
+  assert.equal(c.progress().sourceComplete, true);
+  c.drainPcm();
+  const result = c.finish({includeAudio: false});
+  assert.equal(Object.hasOwn(result, 'audio'), false);
+  assert.equal(result.faces.length, 24);
+  assert.deepEqual(c.progress().faces, result.faces);
+  assert.equal(c.progress().receivedFrames, 3200);
+  assert.equal(c.progress().sourceComplete, true);
+  assert.deepEqual(c.drainPcm(), []);
+});
+
+test('progressive PCM cannot drain after ownership failure or cancellation', () => {
+  for (const action of ['cancel', 'foreign']) {
+    const c = new ConvaiDataAudio(); feed(c, face(), 1); feed(c, pcm(), 2);
+    if (action === 'cancel') c.abort('Cancelled before admission');
+    else assert.throws(() => feed(c, terminal({...other}), 3), /replaced/);
+    assert.throws(() => c.drainPcm());
+    assert.equal(c.progress().faces.length, 0);
+  }
+});
+
 test('one WAV preserves every source PCM byte, sample rate, channel and signed endpoint', () => {
   const c = new ConvaiDataAudio();
   feed(c, face(), 10);

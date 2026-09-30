@@ -20,7 +20,8 @@ const clientSource = readFileSync(new URL('./realtime-client.mjs', import.meta.u
   .replace("import {drainBlendshapes} from './blendshape-capture.mjs';", '')
   .replace("import {endUserOptions, transportKey, SessionBindings} from './transport-pool.mjs';", '')
   .replace("import {PcmChunkStream} from './convai-audio-stream.mjs';", '')
-  .replace("import {ConvaiDataAudio} from './convai-data-audio.mjs';", '');
+  .replace("import {ConvaiDataAudio} from './convai-data-audio.mjs';", '')
+  .replace("import {ContinuousPcmPlayer} from './continuous-pcm-player.mjs';", '');
 
 // Run the actual host and lease pool. Each page executes the host's browser
 // callbacks against its own window, without launching a browser or SDK network.

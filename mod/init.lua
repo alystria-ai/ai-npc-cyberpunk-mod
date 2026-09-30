@@ -1178,7 +1178,10 @@ registerForEvent('onUpdate', function(delta)
     if not knowledgeOk then invalidateKnowledge('knowledge-update-failed') end
     -- Autosave freezes the native cursor briefly. Keep the exact owner and
     -- queued native input, but do not capture/send/apply UI changes until ready.
-    if knowledgeFrame and knowledgeFrame.status == 'paused' then return end
+    if knowledgeFrame and knowledgeFrame.status == 'paused' then
+        if type(speech.pauseForWorld) == 'function' then speech.pauseForWorld() end
+        return
+    end
     if knowledgeChanged then
         -- A changed lease/branch can happen without an NPC detach (for example
         -- initial bridge activation). Cancel conversation ownership, not actors.
@@ -1349,7 +1352,11 @@ registerForEvent('onUpdate', function(delta)
                 end)
                 if shown then
                     local _, listeners = groupAudience(player)
-                    groupChat.received(pending.requestId, reply.text, reply.error ~= nil or (not speech.requestId and not subtitles.line), listeners, reply.stream, reply.userText)
+                    -- Continuous Convai PCM shares evolving-utterance delivery
+                    -- semantics with stream v2, without native WAV chunking.
+                    local utterance = reply.stream or (type(reply.continuous) == 'table'
+                        and {version=2,id=reply.continuous.id} or nil)
+                    groupChat.received(pending.requestId, reply.text, reply.error ~= nil or (not speech.requestId and not subtitles.line), listeners, utterance, reply.userText)
                     if type(microphone.received) == 'function' then microphone.received(pending.requestId) end
                     log('Conversation result: generation=' .. pending.generation .. ' error=' .. tostring(reply.error ~= nil))
                     if automatic and pending.requestId == automatic.requestId then

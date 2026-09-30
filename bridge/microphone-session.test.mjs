@@ -5,22 +5,47 @@ import {MicrophoneSession} from './microphone-session.mjs';
 const deferred = () => { let resolve; const promise = new Promise(done => { resolve = done; }); return {promise, resolve}; };
 function fixture(hooks = {}) {
   const opening = deferred(), response = deferred(), states = [], replies = [], replyInputs = [], errors = [];
-  const begins = [], finishConfigs = [];
+  const begins = [], finishConfigs = [], finishOptions = [];
   let stops = 0, finishes = 0;
   const session = new MicrophoneSession({hostFactory: () => ({
     beginVoice: config => { begins.push(config); return opening.promise; },
-    finishVoice: config => { finishes++; finishConfigs.push(config); return response.promise; },
+    finishVoice: (config, options) => { finishes++; finishConfigs.push(config); finishOptions.push(options); return response.promise; },
     close: async () => { stops++; },
   }), onState: async (state, input) => { states.push(state); await hooks.onState?.(state, input); },
   onReply: async (input, result) => { replies.push([input.requestId, result]); replyInputs.push(input); },
-  onError: async (input, error) => { states.push('error'); errors.push({input, error}); }});
-  return {session, opening, response, states, replies, replyInputs, errors, begins, finishConfigs, counts: () => ({stops, finishes})};
+  onError: async (input, error) => { states.push('error'); errors.push({input, error}); }, prepareReply: hooks.prepareReply});
+  return {session, opening, response, states, replies, replyInputs, errors, begins, finishConfigs, finishOptions, counts: () => ({stops, finishes})};
 }
 
 const recording = changes => ({requestId: '123-5-42ULL', entity: '42ULL', generation: 5,
   profileKey: 'judy', text: '(microphone)', ...changes});
 const configuration = changes => ({characterId: 'character-judy', endUserId: 'opaque-user-one',
   scope: 'private', sessionId: 'session-one', context: 'old objective', ...changes});
+
+test('microphone renderer is prepared for the refreshed exact owner before finishing input', async () => {
+  const options = {liveSpeech: {token: 'owned-live-speech', onFrame: async () => {}}};
+  let prepared;
+  const f = fixture({prepareReply: async (input, signal) => { prepared = {input, signal}; return options; }});
+  const input = recording(), start = f.session.start(input, configuration());
+  await setImmediate(); f.opening.resolve(); await start;
+  const refreshed = {...input, worldKnowledge: {capturedAt: 'now'}};
+  const finish = f.session.finish(input.requestId, {input: refreshed, config: configuration()});
+  await setImmediate();
+  assert.equal(prepared.input, refreshed); assert.equal(prepared.signal.aborted, false);
+  assert.equal(f.finishOptions[0], options); assert.equal(f.counts().finishes, 1);
+  f.response.resolve({text: 'Done.', continuous: true}); await finish;
+  assert.equal(f.replies.length, 1);
+});
+
+test('cancel during renderer preparation cannot finish or submit the retired microphone', async () => {
+  const preparation = deferred();
+  const f = fixture({prepareReply: () => preparation.promise});
+  const input = recording(), start = f.session.start(input, configuration());
+  await setImmediate(); f.opening.resolve(); await start;
+  const finish = f.session.finish(input.requestId); await setImmediate();
+  await f.session.cancel(); preparation.resolve({liveSpeech: {token: 'retired'}}); await finish;
+  assert.equal(f.counts().finishes, 0); assert.equal(f.replies.length, 0);
+});
 test('second press while microphone opens finishes it once ready', async () => {
   const f = fixture(); const start = f.session.start({requestId: 'one'}, {});
   await setImmediate(); await f.session.finish('one');

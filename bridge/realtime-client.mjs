@@ -1,11 +1,13 @@
 import {ConvaiClient} from '@convai/web-sdk/vanilla';
 import {endUserOptions, transportKey, SessionBindings} from './transport-pool.mjs';
 import {ConvaiDataAudio} from './convai-data-audio.mjs';
+import {ContinuousPcmPlayer} from './continuous-pcm-player.mjs';
 
 let client, identity, turn, micTimer, verifiedProvider, audioParticipant, admitting;
 let initialSession, submitted = false, epoch = 0, ttsEnabled = true;
 let retiredAudioOwners = [];
 let observed = {}, previousTurnDiagnostics = null;
+let previousContinuous = null;
 const sessions = new SessionBindings();
 // The game owns its 30-second recording finish and supplies fresh context.
 // This later ceiling is cancellation only if that finish never reaches us.
@@ -114,7 +116,15 @@ async function close(reason = 'Conversation cancelled') {
   ++epoch;
   clearTimeout(micTimer);
   micTimer = null;
-  if (previous.turn) { previous.turn.error = reason; previous.turn.dataAudio?.abort(reason); }
+  if (previous.turn) {
+    previous.turn.error = reason;
+    previous.turn.dataAudio?.abort(reason);
+    // Retire audible output immediately, before waiting for SDK shutdown.
+    if (previous.turn.live) {
+      void previous.turn.live.player.stop(reason).catch(() => {});
+      previousContinuous = continuousView(previous.turn);
+    }
+  }
   if (previous.turn) previousTurnDiagnostics = turnDiagnostics(previous.turn);
   client = identity = turn = verifiedProvider = audioParticipant = null;
   retiredAudioOwners = [];
@@ -229,8 +239,15 @@ async function connect(config) {
       if (type !== 'audio-data' && data && retiredAudioEvent(data)) return;
       rejectTransport('Convai audio arrived outside its submitted turn'); return;
     }
+    if (turn.dataAudio.sealed) {
+      if (type !== 'audio-data' && data && retiredAudioEvent(data)) return;
+      rejectTransport('Convai audio arrived after its validated source completed'); return;
+    }
     try {
-      if (turn.dataAudio.accept(message, {kind, atMs: performance.now() - turn.started})) observed.acceptedAudioEvents++;
+      if (turn.dataAudio.accept(message, {kind, atMs: performance.now() - turn.started})) {
+        observed.acceptedAudioEvents++;
+        queueContinuous(turn);
+      }
     }
     catch (error) { rejectTransport(error.message || 'Invalid Convai speech data'); }
   });
@@ -294,11 +311,107 @@ function beginTurn(timing = {}, config = {}) {
   if (turn) throw Error('A conversation turn is already active');
   submitted = true;
   const {ready: _ready, registration: _registration, ...connectionTiming} = timing;
-  const current = turn = {before: new Set(client.chatMessages.map(m => m.id)), text: '',
+  const current = {before: new Set(client.chatMessages.map(m => m.id)), text: '',
     started: performance.now(), epoch, timing: connectionTiming, ttsEnabled, textComplete: false,
     providerIdentity: {characterId: config.characterId, endUserId: config.endUserId ?? null}};
   if (ttsEnabled) current.dataAudio = new ConvaiDataAudio({retiredOwners: retiredAudioOwners});
+  attachContinuous(current, config.liveSpeechToken);
+  turn = current;
   return current;
+}
+
+function attachContinuous(current, token) {
+  if (token === undefined || !current.ttsEnabled) return;
+  if (typeof token !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(token)) throw Error('Invalid live speech token');
+  if (current.live) {
+    if (current.live.token !== token) throw Error('Live speech owner changed');
+    return;
+  }
+  previousContinuous = null;
+  current.live = {token, player: new ContinuousPcmPlayer(), chain: Promise.resolve(), opened: false};
+  queueContinuous(current);
+}
+
+function clockDiagnostic(playback) {
+  const source = playback?.clockDiagnostic;
+  if (!source || typeof source !== 'object') return null;
+  const result = {};
+  for (const key of ['previousStart', 'previousEnd', 'previousFrom', 'previousTo',
+    'nextStart', 'nextEnd', 'nextFrom', 'nextTo']) {
+    const value = source[key];
+    if (typeof value === 'number' && Number.isFinite(value) && Math.abs(value) <= Number.MAX_SAFE_INTEGER)
+      result[key] = value;
+  }
+  return Object.keys(result).length ? result : null;
+}
+
+const clockError = diagnostic => Error('Continuous PCM clock failure; clock=' + JSON.stringify(diagnostic));
+function rendererError(current, error) {
+  const diagnostic = clockDiagnostic(current.live?.player.snapshot());
+  return diagnostic ? clockError(diagnostic) : error;
+}
+
+function queueContinuous(current) {
+  const live = current.live;
+  if (!live || current.error || turn !== current || current.epoch !== epoch) return;
+  const packets = current.dataAudio.drainPcm();
+  if (!packets.length) return;
+  const {sampleRate, channels} = current.dataAudio;
+  live.chain = live.chain.then(async () => {
+    const owned = () => !current.error && turn === current && current.epoch === epoch;
+    if (!owned()) return;
+    if (!live.opened) {
+      await live.player.open({sampleRate, channels, token: live.token});
+      live.opened = true;
+      if (owned() && live.pendingControl) live.player.control(live.pendingControl);
+    }
+    for (const packet of packets) {
+      if (!owned()) return;
+      await live.player.append(packet.bytes, packet.offsetFrames);
+    }
+  }).catch(error => {
+    if (turn === current && current.epoch === epoch) {
+      current.error = rendererError(current, error).message || 'Continuous speech playback failed';
+      void close(current.error).catch(() => {});
+    }
+  });
+}
+
+function continuousView(current) {
+  if (!current?.live) return null;
+  const source = current.dataAudio.progress(), playback = current.live.player.snapshot();
+  const diagnostic = clockDiagnostic(playback);
+  // Explicit public shape: never expose SDK configuration or remote identities.
+  return {version: 1, token: current.live.token, text: current.text,
+    ...(current.userText ? {userText: current.userText} : {}),
+    textComplete: current.textComplete, sampleRate: source.sampleRate, channels: source.channels,
+    receivedFrames: source.receivedFrames, receivedDuration: source.sampleRate ? source.receivedFrames / source.sampleRate : 0,
+    positionSeconds: playback.positionSeconds ?? 0, playedFrames: playback.playedFrames ?? 0,
+    bufferedFrames: playback.bufferedFrames ?? 0, state: playback.state,
+    ended: playback.ended === true, error: current.error || playback.error || null,
+    ...(diagnostic ? {clockDiagnostic: diagnostic} : {}),
+    underruns: playback.underruns ?? 0, faces: source.faces,
+    facesFormat: source.facesFormat, facesTimebase: source.facesTimebase,
+    sourceComplete: source.sourceComplete};
+}
+
+function continuousSnapshot(token) {
+  const snapshot = turn?.live?.token === token ? continuousView(turn)
+    : previousContinuous?.token === token ? previousContinuous : null;
+  // A clock fault may reach this poll before collect's next tick. Throw the
+  // same bounded diagnostic here so a generic publication error cannot erase
+  // the evidence before the host disposes this page.
+  if (snapshot?.error && snapshot.clockDiagnostic) throw clockError(snapshot.clockDiagnostic);
+  return snapshot;
+}
+
+function continuousControl(token, control) {
+  if (!turn?.live || turn.live.token !== token || turn.epoch !== epoch || turn.error) return false;
+  const live = turn.live;
+  if (live.player.snapshot().ended) return false;
+  if (live.opened) live.player.control(control);
+  else live.pendingControl = control;
+  return true;
 }
 
 async function collect(current) {
@@ -308,6 +421,10 @@ async function collect(current) {
       if (current.error) throw Error(current.error);
       if (current.epoch !== epoch || turn !== current) throw Error('Conversation cancelled');
       if (current.dataAudio?.error) throw current.dataAudio.error;
+      if (current.live) {
+        const state = current.live.player.snapshot();
+        if (state.error || state.state === 'stopped') throw Error(state.error || 'Continuous speech stopped before completion');
+      }
       // Source bytes can arrive faster than their playback duration. Wait for
       // exact PCM + owned clean terminal + final text, never a browser clock.
       return current.text && current.textComplete && !client.state.isThinking
@@ -315,22 +432,39 @@ async function collect(current) {
     }, 60000, 'Convai did not finish the reply');
     const collectedAt = performance.now();
     if (current.epoch !== epoch || turn !== current || current.error) throw Error(current.error || 'Conversation cancelled');
-    const collected = current.dataAudio?.finish();
+    // All source samples were accepted and owned before publication. Drain any
+    // queued append acknowledgements before sealing the collector or EOF.
+    if (current.live) await current.live.chain;
+    if (current.error || turn !== current || current.epoch !== epoch) throw Error(current.error || 'Conversation cancelled');
+    const collected = current.dataAudio?.finish({includeAudio: !current.live});
+    const encodedAt = performance.now();
     if (current.dataAudio?.owner) {
       retiredAudioOwners.push(current.dataAudio.owner);
       if (retiredAudioOwners.length > 32) retiredAudioOwners.shift();
     }
+    if (current.live) {
+      await current.live.player.end(current.dataAudio.byteCount / (collected.channels * 2));
+      await waitFor(() => {
+        if (current.error || turn !== current || current.epoch !== epoch) throw Error(current.error || 'Conversation cancelled');
+        const state = current.live.player.snapshot();
+        if (state.error || state.state === 'stopped') throw Error(state.error || 'Continuous speech stopped before completion');
+        return state.ended === true;
+      }, Infinity, 'Continuous speech did not drain');
+      previousContinuous = continuousView(current);
+      await current.live.player.stop('completed');
+    }
     return {...collected, text: current.text, sessionID: client.characterSessionId,
       ...(current.userText ? {userText: current.userText} : {}),
-      audio: collected?.audio,
+      ...(current.live ? {continuous: true, liveSpeechToken: current.live.token} : {audio: collected?.audio}),
       timing: {...current.timing, ...collected?.timing, collectionMs: collectedAt - started,
-        audioEncodeMs: performance.now() - collectedAt,
+        audioEncodeMs: encodedAt - collectedAt,
         ...(collected ? {audioTransport: 'convai-data', audioPacketCount: collected.packetCount} : {})},
-      streamed: false, faces: collected?.faces ?? [], facesFormat: 'arkit61', facesTimebase: 'audio-seconds', captions: []};
+      streamed: !!current.live, faces: collected?.faces ?? [], facesFormat: 'arkit61', facesTimebase: 'audio-seconds', captions: []};
   } catch (error) {
-    current.dataAudio?.abort(error.message);
-    if (turn === current && current.epoch === epoch) await close(error.message || 'Conversation failed');
-    throw error;
+    const failure = rendererError(current, error);
+    current.dataAudio?.abort(failure.message);
+    if (turn === current && current.epoch === epoch) await close(failure.message || 'Conversation failed');
+    throw failure;
   }
   finally { if (turn === current) turn = null; }
 }
@@ -409,6 +543,8 @@ async function finishVoice(config) {
   // Same leased connection, new verified context. Updating before mute keeps
   // the fresh facts ahead of the end-of-input notification to the service.
   if (config !== undefined) updateContext(config);
+  try { attachContinuous(current, config?.liveSpeechToken); }
+  catch (error) { await close('Microphone playback admission failed'); throw error; }
   current.recording = false;
   await disableMic();
   if (turn !== current || current.epoch !== epoch) throw Error('Microphone finish cancelled');
@@ -429,4 +565,5 @@ function readiness(keepAlive = false) {
   return {ready};
 }
 
-window.convaiRealtime = {reply, warm: connect, readiness, beginVoice, finishVoice, close, diagnostics};
+window.convaiRealtime = {reply, warm: connect, readiness, beginVoice, finishVoice, close, diagnostics,
+  continuousSnapshot, continuousControl};

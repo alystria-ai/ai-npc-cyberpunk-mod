@@ -9,7 +9,8 @@ import {ConvaiDataAudio} from './convai-data-audio.mjs';
 const source = readFileSync(new URL('./realtime-client.mjs', import.meta.url), 'utf8')
   .replace("import {ConvaiClient} from '@convai/web-sdk/vanilla';", '')
   .replace("import {endUserOptions, transportKey, SessionBindings} from './transport-pool.mjs';", '')
-  .replace("import {ConvaiDataAudio} from './convai-data-audio.mjs';", '');
+  .replace("import {ConvaiDataAudio} from './convai-data-audio.mjs';", '')
+  .replace("import {ContinuousPcmPlayer} from './continuous-pcm-player.mjs';", '');
 const flush = () => new Promise(done => setImmediate(done));
 function manualTimers() {
   let now = 0, nextId = 0;
@@ -24,7 +25,7 @@ function manualTimers() {
     }
   };
 }
-function fixture({emitAudio, allowMic = false, timers, onConnect, onDisconnect, onDisableAudio, botReady = true} = {}) {
+function fixture({emitAudio, allowMic = false, timers, onConnect, onDisconnect, onDisableAudio, botReady = true, player} = {}) {
   const clients = [], events = [];
   class Client {
     constructor(options) {
@@ -79,6 +80,7 @@ function fixture({emitAudio, allowMic = false, timers, onConnect, onDisconnect, 
   const window = {__convaiAudioChunk: emitAudio};
   runInNewContext(source, {ConvaiClient: Client, AudioContext: ForbiddenAudio, AudioWorkletNode: ForbiddenAudio,
     endUserOptions, transportKey, SessionBindings, ConvaiDataAudio, TextDecoder,
+    ContinuousPcmPlayer: player || ForbiddenAudio,
     window, performance, setTimeout: timers?.setTimeout ?? setTimeout, clearTimeout: timers?.clearTimeout ?? clearTimeout,
     setInterval, clearInterval,
     btoa: data => Buffer.from(data, 'binary').toString('base64')});
@@ -956,4 +958,168 @@ test('a microphone reply carries recognized V text alongside one source PCM WAV'
   assert.equal(result.streamed, false); assert.equal(result.packetCount, 1);
   assert.equal(client.room.localParticipant.audioTrackPublications.size, 0);
   await api.close();
+});
+
+function playerFixture({appendGate, openError} = {}) {
+  const instances = [];
+  class Player {
+    constructor() { this.packets = []; this.controls = []; this.state = {state: 'opening', ended: false}; instances.push(this); }
+    async open(format) { if (openError) throw Error(openError); this.format = format; this.state.state = 'awaiting-admission'; }
+    async append(bytes, offsetFrames) {
+      assert.equal(this.inAppend, undefined, 'append acknowledgements must be ordered');
+      this.inAppend = true;
+      await appendGate?.();
+      this.packets.push({bytes: Buffer.from(bytes), offsetFrames});
+      this.inAppend = undefined;
+    }
+    control(control) { assert.ok(this.format, 'control must wait for open'); this.controls.push(control); }
+    async end(totalFrames) { this.totalFrames = totalFrames; this.state.state = 'draining'; }
+    snapshot() { return {...this.state, sampleRate: this.format?.sampleRate, channels: this.format?.channels}; }
+    async stop(reason) { this.stopped = reason; this.state.state = 'stopped'; this.state.ended = false; }
+    drain() { this.state = {...this.state, state: 'ended', ended: true,
+      playedFrames: this.totalFrames, positionSeconds: this.totalFrames / this.format.sampleRate}; }
+  }
+  return {Player, instances};
+}
+
+test('continuous playback receives owned original PCM before terminal, preserves faces and holds result until audible drain', async () => {
+  const {Player, instances} = playerFixture();
+  const {api, clients} = fixture({player: Player});
+  await api.warm(config);
+  let settled = false;
+  const pending = api.reply({...config, liveSpeechToken: 'audible-turn'}).finally(() => { settled = true; });
+  pending.catch(() => {}); await flush();
+  const c = clients[0], data = audioFixture();
+  assert.equal(api.continuousSnapshot('foreign-turn'), null);
+  api.continuousControl('audible-turn', {allow: false, paused: false, volume: 1, pan: 0});
+  c.data(data.pcm(data.samples.subarray(0, 3200))); await flush();
+  assert.equal(instances[0].packets.length, 0, 'ownerless PCM must wait');
+  c.data(data.faces); await flush();
+  assert.equal(instances[0].packets.length, 1, 'playback need not wait for source completion');
+  assert.equal(instances[0].controls.length, 1);
+  c.data(data.pcm(data.samples.subarray(3200))); await flush();
+  assert.deepEqual(instances[0].packets.map(p => p.offsetFrames), [0, 1600]);
+  assert.deepEqual(Buffer.concat(instances[0].packets.map(p => p.bytes)), data.samples);
+  c.data(data.stats); c.data(data.terminal); finalText(c);
+  await new Promise(done => setTimeout(done, 80));
+  assert.equal(instances[0].totalFrames, 3200); assert.equal(settled, false);
+  const progress = api.continuousSnapshot('audible-turn');
+  assert.equal(progress.sourceComplete, true); assert.equal(progress.faces.length, 24);
+  assert.equal(progress.text, 'Hello V.'); assert.equal(progress.textComplete, true);
+  assert.equal(JSON.stringify(progress).includes('test-key'), false);
+  assert.equal(JSON.stringify(progress).includes(data.owner.response_id), false);
+  instances[0].drain();
+  assert.equal(api.continuousControl('audible-turn', {allow: true}), false, 'drained sink cannot be reopened');
+  const result = await pending;
+  assert.equal(result.continuous, true); assert.equal(Object.hasOwn(result, 'audio'), false);
+  assert.equal(result.faces.length, 24); assert.equal(instances[0].stopped, 'completed');
+  assert.equal(api.continuousSnapshot('audible-turn').ended, true);
+  await api.close();
+});
+
+test('continuous renderer startup failure cancels the provider without returning a duplicate WAV fallback', async () => {
+  const {Player, instances} = playerFixture({openError: 'Test audio output unavailable'});
+  const {api, clients} = fixture({player: Player}); await api.warm(config);
+  const pending = api.reply({...config, liveSpeechToken: 'failed-turn'}); pending.catch(() => {}); await flush();
+  sendAudio(clients[0]); finalText(clients[0]);
+  await assert.rejects(pending, /Test audio output unavailable/);
+  assert.equal(clients[0].isBotReady, false); assert.equal(instances[0].packets.length, 0);
+});
+
+test('continuous clock faults preserve only bounded numeric evidence through append and collection failures', async () => {
+  for (const phase of ['append', 'collect']) {
+    const {Player} = playerFixture();
+    const numbers = {previousStart: .125, previousEnd: .25, previousFrom: 100, previousTo: 200,
+      nextStart: .2, nextEnd: .3, nextFrom: 199, nextTo: 300};
+    class FaultyPlayer extends Player {
+      async append(bytes, offsetFrames) {
+        await super.append(bytes, offsetFrames);
+        this.state = {...this.state, state: 'error', error: 'Sensitive renderer string must not leak',
+          clockDiagnostic: {...numbers, key: 'private-key', endUserId: 'private-id',
+            text: 'private-dialogue', unknownNumber: 999,
+            ...(phase === 'collect' ? {previousTo: Infinity, nextFrom: Number.MAX_SAFE_INTEGER + 1, nextTo: 'private-string'} : {})}};
+        if (phase === 'append') throw Error(this.state.error);
+      }
+    }
+    const {api, clients} = fixture({player: FaultyPlayer}); await api.warm(config);
+    const pending = api.reply({...config, liveSpeechToken: 'clock-fault'}); pending.catch(() => {}); await flush();
+    sendAudio(clients[0]); finalText(clients[0]); await flush();
+    const expected = {...numbers};
+    if (phase === 'collect') { delete expected.previousTo; delete expected.nextFrom; delete expected.nextTo; }
+    const validate = error => {
+      assert.match(error.message, /^Continuous PCM clock failure; clock=/);
+      assert.deepEqual(JSON.parse(error.message.split('clock=')[1]), expected);
+      assert.doesNotMatch(error.message, /private|Sensitive|unknownNumber/);
+      assert.ok(error.message.length < 350);
+      return true;
+    };
+    assert.throws(() => api.continuousSnapshot('clock-fault'), validate);
+    await assert.rejects(pending, validate);
+    assert.throws(() => api.continuousSnapshot('clock-fault'), validate);
+    assert.equal(clients[0].isBotReady, false);
+    await api.close();
+  }
+});
+
+test('continuous cancellation fences pending append acknowledgements and late controls', async () => {
+  let release;
+  const gate = new Promise(resolve => { release = resolve; });
+  const {Player, instances} = playerFixture({appendGate: () => gate});
+  const {api, clients} = fixture({player: Player}); await api.warm(config);
+  const pending = api.reply({...config, liveSpeechToken: 'cancelled-turn'}); pending.catch(() => {}); await flush();
+  const data = audioFixture(); clients[0].data(data.faces);
+  clients[0].data(data.pcm(data.samples.subarray(0, 3200)));
+  clients[0].data(data.pcm(data.samples.subarray(3200))); await flush();
+  await api.close('User cancelled'); release(); await flush();
+  await assert.rejects(pending, /User cancelled/);
+  assert.equal(instances[0].packets.length, 1, 'a queued later packet cannot start after cancellation');
+  assert.equal(api.continuousControl('cancelled-turn', {allow: true}), false);
+  assert.equal(instances[0].stopped, 'User cancelled');
+});
+
+test('microphone finish attaches continuous playback before end-of-input and reuses its recording owner', async () => {
+  const {Player, instances} = playerFixture();
+  const {api, clients} = fixture({player: Player, allowMic: true}); await api.beginVoice(config);
+  clients[0].chatMessages = [{id: 'live-stt', type: 'user-transcription', content: '\tWhat do you both\u0000 think?\n', isStreaming: false}];
+  clients[0].handlers.get('messagesChange')(clients[0].chatMessages);
+  const pending = api.finishVoice({...config, liveSpeechToken: 'microphone-turn'}); pending.catch(() => {}); await flush();
+  sendAudio(clients[0]); finalText(clients[0]);
+  await new Promise(done => setTimeout(done, 80));
+  assert.equal(instances[0].packets.length, 1); assert.equal(instances[0].totalFrames, 3200);
+  assert.equal(clients[0].room.localParticipant.audioTrackPublications.size, 0);
+  assert.equal(api.continuousSnapshot('microphone-turn').userText, 'What do you both think?');
+  instances[0].drain();
+  const result = await pending;
+  assert.equal(result.continuous, true); assert.equal(result.userText, 'What do you both think?');
+  assert.equal(api.continuousSnapshot('microphone-turn').userText, result.userText);
+  await api.close();
+});
+
+test('text-only turns never instantiate a continuous audio player even with an explicit token', async () => {
+  const {api, clients} = fixture(); await api.warm({...config, ttsEnabled: false});
+  const pending = api.reply({...config, ttsEnabled: false, liveSpeechToken: 'text-only'}); await flush();
+  finalText(clients[0]); const result = await pending;
+  assert.equal(result.continuous, undefined); assert.equal(api.continuousSnapshot('text-only'), null); await api.close();
+});
+
+test('additional source PCM after validation cannot be hidden while continuous playback drains', async () => {
+  const {Player, instances} = playerFixture();
+  const {api, clients} = fixture({player: Player}); await api.warm(config);
+  const pending = api.reply({...config, liveSpeechToken: 'closed-source'}); pending.catch(() => {}); await flush();
+  const data = sendAudio(clients[0]); finalText(clients[0]);
+  await new Promise(done => setTimeout(done, 80));
+  assert.equal(instances[0].state.state, 'draining');
+  clients[0].data(data.pcm());
+  await assert.rejects(pending, /after its validated source completed/);
+  assert.equal(instances[0].state.state, 'stopped'); assert.equal(clients[0].isBotReady, false);
+});
+
+test('invalid continuous admission cannot leave an active turn or submit text', async () => {
+  const {Player} = playerFixture();
+  const {api, clients, events} = fixture({player: Player}); await api.warm(config);
+  await assert.rejects(api.reply({...config, liveSpeechToken: '../not-an-owner'}), /Invalid live speech token/);
+  assert.equal(api.diagnostics().activeTurn, false);
+  assert.equal(events.some(row => row[0] === 'message'), false);
+  const pending = api.reply(config); await flush(); sendAudio(clients[0]); finalText(clients[0]);
+  assert.equal((await pending).continuous, undefined); await api.close();
 });

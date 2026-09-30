@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {BlendshapeQueue} from '../node_modules/@convai/web-sdk/dist/core/BlendshapeQueue.js';
 import {drainBlendshapes} from './blendshape-capture.mjs';
-import {buildFacialTimeline, SPEECH_TRACKS} from './facial-timeline.mjs';
+import {buildFacialTimeline, buildProviderFacialTimeline, SPEECH_TRACKS} from './facial-timeline.mjs';
 import {PcmChunkStream, sliceFaces} from './convai-audio-stream.mjs';
 
 const owner = {requestId: 'reply-1', entity: 'judy-copy-2'};
@@ -26,6 +26,116 @@ function audio({bits = 16, codec = 1, channels = 1, duration = 1.5, sample} = {}
   return data;
 }
 const weight = (line, sample, track) => line.frames[sample][line.tracks.indexOf(track) + 1];
+
+test('60 Hz provider poses preserve a single-frame jaw and pucker peak at its original audio time', () => {
+  const faces = Array.from({length: 61}, (_, frame) => {
+    const pose = values(frame === 7 ? .5 : 0);
+    pose[20] = frame === 7 ? .8 : 0;
+    return {at: frame / 60, values: pose};
+  });
+  const input = {audio: audio({duration: 1}).toString('base64'), faces,
+    facesFormat: 'arkit61', facesTimebase: 'audio-seconds'};
+  const before = structuredClone(input), line = buildFacialTimeline(input, owner);
+  assert.equal(line.frames.length, 61);
+  assert.equal(line.frames[7][0], 7 / 60);
+  assert.equal(weight(line, 7, 'jaw_mid_open'), .3);
+  assert.equal(weight(line, 7, 'lips_l_purse'), .224);
+  assert.equal(weight(line, 6, 'jaw_mid_open'), 0);
+  assert.equal(weight(line, 8, 'jaw_mid_open'), 0);
+  assert.equal(line.frames.at(-1)[0], 1);
+  assert.deepEqual(input, before);
+});
+
+test('provider cadence follows source timestamps without stretching sparse or faster timelines', () => {
+  for (const [rate, expectedRate] of [[24, 30], [30, 30], [50, 50], [60, 60], [120, 60]]) {
+    const line = buildFacialTimeline({audio: audio({duration: 1}).toString('base64'),
+      faces: Array.from({length: rate + 1}, (_, frame) => ({at: frame / rate, values: values(frame / rate)})),
+      facesFormat: 'arkit61', facesTimebase: 'audio-seconds'}, owner);
+    assert.equal(line.frames.length, expectedRate + 1, `source ${rate} Hz`);
+    assert.equal(line.frames.at(-1)[0], 1);
+    const middle = line.frames.find(frame => frame[0] === .5);
+    assert(middle);
+    assert.equal(middle[1], .3, `source ${rate} Hz keeps the pose at audio time .5`);
+  }
+});
+
+test('60 Hz output stays within the native frame budget for a full two-minute reply', () => {
+  const faces = Array.from({length: 7201}, (_, frame) => ({at: frame / 60, values: values(.2)}));
+  const line = buildFacialTimeline({audio: audio({duration: 120, sample: () => 0}).toString('base64'),
+    faces,
+    facesFormat: 'arkit61', facesTimebase: 'audio-seconds'}, owner);
+  assert.equal(line.frames.length, 7201);
+  assert.equal(line.frames.at(-1)[0], 120);
+  assert(line.frames.every((frame, index) => index === 0 || frame[0] > line.frames[index - 1][0]));
+  assert(line.frames[0].slice(1).every(value => value === 0));
+  assert(line.frames.at(-1).slice(1).every(value => value === 0));
+  const continuous = buildProviderFacialTimeline({faces, facesFormat: 'arkit61', facesTimebase: 'audio-seconds',
+    duration: 120, complete: true}, owner);
+  assert.deepEqual(continuous.frames, line.frames);
+});
+
+test('continuous provider timelines accept ahead-delivered faces without reading or generating audio', () => {
+  const faces = Array.from({length: 121}, (_, frame) => ({at: frame / 60, values: values(frame / 120)}));
+  const before = structuredClone(faces), input = {faces, facesFormat: 'arkit61', facesTimebase: 'audio-seconds',
+    duration: .513, complete: false};
+  Object.defineProperty(input, 'audio', {get() { throw Error('The continuous face builder must not inspect audio'); }});
+  const line = buildProviderFacialTimeline(input, owner);
+  assert.equal(line.version, 1);
+  assert.equal(line.requestId, owner.requestId);
+  assert.equal(line.entity, owner.entity);
+  assert.equal(line.source, 'convai-arkit61');
+  assert.equal(line.articulation, 'arkit61-open-v3');
+  assert.equal(line.continuous, true);
+  assert.equal(line.complete, false);
+  assert.equal(line.duration, .513);
+  assert.equal(line.frames.at(-1)[0], .513);
+  assert(line.frames.at(-1)[1] > .2); // The buffered edge remains articulated.
+  assert(line.frames.every(frame => frame[0] <= .513));
+  assert(line.frames[0].slice(1).every(value => value === 0));
+  assert.deepEqual(faces, before);
+  const conventional = buildFacialTimeline({faces, facesFormat: 'arkit61', facesTimebase: 'audio-seconds',
+    audio: audio({duration: .513}).toString('base64'),
+    speechSegment: {version: 1, index: 1, startSeconds: 0, first: true, last: false}}, owner);
+  assert.deepEqual(line.frames, conventional.frames);
+});
+
+test('growing provider prefixes retain global poses and only confirmed EOF releases the mouth', () => {
+  const faces = Array.from({length: 121}, (_, frame) => {
+    const pose = values(.2 + frame / 300); pose[19] = .3;
+    return {at: frame / 60, values: pose};
+  });
+  const input = {faces, facesFormat: 'arkit61', facesTimebase: 'audio-seconds', complete: false};
+  const before = structuredClone(input);
+  const prefixes = [.5, .8, 1.1].map(duration => buildProviderFacialTimeline({...input, duration}, owner));
+  for (let index = 1; index < prefixes.length; index++) {
+    assert.deepEqual(prefixes[index].frames.slice(0, prefixes[index - 1].frames.length), prefixes[index - 1].frames);
+  }
+  assert(prefixes.every(line => line.frames.at(-1)[1] > .2));
+  const final = buildProviderFacialTimeline({...input, duration: 1.2, complete: true}, owner);
+  assert.equal(final.complete, true);
+  assert.deepEqual(final.frames.slice(0, prefixes.at(-1).frames.length), prefixes.at(-1).frames);
+  assert(final.frames.at(-1).slice(1).every(value => value === 0));
+  assert.equal(final.frames.at(-1)[0], 1.2);
+  assert.deepEqual(input, before);
+});
+
+test('continuous facial preparation rejects incomplete or malformed data without creating an audio fallback', () => {
+  const faces = Array.from({length: 61}, (_, frame) => ({at: frame / 60, values: values(.3)}));
+  const valid = {faces, facesFormat: 'arkit61', facesTimebase: 'audio-seconds', duration: 1, complete: false};
+  for (const change of [{faces: []}, {faces: faces.slice(6)}, {faces: faces.slice(0, 20)},
+    {facesFormat: 'arkit52'}, {facesTimebase: 'wall-clock'}, {complete: undefined}, {complete: 'false'},
+    {duration: 0}, {duration: -.1}, {duration: NaN}, {duration: Infinity}, {duration: 120.1},
+    {faces: [{at: 0, values: values(.3)}, {at: .8, values: values(NaN)}]},
+    {faces: [{at: 0, values: values(.3)}, {at: 0, values: values(.3)}]},
+    {faces: [...faces, {at: 121, values: values(.3)}]}]) {
+    assert.equal(buildProviderFacialTimeline({...valid, ...change}, owner), undefined);
+  }
+  assert.equal(buildProviderFacialTimeline(valid, undefined), undefined);
+  assert.equal(buildProviderFacialTimeline(undefined, owner), undefined);
+  // One unsampled tail interval is expected; more missing coverage is not.
+  assert(buildProviderFacialTimeline({...valid, faces: faces.slice(0, -1)}, owner));
+  assert.equal(buildProviderFacialTimeline({...valid, faces: faces.slice(0, -2)}, owner), undefined);
+});
 
 test('quiet consonant closure survives voiced neighbours without an RMS-driven neutral flash', () => {
   const wav = audio({duration: .6, sample: at => Math.sin(2 * Math.PI * 240 * at)
@@ -120,8 +230,8 @@ test('ARKIT-61 mouth controls follow the actual order, preserve provider rest an
   const line = buildFacialTimeline({audio: wav.toString('base64'), faces,
     facesFormat: 'arkit61', facesTimebase: 'audio-seconds'}, owner);
   assert.equal(line.source, 'convai-arkit61'); assert.deepEqual(wav, before);
-  assert.equal(line.articulation, 'arkit61-open-v2');
-  assert.equal(weight(line, 6, 'jaw_mid_open'), 0.352);
+  assert.equal(line.articulation, 'arkit61-open-v3');
+  assert.equal(weight(line, 6, 'jaw_mid_open'), 0.3692);
   assert.equal(weight(line, 6, 'lips_l_funnel'), 0.18);
   assert.equal(weight(line, 6, 'lips_l_purse'), 0.112);
   assert.ok(line.frames[22].slice(1).every(x => x === 0));
@@ -140,7 +250,7 @@ test('Convai opening strengthens small and medium jaw motion without forcing res
   };
   const amounts = [0, .1, .35, .8, 1];
   const lines = amounts.map(value => make(value));
-  assert.deepEqual(lines.map(line => weight(line, 6, 'jaw_mid_open')), [0, .058, .1855, .352, .4]);
+  assert.deepEqual(lines.map(line => weight(line, 6, 'jaw_mid_open')), [0, .1, .2471, .3692, .4]);
   for (let index = 1; index < lines.length; index++) {
     const line = lines[index], jaw = weight(line, 6, 'jaw_mid_open');
     assert(jaw > .35 * amounts[index]);
@@ -149,12 +259,31 @@ test('Convai opening strengthens small and medium jaw motion without forcing res
     assert(line.frames[0].slice(1).every(value => value === 0));
     assert(line.frames.at(-1).slice(1).every(value => value === 0));
   }
-  assert.equal(weight(make(.35, .5), 6, 'jaw_mid_open'), .0928);
+  assert.equal(weight(make(.35, .5), 6, 'jaw_mid_open'), .1235);
   assert.equal(weight(make(.35, 1), 6, 'jaw_mid_open'), 0);
   assert.equal(weight(make(.35, 1), 6, 'lips_apart_up'), 0);
   assert.equal(weight(make(.35, 1), 6, 'lips_apart_dn'), 0);
   assert.equal(weight(make(.35, 1), 6, 'lips_together_up'), .2);
   assert.equal(weight(make(.35, 1), 6, 'lips_together_dn'), .2);
+});
+
+test('the jaw shoulder stays monotonic through a continuous vowel and yields to every lip closure', () => {
+  const wav = audio({duration: 1.2}).toString('base64');
+  for (const closure of [0, .25, .5, .75, 1]) {
+    const faces = Array.from({length: 65}, (_, frame) => {
+      const pose = values(frame / 64); pose[18] = closure;
+      return {at: frame / 60, values: pose};
+    });
+    const line = buildFacialTimeline({audio: wav, faces, facesFormat: 'arkit61', facesTimebase: 'audio-seconds'}, owner);
+    for (let frame = 4; frame <= 64; frame++) {
+      assert(weight(line, frame, 'jaw_mid_open') >= weight(line, frame - 1, 'jaw_mid_open'));
+      assert(weight(line, frame, 'jaw_mid_open') <= .4 * (1 - closure) + .0001);
+      assert(Math.abs(weight(line, frame, 'lips_together_up') - .2 * closure) < .0001);
+      assert.equal(weight(line, frame, 'lips_l_upper_raise'), 0);
+      assert.equal(weight(line, frame, 'lips_r_upper_raise'), 0);
+      if (closure === 1) assert.equal(weight(line, frame, 'jaw_mid_open'), 0);
+    }
+  }
 });
 
 test('Convai aperture calibration keeps upper-lip caps and unrelated articulation unchanged for every speaker', () => {
@@ -223,14 +352,14 @@ test('ARKIT continuation keeps the actual mouth pose across native files and eas
   const lines = segments.map(speechSegment => buildFacialTimeline({...common, speechSegment}, owner));
   const jaw = lines[0].tracks.indexOf('jaw_mid_open') + 1;
   assert.equal(lines[0].frames[0][jaw], 0);
-  assert.equal(lines[0].frames.at(-1)[jaw], .352);
-  assert.equal(lines[1].frames[0][jaw], .352);
-  assert.equal(lines[1].frames.at(-1)[jaw], .352);
-  assert.equal(lines[2].frames[0][jaw], .352);
+  assert.equal(lines[0].frames.at(-1)[jaw], .3692);
+  assert.equal(lines[1].frames[0][jaw], .3692);
+  assert.equal(lines[1].frames.at(-1)[jaw], .3692);
+  assert.equal(lines[2].frames[0][jaw], .3692);
   assert.equal(lines[2].frames.at(-1)[jaw], 0);
-  assert(lines[2].frames.at(-2)[jaw] < .352);
+  assert(lines[2].frames.at(-2)[jaw] < .3692);
   assert.deepEqual(lines.map(line => line.segment), segments);
-  assert(lines.every(line => weight(line, 22, 'jaw_mid_open') === .352));
+  assert(lines.every(line => weight(line, 22, 'jaw_mid_open') === .3692));
 });
 
 test('audio-envelope fallback does not create artificial neutral frames at continuation file edges', () => {

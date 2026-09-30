@@ -146,7 +146,7 @@ function hostFixture() {
       async evaluate(_fn, payload) {
         this.calls.push(payload);
         if (payload?.method === 'warm') return {connectionMs: 1, connectionReused: this.calls.length > 1};
-        if (payload?.method === 'reply' || payload === undefined) return {text: 'Reply', sessionID: this.sessionID, timing: {}};
+        if (payload?.method === 'reply' || payload?.method === 'finishVoice') return {text: 'Reply', sessionID: this.sessionID, timing: {}};
         if (payload?.characterId) return {device: 'Test microphone'};
         return {ready: true};
       }};
@@ -253,6 +253,8 @@ test('microphone routing and its returned session retain the verified user names
   await assert.rejects(host.beginVoice({...first, endUserId: 'opaque-user-b'}), /already running/);
   assert.equal(pages.length, 1); assert.equal(pages[0].closed, false);
   const reply = await channel.finishVoice();
+  assert.equal(reply.sessionID, pages[0].sessionID);
+  assert.deepEqual(pages[0].calls.at(-1), {method: 'finishVoice', config: first});
   await assert.rejects(host.beginVoice({...first, endUserId: 'opaque-user-b', sessionId: reply.sessionID}), /another user or scope/);
   await host.beginVoice({...first, endUserId: 'opaque-user-b'});
   assert.equal(pages.length, 2);

@@ -1,8 +1,20 @@
--- One utterance owns playback across all its phrases. Native audio position
--- drives the face/captions; a temporary buffer gap never advances group chat.
+-- One utterance owns playback. Its renderer's heard position drives faces and
+-- captions: native Audioware for Omni, continuous browser PCM for Convai.
+-- A temporary buffer gap never advances the group to another speaker.
 local M = convaiSpeech or {heartbeat = 0, available = false}
 local captions = dofile('subtitles.lua')
 local face = dofile('facial-playback.lua')
+local continuous
+local function continuousAdapter()
+    if continuous then return continuous end
+    local ok, value = pcall(dofile, 'continuous-speech.lua')
+    if ok and type(value) == 'table' and value.version == 1 and value.available == true
+        and type(value.start) == 'function' and type(value.update) == 'function' and type(value.stop) == 'function' then
+        continuous = value
+        M.continuousAvailable = true
+    end
+    return continuous
+end
 
 local function finite(value)
     return type(value) == 'number' and value == value and math.abs(value) < math.huge
@@ -31,12 +43,14 @@ local function publish()
     local f = io.open('runtime/speech-state.json', 'wb')
     if f then
         local r = receipt()
-        f:write(json.encode({available = M.available, updated = os.time() * 1000,
+        f:write(json.encode({available = M.available, continuousAvailable = M.continuousAvailable == true, updated = os.time() * 1000,
             requestId = M.requestId, slot = M.slot, state = M.state or 'idle',
             position = M.position, paused = M.paused, error = M.error, face = face.status(),
             streamId = r and r.id, chunkIndex = r and r.index, completedChunk = r and r.completed,
             receivedChunks = r and r.received, chunks = r and r.history, streamError = r and r.error,
             streamVersion = r and r.version, totalChunks = r and r.total, utterancePosition = r and r.position,
+            continuousId = M.continuousId, playbackBackend = M.continuous and 'browser-pcm' or nil,
+            continuousControl = M.continuous and continuous and continuous.status() or nil,
             lastDelivery = M.lastDelivery}))
         f:close()
     end
@@ -53,6 +67,8 @@ local function completedDelivery()
     if stream then
         if not stream.manifest or not stream.manifest.complete or stream.error
             or stream.completed ~= total or stream.nativeCompleted ~= total then return end
+    elseif M.continuous then
+        if not M.continuousEnded then return end
     elseif not M.nativeCompleted then return end
     -- Keep one small, plain receipt after stop releases the native/request
     -- references. Polling the same receipt must never count as another delivery.
@@ -60,7 +76,8 @@ local function completedDelivery()
     M.deliverySession = M.deliverySession or (tostring(os.time()) .. '-' .. tostring(math.random(100000000, 999999999)))
     M.lastDelivery = {version = 1, id = 'speech-' .. M.deliverySession .. '-' .. M.deliverySequence,
         sequence = M.deliverySequence, completedAt = os.time() * 1000.0,
-        source = 'native-playback', state = 'completed', partial = false, cancelled = false,
+        source = M.continuous and 'continuous-playback' or 'native-playback',
+        backend = M.continuous and 'browser-pcm' or nil, state = 'completed', partial = false, cancelled = false,
         requestId = context.requestId, entity = context.entity, generation = context.generation,
         conversationGeneration = context.generation, totalChunks = total, completedChunks = total}
 end
@@ -78,11 +95,13 @@ function M.stop(reason)
             and delivered.entity == M.context.entity and delivered.generation == M.context.generation
             and delivered.sequence > M.utterance.startSequence
     end
+    if continuous then continuous.stop() end
     face.stop(M.actor, reason)
-    if M.player then pcall(function() M.player:ConvaiSpeechStop() end) end
+    if M.player and not M.continuous then pcall(function() M.player:ConvaiSpeechStop() end) end
     if M.requestId then captions.clear() end
     M.streamReceipt = receipt()
     M.stream, M.context, M.nativeCompleted = nil, nil, nil
+    M.continuous, M.continuousEnded, M.continuousId, M.continuousCaptions = nil, nil, nil, nil
     M.player, M.actor, M.requestId, M.slot, M.duration = nil, nil, nil, nil, nil
     M.state, M.position, M.paused = reason or 'idle', nil, false
     publish()
@@ -130,6 +149,35 @@ end
 function M.start(context, reply)
     M.stop()
     M.streamReceipt = nil
+    if reply.continuous ~= nil then
+        local controller, player, actor = continuousAdapter(), Game.GetPlayer(), M.target
+        if not controller or not voiceEnabled(player) then
+            captions.show(context.name, reply.text, actor, context.entity); return false
+        end
+        local paused = true
+        pcall(function()
+            local defs = Game.GetAllBlackboardDefs()
+            paused = Game.GetBlackboardSystem():Get(defs.UI_System):GetBool(defs.UI_System.IsInMenu)
+        end)
+        local accepted, reason = controller.start(context, reply.continuous, player, actor, paused)
+        if not accepted then
+            M.state, M.error = 'playback-failed', reason
+            captions.show(context.name, reply.text, actor, context.entity); publish(); return false
+        end
+        M.player, M.actor, M.playerID = player, actor, tostring(player:GetEntityID().hash)
+        M.requestId, M.context = context.requestId, {requestId=context.requestId,generation=context.generation,
+            entity=context.entity,name=context.name}
+        M.speaker, M.text, M.error, M.paused = context.name, reply.text, nil, paused
+        M.continuous, M.continuousId, M.continuousEnded = true, reply.continuous.id, false
+        M.state, M.position, M.duration = 'starting', 0, 0
+        M.continuousCaptions = {text=reply.text,bufferedDuration=0,position=0,final=false}
+        -- Version 2 transcript semantics mean one evolving utterance, not a
+        -- sequence of text-generation calls or independent audio clips.
+        M.utterance = {requestId=context.requestId,generation=context.generation,entity=context.entity,text=reply.text,
+            streamVersion=2,streamId=reply.continuous.id,textComplete=false,finished=false,failed=false,
+            delivered=false,startSequence=M.deliverySequence or 0}
+        publish(); return true
+    end
     local audio = reply.audio
     if not voiceEnabled(Game.GetPlayer()) or not M.available or not validAudio(audio) then
         captions.show(context.name, reply.text, M.target, context.entity); return false
@@ -174,10 +222,12 @@ end
 
 function M.abandon()
     -- Unload callback: release Lua references without calling native emitters.
+    if continuous then continuous.stop() end
     face.abandon()
     M.streamReceipt = receipt()
     M.stream, M.context, M.target, M.nativeCompleted = nil, nil, nil, nil
     M.utterance = nil
+    M.continuous, M.continuousEnded, M.continuousId, M.continuousCaptions = nil, nil, nil, nil
     M.player, M.actor, M.playerID, M.requestId = nil, nil, nil, nil
     M.slot, M.duration, M.position, M.paused = nil, nil, 0, false
     M.state, M.available = 'idle', false
@@ -248,7 +298,7 @@ local function advanceStream()
 end
 
 local function syncUtterance(position)
-    local s = M.stream
+    local s = M.stream or M.continuousCaptions
     s.position = math.max(s.position or 0, position)
     if not captions.enabled() then return end
     local changed = s.captionText ~= s.text or s.captionFinal ~= s.final
@@ -270,12 +320,41 @@ local function syncUtterance(position)
     captions.syncTimed(s.position)
 end
 
+function M.pauseForWorld()
+    if M.continuous and continuous and not continuous.pause() then M.abandon() end
+end
+
+local function updateContinuous(delta, player, paused)
+    local state, problem = continuous.update(delta, player, M.actor, paused)
+    if problem then M.error=problem;fallback('playback-failed', M.text);return end
+    if paused then face.pause(M.actor);return end
+    if not state then return end
+    M.position, M.duration, M.text, M.state = state.position, state.bufferedDuration, state.text, state.state
+    M.utterance.text, M.utterance.textComplete = state.text, state.textComplete
+    local caption = M.continuousCaptions
+    caption.text, caption.bufferedDuration, caption.final = state.text, state.bufferedDuration, state.complete
+    if type(state.face) == 'table' and state.bufferedDuration > 0 and type(face.updateContinuous) == 'function' then
+        face.updateContinuous(M.context, state.face, M.actor, state.bufferedDuration)
+    end
+    if state.position > 0 then
+        syncUtterance(state.position)
+        if state.state == 'buffering' then face.pause(M.actor) else face.sync(M.actor, state.position, M.requestId) end
+    end
+    if state.ended then
+        -- EOF alone cannot confirm delivery: the renderer must have drained
+        -- the one audio queue and reported the heard device cursor as well.
+        M.continuousEnded = true
+        finish()
+    end
+end
+
 function M.update(delta)
     local player = Game.GetPlayer()
     M.heartbeat = M.heartbeat + delta
     if M.heartbeat >= 1 then
         M.heartbeat = 0
-        M.available = player ~= nil and pcall(function() player:ConvaiSpeechPosition() end)
+        continuousAdapter()
+        if not M.continuous then M.available = player ~= nil and pcall(function() player:ConvaiSpeechPosition() end) end
         publish()
     end
     if not M.requestId then return end
@@ -287,8 +366,10 @@ function M.update(delta)
     local defs = Game.GetAllBlackboardDefs()
     local paused = Game.GetBlackboardSystem():Get(defs.UI_System):GetBool(defs.UI_System.IsInMenu)
     if paused ~= M.paused then
-        M.player:ConvaiSpeechPause(paused); M.paused = paused; publish()
+        if not M.continuous then M.player:ConvaiSpeechPause(paused) end
+        M.paused = paused; publish()
     end
+    if M.continuous then updateContinuous(delta, player, paused);return end
     if paused then face.pause(M.actor); return end
     local s = M.stream
     if s then

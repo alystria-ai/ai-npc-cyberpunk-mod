@@ -727,6 +727,49 @@ async function stageConversation(f, {requestId = 'remembered-turn', profileKey =
     requestId, replyHash: generated.replyHash}};
 }
 
+test('complete continuous browser playback retains its true source and backend in delivery evidence', async t => {
+  const f = await fixture(t); await f.service.refresh();
+  const staged = await stageConversation(f, {requestId: 'continuous-delivered', channel: 'group', audience: [P, Q]});
+  const delivery = {...staged.delivery, source: 'continuous-playback', backend: 'browser-pcm',
+    totalChunks: 1, completedChunks: 1};
+  const result = await f.service.recordActivity({...staged.base, kind: 'delivered-reply', delivery});
+  assert.equal(result.status, 'recorded'); assert.equal(result.conversationMemoryRecorded, true);
+  const disk = JSON.parse(await readFile(f.path, 'utf8'));
+  const [event] = Object.values(disk.data.events).filter(row => row.authority === 'delivered-conversation');
+  assert.equal(event.delivery.source, 'continuous-playback'); assert.equal(event.delivery.backend, 'browser-pcm');
+  assert.deepEqual(event.evidence[0].delivery, {...delivery, cancelled: false, partial: false});
+  const duplicate = await f.service.recordActivity({...staged.base, kind: 'delivered-reply', delivery});
+  assert.equal(duplicate.receipt.duplicate, true);
+});
+
+test('continuous playback rejects wrong backend, incomplete utterances, stale turns and phone substitution', async t => {
+  const f = await fixture(t); await f.service.refresh();
+  const staged = await stageConversation(f, {requestId: 'continuous-rejected'});
+  const delivery = {...staged.delivery, source: 'continuous-playback', backend: 'browser-pcm',
+    totalChunks: 1, completedChunks: 1};
+  for (const patch of [
+    {backend: undefined}, {backend: 'native-audioware'}, {state: 'generated'}, {state: 'published'},
+    {requestId: 'another-turn'}, {partial: true}, {cancelled: true}, {totalChunks: undefined},
+    {completedChunks: 0}, {totalChunks: 2, completedChunks: 1}, {totalChunks: 2, completedChunks: 2},
+    {totalChunks: 10001, completedChunks: 10001},
+  ]) {
+    const result = await f.service.recordActivity({...staged.base, kind: 'delivered-reply', delivery: {...delivery, ...patch}});
+    assert.equal(result.reason, 'DELIVERY_NOT_CONFIRMED', JSON.stringify(patch));
+  }
+  assert.equal(f.native.ledgerSequence, 2);
+  const phone = await stageConversation(f, {requestId: 'continuous-phone', channel: 'phone'});
+  const rejectedPhone = await f.service.recordActivity({...phone.base, kind: 'delivered-reply',
+    delivery: {...delivery, requestId: phone.base.requestId, replyHash: phone.generated.replyHash, state: 'accepted'}});
+  assert.equal(rejectedPhone.reason, 'DELIVERY_NOT_CONFIRMED');
+  await f.service.recordActivity({...staged.base, kind: 'cancelled-turn'});
+  assert.equal((await f.service.recordActivity({...staged.base, kind: 'delivered-reply', delivery})).reason, 'TURN_ALREADY_CANCELLED');
+  const stale = await stageConversation(f, {requestId: 'continuous-stale'});
+  f.restore(structuredClone(f.native)); await f.service.refresh();
+  const rejectedStale = await f.service.recordActivity({...stale.base, kind: 'delivered-reply',
+    delivery: {...delivery, requestId: stale.base.requestId, replyHash: stale.generated.replyHash}});
+  assert.equal(rejectedStale.reason, 'STALE_ACTIVITY');
+});
+
 test('one complete delivered exchange becomes one quoted episode after its durable native transaction', async t => {
   const f = await fixture(t, {cloudQualified: true}); await f.service.refresh();
   const staged = await stageConversation(f);

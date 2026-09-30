@@ -113,6 +113,7 @@ export class ConvaiDataAudio {
     this.maxSeconds = maxSeconds; this.maxBytes = maxBytes;
     this.retiredOwners = retiredOwners.map(getOwner);
     this.parts = []; this.byteCount = 0; this.packetCount = 0;
+    this.pcmCursor = 0; this.drainedFrames = 0;
     this.frames = new Map(); this.facialDiagnostic = null;
     this._owner = null; this.error = null; this.terminal = null; this.stats = null;
     this.sampleRate = null; this.channels = null; this.fps = null;
@@ -259,7 +260,33 @@ export class ConvaiDataAudio {
     }
   }
 
-  finish() {
+  // A packet is admitted by accept() first. Ownerless PCM may precede the
+  // facial/lifecycle owner, so hold it until that owner is established. Return
+  // independent bytes: a worklet may transfer its input buffer to its thread.
+  drainPcm() {
+    if (this.error) throw this.error;
+    if (this.sealed || !this._owner || !this.sampleRate) return [];
+    const packets = [];
+    while (this.pcmCursor < this.parts.length) {
+      const bytes = this.parts[this.pcmCursor++].slice();
+      packets.push({bytes, offsetFrames: this.drainedFrames});
+      this.drainedFrames += bytes.length / (this.channels * 2);
+    }
+    return packets;
+  }
+
+  progress() {
+    if (this.result) return {sampleRate: this.result.sampleRate, channels: this.result.channels,
+      receivedFrames: this.byteCount / (this.result.channels * 2), faces: this.result.faces,
+      facesFormat: 'arkit61', facesTimebase: 'audio-seconds', sourceComplete: true};
+    return {sampleRate: this.sampleRate, channels: this.channels,
+      receivedFrames: this.channels ? this.byteCount / (this.channels * 2) : 0,
+      faces: this.facialDiagnostic || !this.fps ? [] : [...this.frames.entries()]
+        .sort(([a], [b]) => a - b).map(([index, values]) => ({at: index / this.fps, values: values.slice()})),
+      facesFormat: 'arkit61', facesTimebase: 'audio-seconds', sourceComplete: this.ready};
+  }
+
+  finish({includeAudio = true} = {}) {
     if (this.error) throw this.error;
     if (this.result) return this.result;
     if (!this.ready) throw Error('Convai speech has not delivered its complete audio and terminal statistics');
@@ -272,8 +299,8 @@ export class ConvaiDataAudio {
       }
     }
     const faces = this.facialDiagnostic ? [] : Array.from({length: this.frames.size}, (_, index) => ({at: index / this.fps, values: this.frames.get(index)}));
-    const audio = wav(this.parts, this.byteCount, this.sampleRate, this.channels);
-    this.result = {audio, duration, sampleRate: this.sampleRate, channels: this.channels, bits: 16,
+    const audio = includeAudio ? wav(this.parts, this.byteCount, this.sampleRate, this.channels) : undefined;
+    this.result = {...(includeAudio ? {audio} : {}), duration, sampleRate: this.sampleRate, channels: this.channels, bits: 16,
       faces, facesFormat: 'arkit61', facesTimebase: 'audio-seconds',
       timing: {...this.timing}, stats: {...this.stats}, packetCount: this.packetCount,
       ...(this.facialDiagnostic ? {facialDiagnostic: this.facialDiagnostic} : {})};

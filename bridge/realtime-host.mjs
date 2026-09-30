@@ -11,7 +11,7 @@ const CONVAI_CONNECT_URL = 'https://realtime-api.convai.com/connect';
 
 // SDK 1.7 does not serialize audio_config. Patch only its owned LiveKit connect
 // request, leaving authentication, session and memory fields intact. Source
-// PCM arrives before playback; the client returns one WAV without recapture.
+// PCM arrives before playback and is passed unchanged to one continuous sink.
 // https://docs.convai.com/api-docs/api-reference/core-api-reference/live-apis-beta/audio-data-via-data-channel
 export async function installConvaiAudioRoute(page, getOwner) {
   await page.route(CONVAI_CONNECT_URL, async route => {
@@ -94,13 +94,21 @@ export class RealtimeHost {
     previousServer?.close();
     // One hidden browser: eight party private pages plus three optional group
     // pages. No key endpoint, microphone permission or visible user profile.
-    const bundle = await readFile(new URL('../runtime/realtime-client.js', import.meta.url));
+    const [bundle, ...modules] = await Promise.all([
+      readFile(new URL('../runtime/realtime-client.js', import.meta.url)),
+      ...['continuous-pcm-player.mjs', 'continuous-pcm-worklet.mjs', 'continuous-pcm-core.mjs']
+        .map(name => readFile(new URL(name, import.meta.url))),
+    ]);
+    const audioModules = new Map(['continuous-pcm-player.mjs', 'continuous-pcm-worklet.mjs', 'continuous-pcm-core.mjs']
+      .map((name, index) => ['/' + name, modules[index]]));
     if (epoch !== this.epoch) throw cancelled('Conversation startup cancelled');
     const server = createServer((req, res) => {
       res.setHeader('Cache-Control', 'no-store');
       if (req.headers.host !== `127.0.0.1:${server.address()?.port}`) { res.writeHead(403).end(); return; }
       if (req.url === '/client.js') {
         res.setHeader('Content-Type', 'text/javascript'); res.end(bundle);
+      } else if (audioModules.has(req.url)) {
+        res.setHeader('Content-Type', 'text/javascript'); res.end(audioModules.get(req.url));
       } else if (req.url === '/') {
         res.setHeader('Content-Type', 'text/html'); res.end('<!doctype html><script type="module" src="/client.js"></script>');
       } else res.writeHead(404).end();
@@ -109,6 +117,7 @@ export class RealtimeHost {
     let browser;
     try {
       browser = await chromium.launch({channel: 'msedge', headless: true,
+        ignoreDefaultArgs: ['--mute-audio'],
         args: ['--autoplay-policy=no-user-gesture-required', '--disable-background-timer-throttling']});
       if (epoch !== this.epoch) throw cancelled('Conversation startup cancelled');
       this.browser = browser; this.server = server;
@@ -124,12 +133,63 @@ export class RealtimeHost {
       if (this.retained) await this.pool.retain(this.retained.keys, this.retained.options);
     } catch (error) { await browser?.close(); server.close(); throw error; }
   }
-  async run(config, method, {signal, discard = false, onAudioChunk} = {}) {
+  async evaluateSpeech(page, method, config, {signal, liveSpeech, current = () => true} = {}) {
+    if (!liveSpeech || config?.ttsEnabled === false)
+      return abortable(page.evaluate(({config, method}) => window.convaiRealtime[method](config), {config, method}), signal);
+    const {token, onFrame} = liveSpeech;
+    if (typeof token !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(token) || typeof onFrame !== 'function')
+      throw Error('Invalid live speech admission');
+    const controller = new AbortController();
+    const cancel = () => controller.abort();
+    signal?.addEventListener('abort', cancel, {once: true});
+    if (signal?.aborted) cancel();
+    const check = () => { throwIfCancelled(controller.signal); if (!current()) throw cancelled(); };
+    let settled = false;
+    const snapshot = () => abortable(page.evaluate(token => window.convaiRealtime.continuousSnapshot(token), token), controller.signal);
+    const request = Promise.resolve().then(() => {
+      check();
+      return page.evaluate(({config, method}) => window.convaiRealtime[method](config),
+        {config: {...config, liveSpeechToken: token}, method});
+    }).finally(() => { settled = true; });
+    const pump = (async () => {
+      while (!settled) {
+        check();
+        const frame = await snapshot();
+        check();
+        if (frame?.token === token) {
+          const control = await abortable(Promise.resolve().then(() => onFrame(frame)), controller.signal);
+          check();
+          if (!settled && control !== undefined)
+            await abortable(page.evaluate(({token, control}) => window.convaiRealtime.continuousControl(token, control), {token, control}), controller.signal);
+        }
+        if (!settled) await abortable(new Promise(resolve => setTimeout(resolve, 40)), controller.signal);
+      }
+      return request;
+    })();
+    try {
+      const result = await abortable(Promise.race([request, pump]), controller.signal);
+      await abortable(pump, controller.signal);
+      check();
+      // Preserve the last drain acknowledgement before releasing this page.
+      const final = await snapshot();
+      check();
+      if (final?.token === token) await abortable(Promise.resolve().then(() => onFrame(final)), controller.signal);
+      check();
+      return result;
+    } finally {
+      settled = true; controller.abort(); signal?.removeEventListener('abort', cancel);
+      // Both promises remain observed even when a failed callback wins first.
+      void pump.catch(() => {}); void request.catch(() => {});
+    }
+  }
+  async run(config, method, {signal, discard = false, onAudioChunk, liveSpeech} = {}) {
     throwIfCancelled(signal);
     config = {...config}; // Keep queued work bound to the identity admitted now.
-    // Retire the old chunk capability. The reply now contains one source WAV.
+    // Retire the old per-file chunk capability. Only an explicit liveSpeech
+    // admission can authorize the continuous renderer on this leased page.
     delete config.audioStreamToken;
-    if (onAudioChunk !== undefined) throw Error('Chunked Convai playback is retired; use the complete reply audio');
+    delete config.liveSpeechToken;
+    if (onAudioChunk !== undefined) throw Error('Chunked Convai playback is retired; use liveSpeech or the complete reply audio');
     const key = pageKey(config);
     this.sessions.check(config);
     const started = performance.now();
@@ -145,7 +205,8 @@ export class RealtimeHost {
       throwIfCancelled(signal);
       if (epoch !== this.epoch) throw cancelled();
       this.connectOwners.set(lease.value, connectOwner(config));
-      const result = await abortable(lease.value.evaluate(({config, method}) => window.convaiRealtime[method](config), {config, method}), signal);
+      const result = await this.evaluateSpeech(lease.value, method, config, {signal, liveSpeech,
+        current: () => epoch === this.epoch && !this.closing});
       throwIfCancelled(signal);
       if (epoch !== this.epoch) throw cancelled();
       this.sessions.accept(config);
@@ -185,13 +246,14 @@ export class RealtimeHost {
   voiceChannel() {
     const owner = {}, controller = new AbortController();
     return {beginVoice: config => this.beginVoice(config, {owner, signal: controller.signal}),
-      finishVoice: config => this.finishVoice(owner, config),
+      finishVoice: (config, options) => this.finishVoice(owner, config, {...options, signal: controller.signal}),
       close: async () => { controller.abort(); await this.cancelVoice(owner); }};
   }
   async beginVoice(config, {signal, owner = this} = {}) {
     throwIfCancelled(signal);
     config = {...config};
     delete config.audioStreamToken;
+    delete config.liveSpeechToken;
     const key = pageKey(config);
     this.sessions.check(config);
     if (this.voiceLease) throw Error('Microphone connection is already running');
@@ -220,21 +282,22 @@ export class RealtimeHost {
       throw error;
     }
   }
-  async finishVoice(owner = this, config) {
+  async finishVoice(owner = this, config, {signal, liveSpeech} = {}) {
     const lease = this.voiceLease;
     if (!lease || lease.owner !== owner) throw Error('Microphone connection is not running');
     let failed = true;
     try {
       if (lease.epoch !== this.epoch || this.closing) throw cancelled();
       if (config !== undefined) {
-        config = {...config}; delete config.audioStreamToken;
+        config = {...config}; delete config.audioStreamToken; delete config.liveSpeechToken;
         if (config.freshSession || transportKey(config) !== transportKey(lease.config)
             || (config.sessionId && config.sessionId !== lease.config.sessionId && config.sessionId !== lease.sessionID)) {
           throw Error('Microphone reply identity changed');
         }
         this.sessions.check(config);
       }
-      const result = await lease.value.evaluate(config => window.convaiRealtime.finishVoice(config), config);
+      const result = await this.evaluateSpeech(lease.value, 'finishVoice', config || lease.config, {signal, liveSpeech,
+        current: () => lease.epoch === this.epoch && this.voiceLease === lease && !this.closing});
       if (lease.epoch !== this.epoch || this.voiceLease !== lease) throw cancelled();
       this.sessions.accept(config || lease.config);
       this.sessions.bind(lease.config, result.sessionID);

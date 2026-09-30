@@ -170,3 +170,112 @@ test('invalid or noncontiguous facial replacements release the held pose and can
   face.sync(judy,.5,'continuous');assert(not face.start(context,nil,judy,1,{index=3,startSeconds=2}))
   assert(judy.resets==4 and not face.active)
 `));
+
+const continuousSetup = `
+local context={entity='Judy-1',requestId='live-voice',generation=8}
+local function growing(duration,complete,frames)
+ return {version=1,continuous=true,complete=complete,requestId=context.requestId,
+  entity=context.entity,generation=context.generation,duration=duration,
+  source='convai-arkit61',articulation='arkit61-open-v2',tracks={'jaw_mid_open'},
+  frames=frames or {{0,.1},{duration,.2}}}
+end
+`;
+
+test('growing absolute timelines retain one native feature and synchronize only to heard audio', () => run(continuousSetup + `
+ assert(face.updateContinuous(context,growing(.4,false),judy,.4))
+ local feature=face.feature
+ face.sync(judy,.2,context.requestId)
+ assert(math.abs(judy.frames[1].jaw_mid_open-.15)<.0001 and face.position==.2)
+ local index,applied=face.index,face.applied
+ assert(face.updateContinuous(context,growing(.8,false,{{0,.1},{.4,.2},{.8,.3}}),judy,.8))
+ assert(face.feature==feature and face.index==index and face.position==.2
+  and face.applied==applied and judy.resets==0 and #judy.frames==1)
+ face.sync(judy,.6,context.requestId)
+ assert(face.feature==feature and face.index==2 and math.abs(judy.frames[2].jaw_mid_open-.25)<.0001)
+ -- A revised tail is legitimate and must update even while the heard cursor
+ -- has not advanced. Replacement data never applies itself ahead of audio.
+ assert(face.updateContinuous(context,growing(.8,false,{{0,.1},{.4,.2},{.8,.4}}),judy,.8))
+ assert(#judy.frames==2)
+ face.sync(judy,.6,context.requestId)
+ assert(math.abs(judy.frames[3].jaw_mid_open-.3)<.0001 and judy.resets==0)
+ -- Compacted snapshots may change frame count, not track identity or time.
+ assert(face.updateContinuous(context,growing(1,false),judy,1))
+ assert(face.index==1 and face.position==.6 and face.feature==feature)
+ face.sync(judy,.7,context.requestId)
+ assert(math.abs(judy.frames[4].jaw_mid_open-.17)<.0001)
+`));
+
+test('incomplete continuous boundaries hold a pose until final heard completion, including unchanged cursor', () => run(continuousSetup + `
+ assert(face.updateContinuous(context,growing(.4,false),judy,.4))
+ face.sync(judy,.45,context.requestId)
+ assert(face.active and face.state=='holding-boundary' and face.position==.45
+  and judy.frames[1].jaw_mid_open==.2 and judy.resets==0)
+ local feature=face.feature
+ assert(face.updateContinuous(context,growing(.8,false),judy,.8))
+ face.sync(judy,.45,context.requestId)
+ assert(face.feature==feature and face.state=='playing' and math.abs(judy.frames[2].jaw_mid_open-.15625)<.0001)
+ face.sync(judy,.8,context.requestId)
+ assert(face.active and face.state=='holding-boundary' and judy.resets==0)
+ assert(face.updateContinuous(context,growing(.8,true),judy,.8))
+ assert(face.active and judy.resets==0)
+ face.sync(judy,.8,context.requestId)
+ assert(not face.active and face.state=='finished' and judy.resets==1)
+ face.sync(judy,.9,context.requestId);assert(judy.resets==1)
+`));
+
+test('continuous facial updates reject other owners and stale generations without disturbing the current speaker', () => run(continuousSetup + `
+ assert(face.updateContinuous(context,growing(.4,false),judy,.4))
+ face.sync(judy,.2,context.requestId)
+ local feature,timeline,applied=face.feature,face.timeline,face.applied
+ for _,change in ipairs({'requestId','entity','generation'})do
+  local other={requestId=context.requestId,entity=context.entity,generation=context.generation}
+  other[change]=change=='generation' and 7 or 'other'
+  assert(not face.updateContinuous(other,growing(.8,false),johnny,.8))
+  local old=growing(.8,false);old[change]=other[change]
+  assert(not face.updateContinuous(context,old,judy,.8))
+  assert(face.active and face.feature==feature and face.timeline==timeline and face.applied==applied)
+ end
+ assert(judy.resets==0 and johnny.resets==0 and #johnny.frames==0)
+ face.sync(johnny,.3,'other');assert(face.active and #johnny.frames==0)
+`));
+
+test('malformed or regressing continuous updates fail closed for their exact owner', () => run(continuousSetup + `
+ for _,kind in ipairs({'duration','frames','duplicate','weight','track','track-order','source','complete','segment','regression','unfinalize'})do
+  judy.resets=0
+  local initial=growing(.4,kind=='unfinalize')
+  if kind=='track-order'then initial.tracks={'jaw_mid_open','lips_apart_up'};initial.frames={{0,.1,.05},{.4,.2,.1}}end
+  assert(face.updateContinuous(context,initial,judy,.4))
+  face.sync(judy,.2,context.requestId)
+  local next=growing(.8,false)
+  if kind=='duration'then next.duration=0/0
+  elseif kind=='frames'then next.frames={{0,.1}}
+  elseif kind=='duplicate'then next.frames={{0,.1},{0,.2},{.8,.1}}
+  elseif kind=='weight'then next.frames[2][2]=.51
+  elseif kind=='track'then next.tracks={'head_yaw'}
+  elseif kind=='track-order'then next.tracks={'lips_apart_up','jaw_mid_open'};next.frames={{0,.1,.05},{.8,.2,.1}}
+  elseif kind=='source'then next.source='audio-envelope'
+  elseif kind=='complete'then next.complete=nil
+  elseif kind=='segment'then next.segment={index=1}
+  elseif kind=='regression'then next=growing(.2,false)end
+  assert(not face.updateContinuous(context,next,judy,kind=='regression' and .2 or .8),kind)
+  assert(not face.active and face.feature==nil and face.timeline==nil and judy.resets==1,kind)
+  face.sync(judy,.3,context.requestId);assert(judy.resets==1)
+ end
+`));
+
+test('continuous pause releases the pose, growth stays paused, resume catches up, and unload abandons native state', () => run(continuousSetup + `
+ assert(face.updateContinuous(context,growing(.4,false),judy,.4))
+ face.sync(judy,.2,context.requestId)
+ local feature=face.feature
+ face.pause(judy);face.pause(judy)
+ assert(judy.resets==1 and face.state=='paused')
+ assert(face.updateContinuous(context,growing(.8,true),judy,.8))
+ assert(face.feature==feature and face.state=='paused' and #judy.frames==1 and judy.resets==1)
+ face.sync(judy,.6,context.requestId)
+ assert(face.state=='playing' and math.abs(judy.frames[2].jaw_mid_open-.175)<.0001)
+ local before=queries;world=false
+ face.abandon('unloaded')
+ assert(queries==before and not face.active and face.feature==nil and face.timeline==nil)
+ assert(face.continuous==nil and face.generation==nil and face.requestId==nil)
+ face.sync(judy,.7,context.requestId);assert(queries==before)
+`));

@@ -128,10 +128,15 @@ function stageContent(row, field) {
   return content?.field === field ? content : null;
 }
 function deliveryReceipt(value, requestId, channel) {
-  const source = channel === 'phone' ? 'phone-ui' : 'native-playback';
+  const continuous = channel !== 'phone' && value?.source === 'continuous-playback';
+  const source = channel === 'phone' ? 'phone-ui' : continuous ? 'continuous-playback' : 'native-playback';
   const state = channel === 'phone' ? 'accepted' : 'completed';
-  if (!value || typeof value !== 'object' || value.source !== source || value.state !== state || value.requestId !== requestId
-      || (value.cancelled !== undefined && value.cancelled !== false) || (value.partial !== undefined && value.partial !== false)) {
+  if (!value || typeof value !== 'object' || Array.isArray(value) || value.source !== source
+      || value.state !== state || value.requestId !== requestId
+      || (value.cancelled !== undefined && value.cancelled !== false) || (value.partial !== undefined && value.partial !== false)
+      // The browser renderer owns one continuous utterance. EOF alone is not a
+      // delivery receipt: its caller must wait for the consumed playback cursor.
+      || continuous && (value.backend !== 'browser-pcm' || value.totalChunks !== 1 || value.completedChunks !== 1)) {
     throw error('DELIVERY_NOT_CONFIRMED');
   }
   const chunks = value.totalChunks !== undefined || value.completedChunks !== undefined;
@@ -141,6 +146,7 @@ function deliveryReceipt(value, requestId, channel) {
     throw error('DELIVERED_TEXT_MISMATCH');
   }
   return {source, state, requestId, cancelled: false, partial: false,
+    ...(continuous ? {backend: value.backend} : {}),
     ...(value.replyHash !== undefined ? {replyHash: value.replyHash} : {}),
     ...(chunks ? {totalChunks: value.totalChunks, completedChunks: value.completedChunks} : {})};
 }
@@ -794,7 +800,8 @@ export class KnowledgeService {
           Object.assign(event, {kind: 'shared-experience', authority: 'delivered-conversation', eligibleForMemory: true,
             text: conversation.text, knownBy: conversation.knownBy, witnessedBy: conversation.witnessedBy,
             visibility: conversation.visibility,
-            delivery: {requestId, state: 'played', source: delivered.source, replyHash: conversation.replyHash}});
+            delivery: {requestId, state: 'played', source: delivered.source, replyHash: conversation.replyHash,
+              ...(delivered.backend ? {backend: delivered.backend} : {})}});
           Object.assign(event.provenance, {producer: 'delivered-conversation', speakerKey: profileKey,
             statementAuthority: 'quoted-conversation-only', userHash: conversation.userHash, replyHash: conversation.replyHash});
           event.evidence[0].stages = {submittedEventId: submitted.event.eventId, generatedEventId: generated.event.eventId};

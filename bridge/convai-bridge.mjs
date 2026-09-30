@@ -4,6 +4,7 @@ import {fileURLToPath} from 'node:url';
 import {parseInput, profileFor} from './protocol.mjs';
 import {audioReady} from './speech-audio.mjs';
 import {buildFacialTimeline} from './facial-timeline.mjs';
+import {ConvaiContinuousSpeech} from './convai-continuous-speech.mjs';
 import {PhoneticLipsync} from './phonetic-lipsync.mjs';
 import {SpeechSlots, SpeechStream, splitSpeechText} from './speech-stream.mjs';
 import {RealtimeHost} from './realtime-host.mjs';
@@ -85,6 +86,19 @@ async function cancelKnowledgeTurn(prepared) {
   if (!prepared) return;
   const entry = knowledgeTurns.get(prepared.input.requestId || prepared.input.id);
   if (entry?.delivered || entry?.cancelled) return;
+  // Lua can finish audible playback and submit the next group speaker in one
+  // tick, before the slower delivery poll. Preserve that already-heard reply
+  // using the exact game receipt before retiring its request. World/memory
+  // validation remains inside recordDelivery/knowledgeRouter.activity.
+  if (entry?.generated) {
+    const state = await readSpeechState();
+    const age = Date.now() - state.updated;
+    if (Number.isFinite(state.updated) && Number.isFinite(age) && age >= -1500 && age <= 5000
+      && state.lastDelivery?.requestId === prepared.input.requestId) {
+      await recordDelivery(state.lastDelivery);
+    }
+    if (entry.delivered || entry.cancelled) return;
+  }
   if (entry) entry.cancelled = true;
   await knowledgeRouter.activity(prepared, 'cancelled-turn').catch(() => {});
 }
@@ -93,6 +107,7 @@ async function cancelMicrophone() {
   if (current) await cancelKnowledgeTurn(microphoneKnowledge.get(current.requestId));
   await mic.cancel();
   microphoneKnowledge.clear();
+  microphoneSpeech.clear();
 }
 
 const phoneInput = resolve(runtime, 'phone-chat-input.json');
@@ -271,6 +286,42 @@ async function status(state, detail = '') {
   await atomic(statusPath, JSON.stringify({state, detail: detail.slice(0, 200), updated: Date.now()}));
 }
 
+function continuousSpeech(input, profile, current, signal, receiptPrepared = preparedInputs.get(input)) {
+  const options = {signal, isCurrent: current, isCurrentSync: current.sync};
+  return new ConvaiContinuousSpeech({input, profile, current, signal,
+    readControl: () => readFile(resolve(runtime, 'continuous-control.json'), 'utf8'),
+    writeState: value => atomic(resolve(runtime, 'continuous-speech.json'), JSON.stringify(value), options),
+    writeReply: value => atomic(replyPath, JSON.stringify(value), options),
+    onPublished: timing => measure(input, {...timing, stream: {mode: 'convai-continuous'}, nativePlaybackObserved: false}),
+    onStarted: timing => measure(input, {...timing, continuousPlaybackObserved: true}),
+    onGenerated: async text => {
+      // Microphone context refresh creates a new projection at finish. Its
+      // generated/delivered receipts still belong to the original submitted
+      // turn, shared by every channel of this conversation.
+      if (!receiptPrepared || !await current()) throw Error('Conversation receipt owner changed');
+      await knowledgeRouter.activity(receiptPrepared, 'generated-reply', {replyText: text});
+      stagedKnowledgeTurn(receiptPrepared);
+    },
+  });
+}
+
+// Original remote PCM has a continuous renderer. It never enters Omni's text
+// splitter, local TTS worker or per-phrase Audioware file queue.
+async function convaiReply(input, profile, current, signal) {
+  const state = await readSpeechState();
+  // Retain the complete-file adapter until this game session advertises the
+  // new Lua admission controller; installing files alone does not load them.
+  if (state.continuousAvailable !== true) {
+    return {...await realtime.reply(realtimeConfig(input), {signal}), transport: 'realtime'};
+  }
+  const speech = continuousSpeech(input, profile, current, signal);
+  try {
+    const result = await realtime.reply(realtimeConfig(input), {signal, liveSpeech: speech.options});
+    return {...result, transport: 'realtime', liveDelivery: {published: speech.published,
+      ended: speech.ended, generated: speech.generated, id: speech.token}};
+  } catch (error) { await speech.fail().catch(() => {}); throw error; }
+}
+
 async function respond(input, profile, {signal, prepared, current} = {}) {
   if (await audioReady(runtime)) {
     if (prepared) {
@@ -278,8 +329,7 @@ async function respond(input, profile, {signal, prepared, current} = {}) {
       catch { throwIfCancelled(signal); /* Failed speculation falls back to the submitted turn. */ }
     }
     throwIfCancelled(signal);
-    // Remote PCM and NeuroSync arrive over the provider data channel. Publish
-    // that complete reply once; only local Omni TTS uses phrase generation.
+    if (!localVoice.usesProfile(input.profileKey)) return convaiReply(input, profile, current, signal);
     return synthesizeReply(input, {...await realtime.reply(realtimeConfig(input), {signal}), transport: 'realtime'}, signal);
   }
   prefetch.invalidate(); prepared?.cancel();
@@ -291,6 +341,18 @@ async function respond(input, profile, {signal, prepared, current} = {}) {
 
 async function publishResult(input, profile, result, current = async () => true, signal) {
   if (!await current()) return false;
+  if (result.continuous) {
+    if (!result.liveDelivery?.published || !result.liveDelivery.ended) throw Error('Continuous speech did not finish');
+    // The game already received admission, live text and the consumed-sample
+    // clock. Publishing a second ordinary reply would replay or replace it.
+    realtimeSessions.set(sessionKey(input), result.sessionID);
+    connections.used(input, result.timing); prefetch.published(input, result.text); prefetchObserved = '';
+    await measure(input, {transport: 'realtime', timing: result.timing,
+      stream: {id: result.liveDelivery.id, mode: 'convai-continuous', complete: true},
+      continuousPlaybackCompleteAt: Date.now()});
+    await status('ready', profile.name);
+    return true;
+  }
   const preparationStartedAt = Date.now();
   let audio, face, stream, audioError = result.audioError;
   if (result.audio) {
@@ -350,19 +412,40 @@ async function publishResult(input, profile, result, current = async () => true,
 
 const micPath = resolve(runtime, 'microphone-command.json');
 const microphoneKnowledge = new Map();
+const microphoneSpeech = new Map();
 let micObserved = await readFile(micPath, 'utf8').catch(() => '');
 let micPolling = false;
 const mic = new MicrophoneSession({hostFactory: () => realtime.voiceChannel(),
   onState: (state, input) => atomic(resolve(runtime, 'microphone-state.json'), JSON.stringify({state, requestId: input.requestId, updated: Date.now()})),
+  prepareReply: async (input, signal) => {
+    if (localVoice.usesProfile(input.profileKey) || (await readSpeechState()).continuousAvailable !== true) return;
+    const prepared = microphoneKnowledge.get(input.requestId);
+    const current = async () => {
+      if (stopped || signal.aborted || mic.current?.requestId !== input.requestId || !prepared) return false;
+      let command; try { command = JSON.parse(await readFile(micPath, 'utf8')); } catch { return false; }
+      return command.input?.requestId === input.requestId && command.action === 'finish'
+        && await knowledgeRouter.current(prepared);
+    };
+    current.sync = () => !stopped && !signal.aborted && mic.current?.requestId === input.requestId
+      && prepared && knowledgeRouter.currentSync(prepared);
+    const speech = continuousSpeech(input, profileFor(input, roster), current, signal, prepared);
+    microphoneSpeech.set(input.requestId, speech);
+    return {liveSpeech: speech.options};
+  },
   onReply: async (input, result, signal) => {
     if (stopped) return;
     const prepared = microphoneKnowledge.get(input.requestId);
     if (!prepared || !await knowledgeRouter.current(prepared)) return;
     const command = JSON.parse(await readFile(micPath, 'utf8'));
     if (command.input?.requestId !== input.requestId || command.action === 'cancel') return;
-    const spoken = await synthesizeReply(input, {...result, transport: 'realtime'}, signal);
-    await knowledgeRouter.activity(prepared, 'generated-reply', {replyText: result.text});
-    stagedKnowledgeTurn(prepared);
+    const speech = microphoneSpeech.get(input.requestId);
+    const spoken = await synthesizeReply(input, {...result, transport: 'realtime',
+      ...(speech ? {liveDelivery: {published: speech.published, ended: speech.ended,
+        generated: speech.generated, id: speech.token}} : {})}, signal);
+    if (!speech?.generated) {
+      await knowledgeRouter.activity(prepared, 'generated-reply', {replyText: result.text});
+      stagedKnowledgeTurn(prepared);
+    }
     const current = async () => {
       if (stopped || signal?.aborted) return false;
       const latest = JSON.parse(await readFile(micPath, 'utf8').catch(() => '{}'));
@@ -370,8 +453,11 @@ const mic = new MicrophoneSession({hostFactory: () => realtime.voiceChannel(),
     };
     current.sync = () => !stopped && !signal?.aborted && knowledgeRouter.currentSync(prepared);
     await publishResult(input, profileFor(input, roster), spoken, current, signal);
+    microphoneSpeech.delete(input.requestId);
   },
   onError: async (input, error) => {
+    await microphoneSpeech.get(input.requestId)?.fail().catch(() => {});
+    microphoneSpeech.delete(input.requestId);
     console.error('[CyberpunkConvai] Microphone:', error.message);
     const prepared = microphoneKnowledge.get(input.requestId);
     const current = async () => {
@@ -627,8 +713,10 @@ async function processInput(request, prepared) {
     const result = await respond(input, profile, {signal: controller.signal, prepared, current});
     // Do not show a late reply to a different target or a newer turn.
     if (!await current()) return;
-    await knowledgeRouter.activity(knowledgeTurn, 'generated-reply', {replyText: result.text});
-    stagedKnowledgeTurn(knowledgeTurn);
+    if (!result.liveDelivery?.generated) {
+      await knowledgeRouter.activity(knowledgeTurn, 'generated-reply', {replyText: result.text});
+      stagedKnowledgeTurn(knowledgeTurn);
+    }
     await measure(input, {resultReadyAt: Date.now(), requestToResultMs: Date.now() - request.receivedAt});
     await publishResult(input, profile, result, current, controller.signal);
   } catch (error) {
@@ -674,7 +762,7 @@ async function pollPrefetch() {
       prefetch.invalidate(); active?.controller.abort(); await mic.cancel(); await realtime.close();
     }
     partyWasFresh = !connections.stale;
-    const speech = JSON.parse(await readFile(resolve(runtime, 'speech-state.json'), 'utf8').catch(() => '{}'));
+    const speech = await readSpeechState();
     if (speech.available && Date.now() - speech.updated < 5000) lastAudioHeartbeat = Date.now();
     else if (lastAudioHeartbeat && Date.now() - lastAudioHeartbeat > 5000) {
       lastAudioHeartbeat = 0; prefetch.invalidate();
@@ -720,20 +808,35 @@ async function pollPrefetch() {
 }
 
 const deliveredReceipts = new Set();
+const pendingDeliveryReceipts = new Map();
 async function recordDelivery(receipt) {
-  if (!receipt || typeof receipt.requestId !== 'string') return;
+  if (!receipt || receipt.version !== 1 || typeof receipt.requestId !== 'string') return;
   const entry = knowledgeTurns.get(receipt.requestId);
-  if (!entry?.generated) return;
+  if (!entry?.generated || entry.cancelled || receipt.partial !== false || receipt.cancelled !== false) return;
   const input = entry.prepared.input;
-  if (receipt.source === 'native-playback' && (receipt.entity !== input.entity || receipt.generation !== input.generation)) return;
+  const phoneReceipt = entry.prepared.route?.channel === 'phone';
+  if (phoneReceipt ? receipt.source !== 'phone-ui' || receipt.state !== 'accepted'
+    : !['native-playback', 'continuous-playback'].includes(receipt.source) || receipt.state !== 'completed'
+      || !Number.isSafeInteger(receipt.totalChunks) || receipt.totalChunks < 1 || receipt.totalChunks > 10000
+      || receipt.completedChunks !== receipt.totalChunks) return;
+  if (receipt.source === 'continuous-playback'
+    && (receipt.backend !== 'browser-pcm' || receipt.totalChunks !== 1)) return;
+  if (['native-playback', 'continuous-playback'].includes(receipt.source)
+      && (receipt.entity !== input.entity || receipt.generation !== input.generation)) return;
   if (receipt.source === 'phone-ui' && receipt.profileKey !== input.profileKey) return;
   const id = JSON.stringify([receipt.source, receipt.requestId, receipt.id || receipt.sequence]);
   if (deliveredReceipts.has(id)) return;
-  const result = await knowledgeRouter.activity(entry.prepared, 'delivered-reply', receipt);
-  if (result?.status === 'unavailable') return;
-  entry.delivered = true;
-  deliveredReceipts.add(id);
-  while (deliveredReceipts.size > 128) deliveredReceipts.delete(deliveredReceipts.values().next().value);
+  if (pendingDeliveryReceipts.has(id)) return pendingDeliveryReceipts.get(id);
+  const task = (async () => {
+    const result = await knowledgeRouter.activity(entry.prepared, 'delivered-reply', receipt);
+    if (result?.status === 'unavailable') return;
+    entry.delivered = true;
+    deliveredReceipts.add(id);
+    while (deliveredReceipts.size > 128) deliveredReceipts.delete(deliveredReceipts.values().next().value);
+  })();
+  pendingDeliveryReceipts.set(id, task);
+  try { return await task; }
+  finally { if (pendingDeliveryReceipts.get(id) === task) pendingDeliveryReceipts.delete(id); }
 }
 async function pollKnowledge() {
   if (knowledgePolling || stopped) return;
