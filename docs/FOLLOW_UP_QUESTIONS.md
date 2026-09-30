@@ -55,3 +55,7 @@ are still awaiting the user's check.
 This change uses Lua and bridge code only. It requires one CET **Reload All
 Mods** after installation and a bridge restart, with no game restart. Live
 microphone testing remains deferred at the user's request.
+
+Installed September 30 from `135264d`: Lua files and catalogues were hash
+verified; the restarted bridge reported ready with no startup stderr. The user
+has been asked for one CET reload and a default-Off private reply check.
