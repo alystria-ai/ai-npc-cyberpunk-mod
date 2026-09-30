@@ -115,7 +115,12 @@ reject other controllers, and verify queued styling never touches a detached
 menu. Exit counters expose which lifecycle boundary was reached without retaining
 extra native objects. Gameplay validation and Resume activation still run in
 top-level update. All 40 focused manager/exit checks pass, including the installed
-MCM API integration. This correction requires CET reload and another live Esc check.
+MCM API integration. After CET reload of `9d4320d`, the user confirmed Esc
+returns directly to gameplay. The read-only probe agrees: one matched close,
+one matched detach, one native Resume, zero identity failures, and no retained
+settings or presentation controller. The private receipt is
+`runtime/mcm-escape-accepted.json`. The draft-dialog flow has fixture coverage;
+the live acceptance was an ordinary settings close with no pending drafts.
 
 ### Native crash and correction
 

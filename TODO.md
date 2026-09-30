@@ -29,13 +29,17 @@
   identified that boundary; `4fe8a9b` styles the completed owned page and retains
   cyan option boxes. 1009 full-suite checks pass, including installed MCM
   integration; the 28 manager checks passed again after the final owner guard.
-- [ ] Make accepted Escape/close from Companion Manager resume gameplay through
+- [x] Make accepted Escape/close from Companion Manager resume gameplay through
   the native Resume action. The user confirmed it still returned to Pause after
   `2e2a07a`. CET creates distinct weak-reference wrappers for callbacks on the
   same menu, so Lua equality missed the close/detach. The correction correlates
   native `CalcSeed` identities while preserving MCM's draft guard and other pages;
-  fresh-wrapper regression checks reproduce the previous failure. Live exit
-  acceptance is pending activation of this correction.
+  fresh-wrapper regression checks reproduce the previous failure. Source
+  `9d4320d`; 40 focused checks pass, including installed MCM integration. After
+  CET reload the user confirmed Esc returns to gameplay. Live readback reports
+  one matched close, one detach, one native Resume, zero identity failures and
+  no retained settings/presentation controller. The unsaved-change dialog's
+  exact in-game flow remains covered by source checks rather than user testing.
 - [x] Remove the close-face retreat caused by V being within 0.72 metres. Keep
   separation between overlapping companion copies and ordinary following.
   Source `9e14265`; reproduced old failures, then 64 movement/behavior/equipment
