@@ -31,7 +31,7 @@ states such as `open` and `ready` also count: restricting the trigger to
 from manifests. When available, the last valid mapped timeline is retained
 without its ownership identifiers for a source-to-render comparison.
 
-Each capture is bounded to 30 seconds, 15 FPS and 450 saved frames; the optional
+Full-window capture is bounded to 30 seconds, 15 FPS and 450 saved frames; the optional
 arming window is bounded to 180 seconds. Create `stop.txt` in the output folder
 to stop an owned capture. Target loss closes the session. Keep helpers hidden
 when launching with `Start-Process`.
@@ -45,6 +45,20 @@ sheets are inspection crops only; do not replace real frames or infer continuous
 motion from them alone. October 1's complete native shape capture is under
 `runtime/articulation-images-20261001-001511`; all four phases and neutral reset
 were captured with LOD High.
+
+For rapid mouth transitions, `--crop LEFT TOP RIGHT BOTTOM --fps 30` saves an
+exact window-region crop, not a resized or synthesized frame. The crop must fit
+inside the verified game window and contain at most 400,000 pixels; capture is
+bounded to 900 frames. The initial `window-context.png` establishes framing and
+is saved before readiness so its encoding cannot delay a triggered reply.
+Each frame retains its actual capture timestamp and crop coordinates.
+
+Fixed sampling buckets replace the previous relative-to-last-frame throttle,
+which could skip almost every second arrival. Low-compression lossless PNGs of
+the small region avoid the full-screen PNG cost. The first four-second live
+check captured 100 frames at an observed 24.83 FPS, with median38.1 ms/p95 56.6 ms
+gaps (`runtime/capture-cadence-20261001-015556`). Requested30 FPS is not proof of
+actual30 FPS; inspect the manifest and preserve irregular timing in comparisons.
 
 ## Repeatable local speech comparison
 
