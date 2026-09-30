@@ -112,6 +112,29 @@ function run(body) {
   lua.lua_close(vm);assert.equal(status,lua.LUA_OK,error);
 }
 
+test('explicit cadence seam returns only cached numerical playback data and clears with ownership',()=>run(`
+  assert(speech.diagnosticCadence()==nil and controller.diagnosticCadence()==nil)
+  assert(begin());local first=speech.diagnosticCadence()
+  assert(first.reads==0 and first.acceptedReads==0 and first.updated==nil)
+  snapshot({face=timeline(2,false),position=.25})
+  tick(.02);assert(speech.diagnosticCadence().reads==0)
+  tick(.02);local before=nativeCalls;local read=speech.diagnosticCadence()
+  assert(nativeCalls==before and read.reads==1 and read.acceptedReads==1)
+  assert(read.position==.25 and read.confirmedTarget==.25 and read.speechPosition==.25)
+  assert(read.sourceFrames==2 and read.duration==2 and read.state=='playing')
+  local allowed={reads=true,acceptedReads=true,updated=true,position=true,duration=true,
+    sourceFrames=true,sourceComplete=true,state=true,wait=true,poll=true,
+    confirmedTarget=true,faceCursor=true,speechPosition=true}
+  for key,value in pairs(read)do
+    assert(allowed[key],'unexpected cadence output '..tostring(key))
+    assert(type(value)=='number'or type(value)=='boolean'or key=='state')
+  end
+  snapshot({position=-1});tick(.04);read=speech.diagnosticCadence()
+  assert(read.reads==2 and read.acceptedReads==1 and read.position==.25)
+  speech.stop('cancelled');assert(speech.diagnosticCadence()==nil and controller.diagnosticCadence()==nil)
+  world=false;assert(speech.diagnosticCadence()==nil and controller.diagnosticCadence()==nil)
+`));
+
 // Exercise the actual JavaScript publisher/builder against the Lua consumer.
 // Hand-built face fixtures alone missed a required ownership field on the wire.
 const luaValue = value => Array.isArray(value) ? `{${value.map(luaValue).join(',')}}`

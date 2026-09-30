@@ -2,6 +2,17 @@
 local requestFile = io.open('runtime/diagnostic-request.txt', 'rb')
 local request = requestFile and requestFile:read('*a') or ''
 if requestFile then requestFile:close() end
+if request:match('^speech%-cadence:') then
+    if request:match('^speech%-cadence:stop:') then
+        if convaiSpeechCadenceProbe then convaiSpeechCadenceProbe.stop('cancelled') end
+    else
+        if convaiSpeechCadenceProbe then convaiSpeechCadenceProbe.stop('replaced') end
+        convaiSpeechCadenceProbe = dofile('speech-cadence-probe.lua').new({
+            speech=assert(convaiSpeech), face=assert(convaiFacialPlayback)})
+        convaiSpeechCadenceProbe.start()
+    end
+    return
+end
 if request:match('^fact%-identity%-read:') then
     if not convaiFactIdentityProbe then
         convaiFactIdentityProbe = dofile('fact-identity-probe.lua').new({request = request,

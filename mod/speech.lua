@@ -330,6 +330,18 @@ function M.pauseForWorld()
     if M.continuous and continuous and not continuous.pause() then M.abandon() end
 end
 
+-- A live-loaded diagnostic can inspect this explicit cached seam without
+-- inspecting Lua closure internals or retaining an actor/controller handle.
+function M.diagnosticCadence()
+    if not M.requestId or not M.continuous or not continuous
+        or type(continuous.diagnosticCadence) ~= 'function' then return nil end
+    local value = continuous.diagnosticCadence()
+    if not value then return nil end
+    value.confirmedTarget, value.faceCursor = M.continuousFaceTarget, M.continuousFaceCursor
+    value.speechPosition = M.position
+    return value
+end
+
 local function updateContinuous(delta, player, paused)
     local state, problem = continuous.update(delta, player, M.actor, paused)
     if problem then M.error=problem;fallback('playback-failed', M.text);return end

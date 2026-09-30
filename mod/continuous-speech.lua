@@ -3,6 +3,7 @@
 -- No actor/player/native handle is retained here, including during teardown.
 local M = {version = 1, available = true}
 local owner, sequence, poll, wait, previous, lastUpdated, volumePoll, volume = nil, 0, 0, 0, nil, nil, 0, nil
+local readSequence, acceptedSequence = 0, 0
 local states = {open=true, starting=true, ready=true, buffering=true, playing=true, paused=true,
     waiting=true, ['waiting-control']=true, ['awaiting-admission']=true, ['lease-held']=true,
     draining=true, opening=true, ended=true, finished=true, error=true, stopped=true, cancelled=true}
@@ -84,6 +85,7 @@ end
 function M.stop()
     write(false, true, 0, 0)
     owner, previous, lastUpdated, volume = nil, nil, nil, nil
+    readSequence, acceptedSequence = 0, 0
 end
 
 function M.pause()
@@ -94,6 +96,19 @@ end
 function M.status()
     return {volumeKnown=volume ~= nil,volume=volume or 0,
         volumeReason=volume == nil and 'game-volume-unavailable' or nil}
+end
+
+-- Cached numerical diagnostics only. Do not return the actor/owner, text,
+-- timeline or controller itself, and do not add file/native reads here.
+function M.diagnosticCadence()
+    if not owner then return nil end
+    local timeline = previous and previous.face
+    return {reads = readSequence, acceptedReads = acceptedSequence,
+        updated = previous and previous.updated, position = previous and previous.position,
+        duration = previous and previous.bufferedDuration,
+        sourceFrames = type(timeline) == 'table' and type(timeline.frames) == 'table' and #timeline.frames or nil,
+        sourceComplete = previous and previous.complete or false,
+        state = previous and previous.state, wait = wait, poll = poll}
 end
 
 function M.start(context, descriptor, player, actor, paused)
@@ -116,6 +131,7 @@ function M.start(context, descriptor, player, actor, paused)
 end
 
 local function read()
+    readSequence = readSequence + 1
     local file = io.open('runtime/continuous-speech.json', 'rb')
     if not file then return nil end
     local raw = file:read(4000001); file:close()
@@ -137,6 +153,7 @@ local function read()
         or (previous.complete and (not value.complete or value.bufferedDuration ~= previous.bufferedDuration))
         or (previous.ended and not value.ended)) then return nil end
     if null(value.error) then value.error = nil end
+    acceptedSequence = acceptedSequence + 1
     return value
 end
 

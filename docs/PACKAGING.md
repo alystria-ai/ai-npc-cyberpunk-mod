@@ -12,7 +12,7 @@ that requirement explicit while resolving the current runtime setup gaps.
 
 | Archive | Contents | Installation root |
 |---|---|---|
-| `CyberpunkConvai-Scripts.zip` | Only `.lua` files; currently 39 active development files, including `continuous-speech.lua` | `bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/` |
+| `CyberpunkConvai-Scripts.zip` | Only `.lua` files; currently 40 active development files, including `continuous-speech.lua` and the bounded development cadence probe | `bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/` |
 | `CyberpunkConvai-Runtime.zip` | Every other mod component: catalogs, nine redscript files, facial archive, audio manifest, portable bridge/browser/Python, OmniVoice code and weights, local lip-sync tool, bootstrap and notices | Paths relative to the game directory |
 
 The current shared development manifest contributes 14 known non-Lua files to
