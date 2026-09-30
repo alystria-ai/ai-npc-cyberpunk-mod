@@ -3,10 +3,12 @@
 ## Latest continuation — September 30 native calibration
 
 The user accepts continuous Convai voice latency but still rejects the mouth as
-wooden and barely moving. The current `arkit61-native-v4` work corrects the
-native mouth-corner target and preserves lower-lip roll after inspecting Judy's
-actual facial setup. The accompanying game-frame sampler follows only confirmed
-already-heard audio. See the full current
+wooden and barely moving. `arkit61-native-v4` corrected the mouth-corner target
+and preserved lower-lip roll, but its next live check still barely opened.
+The prepared `arkit61-native-v5` jaw shoulder is calibrated against actual
+Judy/Johnny bones and the accepted native jaw probe, keeping the same ceiling,
+zero, closure and other shapes. A bounded passive trace investigates the
+remaining real-game cadence gap. See the full current
 [lip-sync deep dive](LIPSYNC_DEEP_DIVE_2026-09-30.md) and
 [native calibration report](NATIVE_FACIAL_RETARGET_CALIBRATION.md).
 Earlier v2/v3 changes below are historical calibration attempts, not accepted

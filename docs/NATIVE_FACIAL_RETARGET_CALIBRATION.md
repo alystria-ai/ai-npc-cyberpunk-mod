@@ -1,7 +1,8 @@
 # Native facial retarget calibration
 
-September 30, 2026. This is a source and CPU rig inspection. The v4 change has
-not yet been accepted visually in the game.
+September 30, 2026. This is a source and CPU rig inspection. The live v4
+comparison still had weak opening. The v5 opening comparison below is prepared
+in source and has not been activated or accepted visually in the game.
 
 ## What the provider and rig actually represent
 
@@ -154,3 +155,86 @@ JavaScript publisher/builder through Lua to the native-feature adapter. That
 cross-boundary test verifies the actual corner and lower-roll fields, the
 zeroed upper raisers, ownership and final reset. CPU inspection also completed
 25 controls and 443 replayed Judy poses; neither test set is a visual claim.
+
+## Opening calibration after the live v4 rejection
+
+The user still described the mouth as barely opening with v4. The completed
+3.6-second capture contains 217 mapped frames. Its active native jaw has a
+median **0.0381**, p95 **0.1525**, and peak **0.1898**. Upper aperture has median
+0.0229 and peak 0.0592; lower aperture has median 0.0321 and peak 0.16.
+
+This is a separate limitation from the corrected corner/roll basis. The native
+solver inspection gives an explanation for the weak opening: at jaw weight
+0.0381, both Judy and Johnny rotate the jaw locally by only about **0.71 degrees**.
+Judy's largest lip-bone local translation from that isolated jaw pose is about
+0.56 mm. Typical upper/lower aperture together add at most about **0.09 mm** of
+local lip translation when isolated. Raising those aperture tracks alone would
+not address most of the missing jaw motion and could reintroduce lip distortion.
+
+The earlier accepted native jaw-probe range of approximately 0.348 produces
+about **6.52 degrees** of jaw-local rotation, with maximum isolated local lip
+translation of 5.13 mm on Judy and 5.07 mm on Johnny. It is a reference excursion,
+not proof that every sustained pose up to that weight looks natural during speech.
+
+### Fixed curve comparison
+
+The source jaw was approximately recovered from the existing k3 native mapping:
+
+```text
+old native jaw = 0.40 * (3 * j / (1 + 2 * j)) * closureSeal * boundaryFade
+candidate jaw  = 0.40 * (k * j / (1 + (k - 1) * j)) * closureSeal * boundaryFade
+```
+
+Here `j` is the original provider jaw coefficient. Existing closure weights and
+the exact first/final 40 ms boundary fade were retained. The mapped capture is
+rounded to four decimals; reconstruction therefore approximates the original
+source. The k3 round trip reproduces the stored weights to floating-point error,
+and propagating the rounding intervals yields a worst candidate uncertainty
+width of about **0.00033**. Unrecoverable neutral endpoints remain zero. No
+per-reply peak normalization or minimum mouth opening was introduced.
+
+| Curve | Captured active jaw median | Captured p95 | Captured peak | Native jaw rotation, median → peak |
+| --- | ---: | ---: | ---: | ---: |
+| k3, live v4 | 0.0381 | 0.1525 | 0.1898 | 0.71° → 3.56° |
+| k6 candidate | 0.0696 | 0.2208 | 0.2574 | 1.30° → 4.82° |
+| k10 candidate | 0.1039 | 0.2690 | 0.3002 | 1.95° → 5.63° |
+| Earlier accepted isolated probe | — | — | approximately 0.348 | approximately 6.52° |
+
+Both actual character setups produce essentially the same jaw rotation for
+these candidates. k10 changes the typical captured jaw opening by about 2.73×,
+while its peak physical excursion remains below the accepted isolated probe.
+All replayed transforms were finite. Other lip motions still differ between
+the two character rigs, as expected.
+
+### Prepared v5 change
+
+`arkit61-native-v5` selects the fixed **k10** jaw shoulder. Its maximum stays
+0.40, zero source stays zero, full current closure still suppresses opening,
+and existing boundary easing remains unchanged. The current aperture, closure,
+funnel, purse, v4 corner/roll mappings, reserved upper-lip raisers and local
+Omni/Rhubarb path are unchanged. Matching source coefficients map to the same
+pose at the same timestamps regardless of reply range or growing-prefix length.
+
+This comparison changes only the provider jaw transfer function. It does not
+resolve the independently observed low live feature-application cadence, change
+audio timing, or claim rendered improvement. The next live assessment needs
+both reliable sampling and a check for opening, consonant contact, smooth motion,
+absence of distortion, and final reset. The independent MouthClose semantics
+issue above remains deferred for a combined contact calibration.
+
+Redacted numerical evidence and reproducible CPU scripts are retained under the
+ignored `runtime/facial-opening-candidates-20260930` directory:
+
+- `reconstruct.mjs` and `reconstructed-poses.json`: numerical source inversion,
+  k3/k6/k10 weights, rounding uncertainty and exact original audio timestamps.
+- `native-opening.py` and `native-opening-report.json`: actual Judy/Johnny solver
+  trajectories, the isolated probe comparison and separate aperture contributions.
+
+The reports contain numerical controls and resource hashes; dialogue and
+actor, request, user and session identifiers are excluded. Native reference
+tracks remain the assumed baseline, not a measurement of the actor's live idle.
+
+The updated targeted tests failed on the old curve and now cover fixed monotonic
+bounds, zero/rest, current closure behavior, immutable source arrays/PCM, original
+ARKit-61 corner/roll ordering, matched growing-prefix timestamps and unchanged
+unrelated articulation. Visual qualification is still pending.

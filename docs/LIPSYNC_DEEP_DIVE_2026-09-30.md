@@ -199,6 +199,33 @@ proof of interchangeable rig behavior.
 
 ## Calibration and acceptance method
 
+### Later live check and opening comparison
+
+The next live v4 check was rejected: the user still sees very little opening.
+Its 3.6-second source has 217 mapped frames, but the native receipt has only
+30 applications. Typical jaw weight is 0.0381, p95 0.1525 and peak 0.1898.
+The offline cadence improvement therefore does not yet establish the real-game
+delivery rate. A bounded passive delegate probe now records numeric update,
+publication, cursor and apply timing without extra per-frame file reads/writes,
+new CET event registrations, dialogue or identities.
+
+Actual Judy/Johnny solver calibration explains the weak opening too. Weight
+0.0381 produces about 0.71 degrees of local jaw rotation; the previously accepted
+0.348 native probe produces about 6.52 degrees. The prepared
+`arkit61-native-v5` shoulder uses `0.40 * (10*j / (1+9*j)) * (1-MouthClose)`.
+It keeps the same ceiling, true zero, closure gate and boundary fades. It does
+not normalize each reply or impose an opening floor. Typical captured weight
+becomes 0.1039 / about 1.95 degrees; peak becomes 0.3002 / about 5.63 degrees,
+below the accepted probe. Aperture, corner/roll, upper-raiser safety and local
+Omni remain unchanged. Four-decimal inverse reconstruction uncertainty is
+documented in the native calibration report.
+
+Ninety-three combined focused checks pass for the opening candidate and passive
+probe, including the actual producer-to-Lua seam. Their activation and fresh
+visual/cadence result remain separate; do not replace those with the CPU result.
+
+### Repeatable steps
+
 1. Inspect Judy's actual rig and facial setup, including influence suppression
    and corrective poses. Compare native bone/aperture changes on CPU before
    changing the production gains.

@@ -81,12 +81,13 @@ function facialFps(source) {
 
 // SDK 1.7.0 lipsync-helpers/arkitOrder61.js: JawOpen is index 17, not
 // standard ARKit-52's index 24. Never infer a mapping from vector length alone.
-// Convai's continuous JawOpen values are much smaller than the local phonetic
-// vowel targets. Lift small/mid openings without a minimum opening or per-file
-// normalization: zero remains zero and identical poses stay identical across
-// chunk boundaries. A monotonic shoulder expands the compressed source range
-// without raising its peak limit. The .40 ceiling matches the local D vowel;
-// aperture ceilings and the distortion-prone individual upper raisers stay put.
+// The captured Convai jaw range drove only ~0.71 degrees of typical native jaw
+// rotation on Judy/Johnny. A fixed k10 shoulder expands those small/mid poses:
+// zero remains zero, and identical source poses stay identical across replies
+// and prefixes. The .40 ceiling is unchanged. CPU replay's peak remained below
+// the previously accepted .348 jaw probe; this still needs visual acceptance.
+// Aperture limits and the distortion-prone individual upper raisers stay put.
+// See docs/NATIVE_FACIAL_RETARGET_CALIBRATION.md for calibration and limits.
 const opening = (value, lift) => value + lift * value * (1 - value);
 function mapArkit(v) {
   const a = index => clamp(v[index]);
@@ -99,7 +100,7 @@ function mapArkit(v) {
   // See docs/NATIVE_FACIAL_RETARGET_CALIBRATION.md for the actual rig evidence.
   const articulation = {lips_l_corner_stretch: .08 * a(29), lips_r_corner_stretch: .08 * a(30),
     lips_suck_dn: .20 * a(31)};
-  return [0.40 * (3 * jaw / (1 + 2 * jaw)) * seal,
+  return [0.40 * (10 * jaw / (1 + 9 * jaw)) * seal,
     0.12 * opening(Math.max(open, (a(39) + a(40)) / 2), .20) * seal,
     0.16 * opening(Math.max(open, (a(37) + a(38)) / 2), .12) * seal,
     0.20 * closed, 0.20 * closed,
@@ -154,7 +155,7 @@ function renderTimeline({owner, duration, segment, source, cues, envelope = [], 
   frames.push([duration, ...poseAt(duration)]);
   return {version: 1, requestId: owner.requestId, entity: owner.entity, duration,
     source: source ? 'convai-arkit61' : cues ? 'local-phonetic' : 'audio-envelope',
-    articulation: source ? 'arkit61-native-v4' : cues ? 'coarticulated-v4' : undefined,
+    articulation: source ? 'arkit61-native-v5' : cues ? 'coarticulated-v4' : undefined,
     ...(segment ? {segment} : {}), tracks: [...SPEECH_TRACKS], frames};
 }
 
