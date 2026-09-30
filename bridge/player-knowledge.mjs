@@ -148,12 +148,16 @@ export class PlayerKnowledge {
     const entityReady = !ambient || typeof entity === 'string' && /^\d+ULL$/.test(entity);
     const available = ready && entityReady && this.#memoryCurrent(memory?.guard);
     const base = route.channel === 'group' ? `group:${hash(route.audience).slice(0, 16)}` : route.channel;
-    const transportScope = route.transport === 'microphone' ? `microphone:${base}` : base;
+    // Input modality is not another conversation. F7/F9 must reuse the exact
+    // private/group page retained at invitation/composer time; a microphone-only
+    // namespace is absent from that plan and gets evicted during recording.
+    // Keep route.transport for admission provenance, while preserving every
+    // player, world, reset, character, audience and ambient-entity boundary.
     const partition = available ? [binding.worldToken, binding.generation, memory.endUserId, memory.guard.characterId,
       memory.guard.resetEpoch, memory.guard.characterEpoch, route.profileKey, route.channel, route.audience,
-      route.transport, ambient ? entity : null] : null;
+      route.channel, ambient ? entity : null] : null;
     return freeze({status: available ? 'ready' : 'unavailable', sendAllowed: available, route,
-      scope: available ? `${transportScope}:world:${hash(partition).slice(0, 24)}` : null,
+      scope: available ? `${base}:world:${hash(partition).slice(0, 24)}` : null,
       sessionKey: available ? hash(partition) : null,
       remoteConfig: available ? {endUserId: memory.endUserId} : null, guard: available ? memory.guard : null,
       identified: available, localEligible: available, worldToken: binding.worldToken, generation: binding.generation,

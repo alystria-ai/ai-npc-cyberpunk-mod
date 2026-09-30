@@ -42,9 +42,22 @@ export class PartyConnections {
     this.request = null; this.revision++;
     return this.reconcile();
   }
-  setRequest(input) {
+  setRequest(input, exactConfig) {
+    // Ambient profiles cannot be warmed without their physical entity. An
+    // admitted request may supply that exact already-validated route so normal
+    // party reconciliation does not dispose its active page. Keep credentials
+    // and route details private; diagnostics expose only the profile/scope.
+    let config;
+    if (input && exactConfig !== undefined) {
+      if (!exactConfig || typeof exactConfig !== 'object' || !exactConfig.characterId || !exactConfig.scope) {
+        throw Error('Invalid submitted connection route');
+      }
+      transportKey(exactConfig);
+      config = Object.freeze(Object.fromEntries(['key', 'characterId', 'endUserId', 'scope', 'sessionId', 'ttsEnabled']
+        .filter(key => Object.hasOwn(exactConfig, key)).map(key => [key, exactConfig[key]])));
+    }
     this.request = input ? {scope: input.group ? 'group:' + [...input.group.audience].sort().join(',') : 'private',
-      audience: input.group?.audience || [input.profileKey]} : null;
+      audience: input.group?.audience || [input.profileKey], profile: input.profileKey, ...(config ? {config} : {})} : null;
     this.composer = null; this.revision++;
     return this.reconcile();
   }
@@ -75,8 +88,20 @@ export class PartyConnections {
     const privateSpecs = privateProfiles.map(profile => ({profile, scope: 'private',
       role: party.includes(profile) ? 'party' : this.invitations.includes(profile) ? 'invitation' : 'target'}));
     const groupSpecs = groupProfiles.map(profile => ({profile, scope: groupScope, role: 'group'}));
-    return focus?.scope.startsWith('group:') ? [...groupSpecs, ...privateSpecs] : [...privateSpecs, ...groupSpecs];
+    const specs = focus?.scope.startsWith('group:') ? [...groupSpecs, ...privateSpecs] : [...privateSpecs, ...groupSpecs];
+    if (focus?.config && !specs.some(spec => spec.profile === focus.profile && spec.scope === focus.scope)) {
+      // Eight party private pages remain protected. A physical ambient target
+      // uses one optional slot, just like a nearby named private target.
+      while (specs.length >= CONNECTION_LIMIT) {
+        const optional = specs.findLastIndex(spec => spec.role === 'group');
+        if (optional < 0) throw Error('No connection capacity for the submitted target');
+        specs.splice(optional, 1);
+      }
+      specs.unshift({profile: focus.profile, scope: focus.scope, role: 'target', config: focus.config});
+    }
+    return specs;
   }
+  configuration(spec) { return spec.config || this.configFor(spec.profile, spec.scope); }
   async reconcile() {
     if (this.reconciling) { await this.reconciling; return this.reconcile(); }
     this.reconciling = this.applyPlan();
@@ -90,13 +115,17 @@ export class PartyConnections {
     }
     for (const spec of specs) {
       const identity = connectionKey(spec.profile, spec.scope);
+      const prior = this.entries.get(identity);
+      if (prior && transportKey(this.configuration(prior)) !== transportKey(this.configuration(spec))) {
+        prior.controller?.abort(); this.entries.delete(identity); changed = true;
+      }
       if (!this.entries.has(identity)) {
         this.entries.set(identity, {...spec, identity, state: 'waiting', failures: 0, attempts: 0, nextCheck: 0}); changed = true;
       } else if (this.entries.get(identity).role !== spec.role) {
         this.entries.get(identity).role = spec.role; changed = true;
       }
     }
-    await this.host.retain(specs.map(spec => this.configFor(spec.profile, spec.scope)), {protect: true});
+    await this.host.retain(specs.map(spec => this.configuration(spec)), {protect: true});
     // With no remaining owner, retain has already closed this profile's pages.
     for (const profile of this.retirementDebt.keys()) if (!specs.some(spec => spec.profile === profile)) this.retirementDebt.delete(profile);
     if (changed) this.emit();
@@ -112,7 +141,7 @@ export class PartyConnections {
     for (const entry of this.entries.values()) if (entry.state === 'ready' && !this.needsRetirement(entry.profile)
         && now >= entry.nextCheck && !entry.checking) {
       entry.nextCheck = now + 15000; entry.checking = true;
-      void this.host.readiness(this.configFor(entry.profile, entry.scope), {keepAlive: true}).then(status => {
+      void this.host.readiness(this.configuration(entry), {keepAlive: true}).then(status => {
         if (this.entries.get(entry.identity) !== entry || status.busy) return;
         if (!status.present) { entry.state = 'waiting'; this.emit(); }
         else if (!status.ready) this.failed(entry);
@@ -145,7 +174,7 @@ export class PartyConnections {
     const timeout = setTimeout(() => { entry.timedOut = true; entry.controller.abort(); }, 25000);
     this.emit();
     let warming;
-    try { warming = this.host.warm(this.configFor(entry.profile, entry.scope), {signal: entry.controller.signal}); }
+    try { warming = this.host.warm(this.configuration(entry), {signal: entry.controller.signal}); }
     catch (error) { warming = Promise.reject(error); }
     entry.pending = Promise.resolve(warming).then(timing => {
       if (this.entries.get(entry.identity) !== entry || entry.controller.signal.aborted) return;
@@ -162,7 +191,7 @@ export class PartyConnections {
     if (this.retiring.has(profile) || this.needsRetirement(profile)) return {present: false, ready: false, retiring: true};
     const entry = this.entries.get(connectionKey(profile, 'private'));
     if (!entry) return {present: false, ready: false, busy: false};
-    return this.host.readiness(this.configFor(profile, 'private'), {keepAlive: true});
+    return this.host.readiness(this.configuration(entry), {keepAlive: true});
   }
   async warmInvitation(profile, {signal} = {}) {
     throwIfCancelled(signal);
@@ -212,7 +241,7 @@ export class PartyConnections {
     // Enabling memory affects this character's existing scopes. Retire only
     // those transports; another companion's page and private lease stay owned.
     const retiring = [...this.entries.values()].filter(entry => entry.profile === profile)
-      .map(entry => ({entry, config: this.configFor(entry.profile, entry.scope)}));
+      .map(entry => ({entry, config: this.configuration(entry)}));
     const debt = this.retirementDebt.get(profile) || {scopes: new Map(), retryAt: 0};
     this.retirementDebt.set(profile, debt);
     for (const target of retiring) if (!debt.scopes.has(transportKey(target.config))) debt.scopes.set(transportKey(target.config), target);
@@ -220,7 +249,7 @@ export class PartyConnections {
     // profile dispatch gate remains held until every old scope is retired.
     for (const {entry} of retiring) {
       this.entries.set(entry.identity, {profile: entry.profile, scope: entry.scope, role: entry.role,
-        identity: entry.identity, state: 'waiting', failures: 0, attempts: 0, nextCheck: 0});
+        ...(entry.config ? {config: entry.config} : {}), identity: entry.identity, state: 'waiting', failures: 0, attempts: 0, nextCheck: 0});
       entry.controller?.abort();
     }
     this.revision++; this.emit();
@@ -270,7 +299,7 @@ export class PartyConnections {
     const identity = connectionKey(profile, scope), entry = this.entries.get(identity);
     if (!entry) return false;
     this.entries.set(identity, {profile, scope, role: entry.role, identity,
-      state: 'waiting', failures: 0, attempts: 0, nextCheck: 0});
+      ...(entry.config ? {config: entry.config} : {}), state: 'waiting', failures: 0, attempts: 0, nextCheck: 0});
     entry.controller?.abort();
     this.revision++; await this.reconcile(); this.emit();
     return true;

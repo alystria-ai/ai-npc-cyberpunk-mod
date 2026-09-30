@@ -25,6 +25,9 @@ import {randomUUID} from 'node:crypto';
  * obligation. Cancellation cannot silently consume it. A later PLAYER send
  * reuses completed preparation without replacing its prepared connection.
  * No explicit memory seeding exists.
+ * recordAutomaticConversation(...) only durably records an actually admitted
+ * battle/loot conversation as a future Forget target. It never enables memory,
+ * opens a connection, contacts the provider, or marks merely invited profiles.
  *
  * Explicit clearCharacter({profileKey,actionId,signal}) / clearAll({actionId,signal})
  * preserve the UUID, durably advance epochs, and invoke quiesce before deletion.
@@ -429,6 +432,26 @@ export class PlayerMemory {
     if (signal?.aborted || !this.isCurrent(admitted)) fail('STALE_TURN');
     return Object.freeze({...this.route(profileKey), memoryEnabled: true,
       memoryEnabledNow: changed, changed, reconnectRequired});
+  }
+  async recordAutomaticConversation({profileKey, guard, channel = 'private', requestId, signal} = {}) {
+    this.#ready();
+    if (!CHANNELS.has(channel)) fail('INVALID_CHANNEL');
+    if (requestId !== undefined && !(token(requestId) || integer(requestId))) fail('INVALID_REQUEST_ID');
+    const characterId = this.#id(profileKey), admitted = guard ?? this.route(profileKey, {channel}).guard;
+    if (admitted.characterId !== characterId || !this.isCurrent(admitted)) fail('STALE_TURN');
+    if (signal?.aborted) fail('CANCELLED');
+    // A real unsolicited reply can participate in natural provider extraction
+    // just like a player-initiated turn. Record the deletion target locally
+    // before sending, without preparing an unused character or seeding memory.
+    if (this.#state.characters[characterId]?.contacted) await this.#checkStorage();
+    else await this.#persist(next => {
+      if (!this.isCurrent(admitted) || signal?.aborted) fail('STALE_TURN');
+      if (!Object.hasOwn(next.characters, characterId) && Object.keys(next.characters).length >= MAX_CHARACTERS) fail('CHARACTER_LIMIT');
+      if (!next.characters[characterId]?.contacted) next.characters[characterId] = {
+        profileKey, characterEpoch: next.characters[characterId]?.characterEpoch ?? 0, contacted: true};
+    });
+    if (signal?.aborted || !this.isCurrent(admitted)) fail('STALE_TURN');
+    return this.route(profileKey, {channel});
   }
   async beginConversation({profileKey, guard, source = 'player', channel = 'private', requestId, signal} = {}) {
     this.#ready();

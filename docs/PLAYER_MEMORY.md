@@ -15,10 +15,14 @@ first player message records contact and reuses the prepared verification, so
 the prepared connection stays warm. A player send without an invitation verifies
 the configuration before sending.
 
-Spawning, reading quests, and automatic battle/loot triggers never add a
-character to the contacted registry or create saved memories. This runtime has
-no `/memory/add`, quest-seeding worker, save-identity component, branch archive,
-or pool of provider IDs.
+Spawning, reading quests, and evaluating automatic battle/loot triggers never
+add a character to the contacted registry. An actual admitted automatic reply
+does record its character locally, so **Forget all** covers characters that have
+spoken even when the player has not sent them a manual message. That bookkeeping
+does not enable memory or send an extra provider request. Convai may naturally
+extract memory from real conversations; this runtime has no `/memory/add`,
+quest-seeding worker, save-identity component, branch archive, or pool of provider
+IDs.
 
 Generic NC Resident profiles represent templates rather than unique pedestrians.
 Transient sessions distinguish their entity IDs, but provider memory is attached
@@ -38,8 +42,10 @@ facts and revealed journal objectives are supplied as dynamic context. They are
 authoritative about the loaded game; remembered conversations can refer to an
 earlier save and do not establish which quest choices happened now.
 
-Each channel, exact group audience, world token and reset epoch has a separate
-transient session. Provider LTM remains shared for the same player/character.
+Private, phone and each exact group audience have separate transient sessions,
+also separated by world token and reset epoch. Text and microphone input share
+their private/group session and the connection prepared at invitation time.
+Provider LTM remains shared for the same player/character.
 Session separation does not promise separate private/group provider memories.
 
 ## Forget controls

@@ -4,6 +4,7 @@ import * as fs from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {randomUUID} from 'node:crypto';
+import {runInNewContext} from 'node:vm';
 import {PlayerMemory, PlayerMemoryError} from './player-memory.mjs';
 
 const ids = Object.freeze({judy: 'owned-judy', panam: 'owned-panam', johnny: 'owned-johnny'});
@@ -100,6 +101,52 @@ test('the first actual player send records contact and keeps a completed invitat
     assert.deepEqual(receipt.guard, prepared.guard);
   }
   assert.deepEqual(calls.map(row => row.kind), ['enable']);
+});
+
+test('a real automatic conversation after invitation becomes a Forget-all target without extra memory provider calls', async t => {
+  const {memory, path, calls} = await fixture(t);
+  const invited = await memory.prepareCharacter({profileKey: 'judy'});
+  memory.acknowledgeConnectionRefresh({profileKey: 'judy', guard: invited.guard});
+  await memory.prepareCharacter({profileKey: 'panam'});
+  assert.equal(memory.status().talkedToCount, 0, 'unused invitation remains preparation only');
+  const source = await fs.readFile(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
+  const body = source.slice(source.indexOf('async function admitPlayerConversation('), source.indexOf('async function pollMicrophone()'));
+  const prepared = {sendAllowed: true, route: {profileKey: 'judy', channel: 'private', transport: 'private'},
+    guard: invited.guard, input: {requestId: 'fixture-loot-reaction', reaction: {kind: 'loot'}}};
+  const admit = runInNewContext('(' + body + ')', {playerMemory: memory, knowledgeRouter: {current: async () => true},
+    throwIfCancelled: signal => { if (signal?.aborted) throw Error('Cancelled'); }});
+  await admit(prepared);
+  assert.deepEqual(memory.status().characters.map(row => row.profileKey), ['judy']);
+  assert.deepEqual(calls.map(row => row.kind), ['enable', 'enable'], 'automatic admission never enables, inspects or seeds memory');
+  const first = await fs.readFile(path, 'utf8');
+  await admit(prepared);
+  assert.equal(await fs.readFile(path, 'utf8'), first, 'already-recorded automatic dialogue adds no repeated registry mutation');
+  await memory.clearAll({actionId: 'forget-after-loot'});
+  assert.deepEqual(calls.filter(row => row.kind === 'clear').map(row => row.characterId), [ids.judy]);
+  assert.equal(memory.route('judy').endUserId, invited.endUserId);
+});
+
+test('automatic admission is local bookkeeping and rejects stale, cancelled or mismatched ownership', async t => {
+  const {memory, calls, path} = await fixture(t, {provider: {}});
+  const before = await fs.readFile(path, 'utf8'), cancelled = new AbortController(); cancelled.abort();
+  await assert.rejects(memory.recordAutomaticConversation({profileKey: 'judy', signal: cancelled.signal}), {code: 'CANCELLED'});
+  await assert.rejects(memory.recordAutomaticConversation({profileKey: 'missing'}), {code: 'UNKNOWN_CHARACTER'});
+  await assert.rejects(memory.recordAutomaticConversation({profileKey: 'judy', guard: memory.route('panam').guard}), {code: 'STALE_TURN'});
+  assert.equal(await fs.readFile(path, 'utf8'), before); assert.deepEqual(calls, []);
+  const route = memory.route('judy');
+  const recorded = await memory.recordAutomaticConversation({profileKey: 'judy', guard: route.guard, requestId: 'actual-battle'});
+  assert.deepEqual(recorded, route); assert.equal(memory.status().talkedToCount, 1);
+  assert.deepEqual(calls, [], 'recording an admitted turn requires no enable, inspect, clear or seed provider capability');
+  await memory.close();
+  await assert.rejects(memory.recordAutomaticConversation({profileKey: 'judy', guard: route.guard}), {code: 'CLOSED'});
+});
+
+test('automatic admission verifies existing durable registry state before a later send', async t => {
+  const {memory, calls, path} = await fixture(t);
+  await memory.recordAutomaticConversation({profileKey: 'judy'});
+  await fs.writeFile(path, '{}');
+  await assert.rejects(memory.recordAutomaticConversation({profileKey: 'judy'}), {code: 'REGISTRY_CHANGED'});
+  assert.deepEqual(calls, []);
 });
 
 test('simultaneous invitations and actual sends share one enable and preserve first-wave reconnect receipts', async t => {

@@ -98,7 +98,7 @@ function forProfile(input, profileKey, channel = 'private', members = [profileKe
   return result;
 }
 
-test('current world facts and both journal captures attach without native persistent save identity', async () => {
+test('current world facts and fresh tracked objective attach without repeating older tracked history', async () => {
   const f = fixture(), prepared = await f.router.prepare(f.input);
   assert.equal(prepared.status, 'ready'); assert.equal(prepared.sendAllowed, true); assert.equal(prepared.identified, true);
   assert.deepEqual(prepared.remoteConfig, {endUserId: USER});
@@ -106,14 +106,14 @@ test('current world facts and both journal captures attach without native persis
   const context = conversationContext(prepared.input);
   assert.match(context, /V took the verified route/); assert.match(context, /Judy's private relationship/);
   assert.match(context, /Tracked capture: find the current entrance/);
-  assert.match(context, /History collector: meet Judy at the docks/);
+  assert.doesNotMatch(context, /History collector: meet Judy at the docks/);
   assert.match(context, /current tracked-quest snapshot override older/);
   assert.equal(prepared.input.worldKnowledge.identity.status, 'unknown');
   assert.deepEqual(f.forbidden, []); assert.equal(Object.isFrozen(prepared), true);
   assert.equal(Object.isFrozen(prepared.input), true); assert.equal(Object.isFrozen(prepared.input.worldKnowledge.facts), true);
 });
 
-test('one end-user ID crosses characters, private/group/phone/microphone while sessions stay isolated', async () => {
+test('one end-user ID crosses channels; microphone shares its private/group session without mixing audiences', async () => {
   const f = fixture(), configurations = [];
   for (const profileKey of ['judy-alvarez', 'panam-palmer']) {
     for (const channel of ['private', 'phone', 'group']) {
@@ -128,13 +128,17 @@ test('one end-user ID crosses characters, private/group/phone/microphone while s
   }
   const mic = await f.router.prepare({...f.input, source: 'microphone'});
   configurations.push(mic);
-  assert.match(mic.scope, /^microphone:private:world:[a-f0-9]{24}$/);
+  assert.match(mic.scope, /^private:world:[a-f0-9]{24}$/);
   assert.equal(mic.sessionKey, f.router.configFor('judy-alvarez', 'microphone').sessionKey);
+  assert.equal(mic.sessionKey, f.router.configFor('judy-alvarez', 'private').sessionKey);
+  assert.equal(mic.route.transport, 'microphone');
   const groupMic = forProfile(f.input, 'judy-alvarez', 'group', ['judy-alvarez', 'panam-palmer']);
   groupMic.source = 'microphone'; const grouped = await f.router.prepare(groupMic); configurations.push(grouped);
   assert.equal(grouped.sessionKey, f.router.configFor('judy-alvarez', 'microphone:group:panam-palmer,judy-alvarez').sessionKey);
+  assert.equal(grouped.sessionKey, f.router.configFor('judy-alvarez', 'group:panam-palmer,judy-alvarez').sessionKey);
   assert.equal(grouped.route.channel, 'group'); assert.equal(grouped.route.transport, 'microphone');
-  assert.equal(new Set(configurations.map(value => value.sessionKey)).size, configurations.length);
+  assert.equal(new Set(configurations.map(value => value.sessionKey)).size, configurations.length - 2);
+  assert.notEqual(grouped.sessionKey, mic.sessionKey);
   assert.deepEqual(new Set(configurations.map(value => value.remoteConfig.endUserId)), new Set([USER]));
   assert.deepEqual(f.forbidden, []);
 });
