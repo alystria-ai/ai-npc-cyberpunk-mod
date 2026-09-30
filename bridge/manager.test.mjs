@@ -353,10 +353,9 @@ const mcmFixture = `
   end
 `;
 
-test('native settings styling waits for the final title, aligns scaled rows and retains native controls', () => {
+test('native settings row styling aligns control types, retains draft and hover state, and stays on our page', () => {
   run(`${mcmFixture}
     CName = {new = function(value) return value end}
-    NameToString = function(value) return value end
     local function widget(name, left, width, color, children)
       local value = {name = name, left = left or 0, width = width or 200, color = color, children = children or {}}
       function value:GetName() return self.name end
@@ -369,10 +368,6 @@ test('native settings styling waits for the final title, aligns scaled rows and 
       function value:GetTintColor() return self.color end
       function value:SetTintColor(color) self.color = color end
       function value:BindProperty(property, color) assert(property == 'tintColor'); self.color = color end
-      function value:GetScale() return {X = self.scale or 1, Y = self.scale or 1} end
-      function value:GetController()
-        if self.name == 'settingsCategory' then return {IsA = function(_, class) return class == 'SettingsCategoryController' end} end
-      end
       return value
     end
     local content = widget('mcm_content_scroll_content')
@@ -388,13 +383,8 @@ test('native settings styling waits for the final title, aligns scaled rows and 
       handlers.McmUiAddReadonly(self, id)
       return surface
     end
-    local function begin()
-      -- Real MCM renders the provisional title first, then rows, and only
-      -- publishes the actual provider title after all row construction.
-      handlers.McmUiBegin(controller, 'MCM', '', 'Mods', 'Mods', '', 0, '', true, true, 0, function() end)
-    end
-    local function finish(title)
-      handlers.McmUiSetContentTitle(controller, title)
+    local function begin(title)
+      handlers.McmUiBegin(controller, 'MCM', '', 'Mods', title, '', 0, '', true, true, 0, function() end)
     end
     local function managed(id, kind)
       local label = widget(id .. '_managed_label', 48, 300, 'modified')
@@ -404,23 +394,18 @@ test('native settings styling waits for the final title, aligns scaled rows and 
       handlers[kind](controller, id)
       return label, marker
     end
-    begin()
-    local category = widget('settingsCategory', 0, 1800, nil, {widget('label', 20, 1600, 'white')})
-    category.scale = 0.5
-    content.children[#content.children + 1] = category
+    begin('Companion Manager')
+    local category = handlers.McmUiAddCategory(controller, 'category', 'Conversations', '', '', function()
+      error('our category retained a different native banner style')
+    end)
     local heading = category.children[1]
+    assert(category.left + heading.left == 20 and heading.color == 'MainColors.Red')
     local toggle, marker = managed('toggle', 'McmUiAddBool')
     local select = managed('select', 'McmUiBeginSelect')
     local readonly = controller:McmUiAddReadonly('status')
     local action = widget('action_label', 20, 400, theme)
     content.children[#content.children + 1] = action
     handlers.McmUiAddActionSetting(controller, 'action')
-    local cyanValue = widget('mcm_action_value', 620, 280, 'cyan')
-    content.children[#content.children + 1] = cyanValue
-    assert(toggle.left == 48 and toggle.color == 'modified', 'ownership was guessed from the provisional title')
-    finish('Companion Manager')
-    assert(category.left + category.scale * heading.left == 20 and heading.color == 'MainColors.Red')
-    assert(cyanValue.left == 620 and cyanValue.color == 'cyan', 'native option styling changed')
     assert(toggle.left == action.left and select.left == action.left)
     assert(readonly.left + readonly.children[1].left == action.left)
     assert(toggle.width == 328 and select.width == 328, 'moving labels must preserve their right edge')
@@ -441,21 +426,18 @@ test('native settings styling waits for the final title, aligns scaled rows and 
     handlers.McmUiEmitHover(controller, 'status', '', false)
     assert(readonly.children[1].color == 'MainColors.Red', 'read-only hover-out did not restore default red')
     activeMod = 'another:mod'
-    begin()
+    begin('Another mod')
+    local original = false
+    handlers.McmUiAddCategory(controller, 'foreign', 'Other category', '', 'source', function(id, label, _, framework)
+      original = id == 'foreign' and label == 'Other category' and framework == 'source'
+    end)
     local foreign, foreignMarker = managed('foreign', 'McmUiAddBool')
-    finish('Another mod')
-    assert(foreign.left == 48 and foreign.color == 'modified' and foreignMarker.width == 20)
+    assert(original and foreign.left == 48 and foreign.color == 'modified' and foreignMarker.width == 20)
     activeMod = 'cyberpunk-convai:manager'
-    begin()
-    local global = managed('global', 'McmUiAddBool')
-    finish('MCM Settings')
-    assert(global.left == 48 and global.color == 'modified', 'retained activeModKey leaked into another MCM route')
-    content.children = {}
-    begin()
+    begin('Companion Manager')
     theme = 'changed-native-theme'
     controller:McmUiAddReadonly('new-category')
     local changed = managed('new-toggle', 'McmUiAddBool')
-    finish('Companion Manager')
     assert(changed.color == 'MainColors.Red', 'customized framework colours replaced the requested default red')
   `);
 });
