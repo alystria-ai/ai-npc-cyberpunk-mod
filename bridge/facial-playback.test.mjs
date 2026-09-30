@@ -2,6 +2,8 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import fengari from 'fengari';
+import {buildFacialTimeline} from './facial-timeline.mjs';
+import {silentWav} from './speech-audio.mjs';
 const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
 const facial = readFileSync(new URL('../mod/facial-playback.lua', import.meta.url), 'utf8');
 const speech = readFileSync(new URL('../mod/speech.lua', import.meta.url), 'utf8');
@@ -58,6 +60,31 @@ function run(body) {
   const error = result === lua.LUA_OK ? '' : to_jsstring(lua.lua_tostring(state, -1));
   lua.lua_close(state); assert.equal(result, lua.LUA_OK, error);
 }
+
+test('real Omni phonetic builder reaches the native adapter with calibrated contact, lift and reset',()=>{
+  const bytes=Buffer.concat([silentWav().subarray(0,44),Buffer.alloc(24000*2*1.8)]);
+  bytes.writeUInt32LE(bytes.length-8,4);bytes.writeUInt32LE(bytes.length-44,40);
+  const cues=[...'ABCDEFGHX'].map((value,index)=>({value,start:index*.2,end:(index+1)*.2}));
+  const timeline=buildFacialTimeline({audio:bytes.toString('base64'),mouthCues:cues,mouthCuesFormat:'rhubarb-phonetic-v1'},
+    {requestId:'omni-native',entity:'Judy-1'});
+  const literal=value=>Array.isArray(value)?`{${value.map(literal).join(',')}}`:
+    value&&typeof value==='object'?`{${Object.entries(value).filter(([,v])=>v!==undefined).map(([k,v])=>`[${JSON.stringify(k)}]=${literal(v)}`).join(',')}}`:
+    value===null?'nil':JSON.stringify(value);
+  run(`
+    local context,reply=input(judy,'omni-native');reply.audio.duration=1.8
+    reply.face=${literal(timeline)}
+    assert(speech.start(context,reply) and face.active)
+    cursor=.1;speech.update(.1)
+    assert(judy.frames[#judy.frames].jaw_mid_open>0 and judy.frames[#judy.frames].lips_together_up==.85)
+    cursor=.3;speech.update(.2)
+    assert(judy.frames[#judy.frames].lips_l_corner_stretch>.1 and judy.frames[#judy.frames].lips_l_upper_raise>0)
+    cursor=1.3;speech.update(1)
+    assert(judy.frames[#judy.frames].lips_l_lower_raise==0 and judy.frames[#judy.frames].lips_suck_dn==.14)
+    cursor=1.5;speech.update(.2);assert(judy.frames[#judy.frames].tongue_mid_tip_up==.25)
+    assert(face.status().articulation=='coarticulated-v5')
+    cursor=1.8;speech.update(.3);assert(not face.active and judy.resets==1 and not speech.requestId)
+  `);
+});
 
 test('mouth follows the native audio cursor and rejoins it after pause, without restarting audio', () => run(`
   local context,reply=input(judy,'one'); assert(speech.start(context,reply))

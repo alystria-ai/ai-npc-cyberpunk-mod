@@ -845,3 +845,20 @@ before readiness, avoiding a first-frame encoding delay. No synthetic frames,
 player input or desktop fallback are used. Broad naturalness, expression blend
 and other characters' actual rendering remain open; numeric and sampled visual
 evidence are not blanket acceptance of every face.
+
+## October 1: Omni parity after Convai acceptance
+
+The user accepted Convai v10, then explicitly requested the corresponding Omni
+fixes. `coarticulated-v5` changes the phonetic table/trajectory only: pressed lip
+contact over an open jaw, contextual short bilabials, stronger mouth corners,
+budgeted upper/lower lift, correct F/V lower-lip direction and adequate L opening.
+X/rest and the existing quiet-cue, timing, original-audio and ownership behavior
+remain. The accepted Convai comparison is exactly unchanged across 446 frames.
+
+117 focused checks pass, including the actual phonetic builder-to-native Lua
+path and local stream/delivery behavior. CPU review covers both native rigs;
+the real Judy pose sweep and paired saved OmniVoice 32 replay complete with
+normal resets. Native slot 7 is restored and the normal bridge runs the new
+mapping. No new voice inference, memory request, game restart or CET reload was
+needed. Dark capture detail limits an exact F/V tooth-contact/tongue judgment;
+the port does not imply full-cast visual acceptance or neural facial precision.

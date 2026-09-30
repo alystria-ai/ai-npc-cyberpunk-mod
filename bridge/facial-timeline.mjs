@@ -1,5 +1,5 @@
 import {readPcmWav} from './speech-audio.mjs';
-import {PHONETIC_TRACKS, phoneticPose} from './phonetic-poses.mjs';
+import {PHONETIC_TRACKS, PHONETIC_ARTICULATION, phoneticPose} from './phonetic-poses.mjs';
 import {validateMouthCues} from './phonetic-lipsync.mjs';
 
 // Conservative speech controls. Head/eye rotation stays with the companion
@@ -180,7 +180,7 @@ function renderTimeline({owner, duration, segment, source, cues, envelope = [], 
   frames.push([duration, ...poseAt(duration)]);
   return {version: 1, requestId: owner.requestId, entity: owner.entity, duration,
     source: source ? 'convai-arkit61' : cues ? 'local-phonetic' : 'audio-envelope',
-    articulation: source ? 'arkit61-native-v10' : cues ? 'coarticulated-v4' : undefined,
+    articulation: source ? 'arkit61-native-v10' : cues ? PHONETIC_ARTICULATION : undefined,
     ...(segment ? {segment} : {}), tracks: [...SPEECH_TRACKS], frames};
 }
 

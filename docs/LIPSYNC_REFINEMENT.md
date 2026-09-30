@@ -1,6 +1,69 @@
 # Lip articulation refinement, September 29
 
-## Latest continuation — September 30 native calibration
+## October 1: Omni native-calibration parity
+
+Convai v10 is accepted as "good enough." The user then requested the compatible
+improvements for Omni. Omni has separate audio-derived phoneme cues, so this
+change calibrates its authored native poses rather than feeding it unrelated
+Convai facial frames. It reports `coarticulated-v5`; the accepted Convai output
+remains exactly identical across all 446 frames of the retained comparison.
+
+The [Rhubarb shape definitions](https://github.com/DanielSWolf/rhubarb-lip-sync#mouth-shapes)
+describe lip closure, several vowel/consonant shapes, F/V contact, L and rest.
+The updated native table and trajectories apply the measured Cyberpunk behavior:
+
+- A uses a small jaw opening and 0.85 lip contact. Short internal closures up
+  to 180 ms follow the neighbouring jaw trajectory; long, repeated, edge or
+  pause-adjacent closures use the relaxed target. Real X/rest remains zero.
+- B/C use stronger corner shaping and separate upper/lower lip movement with
+  reduced aggregate aperture. D retains its accepted 0.40 maximum jaw opening.
+- G removes the native lower_raise pair, which actually depresses the lower
+  lip and opposed its upward/inward contact motion. The existing lower roll
+  remains. H opens at least as far as C and retains tongue motion.
+- Quiet closures/contact, separate anticipation windows, 60 Hz timelines,
+  syllable effort, original audio bytes and native cursor/reset ownership remain.
+
+These cues do not contain Convai's independent left/right facial coefficients;
+no random asymmetry or invented emotion is added to compensate.
+
+### Verification
+
+117 focused checks pass, including all pairwise shape transitions, short/long
+closure context, the floating-point 180 ms boundary, quiet cues, native stream
+delivery and the real JavaScript builder consumed by the Lua facial adapter.
+Native hierarchy review on Judy/Johnny checks 949 held/transition/saved-cue
+samples and 1,121 contextual-jaw samples per rig; all transforms are finite.
+
+The actual game test uses a silent pose sweep plus the same retained 2.96-second
+Judy OmniVoice 32 WAV through old/new mappings. No TTS/model inference or provider
+conversation is needed. The waveform is unchanged. The sweep includes the
+strong contextual-A combination: jaw 0.40, contact 0.85 and tightening 0.06.
+
+| Live comparison | Captured frames | Native applications | Final reset |
+| --- | ---: | ---: | --- |
+| Maximum pose sweep | 325 | 464 | yes |
+| Original Omni v4 | 117 | 120 | yes |
+| Calibrated Omni v5 | 111 | 123 | yes |
+
+The inspected sweep shows distinct closed, narrow, open and rounded shapes,
+a brief lip closure over the retained jaw, then a return to neutral. The saved
+voiced comparison shows the new contour/closure behavior without an obvious
+distortion. Exact G tooth contact and H tongue detail are hard to resolve in
+this dark view, and Johnny remains geometry-only. This is rendered Judy
+qualification of the port, not a claim that categorical phonemes equal a neural
+facial stream or that every character is visually qualified.
+
+The native audio slot was backed up and restored. The bridge is back on the
+new code, all capture workers finished, and no game restart or CET reload was
+needed. The user's voice selection was not changed.
+
+Ignored evidence: `runtime/omni-lipsync-20261001` contains frozen waveform/cues,
+the original/current timelines, native captures and receipts; numerical review
+is under `runtime/omni-pose-review-20261001`. The reference benchmark hash links
+the saved WAV to the earlier OmniVoice 32 generation. Fixtures and recordings
+remain excluded from Git and distribution.
+
+## Historical continuation — September 30 native calibration
 
 The user accepts continuous Convai voice latency but still rejects the mouth as
 wooden and barely moving. `arkit61-native-v4` corrected the mouth-corner target

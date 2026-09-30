@@ -3,9 +3,11 @@
 **Current acceptance:** on October 1 the user called v10 "good enough." This
 accepts the current Judy/Convai result and closes that refinement gate. The
 chronological investigations below preserve their earlier qualification limits.
-The shared native renderer/interpolation/cleanup also serve Omni, but the new
-`mapArkit` calibration does not: Omni remains on separate `coarticulated-v4`
-phonetic poses and requires its own corresponding tuning/visual check.
+The shared native renderer/interpolation/cleanup also serve Omni. The separate
+Omni pose calibration has now been ported as `coarticulated-v5` and checked in
+the game with retained Omni audio; see [the Omni refinement](LIPSYNC_REFINEMENT.md).
+Its phoneme input remains independent of `mapArkit`, whose accepted output is
+unchanged.
 
 ## October 1: separate jaw opening from lip contact
 

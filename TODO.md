@@ -83,12 +83,14 @@
     100 focused checks pass. Cropped captures now observe roughly 24–28 FPS,
     supporting brief-transition inspection. Overall naturalness, expressions
     and other characters' rendered qualification remain open.
-- [ ] Carry compatible native-rig calibration into Omni's separate phonetic
-  poses. The native facial layer, interpolation, ownership and cleanup are
-  shared, but v6–v10's recent shape mapping changes run only for Convai ARKit
-  frames. Omni still uses `coarticulated-v4`; matching pose tuning and visual
-  validation are separate work, not already inherited improvements. Preserve
-  the accepted Convai version while doing this.
+- [x] Carry compatible native-rig calibration into Omni's separate phonetic
+  poses. `coarticulated-v5` adds calibrated contact, contextual jaw motion through
+  brief closures, stronger corners, budgeted lip lift and corrected G/H targets.
+  117 focused checks pass. A native maximum-pose sweep and old/new replay of the
+  same saved OmniVoice 32 WAV complete and reset; Convai's accepted 446-frame
+  output is unchanged. The bridge is restored and no reload is needed. Exact
+  F/V contact, tongue detail and other characters' rendering retain visual
+  limits documented in `docs/LIPSYNC_REFINEMENT.md`.
 - [x] Add **Follow-up questions** (`followUpQuestions`) to organized Settings,
   default Off per the user's latest request. Local checkpoint `135264d`; 991
   tests passed with zero failures/skips, including installed MCM integration.
