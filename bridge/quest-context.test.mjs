@@ -47,7 +47,7 @@ test('follow-ups default Off, opt in privately or for the last group speaker, an
     assert.match(conversationContext({...input, channel}), /Follow-up questions are disabled/);
     assert.match(conversationContext({...input, channel, followUpQuestions: true}), /ask V one short, relevant follow-up question/);
     assert.match(conversationContext({...input, channel}), /Do not put a speaker name, role label, or script prefix/);
-    assert.match(conversationContext({...input, channel, followUpQuestions: true}), /says goodbye, explicitly requests no questions/);
+    assert.match(conversationContext({...input, channel, followUpQuestions: true}), /says goodbye, says they need to leave, explicitly requests no questions/);
   }
   for (const index of [1, 2, 3]) {
     const group = {index, total: 3, audience: ['judy', 'panam', 'alex'], heard: []};

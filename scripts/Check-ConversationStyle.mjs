@@ -11,14 +11,20 @@ import {conversationContext} from '../bridge/quest-context.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const args = process.argv.slice(2);
 const run = args.includes('--run');
-const phase = args.includes('--before') ? 'before' : 'after';
-if (args.some(value => !['--run', '--before', '--after'].includes(value))
-    || (args.includes('--before') && args.includes('--after'))) throw Error('Use [--run] [--before|--after].');
+const phases = ['--before', '--after', '--exceptions'];
+const phase = (phases.find(value => args.includes(value)) || '--after').slice(2);
+if (args.some(value => !['--run', ...phases].includes(value))
+    || phases.filter(value => args.includes(value)).length > 1) throw Error('Use [--run] [--before|--after|--exceptions].');
 const normal = 'Tell me one thing you like about Night City.';
 const rows = phase === 'before' ? [
   {profileKey: '8ug8ear', mode: 'on', text: normal, followUpQuestions: true},
   {profileKey: '8ug8ear', mode: 'on-company', text: 'I am thinking of taking a walk around the neighborhood.', followUpQuestions: true},
   {profileKey: '8ug8ear', mode: 'off', text: normal, followUpQuestions: false},
+] : phase === 'exceptions' ? [
+  {profileKey: '8ug8ear', mode: 'goodbye', text: 'I need to go now. Talk later.', followUpQuestions: true},
+  {profileKey: '8ug8ear', mode: 'goodbye-short', text: 'See you later. Bye.', followUpQuestions: true},
+  {profileKey: '8ug8ear', mode: 'no-question', text: 'Tell me one thing you like about Night City. No questions back, please.', followUpQuestions: true},
+  {profileKey: '8ug8ear', mode: 'on', text: normal, followUpQuestions: true},
 ] : [
   ...['8ug8ear', 'judy-alvarez', 'johnny-silverhand'].flatMap(profileKey => [
     {profileKey, mode: 'on', text: normal, followUpQuestions: true},

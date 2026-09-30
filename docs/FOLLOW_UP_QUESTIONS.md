@@ -48,15 +48,53 @@ and saved native MCM draft/Apply/Revert behavior. These prove policy routing and
 ownership. Model adherence remains probabilistic and needs live listening;
 output is not rewritten or stripped after speech has been generated.
 
-September 30 validation: **991 tests passed**, with zero failures or skips,
-including the installed MCM API. After shortening the Off instruction, all 48
-affected context/phone checks passed again. In-game setting and spoken behavior
-are still awaiting the user's check.
+September 30 correction: the user's enabled setting reached the bridge as
+`true`, but the original prompt only allowed a question. A bounded text-only
+provider check reproduced an ordinary On reply with no follow-up. The revised
+On policy actively requests one relevant question; goodbye, explicit no-question
+and exact-reply requests remain exceptions. Off remains the default, and an
+explicit saved On preference is retained.
+
+The same check reproduced a spoken-text `8ug8ear:` prefix. All 79 profiles now
+use response-only examples, and the per-turn context requires dialogue without
+speaker labels. See `CHARACTER_API.md` for the profile repair and preservation
+checks. No generated text is stripped after audio has already been synthesized.
+
+The combined change passed **998 automated tests**, with zero failures or skips,
+including the installed MCM API. All 14 context checks passed again after the
+farewell-priority wording adjustment below. Automated checks cover policy routing;
+the actual spoken result and rendered settings still require an in-game check.
+
+### Bounded provider results
+
+`scripts/Check-ConversationStyle.mjs` defaults to an offline plan. An explicit
+`--run` reuses the existing isolated research identity and fresh text-only
+sessions. It never uses the player's identity, creates new IDs or generates
+test conversations in the game. The tested responses were read in full;
+question-mark counts alone were not treated as proof of a relevant follow-up.
+
+- The three-turn baseline reproduced both the name prefix and an omitted On
+  follow-up.
+- After cloud repair, private On/Off pairs for 8ug8ear, Judy and Johnny behaved
+  as requested. The first group speaker answered without a question; the final
+  speaker asked one. An explicit no-question request was respected. None of the
+  ten replies used a speaker-name prefix.
+- The initial goodbye reply still asked a question. The prompt now makes
+  leaving/no-question/fixed-reply intent take priority before describing the
+  ordinary On behavior. Four targeted turns then produced two brief goodbyes,
+  a no-question answer, and an ordinary answer with a relevant question. All
+  four omitted speaker-name prefixes.
+
+These are observed examples, not a guarantee of every future model output or
+an audible check of all 79 characters. Private receipts remain under
+`runtime/conversation-style-check/` (`before-2026-09-30T07-31-46-379Z.json`,
+`after-2026-09-30T07-49-06-744Z.json`, and
+`exceptions-2026-09-30T07-51-41-205Z.json`).
 
 This change uses Lua and bridge code only. It requires one CET **Reload All
 Mods** after installation and a bridge restart, with no game restart. Live
 microphone testing remains deferred at the user's request.
 
-Installed September 30 from `135264d`: Lua files and catalogues were hash
-verified; the restarted bridge reported ready with no startup stderr. The user
-has been asked for one CET reload and a default-Off private reply check.
+The original `135264d` installation is superseded by the September 30 corrections
+above. The user already enabled the toggle, so activation must preserve that On
+choice instead of resetting it to the new-user default.
