@@ -406,20 +406,18 @@ function M.abandon()
     groupFrame=nil
 end
 
-local function personalSpace(at,player,others,id)
-    if space.ground(at,player)<0.72 then return false end
+local function peerYieldPoint(at,others,id)
+    -- V can deliberately come close to inspect a face or talk. That is not a
+    -- request to retreat. Only overlapping owned companions need separation;
+    -- spawning and all new route destinations still use ordinary clearance.
+    local nearest,gap=nil,0.65
     for _,other in ipairs(others) do
-        if other.id~=id and not other.reserved and space.distance(at,other.position)<0.65 then return false end
+        if other.id~=id and not other.reserved then
+            local distance=space.distance(at,other.position)
+            if distance<gap then nearest,gap=other.position,distance end
+        end
     end
-    return true
-end
-local function yieldPoint(at,player,others,id)
-    local nearest=player
-    for _,other in ipairs(others) do
-        if other.id~=id and not other.reserved
-            and space.distance(at,other.position)<space.distance(at,nearest) then nearest=other.position end
-    end
-    return space.offset(at,space.bearing(nearest,at),0,0.5)
+    return nearest and space.offset(at,space.bearing(nearest,at),0,0.5) or nil
 end
 local function reassignReversal(order)
     -- On an actual sustained U-turn, friends can trade left/right virtual lanes
@@ -527,8 +525,7 @@ function M.update(player,delta,focusEntity)
                 motion=entry.motor.feedback,travelTarget=travelTarget,restTarget=restTarget,
                 comfortable=space.comfortable(entry.position,groupFrame,entry.lane,others,id),
                 nearGroup=space.nearGroup(entry.position,groupFrame,entry.lane,others,id),
-                personalSpace=personalSpace(entry.position,playerPosition,others,id),
-                yieldTarget=yieldPoint(entry.position,playerPosition,others,id),others=others,
+                yieldTarget=peerYieldPoint(entry.position,others,id),others=others,
             }
             local decision=behavior.decide(entry.person,context,step)
             -- Braking is already a committed stop. Never choose an alternative

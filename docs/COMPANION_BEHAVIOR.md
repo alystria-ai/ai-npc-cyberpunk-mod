@@ -64,6 +64,7 @@ crash cause remains unconfirmed until an in-game reload check.
 | Settling | Cancel the finished approach and hold the accepted spot while the stop animation completes. | Measured speed must stay low for 0.65 seconds before attention takes over. |
 | Standing together | Keep feet in place; tolerate variation from the exact slot. | Gentle side glance toward V, with no chest contribution or extreme backward look. |
 | V takes a small step inside a resting group | Retain the stop's anchor and heading. Resume the group after V departs the local area, rather than on every movement sample. | The addressed character can turn; the whole group does not re-form around V. |
+| V moves very close to a settled companion's face | Stay in the existing stance; do not step backward to restore a player-distance buffer. | Normal eye/head attention remains available. Separation from another overlapping companion is handled independently. |
 | V looks directly at a settled member | One approach/turn step of at most 16 cm, then a native rotation if needed. | Full eyes/head attention. Brief gaze loss/reacquisition does not repeat the step at the same stop. |
 | V looks away | Keep the comfortable stance reached by the attention step. No automatic turn to V's camera or the group's travel heading. | Return to a subtle glance. No second shuffle to an exact slot; small social foot adjustments are allowed. |
 | V moves during eye contact | Release the attention step, hold and rotation before submitting locomotion. | Full attention yields to walking or catching up. |
@@ -71,8 +72,9 @@ crash cause remains unconfirmed until an in-game reload check.
 | Combat | Release all movement, hold and turn commands owned by the social controller. | Native combat takes ownership, even when V is looking at that character. |
 | Death or save unload | Drop actor/command references and queued invitations without invoking old native components. | Resume on a new player attachment. Old temporary copies are not automatically recreated. |
 
-Separate copies keep separate slots. Parking requires clearance from V and the
-other members. Native pathfinding and each model's animation graph still own
+Separate copies keep separate slots. New parking destinations require clearance
+from V and the other members; V subsequently approaching a settled person does
+not invalidate that stance. Native pathfinding and each model's animation graph still own
 the rendered gait; this controller does not manufacture animation or teleport
 feet to simulate walking.
 

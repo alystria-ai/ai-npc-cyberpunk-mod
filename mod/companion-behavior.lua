@@ -73,7 +73,7 @@ function M.decide(s,c,dt)
     local failed=ours and (motion.failed or motion.stalled)
     if c.speed<0.18 then s.stillFor=s.stillFor+dt else s.stillFor=0 end
     if c.selected then s.lostFor=0 else s.lostFor=s.lostFor+dt end
-    if c.personalSpace then s.blockedFor=0 else s.blockedFor=s.blockedFor+dt end
+    if c.yieldTarget then s.blockedFor=s.blockedFor+dt else s.blockedFor=0 end
 
     if c.combat then
         enter(s,'combat','Native combat owns locomotion')
@@ -179,16 +179,16 @@ function M.decide(s,c,dt)
     end
     if s.phase=='yield' then
         if done or failed or s.clock-s.since>2.5 then
-            enter(s,'braking','Settle after making personal space')
+            enter(s,'braking','Settle after making room for another companion')
             s.arrivalGoal=space.copy(c.position)
             s.stillFor=0
         end
         return emit(s)
     end
 
-    -- Only the person whose space is invaded moves.
+    -- Peer overlap may need a step. V intentionally standing close does not.
     if s.blockedFor>0.6 and (not social[s.phase] or s.phase=='attend') then
-        enter(s,'yield','Make a small amount of personal space')
+        enter(s,'yield','Give an overlapping companion room')
         operation(s,'move',c.yieldTarget,'Walk',true,false,true)
         s.stillFor=0
         return emit(s)

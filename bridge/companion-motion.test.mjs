@@ -95,15 +95,44 @@ test('short trail still separates rear rows, including during the first departur
   assert(space.angle(front.direction,rear.direction)<10)
 `));
 
-test('only a companion whose personal space is invaded yields',()=>run(`${companionEngine}
+for (const focused of [false,true]) {
+  test(`V approaching a settled companion's face does not cause retreat, focused=${focused}`,()=>run(`${companionEngine}
+    local one=spawn(); local two=spawn(); local three=spawn('panam-palmer'); tick(4)
+    local counts={#one.ai.commands,#two.ai.commands,#three.ai.commands}
+    local focus=${focused ? 'one.id.hash' : 'nil'}
+    -- Hold each close distance beyond the former 0.6-second avoidance delay.
+    -- A face/eye turn is allowed; a new walking or follow command is not.
+    for _,gap in ipairs({0.68,0.35,0.08}) do
+      player.pos=Vector4.new(one.pos.x-gap,one.pos.y)
+      for i=1,18 do companions.update(player,0.1,focus) end
+      assert(companions.list()[1].groupIntent=='local-interaction')
+      assert(companions.list()[1].behavior~='yield','V standing close ordered a retreat')
+      for n,npc in ipairs({one,two,three}) do
+        for i=counts[n]+1,#npc.ai.commands do
+          local kind=npc.ai.commands[i].kind
+          assert(kind~='AIMoveToCommand' and kind~='AIFollowTargetCommand',
+            'a close face inspection must not relocate this person or the group')
+        end
+      end
+    end
+    -- Holding still for a close conversation does not disable real departure.
+    player.pos=Vector4.new(0,6); tick(1)
+    assert(companions.list()[1].playerMoving)
+    assert(last(one,'AIFollowTargetCommand') or last(one,'AIMoveToCommand'))
+  `));
+}
+
+test('overlapping companions still make room without moving the rest of the party',()=>run(`${companionEngine}
   local one=spawn(); local two=spawn(); local three=spawn('panam-palmer'); tick(4)
-  local countTwo,countThree=#two.ai.commands,#three.ai.commands
-  player.pos.x=1.0
+  local countThree=#three.ai.commands
+  two.pos=Vector4.new(one.pos.x,one.pos.y+0.5)
   for i=1,12 do companions.update(player,0.1) end
   assert(companions.list()[1].behavior=='yield')
-  assert(last(one,'AIMoveToCommand') and not last(one,'AIMoveToCommand').rotateEntityTowardsFacingTarget)
-  assert(#two.ai.commands==countTwo and #three.ai.commands==countThree,
-    'one personal-space adjustment must not relocate the whole party')
+  assert(companions.list()[2].behavior=='yield')
+  local move=last(one,'AIMoveToCommand')
+  assert(move and not move.rotateEntityTowardsFacingTarget)
+  assert(move.movementTarget.position.y<one.pos.y,'separation must move away from the overlapping member')
+  assert(#three.ai.commands==countThree,'peer separation must not relocate the whole party')
 `));
 
 test('finite arrivals survive delayed completion and cannot be reissued every update',()=>run(`${companionEngine}

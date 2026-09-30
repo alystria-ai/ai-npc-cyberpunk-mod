@@ -31,7 +31,8 @@ destination, a travel direction, or evidence that a moving person has stopped.
 | Situation | Movement | Attention |
 | --- | --- | --- |
 | Camera turns while V stands | Existing places and travel direction remain valid | A glance may affect eyes/head only |
-| Small step inside the resting group | Only a person whose personal space is invaded may adjust | No party-wide rearrangement |
+| Small step or close face inspection inside the resting group | Keep the settled position; V's proximity does not order a retreat | No party-wide rearrangement; normal head/eye attention remains available |
+| Two companion copies overlap | Only those overlapping copies may make a small separation step | Keep the rest of the party in place |
 | Back up or circle to face a settled person | Fixed gathering anchors distinguish local interaction from leaving; even the rear members wait | Only the addressed person may readjust after V stops |
 | Purposeful departure | Stable lanes follow the actual path; pace follows measured speed | Social body turns yield before locomotion starts |
 | Sustained corner or U-turn | Follow the new path after displacement establishes it | Camera yaw alone cannot establish a turn |
@@ -126,7 +127,7 @@ area restores travel. Ordinary forward departure without social interest
 retains the earlier prompt follow behavior.
 
 Standing members, including distant rear rows, wait during local interaction.
-Personal-space yielding still belongs only to the affected person. Once V
+Separation between overlapping companions belongs only to the affected people. Once V
 stops in a meaningfully different place, the addressed person alone can make
 another small social adjustment. It cannot repeat while V remains still.
 
@@ -152,3 +153,23 @@ Unseen obstacle layouts, larger parties and save/death recovery remain open.
 
 Local Git checkpoint for this accepted controller: `68ae15c`. Installed-file
 rollback copies are preserved separately from source history.
+
+### September 30: close face inspection
+
+The user requested that a companion stay put when V approaches her face. The
+earlier personal-space sensor classified V within 0.72 metres as an intrusion;
+after 0.6 seconds the controller submitted a 0.5-metre move away. That caused
+the retreat even though group travel correctly remained in local interaction.
+
+The separation sensor now considers only overlapping owned companions. V's
+close approach does not create a retreat destination. Distinct spawn positions,
+path clearance, the accepted small direct-attention step, actual departure,
+and combat ownership keep their existing behavior. At close range, direct
+attention uses the existing stance instead of adding an approach step.
+
+Two executable Lua regressions fail on the old code and pass on the correction:
+V holds at 0.68, 0.35, and 0.08 metres, both with and without a selected gaze
+target, without starting a walking command. A separate case retains separation
+between overlapping companions without moving the third person. These checks
+verify command decisions; the updated close-face behavior still needs a live
+game observation after CET reload.
