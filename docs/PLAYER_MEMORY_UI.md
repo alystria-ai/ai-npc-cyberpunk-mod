@@ -174,8 +174,9 @@ and the bridge published a fresh ready Memory status with zero
 contacted characters before the first actual message. Cyberpunk was closed and
 then launched. The Memory submenu and Settings grouping described here have been
 verified in the local framework fixture and installed in `9290ab3`, with file
-hashes checked and Cyberpunk launched. Their rendered pages need acceptance in
-the player's save. Lua-only changes can use
+hashes checked and Cyberpunk launched. The user subsequently confirmed that
+Memory opens on its own page and Back to settings returns to the organized
+settings page. Lua-only changes can use
 **CET Reload All Mods**; this page adds no native script or save component.
 
 In-game acceptance should open **Settings → Memory → Manage**, choose an unspawned
@@ -183,5 +184,5 @@ catalogue character, open and cancel a confirmation, and check the bridge count
 and availability feedback. Verify **Back to memory** from the picker and
 **Back to settings** from both Memory and Character conversations. A real
 destructive Forget check requires the user's explicit choice of target.
-Reload/save behavior and the rendered native page have
-not been accepted in game by these source/framework checks.
+The broader clear-confirmation, picker and reload/save checks remain covered by
+source/framework tests; the user has not performed a destructive Forget check.

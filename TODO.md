@@ -12,8 +12,8 @@ See `docs/PLAYER_MEMORY.md` for the current runtime contract.
   were hash verified. The restarted bridge reports ready memory, the same
   identity anchor and one existing contacted character. Cyberpunk was launched.
   The live checks below remain pending.
-- [ ] Verify the new **Settings → Memory → Manage** submenu and grouped Settings
-  page in the game. Character conversations and Memory each have a parent return.
+- [x] Verify the new **Settings → Memory → Manage** submenu and grouped Settings
+  page in the game. The user confirmed Memory opens separately and Back to settings works.
 - [ ] Verify preparation begins at **Invite**, including while MCM or Contacts
   pauses the game. No NPC may appear until memory configuration and an identified
   private connection are ready. The pending invitation remains cancellable.

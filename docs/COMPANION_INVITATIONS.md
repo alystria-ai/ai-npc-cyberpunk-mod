@@ -78,8 +78,10 @@ send the first F6 message. This Lua-only update uses **CET Reload All Mods**.
 
 September 30 source verification: the full suite passed **983 checks**, with
 zero failures or skips, including the installed MCM framework fixture. The new
-modules also passed JavaScript syntax and Git whitespace checks. Rendered
-preparation labels and the organized Settings/Memory page remain to be accepted.
+modules also passed JavaScript syntax and Git whitespace checks. The user also
+accepted the separate Memory page and its return to organized Settings. The
+paused preparation labels and cancellation path have framework/fixture coverage;
+their visible progression remains a separate optional live check.
 
 Installation checkpoint: `9290ab3` was installed with the Lua-only installer and
 all copied files passed SHA-256 comparison. The restarted bridge reported ready
