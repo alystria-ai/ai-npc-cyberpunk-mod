@@ -2,6 +2,7 @@ param(
     [string]$ProjectDirectory = (Split-Path -Parent $PSScriptRoot),
     [string]$KeyFile,
     [switch]$Apply,
+    [switch]$ExistingStyleOnly,
     [string[]]$Only
 )
 
@@ -11,6 +12,7 @@ $ErrorActionPreference = 'Stop'
 $entry = Join-Path ([IO.Path]::GetFullPath($ProjectDirectory)) 'scripts\Provision-Characters.mjs'
 $arguments = @($entry)
 if ($Apply) { $arguments += '--apply' }
+if ($ExistingStyleOnly) { $arguments += '--existing-style-only' }
 if ($Only) { $arguments += @('--only', ($Only -join ',')) }
 $previousKeyFile = $env:CYBERPUNK_CONVAI_KEY_FILE
 try {
