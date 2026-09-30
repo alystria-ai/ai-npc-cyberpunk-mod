@@ -345,7 +345,9 @@ const mcmFixture = `
       for _, setting in ipairs(category.settings) do if setting.id == id then return setting end end
     end
   end
-  local controller = {McmUiEmitSearch = function(_, context, value) handlers.McmUiEmitSearch(nil, context, value) end}
+  local controller = {nativeIdentity = 101,
+    McmUiEmitSearch = function(_, context, value) handlers.McmUiEmitSearch(nil, context, value) end}
+  CalcSeed = function(value) return value.nativeIdentity end
   local function invoke(id)
     local result = registered.invokeAction('manager', id, {interaction = {controller = controller}})
     if result.ok and result.schemaChanged then loaded = registered.loadMod('manager') end
@@ -391,14 +393,19 @@ test('native settings styling waits for the final title, aligns scaled rows and 
       content.children[#content.children + 1] = surface
       return surface
     end
+    local function reference(id)
+      -- CET creates a fresh WeakReference wrapper for each native callback.
+      -- Wrappers compare unequal even while CalcSeed identifies the same menu.
+      return setmetatable({nativeIdentity = id or 101}, {__index = controller})
+    end
     local function begin()
       -- Real MCM renders the provisional title first, then rows, and only
       -- publishes the actual provider title after all row construction.
-      handlers.McmUiBegin(controller, 'MCM', '', 'Mods', 'Mods', '', 0, '', true, true, 0, function() end)
+      handlers.McmUiBegin(reference(), 'MCM', '', 'Mods', 'Mods', '', 0, '', true, true, 0, function() end)
     end
     local function finish(title)
       nativeHook = true
-      handlers.McmUiSetContentTitle(controller, title)
+      handlers.McmUiSetContentTitle(reference(), title)
       nativeHook = false
     end
     local function frame()
@@ -438,22 +445,22 @@ test('native settings styling waits for the final title, aligns scaled rows and 
     assert(toggle.color == 'MainColors.Red' and select.color == 'MainColors.Red' and action.color == 'MainColors.Red')
     assert(readonly.children[1].color == 'MainColors.Red')
     toggle.color = 'native-hover'
-    handlers.McmUiSetManagedLabelState(controller, 'toggle', true, true)
+    handlers.McmUiSetManagedLabelState(reference(), 'toggle', true, true)
     assert(toggle.color == 'native-hover', 'hover feedback was flattened')
     toggle.color = 'modified'
     nativeHook = true
-    handlers.McmUiSetManagedLabelState(controller, 'toggle', false, true)
+    handlers.McmUiSetManagedLabelState(reference(), 'toggle', false, true)
     nativeHook = false
     assert(toggle.color == 'modified', 'hover-out styling was not deferred')
     frame()
     assert(toggle.color == 'MainColors.Red' and toggle.width == 328, 'restyling accumulated width or retained a different label colour')
     assert(marker.color == 'modified')
     readonly.children[1].color = 'native-hover'
-    handlers.McmUiEmitHover(controller, 'status', '', true)
+    handlers.McmUiEmitHover(reference(), 'status', '', true)
     assert(readonly.children[1].color == 'native-hover', 'read-only hover feedback was flattened')
     readonly.children[1].color = 'different-theme-colour'
     nativeHook = true
-    handlers.McmUiEmitHover(controller, 'status', '', false)
+    handlers.McmUiEmitHover(reference(), 'status', '', false)
     nativeHook = false
     frame()
     assert(readonly.children[1].color == 'MainColors.Red', 'read-only hover-out did not restore default red')
@@ -477,6 +484,21 @@ test('native settings styling waits for the final title, aligns scaled rows and 
     finish('Companion Manager')
     frame()
     assert(changed.color == 'MainColors.Red', 'customized framework colours replaced the requested default red')
+    handlers.McmUiSetManagedLabelState(reference(202), 'new-toggle', false, true)
+    assert(not mcm.inspect().presentation.pending, 'another controller queued styling on this page')
+    handlers.OnUninitialize(reference(202))
+    assert(mcm.inspect().presentation.active, 'another controller cleared the current page')
+    handlers.McmUiSetManagedLabelState(reference(), 'new-toggle', false, true)
+    assert(mcm.inspect().presentation.pending, 'a fresh wrapper lost native menu ownership')
+    handlers.OnUninitialize(reference())
+    assert(not mcm.inspect().presentation.active, 'native menu detach retained the page wrapper')
+    local readsBeforeDetach = rootReads
+    frame()
+    assert(rootReads == readsBeforeDetach, 'detached controller was used by a queued styling pass')
+    CalcSeed = function() error('identity unavailable') end
+    begin(); finish('Companion Manager'); frame()
+    assert(not mcm.inspect().presentation.active and rootReads == readsBeforeDetach,
+      'missing native identity must not fall back to wrapper ownership')
   `);
 });
 

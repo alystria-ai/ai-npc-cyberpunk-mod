@@ -26,6 +26,14 @@ end
 os.time = function() return clock end
 NameToString = function(value) return value end
 CName = {new = function(value) return value end}
+local nativeIds, nextNativeId = {}, 100
+CalcSeed = function(value)
+    if value.failIdentity then error('unavailable identity') end
+    if value.nilIdentity then return nil end
+    if value.nativeId then return value.nativeId end
+    if not nativeIds[value] then nextNativeId = nextNativeId + 1; nativeIds[value] = nextNativeId end
+    return nativeIds[value]
+end
 local inMenu, attached, preGame, ownPage = true, true, false, true
 local player = {IsAttached = function() return attached end}
 local controllers, resumed, otherActivated = {}, 0, 0
@@ -96,6 +104,60 @@ test('MCM cleanup clearing API ownership does not lose an accepted manager exit'
     controllers = {pause}
     entry.update()
     assert(resumed == 1)
+  `);
+});
+
+test('fresh CET wrappers for one native Settings instance still match render, close and detach', () => {
+  run(`
+    -- Distinct Lua objects model the WeakReference wrappers CET constructs for
+    -- each callback. Native identity stays fixed while wrapper equality fails.
+    local created = {nativeId = 701}
+    local rendered = {nativeId = 701}
+    local closing = {nativeId = 701}
+    local detached = {nativeId = 701}
+    assert(created ~= rendered and rendered ~= closing and closing ~= detached)
+    emit('OnInitialize', created)
+    emit('McmUiBegin', rendered, 'MCM', '', 'Mods', 'Select a mod')
+    emit('McmUiSetContentTitle', rendered, 'Companion Manager')
+    assert(entry.inspect().ownedPage)
+    emit('RequestClose', closing)
+    assert(entry.inspect().returnToGame)
+    emit('OnUninitialize', detached)
+    assert(entry.inspect().settingsDetached and not entry.inspect().ownedPage)
+    assert(not entry.inspect().capturedSettings)
+    controllers = {pause}; entry.update()
+    local events = entry.inspect().exitEvents
+    assert(resumed == 1 and events.matchedCloses == 1 and events.matchedDetachments == 1 and events.resumes == 1)
+    assert(events.identityFailures == 0)
+  `);
+});
+
+test('another native Settings instance cannot close or detach an owned page', () => {
+  run(`
+    settings.nativeId = 901; emit('OnInitialize', settings); render()
+    emit('RequestClose', {nativeId = 902})
+    emit('OnUninitialize', {nativeId = 902})
+    assert(entry.inspect().ownedPage and entry.inspect().capturedSettings)
+    assert(not entry.inspect().returnToGame and entry.inspect().exitEvents.matchedCloses == 0)
+    emit('RequestClose', {nativeId = 901})
+    emit('OnUninitialize', {nativeId = 902})
+    controllers = {pause}; entry.update(); assert(resumed == 0)
+    emit('OnUninitialize', {nativeId = 901}); entry.update(); assert(resumed == 1)
+  `);
+});
+
+test('missing native identity fails closed instead of trusting wrapper strings or nil equality', () => {
+  run(`
+    local bad = {nilIdentity = true}
+    emit('OnInitialize', bad)
+    emit('McmUiSetContentTitle', bad, 'Companion Manager')
+    emit('RequestClose', bad); emit('OnUninitialize', bad)
+    controllers = {pause}; entry.update()
+    assert(not entry.inspect().ownedPage and not entry.inspect().returnToGame and resumed == 0)
+    assert(entry.inspect().exitEvents.identityFailures == 4)
+    local broken = {failIdentity = true}
+    emit('McmUiSetContentTitle', broken, 'Companion Manager'); emit('RequestClose', broken)
+    assert(not entry.inspect().returnToGame and entry.inspect().exitEvents.identityFailures == 6)
   `);
 });
 

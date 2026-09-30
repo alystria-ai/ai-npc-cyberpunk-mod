@@ -33,6 +33,18 @@ local function active()
     return ok and data and data.activeModKey == MOD_KEY
 end
 
+local function controllerKey(controller)
+    if not controller then return nil end
+    -- Each native callback receives a new CET WeakReference wrapper. Match
+    -- the engine identity, as MCM does, rather than comparing those wrappers.
+    local ok, value = pcall(CalcSeed, controller)
+    if ok and value ~= nil then return tostring(value) end
+end
+
+local function ownsPresentation(controller)
+    return presentation.controllerKey ~= nil and presentation.controllerKey == controllerKey(controller)
+end
+
 local function findWidget(root, name, depth, budget)
     budget = budget or {left = 4096}
     if not root or budget.left <= 0 then return nil end
@@ -537,22 +549,25 @@ function M.install()
     end)
     ObserveAfter('SettingsMainGameController', 'McmUiSetContentTitle', function(controller, title)
         local owned = title == LABEL and active()
+        local key = owned and controllerKey(controller) or nil
+        owned = owned and key ~= nil
         -- Queue only Lua data here. No ink traversal, getters or setters.
-        presentation = {active = owned, pending = owned, rows = {}, hovered = {}, title = title, controller = controller}
+        presentation = {active = owned, pending = owned, rows = {}, hovered = {}, title = title,
+            controller = owned and controller or nil, controllerKey = key}
     end)
     Observe('SettingsMainGameController', 'OnUninitialize', function(controller)
-        if presentation.controller == controller then presentation = {active = false, rows = {}} end
+        if ownsPresentation(controller) then presentation = {active = false, rows = {}} end
     end)
     ObserveAfter('SettingsMainGameController', 'McmUiSetManagedLabelState', function(controller, id, hovered)
         -- Native hover remains visible. After leaving a changed row, only its
         -- draft marker carries the modified state; label text stays uniform.
-        if presentation.active and presentation.controller == controller then
+        if presentation.active and ownsPresentation(controller) then
             presentation.hovered[id] = hovered == true
             if not hovered then presentation.pending = true end
         end
     end)
     ObserveAfter('SettingsMainGameController', 'McmUiEmitHover', function(controller, id, _, hovered)
-        if presentation.active and presentation.controller == controller then
+        if presentation.active and ownsPresentation(controller) then
             presentation.hovered[id] = hovered == true
             if not hovered then presentation.pending = true end
         end

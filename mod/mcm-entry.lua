@@ -9,7 +9,21 @@ function M.new(modName, isAvailable, log, isOwnPage)
     local pauseController, settingsController, selectionAction
     local lastProblem, menuItems = '', {}
     local hooksInstalled = false
-    local ownSettingsController, returnToGame
+    local settingsKey, ownSettingsKey, returnToGame
+    local exitEvents = {initialized = 0, finalTitles = 0, ownedTitles = 0, closeRequests = 0,
+        matchedCloses = 0, uninitialized = 0, matchedDetachments = 0, resumes = 0, identityFailures = 0}
+
+    local function controllerKey(controller)
+        if not controller then return nil end
+        -- CET supplies a fresh WeakReference Lua wrapper to each callback and
+        -- does not define native-object equality for those wrappers. CalcSeed
+        -- is the engine identity already used by MCM's own menu integration.
+        -- Never fall back to tostring(controller), which identifies a wrapper.
+        local ok, value = pcall(CalcSeed, controller)
+        if ok and value ~= nil then return tostring(value) end
+        exitEvents.identityFailures = exitEvents.identityFailures + 1
+        return nil
+    end
 
     local function name(value)
         if type(value) == 'string' then return value end
@@ -70,6 +84,7 @@ function M.new(modName, isAvailable, log, isOwnPage)
                     -- unpausing, input contexts and disposal. Consume first to
                     -- prevent reentrant callbacks or later frames resuming twice.
                     returnToGame = nil
+                    exitEvents.resumes = exitEvents.resumes + 1
                     controller:OnMenuItemActivated(index, target)
                     return
                 end
@@ -94,11 +109,12 @@ function M.new(modName, isAvailable, log, isOwnPage)
         ObserveAfter('SettingsMainGameController', 'OnInitialize', function(this)
             -- A newly opened Settings screen supersedes any old exit. Never
             -- carry an auto-resume request into another menu or a new save.
-            ownSettingsController, returnToGame = nil, nil
-            settingsController = this
+            ownSettingsKey, returnToGame = nil, nil
+            settingsController, settingsKey = this, controllerKey(this)
+            exitEvents.initialized = exitEvents.initialized + 1
         end)
         Observe('SettingsMainGameController', 'McmUiBegin', function()
-            ownSettingsController, returnToGame = nil, nil
+            ownSettingsKey, returnToGame = nil, nil
         end)
         ObserveAfter('SettingsMainGameController', 'McmUiSetContentTitle', function(this, contentTitle)
             -- MCM begins with a provisional title, then resolves the selected
@@ -107,29 +123,37 @@ function M.new(modName, isAvailable, log, isOwnPage)
             local ok, owned = pcall(function()
                 return contentTitle == modName and isOwnPage ~= nil and isOwnPage() == true
             end)
-            ownSettingsController = ok and owned and this or nil
+            exitEvents.finalTitles = exitEvents.finalTitles + 1
+            ownSettingsKey = ok and owned and controllerKey(this) or nil
+            if ownSettingsKey then exitEvents.ownedTitles = exitEvents.ownedTitles + 1 end
         end)
         Observe('SettingsMainGameController', 'RequestClose', function(this)
-            if ownSettingsController ~= this then return end
+            exitEvents.closeRequests = exitEvents.closeRequests + 1
+            local key = controllerKey(this)
+            if not key or ownSettingsKey ~= key then return end
             -- MCM's own RequestClose observer may already have cleared the API
             -- activeModKey. Ownership therefore comes from the last rendered
-            -- page, not a lookup during its destruction.
-            local ok, inMenu = pcall(inGameMenu)
-            if ok and inMenu == true then
-                returnToGame = {controller = this, detached = false, deadline = os.time() + 3}
-            end
+            -- page, not a lookup during its destruction. Gameplay validation
+            -- happens in update, outside this native callback.
+            exitEvents.matchedCloses = exitEvents.matchedCloses + 1
+            returnToGame = {controllerKey = key, detached = false, deadline = os.time() + 3}
         end)
         Observe('SettingsMainGameController', 'OnUninitialize', function(this)
-            if returnToGame and returnToGame.controller == this then
-                returnToGame.controller, returnToGame.detached = nil, true
+            exitEvents.uninitialized = exitEvents.uninitialized + 1
+            local key = controllerKey(this)
+            if key and returnToGame and returnToGame.controllerKey == key then
+                returnToGame.controllerKey, returnToGame.detached = nil, true
+                exitEvents.matchedDetachments = exitEvents.matchedDetachments + 1
             end
-            if settingsController == this or this == nil then settingsController = nil end
-            if ownSettingsController == this or this == nil then ownSettingsController = nil end
-            abort()
+            if (key and settingsKey == key) or this == nil then
+                settingsController, settingsKey = nil, nil
+                abort()
+            end
+            if (key and ownSettingsKey == key) or this == nil then ownSettingsKey = nil end
         end)
         Observe('SettingsMainGameController', 'McmUiAddSidebarItem', function(this, id, _, label, _, selected)
             if stage == 'select' and label == modName then
-                settingsController = this
+                settingsController, settingsKey = this, controllerKey(this)
                 if selected then abort() else selectionAction = id end
             end
         end)
@@ -218,9 +242,17 @@ function M.new(modName, isAvailable, log, isOwnPage)
 
     function E.selected() if stage == 'selected' then abort() end end
     function E.state() return stage end
-    function E.inspect() return {stage = stage, problem = lastProblem, items = menuItems, capturedPause = pauseController ~= nil,
-        returnToGame = returnToGame ~= nil, settingsDetached = returnToGame and returnToGame.detached or false} end
-    function E.reset() settingsController, ownSettingsController, returnToGame = nil, nil, nil; abort() end
+    function E.inspect()
+        local counters = {}
+        for key, value in pairs(exitEvents) do counters[key] = value end
+        return {stage = stage, problem = lastProblem, items = menuItems, capturedPause = pauseController ~= nil,
+            ownedPage = ownSettingsKey ~= nil, capturedSettings = settingsController ~= nil, exitEvents = counters,
+            returnToGame = returnToGame ~= nil, settingsDetached = returnToGame and returnToGame.detached or false}
+    end
+    function E.reset()
+        settingsController, settingsKey, ownSettingsKey, returnToGame = nil, nil, nil, nil
+        abort()
+    end
     return E
 end
 

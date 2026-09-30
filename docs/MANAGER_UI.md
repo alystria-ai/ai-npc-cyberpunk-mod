@@ -104,6 +104,19 @@ actually detach. Reset, another Settings screen, a new world or a bounded
 timeout cancels pending resume. Nine focused lifecycle checks cover these
 paths; actual Escape and draft-modal behavior still need the in-game check.
 
+The first live exit check still returned to Pause. CET creates a fresh Lua
+`WeakReference` wrapper for each native callback and does not implement equality
+between wrappers of the same native object. Comparing captured wrappers missed
+both accepted close and detach. The adapter now correlates the engine's
+`CalcSeed` identity, as the installed MCM menu integration does. Styling hover
+and detach use that same identity rule; a missing identity fails closed.
+The fixtures now send different wrappers for render, hover, close and detach,
+reject other controllers, and verify queued styling never touches a detached
+menu. Exit counters expose which lifecycle boundary was reached without retaining
+extra native objects. Gameplay validation and Resume activation still run in
+top-level update. All 40 focused manager/exit checks pass, including the installed
+MCM API integration. This correction requires CET reload and another live Esc check.
+
 ### Native crash and correction
 
 The first final-title implementation (`4fe8a9b`) crashed on F4 after CET reload.
@@ -118,9 +131,19 @@ does not check for failed allocation. The
 [allocator implementation](https://raw.githubusercontent.com/tiltedphoques/TiltedCore/v0.2.7/Code/core/src/ScratchAllocator.cpp)
 returns null when full and frees its space only at Reset. Repeated per-row tree
 walks inside the final-title observer fit that failure mechanism. The corrected
-version defers all widget operations and removes the repeated walks. Thirty-seven
-focused manager/exit checks, including installed MCM integration, pass; a live
-menu check is still required because Lua fixtures cannot emulate CET's allocator.
+version (`2e2a07a`) defers all widget operations and removes the repeated walks.
+The dump's sole used matching scratch allocator has 12 bytes remaining out of
+1,048,576; the faulting reflected type requires 16 bytes aligned to 8. This
+confirms exhaustion rather than an ordinary Lua exception.
+
+Thirty-seven focused manager/exit checks, including installed MCM integration,
+pass. After CET reload the user confirmed the manager opens normally and both
+colour and indentation are correct. The live widget readback agrees: all
+displayed labels, including scaled section headings, sit at x=20 (floating-point
+rounding on headings) with the native red RGBA values. It reports 17 styled rows,
+no pending style work or error, and the previously saved On preference retained.
+The private receipt is `runtime/mcm-style-after-deferred.json`. Esc and close-face
+behavior are separate live checks and are not implied by this UI acceptance.
 
 The existing native voice/subtitle and legacy enabled flags remain compatible.
 No new redscript is required: **CET Reload All Mods** activates the adapter with

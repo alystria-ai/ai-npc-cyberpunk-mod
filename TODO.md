@@ -29,22 +29,28 @@
   identified that boundary; `4fe8a9b` styles the completed owned page and retains
   cyan option boxes. 1009 full-suite checks pass, including installed MCM
   integration; the 28 manager checks passed again after the final owner guard.
-- [x] Make accepted Escape/close from Companion Manager resume gameplay through
-  the native Resume action, preserving MCM's draft guard and other pages' exit
-  behavior. Source `4fe8a9b`; nine dedicated lifecycle checks pass.
+- [ ] Make accepted Escape/close from Companion Manager resume gameplay through
+  the native Resume action. The user confirmed it still returned to Pause after
+  `2e2a07a`. CET creates distinct weak-reference wrappers for callbacks on the
+  same menu, so Lua equality missed the close/detach. The correction correlates
+  native `CalcSeed` identities while preserving MCM's draft guard and other pages;
+  fresh-wrapper regression checks reproduce the previous failure. Live exit
+  acceptance is pending activation of this correction.
 - [x] Remove the close-face retreat caused by V being within 0.72 metres. Keep
   separation between overlapping companion copies and ordinary following.
   Source `9e14265`; reproduced old failures, then 64 movement/behavior/equipment
   checks passed. Lua/catalogues installed and hash verified as one update.
-- [ ] Activate the combined correction through one CET Reload All Mods and
-  visually check default-red labels, flat alignment, Esc returning to gameplay,
-  and a companion staying put during a close approach. Reload/open request is
-  pending with the user; no game restart required.
+- [x] Activate the corrected menu styling (`2e2a07a`) through CET reload. The user
+  confirmed normal opening, correct default-red labels and correct indentation.
+  Live readback confirms one x=20 label column, native red, no style error and
+  the saved follow-up On choice retained. Cyan option controls stay native.
   The first final-title update (`4fe8a9b`) crashed on F4 after reload and was
   reverted in `c6ef43b`; the game was relaunched and the user confirmed the old
   manager opens normally. The corrected implementation queues styling for
   top-level update, performs one lookup/map, and passes 37 focused manager/exit
   checks. Native crash evidence and limits are in `docs/MANAGER_UI.md`.
+- [ ] Check a companion staying put during a close approach. The movement
+  correction is installed; visual movement acceptance remains pending.
 - [ ] Hear a private On reply with a relevant question and no name prefix.
   Opt-in group listening remains unverified; live microphone testing is still
   deferred. See `docs/FOLLOW_UP_QUESTIONS.md`.
