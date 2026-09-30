@@ -193,7 +193,11 @@ function M.sync(actor, position, requestId)
         assert(finite(position) and position >= 0, 'Invalid audio cursor')
         local continuousEnd = M.continuous and position >= M.timeline.duration
         if continuousEnd and M.timeline.complete then M.stop(actor, 'finished'); return end
-        if not M.timelineChanged and M.lastPosition and math.abs(position - M.lastPosition) < 1 / 60
+        -- An exact 60 Hz step can subtract to a few ULPs below 1/60.
+        -- A republished/growing continuous timeline is not a new audio tick.
+        -- Native phrase handoffs retain their existing replacement semantics.
+        if (M.continuous or not M.timelineChanged) and M.lastPosition
+            and math.abs(position - M.lastPosition) < 1 / 60 - 1e-6
             and not (position >= M.timeline.duration and M.lastPosition < M.timeline.duration) then return end
         local frames, tracks = M.timeline.frames, M.timeline.tracks
         if position >= M.timeline.duration and not M.continuous

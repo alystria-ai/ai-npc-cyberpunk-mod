@@ -91,12 +91,20 @@ const opening = (value, lift) => value + lift * value * (1 - value);
 function mapArkit(v) {
   const a = index => clamp(v[index]);
   const closed = a(18), seal = 1 - closed, jaw = a(17), open = jaw * seal;
+  // ARKit MouthStretch describes the mouth corner. Judy's native "stretch"
+  // primarily shapes the inner/lower lip; corner_stretch moves the actual
+  // corner. Share the previous .20 budget across both native shapes instead of
+  // discarding that distinction. MouthRollLower rolls the lip inward, matching
+  // the native suck_dn pose. These are source-driven, not invented idle poses.
+  // See docs/NATIVE_FACIAL_RETARGET_CALIBRATION.md for the actual rig evidence.
+  const articulation = {lips_l_corner_stretch: .08 * a(29), lips_r_corner_stretch: .08 * a(30),
+    lips_suck_dn: .20 * a(31)};
   return [0.40 * (3 * jaw / (1 + 2 * jaw)) * seal,
     0.12 * opening(Math.max(open, (a(39) + a(40)) / 2), .20) * seal,
     0.16 * opening(Math.max(open, (a(37) + a(38)) / 2), .12) * seal,
     0.20 * closed, 0.20 * closed,
     0.30 * a(19), 0.30 * a(19), 0.28 * a(20), 0.28 * a(20),
-    0.20 * a(29), 0.20 * a(30), ...PHONETIC_TRACKS.map(() => 0)];
+    0.12 * a(29), 0.12 * a(30), ...PHONETIC_TRACKS.map(track => articulation[track] ?? 0)];
 }
 
 function renderTimeline({owner, duration, segment, source, cues, envelope = [], first, last, sampleRate}) {
@@ -146,7 +154,7 @@ function renderTimeline({owner, duration, segment, source, cues, envelope = [], 
   frames.push([duration, ...poseAt(duration)]);
   return {version: 1, requestId: owner.requestId, entity: owner.entity, duration,
     source: source ? 'convai-arkit61' : cues ? 'local-phonetic' : 'audio-envelope',
-    articulation: source ? 'arkit61-open-v3' : cues ? 'coarticulated-v4' : undefined,
+    articulation: source ? 'arkit61-native-v4' : cues ? 'coarticulated-v4' : undefined,
     ...(segment ? {segment} : {}), tracks: [...SPEECH_TRACKS], frames};
 }
 

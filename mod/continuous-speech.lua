@@ -149,7 +149,9 @@ function M.update(delta, player, actor, paused)
     -- Paused menus can report zero simulation delta; still refresh the small
     -- permission file so they cannot accidentally resume stale audio later.
     if poll >= .04 or paused then
-        poll = 0
+        -- Preserve the remainder: resetting to zero quantized 40 ms into
+        -- three frames at 60 FPS (50 ms), or two at 30 FPS (66.7 ms).
+        poll = paused and 0 or poll % .04
         if volumePoll >= .5 then volumePoll=0;gameVolume() end
         local positioned, level, pan = pcall(spatial, player, actor)
         if not positioned or not write(true, paused, level, pan) then

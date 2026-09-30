@@ -1,6 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {BlendshapeQueue} from '../node_modules/@convai/web-sdk/dist/core/BlendshapeQueue.js';
+import {ARKIT_ORDER_61} from '../node_modules/@convai/web-sdk/dist/lipsync-helpers/arkitOrder61.js';
 import {drainBlendshapes} from './blendshape-capture.mjs';
 import {buildFacialTimeline, buildProviderFacialTimeline, SPEECH_TRACKS} from './facial-timeline.mjs';
 import {PcmChunkStream, sliceFaces} from './convai-audio-stream.mjs';
@@ -26,6 +27,83 @@ function audio({bits = 16, codec = 1, channels = 1, duration = 1.5, sample} = {}
   return data;
 }
 const weight = (line, sample, track) => line.frames[sample][line.tracks.indexOf(track) + 1];
+
+test('provider stretch reaches the native mouth corners and lower roll keeps its original ARKit-61 source', () => {
+  assert.equal(ARKIT_ORDER_61[29], 'MouthStretchLeft');
+  assert.equal(ARKIT_ORDER_61[30], 'MouthStretchRight');
+  assert.equal(ARKIT_ORDER_61[31], 'MouthRollLower');
+  assert.equal(ARKIT_ORDER_61[32], 'MouthRollUpper');
+  const pose = values(.25);
+  pose[29] = .3; pose[30] = .5; pose[31] = .6; pose[32] = .9;
+  const wav = audio({duration: 1}), beforeWav = Buffer.from(wav);
+  const faces = Array.from({length: 61}, (_, frame) => ({at: frame / 60, values: [...pose]}));
+  const input = {faces, facesFormat: 'arkit61', facesTimebase: 'audio-seconds',
+    audio: wav.toString('base64')}, before = structuredClone(input);
+  const line = buildFacialTimeline(input, owner);
+  assert.equal(line.articulation, 'arkit61-native-v4');
+  assert.equal(weight(line, 12, 'lips_l_stretch'), .036);
+  assert.equal(weight(line, 12, 'lips_r_stretch'), .06);
+  assert.equal(weight(line, 12, 'lips_l_corner_stretch'), .024);
+  assert.equal(weight(line, 12, 'lips_r_corner_stretch'), .04);
+  assert.equal(weight(line, 12, 'lips_suck_dn'), .12);
+  assert.equal(weight(line, 12, 'lips_l_upper_raise'), 0);
+  assert.equal(weight(line, 12, 'lips_r_upper_raise'), 0);
+  assert.deepEqual(input, before);
+  assert.deepEqual(wav, beforeWav);
+  const withoutUpperRoll = buildFacialTimeline({...input,
+    faces: faces.map(frame => ({at: frame.at, values: frame.values.map((value, index) => index === 32 ? 0 : value)}))}, owner);
+  assert.deepEqual(withoutUpperRoll.frames, line.frames);
+});
+
+test('source-specific corner and roll mapping survives growing prefixes without idle offsets or a new audio dependency', () => {
+  const faces = Array.from({length: 121}, (_, frame) => {
+    const pose = values(.3);
+    pose[29] = frame >= 20 && frame < 50 ? .7 : 0;
+    pose[30] = frame >= 20 && frame < 50 ? .2 : 0;
+    pose[31] = frame >= 20 && frame < 50 ? .4 : 0;
+    return {at: frame / 60, values: pose};
+  });
+  const input = {faces, facesFormat: 'arkit61', facesTimebase: 'audio-seconds', complete: false};
+  const before = structuredClone(input);
+  const make = (duration, complete = false) => {
+    const copy = {...input, duration, complete};
+    Object.defineProperty(copy, 'audio', {get() { throw Error('Continuous retarget must not inspect PCM'); }});
+    return buildProviderFacialTimeline(copy, owner);
+  };
+  const prefix = make(.5);
+  const grown = make(1.3);
+  assert.deepEqual(grown.frames.slice(0, prefix.frames.length), prefix.frames);
+  for (const track of ['lips_l_corner_stretch', 'lips_r_corner_stretch', 'lips_suck_dn']) {
+    assert.equal(weight(grown, 12, track), 0);
+    assert(weight(grown, 30, track) > 0);
+    assert.equal(weight(grown, 70, track), 0);
+  }
+  const final = make(1.3, true);
+  assert(final.frames[0].slice(1).every(value => value === 0));
+  assert(final.frames.at(-1).slice(1).every(value => value === 0));
+  assert.deepEqual({...input}, before);
+});
+
+test('provider native retarget keeps bounded independent weights without changing jaw, aperture, or closure calibration', () => {
+  for (const amount of [-10, 0, .1, .5, 1, 10]) {
+    const pose = values(.25); pose[18] = .3; pose[19] = .4; pose[20] = .2;
+    pose[37] = .4; pose[38] = .6; pose[39] = .2; pose[40] = .4;
+    const base = {facesFormat: 'arkit61', facesTimebase: 'audio-seconds', audio: audio({duration: 1}).toString('base64')};
+    const make = v => buildFacialTimeline({...base,
+      faces: Array.from({length: 61}, (_, frame) => ({at: frame / 60, values: [...v]}))}, owner);
+    const baseline = make(pose);
+    pose[29] = amount; pose[30] = amount; pose[31] = amount;
+    const changed = make(pose), bounded = Math.max(0, Math.min(1, amount));
+    assert.equal(weight(changed, 12, 'lips_l_stretch'), Math.round(.12 * bounded * 10000) / 10000);
+    assert.equal(weight(changed, 12, 'lips_l_corner_stretch'), Math.round(.08 * bounded * 10000) / 10000);
+    assert.equal(weight(changed, 12, 'lips_suck_dn'), Math.round(.20 * bounded * 10000) / 10000);
+    for (const track of changed.tracks.filter(track => !/stretch/.test(track) && track !== 'lips_suck_dn')) {
+      assert.deepEqual(changed.frames.map((_, sample) => weight(changed, sample, track)),
+        baseline.frames.map((_, sample) => weight(baseline, sample, track)), `unrelated ${track}`);
+    }
+    assert(changed.frames.every(frame => frame.slice(1).every(value => Number.isFinite(value) && value >= 0 && value <= .4)));
+  }
+});
 
 test('60 Hz provider poses preserve a single-frame jaw and pucker peak at its original audio time', () => {
   const faces = Array.from({length: 61}, (_, frame) => {
@@ -85,7 +163,7 @@ test('continuous provider timelines accept ahead-delivered faces without reading
   assert.equal(line.entity, owner.entity);
   assert.equal(line.generation, owner.generation);
   assert.equal(line.source, 'convai-arkit61');
-  assert.equal(line.articulation, 'arkit61-open-v3');
+  assert.equal(line.articulation, 'arkit61-native-v4');
   assert.equal(line.continuous, true);
   assert.equal(line.complete, false);
   assert.equal(line.duration, .513);
@@ -234,7 +312,7 @@ test('ARKIT-61 mouth controls follow the actual order, preserve provider rest an
   const line = buildFacialTimeline({audio: wav.toString('base64'), faces,
     facesFormat: 'arkit61', facesTimebase: 'audio-seconds'}, owner);
   assert.equal(line.source, 'convai-arkit61'); assert.deepEqual(wav, before);
-  assert.equal(line.articulation, 'arkit61-open-v3');
+  assert.equal(line.articulation, 'arkit61-native-v4');
   assert.equal(weight(line, 6, 'jaw_mid_open'), 0.3692);
   assert.equal(weight(line, 6, 'lips_l_funnel'), 0.18);
   assert.equal(weight(line, 6, 'lips_l_purse'), 0.112);
@@ -303,9 +381,9 @@ test('Convai aperture calibration keeps upper-lip caps and unrelated articulatio
   assert.equal(weight(judy, 6, 'lips_apart_up'), .041);
   assert.equal(weight(judy, 6, 'lips_apart_dn'), .0848);
   for (const [track, expected] of Object.entries({lips_l_funnel: .18, lips_r_funnel: .18,
-    lips_l_purse: .112, lips_r_purse: .112, lips_l_stretch: .06, lips_r_stretch: .10,
+    lips_l_purse: .112, lips_r_purse: .112, lips_l_stretch: .036, lips_r_stretch: .06,
     lips_l_upper_raise: 0, lips_r_upper_raise: 0, tongue_mid_tip_up: 0,
-    lips_l_corner_stretch: 0, lips_r_corner_stretch: 0})) assert.equal(weight(judy, 6, track), expected);
+    lips_l_corner_stretch: .024, lips_r_corner_stretch: .04})) assert.equal(weight(judy, 6, track), expected);
   for (const amount of [-100, 0, .05, .25, .8, 1, 100]) {
     const saturated = {...input, faces: input.faces.map(frame => ({at: frame.at,
       values: frame.values.map((value, index) => [17, 37, 38, 39, 40].includes(index) ? amount : value)}))};

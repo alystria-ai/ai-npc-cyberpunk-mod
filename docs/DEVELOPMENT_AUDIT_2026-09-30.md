@@ -748,3 +748,40 @@ Do not repeat accepted styling, basic invitations, minimap markers or ordinary
 F6/F8 turns merely because another subsystem changed. Update the exact evidence
 and limits in this document and `TODO.md`, then continue to the next requested
 feature or stop when the user asks.
+
+## Later September 30: native lip-sync deep dive
+
+The user accepts the corrected continuous voice latency but rejects the mouth as
+wooden and barely moving. This became a native retarget/calibration investigation,
+documented in [LIPSYNC_DEEP_DIVE_2026-09-30.md](LIPSYNC_DEEP_DIVE_2026-09-30.md).
+
+The method separates provider facial generation, target mapping, heard-clock
+sampling and native bone deformation. Research checked current Convai profiles
+and mapping guidance, Cyberpunk/JALI publications, maintained WolvenKit native
+solver code, Rhubarb and optional neural alternatives. Another GPU model is not
+the first correction: it would feed the same native renderer and add resource
+and distribution costs.
+
+The real Lua controller/speech/face replay reproduced a cadence bottleneck:
+40 ms file polling reset its remainder and suppressed pose sampling on all
+other game frames. At 60 FPS it applied only 40 poses in two seconds. Preserving
+the remainder and sampling a bounded confirmed-past cursor raises this to 115
+applications, with ordinary past lag about 37 ms and no sample ahead of known
+heard audio. A float tolerance fixes roundoff at 1/60 second; continuous timeline
+republication no longer bypasses the 60 Hz limit. Pauses, stalls, actor loss,
+unload, final drain and native Omni phrase behavior retain focused tests.
+
+Actual Judy rig/facialsetup resources were separately extracted into ignored
+runtime files and evaluated on CPU with the reconstructed native solver.
+That analysis distinguishes real corner stretch from the weaker inner-lip
+stretch shape, and identifies a suitable native lower-roll pose. The controlled
+`arkit61-native-v4` change splits the existing stretch budget between those
+targets and preserves a small source-driven lower roll. It keeps jaw/aperture
+limits and zeroed individual upper raisers for this comparison. No PCM samples,
+source timestamps, provider arrays, gaze or movement were altered.
+
+Native idle-pose influence and jaw/lip closure combinations remain calibration
+questions. Rig reference weights and successful feature calls do not establish
+the animated baseline or visible quality. Focused source checks, installation
+and live acceptance are recorded in the deep dive; the visual item stays open
+in `TODO.md` until the user accepts the actual speaking face.

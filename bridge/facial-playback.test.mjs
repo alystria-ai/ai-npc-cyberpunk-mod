@@ -73,6 +73,16 @@ test('mouth follows the native audio cursor and rejoins it after pause, without 
   assert(judy.resets==2 and not face.active and not speech.requestId)
 `));
 
+test('the 60 Hz sampling threshold tolerates float roundoff but rejects a true half-frame step', () => run(`
+  local context,reply=input(judy,'frame-boundary');assert(face.start(context,reply.face,judy,2))
+  face.sync(judy,.05,context.requestId);assert(#judy.frames==1)
+  local nextPosition=.05+1/60
+  assert(nextPosition-.05<1/60,'Fixture must reproduce the subtractive rounding boundary')
+  face.sync(judy,nextPosition,context.requestId);assert(#judy.frames==2,'An exact 60 Hz step was dropped')
+  face.sync(judy,nextPosition+1/120,context.requestId);assert(#judy.frames==2,'A true half-frame bypassed the rate limit')
+  face.sync(judy,nextPosition+1/60,context.requestId);assert(#judy.frames==3)
+`));
+
 test('speaker changes reset the old copy and a stale request cannot animate another entity', () => run(`
   local c,r=input(judy,'one'); speech.start(c,r); cursor=0.5; speech.update(0.1)
   c,r=input(johnny,'two'); assert(speech.start(c,r)); assert(judy.resets==1)
@@ -192,15 +202,18 @@ test('growing absolute timelines retain one native feature and synchronize only 
   and face.applied==applied and judy.resets==0 and #judy.frames==1)
  face.sync(judy,.6,context.requestId)
  assert(face.feature==feature and face.index==2 and math.abs(judy.frames[2].jaw_mid_open-.25)<.0001)
- -- A revised tail is legitimate and must update even while the heard cursor
- -- has not advanced. Replacement data never applies itself ahead of audio.
+ -- A revised tail is legitimate but does not create an extra audio tick.
+ -- Apply its new pose at the next confirmed heard step, within the 60 Hz cap.
  assert(face.updateContinuous(context,growing(.8,false,{{0,.1},{.4,.2},{.8,.4}}),judy,.8))
  assert(#judy.frames==2)
  face.sync(judy,.6,context.requestId)
- assert(math.abs(judy.frames[3].jaw_mid_open-.3)<.0001 and judy.resets==0)
+ assert(#judy.frames==2)
+ local nextPosition=.6+1/60
+ face.sync(judy,nextPosition,context.requestId)
+ assert(math.abs(judy.frames[3].jaw_mid_open-(.3+1/120))<.0001 and judy.resets==0)
  -- Compacted snapshots may change frame count, not track identity or time.
  assert(face.updateContinuous(context,growing(1,false),judy,1))
- assert(face.index==1 and face.position==.6 and face.feature==feature)
+ assert(face.index==1 and face.position==nextPosition and face.feature==feature)
  face.sync(judy,.7,context.requestId)
  assert(math.abs(judy.frames[4].jaw_mid_open-.17)<.0001)
 `));
@@ -213,7 +226,10 @@ test('incomplete continuous boundaries hold a pose until final heard completion,
  local feature=face.feature
  assert(face.updateContinuous(context,growing(.8,false),judy,.8))
  face.sync(judy,.45,context.requestId)
- assert(face.feature==feature and face.state=='playing' and math.abs(judy.frames[2].jaw_mid_open-.15625)<.0001)
+ assert(face.feature==feature and #judy.frames==1 and face.state=='holding-boundary')
+ local nextPosition=.45+1/60
+ face.sync(judy,nextPosition,context.requestId)
+ assert(face.state=='playing' and math.abs(judy.frames[2].jaw_mid_open-(.1+nextPosition/8))<.0001)
  face.sync(judy,.8,context.requestId)
  assert(face.active and face.state=='holding-boundary' and judy.resets==0)
  assert(face.updateContinuous(context,growing(.8,true),judy,.8))
@@ -221,6 +237,18 @@ test('incomplete continuous boundaries hold a pose until final heard completion,
  face.sync(judy,.8,context.requestId)
  assert(not face.active and face.state=='finished' and judy.resets==1)
  face.sync(judy,.9,context.requestId);assert(judy.resets==1)
+`));
+
+test('repeated continuous timeline publications at a held cursor cannot bypass the facial rate cap', () => run(continuousSetup + `
+ assert(face.updateContinuous(context,growing(.8,false),judy,.8))
+ face.sync(judy,.2,context.requestId);assert(#judy.frames==1)
+ for index=1,120 do
+  assert(face.updateContinuous(context,growing(.8,false),judy,.8))
+  face.sync(judy,.2,context.requestId)
+ end
+ assert(#judy.frames==1 and face.position==.2 and judy.resets==0)
+ face.sync(judy,.2+1/120,context.requestId);assert(#judy.frames==1)
+ face.sync(judy,.2+1/60,context.requestId);assert(#judy.frames==2)
 `));
 
 test('continuous facial updates reject other owners and stale generations without disturbing the current speaker', () => run(continuousSetup + `

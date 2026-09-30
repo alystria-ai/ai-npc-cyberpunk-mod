@@ -41,22 +41,25 @@
   native/voice dependencies are inventoried. Portable bootstrap, relocation,
   distribution notices and archive-size qualification remain release work;
   no archives or GitHub release have been created.
-- [ ] Verify improved Convai speech onset and facial articulation. The user still finds
-  latency excessive and mouth shapes too simple/barely open. The latest warm
-  request received first PCM at 2.398 s, completed collection at 7.851 s and
-  began native playback at about 8.67 s. Full-reply buffering is the main delay
-  after first audio. Smooth playback does not establish acceptable lip sync.
+- [x] Verify continuous Convai onset: the user reports **good latency** after
+  correcting native Dialogue Volume from 0. The earlier whole-WAV buffering
+  delay is superseded by continuous playback. The generation/quantum-clock
+  corrections in `7baf303` passed 90 focused checks; the latest 8.8167-second
+  reply drained with zero underruns and neutral facial cleanup.
+- [x] Deeply review practical lip-sync systems and Cyberpunk's native rig.
+  See `docs/LIPSYNC_DEEP_DIVE_2026-09-30.md`: primary sources, current Convai
+  guidance, JALI/native solver, actual Judy geometry, GPU alternatives,
+  licensing/resource limits and calibration method. Retain Convai NeuroSync;
+  native retargeting and sampling are the immediate improvement path.
+- [ ] Accept improved Convai articulation in the game. The user still describes
+  a wooden mouth with small/simple shapes. Actual cadence was only 146 native
+  applications over 8.8167 seconds despite 60 Hz source data. Integrated Lua
+  replay reproduces poll quantization; the correction uses a bounded confirmed
+  past audio cursor each game frame. Native Judy analysis also identified a
+  wrong mouth-corner target and discarded lower-lip roll. Source fixes,
+  installation and fresh rendered acceptance are recorded in the deep dive;
+  numeric checks alone do not close this item.
   Phone history across reload remains a separate live follow-up.
-  **Follow-up:** continuous playback is loaded, and the user now reports good
-  latency after correcting native Dialogue Volume from 0. The latest complete
-  3.4-second reply had zero underruns and an onset estimate of 3.291 seconds.
-  Lip sync failed because the continuous JS timeline omitted Lua's required
-  generation. The producer fix and an actual publisher-to-Lua regression pass;
-  corrected rendered mouth movement still needs its own live check. A repeated
-  browser render timestamp was captured and corrected without touching samples.
-  Both fixes are installed in bridge-only checkpoint `7baf303`; 90 focused
-  checks pass, including a real browser and production builder-to-Lua test.
-  Judy's connection is ready and a fresh F6 mouth-movement check is pending.
 - [x] Add **Follow-up questions** (`followUpQuestions`) to organized Settings,
   default Off per the user's latest request. Local checkpoint `135264d`; 991
   tests passed with zero failures/skips, including installed MCM integration.

@@ -51,6 +51,9 @@ local function publish()
             streamVersion = r and r.version, totalChunks = r and r.total, utterancePosition = r and r.position,
             continuousId = M.continuousId, playbackBackend = M.continuous and 'browser-pcm' or nil,
             continuousControl = M.continuous and continuous and continuous.status() or nil,
+            continuousFacePosition = M.continuousFaceCursor,
+            continuousFaceLag = M.continuousFaceCursor and M.continuousFaceTarget
+                and math.max(0, M.continuousFaceTarget - M.continuousFaceCursor) or nil,
             lastDelivery = M.lastDelivery}))
         f:close()
     end
@@ -102,6 +105,7 @@ function M.stop(reason)
     M.streamReceipt = receipt()
     M.stream, M.context, M.nativeCompleted = nil, nil, nil
     M.continuous, M.continuousEnded, M.continuousId, M.continuousCaptions = nil, nil, nil, nil
+    M.continuousFaceCursor, M.continuousFaceTarget, M.continuousFaceState = nil, nil, nil
     M.player, M.actor, M.requestId, M.slot, M.duration = nil, nil, nil, nil, nil
     M.state, M.position, M.paused = reason or 'idle', nil, false
     publish()
@@ -169,6 +173,7 @@ function M.start(context, reply)
             entity=context.entity,name=context.name}
         M.speaker, M.text, M.error, M.paused = context.name, reply.text, nil, paused
         M.continuous, M.continuousId, M.continuousEnded = true, reply.continuous.id, false
+        M.continuousFaceCursor, M.continuousFaceTarget, M.continuousFaceState = nil, nil, nil
         M.state, M.position, M.duration = 'starting', 0, 0
         M.continuousCaptions = {text=reply.text,bufferedDuration=0,position=0,final=false}
         -- Version 2 transcript semantics mean one evolving utterance, not a
@@ -228,6 +233,7 @@ function M.abandon()
     M.stream, M.context, M.target, M.nativeCompleted = nil, nil, nil, nil
     M.utterance = nil
     M.continuous, M.continuousEnded, M.continuousId, M.continuousCaptions = nil, nil, nil, nil
+    M.continuousFaceCursor, M.continuousFaceTarget, M.continuousFaceState = nil, nil, nil
     M.player, M.actor, M.playerID, M.requestId = nil, nil, nil, nil
     M.slot, M.duration, M.position, M.paused = nil, nil, 0, false
     M.state, M.available = 'idle', false
@@ -327,25 +333,41 @@ end
 local function updateContinuous(delta, player, paused)
     local state, problem = continuous.update(delta, player, M.actor, paused)
     if problem then M.error=problem;fallback('playback-failed', M.text);return end
-    if paused then face.pause(M.actor);return end
-    if not state then return end
-    M.position, M.duration, M.text, M.state = state.position, state.bufferedDuration, state.text, state.state
-    M.utterance.text, M.utterance.textComplete = state.text, state.textComplete
-    local caption = M.continuousCaptions
-    caption.text, caption.bufferedDuration, caption.final = state.text, state.bufferedDuration, state.complete
-    if type(state.face) == 'table' and state.bufferedDuration > 0 and type(face.updateContinuous) == 'function' then
-        face.updateContinuous(M.context, state.face, M.actor, state.bufferedDuration)
+    if paused then M.continuousFaceCursor=nil;face.pause(M.actor);return end
+    if state then
+        -- The source/audio/subtitle position remains the exact device report.
+        M.position, M.duration, M.text, M.state = state.position, state.bufferedDuration, state.text, state.state
+        M.utterance.text, M.utterance.textComplete = state.text, state.textComplete
+        local caption = M.continuousCaptions
+        caption.text, caption.bufferedDuration, caption.final = state.text, state.bufferedDuration, state.complete
+        if type(state.face) == 'table' and state.bufferedDuration > 0 and type(face.updateContinuous) == 'function' then
+            face.updateContinuous(M.context, state.face, M.actor, state.bufferedDuration)
+        end
+        M.continuousFaceTarget = math.max(M.continuousFaceTarget or 0, state.position)
+        M.continuousFaceState = state.state
+        if state.position > 0 then syncUtterance(state.position) end
+        if state.ended then
+            -- EOF alone cannot confirm delivery: the renderer must have drained
+            -- the one audio queue and reported the heard device cursor as well.
+            M.continuousEnded = true
+            finish();return
+        end
     end
-    if state.position > 0 then
-        syncUtterance(state.position)
-        if state.state == 'buffering' then face.pause(M.actor) else face.sync(M.actor, state.position, M.requestId) end
+    local target = M.continuousFaceTarget
+    if not target or target <= 0 then return end
+    if M.continuousFaceState ~= 'playing' and M.continuousFaceState ~= 'draining' then
+        M.continuousFaceCursor=nil;face.pause(M.actor);return
     end
-    if state.ended then
-        -- EOF alone cannot confirm delivery: the renderer must have drained
-        -- the one audio queue and reported the heard device cursor as well.
-        M.continuousEnded = true
-        finish()
-    end
+    -- Device reports arrive about every 40 ms; native facial poses must not be
+    -- limited to that file cadence. Chase only confirmed, already-heard audio
+    -- each game frame, with at most 80 ms of deliberate past lag. This never
+    -- predicts future samples: absent reports stop the cursor at the known
+    -- target, even if the browser has paused/underrun since its last report.
+    local step = finite(delta) and math.max(0, math.min(.08, delta)) or 0
+    local cursor = M.continuousFaceCursor or target
+    cursor = math.min(target, math.max(cursor, target-.08) + step)
+    M.continuousFaceCursor = cursor
+    face.sync(M.actor, cursor, M.requestId)
 end
 
 function M.update(delta)

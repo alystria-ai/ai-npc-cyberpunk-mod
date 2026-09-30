@@ -48,10 +48,13 @@ prompt in its initial descriptor and retains the original submitted memory
 receipt when completion refreshes quest context.
 
 NeuroSync maps to the managed character's supported facial feature. The
-`arkit61-open-v3` calibration lifts quiet/intermediate jaw opening while keeping
-full closure and the existing maximum. Actual provider cadence is preserved
-up to 60 Hz. Individual upper-lip raisers remain restricted after the user's
-earlier distortion report. Source-frame correctness is not visual acceptance.
+`arkit61-native-v4` calibration keeps the bounded jaw/opening curves and maps
+mouth-corner stretch and lower-lip roll to the appropriate native deformation
+controls. Actual provider cadence is preserved up to 60 Hz. The game samples
+the face each frame from a confirmed already-heard cursor, with a small bounded
+past lag instead of future audio prediction. Individual upper-lip raisers remain
+restricted after the user's earlier distortion report. Source-frame correctness
+is not visual acceptance. See [the native lip-sync deep dive](LIPSYNC_DEEP_DIVE_2026-09-30.md).
 
 ### Research and development method
 

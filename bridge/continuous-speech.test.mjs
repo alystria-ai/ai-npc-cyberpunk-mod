@@ -128,7 +128,9 @@ test('real continuous publisher facial data is accepted by the actual Lua playba
     writeState:async value=>{wire=structuredClone(value);return true;},
     writeReply:async value=>{reply=structuredClone(value);return true;}});
   const faces=Array.from({length:121},(_,index)=>{
-    const values=Array(61).fill(0);values[17]=.4;return {at:index/60,values};
+    const values=Array(61).fill(0);values[17]=.4;
+    values[29]=.5;values[30]=.25;values[31]=.3;
+    return {at:index/60,values};
   });
   await publisher.frame({version:1,token,sampleRate:24000,channels:1,receivedFrames:48000,
     positionSeconds:.2,text:'Hello V.',textComplete:false,sourceComplete:false,ended:false,
@@ -139,6 +141,12 @@ test('real continuous publisher facial data is accepted by the actual Lua playba
     put('runtime/continuous-speech.json',${luaValue(wire)});tick()
     assert(face.active,'Production timeline rejected: '..tostring(face.error))
     assert(features==1 and #judy.applied==1 and judy.applied[1].jaw_mid_open>0)
+    local native=judy.applied[1]
+    assert(math.abs(native.lips_l_stretch-.06)<.000001)
+    assert(math.abs(native.lips_l_corner_stretch-.04)<.000001)
+    assert(math.abs(native.lips_r_corner_stretch-.02)<.000001)
+    assert(math.abs(native.lips_suck_dn-.06)<.000001)
+    assert(native.lips_l_upper_raise==0 and native.lips_r_upper_raise==0)
     assert(face.generation==context.generation and face.requestId==context.requestId)
     speech.stop('cancelled');assert(judy.resets==1 and not face.active)
   `);
@@ -240,4 +248,89 @@ assert(nativeStarts==1 and #controls==0)
 nativeCursor=.2;tick();nativeCursor=2;tick()
 assert(state().lastDelivery.source=='native-playback' and not state().lastDelivery.backend)
 assert(#controls==0 and nativeStops==1)
+`));
+
+for (const fps of [30, 60, 120]) {
+  test(`confirmed past facial poses follow ${fps} FPS game frames rather than the 40 ms file poll`,()=>run(`
+assert(begin());local base,lastHost,lastCursor=wall,-1,0
+for index=1,${fps * 2} do
+ local heard=math.floor((index/${fps}+1e-8)/.04)*.04
+ if heard~=lastHost then
+  snapshot({position=heard,updated=(base+heard)*1000,bufferedDuration=3,face=timeline(3,false)})
+  lastHost=heard
+ end
+ tick(1/${fps})
+ local cursor=speech.continuousFaceCursor
+ if cursor then
+  assert(cursor>=lastCursor-1e-8,'Facial cursor rewound')
+  assert(cursor<=speech.position+1e-8,'Facial pose predicted unconfirmed audio')
+  assert(speech.position-cursor<=.080001,'Confirmed-past lag exceeded its bound')
+  lastCursor=cursor
+ end
+ if speech.position>0 then
+  assert(captions.positions[#captions.positions]==speech.position,'Subtitle clock was changed by facial smoothing')
+ end
+end
+assert(#judy.applied>=${fps === 30 ? 55 : fps === 60 ? 110 : 105},'Native application cadence still collapses to the file poll: '..#judy.applied)
+assert(#judy.applied<=${fps === 30 ? 61 : 121},'Timeline publication bypassed the 60 Hz heard-cursor cap: '..#judy.applied)
+assert(#controls>=49 and #controls<=51,'The 40 ms control poll discarded its game-frame remainder')
+assert(nativeStarts==0 and nativeStops==0,'Convai facial smoothing must not change its PCM renderer')
+`));
+}
+
+test('missing or stale snapshots cannot extrapolate the face beyond audio already confirmed heard',()=>run(`
+assert(begin());snapshot({position=.2,face=timeline(2,false)});tick()
+snapshot({position=1,updated=(wall+.05)*1000,face=timeline(2,false)});tick()
+assert(speech.position==1 and speech.continuousFaceCursor>=.92 and speech.continuousFaceCursor<=1)
+for index=1,60 do
+ tick(1/60)
+ assert(speech.position==1 and speech.continuousFaceCursor<=1,'Missing data advanced the heard clock')
+end
+assert(speech.continuousFaceCursor==1 and captions.positions[#captions.positions]==1)
+tick(2.1)
+assert(not speech.requestId and not control().allow and not state().lastDelivery)
+assert(not speech.continuousFaceCursor and not speech.continuousFaceTarget and not face.active)
+`));
+
+test('pause and nonplaying renderer states stop the past cursor; resume uses the current heard pose',()=>run(`
+assert(begin());snapshot({position=.2,face=timeline(2,false)});tick()
+snapshot({position=.5,updated=(wall+.05)*1000,face=timeline(2,false)});tick()
+assert(speech.continuousFaceCursor<speech.position)
+local applied,position=#judy.applied,speech.position
+paused=true;tick(0)
+assert(not speech.continuousFaceCursor and #judy.applied==applied and speech.position==position)
+assert(control().paused and face.state=='paused')
+paused=false
+for _,value in ipairs({'buffering','paused','lease-held','waiting-control','awaiting-admission'})do
+ snapshot({state=value,position=.5,updated=(wall+.05)*1000,face=timeline(2,false)});tick()
+ tick(1/60)
+ assert(not speech.continuousFaceCursor and #judy.applied==applied,'Held source replayed an old mouth movement')
+end
+snapshot({state='playing',position=.6,updated=(wall+.05)*1000,face=timeline(2,false)});tick()
+assert(speech.continuousFaceCursor==.6 and speech.position==.6 and #judy.applied==applied+1)
+assert(captions.positions[#captions.positions]==.6 and features==1)
+`));
+
+test('actor loss and unload retire the cached facial cursor even between file polls',()=>run(`
+assert(begin());snapshot({position=.2,face=timeline(2,false)});tick()
+snapshot({position=.5,updated=(wall+.05)*1000,face=timeline(2,false)});tick()
+local applied=#judy.applied;judy.attached=false;tick(.001)
+assert(not speech.requestId and not speech.continuousFaceCursor and not control().allow)
+assert(#judy.applied==applied and not state().lastDelivery)
+judy.attached=true;assert(begin());snapshot({position=.8,updated=(wall+.05)*1000,face=timeline(2,false)});tick()
+assert(speech.continuousFaceCursor==.8)
+local calls=nativeCalls;world=false;speech.abandon()
+assert(nativeCalls==calls and not speech.continuousFaceCursor and not face.active and not control().allow)
+world=true;snapshot({position=2,complete=true,textComplete=true,ended=true,state='ended'});tick()
+assert(not speech.requestId and not state().lastDelivery)
+`));
+
+test('actual device drain resets the face immediately instead of delaying group completion for its past cursor',()=>run(`
+assert(begin());snapshot({position=.2,face=timeline(2,false)});tick()
+snapshot({position=.8,updated=(wall+.05)*1000,complete=true,textComplete=true,face=timeline(2,true)});tick()
+assert(speech.continuousFaceCursor<speech.position and not state().lastDelivery)
+snapshot({position=2,updated=(wall+.05)*1000,complete=true,textComplete=true,ended=true,state='ended',face=timeline(2,true)});tick()
+assert(not speech.requestId and not speech.continuousFaceCursor and not speech.continuousFaceTarget)
+assert(not face.active and judy.resets==1 and state().lastDelivery.source=='continuous-playback')
+assert(not control().allow and nativeStarts==0 and nativeStops==0)
 `));
