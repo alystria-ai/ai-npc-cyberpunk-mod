@@ -1,5 +1,5 @@
 import {ResidentVoice, LOCAL_VOICE_KEYS, voiceSteps} from './resident-voice.mjs';
-import {throwIfCancelled} from './transport-pool.mjs';
+import {abortable, throwIfCancelled} from './transport-pool.mjs';
 
 // Provider changes commit only at a conversation boundary. Retiring CUDA work
 // completes through EOF before another resident worker may start.
@@ -60,13 +60,15 @@ export class VoiceSelection {
     return this.starting;
   }
   retire() {
-    const client = this.client, starting = this.starting;
+    const client = this.client;
     this.client = this.starting = null;
     if (!client) { this.publish(this.releasing ? 'releasing' : (this.closed ? 'stopped' : 'remote')); return this.retiring; }
     this.releasing = true;
     this.publish('releasing');
-    // An initialization already inside CUDA is also allowed to finish safely.
-    const retirement = Promise.allSettled([this.retiring, starting]).then(() => client.close());
+    // Signal EOF even during warmup. The worker owns its bounded physical
+    // cleanup; waiting for readiness first could prevent shutdown forever.
+    // An unconfirmed prior exit must continue blocking any replacement.
+    const retirement = this.retiring.then(() => client.close());
     this.retiring = retirement.then(() => {
       if (this.retiring !== completed) return;
       this.releasing = false;
@@ -81,7 +83,7 @@ export class VoiceSelection {
   }
   async synthesize(profile, text, options = {}) {
     if (!this.usesProfile(profile)) throw Error('This character uses its Convai voice');
-    await this.start(); throwIfCancelled(options.signal);
+    await abortable(this.start(), options.signal); throwIfCancelled(options.signal);
     const client = this.client;
     if (!client || !this.usesProfile(profile)) throw Error('Voice selection changed before synthesis');
     return client.synthesize(profile, text, {...options, steps: options.steps ?? this.steps});

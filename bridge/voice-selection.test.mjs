@@ -75,11 +75,35 @@ test('rapid switches cannot overlap workers or start a local choice that was sup
 test('switching while warming lets GPU initialization finish then releases it without stale ready state', async () => {
   const h = fixture({holdWarm: true}); const starting = h.voice.start(); await tick();
   h.voice.request({voiceProvider: 'convai'}); h.voice.applyWhenIdle(false);
-  await tick(); assert.equal(h.workers[0].closes, 0);
+  await tick(); assert.equal(h.workers[0].closes, 1);
   h.workers[0].warm.resolve(); await starting; await h.voice.retiring;
   assert.equal(h.workers[0].closes, 1); assert.equal(h.live(), 0);
   assert.equal(h.voice.state, 'remote');
   assert(!h.states.some(state => state.provider === 'convai' && state.state === 'ready'));
+});
+
+test('cancel during warmup releases the conversation immediately while shared initialization stays owned', async () => {
+  const h = fixture({holdWarm: true}), controller = new AbortController();
+  const first = h.voice.synthesize('judy-alvarez', 'Cancelled during warmup', {signal: controller.signal});
+  await tick(); const rejected = assert.rejects(first, /cancelled/);
+  controller.abort(); await rejected;
+  assert.equal(h.workers[0].closes, 0); assert.equal(h.workers[0].calls.length, 0);
+  h.workers[0].warm.resolve(); await h.voice.start();
+  await h.voice.synthesize('judy-alvarez', 'New conversation');
+  assert.equal(h.workers[0].calls.length, 1); assert.equal(h.workers.length, 1);
+  await h.voice.close();
+});
+
+test('an unconfirmed retirement keeps replacement workers from starting', async () => {
+  const h = fixture(); await h.voice.start();
+  h.workers[0].close = async () => { throw Error('exit could not be confirmed'); };
+  h.voice.request({voiceProvider: 'convai'}); h.voice.applyWhenIdle(false);
+  await assert.rejects(h.voice.retiring, /exit could not be confirmed/);
+  h.voice.request({voiceProvider: 'hybrid'}); h.voice.applyWhenIdle(false);
+  await assert.rejects(h.voice.start(), /exit could not be confirmed/);
+  assert.equal(h.workers[1].starts, 0); assert.equal(h.peak(), 1);
+  h.voice.request({voiceProvider: 'convai'}); h.voice.applyWhenIdle(false);
+  await assert.rejects(h.voice.retiring, /exit could not be confirmed/);
 });
 
 test('malformed settings retain the valid selection; a withdrawn pending change is never applied', async () => {

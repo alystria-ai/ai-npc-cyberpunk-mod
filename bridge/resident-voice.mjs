@@ -5,19 +5,53 @@ import {abortable, throwIfCancelled, cancelled} from './transport-pool.mjs';
 
 export const LOCAL_VOICE_KEYS = Object.freeze(['johnny-silverhand', 'judy-alvarez', 'panam-palmer']);
 export const voiceSteps = value => value === 16 ? 16 : 32;
+export const VOICE_WORKER_LIMITS = Object.freeze({startupMs: 180_000, renderMs: 120_000,
+  exitGraceMs: 10_000, exitConfirmationMs: 5_000});
 
 export class ResidentVoice {
-  constructor(config = {}, {project, configPath, spawnImpl = spawn, onState = () => {}, onLog = () => {}} = {}) {
+  constructor(config = {}, {project, configPath, spawnImpl = spawn, onState = () => {}, onLog = () => {},
+    setTimer = setTimeout, clearTimer = clearTimeout} = {}) {
     if (!['convai', 'hybrid'].includes(config.provider || 'convai')) throw Error('Unknown local speech provider');
     if (config.provider === 'hybrid' && (config.engine !== 'omnivoice'
         || LOCAL_VOICE_KEYS.some(key => !config.voices?.[key])
         || Object.keys(config.voices).some(key => !LOCAL_VOICE_KEYS.includes(key)))) {
       throw Error('Local voices must map Johnny, Judy and Panam to OmniVoice');
     }
-    Object.assign(this, {config, project, configPath, spawnImpl, onState, onLog});
+    Object.assign(this, {config, project, configPath, spawnImpl, onState, onLog, setTimer, clearTimer});
     this.steps = voiceSteps(config.steps); this.tail = Promise.resolve();
     this.sequence = 0; this.pending = new Map(); this.state = this.enabled ? 'stopped' : 'disabled';
     this.loaded = false; this.details = {};
+  }
+  schedule(callback, delay) {
+    const timer = this.setTimer(callback, delay); timer?.unref?.(); return timer;
+  }
+  clearPhase() { this.clearTimer(this.phaseTimer); this.phaseTimer = null; }
+  phaseDeadline(label, delay) {
+    this.clearPhase();
+    this.phaseTimer = this.schedule(() => {
+      this.phaseTimer = null;
+      this.fail(Error(`Local voice ${label} timed out`));
+    }, delay);
+  }
+  awaitExit() {
+    if (!this.child || this.exitTimer || this.exitConfirmation) return;
+    const child = this.child;
+    this.exitTimer = this.schedule(() => {
+      this.exitTimer = null;
+      if (this.child !== child) return;
+      // A hung owned worker must not retain CUDA forever. No process-pattern
+      // termination: this handle belongs only to the child we spawned.
+      try { child.kill(); } catch { /* Exit confirmation below remains required. */ }
+      if (this.child !== child) return;
+      this.exitConfirmation = this.schedule(() => {
+        this.exitConfirmation = null;
+        if (this.child !== child) return;
+        const error = Error('Local voice worker exit could not be confirmed');
+        this.failure = error;
+        this.publish('error', {detail: 'Local voice worker did not exit. Restart the voice service before retrying.'});
+        this.rejectExited?.(error);
+      }, VOICE_WORKER_LIMITS.exitConfirmationMs);
+    }, VOICE_WORKER_LIMITS.exitGraceMs);
   }
   get enabled() { return this.config.provider === 'hybrid'; }
   hasProfile(key) { return LOCAL_VOICE_KEYS.includes(key) && !!this.config.voices?.[key]; }
@@ -69,13 +103,23 @@ export class ResidentVoice {
     child.stderr.on('data', part => { try { this.onLog(part.toString('utf8')); } catch {} });
     child.stdin.on('error', error => this.fail(error));
     child.on('error', error => this.fail(error));
-    this.exited = new Promise(done => child.once('close', code => {
-      this.child = null; this.loaded = false;
-      this.details = {...this.details, cudaAllocatedMiB: 0, cudaReservedMiB: 0};
-      if (!this.closing) this.fail(Error(`Local voice worker exited (${code})`));
-      else this.publish('stopped');
-      done();
-    }));
+    this.exited = new Promise((done, reject) => {
+      this.rejectExited = reject;
+      child.once('close', code => {
+        this.clearPhase(); this.clearTimer(this.exitTimer); this.clearTimer(this.exitConfirmation);
+        this.exitTimer = this.exitConfirmation = null;
+        this.child = null; this.loaded = false;
+        this.details = {...this.details, cudaAllocatedMiB: 0, cudaReservedMiB: 0};
+        const error = this.failure || (this.closing ? cancelled('Local speech stopped') : Error(`Local voice worker exited (${code})`));
+        this.rejectReady?.(error);
+        for (const item of this.pending.values()) item.reject(error);
+        this.pending.clear();
+        if (!this.closing) this.fail(error); else this.publish('stopped');
+        done();
+      });
+    });
+    this.exited.catch(() => {});
+    this.phaseDeadline('startup', VOICE_WORKER_LIMITS.startupMs);
     return this.ready;
   }
   receive(frame) {
@@ -90,17 +134,24 @@ export class ResidentVoice {
         throw Error('Local voice worker did not warm all profiles on CUDA');
       }
       this.loaded = true;
+      this.clearPhase();
       this.details = {device: frame.device, dtype: frame.dtype, runtime: frame.runtime,
         tensorrt: frame.tensorrt, compiled: frame.compiled,
         acceleration: frame.acceleration || 'eager', cudaGraph: frame.cudaGraph,
         cudaAllocatedMiB: frame.cudaAllocatedMiB, cudaReservedMiB: frame.cudaReservedMiB,
         cudaPeakReservedMiB: frame.cudaPeakReservedMiB};
       if (!this.closing && !this.failure) this.publish('ready');
-      this.resolveReady(); return;
+      this.resolveReady();
+      if (this.closing || this.failure) this.awaitExit();
+      return;
     }
     const request = this.pending.get(frame.id);
+    // A timed-out physical render can finish while the worker drains EOF.
+    // Its caller has already failed; the late WAV must never be published.
+    if (!request && this.failure && ['audio', 'error'].includes(frame.op)) return;
     if (!request || !['audio', 'error'].includes(frame.op)) throw Error('Unexpected local speech response');
     this.pending.delete(frame.id);
+    this.clearPhase();
     for (const key of ['cudaAllocatedMiB', 'cudaReservedMiB', 'cudaPeakReservedMiB']) {
       if (Number.isFinite(frame[key])) this.details[key] = frame[key];
     }
@@ -113,9 +164,11 @@ export class ResidentVoice {
     else if (frame.profile !== request.profile || frame.steps !== request.steps) {
       request.reject(Error('Local speech identity changed'));
     } else request.resolve(frame);
+    if (this.closing || this.failure) this.awaitExit();
   }
   fail(error) {
-    this.failure = error;
+    this.failure ||= error;
+    this.clearPhase();
     this.rejectReady?.(error);
     for (const item of this.pending.values()) item.reject(error);
     this.pending.clear();
@@ -123,6 +176,7 @@ export class ResidentVoice {
     // EOF lets a running generation finish before releasing CUDA, including
     // when a malformed response has made this worker unusable.
     if (this.child && !this.child.stdin.writableEnded) this.child.stdin.end();
+    this.awaitExit();
   }
   synthesize(profile, text, {signal, steps: chosenSteps} = {}) {
     if (!this.usesProfile(profile)) return Promise.reject(Error('This character uses its Convai voice'));
@@ -139,6 +193,7 @@ export class ResidentVoice {
       this.publish('speaking', {profile});
       const frame = await new Promise((resolveAudio, reject) => {
         this.pending.set(id, {resolve: resolveAudio, reject, profile, steps});
+        this.phaseDeadline('generation', VOICE_WORKER_LIMITS.renderMs);
         this.child.stdin.write(JSON.stringify({op: 'synthesize', id, profile, text, steps}) + '\n', error => {
           if (error) this.fail(error);
         });
@@ -164,9 +219,12 @@ export class ResidentVoice {
     this.rejectReady?.(cancelled());
     if (!this.child) { this.publish('stopped'); return this.closing; }
     this.publish('stopping');
-    // EOF is observed after the current inference finishes; no forced CUDA
-    // termination, and no orphaned HTTP service holding VRAM after shutdown.
+    // EOF is observed after the current inference finishes. A stuck process
+    // receives the bounded owned-worker shutdown path rather than waiting forever.
     this.child.stdin.end();
+    // An active render/warmup keeps its original deadline. Once it finishes,
+    // only the short teardown allowance remains; idle close starts it now.
+    if (!this.phaseTimer) this.awaitExit();
     this.closing = this.exited || Promise.resolve();
     return this.closing;
   }

@@ -2,15 +2,16 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {EventEmitter} from 'node:events';
 import {PassThrough, Writable} from 'node:stream';
-import {ResidentVoice, LOCAL_VOICE_KEYS} from './resident-voice.mjs';
+import {ResidentVoice, LOCAL_VOICE_KEYS, VOICE_WORKER_LIMITS} from './resident-voice.mjs';
 import {silentWav} from './speech-audio.mjs';
 
 const config = {provider: 'hybrid', engine: 'omnivoice',
   voices: Object.fromEntries(LOCAL_VOICE_KEYS.map(key => [key, {reference: key}]))};
 const tick = () => new Promise(done => setImmediate(done));
-function harness({autoReady = true} = {}) {
+function harness({autoReady = true, timers} = {}) {
   const states = [], requests = []; let starts = 0;
   const child = new EventEmitter();
+  child.kills = 0; child.kill = () => { child.kills++; return true; };
   child.pid = 1234; child.stdout = new PassThrough(); child.stderr = new PassThrough();
   child.stdin = new Writable({write(chunk, encoding, done) {
     requests.push(JSON.parse(chunk.toString())); done();
@@ -20,6 +21,7 @@ function harness({autoReady = true} = {}) {
     dtype: 'torch.float16', runtime: 'pytorch', tensorrt: false, compiled: false,
     cudaAllocatedMiB: 1800, cudaReservedMiB: 2208, ...extra});
   const client = new ResidentVoice(config, {project: process.cwd(), configPath: 'local-config.json',
+    ...(timers ? {setTimer: timers.set, clearTimer: timers.clear} : {}),
     onState: state => states.push(state), spawnImpl: (exe, args, options) => {
       starts++; assert.equal(options.windowsHide, true); assert.deepEqual(options.stdio, ['pipe', 'pipe', 'pipe']);
       if (autoReady) queueMicrotask(() => ready()); return child;
@@ -30,6 +32,21 @@ function harness({autoReady = true} = {}) {
     send({...request, op: 'audio', audio: silentWav().toString('base64'), generationMs: 1400, ...extra});
   };
   return {client, child, states, requests, ready, reply, finish, starts: () => starts};
+}
+
+function clock() {
+  const jobs = new Map(); let time = 0, sequence = 0;
+  return {set: (callback, delay) => { const id = ++sequence; jobs.set(id, {callback, at: time + delay}); return id; },
+    clear: id => jobs.delete(id), size: () => jobs.size,
+    advance(ms) {
+      const target = time + ms;
+      for (;;) {
+        const next = [...jobs].filter(([, job]) => job.at <= target).sort((a, b) => a[1].at - b[1].at)[0];
+        if (!next) break;
+        jobs.delete(next[0]); time = next[1].at; next[1].callback();
+      }
+      time = target;
+    }};
 }
 
 test('only Johnny, Judy and Panam use local speech; an absent configuration preserves Convai', async () => {
@@ -133,4 +150,55 @@ test('acceleration diagnostics distinguish replay from a bounded eager fallback 
   assert.equal(h.states.at(-1).cudaGraph.shape, null);
   assert.deepEqual(fallback.audio, replay.audio);
   const closed = h.client.close(); h.finish(); await closed;
+});
+
+test('an intentional shutdown rejects an unfinished render if the child exits without an audio frame', async () => {
+  const h = harness(); const audio = h.client.synthesize('judy-alvarez', 'In progress'); await tick();
+  const rejected = assert.rejects(audio, /stopped|cancelled/);
+  const closed = h.client.close(); h.finish(1); await closed; await rejected;
+  assert.equal(h.client.pending.size, 0); assert.equal(h.client.loaded, false);
+});
+
+test('startup timeout releases callers then bounds owned-worker retirement without overlapping a replacement', async () => {
+  const timers = clock(), h = harness({autoReady: false, timers});
+  const ready = assert.rejects(h.client.start(), /startup timed out/);
+  timers.advance(VOICE_WORKER_LIMITS.startupMs - 1); assert.equal(h.child.stdin.writableEnded, false);
+  timers.advance(1); await ready; assert.equal(h.child.stdin.writableEnded, true);
+  assert.equal(h.child.kills, 0);
+  const closed = h.client.close();
+  timers.advance(VOICE_WORKER_LIMITS.exitGraceMs - 1); assert.equal(h.child.kills, 0);
+  timers.advance(1); assert.equal(h.child.kills, 1);
+  h.finish(); await closed; assert.equal(timers.size(), 0);
+  await assert.rejects(h.client.start(), /stopping/); assert.equal(h.starts(), 1);
+});
+
+test('render timeout rejects queued work and discards a late WAV while waiting for physical exit', async () => {
+  const timers = clock(), h = harness({timers});
+  const first = h.client.synthesize('judy-alvarez', 'First'); await tick();
+  const second = h.client.synthesize('panam-palmer', 'Queued');
+  const rejected = Promise.all([assert.rejects(first, /generation timed out/), assert.rejects(second, /generation timed out/)]);
+  timers.advance(VOICE_WORKER_LIMITS.renderMs); await rejected;
+  assert.equal(h.requests.length, 1); assert.equal(h.client.pending.size, 0);
+  h.reply(0); assert.equal(h.client.state, 'error');
+  const closed = h.client.close(); h.finish(); await closed;
+  assert.equal(timers.size(), 0); assert.equal(h.child.kills, 0);
+});
+
+test('ordinary close lets an active render finish within its original limit and only then starts teardown allowance', async () => {
+  const timers = clock(), h = harness({timers});
+  const first = h.client.synthesize('judy-alvarez', 'First'); await tick();
+  const rejected = assert.rejects(first, /cancelled/), closed = h.client.close();
+  timers.advance(VOICE_WORKER_LIMITS.renderMs - 1); assert.equal(h.child.kills, 0);
+  h.reply(0); await rejected;
+  timers.advance(VOICE_WORKER_LIMITS.exitGraceMs - 1); assert.equal(h.child.kills, 0);
+  h.finish(); await closed; assert.equal(timers.size(), 0);
+});
+
+test('missing process-exit confirmation rejects close rather than claiming CUDA was released', async () => {
+  const timers = clock(), h = harness({timers}); await h.client.start();
+  const closed = assert.rejects(h.client.close(), /exit could not be confirmed/);
+  timers.advance(VOICE_WORKER_LIMITS.exitGraceMs + VOICE_WORKER_LIMITS.exitConfirmationMs);
+  await closed; assert.equal(h.child.kills, 1); assert.equal(h.client.loaded, true);
+  assert.equal(h.client.child, h.child); assert.equal(h.client.state, 'error');
+  assert.equal(timers.size(), 0); h.finish();
 });
