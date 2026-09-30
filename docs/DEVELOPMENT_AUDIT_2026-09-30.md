@@ -599,8 +599,8 @@ functions or Lua modules with controlled ownership/timing, and an explicitly
 muted headless Edge test exercises the actual AudioWorklet. A first full run
 passed 1,250 of 1,252 checks and exposed a browser clock fault under load plus a
 host test integration mismatch; those failures were retained for diagnosis,
-not counted as acceptance. The host fixture was corrected; the real clock
-fault remains unreproduced and **has no claimed fix**. Strict continuity checks
+not counted as acceptance. The host fixture was corrected; at that checkpoint
+the real clock fault remained unreproduced, with no claimed fix. Strict continuity checks
 and bounded numeric diagnostics remain armed. Three isolated lifecycle reruns,
 one diagnostic full run, the retained-packet replay, and eight further muted
 browser checks did not reproduce it. The last eight ran concurrently with one
@@ -638,7 +638,55 @@ claim a second full run or a resolved cause for the rare clock discontinuity.
 | Bridge restart | Graceful release, fresh hidden PID 33996, zero startup stderr; waiting for requests |
 | Identity | Persistent player identity anchor hash unchanged across restart |
 | Game | Existing PID 28320 remained running |
-| Activation and live quality | One CET reload and a Judy F6 Convai-only check requested; continuous latency, audible smoothness and rendered face result pending |
+| Activation and live quality | CET activation confirmed. First live F6 check failed: the user saw text but heard no voice and saw no lip sync. See the diagnosed causes below. |
+
+### First live failure and corrections
+
+The first continuous reply advanced its software cursor to 6.626 seconds of a
+6.783-second source with zero buffer underruns, then stopped. This was **not**
+evidence of audible delivery. Three independent issues were identified:
+
+1. **Muted output:** saved native Master Volume was 100 and Dialogue Volume 0.
+   The new renderer followed those settings and was silent. The user chose to
+   correct the game setting; no companion volume slider or automatic change to
+   their native settings was made.
+2. **Facial ownership mismatch:** `buildProviderFacialTimeline` omitted
+   `generation`, while the Lua adapter required it. Standalone fixtures had
+   supplied the missing field and concealed the boundary defect. The producer
+   now emits a validated generation. An actual publisher → JavaScript builder
+   → Lua playback test reproduced `Facial timeline belongs to another reply`
+   before the correction and applies the pose afterward. Seventy focused checks
+   passed; Lua's ownership checks were not loosened.
+3. **Repeated browser render timestamp:** the live numeric diagnostic showed
+   two successive quanta at `6.810666666666667..6.816000000000001`, while source
+   frames remained contiguous (`161280..161408`, then `161408..161536`). This
+   identifies duplicated context timing rather than dropped or repeated PCM.
+   The correction gives every callback a distinct mapped quantum using integer
+   `currentFrame`, bounded below by the previous mapped quantum's end. A later
+   browser catch-up removes the temporary lead. PCM remains untouched; source
+   discontinuity and backwards raw clocks still fail. An exact numerical
+   regression preserves all samples across the observed duplicate.
+
+The software onset estimate was about 3.06 seconds after request admission in
+this silent trial, versus 8.67 seconds for the earlier complete-file request.
+The prompts and generated responses differ, and output was muted, so this is
+not an audible A/B result or a latency promise.
+
+After correcting Dialogue Volume, the user reported **latency is good now**,
+while lip sync remained absent on the still-running old builder. That reply
+drained all 3.4 seconds with zero underruns and a `continuous-playback` receipt.
+Its software onset estimate was 3.291 seconds after admission; first provider
+PCM was 2.199 seconds after submission, with a reused connection. The exact
+facial rejection above remained visible, with zero native face applications.
+
+**Corrective checkpoint `7baf303`:** ninety focused renderer/facial/publisher/Lua
+checks passed, including the actual muted browser and production-to-Lua facial
+contract. Only the bridge was restarted; CET and the game remained running.
+Fresh bundle: 1,324,103 bytes, SHA-256
+`a0ceb191d4251ffa3efbcfa9df4f65f1fc60ac4ee6ddfb4aef4e35a9abd52d33`.
+Hidden bridge PID 25820 started with no stderr, and Judy's connection reached
+ready before the next requested F6 check. Corrected rendered movement remains
+pending that check; the full 1,266 run predates these targeted corrections.
 
 Packaging is documented in [PACKAGING.md](PACKAGING.md) and a checked
 machine-readable proposal: 39 Lua files in Scripts; catalogs, native components

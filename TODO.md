@@ -47,6 +47,16 @@
   began native playback at about 8.67 s. Full-reply buffering is the main delay
   after first audio. Smooth playback does not establish acceptable lip sync.
   Phone history across reload remains a separate live follow-up.
+  **Follow-up:** continuous playback is loaded, and the user now reports good
+  latency after correcting native Dialogue Volume from 0. The latest complete
+  3.4-second reply had zero underruns and an onset estimate of 3.291 seconds.
+  Lip sync failed because the continuous JS timeline omitted Lua's required
+  generation. The producer fix and an actual publisher-to-Lua regression pass;
+  corrected rendered mouth movement still needs its own live check. A repeated
+  browser render timestamp was captured and corrected without touching samples.
+  Both fixes are installed in bridge-only checkpoint `7baf303`; 90 focused
+  checks pass, including a real browser and production builder-to-Lua test.
+  Judy's connection is ready and a fresh F6 mouth-movement check is pending.
 - [x] Add **Follow-up questions** (`followUpQuestions`) to organized Settings,
   default Off per the user's latest request. Local checkpoint `135264d`; 991
   tests passed with zero failures/skips, including installed MCM integration.
