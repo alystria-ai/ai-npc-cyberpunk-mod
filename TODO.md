@@ -7,8 +7,13 @@ player ID across all saves and characters**, natural conversation memory, and
 explicit Forget controls. No proactive memory creation for unused characters.
 See `docs/PLAYER_MEMORY.md` for the current runtime contract.
 
-- [ ] Install and live-check the single-ID route across private, group, phone
-  and microphone chat; source routing and isolated startup tests are available.
+- [x] Install the single-ID memory runtime and native MCM controls. September 30:
+  926 checks passed with zero failures/skips, the browser bundle rebuilt, Lua
+  files/catalogues hash verified, and the bridge reports a matching identity
+  anchor and fresh ready status. Local voice state is remote; Cyberpunk launched.
+  Main feature checkpoint: `a361f13`; voice fixes: `44e7c4d`, `ae7d2e1`.
+- [ ] Live-check the single-ID route across private, group, phone and microphone
+  chat; source routing and isolated startup tests are available.
 - [ ] Live-check **Settings → Memory**, its unspawned character picker,
   inline Confirm/Cancel and exact clear feedback. All targets only contacted
   profiles. The player ID remains the same after both clears.

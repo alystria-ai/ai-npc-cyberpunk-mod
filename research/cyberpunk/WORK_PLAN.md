@@ -23,8 +23,10 @@ See `../../docs/PLAYER_MEMORY.md` and `PLAYER_MEMORY_API.md` for the current flo
 - [x] Finish coordinated verification: 926 tests passed with zero failures or
   skips, including the real Lua lifecycle and installed MCM framework. Rebuild
   the browser bundle and confirm Judy's live profile schema read-only.
-- [ ] Install and qualify actual conversations, memory recall and deliberate
-  clears. Keep the same ID across all those actions.
+- [x] Install and hash-verify the Lua/catalogue update, start the bridge with a
+  matching single-ID anchor and ready Memory status, and launch Cyberpunk.
+- [ ] Qualify actual conversations, memory recall and deliberate clears. Keep
+  the same ID across all those actions.
 
 ## Research and earlier implementation evidence
 

@@ -78,3 +78,9 @@ bundle also built successfully. A separate read-only production check confirmed
 Judy's exact profile ID, ownership marker and memory-settings schema; memory
 remained disabled before her first actual message. These checks do not establish
 rendered UI acceptance, natural recall or a real Forget result.
+
+The coordinated update is installed and hash verified. The running bridge
+reported a matching player identity anchor and fresh ready Memory status, with
+zero contacted characters before the first actual message. Cyberpunk was
+launched for the user check; visible menu, reply and recall acceptance remains
+pending. Main feature checkpoint: `a361f13`.

@@ -128,11 +128,11 @@ $env:CYBERPUNK_MCM_API = 'E:\SteamLibrary\steamapps\common\Cyberpunk 2077\bin\x6
 node --test bridge/manager.test.mjs
 ```
 
-The UI is source work until the installer owner copies the updated `manager.lua`
-and `mcm.lua` into the installed mod. **CET Reload All Mods** loads this page;
-no new native script, redscript compile or game restart is required for the UI.
-The coordinated bridge implementation must also be loaded so it publishes fresh
-status and processes explicit commands.
+The updated Lua files and catalogues were installed and hash verified on
+September 30, and the bridge published a fresh ready Memory status with zero
+contacted characters before the first actual message. Cyberpunk was closed and
+then launched, so this launch requires no CET reload. Future Lua-only changes
+can use **CET Reload All Mods**; this page adds no native script or save component.
 
 In-game acceptance should inspect **Settings → Memory**, choose an unspawned
 catalogue character, open and cancel a confirmation, and check the bridge count
