@@ -33,6 +33,20 @@ test('phone protocol accepts remote contacts without world entity spoofing and b
 });
 
 async function finish(chat, value) { await chat.accept(value); await chat.active?.work; }
+
+test('phone opt-in reaches provider context once per send and does not change displayed text or add turns', async () => {
+  for (const followUpQuestions of [undefined, false, null, 'true', 1, true]) {
+    const message = 'How is the editing going?';
+    const value = state({request: {id: 'world-1-1', contact: 'judy', text: message, followUpQuestions}});
+    const {chat, calls, output} = fixture(async () => ({text: 'Going well.', sessionID: 'session'}));
+    await finish(chat, value);
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].input.followUpQuestions, followUpQuestions === true);
+    assert.equal(calls[0].input.text, message);
+    assert.match(calls[0].context, followUpQuestions === true ? /at most one short, relevant question/ : /Follow-up questions are disabled/);
+    assert.deepEqual(output.filter(row => row.state === 'reply').map(row => row.text), ['Going well.']);
+  }
+});
 const memory = (save, remoteGeneration = 'remote-generation-1') => ({status: 'available',
   identity: {userId: save.localUserId, campaignId: save.campaignId, branchId: save.branchId, remoteGeneration},
   endUserId: `private-${save.branchId}-${remoteGeneration}`});
@@ -313,6 +327,19 @@ end
 configure()
 local function update() for i=1,8 do m.update(player,0) end end
 `;
+test('phone Lua captures the preference on Send and keeps it through pending heartbeat updates', () => runLua(setup + `
+local followUps=false
+m.manager.followUpQuestions=function()return followUps end
+update();submission={contact='judy',text='Hello'};update()
+assert(m.pending.followUpQuestions==false)
+followUps=true;clock=clock+1;update()
+assert(m.pending.followUpQuestions==false)
+local pending=m.pending
+put('runtime/phone-chat-output.json',{world=m.world,binding=m.bindingKey,id=pending.id,contact='judy',state='reply',text='Hey V'})
+update();submission={contact='judy',text='How are you?'};update()
+assert(m.pending.followUpQuestions==true)
+followUps=false;clock=clock+1;update();assert(m.pending.followUpQuestions==true)
+`));
 test('paused phone frames deliver replies to the original contact after selection changes', () => runLua(setup + `
 update(); draft='Hey Judy'; submission={contact='judy',text=draft}; update()
 local pending=m.pending; assert(pending and m.history.judy[1].text=='Hey Judy')

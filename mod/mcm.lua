@@ -305,6 +305,8 @@ local function schema()
             action('memory', 'Memory', 'Manage',
                 'Choose a character, review memory status and manage memories from your conversations.',
                 function(context) return navigate('memory', context) end),
+            setting('followUpQuestions', 'Follow-up questions', 'bool', snapshot.settings.followUpQuestions, false,
+                'Characters may ask a brief, relevant follow-up in ordinary conversations. In a group, only the final speaker may ask. When off, characters answer without inviting another turn. Automatic reactions never start a question.'),
         })
         local voiceLabels = {ready = 'Ready', loading = 'Loading', warming = 'Preparing voices', speaking = 'Preparing a reply',
             error = 'Unavailable', waiting = 'Waiting for voice service', disabled = 'Not configured', stopped = 'Stopped',
@@ -375,7 +377,7 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
             local values, applied = {enabledByKey = {}}, {}
             for _, change in ipairs(changes) do
                 local key = change.id
-                if key == 'voice' or key == 'subtitles' or key == 'disappearingMessages' or key == 'battleReactions' or key == 'lootReactions' then values[key] = change.value
+                if key == 'voice' or key == 'subtitles' or key == 'disappearingMessages' or key == 'followUpQuestions' or key == 'battleReactions' or key == 'lootReactions' then values[key] = change.value
                 elseif key == 'subtitleStyle' then
                     if change.value ~= 1 and change.value ~= 2 then return {ok = false, error = 'Choose Above speaker or Dialogue HUD.'} end
                     values.subtitleStyle = change.value == 1 and 'overhead' or 'dialogue'

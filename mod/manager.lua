@@ -256,6 +256,7 @@ local function loadSettings()
         settings.subtitleStyle, settingsNeedSave = 'dialogue', true
     end
     if type(settings.disappearingMessages) ~= 'boolean' then settings.disappearingMessages = false end
+    if type(settings.followUpQuestions) ~= 'boolean' then settings.followUpQuestions, settingsNeedSave = false, true end
     if type(settings.battleReactions) ~= 'boolean' then settings.battleReactions, settingsNeedSave = true, true end
     if type(settings.lootReactions) ~= 'boolean' then settings.lootReactions, settingsNeedSave = true, true end
     if settings.voiceProvider ~= 'hybrid' and settings.voiceProvider ~= 'convai' then
@@ -312,6 +313,11 @@ end
 function M.disappearingMessages()
     loadSettings()
     return settings.disappearingMessages == true
+end
+
+function M.followUpQuestions()
+    loadSettings()
+    return settings.followUpQuestions == true
 end
 
 function M.subtitleStyle()
@@ -780,6 +786,7 @@ function M.snapshot(player)
         profiles = profiles, models = models, party = party, feedback = feedback,
         settings = {voice = settings.voice, subtitles = settings.subtitles, subtitleStyle = settings.subtitleStyle,
             disappearingMessages = settings.disappearingMessages,
+            followUpQuestions = settings.followUpQuestions,
             battleReactions = settings.battleReactions,
             lootReactions = settings.lootReactions,
             voiceProvider = settings.voiceProvider,
@@ -811,7 +818,7 @@ function M.applySettings(player, values)
     nextSettings.enabledByKey = {}
     for key, value in pairs(settings.enabledByKey) do nextSettings.enabledByKey[key] = value end
     for key, value in pairs(values) do
-        if key == 'voice' or key == 'subtitles' or key == 'disappearingMessages' or key == 'battleReactions' or key == 'lootReactions' then
+        if key == 'voice' or key == 'subtitles' or key == 'disappearingMessages' or key == 'followUpQuestions' or key == 'battleReactions' or key == 'lootReactions' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings[key] = value
         elseif key == 'subtitleStyle' then

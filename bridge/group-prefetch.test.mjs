@@ -30,6 +30,7 @@ test('a prediction requires the published source, same round and audience, and t
     {...command, input: {...second, group: {...second.group, heard: []}}},
     {...command, input: {...second, group: {...second.group, heard: [{speaker: 'Judy', text: 'invented'}]}}},
     {...command, input: {...second, text: 'different request'}},
+    {...command, input: {...second, followUpQuestions: true}},
   ]) assert.equal(validatePrefetch(bad, source), null);
 });
 
@@ -39,6 +40,7 @@ test('cache identity includes entity, generation, speaker, body, exact heard tex
     {...second, requestId: '101-3-2ULL', generation: 3},
     {...second, requestId: '100-2-3ULL', entity: '3ULL'},
     {...second, profileKey: 'alex'}, {...second, name: 'other'}, {...second, bodyType: 'other'}, {...second, text: 'changed'},
+    {...second, followUpQuestions: true},
     {...second, group: {...second.group, heard: [{speaker: 'Judy', text: 'not delivered'}]}},
     {...second, group: {...second.group, audience: ['panam', 'judy', 'alex']}},
   ]) assert.notEqual(inputIdentity(changed, 'context'), identity);

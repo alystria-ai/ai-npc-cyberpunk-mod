@@ -1,5 +1,6 @@
 import {createHash} from 'node:crypto';
 import {groupContext} from './group-context.mjs';
+import {followUpContext} from './conversation-style.mjs';
 import {battleContext} from './battle-context.mjs';
 import {lootContext} from './loot-context.mjs';
 import {parseWorldSnapshot} from './world-knowledge.mjs';
@@ -43,7 +44,7 @@ export function parseJournal(value) {
 export function journalContext(journal) {
   const snapshot = parseJournal(journal);
   if (!snapshot) return '';
-  if (snapshot.status === 'unavailable') return 'Current journal data is unavailable. Do not assume earlier quest progress still applies to this save; ask V if needed.';
+  if (snapshot.status === 'unavailable') return 'Current journal data is unavailable. Do not assume earlier quest progress still applies to this save. Acknowledge the missing information when it matters to V\'s question.';
   if (snapshot.status === 'untracked') return 'V currently has no active tracked quest. This does not mean all quests are completed. Do not invent a current objective.';
   return 'V\'s verified current-save journal is shared with you for this conversation. '
     + (snapshot.quest.objectives.length
@@ -67,7 +68,7 @@ const CURRENT_AUTHORITY = 'Current verified save facts and the current tracked-q
 function contextIdentity(input) {
   try {
     return createHash('sha256').update(JSON.stringify([input.requestId, input.id, input.generation,
-      input.entity, input.name, input.profileKey, input.channel, input.saveIdentity, input.text, input.group,
+      input.entity, input.name, input.profileKey, input.channel, input.saveIdentity, input.text, input.group, input.followUpQuestions,
       input.journal, input.battle, input.loot, input.reaction, input.worldKnowledge, input.journalHistory])).digest('hex');
   } catch { return null; }
 }
@@ -111,5 +112,5 @@ export function conversationContext(input) {
   const knowledge = trusted?.knowledgeContext || (input.worldKnowledge !== undefined ? WORLD_UNAVAILABLE : '');
   const history = trusted?.historyContext || (input.journalHistory !== undefined ? HISTORY_UNAVAILABLE : '');
   return [groupContext(input), knowledge, history, journalContext(input.journal), battleContext(input), lootContext(input),
-    knowledge || history ? CURRENT_AUTHORITY : ''].filter(Boolean).join('\n\n');
+    knowledge || history ? CURRENT_AUTHORITY : '', followUpContext(input)].filter(Boolean).join('\n\n');
 }

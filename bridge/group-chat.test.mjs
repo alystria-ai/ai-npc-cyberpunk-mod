@@ -25,6 +25,31 @@ test('an unconfigured addressed companion is never replaced by a different speak
   local nearby = group.choose(nil,{alex},{alex=true})
   assert(#nearby==1 and nearby[1]==alex)
 `));
+
+test('one follow-up preference is frozen per round and a departed last speaker transfers final-speaker ownership', () => check(`
+  local enabled=false
+  group.captureFollowUpQuestions=function()return enabled end
+  group.start('off',{judy,panam,alex},'Hello')
+  enabled=true
+  local first=group.next(1,100,live)
+  assert(first.followUpQuestions==false)
+  group.received(first.requestId,'Hello V',false,{'judy','panam','alex'})
+  local prepared=group.preview(2,101,live)
+  assert(prepared.followUpQuestions==false and prepared.group.index~=prepared.group.total)
+  live['3ULL']=nil
+  local last=group.preview(3,102,live)
+  assert(last.requestId~=prepared.requestId and last.group.index==last.group.total)
+  assert(last.followUpQuestions==false)
+  group.completed(first.requestId,true)
+  assert(group.next(4,103,live).requestId==last.requestId)
+  group.received(last.requestId,'See you',false,{'judy','panam'})
+  group.completed(last.requestId,true)
+  assert(group.next(5,104,live)==nil)
+  group.start('on',{judy,panam},'Another message')
+  enabled=false
+  assert(group.next(6,105,live).followUpQuestions==true)
+  group.cancel();assert(group.next(7,106,live)==nil)
+`));
 test('next speaker cannot start before playback completes; duplicate completions are harmless', () => check(`
   group.start('round',{judy,panam,alex},'Hello friends')
   local first = group.next(1,100,live)

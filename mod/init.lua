@@ -182,6 +182,11 @@ microphone.currentKnowledgeOwner = function()
     return knowledgeOwner(refreshKnowledgeFrame())
 end
 groupChat.captureJournal = questContext.capture
+local function followUpQuestions()
+    return type(manager.followUpQuestions) == 'function' and manager.followUpQuestions() == true
+end
+groupChat.captureFollowUpQuestions = followUpQuestions
+microphone.captureFollowUpQuestions = followUpQuestions
 phoneChat.captureJournal = questContext.capture
 microphone.captureJournal = questContext.capture
 groupChat.captureBattle = battles.capture
@@ -585,6 +590,8 @@ local function toggleVoice()
 end
 
 local function sendRequest(context)
+    if context.reaction then context.followUpQuestions = false
+    elseif context.followUpQuestions == nil then context.followUpQuestions = followUpQuestions() end
     local owner = attachKnowledge(context)
     if not owner then return false end
     context.journal = context.journal or questContext.capture()

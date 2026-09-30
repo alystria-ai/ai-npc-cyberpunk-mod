@@ -28,6 +28,7 @@ end
 function M.start(id, participants, text)
     M.cancel()
     M.round = {id = id, participants = participants, text = text, index = 0, stage = 'next', heard = {},
+        followUpQuestions = type(M.captureFollowUpQuestions) == 'function' and M.captureFollowUpQuestions() == true,
         journal = M.captureJournal and M.captureJournal(), battle = M.captureBattle and M.captureBattle()}
 end
 
@@ -52,12 +53,14 @@ local function makeInput(r, index, generation, now, live, includePlaying)
     local input = {requestId = tostring(now) .. '-' .. tostring(generation) .. '-' .. speaker.entity,
         generation = generation, entity = speaker.entity, name = speaker.name, bodyType = speaker.bodyType,
         profileKey = speaker.profileKey, text = r.text, sentAt = now, journal = r.journal, battle = r.battle,
+        followUpQuestions = r.followUpQuestions,
         group = {id = r.id, index = index, total = total, audience = audience, heard = heard}}
     return input
 end
 
 local function sameContext(a, b)
     if a.entity ~= b.entity or a.profileKey ~= b.profileKey or a.text ~= b.text
+        or a.followUpQuestions ~= b.followUpQuestions
         or a.group.index ~= b.group.index or a.group.total ~= b.group.total
         or #a.group.audience ~= #b.group.audience or #a.group.heard ~= #b.group.heard then return false end
     for i, key in ipairs(a.group.audience) do if key ~= b.group.audience[i] then return false end end

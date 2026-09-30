@@ -41,6 +41,7 @@ function M.begin(context)
     if not capture(context) then return false end
     context.journal = M.captureJournal and M.captureJournal()
     context.battle = M.captureBattle and M.captureBattle()
+    context.followUpQuestions = type(M.captureFollowUpQuestions) == 'function' and M.captureFollowUpQuestions() == true
     if not currentOwner() then M.knowledgeOwner = nil; return false end
     if not command('start', context) then M.knowledgeOwner = nil; return false end
     M.context, M.state, M.started = context, 'starting', os.time()

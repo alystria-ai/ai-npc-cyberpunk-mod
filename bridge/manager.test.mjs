@@ -187,31 +187,62 @@ test('MCM settings apply as one saved transaction and leave playback unchanged o
     assert(manager.snapshot(player).settings.voiceProvider == 'hybrid')
     assert(manager.battleReactions() and manager.snapshot(player).settings.battleReactions)
     assert(manager.lootReactions() and manager.snapshot(player).settings.lootReactions)
+    assert(not manager.followUpQuestions() and manager.snapshot(player).settings.followUpQuestions == false)
     assert(manager.applySettings(player, {lootReactions = false}))
     assert(not manager.lootReactions() and saved.lootReactions == false)
     assert(manager.applySettings(player, {lootReactions = 'on'}) == false)
     assert(manager.applySettings(player, {battleReactions = false}))
     assert(not manager.battleReactions() and saved.battleReactions == false)
     assert(manager.applySettings(player, {battleReactions = 'on'}) == false)
-    assert(manager.applySettings(player, {voice = false, subtitleStyle = 'overhead', omniSteps = 16, voiceProvider = 'convai', disappearingMessages = true, enabledByKey = {['johnny-silverhand'] = false}}))
+    assert(manager.applySettings(player, {voice = false, subtitleStyle = 'overhead', omniSteps = 16, voiceProvider = 'convai', disappearingMessages = true, followUpQuestions = true, enabledByKey = {['johnny-silverhand'] = false}}))
     assert(player.voice == false and saved.omniSteps == 16 and not manager.profileEnabled('johnny-silverhand'))
     assert(saved.disappearingMessages and manager.disappearingMessages())
+    assert(saved.followUpQuestions == true and manager.followUpQuestions())
     failSave = true
-    assert(manager.applySettings(player, {voice = true, subtitles = false, subtitleStyle = 'dialogue', omniSteps = 32, voiceProvider = 'hybrid', disappearingMessages = false}) == false)
+    assert(manager.applySettings(player, {voice = true, subtitles = false, subtitleStyle = 'dialogue', omniSteps = 32, voiceProvider = 'hybrid', disappearingMessages = false, followUpQuestions = false}) == false)
     local values = manager.snapshot(player).settings
     assert(values.voice == false and values.subtitles == true and values.omniSteps == 16)
     assert(player.voice == false and player.subtitles == true)
     assert(values.disappearingMessages and manager.disappearingMessages())
+    assert(values.followUpQuestions == true and manager.followUpQuestions())
     assert(values.voiceProvider == 'convai')
     assert(values.subtitleStyle == 'overhead' and manager.subtitleStyle() == 'overhead')
     failSave = false
     assert(manager.applySettings(player, {voice = true, omniSteps = 8}) == false)
     assert(manager.applySettings(player, {enabledByKey = {unknown = true}}) == false)
     assert(manager.applySettings(player, {disappearingMessages = 'yes'}) == false)
+    assert(manager.applySettings(player, {voice = true, followUpQuestions = 'yes'}) == false)
+    assert(not manager.snapshot(player).settings.voice and manager.followUpQuestions())
     assert(manager.applySettings(player, {voiceProvider = 'unknown'}) == false)
     assert(manager.applySettings(nil, {voice = true}))
     manager.reset(); manager.snapshot(player); assert(player.voice == true)
+    assert(manager.followUpQuestions(), 'reset replaced the saved follow-up setting')
     assert(manager.subtitleStyle() == 'overhead', 'failed save or reset replaced explicit subtitle choice')
+  `);
+});
+
+test('follow-up questions migrate to Off and retain explicit saved On or Off choices', () => {
+  run(`${managerFixture}
+    for _, savedValue in ipairs({'missing', 'on', 0, true, false}) do
+      seed = {version = 2, voice = false, subtitles = false, subtitleStyle = 'dialogue',
+        voiceProvider = 'convai', omniSteps = 16, battleReactions = false, lootReactions = false,
+        disappearingMessages = true, enabledByKey = {}, future = {keep = 'unchanged'}}
+      for _, profile in ipairs(profiles) do seed.enabledByKey[profile.key] = true end
+      if savedValue ~= 'missing' then seed.followUpQuestions = savedValue end
+      files['runtime/settings.json'], saved = 'seed', nil
+      manager.configure(api, profiles)
+      local enabled = savedValue == true
+      assert(manager.followUpQuestions() == enabled)
+      local state = manager.snapshot(player).settings
+      assert(state.followUpQuestions == enabled)
+      assert(not state.voice and not state.subtitles and state.voiceProvider == 'convai' and state.omniSteps == 16)
+      assert(not state.battleReactions and not state.lootReactions and state.disappearingMessages)
+      if type(savedValue) ~= 'boolean' then
+        assert(saved.followUpQuestions == false and saved.future.keep == 'unchanged', 'migration must save its default')
+      end
+      manager.reset()
+      assert(manager.followUpQuestions() == enabled, 'reload did not preserve the persisted choice')
+    end
   `);
 });
 
@@ -641,6 +672,11 @@ test('MCM schema uses native controls, operates on current copies while paused, 
     assert(row('disappearingMessages').type == 'bool' and row('disappearingMessages').value == false)
     assert(row('battleReactions').type == 'bool' and row('battleReactions').value == true)
     assert(row('lootReactions').type == 'bool' and row('lootReactions').value == true)
+    assert(row('followUpQuestions').type == 'bool' and row('followUpQuestions').value == false)
+    assert(row('followUpQuestions').defaultValue == false and row('followUpQuestions').capabilities.draft)
+    assert(registered.applyBatch('manager', {{id = 'followUpQuestions', value = true}}).ok)
+    assert(manager.followUpQuestions())
+    assert(not registered.applyBatch('manager', {{id = 'followUpQuestions', value = 'off'}}).ok)
     assert(registered.applyBatch('manager', {{id = 'lootReactions', value = false}}).ok)
     assert(not manager.lootReactions())
     assert(registered.applyBatch('manager', {{id = 'battleReactions', value = false}}).ok)
@@ -861,6 +897,9 @@ test('installed MCM API accepts the provider, actions, draft transactions and dy
       assert(actual.setDraft(key .. ':voiceProvider', 2))
       assert(actual.setDraft(key .. ':subtitleStyle', 1))
       assert(actual.setDraft(key .. ':battleReactions', false))
+      assert(actual.getValue(key .. ':followUpQuestions') == false)
+      assert(actual.setDraft(key .. ':followUpQuestions', true))
+      assert(not manager.followUpQuestions(), 'draft must not change running conversations')
       assert(actual.invokeAction(key .. ':tab:characters') == false)
       assert(actual.invokeAction(key .. ':memory') == false and memoryWrites() == 0)
       assert(mcm.inspect().view == 'settings', 'a pending draft allowed submenu navigation')
@@ -872,9 +911,12 @@ test('installed MCM API accepts the provider, actions, draft transactions and dy
       assert(manager.snapshot(player).settings.voiceProvider == 'convai')
       assert(actual.getValue(key .. ':subtitleStyle') == 1 and manager.subtitleStyle() == 'overhead')
       assert(not manager.battleReactions() and actual.getValue(key .. ':battleReactions') == false)
+      assert(manager.followUpQuestions() and actual.getValue(key .. ':followUpQuestions') == true)
       assert(actual.setDraft(key .. ':subtitles', false))
+      assert(actual.setDraft(key .. ':followUpQuestions', false))
       assert(actual.invokeAction(key .. ':permissions') == false)
       assert(actual.revert(key) and actual.getValue(key .. ':subtitles') == true)
+      assert(manager.followUpQuestions() and actual.getValue(key .. ':followUpQuestions') == true)
       assert(actual.invokeAction(key .. ':permissions') and mcm.inspect().view == 'permissions')
       assert(actual.getValue(key .. ':tab:settings') == 'Selected')
       assert(actual.invokeAction(key .. ':permissions:back') and mcm.inspect().view == 'settings')

@@ -9,6 +9,14 @@ test('a game display-name alias and multiline input retain managed identity', ()
   assert.equal(parsed.text, turn.text);
   assert.equal(profileFor(parsed, [{key: 'resident-female'}, {key: 'alex'}]).key, 'alex');
 });
+
+test('follow-up questions are Off for legacy or malformed requests and opt in only with true', () => {
+  for (const followUpQuestions of [undefined, false, null, 'true', 1, {}, []]) {
+    const parsed = parseInput(JSON.stringify({...turn, followUpQuestions}));
+    assert.equal(parsed.followUpQuestions, false); assert.equal(parsed.text, turn.text);
+  }
+  assert.equal(parseInput(JSON.stringify({...turn, followUpQuestions: true})).followUpQuestions, true);
+});
 test('an unconfigured named companion cannot become a generic resident', () => {
   assert.equal(profileFor(turn, [{key: 'resident-female'}]), undefined);
 });

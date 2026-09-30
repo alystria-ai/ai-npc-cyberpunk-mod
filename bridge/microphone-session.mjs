@@ -1,11 +1,12 @@
 import {transportKey} from './transport-pool.mjs';
+import {followUpsEnabled} from './conversation-style.mjs';
 
 // Context can change while V speaks; the recording's recipient cannot. Keep
 // this receipt separate from the caller's input object, which may be replaced
 // by a freshly verified knowledge projection at finish. The bridge retains
 // ownership of its original world/session guard across both projections.
 const recordingIdentity = input => JSON.stringify([input?.requestId, input?.entity, input?.generation,
-  input?.profileKey, input?.channel ?? 'private', input?.group ? [input.group.id, input.group.index,
+  input?.profileKey, input?.channel ?? 'private', followUpsEnabled(input?.followUpQuestions), input?.group ? [input.group.id, input.group.index,
     input.group.total, [...input.group.audience].sort()] : null]);
 
 // Hardware operations are serialized. A finish/cancel arriving while the

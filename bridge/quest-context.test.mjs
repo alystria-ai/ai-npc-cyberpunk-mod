@@ -42,6 +42,26 @@ test('quest changes invalidate prepared context and group instructions retain fi
   assert.match(journalContext({version: 1, status: 'unavailable'}), /Do not assume earlier quest progress/);
 });
 
+test('follow-ups default Off, opt in privately or for the last group speaker, and never open automatic reactions', () => {
+  for (const channel of ['private', 'phone']) {
+    assert.match(conversationContext({...input, channel}), /Follow-up questions are disabled/);
+    assert.match(conversationContext({...input, channel, followUpQuestions: true}), /at most one short, relevant question/);
+  }
+  for (const index of [1, 2, 3]) {
+    const group = {index, total: 3, audience: ['judy', 'panam', 'alex'], heard: []};
+    const enabled = conversationContext({...input, group, followUpQuestions: true});
+    if (index === 3) assert.match(enabled, /at most one short, relevant question/);
+    else { assert.match(enabled, /Do not ask V a question/); assert.doesNotMatch(enabled, /may ask V/); }
+    assert.doesNotMatch(conversationContext({...input, group, followUpQuestions: false}), /may ask V/);
+  }
+  for (const kind of ['battle', 'loot']) {
+    const automatic = conversationContext({...input, followUpQuestions: true, reaction: {kind}});
+    assert.match(automatic, /automatic reaction\. Do not ask V a question/);
+    assert.doesNotMatch(automatic, /may ask V/);
+  }
+  assert.notEqual(inputIdentity(input), inputIdentity({...input, followUpQuestions: true}));
+});
+
 test('phone sends revealed context to Convai while retaining the original display text and identity', async () => {
   const state = parsePhoneState(JSON.stringify({version: 1, world: 'save-1', updated: 100, active: true,
     request: {id: 'save-1-1', contact: 'judy', text: input.text, journal: snapshot}}));
@@ -91,7 +111,7 @@ test('only the internal attachment adds reviewed knowledge and selected journal 
 test('trusted context cannot survive IPC or be reused for another request, character, audience or mutated capture', () => {
   const trusted = withConversationKnowledge(knowledgeInput(), knowledgeOptions);
   for (const changed of [parseInput(JSON.stringify(trusted)), {...trusted, requestId: '101-1-10ULL'},
-    {...trusted, profileKey: 'panam-palmer'}, {...trusted, text: 'A different question'},
+    {...trusted, profileKey: 'panam-palmer'}, {...trusted, text: 'A different question'}, {...trusted, followUpQuestions: true},
     {...trusted, group: {index: 1, total: 2, audience: ['judy-alvarez', 'panam-palmer'], heard: []}},
     {...trusted, worldKnowledge: {...trusted.worldKnowledge, worldToken: 'load-8'}}]) {
     const context = conversationContext(changed);

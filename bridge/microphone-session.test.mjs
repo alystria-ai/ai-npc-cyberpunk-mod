@@ -79,7 +79,7 @@ test('finish received during device opening keeps its refreshed context until th
 
 test('a refreshed finish cannot redirect an utterance to another request, entity, generation, profile, or audience', async t => {
   for (const changed of [{requestId: 'other'}, {entity: '43ULL'}, {generation: 6}, {profileKey: 'panam'},
-    {channel: 'phone'}, {group: {id: 'party', index: 1, total: 2, audience: ['judy', 'panam']}}]) {
+    {channel: 'phone'}, {followUpQuestions: true}, {group: {id: 'party', index: 1, total: 2, audience: ['judy', 'panam']}}]) {
     await t.test(Object.keys(changed)[0], async () => {
       const f = fixture(), input = recording(), config = configuration();
       const start = f.session.start(input, config);

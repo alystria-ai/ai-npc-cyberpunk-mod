@@ -173,6 +173,31 @@ test('private sends use the fresh Lua world and audience, preserving battle and 
  assert(versionReads==1,'pack was repeatedly configured');assert(saveIdentityReads==0)
 `));
 
+test('real send, microphone and group adapters snapshot follow-up settings without reopening conversations', () => run(`
+ start();local enabled=false
+ modules['manager.lua'].followUpQuestions=function()return enabled end
+ assert(runtime.send(input('off')))
+ assert(stored('runtime/last-input.json').followUpQuestions==false)
+ enabled=true;assert(runtime.send(input('on')))
+ assert(stored('runtime/last-input.json').followUpQuestions==true)
+ local reaction=input('reaction');reaction.reaction={kind='loot'};reaction.followUpQuestions=true
+ assert(runtime.send(reaction));assert(stored('runtime/last-input.json').followUpQuestions==false)
+ assert(microphone.begin(input('mic-on')))
+ assert(stored('runtime/microphone-command.json').input.followUpQuestions==true)
+ enabled=false;assert(microphone.finish())
+ assert(stored('runtime/microphone-command.json').input.followUpQuestions==true)
+ microphone.cancel()
+ assert(microphone.begin(input('mic-off')))
+ assert(stored('runtime/microphone-command.json').input.followUpQuestions==false)
+ enabled=true;assert(microphone.finish())
+ assert(stored('runtime/microphone-command.json').input.followUpQuestions==false)
+ microphone.cancel()
+ group.start('on',{{entity='1ULL',profileKey='judy-alvarez',name='Judy'}},'Hello')
+ enabled=false;local next=group.next(1,now,{['1ULL']=true})
+ assert(runtime.send(next)and stored('runtime/last-input.json').followUpQuestions==true)
+ group.cancel();assert(not group.round and not microphone.context)
+`));
+
 test('current facts do not require native save identity and transient world ownership rotates on load', () => run(`
  start();assert(runtime.send(input('no-native-identity')))
  local before=stored('runtime/world-session.json');local out=stored('runtime/last-input.json')

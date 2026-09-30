@@ -1,6 +1,7 @@
 // Managed identity is authoritative. Never silently route an unsupported named
 // companion into a resident profile just because its body type is recognized.
 import {parseGroup} from './group-context.mjs';
+import {followUpsEnabled} from './conversation-style.mjs';
 import {parseJournal} from './quest-context.mjs';
 import {parseBattle, parseReaction} from './battle-context.mjs';
 import {parseLoot} from './loot-context.mjs';
@@ -32,6 +33,7 @@ export function parseInput(raw) {
   const battle = parseBattle(value.battle), reaction = parseReaction(value.reaction, battle, loot);
   if (reaction === null) return null;
   return {requestId, generation, entity, name: name.slice(0, 120), bodyType: bodyType.slice(0, 80), profileKey, text: text.trim(), group,
+    followUpQuestions: followUpsEnabled(value.followUpQuestions),
     ...(journal ? {journal} : {}), ...(battle ? {battle} : {}), ...(loot ? {loot} : {}), ...(reaction ? {reaction} : {}),
     ...(worldKnowledge ? {worldKnowledge} : {}), ...(journalHistory ? {journalHistory} : {})};
 }
