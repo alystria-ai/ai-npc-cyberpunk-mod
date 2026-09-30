@@ -2,6 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import fengari from 'fengari';
+import {uiLocaleBootstrap} from './ui-locale-fixture.mjs';
 
 const source = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8');
 const questSource = readFileSync(new URL('../mod/quest-context.lua', import.meta.url), 'utf8');
@@ -17,7 +18,7 @@ function run(body) {
   lualib.luaL_openlibs(state);
   try {
     const program = `${fixture}\n(function()\n${source}\nend)()\n${body}\nassertClean()`;
-    const result = lauxlib.luaL_dostring(state, to_luastring(program));
+    const result = lauxlib.luaL_dostring(state, to_luastring(uiLocaleBootstrap + program));
     const error = result === lua.LUA_OK ? '' : to_jsstring(lua.lua_tostring(state, -1));
     const line = Number(/\]:(\d+):/.exec(error)?.[1]);
     assert.equal(result, lua.LUA_OK, error + (line ? `\n${program.split('\n')[line - 1]}` : ''));
@@ -112,6 +113,13 @@ local targeting = {GetTargetParts = function() return nil, {} end,
 Game = {
     GetPlayer = function() nativeRead('GetPlayer'); return player end,
     GetSystemRequestsHandler = function() nativeRead('GetSystemRequestsHandler'); return requests end,
+    GetSettingsSystem = function()
+        nativeRead('GetSettingsSystem')
+        return {GetVar=function(_,group,key)
+            assert(group=='/language' and key=='OnScreen')
+            return {GetValue=function() return 'en-us' end}
+        end}
+    end,
     GetAllBlackboardDefs = function() return definitions end,
     GetBlackboardSystem = function() return {Get = function() return board end} end,
     GetTargetingSystem = function() return targeting end,
@@ -191,7 +199,7 @@ local group = {cancel = function() note('group-cancel') end,
     received = function(requestId) stats.received[#stats.received + 1] = requestId; return true end}
 local phone = {configure = function(_, _, options) stats.phoneOptions = options end,
     update = noOp, abandon = function() note('phone-abandon') end}
-local manager = {subtitleStyle = 'game', configure = noOp, profileEnabled = function() return true end,
+local manager = {subtitleStyle = 'game', configure = noOp, interfaceLanguage = function() return 'auto' end, profileEnabled = function() return true end,
     battleReactions = function() return false end, lootReactions = function() return false end,
     update = noOp, reset = function() note('manager-reset') end}
 local partyQueue

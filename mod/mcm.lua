@@ -1,6 +1,7 @@
 -- MCM API v2 provider. Every control is rendered by the installed native
 -- settings framework. No ImGui panel, HUD popup or copied MCM implementation.
 local M = {}
+local ui = (convaiUiLocale or dofile('ui-locale.lua'))
 local PROVIDER, MOD, LABEL = 'cyberpunk-convai', 'manager', 'Companion Manager'
 local MOD_KEY, MODEL_PAGE_SIZE = PROVIDER .. ':' .. MOD, 18
 local manager, queue, entry, api, provider
@@ -10,6 +11,7 @@ local owner, lastSignature, pollAt, searchFrames, snapshotAt = nil, '', 0, 0, 0
 local lastError = ''
 local actionFeedback, memoryActionCommand
 local presentation = {active = false, rows = {}}
+local localeRevision = -1
 local voicePreview = dofile('voice-preview.lua').new()
 local log = function(message)
     local file = io.open('runtime/mcm.log', 'a')
@@ -152,26 +154,39 @@ local function styleCompletedPage()
     end
 end
 
-local function readonly(id, label, value, description)
-    return {id = id, label = label, value = value or '', description = description or '', type = 'string',
+local function readonly(id, label, value, description, raw)
+    raw = raw or {}
+    if id:match('^state:') then raw.label = true end
+    return {id = id, label = raw.label and label or ui.t(label), value = raw.value and value or ui.t(value or ''),
+        description = raw.description and description or ui.t(description or ''), type = 'string',
         capabilities = {read = true, write = false, draft = false, reset = false}}
 end
 
-local function setting(id, label, kind, value, default, description, elements)
-    return {id = id, label = label, type = kind, value = value, defaultValue = default,
-        description = description, elements = elements,
+local function setting(id, label, kind, value, default, description, elements, raw)
+    raw = raw or {}
+    if id:match('^enabled:') then raw.label = true end
+    local localized
+    if elements then localized = {};for i,item in ipairs(elements) do localized[i]=raw.elements and item or ui.t(item) end end
+    return {id = id, label = raw.label and label or ui.t(label), type = kind, value = value, defaultValue = default,
+        description = ui.t(description), elements = localized,
         capabilities = {read = true, write = true, draft = true, reset = true}}
 end
 
-local function action(id, label, value, description, callback, enabled)
+local function action(id, label, value, description, callback, enabled, raw)
     actions[id] = callback
-    return {id = id, label = label, value = value, description = description,
+    raw = raw or {}
+    if id:match('^invite:') or id:match('^dismiss:') or id:match('^assign%-profile:') or id:match('^memory:select:') then raw.label = true end
+    if (id:match('^assign:') and id ~= 'assign:none' and value ~= 'Choose a profile')
+        or (id == 'memory:choose' and value ~= 'Choose a character') then raw.value = true end
+    if id == 'models:previous' or id == 'models:next' or id == 'memory:previous' or id == 'memory:next' then raw.description = true end
+    return {id = id, label = raw.label and label or ui.t(label), value = raw.value and value or ui.t(value),
+        description = raw.description and description or ui.t(description),
         type = 'action', disabled = enabled == false,
         capabilities = {read = true, action = enabled ~= false, write = false, draft = false, reset = false}}
 end
 
 local function category(id, name, settings, description)
-    return {id = id, name = name, description = description or '', settings = settings}
+    return {id = id, name = ui.t(name), description = ui.t(description or ''), settings = settings}
 end
 
 local function clearSearch(context)
@@ -195,14 +210,14 @@ local function countKey(party, key)
 end
 
 local function profileDescription(profile, snapshot)
-    local voice = profile.voiceName or 'Convai voice'
+    local voice = profile.voiceName or ui.t('Convai voice')
     if snapshot.settings.voiceProvider ~= 'convai' and (profile.key == 'judy-alvarez'
         or profile.key == 'panam-palmer' or profile.key == 'johnny-silverhand') then
-        voice = 'OmniVoice ' .. snapshot.settings.omniSteps .. ' steps'
+        voice = ui.t('OmniVoice {steps} steps',{steps=snapshot.settings.omniSteps})
     end
-    return (profile.summary or profile.name) .. '\n\nVoice: ' .. voice
-        .. '\nConversation: ' .. (snapshot.settings.enabledByKey[profile.key] ~= false and 'On' or 'Off')
-        .. '\nInvitations create separate companion copies, including characters outside your phone contacts. Memory and connection preparation starts immediately; the copy joins when ready after you return to gameplay.'
+    return (profile.summary or profile.name) .. '\n\n' .. ui.t('Voice: {voice}',{voice=voice})
+        .. '\n' .. ui.t('Conversation: {state}',{state=ui.t(snapshot.settings.enabledByKey[profile.key] ~= false and 'On' or 'Off')})
+        .. '\n' .. ui.t('Invitations create separate companion copies, including characters outside your phone contacts. Memory and connection preparation starts immediately; the copy joins when ready after you return to gameplay.')
 end
 
 local function voiceServiceLabel(state)
@@ -211,16 +226,16 @@ local function voiceServiceLabel(state)
         releasing = 'Releasing local voice memory', remote = 'Convai voices · Local model unloaded'}
     if state.pending then
         if state.preparationOnly then
-            return (labels[state.state] or 'Waiting for voice service') .. ' · After current reply'
+            return ui.t('{status} · After current reply', {status=ui.t(labels[state.state] or 'Waiting for voice service')})
         end
-        return 'Changing after the current reply'
+        return ui.t('Changing after the current reply')
     end
     if state.preparationOnly and state.previewActive and state.previewProvider == 'hybrid' and state.state == 'ready' then
-        return 'Ready · Unsaved selection'
+        return ui.t('Ready · Unsaved selection')
     end
     local preview = voicePreview.inspect()
-    if preview.active and preview.provider == 'hybrid' and state.state == 'remote' then return 'Preparing voices' end
-    return labels[state.state] or 'Waiting for voice service'
+    if preview.active and preview.provider == 'hybrid' and state.state == 'remote' then return ui.t('Preparing voices') end
+    return ui.t(labels[state.state] or 'Waiting for voice service')
 end
 
 local function updateVoiceStatus(snapshot)
@@ -244,7 +259,8 @@ local function memorySettings(snapshot)
             memory.state == 'ready' and 'Memories can be managed here.'
                 or 'Reopen this page after the memory service reconnects. A pending clear keeps waiting for its own result.'),
         readonly('memory-count', 'Characters you have talked to',
-            memory.talkedToCount and (tostring(memory.talkedToCount) .. (memory.state == 'ready' and '' or ' · Last reported')) or 'Unavailable',
+            memory.talkedToCount and (memory.state == 'ready' and tostring(memory.talkedToCount)
+                or ui.t('{count} · Last reported',{count=memory.talkedToCount})) or 'Unavailable',
             'Forget all memories applies to these characters. Visiting the catalogue or inviting a companion does not add anyone to this count.'),
         action('memory:choose', 'Selected character', memory.selectedName or 'Choose a character',
             'Choose any character from the catalogue. They do not need to be in your current party.',
@@ -254,9 +270,9 @@ local function memorySettings(snapshot)
     local confirmation = memory.confirmation
     if confirmation then
         local description = confirmation.scope == 'all'
-            and ('Clear memories about you for all ' .. confirmation.count .. ' characters you have talked to?')
-            or ('Clear ' .. confirmation.target .. '’s memories about conversations with you?')
-        description = description .. ' Your player identity stays the same. Phone Chat messages are managed separately.'
+            and ui.t('Clear memories about you for all {count} characters you have talked to?',{count=confirmation.count})
+            or ui.t('Clear {name}’s memories about conversations with you?',{name=confirmation.target})
+        description = description .. ' ' .. ui.t('Your player identity stays the same. Phone Chat messages are managed separately.')
         rows[#rows + 1] = readonly('memory-confirmation', 'Confirm memory clear', description, description)
         rows[#rows + 1] = action('memory:confirm:' .. confirmation.token, 'Confirm', 'Forget memories', description,
             function() return manager.confirmMemoryClear(confirmation.token) end,
@@ -265,11 +281,11 @@ local function memorySettings(snapshot)
             'Cancel this request before anything is sent.', function() return manager.cancelMemoryClear(confirmation.token) end)
     else
         rows[#rows + 1] = action('memory:forget-character', 'Forget selected character', 'Forget',
-            memory.selectedName and ('Clear ' .. memory.selectedName .. '’s memories about conversations with you. Review an inline confirmation first.')
+            memory.selectedName and ui.t('Clear {name}’s memories about conversations with you. Review an inline confirmation first.',{name=memory.selectedName})
                 or 'Choose a character before clearing their memories about you.',
             function() return manager.beginMemoryClear('character') end, memory.canClearCharacter)
         rows[#rows + 1] = action('memory:forget-all', 'Forget all memories',
-            memory.talkedToCount and ('Forget (' .. memory.talkedToCount .. ' characters)') or 'Forget',
+            memory.talkedToCount and ui.t('Forget ({count} characters)',{count=memory.talkedToCount}) or 'Forget',
             'Clear memories about you for every character you have talked to. Your player identity is retained. Review an inline confirmation first.',
             function() return manager.beginMemoryClear('all') end, memory.canClearAll)
     end
@@ -290,7 +306,7 @@ local function schema()
         local selected = view == tab[1] or (tab[1] == 'settings'
             and (view == 'permissions' or view == 'memory' or view == 'memory-characters'))
         navigation[#navigation + 1] = action('tab:' .. tab[1], tab[2], selected and 'Selected' or 'Open',
-            'Browse ' .. tab[2]:lower() .. '. ' .. modelQuery,
+            ui.t('Browse {section}. {query}',{section=ui.t(tab[2]):lower(),query=modelQuery}),
             function(context) return navigate(tab[1], context) end, not selected)
     end
     local categories = {category('navigation', 'Companion Manager', navigation)}
@@ -307,7 +323,7 @@ local function schema()
             local count = countKey(party, key)
             local available = manager.definition(key) ~= nil
             rows[#rows + 1] = action('invite:' .. key, profile.name,
-                available and (count > 0 and ('Add copy (' .. count .. ')') or 'Invite') or 'Profile only',
+                available and (count > 0 and ui.t('Add copy ({count})',{count=count}) or 'Invite') or 'Profile only',
                 profileDescription(profile, snapshot), function() return queue.invite(key) end, canInvite and available)
         end
         categories[#categories + 1] = category('characters', 'Characters', rows,
@@ -326,12 +342,13 @@ local function schema()
             failed = 'This copy could not become ready. Review the error, choose another conversation profile or cancel the invitation.',
         }
         for _, member in ipairs(party) do
-            local id, display = member.id, member.name .. ' · ' .. (member.serial and ('#' .. member.serial) or 'invited copy')
+            local id, display = member.id, member.serial and (member.name .. ' · #' .. member.serial)
+                or ui.t('{name} · invited copy',{name=member.name})
             rows[#rows + 1] = readonly('state:' .. id, display, states[member.state] or member.state,
-                (descriptions[member.state] or 'This is a separate, mod-owned companion.')
+                ui.t(descriptions[member.state] or 'This is a separate, mod-owned companion.')
                     .. (member.error and ('\n' .. member.error) or ''))
             rows[#rows + 1] = action('assign:' .. id, 'Conversation', member.profileName or 'Choose a profile',
-                'Choose the personality for ' .. display .. '. The character model stays the same.',
+                ui.t('Choose the personality for {name}. The character model stays the same.',{name=display}),
                 function(context) assigning, view = id, 'assignment'; clearSearch(context); return true end,
                 member.state ~= 'leaving' and member.state ~= 'missing')
             local leaving = member.state == 'leaving'
@@ -349,7 +366,7 @@ local function schema()
         for _, member in ipairs(party) do if member.id == assigning then target = member end end
         if not target then view, assigning = 'party', nil; return schema() end
         rows[#rows + 1] = action('assign:none', 'No conversation profile', 'Choose',
-            'Keep ' .. target.name .. ' as a follower without AI conversations.',
+            ui.t('Keep {name} as a follower without AI conversations.',{name=target.name}),
             function(context)
                 local ok, err = queue.assign(assigning, nil)
                 if ok then navigate('party', context) end
@@ -364,7 +381,7 @@ local function schema()
                     return ok, err
                 end)
         end
-        categories[#categories + 1] = category('assignment', 'Conversation for ' .. target.name, rows)
+        categories[#categories + 1] = category('assignment', ui.t('Conversation for {name}',{name=target.name}), rows)
     elseif view == 'models' then
         local matches = {}
         local query = modelQuery:lower()
@@ -374,10 +391,10 @@ local function schema()
         local pages = math.max(1, math.ceil(#matches / MODEL_PAGE_SIZE))
         modelPage = math.max(1, math.min(modelPage, pages))
         local scan = snapshot.scan
-        rows[#rows + 1] = readonly('model-status', scan.finished and (#matches .. ' matching models') or 'Reading installed models…',
-            'Page ' .. modelPage .. ' / ' .. pages,
-            'Search by character name or model record using Search settings. ' .. modelQuery
-                .. '\n' .. (scan.error or 'Models without a conversation identity can be assigned one in Current party.'))
+        rows[#rows + 1] = readonly('model-status', scan.finished and ui.t('{count} matching models',{count=#matches}) or 'Reading installed models…',
+            ui.t('Page {page} / {pages}',{page=modelPage,pages=pages}),
+            ui.t('Search by character name or model record using Search settings. {query}',{query=modelQuery})
+                .. '\n' .. (ui.t(scan.error) or ui.t('Models without a conversation identity can be assigned one in Current party.')))
         if modelPage > 1 then
             rows[#rows + 1] = action('models:previous', 'Previous models', 'Previous', modelQuery,
                 function() modelPage = math.max(1, modelPage - 1); return true end)
@@ -389,10 +406,11 @@ local function schema()
         for index = (modelPage - 1) * MODEL_PAGE_SIZE + 1, math.min(modelPage * MODEL_PAGE_SIZE, #matches) do
             local model = matches[index]
             local key = model.key
-            rows[#rows + 1] = action('invite:' .. key, model.name, 'Invite',
-                model.record .. '\n\n' .. (model.profileName and ('Conversation: ' .. model.profileName)
-                    or 'No conversation profile. Assign a profile in Current party after inviting this model.')
-                    .. '\nSome game models have special rigs or roles and may not behave as ordinary companions.',
+            local modelName = model.unnamedIndex and ui.t('Unnamed model {index}',{index=model.unnamedIndex}) or model.name
+            rows[#rows + 1] = action('invite:' .. key, modelName, 'Invite',
+                model.record .. '\n\n' .. (model.profileName and ui.t('Conversation: {state}',{state=model.profileName})
+                    or ui.t('No conversation profile. Assign a profile in Current party after inviting this model.'))
+                    .. '\n' .. ui.t('Some game models have special rigs or roles and may not behave as ordinary companions.'),
                 function() return queue.invite(key) end, canInvite)
         end
         categories[#categories + 1] = category('models', 'Installed character models', rows)
@@ -414,8 +432,8 @@ local function schema()
         modelPage = math.max(1, math.min(modelPage, pages))
         rows[#rows + 1] = action('memory:back', 'Back to memory', 'Back',
             'Return to the memory controls.', function(context) return navigate('memory', context) end)
-        rows[#rows + 1] = readonly('memory-character-page', 'Choose a character', 'Page ' .. modelPage .. ' / ' .. pages,
-            'Search by character name using Search settings. ' .. modelQuery .. '\nThe character can be outside your current party.')
+        rows[#rows + 1] = readonly('memory-character-page', 'Choose a character', ui.t('Page {page} / {pages}',{page=modelPage,pages=pages}),
+            ui.t('Search by character name using Search settings. {query}\nThe character can be outside your current party.',{query=modelQuery}))
         if modelPage > 1 then
             rows[#rows + 1] = action('memory:previous', 'Previous characters', 'Previous', modelQuery,
                 function() modelPage = modelPage - 1; return true end)
@@ -429,7 +447,7 @@ local function schema()
             local key = profile.key
             rows[#rows + 1] = action('memory:select:' .. key, profile.name,
                 snapshot.memory.selectedKey == key and 'Selected' or 'Choose',
-                'Select ' .. profile.name .. ' for memory controls. This does not invite them or change their conversation settings.',
+                ui.t('Select {name} for memory controls. This does not invite them or change their conversation settings.',{name=profile.name}),
                 function(context)
                     local ok, reason = manager.selectMemoryCharacter(key)
                     if ok then navigate('memory', context) end
@@ -443,10 +461,20 @@ local function schema()
         for _, profile in ipairs(snapshot.profiles) do
             rows[#rows + 1] = setting('enabled:' .. profile.key, profile.name, 'bool',
                 snapshot.settings.enabledByKey[profile.key] ~= false, true,
-                'Allow ' .. profile.name .. ' in private and group conversations. Existing copies can still follow you when this is off.')
+                ui.t('Allow {name} in private and group conversations. Existing copies can still follow you when this is off.',{name=profile.name}))
         end
         categories[#categories + 1] = category('permissions', 'Character conversations', rows)
     else
+        local choices, languageElements, languageIndex = ui.choices(), {}, 1
+        for index, choice in ipairs(choices) do
+            languageElements[index] = choice.label
+            if choice.value == snapshot.settings.uiLanguage then languageIndex = index end
+        end
+        categories[#categories + 1] = category('interface', 'Interface', {
+            setting('uiLanguage', 'Interface language', 'select', languageIndex, 1,
+                'Choose the mod interface language independently of character voices and conversation language.',
+                languageElements, {elements=true}),
+        })
         categories[#categories + 1] = category('conversation-controls', 'Conversations', {
             action('permissions', 'Character conversations', 'Manage',
                 'Enable or disable each character’s participation in AI conversations.',
@@ -499,65 +527,71 @@ local function schema()
         },
             'Use Apply to save changed settings, or Revert to discard them.')
     end
-    return {name = LABEL, description = 'Your companions, character models and conversation settings.', categories = categories}
+    return {name = ui.t(LABEL), description = ui.t('Your companions, character models and conversation settings.'), categories = categories}
 end
 
 function M.configure(domain, companions, queueFactory, entryFactory, readiness)
     manager, queue = domain, queueFactory.new(companions, readiness)
-    entry = entryFactory.new(LABEL, function() return api ~= nil end, log, active)
+    entry = entryFactory.new(function() return ui.t(LABEL) end, function() return api ~= nil end, log, active)
     provider = {
         id = PROVIDER, registrationKey = 'cyberpunk-convai.manager.v1', apiVersion = 2,
         name = 'Cyberpunk Convai', shortName = 'CONVAI',
         capabilities = {index = true, lazy = true, draft = true, action = true, atomicApply = true, dynamicSchema = true},
         listMods = function()
-            return {complete = true, revision = '1', mods = {{id = MOD, name = LABEL,
-                description = 'Invite characters, manage your group, browse game models and configure conversations.'}}}
+            return {complete = true, revision = tostring(ui.revision()), mods = {{id = MOD, name = ui.t(LABEL),
+                description = ui.t('Invite characters, manage your group, browse game models and configure conversations.')}}}
         end,
         loadMod = function(id)
-            if id ~= MOD then return nil, 'Unknown mod.' end
+            if id ~= MOD then return nil, ui.t('Unknown mod.') end
             entry.selected()
             return schema()
         end,
         invokeAction = function(id, actionId, context)
-            if id ~= MOD or not actions[actionId] then return {ok = false, error = 'Reopen the manager; that action is no longer available.'} end
+            if id ~= MOD or not actions[actionId] then return {ok = false, error = ui.t('Reopen the manager; that action is no longer available.')} end
             local ok, reason = actions[actionId](context)
-            actionFeedback = ok == true and reason or nil
+            actionFeedback = ok == true and ui.t(reason) or nil
             memoryActionCommand = nil
             if ok == true and actionId:match('^memory:confirm:') then
                 local command = manager.snapshot(player()).memory.command
                 memoryActionCommand = command and command.id or nil
             end
-            return {ok = ok == true, error = ok ~= true and reason or nil, schemaChanged = ok == true}
+            return {ok = ok == true, error = ok ~= true and ui.t(reason) or nil, schemaChanged = ok == true}
         end,
         applyBatch = function(id, changes)
-            if id ~= MOD then return {ok = false, error = 'Unknown mod.'} end
+            if id ~= MOD then return {ok = false, error = ui.t('Unknown mod.')} end
             local values, applied = {enabledByKey = {}}, {}
             for _, change in ipairs(changes) do
                 local key = change.id
                 if key == 'voice' or key == 'subtitles' or key == 'disappearingMessages' or key == 'followUpQuestions' or key == 'battleReactions' or key == 'lootReactions' then values[key] = change.value
                 elseif key == 'subtitleStyle' then
-                    if change.value ~= 1 and change.value ~= 2 then return {ok = false, error = 'Choose Above speaker or Dialogue HUD.'} end
+                    if change.value ~= 1 and change.value ~= 2 then return {ok = false, error = ui.t('Choose Above speaker or Dialogue HUD.')} end
                     values.subtitleStyle = change.value == 1 and 'overhead' or 'dialogue'
                 elseif key == 'omniSteps' then
-                    if change.value ~= 1 and change.value ~= 2 then return {ok = false, error = 'Choose a voice quality.'} end
+                    if change.value ~= 1 and change.value ~= 2 then return {ok = false, error = ui.t('Choose a voice quality.')} end
                     values.omniSteps = change.value == 1 and 16 or 32
+                elseif key == 'uiLanguage' then
+                    local choices = ui.choices()
+                    if type(change.value) ~= 'number' or change.value ~= math.floor(change.value) or not choices[change.value] then
+                        return {ok=false,error=ui.t('Choose an interface language.')}
+                    end
+                    values.uiLanguage = choices[change.value].value
                 elseif key == 'voiceProvider' then
-                    if change.value ~= 1 and change.value ~= 2 then return {ok = false, error = 'Choose OmniVoice or Convai voices.'} end
+                    if change.value ~= 1 and change.value ~= 2 then return {ok = false, error = ui.t('Choose OmniVoice or Convai voices.')} end
                     values.voiceProvider = change.value == 1 and 'hybrid' or 'convai'
                 elseif key == 'eyeContactHeight' or key == 'headFollowStrength' then
                     local heights,strengths=manager.gazeChoices()
                     local choices=key=='eyeContactHeight' and heights or strengths
                     if type(change.value)~='number' or change.value~=change.value or change.value<1 or change.value>#choices
                         or change.value~=math.floor(change.value) then
-                        return {ok = false, error = 'Choose an eye contact option.'}
+                        return {ok = false, error = ui.t('Choose an eye contact option.')}
                     end
                     values[key]=choices[change.value]
                 elseif key:sub(1, 8) == 'enabled:' then values.enabledByKey[key:sub(9)] = change.value
-                else return {ok = false, error = 'That setting is read-only.'} end
+                else return {ok = false, error = ui.t('That setting is read-only.')} end
                 applied[#applied + 1] = key
             end
             local ok, err = manager.applySettings(player(), values)
-            return {ok = ok, error = err, atomic = true, partial = false, appliedIds = ok and applied or {}, schemaChanged = false}
+            return {ok = ok, error = ui.t(err), atomic = true, partial = false, appliedIds = ok and applied or {}, schemaChanged = false}
         end,
     }
 end
@@ -588,7 +622,7 @@ function M.install()
         title, subtitle, sidebarTitle, contentTitle, status, statusKind, transientOwner,
         showSidebarSearch, showContentSearch, listSelectionMode, wrapped)
         presentation = {active = false, rows = {}}
-        if contentTitle == LABEL and active() and actionFeedback
+        if contentTitle == ui.t(LABEL) and active() and actionFeedback
             and tostring(status):sub(1, 10) == 'Completed:' then
             status, statusKind = actionFeedback, 0
         end
@@ -596,7 +630,7 @@ function M.install()
             transientOwner, showSidebarSearch, showContentSearch, listSelectionMode)
     end)
     ObserveAfter('SettingsMainGameController', 'McmUiSetContentTitle', function(controller, title)
-        local owned = title == LABEL and active()
+        local owned = title == ui.t(LABEL) and active()
         local key = owned and controllerKey(controller) or nil
         owned = owned and key ~= nil
         -- Queue only Lua data here. No ink traversal, getters or setters.
@@ -649,6 +683,10 @@ function M.update(currentPlayer, worldReady)
         end
     end
     entry.update()
+    if ui.revision() ~= localeRevision then
+        localeRevision, refreshQueued = ui.revision(), true
+        if api and not api.hasDrafts(MOD_KEY) then api.refreshProvider(PROVIDER) end
+    end
     local now = os.time()
     if now >= pollAt then pollAt = now + 1; M.install() end
     -- Read MCM's supported effective draft values from top-level update. The

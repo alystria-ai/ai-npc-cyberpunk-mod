@@ -1,4 +1,5 @@
 local M = {}
+local ui = (convaiUiLocale or dofile('ui-locale.lua'))
 
 local function sameOwner(a, b)
     return a and b and a.session == b.session and a.generation == b.generation and a.worldToken == b.worldToken
@@ -107,9 +108,9 @@ function M.update(player)
         if ok and value.requestId == M.context.requestId then
             if value.state == 'recording' and M.state == 'starting' then
                 M.state = 'recording'; M.started = os.time()
-                player:ConvaiPhoneFeedback('Listening - press ' .. (M.context.group and 'F9' or 'F7') .. ' again to finish')
+                player:ConvaiPhoneFeedback(ui.t('Listening - press {key} again to finish', {key = M.context.group and 'F9' or 'F7'}))
             elseif value.state == 'error' then
-                player:ConvaiPhoneFeedback('Microphone unavailable. Check your Windows input device.')
+                player:ConvaiPhoneFeedback(ui.t('Microphone unavailable. Check your Windows input device.'))
                 M.cancel('microphone-error')
             end
         end
@@ -117,7 +118,7 @@ function M.update(player)
     if M.context and M.finishPending then return M.finish() end
     if M.context and M.state == 'recording' and os.time() - M.started >= 30 then return M.finish() end
     if M.context and M.state == 'starting' and os.time() - M.started >= 35 then
-        M.cancel(); player:ConvaiPhoneFeedback('Microphone connection timed out. Please try again.')
+        M.cancel(); player:ConvaiPhoneFeedback(ui.t('Microphone connection timed out. Please try again.'))
     end
     return nil
 end

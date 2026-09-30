@@ -7,13 +7,20 @@
   bounded preview lease; routing stays fixed for current replies, Apply reuses
   the prepared worker, and Revert/close safely release preview-only memory.
   82 focused checks pass, including installed MCM. See `docs/VOICE_PREPARATION.md`.
-- [x] User confirmed the new loading flow works and asked to stop further checks.
+- [x] User confirmed the new loading flow works.
   The retained live trace shows Loading → Preparing voices → Ready with the
   saved hybrid choice and about 2 GiB resident memory. A distinct live unsaved
   draft trace was not retained; that ordering has installed-MCM and host tests.
 - [x] Activate the prepared eye-contact controls with the same Lua update.
   The user clarified that eye contact works fine and does not need further
   work/testing. Preserve the accepted behavior and move to other features.
+- [x] Implement ten interface languages, a separate Auto/manual UI selector,
+  native on-screen language detection, literal-safe named strings and scoped
+  phone/composer feedback. All 1,407 combined checks pass, including installed
+  MCM and package/development manifests. See `docs/INTERFACE_LANGUAGES.md`.
+- [ ] Activate the language update and inspect translated native menus, phone
+  hints and glyphs. Keep framework-owned labels in their own language, preserve
+  the player's drafts/voice choice, and qualify visual coverage separately.
 
 ## September 30 — active continuation
 
@@ -425,7 +432,7 @@ Port the intent to V and Cyberpunk systems; do not assume Dawnwalker APIs, Coen'
 - [ ] Retain recent battle context: observed actor names, enemy types and relevant encounter progress. Adapt Dawnwalker's cleared-Horde-wave context only if Cyberpunk provides an equivalent verified event.
   - Current implementation records only hostile NPCs V looks at within forty metres during combat, capped at twelve entities, with optional verified Human/Android/Drone/Mech types. It retains the latest encounter for fifteen unpaused minutes and distinguishes witnesses from companions receiving reported facts. No kill, victory or wave count is inferred.
 - [ ] Complete cross-feature acceptance for microphone, mixed-provider group speech, broader facial rigs and gentle distance-based volume. Private F6 and three-speaker F8 text/voice/subtitles are already accepted; duplicate copies remain one speaker. F7/F9 live testing is user-deferred.
-- [ ] Ten interface languages with automatic detection and manual selection, English, Simplified Chinese, Traditional Chinese, Spanish, Brazilian Portuguese, French, German, Russian, Japanese and Korean (confirmed in the new reference). Keep interface language independent of conversation voices.
+- [ ] Ten interface languages with automatic detection and manual selection. Source and dictionaries are complete for English, Simplified Chinese, Traditional Chinese, Spanish, Brazilian Portuguese, French, German, Russian, Japanese and Korean; installed native glyph/layout verification remains. Interface language is independent of conversation voices. See `docs/INTERFACE_LANGUAGES.md`.
 - [ ] Optional multilingual conversation profile pack with separate character IDs and voices supporting 25 languages, including Russian, Spanish, French, Arabic and Japanese. Verify Convai voice capability and preserve the default Kokoro setup.
 - [ ] Optional native overhead subtitles above the current speaker, synchronized with actual speech timing. Keep the regular dialogue HUD as the default; retain complete short sentences and avoid unnecessary fragmentation. Updated to the user's September 30 preference, overriding the original Dawnwalker-derived default.
 - [ ] Per-character relationship profiles: Auto follows verified relationship history in the current save, On selects a romantic profile, Off selects the ordinary profile. Adapt Anca/Lacra behavior to appropriate Cyberpunk companions rather than copying their identities or flags.

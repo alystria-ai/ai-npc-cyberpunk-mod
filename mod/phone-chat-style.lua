@@ -1,6 +1,65 @@
 -- Native phone presentation, also installable into an already-open phone.
 -- Keep state on the owned widgets, never in retained native widget handles.
 local M = convaiPhoneChatStyle or {}
+local locale = convaiUiLocale
+if type(locale) ~= 'table' then
+    local ok, loaded = pcall(dofile, 'ui-locale.lua')
+    locale = ok and type(loaded) == 'table' and loaded or nil
+end
+local function text(source, args)
+    if locale and type(locale.t) == 'function' then return locale.t(source, args) end
+    return (source:gsub('{([%w_]+)}', function(key)
+        return args and args[key] ~= nil and tostring(args[key]) or '{' .. key .. '}'
+    end))
+end
+local function revision()
+    return locale and type(locale.revision) == 'function' and locale.revision() or 0
+end
+-- Only status messages authored by our phone adapter are localizable. Provider
+-- error details, conversation lines and user drafts must never be translated.
+local statusSources = {
+    ['Conversation interrupted. Your message is in the draft.'] = true,
+    ['Waiting for the conversation service.'] = true,
+    ['Type a message first.'] = true,
+    ['Conversations are disabled for this contact.'] = true,
+    ['Wait for your previous reply before sending another message.'] = true,
+    ['Unable to send the message. Your draft has been kept.'] = true,
+    ['No reply received. Your message is in the draft; press Enter to retry.'] = true,
+    ['Message sent. Waiting for reply.'] = true,
+    ['Waiting for your previous message to finish.'] = true,
+    ['Conversations are disabled in Companion Manager.'] = true,
+    ['Conversation is unavailable for this contact.'] = true,
+    ['Opening chat. Waiting for the conversation service.'] = true,
+}
+local feedbackSources = {
+    ['INVITE QUEUED - CLOSE PHONE'] = true,
+    ['DISMISS QUEUED - CLOSE PHONE'] = true,
+    ['CLOSE PHONE TO CONTINUE'] = true,
+    ['COMPANION UNAVAILABLE'] = true,
+    ['This contact has no companion mapping yet.'] = true,
+    ['Close the phone to finish the pending companion requests.'] = true,
+}
+local namedFeedback = {
+    {suffix = ': invite queued.', source = '{name}: invite queued.'},
+    {suffix = ': dismiss queued.', source = '{name}: dismiss queued.'},
+}
+
+-- The native phone emits these before the Lua invitation adapter runs. This
+-- translation path is pure Lua and cached: a nested native callback must not
+-- traverse widgets, resolve the player or query settings to localize feedback.
+function M.feedback(message)
+    if type(message) ~= 'string' then return message end
+    if feedbackSources[message] then return text(message) end
+    for _, entry in ipairs(namedFeedback) do
+        if message:sub(-#entry.suffix) == entry.suffix then
+            local name = message:sub(1, #message - #entry.suffix)
+            if name ~= '' and #name <= 160 and not name:find('%c') then
+                return text(entry.source, {name = name})
+            end
+        end
+    end
+    return message
+end
 local function margin(left, top, right, bottom)
     return inkMargin.new({left = left, top = top, right = right, bottom = bottom})
 end
@@ -78,6 +137,7 @@ function M.header(controller, index)
     local icon = find(canvas, 'convaiChatTabGlyph', 1)
     local label = find(canvas, 'convaiChatTabLabel', 1)
     local line = find(canvas, 'convaiChatTabUnderline', 1)
+    label:SetText(text('CHAT'))
     icon:SetVAlign(inkEVerticalAlign.Top)
     icon:SetMargin(margin(20, 19.5, 0, 0))
     label:SetFontStyle(CName.new('Regular'))
@@ -95,6 +155,20 @@ function M.header(controller, index)
     if index == 4 and (created or not M.headerPatched) then controller:ScrollTo(4, true) end
     M.headerIndex = index
     M.headerPatched = true
+end
+
+function M.action(controller, contact)
+    if not contact or contact.convaiChat ~= true then return end
+    if inkTextRef and controller.m_acceptButtonLabel then
+        inkTextRef.SetText(controller.m_acceptButtonLabel, text('Chat'))
+    end
+end
+
+function M.path(controller, chat)
+    if chat ~= true or not inkWidgetRef or not controller.m_messagesPath then return end
+    local path = inkWidgetRef.Get(controller.m_messagesPath)
+    local label = find(path, 'txtValue', 3)
+    if label then label:SetText(text('CHAT')) end
 end
 
 function M.mode(controller, chat)
@@ -166,15 +240,16 @@ function M.input(input)
     -- Check the actual owning tree before changing any placeholder or style.
     local root = input:GetRootWidget()
     if not phoneComposer(root) then return end
-    input:SetDefaultText(input:IsFocused()
+    input:SetDefaultText(text(input:IsFocused()
         and 'Write a message...  /  Enter to send  /  Esc to stop typing'
-        or 'Press Enter to write  /  Esc to stop typing')
+        or 'Press Enter to write  /  Esc to stop typing'))
     local text = find(root, 'text', 4)
     if text and text:GetController() then M.inputText(text:GetController()) end
 end
 
 function M.composer(controller, status)
-    if controller:ConvaiChatContact() == '' then return end
+    local contact = controller:ConvaiChatContact()
+    if contact == '' then return end
     local root = controller:GetRootWidget()
     local panel = find(root, 'convaiPhoneComposer', 8)
     if not panel then return end
@@ -184,11 +259,25 @@ function M.composer(controller, status)
         M.input(input:GetController())
     end
     if hint then
-        local text = status or hint:GetText()
-        local statusVisible = text ~= '' and not text:match('^ENTER')
+        local source = status or hint:GetText()
+        -- Keep only a static source string for the current contact, never a
+        -- native handle or conversation content. This permits language changes
+        -- while an error/status is visible without translating translated text.
+        if status == nil and M.statusContact == contact and source == M.statusRendered then
+            source = M.statusSource
+        end
+        local statusVisible = source ~= '' and not source:match('^ENTER')
+        if statusSources[source] then
+            local rendered = text(source)
+            hint:SetText(rendered)
+            M.statusContact, M.statusSource, M.statusRendered = contact, source, rendered
+        else
+            M.statusContact, M.statusSource, M.statusRendered = nil, nil, nil
+        end
         hint:SetAffectsLayoutWhenHidden(false)
         hint:SetVisible(statusVisible)
     end
+    M.path(controller, true)
     local dialog = find(root, 'wrapper', 2)
     if dialog then
         local logic = dialog:GetController()
@@ -200,10 +289,15 @@ end
 function M.refresh(force)
     local player = Game.GetPlayer()
     if not player or not player:ConvaiPhoneIsOpen() then M.wasOpen = false; return end
-    if M.wasOpen and not force then return end
-    M.wasOpen = true
-    for _, layer in ipairs(Game.GetInkSystem():GetLayers()) do
+    local localeRevision = revision()
+    if M.wasOpen and not force and M.localeRevision == localeRevision then return end
+    M.wasOpen, M.localeRevision = true, localeRevision
+    local remaining = 128
+    for layerIndex, layer in ipairs(Game.GetInkSystem():GetLayers()) do
+        if layerIndex > 24 then break end
         for _, controller in ipairs(layer:GetGameControllers()) do
+            if remaining == 0 then return end
+            remaining = remaining - 1
             local class = NameToString(controller:GetClassName())
             if class == 'PhoneMessagePopupGameController' then
                 safely(M.composer, controller)
@@ -219,11 +313,16 @@ function M.refresh(force)
                 end
             end
             if class == 'NewHudPhoneGameController' then
+                local widgetsLeft = 512
                 local function visit(widget, depth)
-                    if not widget or depth > 13 then return end
+                    if not widget or depth > 13 or widgetsLeft == 0 then return end
+                    widgetsLeft = widgetsLeft - 1
                     local logic = widget:GetController()
                     if logic and NameToString(logic:GetClassName()) == 'PhoneDialerSelectionController' then
                         safely(M.header, logic); return
+                    end
+                    if logic and NameToString(logic:GetClassName()) == 'PhoneDialerLogicController' then
+                        safely(function() M.action(logic, logic:GetSelectedContactData()) end)
                     end
                     local compound, count = pcall(function() return widget:GetNumChildren() end)
                     if compound then for i = 0, count - 1 do visit(widget:GetWidgetByIndex(i), depth + 1) end end
@@ -299,6 +398,31 @@ function M.install(live)
         end
         ObserveAfter('Codeware.UI.TextInput.TextFlow', 'UpdatePlaceholder', function(flow) safely(M.inputText, flow) end)
         M.inputHooksInstalled = true
+    end
+    if not M.localeHooksInstalled then
+        ObserveAfter('PhoneDialerLogicController', 'RefreshInputHints', function(c, contact) safely(M.action, c, contact) end)
+        ObserveAfter('PhoneMessagePopupGameController', 'ConvaiChatPath', function(c, chat) safely(M.path, c, chat) end)
+        M.localeHooksInstalled = true
+    end
+    if not M.feedbackLocaleHooksInstalled then
+        -- These are separate owned methods: HUD queue status does not pass
+        -- through the row's compact action-feedback renderer (or vice versa).
+        -- Scope the shared HUD sink to its native queue caller. A provider
+        -- error may contain the same suffix and must remain literal.
+        Override('PlayerPuppet', 'ConvaiPhoneQueue', function(_, key, join, wrapped)
+            M.feedbackQueueDepth = (M.feedbackQueueDepth or 0) + 1
+            local ok, result = pcall(wrapped, key, join)
+            M.feedbackQueueDepth = M.feedbackQueueDepth - 1
+            if not ok then error(result, 0) end
+            return result
+        end)
+        Override('PlayerPuppet', 'ConvaiPhoneFeedback', function(_, message, wrapped)
+            return wrapped((M.feedbackQueueDepth or 0) > 0 and M.feedback(message) or message)
+        end)
+        Override('PhoneContactItemVirtualController', 'ConvaiShowActionFeedback', function(_, message, wrapped)
+            return wrapped(M.feedback(message))
+        end)
+        M.feedbackLocaleHooksInstalled = true
     end
     if live and M.updateOwner ~= convaiManager then
         local owner, original = convaiManager, convaiManager.update

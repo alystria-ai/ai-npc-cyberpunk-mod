@@ -2,6 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import fengari from 'fengari';
+import {uiLocaleBootstrap} from './ui-locale-fixture.mjs';
 
 const readinessSource = readFileSync(new URL('../mod/invitation-readiness.lua', import.meta.url), 'utf8');
 const queueSource = readFileSync(new URL('../mod/manager-party.lua', import.meta.url), 'utf8');
@@ -11,7 +12,7 @@ function run(body) {
   const state = lauxlib.luaL_newstate();
   lualib.luaL_openlibs(state);
   try {
-    const status = lauxlib.luaL_dostring(state, to_luastring(fixture + '\n' + body));
+    const status = lauxlib.luaL_dostring(state, to_luastring(uiLocaleBootstrap + fixture + '\n' + body));
     assert.equal(status, lua.LUA_OK, status === lua.LUA_OK ? '' : to_jsstring(lua.lua_tostring(state, -1)));
   } finally { lua.lua_close(state); }
 }

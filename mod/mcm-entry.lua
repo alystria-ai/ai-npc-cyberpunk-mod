@@ -5,6 +5,7 @@ local M = {}
 
 function M.new(modName, isAvailable, log, isOwnPage)
     local E = {}
+    local function currentName() return type(modName)=='function' and modName() or modName end
     local stage, deadline = 'idle', 0
     local pauseController, settingsController, selectionAction
     local lastProblem, menuItems = '', {}
@@ -121,7 +122,7 @@ function M.new(modName, isAvailable, log, isOwnPage)
             -- provider lazily. Only its final title and exact API ownership
             -- together identify our page; global routes can retain activeModKey.
             local ok, owned = pcall(function()
-                return contentTitle == modName and isOwnPage ~= nil and isOwnPage() == true
+                return contentTitle == currentName() and isOwnPage ~= nil and isOwnPage() == true
             end)
             exitEvents.finalTitles = exitEvents.finalTitles + 1
             ownSettingsKey = ok and owned and controllerKey(this) or nil
@@ -152,7 +153,7 @@ function M.new(modName, isAvailable, log, isOwnPage)
             if (key and ownSettingsKey == key) or this == nil then ownSettingsKey = nil end
         end)
         Observe('SettingsMainGameController', 'McmUiAddSidebarItem', function(this, id, _, label, _, selected)
-            if stage == 'select' and label == modName then
+            if stage == 'select' and label == currentName() then
                 settingsController, settingsKey = this, controllerKey(this)
                 if selected then abort() else selectionAction = id end
             end

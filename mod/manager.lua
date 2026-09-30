@@ -1,6 +1,7 @@
 -- Native manager data and actions. Widgets live in redscript; only eight rows
 -- cross that boundary at once. Every spawn goes through owned companions.
 local M = {}
+local ui = (convaiUiLocale or dofile('ui-locale.lua'))
 local PAGE_SIZE, SCAN_BATCH = 8, 48
 local legacyKeys = {'viktor-vektor', 'misty-olszewski', 'judy-alvarez',
     'panam-palmer', 'resident-male', 'resident-female'}
@@ -32,11 +33,20 @@ local function readJSON(path)
 end
 
 local function clean(value, limit)
-    return tostring(value or ''):gsub('[%z\1-\8\11\12\14-\31]', ''):sub(1, limit or 800)
+    local text = tostring(value or ''):gsub('[%z\1-\8\11\12\14-\31]', '')
+    local last = math.min(#text, limit or 800)
+    -- Native feedback bounds are byte limits. Stop before a UTF-8 sequence
+    -- rather than handing ink a partial Cyrillic/CJK character.
+    while last > 0 do
+        local nextByte = text:byte(last+1)
+        if not nextByte or nextByte < 128 or nextByte >= 192 then break end
+        last = last-1
+    end
+    return text:sub(1,last)
 end
 
 local function say(message)
-    feedback, dirty = clean(message, 400), true
+    feedback, dirty = clean(ui.t(message), 400), true
 end
 
 local function wholeNumber(value)
@@ -52,9 +62,9 @@ local function validMemoryCommand(value)
 end
 
 local function memoryTarget(value)
-    if value.scope == 'all' then return 'all characters you have talked to' end
+    if value.scope == 'all' then return ui.t('all characters you have talked to') end
     local profile = byKey[value.profileKey]
-    return profile and profile.name or 'the selected character'
+    return profile and profile.name or ui.t('the selected character')
 end
 
 local function updateMemory()
@@ -128,20 +138,20 @@ local function memorySnapshot()
     local result = {state = memoryState.state, talkedToCount = memoryState.talkedToCount,
         selectedKey = memorySelected, selectedName = selectedProfile and selectedProfile.name or nil,
         canClearCharacter = canCharacter, canClearAll = canAll, characters = memoryState.characters,
-        feedback = memoryNotice}
+        feedback = ui.t(memoryNotice)}
     if memoryRecoveryBlocked then
-        result.feedback = 'A previous memory request could not be read. The memory service must reconcile it before another clear.'
+        result.feedback = ui.t('A previous memory request could not be read. The memory service must reconcile it before another clear.')
     end
     if memoryCommand then
         local target = memoryTarget(memoryCommand)
         result.command = {id = memoryCommand.id, scope = memoryCommand.scope, profileKey = memoryCommand.profileKey,
             state = memoryCommand.state}
         if memoryCommand.state == 'pending' then
-            result.feedback = memoryState.state == 'ready' and ('Clearing memories for ' .. target .. '…')
-                or ('Waiting for the result of clearing memories for ' .. target .. '. Reopen this page after the memory service reconnects.')
+            result.feedback = memoryState.state == 'ready' and ui.t('Clearing memories for {target}…',{target=target})
+                or ui.t('Waiting for the result of clearing memories for {target}. Reopen this page after the memory service reconnects.',{target=target})
         elseif memoryNotice == '' then
-            if memoryCommand.state == 'succeeded' then result.feedback = 'Memory clear confirmed for ' .. target .. '.'
-            else result.feedback = 'The memory service could not confirm the clear for ' .. target .. '. Review the service before choosing Forget again.' end
+            if memoryCommand.state == 'succeeded' then result.feedback = ui.t('Memory clear confirmed for {target}.',{target=target})
+            else result.feedback = ui.t('The memory service could not confirm the clear for {target}. Review the service before choosing Forget again.',{target=target}) end
         end
     end
     if memoryConfirmation then
@@ -155,7 +165,7 @@ end
 function M.selectMemoryCharacter(key)
     if not byKey[key] then return false, 'Choose a character from the catalogue.' end
     memorySelected, memoryConfirmation, memoryNotice = key, nil, ''
-    return true, byKey[key].name .. ' selected for memory controls.'
+    return true, ui.t('{name} selected for memory controls.', {name=byKey[key].name})
 end
 
 function M.beginMemoryClear(scope)
@@ -257,6 +267,10 @@ local function loadSettings()
     settings = readJSON('runtime/settings.json') or readJSON('runtime/settings.json.previous') or {}
     settingsNeedSave = settings.version ~= 2 or type(settings.enabledByKey) ~= 'table'
     settings.version = 2
+    if settings.uiLanguage ~= 'auto' and not isChoice(settings.uiLanguage, ui.supported()) then
+        settings.uiLanguage, settingsNeedSave = 'auto', true
+    end
+    ui.configure(settings.uiLanguage)
     if type(settings.voice) ~= 'boolean' then settings.voice = true end
     if type(settings.subtitles) ~= 'boolean' then settings.subtitles = true end
     if settings.subtitleStyle ~= 'overhead' and settings.subtitleStyle ~= 'dialogue' then
@@ -503,13 +517,14 @@ local function modelRecord(record, index)
         end)
         if ok and type(localized) == 'string' and localized ~= '' and not localized:find('LocKey', 1, true) then label = localized end
     end
+    local unnamedIndex = not label and not profile and not id and index or nil
     label = clean(label or (profile and profile.name) or id or ('Unnamed model ' .. index), 160)
     local key = 'model:' .. tostring(index)
     local definition = {id = id, recordID = recordID, name = label,
         profileKey = profile and profile.key or nil, profileName = profile and profile.name or nil}
     local registered = companions.registerDefinition(key, definition)
     if registered then
-        models[#models + 1] = {key = key, name = label, record = id or debugId,
+        models[#models + 1] = {key = key, name = label, unnamedIndex = unnamedIndex, record = id or debugId,
             profileKey = definition.profileKey, profileName = definition.profileName,
             search = (label .. ' ' .. (id or debugId) .. ' ' .. (definition.profileName or '')):lower()}
     end
@@ -821,6 +836,7 @@ function M.snapshot(player)
             eyeContactHeight = settings.eyeContactHeight,
             headFollowStrength = settings.headFollowStrength,
             voiceProvider = settings.voiceProvider,
+            uiLanguage = settings.uiLanguage,
             omniSteps = settings.omniSteps, enabledByKey = enabled},
         localVoice = localVoiceState,
         memory = memorySnapshot(),
@@ -837,6 +853,11 @@ end
 
 function M.definition(key)
     return companions and companions.definition(key)
+end
+
+function M.interfaceLanguage()
+    loadSettings()
+    return settings.uiLanguage
 end
 
 function M.applySettings(player, values)
@@ -858,6 +879,9 @@ function M.applySettings(player, values)
         elseif key == 'omniSteps' then
             if value ~= 16 and value ~= 32 then return false, 'Choose 16 or 32 voice steps.' end
             nextSettings.omniSteps = value
+        elseif key == 'uiLanguage' then
+            if value ~= 'auto' and not isChoice(value, ui.supported()) then return false, ui.t('Choose an interface language.') end
+            nextSettings.uiLanguage = value
         elseif key == 'voiceProvider' then
             if value ~= 'hybrid' and value ~= 'convai' then return false, 'Choose OmniVoice or Convai voices.' end
             nextSettings.voiceProvider = value
@@ -875,7 +899,7 @@ function M.applySettings(player, values)
                 end
                 nextSettings.enabledByKey[profile] = enabled
             end
-        else return false, 'Unknown setting: ' .. tostring(key) end
+        else return false, ui.t('Unknown setting: {setting}',{setting=tostring(key)}) end
     end
     local previous = settings
     settings = nextSettings
@@ -883,6 +907,7 @@ function M.applySettings(player, values)
         settings = previous
         return false, 'The settings could not be saved. Your changes are still pending.'
     end
+    ui.configure(settings.uiLanguage)
     if player then
         pcall(function() player:ConvaiManagerSetVoice(settings.voice) end)
         pcall(function() player:ConvaiManagerSetSubtitles(settings.subtitles) end)

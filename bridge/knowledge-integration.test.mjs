@@ -2,6 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import fengari from 'fengari';
+import {uiLocaleBootstrap} from './ui-locale-fixture.mjs';
 
 const source = name => readFileSync(new URL(`../mod/${name}.lua`, import.meta.url), 'utf8');
 const initSource = source('init');
@@ -139,7 +140,7 @@ local modules={
  ['subtitles.lua']={configure=noop,install=noop,update=noop,clear=noop,abandon=function()record('subtitles')end},
  ['speech.lua']={clearEntity=noop,update=noop,stop=noop,abandon=function()record('speech')end},
  ['character-catalog.lua']={build=function()return {records={}}end,resolve=function(_,value)return value.managedKey,value.name end},
- ['manager.lua']={configure=noop,subtitleStyle=function()return'dialogue'end,profileEnabled=function()return true end,
+ ['manager.lua']={configure=noop,interfaceLanguage=function()return'auto'end,subtitleStyle=function()return'dialogue'end,profileEnabled=function()return true end,
   reset=noop,update=noop,battleReactions=function()return false end,lootReactions=function()return false end},
  ['mcm.lua']={configure=noop,install=noop,update=noop,resetSession=noop,shutdown=noop},
  ['phone-layout.lua']={install=noop,refresh=noop},['phone-chat-style.lua']={install=noop,refresh=noop},
@@ -188,7 +189,7 @@ end
 
 function run(body) {
   const vm = lauxlib.luaL_newstate(); lualib.luaL_openlibs(vm);
-  const result = lauxlib.luaL_dostring(vm, to_luastring(fixture + '\n' + body));
+  const result = lauxlib.luaL_dostring(vm, to_luastring(uiLocaleBootstrap + fixture + '\n' + body));
   const error = result === lua.LUA_OK ? '' : to_jsstring(lua.lua_tostring(vm, -1));
   lua.lua_close(vm); assert.equal(result, lua.LUA_OK, error);
 }

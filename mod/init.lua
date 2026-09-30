@@ -1,5 +1,6 @@
 -- Cyberpunk Convai game adapter. It never renders an ImGui text field.
 -- Owns native composers, targeted turns, party connections and live diagnostics.
+local ui = (convaiUiLocale or dofile('ui-locale.lua'))
 local companions = dofile('companions.lua')
 local subtitles = dofile('subtitles.lua')
 local speech = dofile('speech.lua')
@@ -500,10 +501,10 @@ local function selectConversation(player, groupMode, singleKey)
         candidates = enabled
     end
     if not npc and groupMode and candidates[1] then npc = candidates[1].npc end
-    if not npc then player:ConvaiPhoneFeedback(reason); return nil end
+    if not npc then player:ConvaiPhoneFeedback(ui.t(reason)); return nil end
     local key, name, bodyType = profileIdentity(npc)
     if not key or not supportedProfiles[key] then
-        player:ConvaiPhoneFeedback(name .. ' does not have a conversation profile configured yet.')
+        player:ConvaiPhoneFeedback(ui.t('{name} does not have a conversation profile configured yet.',{name=name}))
         log('Conversation unavailable: profile=' .. tostring(key))
         return nil
     end
@@ -511,7 +512,7 @@ local function selectConversation(player, groupMode, singleKey)
     local primary = {npc = npc, name = name, entity = tostring(npc:GetEntityID().hash), bodyType = bodyType, profileKey = key}
     local participants = groupMode and groupChat.choose(primary, candidates, supportedProfiles) or nil
     if participants and #participants < 2 then
-        player:ConvaiPhoneFeedback('Group chat needs two characters nearby. Use ' .. singleKey .. ' for one person.')
+        player:ConvaiPhoneFeedback(ui.t('Group chat needs two characters nearby. Use {key} for one person.',{key=singleKey}))
         return nil
     end
     return primary, participants
@@ -602,7 +603,7 @@ local function toggleVoice(groupMode)
         if microphone.context then
             local recordingMode = microphone.context.group and 'group' or 'private'
             if recordingMode ~= mode then
-                player:ConvaiPhoneFeedback('Use ' .. (recordingMode == 'group' and 'F9' or 'F7') .. ' to finish this recording.')
+                player:ConvaiPhoneFeedback(ui.t('Use {key} to finish this recording.',{key=recordingMode == 'group' and 'F9' or 'F7'}))
                 return
             end
             if not gameplayCanAcquire(player) or (microphone.targetValid and not microphone.targetValid(microphone.context)) then
@@ -634,7 +635,7 @@ local function toggleVoice(groupMode)
         if microphone.begin(context, function() return voiceTargetValid(npc, context) end) then
             beginFocus(player, npc)
             focusMode, focusEntity, focusUntil = 'chat', entity, os.time() + 120
-            player:ConvaiPhoneFeedback('Connecting microphone - wait for Listening')
+            player:ConvaiPhoneFeedback(ui.t('Connecting microphone - wait for Listening'))
         else
             groupChat.cancel(); warmConversation(nil, nil)
         end
@@ -1063,7 +1064,7 @@ local function processPhoneAction(player)
         end
     end
     log('Phone dismiss: no active copy of ' .. key)
-    player:ConvaiPhoneFeedback(name .. ' is not in your group.')
+    player:ConvaiPhoneFeedback(ui.t('{name} is not in your group.',{name=name}))
 end
 
 local function updatePhoneInvitationFeedback(player)
@@ -1072,12 +1073,12 @@ local function updatePhoneInvitationFeedback(player)
     if not queue then return end
     for _, member in ipairs(queue.list()) do
         if member.id == lastPhoneInvitation.id then
-            if member.state == lastPhoneInvitation.state then return end
-            lastPhoneInvitation.state = member.state
-            local message = member.name .. ': preparing memory...'
-            if member.state == 'connecting' then message = member.name .. ': connecting...'
-            elseif member.state == 'ready-to-join' then message = member.name .. ' is ready. Close the phone to join.'
-            elseif member.state == 'failed' then message = member.name .. ': preparation failed. Cancel and invite again.' end
+            if member.state == lastPhoneInvitation.state and lastPhoneInvitation.localeRevision == ui.revision() then return end
+            lastPhoneInvitation.state, lastPhoneInvitation.localeRevision = member.state, ui.revision()
+            local message = ui.t('{name}: preparing memory...',{name=member.name})
+            if member.state == 'connecting' then message = ui.t('{name}: connecting...',{name=member.name})
+            elseif member.state == 'ready-to-join' then message = ui.t('{name} is ready. Close the phone to join.',{name=member.name})
+            elseif member.state == 'failed' then message = ui.t('{name}: preparation failed. Cancel and invite again.',{name=member.name}) end
             pcall(function() player:ConvaiPhoneFeedback(message) end)
             return
         end
@@ -1206,6 +1207,11 @@ registerForEvent('onUpdate', function(delta)
     if not worldReady then cancelVoice('menu') end
     -- CET still calls onUpdate while native menus pause the simulation. The
     -- menu adapter needs these frames even when delta is zero; followers don't.
+    ui.configure(manager.interfaceLanguage())
+    local localeChanged = ui.update(tonumber(delta) or 0)
+    if localeChanged and menuPlayer and convaiComposerInput and convaiComposerInput.refresh then
+        pcall(convaiComposerInput.refresh)
+    end
     local mcmOk, mcmError = pcall(mcm.update, menuPlayer, worldReady)
     if not mcmOk then log('MCM update failed: ' .. tostring(mcmError)) end
     local phoneActionOk, phoneActionError = pcall(processPhoneAction, menuPlayer)
@@ -1317,7 +1323,7 @@ registerForEvent('onUpdate', function(delta)
         -- pending while leaving a microphone/group waiting forever. Retire it
         -- before reading replies so a result at/after the deadline stays late.
         local expired = pending
-        if not expired.reaction then player:ConvaiPhoneFeedback('No reply arrived. Check that the Convai bridge is running.') end
+        if not expired.reaction then player:ConvaiPhoneFeedback(ui.t('No reply arrived. Check that the Convai bridge is running.')) end
         log('Conversation timed out: generation=' .. expired.generation)
         local round = groupChat.round
         if expired.reaction then

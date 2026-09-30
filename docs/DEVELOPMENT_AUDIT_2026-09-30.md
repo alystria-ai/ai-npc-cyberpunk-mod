@@ -862,3 +862,25 @@ normal resets. Native slot 7 is restored and the normal bridge runs the new
 mapping. No new voice inference, memory request, game restart or CET reload was
 needed. Dark capture detail limits an exact F/V tooth-contact/tongue judgment;
 the port does not imply full-cast visual acceptance or neural facial precision.
+
+## October 1: independent interface languages
+
+Added Auto/manual selection for ten interface languages. The locale core reads
+only Cyberpunk's on-screen language from top-level update, including zero-delta
+menu frames. Cached exact-source lookups and named tokens keep native hooks
+small and preserve typed content, names, IDs, dialogue, voices and memory.
+Atomic settings persistence precedes selection; MCM refresh waits for drafts.
+Phone/world composers change only their owned presentation and keep input text.
+
+Review found a shared-HUD boundary issue: a provider error ending with an invite
+queue suffix could look like authored phone feedback. Translation now requires
+the actual native `ConvaiPhoneQueue` call scope and releases that scope even on
+exceptions. Known model-browser errors, unnamed models, memory selection and
+no-target feedback were also covered with explicit source keys/templates.
+
+The nine Lua dictionaries cover the 383-key developer catalog. The full suite
+passed 1,407 checks, and the final focused language/manager/phone/lifecycle set
+passed 97. Both manifests explicitly include all runtime dictionaries in the
+Scripts package. Source tests do not qualify native fonts or layout: live glyph
+checks remain. Framework-owned controls retain their framework/game language.
+See `docs/INTERFACE_LANGUAGES.md` for scope, methods and verification limits.

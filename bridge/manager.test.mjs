@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync, readdirSync} from 'node:fs';
 import path from 'node:path';
 import fengari from 'fengari';
+import {uiLocaleBootstrap} from './ui-locale-fixture.mjs';
 import {companionModules, companionEngine, flatNavigation} from './companion-fixture.mjs';
 
 const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
@@ -12,11 +13,12 @@ const queueSource = readFileSync(new URL('../mod/manager-party.lua', import.meta
 const mcmSource = readFileSync(new URL('../mod/mcm.lua', import.meta.url), 'utf8');
 const entrySource = readFileSync(new URL('../mod/mcm-entry.lua', import.meta.url), 'utf8');
 const voicePreviewSource = readFileSync(new URL('../mod/voice-preview.lua', import.meta.url), 'utf8');
+const frenchUiSource = readFileSync(new URL('../mod/locales/fr.lua', import.meta.url), 'utf8');
 
 function run(code) {
   const state = lauxlib.luaL_newstate();
   lualib.luaL_openlibs(state);
-  const status = lauxlib.luaL_dostring(state, to_luastring(code));
+  const status = lauxlib.luaL_dostring(state, to_luastring(uiLocaleBootstrap + code));
   const error = status === lua.LUA_OK ? '' : to_jsstring(lua.lua_tostring(state, -1));
   lua.lua_close(state);
   assert.equal(status, lua.LUA_OK, error);
@@ -446,6 +448,43 @@ const mcmFixture = `
     return result
   end
 `;
+
+test('interface language persists atomically, localizes the schema and preserves literal character names and voice choices',()=>{
+  run(`${mcmFixture}
+    local savedDofile=dofile
+    dofile=function(path)
+      if path=='locales/fr.lua' then return (function() ${frenchUiSource} end)() end
+      return savedDofile(path)
+    end
+    profiles[1].name='Settings'
+    assert(invoke('tab:settings').ok)
+    assert(row('uiLanguage').value==1 and row('uiLanguage').defaultValue==1)
+    local voiceBefore=manager.snapshot(player).settings.voiceProvider
+    local stepsBefore=manager.snapshot(player).settings.omniSteps
+    local choices=convaiUiLocale.choices();local french
+    for i,choice in ipairs(choices)do if choice.value=='fr'then french=i end end
+    assert(registered.applyBatch('manager',{{id='uiLanguage',value=french}}).ok)
+    assert(saved.uiLanguage=='fr' and convaiUiLocale.selection()=='fr')
+    assert(convaiUiLocale.update(0))
+    loaded=registered.loadMod('manager')
+    assert(row('tab:settings').label=='Paramètres')
+    assert(row('uiLanguage').label~='Interface language' and row('uiLanguage').value==french)
+    assert(row('uiLanguage').elements[2]=='English','language names must remain natively recognizable')
+    local snapshot=manager.snapshot(player)
+    assert(snapshot.settings.voiceProvider==voiceBefore and snapshot.settings.omniSteps==stepsBefore)
+    assert(invoke('tab:characters').ok)
+    assert(row('invite:'..profiles[1].key).label=='Settings','a character name was translated as a UI key')
+    local selected,notice=manager.selectMemoryCharacter(profiles[1].key)
+    assert(selected and notice==convaiUiLocale.t('{name} selected for memory controls.',{name='Settings'}))
+    assert(notice:find('Settings',1,true) and not notice:find('selected for memory controls',1,true))
+    failSave=true
+    assert(not manager.applySettings(player,{uiLanguage='de'}))
+    assert(convaiUiLocale.selection()=='fr' and manager.snapshot(player).settings.uiLanguage=='fr')
+    failSave=false
+    assert(not manager.applySettings(player,{uiLanguage='../invalid'}))
+    assert(saved.uiLanguage=='fr')
+  `);
+});
 
 test('native settings styling waits for the final title, aligns scaled rows and retains native controls', () => {
   run(`${mcmFixture}

@@ -10,6 +10,46 @@
       "onlyExtension": ".lua",
       "files": [
         {
+          "source": "mod/ui-locale.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/ui-locale.lua"
+        },
+        {
+          "source": "mod/locales/zh-cn.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/locales/zh-cn.lua"
+        },
+        {
+          "source": "mod/locales/zh-tw.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/locales/zh-tw.lua"
+        },
+        {
+          "source": "mod/locales/es.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/locales/es.lua"
+        },
+        {
+          "source": "mod/locales/pt-br.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/locales/pt-br.lua"
+        },
+        {
+          "source": "mod/locales/fr.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/locales/fr.lua"
+        },
+        {
+          "source": "mod/locales/de.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/locales/de.lua"
+        },
+        {
+          "source": "mod/locales/ru.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/locales/ru.lua"
+        },
+        {
+          "source": "mod/locales/ja.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/locales/ja.lua"
+        },
+        {
+          "source": "mod/locales/ko.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/locales/ko.lua"
+        },
+        {
           "source": "mod/voice-preview.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/voice-preview.lua"
         },
@@ -17,10 +57,10 @@
           "source": "mod/speech-replay-probe.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/speech-replay-probe.lua"
         },
-          {
-            "source": "mod/speech-cadence-probe.lua",
-            "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/speech-cadence-probe.lua"
-          },
+        {
+          "source": "mod/speech-cadence-probe.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/speech-cadence-probe.lua"
+        },
         {
           "source": "mod/continuous-speech.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/continuous-speech.lua"

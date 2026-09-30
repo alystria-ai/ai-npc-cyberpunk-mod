@@ -1,0 +1,5151 @@
+{
+  "version": 1,
+  "locale": "en",
+  "sourceLanguage": "en",
+  "description": "Developer-only canonical UI source catalogue. Runtime dictionaries are Lua. Keys are exact English UI source strings or explicit named-token templates.",
+  "scope": {
+    "files": [
+      "mod/mcm.lua",
+      "mod/manager.lua",
+      "mod/manager-party.lua",
+      "mod/init.lua",
+      "mod/phone-chat.lua",
+      "mod/phone-chat-style.lua",
+      "mod/phone-input.lua",
+      "mod/composer-input.lua",
+      "mod/microphone.lua",
+      "r6/scripts/CyberpunkConvai/Composer.reds",
+      "r6/scripts/CyberpunkConvai/PhoneContacts.reds",
+      "r6/scripts/CyberpunkConvai/PhoneChat.reds",
+      "r6/scripts/CyberpunkConvai/PhoneChatTabs.reds",
+      "r6/scripts/CyberpunkConvai/Manager.reds"
+    ],
+    "excludes": [
+      "character names and biographies",
+      "AI dialogue and prompts",
+      "API keys and IDs",
+      "raw provider errors",
+      "diagnostic-only text",
+      "native game Messages/Contacts translations"
+    ]
+  },
+  "counts": {
+    "strings": 383,
+    "dynamicTemplates": 71,
+    "contexts": 30
+  },
+  "strings": {
+    "0 results": "0 results",
+    "10 cm higher": "10 cm higher",
+    "10 cm lower": "10 cm lower",
+    "16 steps · Faster": "16 steps · Faster",
+    "32 steps · Higher quality (default)": "32 steps · Higher quality (default)",
+    "32 steps: fuller quality (default).\n16 steps: faster replies.": "32 steps: fuller quality (default).\n16 steps: faster replies.",
+    "5 cm higher": "5 cm higher",
+    "5 cm lower": "5 cm lower",
+    "<  PREVIOUS": "<  PREVIOUS",
+    "<  TEXT": "<  TEXT",
+    "A memory clear is awaiting its result. It will not be sent again.": "A memory clear is awaiting its result. It will not be sent again.",
+    "A nearby companion can make one short comment as combat starts and another afterward. Ten-minute cooldown after a fight; conversations and story scenes take priority. Loading a save resets the cooldown.": "A nearby companion can make one short comment as combat starts and another afterward. Ten-minute cooldown after a fight; conversations and story scenes take priority. Loading a save resets the cooldown.",
+    "A previous memory request could not be read. The memory service must reconcile it before another clear.": "A previous memory request could not be read. The memory service must reconcile it before another clear.",
+    "Above speaker": "Above speaker",
+    "Add a copy": "Add a copy",
+    "Add a copy, then use Party to choose its conversation profile.": "Add a copy, then use Party to choose its conversation profile.",
+    "Add copy ({count})": "Add copy ({count})",
+    "Allow {name} in private and group conversations. Existing copies can still follow you when this is off.": "Allow {name} in private and group conversations. Existing copies can still follow you when this is off.",
+    "Applies while OmniVoice is selected. 32 steps gives the preferred quality; 16 steps is faster. One shared model stays loaded until you select Convai or stop the voice service.": "Applies while OmniVoice is selected. 32 steps gives the preferred quality; 16 steps is faster. One shared model stays loaded until you select Convai or stop the voice service.",
+    "Automatic (game interface language)": "Automatic (game interface language)",
+    "Automatic reactions": "Automatic reactions",
+    "Back": "Back",
+    "Back to memory": "Back to memory",
+    "Back to party": "Back to party",
+    "Back to settings": "Back to settings",
+    "Browse your characters, discover a game model, or manage your current party.": "Browse your characters, discover a game model, or manage your current party.",
+    "Browse {section}. {query}": "Browse {section}. {query}",
+    "CHARACTERS": "CHARACTERS",
+    "CHAT": "CHAT",
+    "CLOSE PHONE TO CONTINUE": "CLOSE PHONE TO CONTINUE",
+    "COMPANION MANAGER": "COMPANION MANAGER",
+    "COMPANION UNAVAILABLE": "COMPANION UNAVAILABLE",
+    "Cancel": "Cancel",
+    "Cancel an invitation first; the party is full.": "Cancel an invitation first; the party is full.",
+    "Cancel invitation": "Cancel invitation",
+    "Cancel this request before anything is sent.": "Cancel this request before anything is sent.",
+    "Changing after the current reply": "Changing after the current reply",
+    "Character conversations": "Character conversations",
+    "Character memories": "Character memories",
+    "Characters": "Characters",
+    "Characters answer, then ask one brief, relevant question in ordinary conversations. They omit it when you say goodbye, ask for no questions or request an exact fixed reply. In a group, only the final speaker asks. When off, characters answer without inviting another turn. Automatic reactions never ask questions.": "Characters answer, then ask one brief, relevant question in ordinary conversations. They omit it when you say goodbye, ask for no questions or request an exact fixed reply. In a group, only the final speaker asks. When off, characters answer without inviting another turn. Automatic reactions never ask questions.",
+    "Characters build memories through your conversations and keep them across saves.": "Characters build memories through your conversations and keep them across saves.",
+    "Characters you have talked to": "Characters you have talked to",
+    "Chat": "Chat",
+    "Chat off": "Chat off",
+    "Chat on": "Chat on",
+    "Choose": "Choose",
+    "Choose 16 or 32 voice steps.": "Choose 16 or 32 voice steps.",
+    "Choose Above speaker or Dialogue HUD.": "Choose Above speaker or Dialogue HUD.",
+    "Choose OmniVoice or Convai voices.": "Choose OmniVoice or Convai voices.",
+    "Choose a character": "Choose a character",
+    "Choose a character before clearing their memories about you.": "Choose a character before clearing their memories about you.",
+    "Choose a character from the catalogue first.": "Choose a character from the catalogue first.",
+    "Choose a character from the catalogue.": "Choose a character from the catalogue.",
+    "Choose a character, review memory status and manage memories from your conversations.": "Choose a character, review memory status and manage memories from your conversations.",
+    "Choose a conversation profile from the list.": "Choose a conversation profile from the list.",
+    "Choose a copy from your party first.": "Choose a copy from your party first.",
+    "Choose a head-follow strength from the available settings.": "Choose a head-follow strength from the available settings.",
+    "Choose a memory clear action from Settings.": "Choose a memory clear action from Settings.",
+    "Choose a model in Models, then assign this profile in Party.": "Choose a model in Models, then assign this profile in Party.",
+    "Choose a profile": "Choose a profile",
+    "Choose a voice quality.": "Choose a voice quality.",
+    "Choose an active or invited copy.": "Choose an active or invited copy.",
+    "Choose an eye contact option.": "Choose an eye contact option.",
+    "Choose an eye-contact height from the available settings.": "Choose an eye-contact height from the available settings.",
+    "Choose an interface language.": "Choose an interface language.",
+    "Choose any character from the catalogue. They do not need to be in your current party.": "Choose any character from the catalogue. They do not need to be in your current party.",
+    "Choose how much companions turn their heads during eye contact. Eyes only relies on eye movement.": "Choose how much companions turn their heads during eye contact. Eyes only relies on eye movement.",
+    "Choose profile": "Choose profile",
+    "Choose the mod interface language independently of character voices and conversation language.": "Choose the mod interface language independently of character voices and conversation language.",
+    "Choose the personality for {name}. The character model stays the same.": "Choose the personality for {name}. The character model stays the same.",
+    "Choose the personality this copy should use in conversations. Its model stays the same.": "Choose the personality this copy should use in conversations. Its model stays the same.",
+    "Clear memories about you for all {count} characters you have talked to?": "Clear memories about you for all {count} characters you have talked to?",
+    "Clear memories about you for every character you have talked to. Your player identity is retained. Review an inline confirmation first.": "Clear memories about you for every character you have talked to. Your player identity is retained. Review an inline confirmation first.",
+    "Clear profile": "Clear profile",
+    "Clear the phone Chat history and drafts when you next launch the game. Characters keep their Convai conversation memory. Loading a save or reloading mods does not clear messages.": "Clear the phone Chat history and drafts when you next launch the game. Characters keep their Convai conversation memory. Loading a save or reloading mods does not clear messages.",
+    "Clear {name}’s memories about conversations with you. Review an inline confirmation first.": "Clear {name}’s memories about conversations with you. Review an inline confirmation first.",
+    "Clear {name}’s memories about conversations with you?": "Clear {name}’s memories about conversations with you?",
+    "Clearing memories for {target}…": "Clearing memories for {target}…",
+    "Close the phone to finish the pending companion requests.": "Close the phone to finish the pending companion requests.",
+    "Companion Manager": "Companion Manager",
+    "Companion behavior": "Companion behavior",
+    "Companion preparation is unavailable.": "Companion preparation is unavailable.",
+    "Companion preparation returned an invalid state.": "Companion preparation returned an invalid state.",
+    "Companion voices": "Companion voices",
+    "Companions": "Companions",
+    "Companions can comment after you finish collecting world loot. Storage transfers stay silent. A ten-minute cooldown spaces ordinary comments; newly acquired Legendary equipment has a separate two-minute cooldown. Loot can join a post-battle comment.": "Companions can comment after you finish collecting world loot. Storage transfers stay silent. A ten-minute cooldown spaces ordinary comments; newly acquired Legendary equipment has a separate two-minute cooldown. Loot can join a post-battle comment.",
+    "Confirm": "Confirm",
+    "Confirm memory clear": "Confirm memory clear",
+    "Connecting": "Connecting",
+    "Connecting microphone - wait for Listening": "Connecting microphone - wait for Listening",
+    "Connecting this character for conversation. This copy has a reserved place. You can change its conversation profile or cancel the invitation.": "Connecting this character for conversation. This copy has a reserved place. You can change its conversation profile or cancel the invitation.",
+    "Convai for all characters": "Convai for all characters",
+    "Convai voice": "Convai voice",
+    "Convai voices · Local model unloaded": "Convai voices · Local model unloaded",
+    "Conversation": "Conversation",
+    "Conversation for {name}": "Conversation for {name}",
+    "Conversation interrupted. Your message is in the draft.": "Conversation interrupted. Your message is in the draft.",
+    "Conversation is unavailable for this contact.": "Conversation is unavailable for this contact.",
+    "Conversation profile cleared.": "Conversation profile cleared.",
+    "Conversation profile not assigned": "Conversation profile not assigned",
+    "Conversation profile not assigned.": "Conversation profile not assigned.",
+    "Conversation profile set to {name}.": "Conversation profile set to {name}.",
+    "Conversation: {state}": "Conversation: {state}",
+    "Conversations": "Conversations",
+    "Conversations are disabled for this contact.": "Conversations are disabled for this contact.",
+    "Conversations are disabled in Companion Manager.": "Conversations are disabled in Companion Manager.",
+    "Copies in party: {count}": "Copies in party: {count}",
+    "Creating a copy of {name}. Check Party for its status.": "Creating a copy of {name}. Check Party for its status.",
+    "Current party": "Current party",
+    "Currently {state}.": "Currently {state}.",
+    "Cyberpunk Convai: companion manager": "Cyberpunk Convai: companion manager",
+    "Cyberpunk Convai: group text chat (F8)": "Cyberpunk Convai: group text chat (F8)",
+    "Cyberpunk Convai: group voice chat (F9)": "Cyberpunk Convai: group voice chat (F9)",
+    "Cyberpunk Convai: talk by text": "Cyberpunk Convai: talk by text",
+    "Cyberpunk Convai: talk by voice (F7)": "Cyberpunk Convai: talk by voice (F7)",
+    "DETAILS  {page} / {pages}": "DETAILS  {page} / {pages}",
+    "DISMISS QUEUED - CLOSE PHONE": "DISMISS QUEUED - CLOSE PHONE",
+    "Default": "Default",
+    "Dialogue HUD": "Dialogue HUD",
+    "Disappearing messages": "Disappearing messages",
+    "Disappearing messages clears the local Chat history and drafts on the next game launch. Forget controls clear character memories about you; saved Chat messages remain available.": "Disappearing messages clears the local Chat history and drafts on the next game launch. Forget controls clear character memories about you; saved Chat messages remain available.",
+    "Discovering installed character models. Results appear as they are read.": "Discovering installed character models. Results appear as they are read.",
+    "Dismiss": "Dismiss",
+    "Dismiss copy": "Dismiss copy",
+    "ENTER  Write / Send   /   ESC  Stop typing": "ENTER  Write / Send   /   ESC  Stop typing",
+    "ENTER  Write message   /   ESC  Stop typing": "ENTER  Write message   /   ESC  Stop typing",
+    "Enable or disable each character’s participation in AI conversations.": "Enable or disable each character’s participation in AI conversations.",
+    "Eye contact height": "Eye contact height",
+    "Eyes only": "Eyes only",
+    "Face a nearby NPC within eight metres": "Face a nearby NPC within eight metres",
+    "Follow-up questions": "Follow-up questions",
+    "Following": "Following",
+    "Forget": "Forget",
+    "Forget ({count} characters)": "Forget ({count} characters)",
+    "Forget all memories": "Forget all memories",
+    "Forget all memories applies to these characters. Visiting the catalogue or inviting a companion does not add anyone to this count.": "Forget all memories applies to these characters. Visiting the catalogue or inviting a companion does not add anyone to this count.",
+    "Forget memories": "Forget memories",
+    "Forget selected character": "Forget selected character",
+    "GAME MODELS": "GAME MODELS",
+    "Gentle (default)": "Gentle (default)",
+    "Group chat needs two characters nearby. Use {key} for one person.": "Group chat needs two characters nearby. Use {key} for one person.",
+    "Head tracking strength": "Head tracking strength",
+    "INVITE QUEUED - CLOSE PHONE": "INVITE QUEUED - CLOSE PHONE",
+    "Includes reserved invitations and current companions. Invited characters prepare while the menu is open, then join when ready after you return to gameplay. Dismissals take effect in gameplay.": "Includes reserved invitations and current companions. Invited characters prepare while the menu is open, then join when ready after you return to gameplay. Dismissals take effect in gameplay.",
+    "Installed character models": "Installed character models",
+    "Interface": "Interface",
+    "Interface language": "Interface language",
+    "Invalid conversation settings.": "Invalid conversation settings.",
+    "Invitations create separate companion copies, including characters outside your phone contacts. Memory and connection preparation starts immediately; the copy joins when ready after you return to gameplay.": "Invitations create separate companion copies, including characters outside your phone contacts. Memory and connection preparation starts immediately; the copy joins when ready after you return to gameplay.",
+    "Invite": "Invite",
+    "Invite characters, manage your group, browse game models and configure conversations.": "Invite characters, manage your group, browse game models and configure conversations.",
+    "Invite someone from Characters or Model browser.": "Invite someone from Characters or Model browser.",
+    "Invited characters are prepared immediately. Natural memories are created when you actually talk to them. One player identity is shared across all saves and stays the same after forgetting. Current game context describes the world you have loaded.": "Invited characters are prepared immediately. Natural memories are created when you actually talk to them. One player identity is shared across all saves and stays the same after forgetting. Current game context describes the world you have loaded.",
+    "Johnny, Judy and Panam use OmniVoice. Other characters keep their Convai voices.": "Johnny, Judy and Panam use OmniVoice. Other characters keep their Convai voices.",
+    "Joining": "Joining",
+    "Joining your party. The character is still being attached to the world.": "Joining your party. The character is still being attached to the world.",
+    "Joining...": "Joining...",
+    "Keep in party": "Keep in party",
+    "Keep memories": "Keep memories",
+    "Keep this copy without a conversation identity": "Keep this copy without a conversation identity",
+    "Keep {name} as a follower without AI conversations.": "Keep {name} as a follower without AI conversations.",
+    "Leaving": "Leaving",
+    "Less": "Less",
+    "Listening - press {key} again to finish": "Listening - press {key} again to finish",
+    "Load a save before inviting a companion.": "Load a save before inviting a companion.",
+    "Loading": "Loading",
+    "Loading...": "Loading...",
+    "Local voice quality": "Local voice quality",
+    "Local voices: {status}": "Local voices: {status}",
+    "Manage": "Manage",
+    "Managed separately": "Managed separately",
+    "Memories can be managed here.": "Memories can be managed here.",
+    "Memory": "Memory",
+    "Memory clear cancelled.": "Memory clear cancelled.",
+    "Memory clear confirmed for {target}.": "Memory clear confirmed for {target}.",
+    "Memory clear requested. Waiting for the memory service to confirm it.": "Memory clear requested. Waiting for the memory service to confirm it.",
+    "Memory result": "Memory result",
+    "Memory service": "Memory service",
+    "Message sent. Waiting for reply.": "Message sent. Waiting for reply.",
+    "Microphone connection timed out. Please try again.": "Microphone connection timed out. Please try again.",
+    "Microphone unavailable. Check your Windows input device.": "Microphone unavailable. Check your Windows input device.",
+    "Missing": "Missing",
+    "Model browser": "Model browser",
+    "Models": "Models",
+    "Models without a conversation identity can be assigned one in Current party.": "Models without a conversation identity can be assigned one in Current party.",
+    "More": "More",
+    "More characters": "More characters",
+    "More models": "More models",
+    "NEXT  >": "NEXT  >",
+    "NIGHT CITY": "NIGHT CITY",
+    "Next": "Next",
+    "No conversation profile": "No conversation profile",
+    "No conversation profile. Assign a profile in Current party after inviting this model.": "No conversation profile. Assign a profile in Current party after inviting this model.",
+    "No entries are available.": "No entries are available.",
+    "No entries yet.\nTry another search or tab.": "No entries yet.\nTry another search or tab.",
+    "No matches. Try another name or clear the search.": "No matches. Try another name or clear the search.",
+    "No reply arrived. Check that the Convai bridge is running.": "No reply arrived. Check that the Convai bridge is running.",
+    "No reply received. Your message is in the draft; press Enter to retry.": "No reply received. Your message is in the draft; press Enter to retry.",
+    "No settings were supplied.": "No settings were supplied.",
+    "Not configured": "Not configured",
+    "Off": "Off",
+    "OmniVoice + Convai (default)": "OmniVoice + Convai (default)",
+    "OmniVoice gives Johnny, Judy and Panam their prepared local voices. Selecting it starts preparing the model immediately. Apply saves your choice; Revert cancels the preview. Convai uses configured online voices and releases the local model after Apply. Other characters always use Convai. Current replies finish with their original voice.": "OmniVoice gives Johnny, Judy and Panam their prepared local voices. Selecting it starts preparing the model immediately. Apply saves your choice; Revert cancels the preview. Convai uses configured online voices and releases the local model after Apply. Other characters always use Convai. Current replies finish with their original voice.",
+    "OmniVoice starts preparing as soon as you select it here and stays warm after Apply. Revert or leaving without saving cancels the preview; no game restart is needed.": "OmniVoice starts preparing as soon as you select it here and stays warm after Apply. Revert or leaving without saving cancels the preview; no game restart is needed.",
+    "OmniVoice {steps} steps": "OmniVoice {steps} steps",
+    "OmniVoice {steps} steps selected for the next reply.": "OmniVoice {steps} steps selected for the next reply.",
+    "On": "On",
+    "Open": "Open",
+    "Opening chat. Waiting for the conversation service.": "Opening chat. Waiting for the conversation service.",
+    "Page {page} / {pages}": "Page {page} / {pages}",
+    "Page {page} of {pages}  |  {count} results": "Page {page} of {pages}  |  {count} results",
+    "Party full: dismiss a copy before adding another.": "Party full: dismiss a copy before adding another.",
+    "Party: {count} / 8": "Party: {count} / 8",
+    "Phone Chat messages": "Phone Chat messages",
+    "Phone messages": "Phone messages",
+    "Play spoken replies through the supported voice output. This does not change microphone capture.": "Play spoken replies through the supported voice output. This does not change microphone capture.",
+    "Play voiced replies from your companions.": "Play voiced replies from your companions.",
+    "Playback settings updated.": "Playback settings updated.",
+    "Player memory": "Player memory",
+    "Player unavailable": "Player unavailable",
+    "Please wait for the current requests to finish.": "Please wait for the current requests to finish.",
+    "Preparation is complete. This copy will join when you return to gameplay. You can still change its conversation profile or cancel the invitation.": "Preparation is complete. This copy will join when you return to gameplay. You can still change its conversation profile or cancel the invitation.",
+    "Preparing a reply": "Preparing a reply",
+    "Preparing memory": "Preparing memory",
+    "Preparing this character with your player identity and current world context. This copy has a reserved place. You can change its conversation profile or cancel the invitation.": "Preparing this character with your player identity and current world context. This copy has a reserved place. You can change its conversation profile or cancel the invitation.",
+    "Preparing voices": "Preparing voices",
+    "Press Enter to write  /  Esc to stop typing": "Press Enter to write  /  Esc to stop typing",
+    "Previous": "Previous",
+    "Previous characters": "Previous characters",
+    "Previous models": "Previous models",
+    "Profile only": "Profile only",
+    "Raise or lower the point companions look at on V. Default uses V’s usual eye contact target.": "Raise or lower the point companions look at on V. Default uses V’s usual eye contact target.",
+    "React to battles": "React to battles",
+    "React to collected loot": "React to collected loot",
+    "Reading installed models…": "Reading installed models…",
+    "Reading models {read}/{total}": "Reading models {read}/{total}",
+    "Ready": "Ready",
+    "Ready to join": "Ready to join",
+    "Ready · Unsaved selection": "Ready · Unsaved selection",
+    "Releasing local voice memory": "Releasing local voice memory",
+    "Remove only this copy from your group.": "Remove only this copy from your group.",
+    "Reopen the manager; that action is no longer available.": "Reopen the manager; that action is no longer available.",
+    "Reopen this page after the memory service reconnects. A pending clear keeps waiting for its own result.": "Reopen this page after the memory service reconnects. A pending clear keeps waiting for its own result.",
+    "Request queued...": "Request queued...",
+    "Return to conversation settings.": "Return to conversation settings.",
+    "Return to the memory controls.": "Return to the memory controls.",
+    "Review the memory clear below, then choose Confirm or Cancel.": "Review the memory clear below, then choose Confirm or Cancel.",
+    "SELECTED": "SELECTED",
+    "SETTINGS": "SETTINGS",
+    "Search a character by name. Each invitation reserves a place and starts preparation immediately. Your party can have up to eight copies, including pending invitations.": "Search a character by name. Each invitation reserves a place and starts preparation immediately. Your party can have up to eight copies, including pending invitations.",
+    "Search by character name or model record using Search settings. {query}": "Search by character name or model record using Search settings. {query}",
+    "Search by character name using Search settings. {query}\nThe character can be outside your current party.": "Search by character name using Search settings. {query}\nThe character can be outside your current party.",
+    "Search names, models or settings...": "Search names, models or settings...",
+    "Select {name} for memory controls. This does not invite them or change their conversation settings.": "Select {name} for memory controls. This does not invite them or change their conversation settings.",
+    "Selected": "Selected",
+    "Selected character": "Selected character",
+    "Settings": "Settings",
+    "Settings are active, but could not be saved for next time.": "Settings are active, but could not be saved for next time.",
+    "Settings saved.": "Settings saved.",
+    "Shared across your saves": "Shared across your saves",
+    "Show companion replies using the selected subtitle display.": "Show companion replies using the selected subtitle display.",
+    "Show companion reply subtitles during conversations.": "Show companion reply subtitles during conversations.",
+    "Some game models have special rigs or roles and may not behave as ordinary companions.": "Some game models have special rigs or roles and may not behave as ordinary companions.",
+    "Some model records could not be read.": "Some model records could not be read.",
+    "State: {state}": "State: {state}",
+    "Stopped": "Stopped",
+    "Stopping": "Stopping",
+    "Subtitle display": "Subtitle display",
+    "Subtitles": "Subtitles",
+    "TALK TO {character}": "TALK TO {character}",
+    "TEXT  >": "TEXT  >",
+    "That character model is unavailable.": "That character model is unavailable.",
+    "That confirmation is no longer active.": "That confirmation is no longer active.",
+    "That conversation profile is unavailable.": "That conversation profile is unavailable.",
+    "That copy is no longer in your party.": "That copy is no longer in your party.",
+    "That dismissal is no longer pending.": "That dismissal is no longer pending.",
+    "That model is no longer available.": "That model is no longer available.",
+    "That setting is read-only.": "That setting is read-only.",
+    "The action could not finish: {reason}": "The action could not finish: {reason}",
+    "The character count changed. Review Forget all memories again.": "The character count changed. Review Forget all memories again.",
+    "The character died before joining.": "The character died before joining.",
+    "The character was removed before joining.": "The character was removed before joining.",
+    "The copy could not be dismissed.": "The copy could not be dismissed.",
+    "The installed character models could not be read.": "The installed character models could not be read.",
+    "The list will refresh in a moment.": "The list will refresh in a moment.",
+    "The manager could not be prepared: {reason}": "The manager could not be prepared: {reason}",
+    "The manager could not refresh: {reason}": "The manager could not refresh: {reason}",
+    "The memory clear request could not be sent. Check the memory service before trying again.": "The memory clear request could not be sent. Check the memory service before trying again.",
+    "The memory service could not confirm the clear for {target}. Review the service before choosing Forget again.": "The memory service could not confirm the clear for {target}. Review the service before choosing Forget again.",
+    "The memory service is unavailable. Reopen this page after it reconnects.": "The memory service is unavailable. Reopen this page after it reconnects.",
+    "The party list could not be read. Close and reopen the manager.": "The party list could not be read. Close and reopen the manager.",
+    "The profile could not be assigned.": "The profile could not be assigned.",
+    "The profile could not be cleared.": "The profile could not be cleared.",
+    "The settings could not be saved. Your changes are still pending.": "The settings could not be saved. Your changes are still pending.",
+    "The shared model stays loaded while the voice service runs. Changes apply to the next reply.": "The shared model stays loaded while the voice service runs. Changes apply to the next reply.",
+    "This contact has no companion mapping yet.": "This contact has no companion mapping yet.",
+    "This copy can still follow you, but will not join conversations.": "This copy can still follow you, but will not join conversations.",
+    "This copy could not be created.": "This copy could not be created.",
+    "This copy could not become ready. Review the error, choose another conversation profile or cancel the invitation.": "This copy could not become ready. Review the error, choose another conversation profile or cancel the invitation.",
+    "This copy could not join.": "This copy could not join.",
+    "This invitation has a reserved place and will join when you return to gameplay. You can change its conversation profile or cancel it.": "This invitation has a reserved place and will join when you return to gameplay. You can change its conversation profile or cancel it.",
+    "This is a separate, mod-owned companion.": "This is a separate, mod-owned companion.",
+    "This manager action is unavailable. Reopen the manager and try again.": "This manager action is unavailable. Reopen the manager and try again.",
+    "This setting must be on or off.": "This setting must be on or off.",
+    "Turn chat off": "Turn chat off",
+    "Turn chat on": "Turn chat on",
+    "Turn off": "Turn off",
+    "Turn on": "Turn on",
+    "Type a message first.": "Type a message first.",
+    "Type your message to the character.": "Type your message to the character.",
+    "UP / DOWN: SELECT    LEFT / RIGHT: PAGE    TAB: SEARCH    ENTER: ACTION    F5: CLOSE": "UP / DOWN: SELECT    LEFT / RIGHT: PAGE    TAB: SEARCH    ENTER: ACTION    F5: CLOSE",
+    "Unable to send the message. Your draft has been kept.": "Unable to send the message. Your draft has been kept.",
+    "Unavailable": "Unavailable",
+    "Unavailable - restart the voice service": "Unavailable - restart the voice service",
+    "Undo this pending dismissal.": "Undo this pending dismissal.",
+    "Unknown mod.": "Unknown mod.",
+    "Unknown setting: {setting}": "Unknown setting: {setting}",
+    "Unnamed model {index}": "Unnamed model {index}",
+    "Updating selection": "Updating selection",
+    "Use 16 steps": "Use 16 steps",
+    "Use 32 steps": "Use 32 steps",
+    "Use Apply to save changed settings, or Revert to discard them.": "Use Apply to save changed settings, or Revert to discard them.",
+    "Use Confirm or Cancel for the current memory request.": "Use Confirm or Cancel for the current memory request.",
+    "Use profile": "Use profile",
+    "Use the regular dialogue HUD by default, or place subtitles above the speaking companion. The Subtitles switch controls both.": "Use the regular dialogue HUD by default, or place subtitles above the speaking companion. The Subtitles switch controls both.",
+    "Use this conversation profile": "Use this conversation profile",
+    "Use {key} to finish this recording.": "Use {key} to finish this recording.",
+    "Voice playback": "Voice playback",
+    "Voice service": "Voice service",
+    "Voice: {voice}": "Voice: {voice}",
+    "Voices": "Voices",
+    "Wait for your previous reply before sending another message.": "Wait for your previous reply before sending another message.",
+    "Waiting for the conversation service.": "Waiting for the conversation service.",
+    "Waiting for the result of clearing memories for {target}. Reopen this page after the memory service reconnects.": "Waiting for the result of clearing memories for {target}. Reopen this page after the memory service reconnects.",
+    "Waiting for the voice service": "Waiting for the voice service",
+    "Waiting for voice service": "Waiting for voice service",
+    "Waiting for your previous message to finish.": "Waiting for your previous message to finish.",
+    "Waiting to join": "Waiting to join",
+    "Write a message...": "Write a message...",
+    "Write a message...  /  Enter to send  /  Esc to stop typing": "Write a message...  /  Enter to send  /  Esc to stop typing",
+    "YOUR PARTY": "YOUR PARTY",
+    "You have not talked to any characters yet.": "You have not talked to any characters yet.",
+    "You have not talked to this character yet.": "You have not talked to this character yet.",
+    "Your companions, character models and conversation settings.": "Your companions, character models and conversation settings.",
+    "Your group": "Your group",
+    "Your party": "Your party",
+    "Your party has eight copies. Dismiss one first.": "Your party has eight copies. Dismiss one first.",
+    "Your party is empty": "Your party is empty",
+    "Your party is empty. Add a character or model to create a companion copy.": "Your party is empty. Add a character or model to create a companion copy.",
+    "Your player identity stays the same. Phone Chat messages are managed separately.": "Your player identity stays the same. Phone Chat messages are managed separately.",
+    "all characters you have talked to": "all characters you have talked to",
+    "the selected character": "the selected character",
+    "{count} matching models": "{count} matching models",
+    "{count} · Last reported": "{count} · Last reported",
+    "{message} The change is active, but could not be saved for next time.": "{message} The change is active, but could not be saved for next time.",
+    "{name} could not join: {reason}": "{name} could not join: {reason}",
+    "{name} could not prepare: {reason}": "{name} could not prepare: {reason}",
+    "{name} dismissed.": "{name} dismissed.",
+    "{name} does not have a conversation profile configured yet.": "{name} does not have a conversation profile configured yet.",
+    "{name} is joining your party.": "{name} is joining your party.",
+    "{name} is no longer attached to the world. Dismiss this copy to free its place.": "{name} is no longer attached to the world. Dismiss this copy to free its place.",
+    "{name} is not in your group.": "{name} is not in your group.",
+    "{name} is preparing memory and conversation.": "{name} is preparing memory and conversation.",
+    "{name} is ready to join when you return to the game.": "{name} is ready to join when you return to the game.",
+    "{name} is ready. Close the phone to join.": "{name} is ready. Close the phone to join.",
+    "{name} joined your group.": "{name} joined your group.",
+    "{name} joined your party.": "{name} joined your party.",
+    "{name} selected for memory controls.": "{name} selected for memory controls.",
+    "{name} will join when you return to the game.": "{name} will join when you return to the game.",
+    "{name} will leave when you return to the game.": "{name} will leave when you return to the game.",
+    "{name} will stay in the party.": "{name} will stay in the party.",
+    "{name} · invited copy": "{name} · invited copy",
+    "{name}: chat {state}.": "{name}: chat {state}.",
+    "{name}: connecting...": "{name}: connecting...",
+    "{name}: conversation profile cleared.": "{name}: conversation profile cleared.",
+    "{name}: conversation set to {profile}.": "{name}: conversation set to {profile}.",
+    "{name}: dismiss queued.": "{name}: dismiss queued.",
+    "{name}: invitation cancelled.": "{name}: invitation cancelled.",
+    "{name}: invite queued.": "{name}: invite queued.",
+    "{name}: preparation failed. Cancel and invite again.": "{name}: preparation failed. Cancel and invite again.",
+    "{name}: preparing memory...": "{name}: preparing memory...",
+    "{status} · After current reply": "{status} · After current reply"
+  },
+  "contexts": {
+    "cet.bindings": [
+      "Cyberpunk Convai: companion manager",
+      "Cyberpunk Convai: group text chat (F8)",
+      "Cyberpunk Convai: group voice chat (F9)",
+      "Cyberpunk Convai: talk by text",
+      "Cyberpunk Convai: talk by voice (F7)"
+    ],
+    "legacy.manager": [
+      "0 results",
+      "32 steps: fuller quality (default).\n16 steps: faster replies.",
+      "Add a copy",
+      "Add a copy, then use Party to choose its conversation profile.",
+      "Back to party",
+      "Browse your characters, discover a game model, or manage your current party.",
+      "Chat off",
+      "Chat on",
+      "Choose a model in Models, then assign this profile in Party.",
+      "Choose profile",
+      "Choose the personality this copy should use in conversations. Its model stays the same.",
+      "Clear profile",
+      "Conversation profile not assigned",
+      "Conversation profile not assigned.",
+      "Conversation profile set to {name}.",
+      "Copies in party: {count}",
+      "Creating a copy of {name}. Check Party for its status.",
+      "Currently {state}.",
+      "Discovering installed character models. Results appear as they are read.",
+      "Dismiss copy",
+      "Johnny, Judy and Panam use OmniVoice. Other characters keep their Convai voices.",
+      "Joining...",
+      "Keep this copy without a conversation identity",
+      "Loading...",
+      "Local voices: {status}",
+      "Models",
+      "No entries are available.",
+      "No matches. Try another name or clear the search.",
+      "OmniVoice {steps} steps selected for the next reply.",
+      "Page {page} of {pages}  |  {count} results",
+      "Party full: dismiss a copy before adding another.",
+      "Party: {count} / 8",
+      "Play spoken replies through the supported voice output. This does not change microphone capture.",
+      "Reading models {read}/{total}",
+      "Request queued...",
+      "Show companion reply subtitles during conversations.",
+      "State: {state}",
+      "Stopping",
+      "The action could not finish: {reason}",
+      "The copy could not be dismissed.",
+      "The list will refresh in a moment.",
+      "The manager could not be prepared: {reason}",
+      "The manager could not refresh: {reason}",
+      "The profile could not be assigned.",
+      "The profile could not be cleared.",
+      "The shared model stays loaded while the voice service runs. Changes apply to the next reply.",
+      "This copy can still follow you, but will not join conversations.",
+      "This copy could not be created.",
+      "Turn chat off",
+      "Turn chat on",
+      "Turn off",
+      "Turn on",
+      "Unavailable - restart the voice service",
+      "Unnamed model {index}",
+      "Updating selection",
+      "Use 16 steps",
+      "Use 32 steps",
+      "Use profile",
+      "Use this conversation profile",
+      "Waiting for the voice service",
+      "Your party",
+      "Your party is empty. Add a character or model to create a companion copy.",
+      "{name}: chat {state}."
+    ],
+    "legacy.manager.native": [
+      "<  PREVIOUS",
+      "<  TEXT",
+      "CHARACTERS",
+      "COMPANION MANAGER",
+      "DETAILS  {page} / {pages}",
+      "GAME MODELS",
+      "NEXT  >",
+      "NIGHT CITY",
+      "No entries yet.\nTry another search or tab.",
+      "Please wait for the current requests to finish.",
+      "SELECTED",
+      "SETTINGS",
+      "Search names, models or settings...",
+      "TEXT  >",
+      "UP / DOWN: SELECT    LEFT / RIGHT: PAGE    TAB: SEARCH    ENTER: ACTION    F5: CLOSE",
+      "YOUR PARTY"
+    ],
+    "manager.feedback": [
+      "Choose a conversation profile from the list.",
+      "Choose a copy from your party first.",
+      "Conversation profile cleared.",
+      "Playback settings updated.",
+      "Settings are active, but could not be saved for next time.",
+      "Settings saved.",
+      "That conversation profile is unavailable.",
+      "That copy is no longer in your party.",
+      "That model is no longer available.",
+      "The party list could not be read. Close and reopen the manager.",
+      "This manager action is unavailable. Reopen the manager and try again."
+    ],
+    "manager.validation": [
+      "A memory clear is awaiting its result. It will not be sent again.",
+      "Choose 16 or 32 voice steps.",
+      "Choose Above speaker or Dialogue HUD.",
+      "Choose OmniVoice or Convai voices.",
+      "Choose a character from the catalogue first.",
+      "Choose a character from the catalogue.",
+      "Choose a head-follow strength from the available settings.",
+      "Choose a memory clear action from Settings.",
+      "Choose an eye-contact height from the available settings.",
+      "Invalid conversation settings.",
+      "Memory clear requested. Waiting for the memory service to confirm it.",
+      "No settings were supplied.",
+      "Review the memory clear below, then choose Confirm or Cancel.",
+      "That confirmation is no longer active.",
+      "That conversation profile is unavailable.",
+      "The character count changed. Review Forget all memories again.",
+      "The memory service is unavailable. Reopen this page after it reconnects.",
+      "The settings could not be saved. Your changes are still pending.",
+      "This setting must be on or off.",
+      "Use Confirm or Cancel for the current memory request.",
+      "You have not talked to any characters yet.",
+      "You have not talked to this character yet."
+    ],
+    "mcm.action": [
+      "Back",
+      "Back to memory",
+      "Back to settings",
+      "Browse {section}. {query}",
+      "Cancel",
+      "Cancel this request before anything is sent.",
+      "Character conversations",
+      "Choose",
+      "Choose a character, review memory status and manage memories from your conversations.",
+      "Choose any character from the catalogue. They do not need to be in your current party.",
+      "Choose the personality for {name}. The character model stays the same.",
+      "Clear memories about you for every character you have talked to. Your player identity is retained. Review an inline confirmation first.",
+      "Confirm",
+      "Conversation",
+      "Enable or disable each character’s participation in AI conversations.",
+      "Forget",
+      "Forget all memories",
+      "Forget memories",
+      "Forget selected character",
+      "Invite",
+      "Keep memories",
+      "Keep {name} as a follower without AI conversations.",
+      "Manage",
+      "Memory",
+      "More characters",
+      "More models",
+      "Next",
+      "No conversation profile",
+      "Previous",
+      "Previous characters",
+      "Previous models",
+      "Return to conversation settings.",
+      "Return to the memory controls.",
+      "Select {name} for memory controls. This does not invite them or change their conversation settings.",
+      "Selected character"
+    ],
+    "mcm.category": [
+      "Automatic reactions",
+      "Character conversations",
+      "Character memories",
+      "Characters",
+      "Characters build memories through your conversations and keep them across saves.",
+      "Companion Manager",
+      "Companion behavior",
+      "Conversation for {name}",
+      "Conversations",
+      "Current party",
+      "Installed character models",
+      "Interface",
+      "Memory",
+      "Phone messages",
+      "Search a character by name. Each invitation reserves a place and starts preparation immediately. Your party can have up to eight copies, including pending invitations.",
+      "Subtitles",
+      "Use Apply to save changed settings, or Revert to discard them.",
+      "Voices",
+      "Your group"
+    ],
+    "mcm.memory": [
+      "Choose a character",
+      "Choose a character before clearing their memories about you.",
+      "Clear memories about you for all {count} characters you have talked to?",
+      "Clear {name}’s memories about conversations with you. Review an inline confirmation first.",
+      "Clear {name}’s memories about conversations with you?",
+      "Forget ({count} characters)",
+      "Memories can be managed here.",
+      "Reopen this page after the memory service reconnects. A pending clear keeps waiting for its own result.",
+      "Search by character name using Search settings. {query}\nThe character can be outside your current party.",
+      "Select {name} for memory controls. This does not invite them or change their conversation settings.",
+      "Unavailable",
+      "Your player identity stays the same. Phone Chat messages are managed separately.",
+      "{count} · Last reported"
+    ],
+    "mcm.models": [
+      "Models without a conversation identity can be assigned one in Current party.",
+      "No conversation profile. Assign a profile in Current party after inviting this model.",
+      "Page {page} / {pages}",
+      "Reading installed models…",
+      "Search by character name or model record using Search settings. {query}",
+      "Some game models have special rigs or roles and may not behave as ordinary companions.",
+      "{count} matching models"
+    ],
+    "mcm.navigation": [
+      "Browse {section}. {query}",
+      "Characters",
+      "Companion Manager",
+      "Current party",
+      "Invite characters, manage your group, browse game models and configure conversations.",
+      "Model browser",
+      "Open",
+      "Selected",
+      "Settings",
+      "Your companions, character models and conversation settings."
+    ],
+    "mcm.options": [
+      "10 cm higher",
+      "10 cm lower",
+      "16 steps · Faster",
+      "32 steps · Higher quality (default)",
+      "5 cm higher",
+      "5 cm lower",
+      "Above speaker",
+      "Convai for all characters",
+      "Default",
+      "Dialogue HUD",
+      "Eyes only",
+      "Gentle (default)",
+      "Less",
+      "More",
+      "OmniVoice + Convai (default)"
+    ],
+    "mcm.party": [
+      "Add copy ({count})",
+      "Cancel invitation",
+      "Choose a profile",
+      "Choose the personality for {name}. The character model stays the same.",
+      "Connecting",
+      "Connecting this character for conversation. This copy has a reserved place. You can change its conversation profile or cancel the invitation.",
+      "Conversation for {name}",
+      "Dismiss",
+      "Following",
+      "Invitations create separate companion copies, including characters outside your phone contacts. Memory and connection preparation starts immediately; the copy joins when ready after you return to gameplay.",
+      "Invite",
+      "Joining",
+      "Joining your party. The character is still being attached to the world.",
+      "Keep in party",
+      "Keep {name} as a follower without AI conversations.",
+      "Leaving",
+      "Missing",
+      "Preparation is complete. This copy will join when you return to gameplay. You can still change its conversation profile or cancel the invitation.",
+      "Preparing memory",
+      "Preparing this character with your player identity and current world context. This copy has a reserved place. You can change its conversation profile or cancel the invitation.",
+      "Profile only",
+      "Ready to join",
+      "Remove only this copy from your group.",
+      "This copy could not become ready. Review the error, choose another conversation profile or cancel the invitation.",
+      "This invitation has a reserved place and will join when you return to gameplay. You can change its conversation profile or cancel it.",
+      "This is a separate, mod-owned companion.",
+      "Unavailable",
+      "Undo this pending dismissal.",
+      "Waiting to join",
+      "{name} · invited copy"
+    ],
+    "mcm.permissions": [
+      "Allow {name} in private and group conversations. Existing copies can still follow you when this is off."
+    ],
+    "mcm.readonly": [
+      "Characters you have talked to",
+      "Choose a character",
+      "Companions",
+      "Confirm memory clear",
+      "Disappearing messages clears the local Chat history and drafts on the next game launch. Forget controls clear character memories about you; saved Chat messages remain available.",
+      "Forget all memories applies to these characters. Visiting the catalogue or inviting a companion does not add anyone to this count.",
+      "Includes reserved invitations and current companions. Invited characters prepare while the menu is open, then join when ready after you return to gameplay. Dismissals take effect in gameplay.",
+      "Invite someone from Characters or Model browser.",
+      "Invited characters are prepared immediately. Natural memories are created when you actually talk to them. One player identity is shared across all saves and stays the same after forgetting. Current game context describes the world you have loaded.",
+      "Managed separately",
+      "Memory result",
+      "Memory service",
+      "OmniVoice starts preparing as soon as you select it here and stays warm after Apply. Revert or leaving without saving cancels the preview; no game restart is needed.",
+      "Page {page} / {pages}",
+      "Phone Chat messages",
+      "Player memory",
+      "Search by character name or model record using Search settings. {query}",
+      "Search by character name using Search settings. {query}\nThe character can be outside your current party.",
+      "Shared across your saves",
+      "Voice service",
+      "Your party is empty"
+    ],
+    "mcm.setting": [
+      "A nearby companion can make one short comment as combat starts and another afterward. Ten-minute cooldown after a fight; conversations and story scenes take priority. Loading a save resets the cooldown.",
+      "Allow {name} in private and group conversations. Existing copies can still follow you when this is off.",
+      "Applies while OmniVoice is selected. 32 steps gives the preferred quality; 16 steps is faster. One shared model stays loaded until you select Convai or stop the voice service.",
+      "Characters answer, then ask one brief, relevant question in ordinary conversations. They omit it when you say goodbye, ask for no questions or request an exact fixed reply. In a group, only the final speaker asks. When off, characters answer without inviting another turn. Automatic reactions never ask questions.",
+      "Choose how much companions turn their heads during eye contact. Eyes only relies on eye movement.",
+      "Choose the mod interface language independently of character voices and conversation language.",
+      "Clear the phone Chat history and drafts when you next launch the game. Characters keep their Convai conversation memory. Loading a save or reloading mods does not clear messages.",
+      "Companion voices",
+      "Companions can comment after you finish collecting world loot. Storage transfers stay silent. A ten-minute cooldown spaces ordinary comments; newly acquired Legendary equipment has a separate two-minute cooldown. Loot can join a post-battle comment.",
+      "Disappearing messages",
+      "Eye contact height",
+      "Follow-up questions",
+      "Head tracking strength",
+      "Interface language",
+      "Local voice quality",
+      "OmniVoice gives Johnny, Judy and Panam their prepared local voices. Selecting it starts preparing the model immediately. Apply saves your choice; Revert cancels the preview. Convai uses configured online voices and releases the local model after Apply. Other characters always use Convai. Current replies finish with their original voice.",
+      "Play voiced replies from your companions.",
+      "Raise or lower the point companions look at on V. Default uses V’s usual eye contact target.",
+      "React to battles",
+      "React to collected loot",
+      "Show companion replies using the selected subtitle display.",
+      "Subtitle display",
+      "Subtitles",
+      "Use the regular dialogue HUD by default, or place subtitles above the speaking companion. The Subtitles switch controls both.",
+      "Voice playback"
+    ],
+    "mcm.validation": [
+      "Choose Above speaker or Dialogue HUD.",
+      "Choose OmniVoice or Convai voices.",
+      "Choose a voice quality.",
+      "Choose an eye contact option.",
+      "Reopen the manager; that action is no longer available.",
+      "That setting is read-only."
+    ],
+    "mcm.voice-status": [
+      "Changing after the current reply",
+      "Convai voice",
+      "Convai voices · Local model unloaded",
+      "Conversation: {state}",
+      "Loading",
+      "Not configured",
+      "Off",
+      "OmniVoice {steps} steps",
+      "On",
+      "Preparing a reply",
+      "Preparing voices",
+      "Ready",
+      "Ready · Unsaved selection",
+      "Releasing local voice memory",
+      "Stopped",
+      "Unavailable",
+      "Voice: {voice}",
+      "Waiting for voice service",
+      "{status} · After current reply"
+    ],
+    "memory.feedback": [
+      "A previous memory request could not be read. The memory service must reconcile it before another clear.",
+      "Clearing memories for {target}…",
+      "Memory clear cancelled.",
+      "Memory clear confirmed for {target}.",
+      "Memory clear requested. Waiting for the memory service to confirm it.",
+      "Review the memory clear below, then choose Confirm or Cancel.",
+      "The memory clear request could not be sent. Check the memory service before trying again.",
+      "The memory service could not confirm the clear for {target}. Review the service before choosing Forget again.",
+      "Waiting for the result of clearing memories for {target}. Reopen this page after the memory service reconnects.",
+      "all characters you have talked to",
+      "the selected character",
+      "{name} selected for memory controls."
+    ],
+    "party.feedback": [
+      "Companion preparation is unavailable.",
+      "Companion preparation returned an invalid state.",
+      "Some model records could not be read.",
+      "The character died before joining.",
+      "The character was removed before joining.",
+      "The installed character models could not be read.",
+      "This copy could not join.",
+      "{name} could not join: {reason}",
+      "{name} could not prepare: {reason}",
+      "{name} dismissed.",
+      "{name} is joining your party.",
+      "{name} is no longer attached to the world. Dismiss this copy to free its place.",
+      "{name} is preparing memory and conversation.",
+      "{name} is ready to join when you return to the game.",
+      "{name} joined your group.",
+      "{name} joined your party.",
+      "{name} will join when you return to the game.",
+      "{name} will leave when you return to the game.",
+      "{name} will stay in the party.",
+      "{name}: conversation profile cleared.",
+      "{name}: conversation set to {profile}.",
+      "{name}: invitation cancelled."
+    ],
+    "phone.chat": [
+      "Conversation interrupted. Your message is in the draft.",
+      "Conversation is unavailable for this contact.",
+      "Conversations are disabled for this contact.",
+      "Conversations are disabled in Companion Manager.",
+      "Message sent. Waiting for reply.",
+      "No reply received. Your message is in the draft; press Enter to retry.",
+      "Opening chat. Waiting for the conversation service.",
+      "Press Enter to write  /  Esc to stop typing",
+      "Type a message first.",
+      "Unable to send the message. Your draft has been kept.",
+      "Wait for your previous reply before sending another message.",
+      "Waiting for the conversation service.",
+      "Waiting for your previous message to finish.",
+      "Write a message...  /  Enter to send  /  Esc to stop typing"
+    ],
+    "phone.feedback": [
+      "{name} is not in your group.",
+      "{name} is ready. Close the phone to join.",
+      "{name}: connecting...",
+      "{name}: preparation failed. Cancel and invite again.",
+      "{name}: preparing memory..."
+    ],
+    "phone.localized": [
+      "CHAT",
+      "Chat",
+      "TALK TO {character}",
+      "Type your message to the character."
+    ],
+    "phone.native": [
+      "CHAT",
+      "Chat",
+      "Close the phone to finish the pending companion requests.",
+      "ENTER  Write message   /   ESC  Stop typing",
+      "Listening - press {key} again to finish",
+      "Microphone connection timed out. Please try again.",
+      "Microphone unavailable. Check your Windows input device.",
+      "This contact has no companion mapping yet.",
+      "Write a message..."
+    ],
+    "phone.native-feedback": [
+      "CLOSE PHONE TO CONTINUE",
+      "COMPANION UNAVAILABLE",
+      "DISMISS QUEUED - CLOSE PHONE",
+      "ENTER  Write / Send   /   ESC  Stop typing",
+      "INVITE QUEUED - CLOSE PHONE",
+      "{name}: dismiss queued.",
+      "{name}: invite queued."
+    ],
+    "settings.feedback": [
+      "Unknown setting: {setting}",
+      "{message} The change is active, but could not be saved for next time."
+    ],
+    "settings.language": [
+      "Automatic (game interface language)",
+      "Choose an interface language.",
+      "Choose the mod interface language independently of character voices and conversation language.",
+      "Interface",
+      "Interface language"
+    ],
+    "ui.localized": [
+      "A previous memory request could not be read. The memory service must reconcile it before another clear.",
+      "Add copy ({count})",
+      "Allow {name} in private and group conversations. Existing copies can still follow you when this is off.",
+      "Browse {section}. {query}",
+      "Cancel an invitation first; the party is full.",
+      "Changing after the current reply",
+      "Choose Above speaker or Dialogue HUD.",
+      "Choose OmniVoice or Convai voices.",
+      "Choose a voice quality.",
+      "Choose an active or invited copy.",
+      "Choose an eye contact option.",
+      "Choose an interface language.",
+      "Choose the personality for {name}. The character model stays the same.",
+      "Clear memories about you for all {count} characters you have talked to?",
+      "Clear {name}’s memories about conversations with you. Review an inline confirmation first.",
+      "Clear {name}’s memories about conversations with you?",
+      "Clearing memories for {target}…",
+      "Companion preparation is unavailable.",
+      "Companion preparation returned an invalid state.",
+      "Connecting microphone - wait for Listening",
+      "Convai voice",
+      "Conversation for {name}",
+      "Conversation: {state}",
+      "Forget ({count} characters)",
+      "Group chat needs two characters nearby. Use {key} for one person.",
+      "Invitations create separate companion copies, including characters outside your phone contacts. Memory and connection preparation starts immediately; the copy joins when ready after you return to gameplay.",
+      "Invite characters, manage your group, browse game models and configure conversations.",
+      "Keep {name} as a follower without AI conversations.",
+      "Listening - press {key} again to finish",
+      "Load a save before inviting a companion.",
+      "Memory clear confirmed for {target}.",
+      "Microphone connection timed out. Please try again.",
+      "Microphone unavailable. Check your Windows input device.",
+      "Models without a conversation identity can be assigned one in Current party.",
+      "No conversation profile. Assign a profile in Current party after inviting this model.",
+      "No reply arrived. Check that the Convai bridge is running.",
+      "OmniVoice {steps} steps",
+      "Page {page} / {pages}",
+      "Preparing voices",
+      "Ready · Unsaved selection",
+      "Reopen the manager; that action is no longer available.",
+      "Search by character name or model record using Search settings. {query}",
+      "Search by character name using Search settings. {query}\nThe character can be outside your current party.",
+      "Select {name} for memory controls. This does not invite them or change their conversation settings.",
+      "Some game models have special rigs or roles and may not behave as ordinary companions.",
+      "That character model is unavailable.",
+      "That copy is no longer in your party.",
+      "That dismissal is no longer pending.",
+      "That setting is read-only.",
+      "The memory service could not confirm the clear for {target}. Review the service before choosing Forget again.",
+      "Unknown mod.",
+      "Unknown setting: {setting}",
+      "Unnamed model {index}",
+      "Use {key} to finish this recording.",
+      "Voice: {voice}",
+      "Waiting for the result of clearing memories for {target}. Reopen this page after the memory service reconnects.",
+      "Your companions, character models and conversation settings.",
+      "Your party has eight copies. Dismiss one first.",
+      "Your player identity stays the same. Phone Chat messages are managed separately.",
+      "all characters you have talked to",
+      "the selected character",
+      "{count} matching models",
+      "{count} · Last reported",
+      "{name} could not join: {reason}",
+      "{name} could not prepare: {reason}",
+      "{name} dismissed.",
+      "{name} does not have a conversation profile configured yet.",
+      "{name} is joining your party.",
+      "{name} is not in your group.",
+      "{name} is ready. Close the phone to join.",
+      "{name} joined your group.",
+      "{name} selected for memory controls.",
+      "{name} will join when you return to the game.",
+      "{name} will leave when you return to the game.",
+      "{name} will stay in the party.",
+      "{name} · invited copy",
+      "{name}: connecting...",
+      "{name}: conversation profile cleared.",
+      "{name}: conversation set to {profile}.",
+      "{name}: invitation cancelled.",
+      "{name}: preparation failed. Cancel and invite again.",
+      "{name}: preparing memory...",
+      "{status} · After current reply"
+    ],
+    "world.composer.native": [
+      "TALK TO {character}"
+    ],
+    "world.conversation": [
+      "Connecting microphone - wait for Listening",
+      "Face a nearby NPC within eight metres",
+      "Group chat needs two characters nearby. Use {key} for one person.",
+      "No reply arrived. Check that the Convai bridge is running.",
+      "Player unavailable",
+      "Type your message to the character.",
+      "Use {key} to finish this recording.",
+      "{name} does not have a conversation profile configured yet.",
+      "{name} is not in your group."
+    ],
+    "world.microphone": [
+      "Listening - press {key} again to finish",
+      "Use {key} to finish this recording."
+    ]
+  },
+  "metadata": {
+    "0 results": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:715"
+      ]
+    },
+    "10 cm higher": {
+      "contexts": [
+        "mcm.options"
+      ],
+      "references": [
+        "mod/mcm.lua:495"
+      ]
+    },
+    "10 cm lower": {
+      "contexts": [
+        "mcm.options"
+      ],
+      "references": [
+        "mod/mcm.lua:495"
+      ]
+    },
+    "16 steps · Faster": {
+      "contexts": [
+        "mcm.options"
+      ],
+      "references": [
+        "mod/mcm.lua:508"
+      ]
+    },
+    "32 steps · Higher quality (default)": {
+      "contexts": [
+        "mcm.options"
+      ],
+      "references": [
+        "mod/mcm.lua:508"
+      ]
+    },
+    "32 steps: fuller quality (default).\n16 steps: faster replies.": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:680"
+      ]
+    },
+    "5 cm higher": {
+      "contexts": [
+        "mcm.options"
+      ],
+      "references": [
+        "mod/mcm.lua:495"
+      ]
+    },
+    "5 cm lower": {
+      "contexts": [
+        "mcm.options"
+      ],
+      "references": [
+        "mod/mcm.lua:495"
+      ]
+    },
+    "<  PREVIOUS": {
+      "contexts": [
+        "legacy.manager.native"
+      ],
+      "references": [
+        "r6/scripts/CyberpunkConvai/Manager.reds:205"
+      ]
+    },
+    "<  TEXT": {
+      "contexts": [
+        "legacy.manager.native"
+      ],
+      "references": [
+        "r6/scripts/CyberpunkConvai/Manager.reds:214"
+      ]
+    },
+    "A memory clear is awaiting its result. It will not be sent again.": {
+      "contexts": [
+        "manager.validation"
+      ],
+      "references": [
+        "mod/manager.lua:118"
+      ]
+    },
+    "A nearby companion can make one short comment as combat starts and another afterward. Ten-minute cooldown after a fight; conversations and story scenes take priority. Loading a save resets the cooldown.": {
+      "contexts": [
+        "mcm.setting"
+      ],
+      "references": [
+        "mod/mcm.lua:520"
+      ]
+    },
+    "A previous memory request could not be read. The memory service must reconcile it before another clear.": {
+      "contexts": [
+        "memory.feedback",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/manager.lua:143"
+      ]
+    },
+    "Above speaker": {
+      "contexts": [
+        "mcm.options"
+      ],
+      "references": [
+        "mod/mcm.lua:516"
+      ]
+    },
+    "Add a copy": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:653",
+        "mod/manager.lua:661"
+      ]
+    },
+    "Add a copy, then use Party to choose its conversation profile.": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:660"
+      ]
+    },
+    "Add copy ({count})": {
+      "contexts": [
+        "mcm.party",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/mcm.lua:326"
+      ]
+    },
+    "Allow {name} in private and group conversations. Existing copies can still follow you when this is off.": {
+      "contexts": [
+        "mcm.permissions",
+        "mcm.setting",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/mcm.lua:464"
+      ]
+    },
+    "Applies while OmniVoice is selected. 32 steps gives the preferred quality; 16 steps is faster. One shared model stays loaded until you select Convai or stop the voice service.": {
+      "contexts": [
+        "mcm.setting"
+      ],
+      "references": [
+        "mod/mcm.lua:507"
+      ]
+    },
+    "Automatic (game interface language)": {
+      "contexts": [
+        "settings.language"
+      ],
+      "references": [],
+      "planned": true
+    },
+    "Automatic reactions": {
+      "contexts": [
+        "mcm.category"
+      ],
+      "references": [
+        "mod/mcm.lua:518"
+      ]
+    },
+    "Back": {
+      "contexts": [
+        "mcm.action"
+      ],
+      "references": [
+        "mod/mcm.lua:419",
+        "mod/mcm.lua:433",
+        "mod/mcm.lua:459"
+      ]
+    },
+    "Back to memory": {
+      "contexts": [
+        "mcm.action"
+      ],
+      "references": [
+        "mod/mcm.lua:433"
+      ]
+    },
+    "Back to party": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:636"
+      ]
+    },
+    "Back to settings": {
+      "contexts": [
+        "mcm.action"
+      ],
+      "references": [
+        "mod/mcm.lua:419",
+        "mod/mcm.lua:459"
+      ]
+    },
+    "Browse your characters, discover a game model, or manage your current party.": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "r6/scripts/CyberpunkConvai/Manager.reds:781"
+      ]
+    },
+    "Browse {section}. {query}": {
+      "contexts": [
+        "mcm.action",
+        "mcm.navigation",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/mcm.lua:309"
+      ]
+    },
+    "CHARACTERS": {
+      "contexts": [
+        "legacy.manager.native"
+      ],
+      "references": [
+        "r6/scripts/CyberpunkConvai/Manager.reds:181"
+      ]
+    },
+    "CHAT": {
+      "contexts": [
+        "phone.localized",
+        "phone.native"
+      ],
+      "references": [
+        "mod/phone-chat-style.lua:140",
+        "mod/phone-chat-style.lua:171",
+        "r6/scripts/CyberpunkConvai/PhoneChat.reds:416",
+        "r6/scripts/CyberpunkConvai/PhoneChatTabs.reds:314"
+      ]
+    },
+    "CLOSE PHONE TO CONTINUE": {
+      "contexts": [
+        "phone.native-feedback"
+      ],
+      "references": [
+        "mod/phone-chat-style.lua:37",
+        "r6/scripts/CyberpunkConvai/PhoneContacts.reds:248"
+      ]
+    },
+    "COMPANION MANAGER": {
+      "contexts": [
+        "legacy.manager.native"
+      ],
+      "references": [
+        "r6/scripts/CyberpunkConvai/Manager.reds:166"
+      ]
+    },
+    "COMPANION UNAVAILABLE": {
+      "contexts": [
+        "phone.native-feedback"
+      ],
+      "references": [
+        "mod/phone-chat-style.lua:38",
+        "r6/scripts/CyberpunkConvai/PhoneContacts.reds:248"
+      ]
+    },
+    "Cancel": {
+      "contexts": [
+        "mcm.action"
+      ],
+      "references": [
+        "mod/mcm.lua:280"
+      ]
+    },
+    "Cancel an invitation first; the party is full.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/manager-party.lua:144"
+      ]
+    },
+    "Cancel invitation": {
+      "contexts": [
+        "mcm.party"
+      ],
+      "references": [
+        "mod/mcm.lua:356"
+      ]
+    },
+    "Cancel this request before anything is sent.": {
+      "contexts": [
+        "mcm.action"
+      ],
+      "references": [
+        "mod/mcm.lua:281"
+      ]
+    },
+    "Changing after the current reply": {
+      "contexts": [
+        "mcm.voice-status",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/mcm.lua:231"
+      ]
+    },
+    "Character conversations": {
+      "contexts": [
+        "mcm.action",
+        "mcm.category"
+      ],
+      "references": [
+        "mod/mcm.lua:466",
+        "mod/mcm.lua:479"
+      ]
+    },
+    "Character memories": {
+      "contexts": [
+        "mcm.category"
+      ],
+      "references": [
+        "mod/mcm.lua:457"
+      ]
+    },
+    "Characters": {
+      "contexts": [
+        "mcm.category",
+        "mcm.navigation"
+      ],
+      "references": [
+        "mod/manager.lua:638",
+        "mod/mcm.lua:304",
+        "mod/mcm.lua:329"
+      ]
+    },
+    "Characters answer, then ask one brief, relevant question in ordinary conversations. They omit it when you say goodbye, ask for no questions or request an exact fixed reply. In a group, only the final speaker asks. When off, characters answer without inviting another turn. Automatic reactions never ask questions.": {
+      "contexts": [
+        "mcm.setting"
+      ],
+      "references": [
+        "mod/mcm.lua:486"
+      ]
+    },
+    "Characters build memories through your conversations and keep them across saves.": {
+      "contexts": [
+        "mcm.category"
+      ],
+      "references": [
+        "mod/mcm.lua:422"
+      ]
+    },
+    "Characters you have talked to": {
+      "contexts": [
+        "mcm.readonly"
+      ],
+      "references": [
+        "mod/mcm.lua:261"
+      ]
+    },
+    "Chat": {
+      "contexts": [
+        "phone.localized",
+        "phone.native"
+      ],
+      "references": [
+        "mod/phone-chat-style.lua:163",
+        "r6/scripts/CyberpunkConvai/PhoneChatTabs.reds:282"
+      ]
+    },
+    "Chat off": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:585"
+      ]
+    },
+    "Chat on": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:585"
+      ]
+    },
+    "Choose": {
+      "contexts": [
+        "mcm.action"
+      ],
+      "references": [
+        "mod/mcm.lua:368",
+        "mod/mcm.lua:377"
+      ]
+    },
+    "Choose 16 or 32 voice steps.": {
+      "contexts": [
+        "manager.validation"
+      ],
+      "references": [
+        "mod/manager.lua:880"
+      ]
+    },
+    "Choose Above speaker or Dialogue HUD.": {
+      "contexts": [
+        "manager.validation",
+        "mcm.validation",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/manager.lua:877",
+        "mod/mcm.lua:567"
+      ]
+    },
+    "Choose OmniVoice or Convai voices.": {
+      "contexts": [
+        "manager.validation",
+        "mcm.validation",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/manager.lua:886",
+        "mod/mcm.lua:579"
+      ]
+    },
+    "Choose a character": {
+      "contexts": [
+        "mcm.memory",
+        "mcm.readonly"
+      ],
+      "references": [
+        "mod/mcm.lua:180",
+        "mod/mcm.lua:265",
+        "mod/mcm.lua:435",
+        "r6/scripts/CyberpunkConvai/Manager.reds:780"
+      ]
+    },
+    "Choose a character before clearing their memories about you.": {
+      "contexts": [
+        "mcm.memory"
+      ],
+      "references": [
+        "mod/mcm.lua:285"
+      ]
+    },
+    "Choose a character from the catalogue first.": {
+      "contexts": [
+        "manager.validation"
+      ],
+      "references": [
+        "mod/manager.lua:126"
+      ]
+    },
+    "Choose a character from the catalogue.": {
+      "contexts": [
+        "manager.validation"
+      ],
+      "references": [
+        "mod/manager.lua:166"
+      ]
+    },
+    "Choose a character, review memory status and manage memories from your conversations.": {
+      "contexts": [
+        "mcm.action"
+      ],
+      "references": [
+        "mod/mcm.lua:483"
+      ]
+    },
+    "Choose a conversation profile from the list.": {
+      "contexts": [
+        "manager.feedback"
+      ],
+      "references": [
+        "mod/manager.lua:790"
+      ]
+    },
+    "Choose a copy from your party first.": {
+      "contexts": [
+        "manager.feedback"
+      ],
+      "references": [
+        "mod/manager.lua:797"
+      ]
+    },
+    "Choose a head-follow strength from the available settings.": {
+      "contexts": [
+        "manager.validation"
+      ],
+      "references": [
+        "mod/manager.lua:892"
+      ]
+    },
+    "Choose a memory clear action from Settings.": {
+      "contexts": [
+        "manager.validation"
+      ],
+      "references": [
+        "mod/manager.lua:130"
+      ]
+    },
+    "Choose a model in Models, then assign this profile in Party.": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:652"
+      ]
+    },
+    "Choose a profile": {
+      "contexts": [
+        "mcm.party"
+      ],
+      "references": [
+        "mod/mcm.lua:179",
+        "mod/mcm.lua:350"
+      ]
+    },
+    "Choose a voice quality.": {
+      "contexts": [
+        "mcm.validation",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/mcm.lua:570"
+      ]
+    },
+    "Choose an active or invited copy.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/manager-party.lua:152"
+      ]
+    },
+    "Choose an eye contact option.": {
+      "contexts": [
+        "mcm.validation",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/mcm.lua:586"
+      ]
+    },
+    "Choose an eye-contact height from the available settings.": {
+      "contexts": [
+        "manager.validation"
+      ],
+      "references": [
+        "mod/manager.lua:889"
+      ]
+    },
+    "Choose an interface language.": {
+      "contexts": [
+        "settings.language",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/manager.lua:883",
+        "mod/mcm.lua:575"
+      ]
+    },
+    "Choose any character from the catalogue. They do not need to be in your current party.": {
+      "contexts": [
+        "mcm.action"
+      ],
+      "references": [
+        "mod/mcm.lua:266"
+      ]
+    },
+    "Choose how much companions turn their heads during eye contact. Eyes only relies on eye movement.": {
+      "contexts": [
+        "mcm.setting"
+      ],
+      "references": [
+        "mod/mcm.lua:497"
+      ]
+    },
+    "Choose profile": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:670"
+      ]
+    },
+    "Choose the mod interface language independently of character voices and conversation language.": {
+      "contexts": [
+        "mcm.setting",
+        "settings.language"
+      ],
+      "references": [
+        "mod/mcm.lua:475"
+      ]
+    },
+    "Choose the personality for {name}. The character model stays the same.": {
+      "contexts": [
+        "mcm.action",
+        "mcm.party",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/mcm.lua:351"
+      ]
+    },
+    "Choose the personality this copy should use in conversations. Its model stays the same.": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:628"
+      ]
+    },
+    "Clear memories about you for all {count} characters you have talked to?": {
+      "contexts": [
+        "mcm.memory",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/mcm.lua:273"
+      ]
+    },
+    "Clear memories about you for every character you have talked to. Your player identity is retained. Review an inline confirmation first.": {
+      "contexts": [
+        "mcm.action"
+      ],
+      "references": [
+        "mod/mcm.lua:289"
+      ]
+    },
+    "Clear profile": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:631"
+      ]
+    },
+    "Clear the phone Chat history and drafts when you next launch the game. Characters keep their Convai conversation memory. Loading a save or reloading mods does not clear messages.": {
+      "contexts": [
+        "mcm.setting"
+      ],
+      "references": [
+        "mod/mcm.lua:526"
+      ]
+    },
+    "Clear {name}’s memories about conversations with you. Review an inline confirmation first.": {
+      "contexts": [
+        "mcm.memory",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/mcm.lua:284"
+      ]
+    },
+    "Clear {name}’s memories about conversations with you?": {
+      "contexts": [
+        "mcm.memory",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/mcm.lua:274"
+      ]
+    },
+    "Clearing memories for {target}…": {
+      "contexts": [
+        "memory.feedback",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/manager.lua:150"
+      ]
+    },
+    "Close the phone to finish the pending companion requests.": {
+      "contexts": [
+        "phone.native"
+      ],
+      "references": [
+        "r6/scripts/CyberpunkConvai/PhoneContacts.reds:318"
+      ]
+    },
+    "Companion Manager": {
+      "contexts": [
+        "mcm.category",
+        "mcm.navigation"
+      ],
+      "references": [
+        "mod/mcm.lua:312",
+        "mod/mcm.lua:5"
+      ]
+    },
+    "Companion behavior": {
+      "contexts": [
+        "mcm.category"
+      ],
+      "references": [
+        "mod/mcm.lua:492"
+      ]
+    },
+    "Companion preparation is unavailable.": {
+      "contexts": [
+        "party.feedback",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/manager-party.lua:40"
+      ]
+    },
+    "Companion preparation returned an invalid state.": {
+      "contexts": [
+        "party.feedback",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/manager-party.lua:44"
+      ]
+    },
+    "Companion voices": {
+      "contexts": [
+        "mcm.setting"
+      ],
+      "references": [
+        "mod/mcm.lua:503"
+      ]
+    },
+    "Companions": {
+      "contexts": [
+        "mcm.readonly"
+      ],
+      "references": [
+        "mod/mcm.lua:314"
+      ]
+    },
+    "Companions can comment after you finish collecting world loot. Storage transfers stay silent. A ten-minute cooldown spaces ordinary comments; newly acquired Legendary equipment has a separate two-minute cooldown. Loot can join a post-battle comment.": {
+      "contexts": [
+        "mcm.setting"
+      ],
+      "references": [
+        "mod/mcm.lua:522"
+      ]
+    },
+    "Confirm": {
+      "contexts": [
+        "mcm.action"
+      ],
+      "references": [
+        "mod/mcm.lua:277"
+      ]
+    },
+    "Confirm memory clear": {
+      "contexts": [
+        "mcm.readonly"
+      ],
+      "references": [
+        "mod/mcm.lua:276"
+      ]
+    },
+    "Connecting": {
+      "contexts": [
+        "mcm.party"
+      ],
+      "references": [
+        "mod/mcm.lua:334"
+      ]
+    },
+    "Connecting microphone - wait for Listening": {
+      "contexts": [
+        "ui.localized",
+        "world.conversation"
+      ],
+      "references": [
+        "mod/init.lua:638"
+      ]
+    },
+    "Connecting this character for conversation. This copy has a reserved place. You can change its conversation profile or cancel the invitation.": {
+      "contexts": [
+        "mcm.party"
+      ],
+      "references": [
+        "mod/mcm.lua:338"
+      ]
+    },
+    "Convai for all characters": {
+      "contexts": [
+        "mcm.options"
+      ],
+      "references": [
+        "mod/mcm.lua:505"
+      ]
+    },
+    "Convai voice": {
+      "contexts": [
+        "mcm.voice-status",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/mcm.lua:213"
+      ]
+    },
+    "Convai voices · Local model unloaded": {
+      "contexts": [
+        "mcm.voice-status"
+      ],
+      "references": [
+        "mod/mcm.lua:226"
+      ]
+    },
+    "Conversation": {
+      "contexts": [
+        "mcm.action"
+      ],
+      "references": [
+        "mod/mcm.lua:350"
+      ]
+    },
+    "Conversation for {name}": {
+      "contexts": [
+        "mcm.category",
+        "mcm.party",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/mcm.lua:384"
+      ]
+    },
+    "Conversation interrupted. Your message is in the draft.": {
+      "contexts": [
+        "phone.chat"
+      ],
+      "references": [
+        "mod/phone-chat-style.lua:21",
+        "mod/phone-chat.lua:184"
+      ]
+    },
+    "Conversation is unavailable for this contact.": {
+      "contexts": [
+        "phone.chat"
+      ],
+      "references": [
+        "mod/phone-chat-style.lua:31",
+        "mod/phone-chat.lua:320"
+      ]
+    },
+    "Conversation profile cleared.": {
+      "contexts": [
+        "manager.feedback"
+      ],
+      "references": [
+        "mod/manager.lua:799"
+      ]
+    },
+    "Conversation profile not assigned": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:601"
+      ]
+    },
+    "Conversation profile not assigned.": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:659",
+        "mod/manager.lua:667"
+      ]
+    },
+    "Conversation profile set to {name}.": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:792"
+      ]
+    },
+    "Conversation: {state}": {
+      "contexts": [
+        "mcm.voice-status",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/mcm.lua:219",
+        "mod/mcm.lua:411"
+      ]
+    },
+    "Conversations": {
+      "contexts": [
+        "mcm.category"
+      ],
+      "references": [
+        "mod/mcm.lua:478"
+      ]
+    },
+    "Conversations are disabled for this contact.": {
+      "contexts": [
+        "phone.chat"
+      ],
+      "references": [
+        "mod/phone-chat-style.lua:24",
+        "mod/phone-chat.lua:236"
+      ]
+    },
+    "Conversations are disabled in Companion Manager.": {
+      "contexts": [
+        "phone.chat"
+      ],
+      "references": [
+        "mod/phone-chat-style.lua:30",
+        "mod/phone-chat.lua:320"
+      ]
+    },
+    "Copies in party: {count}": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:648"
+      ]
+    },
+    "Creating a copy of {name}. Check Party for its status.": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:753"
+      ]
+    },
+    "Current party": {
+      "contexts": [
+        "mcm.category",
+        "mcm.navigation"
+      ],
+      "references": [
+        "mod/mcm.lua:304",
+        "mod/mcm.lua:363"
+      ]
+    },
+    "Currently {state}.": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:675"
+      ]
+    },
+    "Cyberpunk Convai: companion manager": {
+      "contexts": [
+        "cet.bindings"
+      ],
+      "references": [
+        "mod/init.lua:1094"
+      ]
+    },
+    "Cyberpunk Convai: group text chat (F8)": {
+      "contexts": [
+        "cet.bindings"
+      ],
+      "references": [
+        "mod/init.lua:1090"
+      ]
+    },
+    "Cyberpunk Convai: group voice chat (F9)": {
+      "contexts": [
+        "cet.bindings"
+      ],
+      "references": [
+        "mod/init.lua:1092"
+      ]
+    },
+    "Cyberpunk Convai: talk by text": {
+      "contexts": [
+        "cet.bindings"
+      ],
+      "references": [
+        "mod/init.lua:1089"
+      ]
+    },
+    "Cyberpunk Convai: talk by voice (F7)": {
+      "contexts": [
+        "cet.bindings"
+      ],
+      "references": [
+        "mod/init.lua:1091"
+      ]
+    },
+    "DETAILS  {page} / {pages}": {
+      "contexts": [
+        "legacy.manager.native"
+      ],
+      "references": [
+        "r6/scripts/CyberpunkConvai/Manager.reds:391"
+      ]
+    },
+    "DISMISS QUEUED - CLOSE PHONE": {
+      "contexts": [
+        "phone.native-feedback"
+      ],
+      "references": [
+        "mod/phone-chat-style.lua:36",
+        "r6/scripts/CyberpunkConvai/PhoneContacts.reds:247"
+      ]
+    },
+    "Default": {
+      "contexts": [
+        "mcm.options"
+      ],
+      "references": [
+        "mod/mcm.lua:495"
+      ]
+    },
+    "Dialogue HUD": {
+      "contexts": [
+        "mcm.options"
+      ],
+      "references": [
+        "mod/mcm.lua:516"
+      ]
+    },
+    "Disappearing messages": {
+      "contexts": [
+        "mcm.setting"
+      ],
+      "references": [
+        "mod/mcm.lua:525"
+      ]
+    },
+    "Disappearing messages clears the local Chat history and drafts on the next game launch. Forget controls clear character memories about you; saved Chat messages remain available.": {
+      "contexts": [
+        "mcm.readonly"
+      ],
+      "references": [
+        "mod/mcm.lua:293"
+      ]
+    },
+    "Discovering installed character models. Results appear as they are read.": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:639"
+      ]
+    },
+    "Dismiss": {
+      "contexts": [
+        "mcm.party"
+      ],
+      "references": [
+        "mod/mcm.lua:356"
+      ]
+    },
+    "Dismiss copy": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:669"
+      ]
+    },
+    "ENTER  Write / Send   /   ESC  Stop typing": {
+      "contexts": [
+        "phone.native-feedback"
+      ],
+      "references": [
+        "r6/scripts/CyberpunkConvai/PhoneChat.reds:333"
+      ]
+    },
+    "ENTER  Write message   /   ESC  Stop typing": {
+      "contexts": [
+        "phone.native"
+      ],
+      "references": [
+        "r6/scripts/CyberpunkConvai/PhoneChat.reds:252"
+      ]
+    },
+    "Enable or disable each character’s participation in AI conversations.": {
+      "contexts": [
+        "mcm.action"
+      ],
+      "references": [
+        "mod/mcm.lua:480"
+      ]
+    },
+    "Eye contact height": {
+      "contexts": [
+        "mcm.setting"
+      ],
+      "references": [
+        "mod/mcm.lua:493"
+      ]
+    },
+    "Eyes only": {
+      "contexts": [
+        "mcm.options"
+      ],
+      "references": [
+        "mod/mcm.lua:498"
+      ]
+    },
+    "Face a nearby NPC within eight metres": {
+      "contexts": [
+        "world.conversation"
+      ],
+      "references": [
+        "mod/init.lua:383"
+      ]
+    },
+    "Follow-up questions": {
+      "contexts": [
+        "mcm.setting"
+      ],
+      "references": [
+        "mod/mcm.lua:485"
+      ]
+    },
+    "Following": {
+      "contexts": [
+        "mcm.party"
+      ],
+      "references": [
+        "mod/manager.lua:665",
+        "mod/mcm.lua:333"
+      ]
+    },
+    "Forget": {
+      "contexts": [
+        "mcm.action"
+      ],
+      "references": [
+        "mod/mcm.lua:283"
+      ]
+    },
+    "Forget ({count} characters)": {
+      "contexts": [
+        "mcm.memory",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/mcm.lua:288"
+      ]
+    },
+    "Forget all memories": {
+      "contexts": [
+        "mcm.action"
+      ],
+      "references": [
+        "mod/mcm.lua:287"
+      ]
+    },
+    "Forget all memories applies to these characters. Visiting the catalogue or inviting a companion does not add anyone to this count.": {
+      "contexts": [
+        "mcm.readonly"
+      ],
+      "references": [
+        "mod/mcm.lua:264"
+      ]
+    },
+    "Forget memories": {
+      "contexts": [
+        "mcm.action"
+      ],
+      "references": [
+        "mod/mcm.lua:277"
+      ]
+    },
+    "Forget selected character": {
+      "contexts": [
+        "mcm.action"
+      ],
+      "references": [
+        "mod/mcm.lua:283"
+      ]
+    },
+    "GAME MODELS": {
+      "contexts": [
+        "legacy.manager.native"
+      ],
+      "references": [
+        "r6/scripts/CyberpunkConvai/Manager.reds:182"
+      ]
+    },
+    "Gentle (default)": {
+      "contexts": [
+        "mcm.options"
+      ],
+      "references": [
+        "mod/mcm.lua:498"
+      ]
+    },
+    "Group chat needs two characters nearby. Use {key} for one person.": {
+      "contexts": [
+        "ui.localized",
+        "world.conversation"
+      ],
+      "references": [
+        "mod/init.lua:515"
+      ]
+    },
+    "Head tracking strength": {
+      "contexts": [
+        "mcm.setting"
+      ],
+      "references": [
+        "mod/mcm.lua:496"
+      ]
+    },
+    "INVITE QUEUED - CLOSE PHONE": {
+      "contexts": [
+        "phone.native-feedback"
+      ],
+      "references": [
+        "mod/phone-chat-style.lua:35",
+        "r6/scripts/CyberpunkConvai/PhoneContacts.reds:247"
+      ]
+    },
+    "Includes reserved invitations and current companions. Invited characters prepare while the menu is open, then join when ready after you return to gameplay. Dismissals take effect in gameplay.": {
+      "contexts": [
+        "mcm.readonly"
+      ],
+      "references": [
+        "mod/mcm.lua:315"
+      ]
+    },
+    "Installed character models": {
+      "contexts": [
+        "mcm.category"
+      ],
+      "references": [
+        "mod/mcm.lua:416"
+      ]
+    },
+    "Interface": {
+      "contexts": [
+        "mcm.category",
+        "settings.language"
+      ],
+      "references": [
+        "mod/mcm.lua:473"
+      ]
+    },
+    "Interface language": {
+      "contexts": [
+        "mcm.setting",
+        "settings.language"
+      ],
+      "references": [
+        "mod/mcm.lua:474"
+      ]
+    },
+    "Invalid conversation settings.": {
+      "contexts": [
+        "manager.validation"
+      ],
+      "references": [
+        "mod/manager.lua:895"
+      ]
+    },
+    "Invitations create separate companion copies, including characters outside your phone contacts. Memory and connection preparation starts immediately; the copy joins when ready after you return to gameplay.": {
+      "contexts": [
+        "mcm.party",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/mcm.lua:220"
+      ]
+    },
+    "Invite": {
+      "contexts": [
+        "mcm.action",
+        "mcm.party"
+      ],
+      "references": [
+        "mod/mcm.lua:326",
+        "mod/mcm.lua:410"
+      ]
+    },
+    "Invite characters, manage your group, browse game models and configure conversations.": {
+      "contexts": [
+        "mcm.navigation",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/mcm.lua:542"
+      ]
+    },
+    "Invite someone from Characters or Model browser.": {
+      "contexts": [
+        "mcm.readonly"
+      ],
+      "references": [
+        "mod/mcm.lua:332"
+      ]
+    },
+    "Invited characters are prepared immediately. Natural memories are created when you actually talk to them. One player identity is shared across all saves and stays the same after forgetting. Current game context describes the world you have loaded.": {
+      "contexts": [
+        "mcm.readonly"
+      ],
+      "references": [
+        "mod/mcm.lua:257"
+      ]
+    },
+    "Johnny, Judy and Panam use OmniVoice. Other characters keep their Convai voices.": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:679"
+      ]
+    },
+    "Joining": {
+      "contexts": [
+        "mcm.party"
+      ],
+      "references": [
+        "mod/mcm.lua:333"
+      ]
+    },
+    "Joining your party. The character is still being attached to the world.": {
+      "contexts": [
+        "mcm.party"
+      ],
+      "references": [
+        "mod/mcm.lua:341"
+      ]
+    },
+    "Joining...": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:602"
+      ]
+    },
+    "Keep in party": {
+      "contexts": [
+        "mcm.party"
+      ],
+      "references": [
+        "mod/mcm.lua:356"
+      ]
+    },
+    "Keep memories": {
+      "contexts": [
+        "mcm.action"
+      ],
+      "references": [
+        "mod/mcm.lua:280"
+      ]
+    },
+    "Keep this copy without a conversation identity": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:572"
+      ]
+    },
+    "Keep {name} as a follower without AI conversations.": {
+      "contexts": [
+        "mcm.action",
+        "mcm.party",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/mcm.lua:369"
+      ]
+    },
+    "Leaving": {
+      "contexts": [
+        "mcm.party"
+      ],
+      "references": [
+        "mod/mcm.lua:335"
+      ]
+    },
+    "Less": {
+      "contexts": [
+        "mcm.options"
+      ],
+      "references": [
+        "mod/mcm.lua:498"
+      ]
+    },
+    "Listening - press {key} again to finish": {
+      "contexts": [
+        "phone.native",
+        "ui.localized",
+        "world.microphone"
+      ],
+      "references": [
+        "mod/microphone.lua:111"
+      ]
+    },
+    "Load a save before inviting a companion.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/manager-party.lua:95"
+      ]
+    },
+    "Loading": {
+      "contexts": [
+        "mcm.voice-status"
+      ],
+      "references": [
+        "mod/manager.lua:682",
+        "mod/mcm.lua:224"
+      ]
+    },
+    "Loading...": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "r6/scripts/CyberpunkConvai/Manager.reds:782"
+      ]
+    },
+    "Local voice quality": {
+      "contexts": [
+        "mcm.setting"
+      ],
+      "references": [
+        "mod/mcm.lua:506"
+      ]
+    },
+    "Local voices: {status}": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:685"
+      ]
+    },
+    "Manage": {
+      "contexts": [
+        "mcm.action"
+      ],
+      "references": [
+        "mod/mcm.lua:479",
+        "mod/mcm.lua:482"
+      ]
+    },
+    "Managed separately": {
+      "contexts": [
+        "mcm.readonly"
+      ],
+      "references": [
+        "mod/mcm.lua:292"
+      ]
+    },
+    "Memories can be managed here.": {
+      "contexts": [
+        "mcm.memory"
+      ],
+      "references": [
+        "mod/mcm.lua:259"
+      ]
+    },
+    "Memory": {
+      "contexts": [
+        "mcm.action",
+        "mcm.category"
+      ],
+      "references": [
+        "mod/mcm.lua:421",
+        "mod/mcm.lua:482"
+      ]
+    },
+    "Memory clear cancelled.": {
+      "contexts": [
+        "memory.feedback"
+      ],
+      "references": [
+        "mod/manager.lua:184"
+      ]
+    },
+    "Memory clear confirmed for {target}.": {
+      "contexts": [
+        "memory.feedback",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/manager.lua:153"
+      ]
+    },
+    "Memory clear requested. Waiting for the memory service to confirm it.": {
+      "contexts": [
+        "manager.validation",
+        "memory.feedback"
+      ],
+      "references": [
+        "mod/manager.lua:251"
+      ]
+    },
+    "Memory result": {
+      "contexts": [
+        "mcm.readonly"
+      ],
+      "references": [
+        "mod/mcm.lua:269"
+      ]
+    },
+    "Memory service": {
+      "contexts": [
+        "mcm.readonly"
+      ],
+      "references": [
+        "mod/mcm.lua:258"
+      ]
+    },
+    "Message sent. Waiting for reply.": {
+      "contexts": [
+        "phone.chat"
+      ],
+      "references": [
+        "mod/phone-chat-style.lua:28",
+        "mod/phone-chat.lua:318"
+      ]
+    },
+    "Microphone connection timed out. Please try again.": {
+      "contexts": [
+        "phone.native",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/microphone.lua:121"
+      ]
+    },
+    "Microphone unavailable. Check your Windows input device.": {
+      "contexts": [
+        "phone.native",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/microphone.lua:113"
+      ]
+    },
+    "Missing": {
+      "contexts": [
+        "mcm.party"
+      ],
+      "references": [
+        "mod/mcm.lua:335"
+      ]
+    },
+    "Model browser": {
+      "contexts": [
+        "mcm.navigation"
+      ],
+      "references": [
+        "mod/mcm.lua:305"
+      ]
+    },
+    "Models": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:638"
+      ]
+    },
+    "Models without a conversation identity can be assigned one in Current party.": {
+      "contexts": [
+        "mcm.models",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/mcm.lua:397"
+      ]
+    },
+    "More": {
+      "contexts": [
+        "mcm.options"
+      ],
+      "references": [
+        "mod/mcm.lua:498"
+      ]
+    },
+    "More characters": {
+      "contexts": [
+        "mcm.action"
+      ],
+      "references": [
+        "mod/mcm.lua:442"
+      ]
+    },
+    "More models": {
+      "contexts": [
+        "mcm.action"
+      ],
+      "references": [
+        "mod/mcm.lua:403"
+      ]
+    },
+    "NEXT  >": {
+      "contexts": [
+        "legacy.manager.native"
+      ],
+      "references": [
+        "r6/scripts/CyberpunkConvai/Manager.reds:206"
+      ]
+    },
+    "NIGHT CITY": {
+      "contexts": [
+        "legacy.manager.native"
+      ],
+      "references": [
+        "r6/scripts/CyberpunkConvai/Manager.reds:167"
+      ]
+    },
+    "Next": {
+      "contexts": [
+        "mcm.action"
+      ],
+      "references": [
+        "mod/mcm.lua:403",
+        "mod/mcm.lua:442"
+      ]
+    },
+    "No conversation profile": {
+      "contexts": [
+        "mcm.action"
+      ],
+      "references": [
+        "mod/mcm.lua:368"
+      ]
+    },
+    "No conversation profile. Assign a profile in Current party after inviting this model.": {
+      "contexts": [
+        "mcm.models",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/mcm.lua:412"
+      ]
+    },
+    "No entries are available.": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:642"
+      ]
+    },
+    "No entries yet.\nTry another search or tab.": {
+      "contexts": [
+        "legacy.manager.native"
+      ],
+      "references": [
+        "r6/scripts/CyberpunkConvai/Manager.reds:202"
+      ]
+    },
+    "No matches. Try another name or clear the search.": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:642"
+      ]
+    },
+    "No reply arrived. Check that the Convai bridge is running.": {
+      "contexts": [
+        "ui.localized",
+        "world.conversation"
+      ],
+      "references": [
+        "mod/init.lua:1326"
+      ]
+    },
+    "No reply received. Your message is in the draft; press Enter to retry.": {
+      "contexts": [
+        "phone.chat"
+      ],
+      "references": [
+        "mod/phone-chat-style.lua:27",
+        "mod/phone-chat.lua:269"
+      ]
+    },
+    "No settings were supplied.": {
+      "contexts": [
+        "manager.validation"
+      ],
+      "references": [
+        "mod/manager.lua:867"
+      ]
+    },
+    "Not configured": {
+      "contexts": [
+        "mcm.voice-status"
+      ],
+      "references": [
+        "mod/manager.lua:683",
+        "mod/mcm.lua:225"
+      ]
+    },
+    "Off": {
+      "contexts": [
+        "mcm.voice-status"
+      ],
+      "references": [
+        "mod/manager.lua:611",
+        "mod/mcm.lua:219"
+      ]
+    },
+    "OmniVoice + Convai (default)": {
+      "contexts": [
+        "mcm.options"
+      ],
+      "references": [
+        "mod/mcm.lua:505"
+      ]
+    },
+    "OmniVoice gives Johnny, Judy and Panam their prepared local voices. Selecting it starts preparing the model immediately. Apply saves your choice; Revert cancels the preview. Convai uses configured online voices and releases the local model after Apply. Other characters always use Convai. Current replies finish with their original voice.": {
+      "contexts": [
+        "mcm.setting"
+      ],
+      "references": [
+        "mod/mcm.lua:504"
+      ]
+    },
+    "OmniVoice starts preparing as soon as you select it here and stays warm after Apply. Revert or leaving without saving cancels the preview; no game restart is needed.": {
+      "contexts": [
+        "mcm.readonly"
+      ],
+      "references": [
+        "mod/mcm.lua:510"
+      ]
+    },
+    "OmniVoice {steps} steps": {
+      "contexts": [
+        "mcm.voice-status",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/mcm.lua:216"
+      ]
+    },
+    "OmniVoice {steps} steps selected for the next reply.": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:781"
+      ]
+    },
+    "On": {
+      "contexts": [
+        "mcm.voice-status"
+      ],
+      "references": [
+        "mod/manager.lua:611",
+        "mod/mcm.lua:219"
+      ]
+    },
+    "Open": {
+      "contexts": [
+        "mcm.navigation"
+      ],
+      "references": [
+        "mod/mcm.lua:308"
+      ]
+    },
+    "Opening chat. Waiting for the conversation service.": {
+      "contexts": [
+        "phone.chat"
+      ],
+      "references": [
+        "mod/phone-chat-style.lua:32",
+        "mod/phone-chat.lua:321"
+      ]
+    },
+    "Page {page} / {pages}": {
+      "contexts": [
+        "mcm.models",
+        "mcm.readonly",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/mcm.lua:395",
+        "mod/mcm.lua:435"
+      ]
+    },
+    "Page {page} of {pages}  |  {count} results": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:715"
+      ]
+    },
+    "Party full: dismiss a copy before adding another.": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:689"
+      ]
+    },
+    "Party: {count} / 8": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:723"
+      ]
+    },
+    "Phone Chat messages": {
+      "contexts": [
+        "mcm.readonly"
+      ],
+      "references": [
+        "mod/mcm.lua:292"
+      ]
+    },
+    "Phone messages": {
+      "contexts": [
+        "mcm.category"
+      ],
+      "references": [
+        "mod/mcm.lua:524"
+      ]
+    },
+    "Play spoken replies through the supported voice output. This does not change microphone capture.": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:673"
+      ]
+    },
+    "Play voiced replies from your companions.": {
+      "contexts": [
+        "mcm.setting"
+      ],
+      "references": [
+        "mod/mcm.lua:502"
+      ]
+    },
+    "Playback settings updated.": {
+      "contexts": [
+        "manager.feedback"
+      ],
+      "references": [
+        "mod/manager.lua:943"
+      ]
+    },
+    "Player memory": {
+      "contexts": [
+        "mcm.readonly"
+      ],
+      "references": [
+        "mod/mcm.lua:256"
+      ]
+    },
+    "Player unavailable": {
+      "contexts": [
+        "world.conversation"
+      ],
+      "references": [
+        "mod/init.lua:345"
+      ]
+    },
+    "Please wait for the current requests to finish.": {
+      "contexts": [
+        "legacy.manager.native"
+      ],
+      "references": [
+        "r6/scripts/CyberpunkConvai/Manager.reds:701"
+      ]
+    },
+    "Preparation is complete. This copy will join when you return to gameplay. You can still change its conversation profile or cancel the invitation.": {
+      "contexts": [
+        "mcm.party"
+      ],
+      "references": [
+        "mod/mcm.lua:339"
+      ]
+    },
+    "Preparing a reply": {
+      "contexts": [
+        "mcm.voice-status"
+      ],
+      "references": [
+        "mod/manager.lua:682",
+        "mod/mcm.lua:224"
+      ]
+    },
+    "Preparing memory": {
+      "contexts": [
+        "mcm.party"
+      ],
+      "references": [
+        "mod/mcm.lua:334"
+      ]
+    },
+    "Preparing this character with your player identity and current world context. This copy has a reserved place. You can change its conversation profile or cancel the invitation.": {
+      "contexts": [
+        "mcm.party"
+      ],
+      "references": [
+        "mod/mcm.lua:337"
+      ]
+    },
+    "Preparing voices": {
+      "contexts": [
+        "mcm.voice-status",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/manager.lua:682",
+        "mod/mcm.lua:224",
+        "mod/mcm.lua:237"
+      ]
+    },
+    "Press Enter to write  /  Esc to stop typing": {
+      "contexts": [
+        "phone.chat"
+      ],
+      "references": [
+        "mod/phone-chat-style.lua:245"
+      ]
+    },
+    "Previous": {
+      "contexts": [
+        "mcm.action"
+      ],
+      "references": [
+        "mod/mcm.lua:399",
+        "mod/mcm.lua:438"
+      ]
+    },
+    "Previous characters": {
+      "contexts": [
+        "mcm.action"
+      ],
+      "references": [
+        "mod/mcm.lua:438"
+      ]
+    },
+    "Previous models": {
+      "contexts": [
+        "mcm.action"
+      ],
+      "references": [
+        "mod/mcm.lua:399"
+      ]
+    },
+    "Profile only": {
+      "contexts": [
+        "mcm.party"
+      ],
+      "references": [
+        "mod/mcm.lua:326"
+      ]
+    },
+    "Raise or lower the point companions look at on V. Default uses V’s usual eye contact target.": {
+      "contexts": [
+        "mcm.setting"
+      ],
+      "references": [
+        "mod/mcm.lua:494"
+      ]
+    },
+    "React to battles": {
+      "contexts": [
+        "mcm.setting"
+      ],
+      "references": [
+        "mod/mcm.lua:519"
+      ]
+    },
+    "React to collected loot": {
+      "contexts": [
+        "mcm.setting"
+      ],
+      "references": [
+        "mod/mcm.lua:521"
+      ]
+    },
+    "Reading installed models…": {
+      "contexts": [
+        "mcm.models"
+      ],
+      "references": [
+        "mod/mcm.lua:394"
+      ]
+    },
+    "Reading models {read}/{total}": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:717"
+      ]
+    },
+    "Ready": {
+      "contexts": [
+        "mcm.voice-status"
+      ],
+      "references": [
+        "mod/manager.lua:682",
+        "mod/mcm.lua:224",
+        "mod/mcm.lua:258"
+      ]
+    },
+    "Ready to join": {
+      "contexts": [
+        "mcm.party"
+      ],
+      "references": [
+        "mod/mcm.lua:334"
+      ]
+    },
+    "Ready · Unsaved selection": {
+      "contexts": [
+        "mcm.voice-status",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/mcm.lua:234"
+      ]
+    },
+    "Releasing local voice memory": {
+      "contexts": [
+        "mcm.voice-status"
+      ],
+      "references": [
+        "mod/mcm.lua:226"
+      ]
+    },
+    "Remove only this copy from your group.": {
+      "contexts": [
+        "mcm.party"
+      ],
+      "references": [
+        "mod/mcm.lua:357"
+      ]
+    },
+    "Reopen the manager; that action is no longer available.": {
+      "contexts": [
+        "mcm.validation",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/mcm.lua:550"
+      ]
+    },
+    "Reopen this page after the memory service reconnects. A pending clear keeps waiting for its own result.": {
+      "contexts": [
+        "mcm.memory"
+      ],
+      "references": [
+        "mod/mcm.lua:260"
+      ]
+    },
+    "Request queued...": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "r6/scripts/CyberpunkConvai/Manager.reds:483"
+      ]
+    },
+    "Return to conversation settings.": {
+      "contexts": [
+        "mcm.action"
+      ],
+      "references": [
+        "mod/mcm.lua:420",
+        "mod/mcm.lua:460"
+      ]
+    },
+    "Return to the memory controls.": {
+      "contexts": [
+        "mcm.action"
+      ],
+      "references": [
+        "mod/mcm.lua:434"
+      ]
+    },
+    "Review the memory clear below, then choose Confirm or Cancel.": {
+      "contexts": [
+        "manager.validation",
+        "memory.feedback"
+      ],
+      "references": [
+        "mod/manager.lua:179"
+      ]
+    },
+    "SELECTED": {
+      "contexts": [
+        "legacy.manager.native"
+      ],
+      "references": [
+        "r6/scripts/CyberpunkConvai/Manager.reds:210"
+      ]
+    },
+    "SETTINGS": {
+      "contexts": [
+        "legacy.manager.native"
+      ],
+      "references": [
+        "r6/scripts/CyberpunkConvai/Manager.reds:184"
+      ]
+    },
+    "Search a character by name. Each invitation reserves a place and starts preparation immediately. Your party can have up to eight copies, including pending invitations.": {
+      "contexts": [
+        "mcm.category"
+      ],
+      "references": [
+        "mod/mcm.lua:330"
+      ]
+    },
+    "Search by character name or model record using Search settings. {query}": {
+      "contexts": [
+        "mcm.models",
+        "mcm.readonly",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/mcm.lua:396"
+      ]
+    },
+    "Search by character name using Search settings. {query}\nThe character can be outside your current party.": {
+      "contexts": [
+        "mcm.memory",
+        "mcm.readonly",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/mcm.lua:436"
+      ]
+    },
+    "Search names, models or settings...": {
+      "contexts": [
+        "legacy.manager.native"
+      ],
+      "references": [
+        "r6/scripts/CyberpunkConvai/Manager.reds:189"
+      ]
+    },
+    "Select {name} for memory controls. This does not invite them or change their conversation settings.": {
+      "contexts": [
+        "mcm.action",
+        "mcm.memory",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/mcm.lua:450"
+      ]
+    },
+    "Selected": {
+      "contexts": [
+        "mcm.navigation"
+      ],
+      "references": [
+        "mod/mcm.lua:308",
+        "mod/mcm.lua:449",
+        "mod/phone-chat-style.lua:102"
+      ]
+    },
+    "Selected character": {
+      "contexts": [
+        "mcm.action"
+      ],
+      "references": [
+        "mod/mcm.lua:265"
+      ]
+    },
+    "Settings": {
+      "contexts": [
+        "mcm.navigation"
+      ],
+      "references": [
+        "mod/manager.lua:638",
+        "mod/mcm.lua:305"
+      ]
+    },
+    "Settings are active, but could not be saved for next time.": {
+      "contexts": [
+        "manager.feedback"
+      ],
+      "references": [
+        "mod/manager.lua:463"
+      ]
+    },
+    "Settings saved.": {
+      "contexts": [
+        "manager.feedback"
+      ],
+      "references": [
+        "mod/manager.lua:919"
+      ]
+    },
+    "Shared across your saves": {
+      "contexts": [
+        "mcm.readonly"
+      ],
+      "references": [
+        "mod/mcm.lua:256"
+      ]
+    },
+    "Show companion replies using the selected subtitle display.": {
+      "contexts": [
+        "mcm.setting"
+      ],
+      "references": [
+        "mod/mcm.lua:513"
+      ]
+    },
+    "Show companion reply subtitles during conversations.": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:674"
+      ]
+    },
+    "Some game models have special rigs or roles and may not behave as ordinary companions.": {
+      "contexts": [
+        "mcm.models",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/mcm.lua:413"
+      ]
+    },
+    "Some model records could not be read.": {
+      "contexts": [
+        "party.feedback"
+      ],
+      "references": [
+        "mod/manager.lua:538"
+      ]
+    },
+    "State: {state}": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:665"
+      ]
+    },
+    "Stopped": {
+      "contexts": [
+        "mcm.voice-status"
+      ],
+      "references": [
+        "mod/manager.lua:684",
+        "mod/mcm.lua:225"
+      ]
+    },
+    "Stopping": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:683"
+      ]
+    },
+    "Subtitle display": {
+      "contexts": [
+        "mcm.setting"
+      ],
+      "references": [
+        "mod/mcm.lua:514"
+      ]
+    },
+    "Subtitles": {
+      "contexts": [
+        "mcm.category",
+        "mcm.setting"
+      ],
+      "references": [
+        "mod/mcm.lua:512",
+        "mod/mcm.lua:513"
+      ]
+    },
+    "TALK TO {character}": {
+      "contexts": [
+        "phone.localized",
+        "world.composer.native"
+      ],
+      "references": [
+        "mod/composer-input.lua:21",
+        "r6/scripts/CyberpunkConvai/Composer.reds:35"
+      ]
+    },
+    "TEXT  >": {
+      "contexts": [
+        "legacy.manager.native"
+      ],
+      "references": [
+        "r6/scripts/CyberpunkConvai/Manager.reds:215"
+      ]
+    },
+    "That character model is unavailable.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/manager-party.lua:97"
+      ]
+    },
+    "That confirmation is no longer active.": {
+      "contexts": [
+        "manager.validation"
+      ],
+      "references": [
+        "mod/manager.lua:183",
+        "mod/manager.lua:232"
+      ]
+    },
+    "That conversation profile is unavailable.": {
+      "contexts": [
+        "manager.feedback",
+        "manager.validation"
+      ],
+      "references": [
+        "mod/manager.lua:765",
+        "mod/manager.lua:898"
+      ]
+    },
+    "That copy is no longer in your party.": {
+      "contexts": [
+        "manager.feedback",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/manager-party.lua:122",
+        "mod/manager.lua:759",
+        "mod/manager.lua:784"
+      ]
+    },
+    "That dismissal is no longer pending.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/manager-party.lua:142"
+      ]
+    },
+    "That model is no longer available.": {
+      "contexts": [
+        "manager.feedback"
+      ],
+      "references": [
+        "mod/manager.lua:749"
+      ]
+    },
+    "That setting is read-only.": {
+      "contexts": [
+        "mcm.validation",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/mcm.lua:590"
+      ]
+    },
+    "The action could not finish: {reason}": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:935"
+      ]
+    },
+    "The character count changed. Review Forget all memories again.": {
+      "contexts": [
+        "manager.validation"
+      ],
+      "references": [
+        "mod/manager.lua:237"
+      ]
+    },
+    "The character died before joining.": {
+      "contexts": [
+        "party.feedback"
+      ],
+      "references": [
+        "mod/manager-party.lua:204"
+      ]
+    },
+    "The character was removed before joining.": {
+      "contexts": [
+        "party.feedback"
+      ],
+      "references": [
+        "mod/manager-party.lua:204"
+      ]
+    },
+    "The copy could not be dismissed.": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:761"
+      ]
+    },
+    "The installed character models could not be read.": {
+      "contexts": [
+        "party.feedback"
+      ],
+      "references": [
+        "mod/manager.lua:495"
+      ]
+    },
+    "The list will refresh in a moment.": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "r6/scripts/CyberpunkConvai/Manager.reds:716"
+      ]
+    },
+    "The manager could not be prepared: {reason}": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:816"
+      ]
+    },
+    "The manager could not refresh: {reason}": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:951"
+      ]
+    },
+    "The memory clear request could not be sent. Check the memory service before trying again.": {
+      "contexts": [
+        "memory.feedback"
+      ],
+      "references": [
+        "mod/manager.lua:245"
+      ]
+    },
+    "The memory service could not confirm the clear for {target}. Review the service before choosing Forget again.": {
+      "contexts": [
+        "memory.feedback",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/manager.lua:154"
+      ]
+    },
+    "The memory service is unavailable. Reopen this page after it reconnects.": {
+      "contexts": [
+        "manager.validation"
+      ],
+      "references": [
+        "mod/manager.lua:120"
+      ]
+    },
+    "The party list could not be read. Close and reopen the manager.": {
+      "contexts": [
+        "manager.feedback"
+      ],
+      "references": [
+        "mod/manager.lua:471"
+      ]
+    },
+    "The profile could not be assigned.": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:793"
+      ]
+    },
+    "The profile could not be cleared.": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:800"
+      ]
+    },
+    "The settings could not be saved. Your changes are still pending.": {
+      "contexts": [
+        "manager.validation"
+      ],
+      "references": [
+        "mod/manager.lua:908"
+      ]
+    },
+    "The shared model stays loaded while the voice service runs. Changes apply to the next reply.": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:681"
+      ]
+    },
+    "This contact has no companion mapping yet.": {
+      "contexts": [
+        "phone.native"
+      ],
+      "references": [
+        "r6/scripts/CyberpunkConvai/PhoneContacts.reds:306"
+      ]
+    },
+    "This copy can still follow you, but will not join conversations.": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:630"
+      ]
+    },
+    "This copy could not be created.": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:754"
+      ]
+    },
+    "This copy could not become ready. Review the error, choose another conversation profile or cancel the invitation.": {
+      "contexts": [
+        "mcm.party"
+      ],
+      "references": [
+        "mod/mcm.lua:342"
+      ]
+    },
+    "This copy could not join.": {
+      "contexts": [
+        "party.feedback"
+      ],
+      "references": [
+        "mod/manager.lua:481"
+      ]
+    },
+    "This invitation has a reserved place and will join when you return to gameplay. You can change its conversation profile or cancel it.": {
+      "contexts": [
+        "mcm.party"
+      ],
+      "references": [
+        "mod/mcm.lua:340"
+      ]
+    },
+    "This is a separate, mod-owned companion.": {
+      "contexts": [
+        "mcm.party"
+      ],
+      "references": [
+        "mod/mcm.lua:348"
+      ]
+    },
+    "This manager action is unavailable. Reopen the manager and try again.": {
+      "contexts": [
+        "manager.feedback"
+      ],
+      "references": [
+        "mod/manager.lua:805"
+      ]
+    },
+    "This setting must be on or off.": {
+      "contexts": [
+        "manager.validation"
+      ],
+      "references": [
+        "mod/manager.lua:874"
+      ]
+    },
+    "Turn chat off": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:655"
+      ]
+    },
+    "Turn chat on": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:655"
+      ]
+    },
+    "Turn off": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:676"
+      ]
+    },
+    "Turn on": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:676"
+      ]
+    },
+    "Type a message first.": {
+      "contexts": [
+        "phone.chat"
+      ],
+      "references": [
+        "mod/phone-chat-style.lua:23",
+        "mod/phone-chat.lua:234"
+      ]
+    },
+    "Type your message to the character.": {
+      "contexts": [
+        "phone.localized",
+        "world.conversation"
+      ],
+      "references": [
+        "mod/composer-input.lua:24",
+        "mod/composer-input.lua:33",
+        "mod/composer-input.lua:55",
+        "r6/scripts/CyberpunkConvai/Composer.reds:36"
+      ]
+    },
+    "UP / DOWN: SELECT    LEFT / RIGHT: PAGE    TAB: SEARCH    ENTER: ACTION    F5: CLOSE": {
+      "contexts": [
+        "legacy.manager.native"
+      ],
+      "references": [
+        "r6/scripts/CyberpunkConvai/Manager.reds:172"
+      ]
+    },
+    "Unable to send the message. Your draft has been kept.": {
+      "contexts": [
+        "phone.chat"
+      ],
+      "references": [
+        "mod/phone-chat-style.lua:26",
+        "mod/phone-chat.lua:262"
+      ]
+    },
+    "Unavailable": {
+      "contexts": [
+        "mcm.memory",
+        "mcm.party",
+        "mcm.voice-status"
+      ],
+      "references": [
+        "mod/mcm.lua:225",
+        "mod/mcm.lua:258",
+        "mod/mcm.lua:263",
+        "mod/mcm.lua:335"
+      ]
+    },
+    "Unavailable - restart the voice service": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:683"
+      ]
+    },
+    "Undo this pending dismissal.": {
+      "contexts": [
+        "mcm.party"
+      ],
+      "references": [
+        "mod/mcm.lua:357"
+      ]
+    },
+    "Unknown mod.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/mcm.lua:545",
+        "mod/mcm.lua:561"
+      ]
+    },
+    "Unknown setting: {setting}": {
+      "contexts": [
+        "settings.feedback",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/manager.lua:902"
+      ]
+    },
+    "Unnamed model {index}": {
+      "contexts": [
+        "legacy.manager",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/manager.lua:521",
+        "mod/mcm.lua:409"
+      ]
+    },
+    "Updating selection": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "r6/scripts/CyberpunkConvai/Manager.reds:715"
+      ]
+    },
+    "Use 16 steps": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:687"
+      ]
+    },
+    "Use 32 steps": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:686"
+      ]
+    },
+    "Use Apply to save changed settings, or Revert to discard them.": {
+      "contexts": [
+        "mcm.category"
+      ],
+      "references": [
+        "mod/mcm.lua:511",
+        "mod/mcm.lua:528"
+      ]
+    },
+    "Use Confirm or Cancel for the current memory request.": {
+      "contexts": [
+        "manager.validation"
+      ],
+      "references": [
+        "mod/manager.lua:175"
+      ]
+    },
+    "Use profile": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:634"
+      ]
+    },
+    "Use the regular dialogue HUD by default, or place subtitles above the speaking companion. The Subtitles switch controls both.": {
+      "contexts": [
+        "mcm.setting"
+      ],
+      "references": [
+        "mod/mcm.lua:515"
+      ]
+    },
+    "Use this conversation profile": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:577"
+      ]
+    },
+    "Use {key} to finish this recording.": {
+      "contexts": [
+        "ui.localized",
+        "world.conversation",
+        "world.microphone"
+      ],
+      "references": [
+        "mod/init.lua:606"
+      ]
+    },
+    "Voice playback": {
+      "contexts": [
+        "mcm.setting"
+      ],
+      "references": [
+        "mod/mcm.lua:502"
+      ]
+    },
+    "Voice service": {
+      "contexts": [
+        "mcm.readonly"
+      ],
+      "references": [
+        "mod/mcm.lua:509"
+      ]
+    },
+    "Voice: {voice}": {
+      "contexts": [
+        "mcm.voice-status",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/mcm.lua:218"
+      ]
+    },
+    "Voices": {
+      "contexts": [
+        "mcm.category"
+      ],
+      "references": [
+        "mod/mcm.lua:501"
+      ]
+    },
+    "Wait for your previous reply before sending another message.": {
+      "contexts": [
+        "phone.chat"
+      ],
+      "references": [
+        "mod/phone-chat-style.lua:25",
+        "mod/phone-chat.lua:238"
+      ]
+    },
+    "Waiting for the conversation service.": {
+      "contexts": [
+        "phone.chat"
+      ],
+      "references": [
+        "mod/phone-chat-style.lua:22",
+        "mod/phone-chat.lua:232"
+      ]
+    },
+    "Waiting for the result of clearing memories for {target}. Reopen this page after the memory service reconnects.": {
+      "contexts": [
+        "memory.feedback",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/manager.lua:151"
+      ]
+    },
+    "Waiting for the voice service": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:684"
+      ]
+    },
+    "Waiting for voice service": {
+      "contexts": [
+        "mcm.voice-status"
+      ],
+      "references": [
+        "mod/mcm.lua:225",
+        "mod/mcm.lua:229",
+        "mod/mcm.lua:238"
+      ]
+    },
+    "Waiting for your previous message to finish.": {
+      "contexts": [
+        "phone.chat"
+      ],
+      "references": [
+        "mod/phone-chat-style.lua:29",
+        "mod/phone-chat.lua:318"
+      ]
+    },
+    "Waiting to join": {
+      "contexts": [
+        "mcm.party"
+      ],
+      "references": [
+        "mod/mcm.lua:333"
+      ]
+    },
+    "Write a message...": {
+      "contexts": [
+        "phone.native"
+      ],
+      "references": [
+        "r6/scripts/CyberpunkConvai/PhoneChat.reds:28"
+      ]
+    },
+    "Write a message...  /  Enter to send  /  Esc to stop typing": {
+      "contexts": [
+        "phone.chat"
+      ],
+      "references": [
+        "mod/phone-chat-style.lua:244"
+      ]
+    },
+    "YOUR PARTY": {
+      "contexts": [
+        "legacy.manager.native"
+      ],
+      "references": [
+        "r6/scripts/CyberpunkConvai/Manager.reds:168",
+        "r6/scripts/CyberpunkConvai/Manager.reds:183"
+      ]
+    },
+    "You have not talked to any characters yet.": {
+      "contexts": [
+        "manager.validation"
+      ],
+      "references": [
+        "mod/manager.lua:123"
+      ]
+    },
+    "You have not talked to this character yet.": {
+      "contexts": [
+        "manager.validation"
+      ],
+      "references": [
+        "mod/manager.lua:128"
+      ]
+    },
+    "Your companions, character models and conversation settings.": {
+      "contexts": [
+        "mcm.navigation",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/mcm.lua:530"
+      ]
+    },
+    "Your group": {
+      "contexts": [
+        "mcm.category"
+      ],
+      "references": [
+        "mod/mcm.lua:317"
+      ]
+    },
+    "Your party": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:638"
+      ]
+    },
+    "Your party has eight copies. Dismiss one first.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/manager-party.lua:98"
+      ]
+    },
+    "Your party is empty": {
+      "contexts": [
+        "mcm.readonly"
+      ],
+      "references": [
+        "mod/mcm.lua:332"
+      ]
+    },
+    "Your party is empty. Add a character or model to create a companion copy.": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:641"
+      ]
+    },
+    "Your player identity stays the same. Phone Chat messages are managed separately.": {
+      "contexts": [
+        "mcm.memory",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/mcm.lua:275"
+      ]
+    },
+    "all characters you have talked to": {
+      "contexts": [
+        "memory.feedback",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/manager.lua:65"
+      ]
+    },
+    "the selected character": {
+      "contexts": [
+        "memory.feedback",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/manager.lua:67"
+      ]
+    },
+    "{count} matching models": {
+      "contexts": [
+        "mcm.models",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/mcm.lua:394"
+      ]
+    },
+    "{count} · Last reported": {
+      "contexts": [
+        "mcm.memory",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/mcm.lua:263"
+      ]
+    },
+    "{message} The change is active, but could not be saved for next time.": {
+      "contexts": [
+        "settings.feedback"
+      ],
+      "references": [
+        "mod/manager.lua:382"
+      ]
+    },
+    "{name} could not join: {reason}": {
+      "contexts": [
+        "party.feedback",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/manager-party.lua:202",
+        "mod/manager-party.lua:232"
+      ]
+    },
+    "{name} could not prepare: {reason}": {
+      "contexts": [
+        "party.feedback",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/manager-party.lua:111",
+        "mod/manager-party.lua:172",
+        "mod/manager-party.lua:238"
+      ]
+    },
+    "{name} dismissed.": {
+      "contexts": [
+        "party.feedback",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/manager-party.lua:213"
+      ]
+    },
+    "{name} does not have a conversation profile configured yet.": {
+      "contexts": [
+        "ui.localized",
+        "world.conversation"
+      ],
+      "references": [
+        "mod/init.lua:507"
+      ]
+    },
+    "{name} is joining your party.": {
+      "contexts": [
+        "party.feedback",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/manager-party.lua:227"
+      ]
+    },
+    "{name} is no longer attached to the world. Dismiss this copy to free its place.": {
+      "contexts": [
+        "party.feedback"
+      ],
+      "references": [
+        "mod/manager.lua:482"
+      ]
+    },
+    "{name} is not in your group.": {
+      "contexts": [
+        "phone.feedback",
+        "ui.localized",
+        "world.conversation"
+      ],
+      "references": [
+        "mod/init.lua:1067"
+      ]
+    },
+    "{name} is preparing memory and conversation.": {
+      "contexts": [
+        "party.feedback"
+      ],
+      "references": [
+        "mod/manager-party.lua:114"
+      ]
+    },
+    "{name} is ready to join when you return to the game.": {
+      "contexts": [
+        "party.feedback"
+      ],
+      "references": [
+        "mod/manager-party.lua:115"
+      ]
+    },
+    "{name} is ready. Close the phone to join.": {
+      "contexts": [
+        "phone.feedback",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/init.lua:1080"
+      ]
+    },
+    "{name} joined your group.": {
+      "contexts": [
+        "party.feedback",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/manager-party.lua:198"
+      ]
+    },
+    "{name} joined your party.": {
+      "contexts": [
+        "party.feedback"
+      ],
+      "references": [
+        "mod/manager.lua:480"
+      ]
+    },
+    "{name} selected for memory controls.": {
+      "contexts": [
+        "memory.feedback",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/manager.lua:168"
+      ]
+    },
+    "{name} will join when you return to the game.": {
+      "contexts": [
+        "party.feedback",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/manager-party.lua:116"
+      ]
+    },
+    "{name} will leave when you return to the game.": {
+      "contexts": [
+        "party.feedback",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/manager-party.lua:126"
+      ]
+    },
+    "{name} will stay in the party.": {
+      "contexts": [
+        "party.feedback",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/manager-party.lua:146"
+      ]
+    },
+    "{name} · invited copy": {
+      "contexts": [
+        "mcm.party",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/mcm.lua:346"
+      ]
+    },
+    "{name}: chat {state}.": {
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:771"
+      ]
+    },
+    "{name}: connecting...": {
+      "contexts": [
+        "phone.feedback",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/init.lua:1079"
+      ]
+    },
+    "{name}: conversation profile cleared.": {
+      "contexts": [
+        "party.feedback",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/manager-party.lua:180"
+      ]
+    },
+    "{name}: conversation set to {profile}.": {
+      "contexts": [
+        "party.feedback",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/manager-party.lua:179"
+      ]
+    },
+    "{name}: dismiss queued.": {
+      "contexts": [
+        "phone.native-feedback"
+      ],
+      "references": [
+        "r6/scripts/CyberpunkConvai/PhoneContacts.reds:315"
+      ]
+    },
+    "{name}: invitation cancelled.": {
+      "contexts": [
+        "party.feedback",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/manager-party.lua:134"
+      ]
+    },
+    "{name}: invite queued.": {
+      "contexts": [
+        "phone.native-feedback"
+      ],
+      "references": [
+        "r6/scripts/CyberpunkConvai/PhoneContacts.reds:315"
+      ]
+    },
+    "{name}: preparation failed. Cancel and invite again.": {
+      "contexts": [
+        "phone.feedback",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/init.lua:1081"
+      ]
+    },
+    "{name}: preparing memory...": {
+      "contexts": [
+        "phone.feedback",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/init.lua:1078"
+      ]
+    },
+    "{status} · After current reply": {
+      "contexts": [
+        "mcm.voice-status",
+        "ui.localized"
+      ],
+      "references": [
+        "mod/mcm.lua:229"
+      ]
+    }
+  },
+  "dynamicTemplates": {
+    "Add copy ({count})": {
+      "tokens": [
+        "count"
+      ],
+      "contexts": [
+        "mcm.party"
+      ],
+      "references": [
+        "mod/mcm.lua:326"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "Allow {name} in private and group conversations. Existing copies can still follow you when this is off.": {
+      "tokens": [
+        "name"
+      ],
+      "contexts": [
+        "mcm.permissions"
+      ],
+      "references": [
+        "mod/mcm.lua:464"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "Browse {section}. {query}": {
+      "tokens": [
+        "query",
+        "section"
+      ],
+      "contexts": [
+        "mcm.navigation"
+      ],
+      "references": [
+        "mod/mcm.lua:309"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "Choose the personality for {name}. The character model stays the same.": {
+      "tokens": [
+        "name"
+      ],
+      "contexts": [
+        "mcm.party"
+      ],
+      "references": [
+        "mod/mcm.lua:351"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "Clear memories about you for all {count} characters you have talked to?": {
+      "tokens": [
+        "count"
+      ],
+      "contexts": [
+        "mcm.memory"
+      ],
+      "references": [
+        "mod/mcm.lua:273"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "Clear {name}’s memories about conversations with you. Review an inline confirmation first.": {
+      "tokens": [
+        "name"
+      ],
+      "contexts": [
+        "mcm.memory"
+      ],
+      "references": [
+        "mod/mcm.lua:284"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "Clear {name}’s memories about conversations with you?": {
+      "tokens": [
+        "name"
+      ],
+      "contexts": [
+        "mcm.memory"
+      ],
+      "references": [
+        "mod/mcm.lua:274"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "Clearing memories for {target}…": {
+      "tokens": [
+        "target"
+      ],
+      "contexts": [
+        "memory.feedback"
+      ],
+      "references": [
+        "mod/manager.lua:150"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "Conversation for {name}": {
+      "tokens": [
+        "name"
+      ],
+      "contexts": [
+        "mcm.party"
+      ],
+      "references": [
+        "mod/mcm.lua:384"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "Conversation profile set to {name}.": {
+      "tokens": [
+        "name"
+      ],
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:792"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "Conversation: {state}": {
+      "tokens": [
+        "state"
+      ],
+      "contexts": [
+        "mcm.voice-status"
+      ],
+      "references": [
+        "mod/mcm.lua:219",
+        "mod/mcm.lua:411"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "Copies in party: {count}": {
+      "tokens": [
+        "count"
+      ],
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:648"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "Creating a copy of {name}. Check Party for its status.": {
+      "tokens": [
+        "name"
+      ],
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:753"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "Currently {state}.": {
+      "tokens": [
+        "state"
+      ],
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:675"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "DETAILS  {page} / {pages}": {
+      "tokens": [
+        "page",
+        "pages"
+      ],
+      "contexts": [
+        "legacy.manager.native"
+      ],
+      "references": [
+        "r6/scripts/CyberpunkConvai/Manager.reds:391"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "Forget ({count} characters)": {
+      "tokens": [
+        "count"
+      ],
+      "contexts": [
+        "mcm.memory"
+      ],
+      "references": [
+        "mod/mcm.lua:288"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "Group chat needs two characters nearby. Use {key} for one person.": {
+      "tokens": [
+        "key"
+      ],
+      "contexts": [
+        "world.conversation"
+      ],
+      "references": [
+        "mod/init.lua:515"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "Keep {name} as a follower without AI conversations.": {
+      "tokens": [
+        "name"
+      ],
+      "contexts": [
+        "mcm.party"
+      ],
+      "references": [
+        "mod/mcm.lua:369"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "Listening - press {key} again to finish": {
+      "tokens": [
+        "key"
+      ],
+      "contexts": [
+        "world.microphone"
+      ],
+      "references": [
+        "mod/microphone.lua:111"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "Local voices: {status}": {
+      "tokens": [
+        "status"
+      ],
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:685"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "Memory clear confirmed for {target}.": {
+      "tokens": [
+        "target"
+      ],
+      "contexts": [
+        "memory.feedback"
+      ],
+      "references": [
+        "mod/manager.lua:153"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "OmniVoice {steps} steps": {
+      "tokens": [
+        "steps"
+      ],
+      "contexts": [
+        "mcm.voice-status"
+      ],
+      "references": [
+        "mod/mcm.lua:216"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "OmniVoice {steps} steps selected for the next reply.": {
+      "tokens": [
+        "steps"
+      ],
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:781"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "Page {page} / {pages}": {
+      "tokens": [
+        "page",
+        "pages"
+      ],
+      "contexts": [
+        "mcm.models"
+      ],
+      "references": [
+        "mod/mcm.lua:395",
+        "mod/mcm.lua:435"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "Page {page} of {pages}  |  {count} results": {
+      "tokens": [
+        "count",
+        "page",
+        "pages"
+      ],
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:715"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "Party: {count} / 8": {
+      "tokens": [
+        "count"
+      ],
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:723"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "Reading models {read}/{total}": {
+      "tokens": [
+        "read",
+        "total"
+      ],
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:717"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "Search by character name or model record using Search settings. {query}": {
+      "tokens": [
+        "query"
+      ],
+      "contexts": [
+        "mcm.models"
+      ],
+      "references": [
+        "mod/mcm.lua:396"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "Search by character name using Search settings. {query}\nThe character can be outside your current party.": {
+      "tokens": [
+        "query"
+      ],
+      "contexts": [
+        "mcm.memory"
+      ],
+      "references": [
+        "mod/mcm.lua:436"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "Select {name} for memory controls. This does not invite them or change their conversation settings.": {
+      "tokens": [
+        "name"
+      ],
+      "contexts": [
+        "mcm.memory"
+      ],
+      "references": [
+        "mod/mcm.lua:450"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "State: {state}": {
+      "tokens": [
+        "state"
+      ],
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:665"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "TALK TO {character}": {
+      "tokens": [
+        "character"
+      ],
+      "contexts": [
+        "world.composer.native"
+      ],
+      "references": [
+        "r6/scripts/CyberpunkConvai/Composer.reds:35"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "The action could not finish: {reason}": {
+      "tokens": [
+        "reason"
+      ],
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:935"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "The manager could not be prepared: {reason}": {
+      "tokens": [
+        "reason"
+      ],
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:816"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "The manager could not refresh: {reason}": {
+      "tokens": [
+        "reason"
+      ],
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:951"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "The memory service could not confirm the clear for {target}. Review the service before choosing Forget again.": {
+      "tokens": [
+        "target"
+      ],
+      "contexts": [
+        "memory.feedback"
+      ],
+      "references": [
+        "mod/manager.lua:154"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "Unknown setting: {setting}": {
+      "tokens": [
+        "setting"
+      ],
+      "contexts": [
+        "settings.feedback"
+      ],
+      "references": [
+        "mod/manager.lua:902"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "Unnamed model {index}": {
+      "tokens": [
+        "index"
+      ],
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:521"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "Use {key} to finish this recording.": {
+      "tokens": [
+        "key"
+      ],
+      "contexts": [
+        "world.microphone"
+      ],
+      "references": [
+        "mod/init.lua:606"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "Voice: {voice}": {
+      "tokens": [
+        "voice"
+      ],
+      "contexts": [
+        "mcm.voice-status"
+      ],
+      "references": [
+        "mod/mcm.lua:218"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "Waiting for the result of clearing memories for {target}. Reopen this page after the memory service reconnects.": {
+      "tokens": [
+        "target"
+      ],
+      "contexts": [
+        "memory.feedback"
+      ],
+      "references": [
+        "mod/manager.lua:151"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "{count} matching models": {
+      "tokens": [
+        "count"
+      ],
+      "contexts": [
+        "mcm.models"
+      ],
+      "references": [
+        "mod/mcm.lua:394"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "{count} · Last reported": {
+      "tokens": [
+        "count"
+      ],
+      "contexts": [
+        "mcm.memory"
+      ],
+      "references": [
+        "mod/mcm.lua:263"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "{message} The change is active, but could not be saved for next time.": {
+      "tokens": [
+        "message"
+      ],
+      "contexts": [
+        "settings.feedback"
+      ],
+      "references": [
+        "mod/manager.lua:382"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "{name} could not join: {reason}": {
+      "tokens": [
+        "name",
+        "reason"
+      ],
+      "contexts": [
+        "party.feedback"
+      ],
+      "references": [
+        "mod/manager-party.lua:202",
+        "mod/manager-party.lua:232"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "{name} could not prepare: {reason}": {
+      "tokens": [
+        "name",
+        "reason"
+      ],
+      "contexts": [
+        "party.feedback"
+      ],
+      "references": [
+        "mod/manager-party.lua:111",
+        "mod/manager-party.lua:172",
+        "mod/manager-party.lua:238"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "{name} dismissed.": {
+      "tokens": [
+        "name"
+      ],
+      "contexts": [
+        "party.feedback"
+      ],
+      "references": [
+        "mod/manager-party.lua:213"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "{name} does not have a conversation profile configured yet.": {
+      "tokens": [
+        "name"
+      ],
+      "contexts": [
+        "world.conversation"
+      ],
+      "references": [
+        "mod/init.lua:507"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "{name} is joining your party.": {
+      "tokens": [
+        "name"
+      ],
+      "contexts": [
+        "party.feedback"
+      ],
+      "references": [
+        "mod/manager-party.lua:227"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "{name} is no longer attached to the world. Dismiss this copy to free its place.": {
+      "tokens": [
+        "name"
+      ],
+      "contexts": [
+        "party.feedback"
+      ],
+      "references": [
+        "mod/manager.lua:482"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "{name} is not in your group.": {
+      "tokens": [
+        "name"
+      ],
+      "contexts": [
+        "phone.feedback"
+      ],
+      "references": [
+        "mod/init.lua:1067"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "{name} is preparing memory and conversation.": {
+      "tokens": [
+        "name"
+      ],
+      "contexts": [
+        "party.feedback"
+      ],
+      "references": [
+        "mod/manager-party.lua:114"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "{name} is ready to join when you return to the game.": {
+      "tokens": [
+        "name"
+      ],
+      "contexts": [
+        "party.feedback"
+      ],
+      "references": [
+        "mod/manager-party.lua:115"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "{name} is ready. Close the phone to join.": {
+      "tokens": [
+        "name"
+      ],
+      "contexts": [
+        "phone.feedback"
+      ],
+      "references": [
+        "mod/init.lua:1080"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "{name} joined your group.": {
+      "tokens": [
+        "name"
+      ],
+      "contexts": [
+        "party.feedback"
+      ],
+      "references": [
+        "mod/manager-party.lua:198"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "{name} joined your party.": {
+      "tokens": [
+        "name"
+      ],
+      "contexts": [
+        "party.feedback"
+      ],
+      "references": [
+        "mod/manager.lua:480"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "{name} selected for memory controls.": {
+      "tokens": [
+        "name"
+      ],
+      "contexts": [
+        "memory.feedback"
+      ],
+      "references": [
+        "mod/manager.lua:168"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "{name} will join when you return to the game.": {
+      "tokens": [
+        "name"
+      ],
+      "contexts": [
+        "party.feedback"
+      ],
+      "references": [
+        "mod/manager-party.lua:116"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "{name} will leave when you return to the game.": {
+      "tokens": [
+        "name"
+      ],
+      "contexts": [
+        "party.feedback"
+      ],
+      "references": [
+        "mod/manager-party.lua:126"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "{name} will stay in the party.": {
+      "tokens": [
+        "name"
+      ],
+      "contexts": [
+        "party.feedback"
+      ],
+      "references": [
+        "mod/manager-party.lua:146"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "{name} · invited copy": {
+      "tokens": [
+        "name"
+      ],
+      "contexts": [
+        "mcm.party"
+      ],
+      "references": [
+        "mod/mcm.lua:346"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "{name}: chat {state}.": {
+      "tokens": [
+        "name",
+        "state"
+      ],
+      "contexts": [
+        "legacy.manager"
+      ],
+      "references": [
+        "mod/manager.lua:771"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "{name}: connecting...": {
+      "tokens": [
+        "name"
+      ],
+      "contexts": [
+        "phone.feedback"
+      ],
+      "references": [
+        "mod/init.lua:1079"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "{name}: conversation profile cleared.": {
+      "tokens": [
+        "name"
+      ],
+      "contexts": [
+        "party.feedback"
+      ],
+      "references": [
+        "mod/manager-party.lua:180"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "{name}: conversation set to {profile}.": {
+      "tokens": [
+        "name",
+        "profile"
+      ],
+      "contexts": [
+        "party.feedback"
+      ],
+      "references": [
+        "mod/manager-party.lua:179"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "{name}: dismiss queued.": {
+      "tokens": [
+        "name"
+      ],
+      "contexts": [
+        "phone.native-feedback"
+      ],
+      "references": [
+        "r6/scripts/CyberpunkConvai/PhoneContacts.reds:315"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "{name}: invitation cancelled.": {
+      "tokens": [
+        "name"
+      ],
+      "contexts": [
+        "party.feedback"
+      ],
+      "references": [
+        "mod/manager-party.lua:134"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "{name}: invite queued.": {
+      "tokens": [
+        "name"
+      ],
+      "contexts": [
+        "phone.native-feedback"
+      ],
+      "references": [
+        "r6/scripts/CyberpunkConvai/PhoneContacts.reds:315"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "{name}: preparation failed. Cancel and invite again.": {
+      "tokens": [
+        "name"
+      ],
+      "contexts": [
+        "phone.feedback"
+      ],
+      "references": [
+        "mod/init.lua:1081"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "{name}: preparing memory...": {
+      "tokens": [
+        "name"
+      ],
+      "contexts": [
+        "phone.feedback"
+      ],
+      "references": [
+        "mod/init.lua:1078"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    },
+    "{status} · After current reply": {
+      "tokens": [
+        "status"
+      ],
+      "contexts": [
+        "mcm.voice-status"
+      ],
+      "references": [
+        "mod/mcm.lua:229"
+      ],
+      "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
+    }
+  },
+  "nativeHandling": [
+    {
+      "surface": "world.composer",
+      "files": [
+        "r6/scripts/CyberpunkConvai/Composer.reds",
+        "mod/composer-input.lua"
+      ],
+      "note": "The title prefix TALK TO and exact English message currently identify this mod’s composer. Replace that ownership test with a language-independent marker before translating either. Do not identify every generic input by its translated text."
+    },
+    {
+      "surface": "phone.chat",
+      "files": [
+        "r6/scripts/CyberpunkConvai/PhoneChat.reds",
+        "r6/scripts/CyberpunkConvai/PhoneChatTabs.reds",
+        "mod/phone-chat-style.lua"
+      ],
+      "note": "Native creation sets CHAT/Chat and fallback Enter/Esc hints. Refresh existing widgets on locale change, and translate only mod-owned Chat widgets. The current ^ENTER status filter is English-specific. Native Messages/Contacts and game SMS stay game-localized."
+    },
+    {
+      "surface": "phone.contacts",
+      "files": [
+        "r6/scripts/CyberpunkConvai/PhoneContacts.reds"
+      ],
+      "note": "Immediate queued/unavailable feedback is created in redscript before Lua replies. It needs the same dictionary through a native bridge or a scoped Lua hook. J/L key textures and button codes are not translation strings."
+    },
+    {
+      "surface": "manager.legacy",
+      "files": [
+        "r6/scripts/CyberpunkConvai/Manager.reds",
+        "mod/manager.lua"
+      ],
+      "note": "Legacy native manager strings are inventoried for completeness; MCM is the active manager. Do not expose or revive this retired screen just to prove localization. Its F5 footer is historical."
+    },
+    {
+      "surface": "mcm.framework",
+      "files": [
+        "mod/mcm.lua"
+      ],
+      "note": "MCM owns Apply/Revert, search placeholders and framework status such as Completed. Provider-owned schema strings can be localized here; framework strings require MCM localization. Do not match a translated Completed prefix to decide success."
+    },
+    {
+      "surface": "characters",
+      "files": [
+        "mod/manager.lua",
+        "mod/init.lua"
+      ],
+      "note": "Catalogue names, summaries, model records, AI replies, provider errors, and game-localized character names are not blindly translated. Translate a curated UI error at its origin; preserve arbitrary inserted content as data."
+    }
+  ]
+}

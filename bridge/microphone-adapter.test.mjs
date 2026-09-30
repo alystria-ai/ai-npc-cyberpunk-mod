@@ -2,6 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import fengari from 'fengari';
+import {uiLocaleBootstrap} from './ui-locale-fixture.mjs';
 
 const source = readFileSync(new URL('../mod/microphone.lua', import.meta.url), 'utf8');
 const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
@@ -50,7 +51,7 @@ function check(body) {
   const vm = lauxlib.luaL_newstate(); lualib.luaL_openlibs(vm);
   try {
     const program = fixture + '\n' + body;
-    const result = lauxlib.luaL_dostring(vm, to_luastring(program));
+    const result = lauxlib.luaL_dostring(vm, to_luastring(uiLocaleBootstrap + program));
     const error = result === lua.LUA_OK ? '' : to_jsstring(lua.lua_tostring(vm, -1));
     const line = Number(/\]:(\d+):/.exec(error)?.[1]);
     assert.equal(result, lua.LUA_OK, error + (line ? '\n' + program.split('\n')[line - 1] : ''));

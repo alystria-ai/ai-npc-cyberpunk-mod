@@ -2,6 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import fengari from 'fengari';
+import {uiLocaleBootstrap} from './ui-locale-fixture.mjs';
 
 const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
 const source = readFileSync(new URL('../mod/manager-party.lua', import.meta.url), 'utf8');
@@ -31,7 +32,7 @@ test('death before attachment confirmation retires only that invitation and repo
     queue.flush();assert(#queue.takeNotices()==0)
   `;
   const state = lauxlib.luaL_newstate(); lualib.luaL_openlibs(state);
-  const status = lauxlib.luaL_dostring(state, to_luastring(code));
+  const status = lauxlib.luaL_dostring(state, to_luastring(uiLocaleBootstrap + code));
   const error = status === lua.LUA_OK ? '' : to_jsstring(lua.lua_tostring(state, -1));
   lua.lua_close(state); assert.equal(status, lua.LUA_OK, error);
 });
