@@ -5,13 +5,12 @@ remaining verification limits for the Cyberpunk Convai overhaul. It covers the
 current runtime and its development tools, not just the latest visible feature.
 `TODO.md` remains the requested-feature and acceptance backlog.
 
-**Integration status:** implemented, locally committed and installed. The full
-Node suite passed **1,159 / 1,159**, with zero failures or skips and the installed
-MCM API included. The real production Convai transport smoke passed. Forty-two
-Lua/catalogue files were installed with hash verification and rollback copies;
-the hidden bridge restarted successfully. The nine native scripts are unchanged,
-so the game was not restarted. **CET activation and audible/visual acceptance of
-this combined update are pending the user's requested check.**
+**Initial audit checkpoint:** locally committed and installed; **1,159 / 1,159**
+Node checks passed with installed MCM and no failures/skips. The user activated
+the update and confirmed smooth Convai voice. Lip sync and onset were still
+unsatisfactory. The continuous-playback follow-up below supersedes the initial
+complete-WAV design; its source, installation and live evidence are recorded
+separately.
 
 ## Requirements retained during the audit
 
@@ -535,9 +534,117 @@ combined run. The final combined and installed results follow this lane-by-lane 
 | Native manifest | Nine active scripts match installed source hashes; retired `KnowledgeState.reds` absent. No native edits, compile or game restart required. Lua-only installer itself makes no native qualification claim. |
 | Installation | 42 Lua/catalogue files copied and hash verified; receipt complete. Backup: `backups/development-install-20260930-151122-bf3c5bbf054741d698b0b9de0ce12ed2/manifest.json` |
 | Bridge | Graceful stop/start passed; hidden replacement PID 20892 reached ready with no startup errors. Immutable player identity anchor hash unchanged. |
-| Game | Existing process remained running. User asked to use CET Reload All Mods once; activation not yet confirmed. |
-| Audible/visual acceptance | Pending: F6 Judy with Convai voices, continuity, mouth motion and neutral cleanup. Source-byte and transport tests do not prove this. |
+| Game | Existing process remained running. User completed the CET reload and Judy F6 check. |
+| Audible/visual acceptance | User confirms smooth Convai voice. Lip sync remains unaccepted: mouth shapes look too simple or barely open. Latest receipt confirms one 7.417-second clip, 289 facial applications and neutral cleanup. |
 | Phone persistence acceptance | Source and failure-injection checks pass; the new live reload/history case remains pending. |
+
+## Continuous playback follow-up
+
+### Evidence driving the change
+
+The user's smooth-voice acceptance applies to a complete native WAV. Its latest
+warm request received first PCM at 2.398 s, completed collection at 7.851 s and
+started native playback at approximately 8.67 s. Collecting the whole file
+added most of the delay after the first source audio. These are software clock
+measurements from one reply, not microphone measurements or a general service
+latency guarantee.
+
+Official Convai documentation permits original audio packets and timed facial
+data. Dawnwalker v0.5.6 was inspected at an exact remote commit for its live
+track and queued group-playback designs. The installed Audioware API lacks an
+append-PCM interface. The chosen implementation therefore feeds original
+Convai packets into one continuous hidden-browser AudioWorklet and retains
+native Audioware playback for Omni phrases. Source links and the complete
+protocol are in [CONVAI_AUDIO_STREAMING.md](CONVAI_AUDIO_STREAMING.md).
+
+### Implemented separation and recovery
+
+- Remote Convai sends one turn and plays original PCM. Local Omni divides only
+  its own synthesis text and generates subsequent phrases during playback.
+- An explicit game admission contains request, generation, actor and UUID.
+  A sequence heartbeat carries pause, native volume and spatial position. Old
+  actors/turns cannot authorize new audio. No new player identity is created.
+- A 400 ms startup buffer can begin before source EOF. Pause or underrun holds
+  the source cursor; a device-correlated clock drives faces and subtitles.
+- Exact final byte totals, clean provider completion, final text and audible
+  drain are distinct gates. Only actual drain advances a group or produces a
+  delivered receipt. Cancelled partial speech cannot become a complete memory
+  delivery or trigger whole-file replay.
+- The first F9 reply carries the recognized microphone prompt. Its quest
+  context can refresh while the submitted memory receipt retains its original
+  owner. Review reproduced and corrected both integration omissions before
+  installation; microphone listening remains user-deferred.
+- The complete-file adapter remains compatible with an older running Lua
+  session until CET reload advertises the new controller. The new controller
+  never creates native speech-slot files for successful remote replies.
+
+### Facial correction and limits
+
+The provider's indexed 61-value frames already contain richer articulation.
+The native mapping suppressed much of its intermediate jaw motion. The
+`arkit61-open-v3` curve increases quiet/intermediate opening without raising the
+maximum or overriding full mouth closure. A retained source replay changed
+median jaw weight from .0413 to .0740 and p95 from .1297 to .1916. Actual cadence
+up to 60 Hz retains peaks previously lost at 30 Hz. Upper-lip/corner mappings
+are unchanged by this adjustment, preserving the earlier distortion controls.
+Growing timelines have one owned native feature and use the heard source
+clock. These numerical results cannot establish natural-looking lips in-game.
+
+### Verification method
+
+Independent agents owned the PCM renderer, SDK transport, game adapter, face
+mapping, delivery receipts and packaging inventory. Root integrated their
+contracts and reviewed lifecycle boundaries. Tests run real production
+functions or Lua modules with controlled ownership/timing, and an explicitly
+muted headless Edge test exercises the actual AudioWorklet. A first full run
+passed 1,250 of 1,252 checks and exposed a browser clock fault under load plus a
+host test integration mismatch; those failures were retained for diagnosis,
+not counted as acceptance. The host fixture was corrected; the real clock
+fault remains unreproduced and **has no claimed fix**. Strict continuity checks
+and bounded numeric diagnostics remain armed. Three isolated lifecycle reruns,
+one diagnostic full run, the retained-packet replay, and eight further muted
+browser checks did not reproduce it. The last eight ran concurrently with one
+full suite; that exceeded the intended test concurrency and will not be the
+routine test method. No game or bridge process was stopped by those tests.
+
+The final combined source run passed **1,266 / 1,266**, no failures/skips,
+including installed MCM and the real muted browser test, in 23.90 seconds:
+`runtime/continuous-final-tests.log`. A source-executed receipt race regression
+confirms already-heard group speech is recorded before cancellation retires the
+old request, with exact ownership, completion and concurrent-poll guards.
+
+`runtime/continuous-pcm-replay.json` replays 31 retained provider packets with
+their original timing. The browser first rendered at 537 ms and its heard clock
+advanced at 573 ms, before the final packet at 1,197 ms. It drained 73,200 frames
+(3.05 seconds) with zero underruns; the pure core restored every PCM byte.
+Those times begin at the offline replay, not at a new player request. Output was
+explicitly muted and no provider/microphone/game action occurred. This is queue
+evidence, not an audible game acceptance or a new API latency benchmark.
+
+The final diagnostic-only client follow-up passed **55 targeted checks**. It
+preserves only eight finite numeric clock fields through append/collection
+failure and page disposal; unknown keys, strings, Infinity and oversized values
+are excluded. This adds one test after the 1,266-check combined run; it does not
+claim a second full run or a resolved cause for the rare clock discontinuity.
+
+### Installed continuous-playback checkpoint
+
+| Gate | Result |
+| --- | --- |
+| Local commits | `a55c178` continuous speech/face/receipts; `dafe04d` package proposal |
+| Lua/catalogue install | **43 files hash verified**, receipt complete; `backups/development-install-20260930-155654-25e364c0a22f4b1789e30239dd7d2416/manifest.json` |
+| Native components | Nine source/installed redscript hashes match; no native change or game restart |
+| Browser build | 1,323,992 bytes; SHA-256 `831edead8961e07ba4595a45926ca565f874f7ad2e424795247a28213ce0e455` |
+| Bridge restart | Graceful release, fresh hidden PID 33996, zero startup stderr; waiting for requests |
+| Identity | Persistent player identity anchor hash unchanged across restart |
+| Game | Existing PID 28320 remained running |
+| Activation and live quality | One CET reload and a Judy F6 Convai-only check requested; continuous latency, audible smoothness and rendered face result pending |
+
+Packaging is documented in [PACKAGING.md](PACKAGING.md) and a checked
+machine-readable proposal: 39 Lua files in Scripts; catalogs, native components
+and portable voice runtime in Runtime. No ZIP or release is claimed complete.
+Relocatable Python/browser startup, reference preparation, dependency/license
+inventory, compressed size and GitHub asset limits remain concrete release work.
 
 ## Remaining backlog and bounded uncertainties
 
@@ -547,9 +654,13 @@ to completion by an automated pass:
 - **User-deferred:** live F7/F9 microphone testing; solo-exploration comments
   unless reliable native provenance can be established; further voice datasets,
   training and production FP8/TensorRT work.
-- **Installed audio follow-up:** check audible continuity/onset and quiet
-  facial articulation in the game. Sender ownership, source-byte preservation
-  and the real production transport are verified. Local and mixed-provider F8 listening are separate.
+- **Installed audio follow-up:** the earlier single-WAV Convai playback is audibly accepted.
+  Onset and facial articulation remain open: the user reports excessive delay
+  and simple/small mouth shapes. The latest warm request had first PCM at
+  2.398 s, collection complete at 7.851 s and estimated native onset at 8.67 s.
+  Waiting for the whole clip is the main delay after first audio. These are
+  one installed request's timestamps, not an acoustic benchmark. Local and
+  mixed-provider F8 listening are separate.
 - **Memory:** natural recall across later conversations/load cycles, explicit
   user-chosen Forget acceptance, the unspawned-character picker/confirmation flow
   and all-channel live routing. Never run destructive clears simply to close a

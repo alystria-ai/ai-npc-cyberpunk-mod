@@ -25,9 +25,28 @@
   phone persistence, native command ownership, worker hangs, quest-context
   relevance, selectors, evidence validation, packaging and build freshness.
   Local Git checkpoints preserve rollback; 42 installed files hash verified.
-- [ ] Activate this combined update with one CET reload and check Judy's Convai
-  F6 voice for continuity and facial cleanup. User question issued; acceptance
-  pending. Phone history across reload also remains a live follow-up.
+- [x] Activate the combined update with CET reload and check Judy's Convai F6
+  voice. The user confirms smooth playback. The installed receipt has one
+  7.417-second native clip, no stream handoffs, and a completed facial reset.
+- [x] Implement a separate continuous Convai PCM queue with game-owned admission,
+  current volume/pan, pause/cancellation, device-cursor faces and audible group
+  completion. Keep Omni's phrase generation separate. No full-file wait on the
+  new remote route. `docs/CONVAI_AUDIO_STREAMING.md` describes the protocol;
+  checkpoint `a55c178`. Combined 1,266 checks passed; a later diagnostic-only
+  client follow-up passed 55 targeted checks. Installed 43 Lua/catalogue files
+  with hash verification, fresh bundle and hidden bridge; nine native hashes
+  unchanged and no game restart. CET activation and live acceptance are pending.
+- [x] Document the requested Lua-only Scripts ZIP and non-Lua Runtime ZIP in
+  `docs/PACKAGING.md` and `packaging/release-plan.json`. The 39 Lua files and
+  native/voice dependencies are inventoried. Portable bootstrap, relocation,
+  distribution notices and archive-size qualification remain release work;
+  no archives or GitHub release have been created.
+- [ ] Verify improved Convai speech onset and facial articulation. The user still finds
+  latency excessive and mouth shapes too simple/barely open. The latest warm
+  request received first PCM at 2.398 s, completed collection at 7.851 s and
+  began native playback at about 8.67 s. Full-reply buffering is the main delay
+  after first audio. Smooth playback does not establish acceptable lip sync.
+  Phone history across reload remains a separate live follow-up.
 - [x] Add **Follow-up questions** (`followUpQuestions`) to organized Settings,
   default Off per the user's latest request. Local checkpoint `135264d`; 991
   tests passed with zero failures/skips, including installed MCM integration.

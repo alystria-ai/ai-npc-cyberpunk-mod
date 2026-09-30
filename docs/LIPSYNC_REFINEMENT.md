@@ -94,7 +94,7 @@ ARKit-61/Neurosync values. Those values were still being retargeted with the
 earlier `0.35 * JawOpen * (1 - MouthClose)` mapping. This is a difference in our
 retargeting, not evidence that the voice audio needs processing.
 
-The Convai path now reports `articulation: arkit61-open-v2`:
+The first September 30 opening adjustment reports `articulation: arkit61-open-v2`:
 
 - A fixed monotonic curve increases small and medium jaw openings. Its maximum
   is 0.40, the same ceiling as the locally accepted D-vowel pose. Zero remains
@@ -140,6 +140,66 @@ opening, preserved consonant closure, and absence of upper-lip distortion.**
 Behavioral tests cover weak/mid/strong input, monotonic bounded travel,
 MouthClose, real silence, unchanged waveform/provider arrays, upper-lip limits,
 unrelated articulation, and matching poses through real PCM chunk boundaries.
+
+## Continuous Convai reply: jaw range and source cadence, September 30
+
+After continuous voice playback sounded smooth, the user still described mouth
+shapes as simple or barely open. The latest retained Judy reply contains 445
+ARKit frames at **60 Hz**, spanning 0 to 7.4 seconds of a 7.4167-second WAV.
+Its native receipt confirms 289 applications and a successful final reset.
+There are no neutral facial dropouts among the 158 sampled frames with PCM RMS
+above 0.01. This is therefore a different defect from the earlier per-file
+energy gate, which erased quiet articulation.
+
+The retained source identity is `last-speech-timing.json` SHA256
+`fde43ee505449412b1ba4eaf9897d735bd1082c4684b492c00722779da3e3213`.
+Ignored evidence: `runtime/facial-aperture-audit-20260930.json` and
+`runtime/facial-aperture-v3-replay-20260930.json`.
+
+Two bounded changes now identify themselves as `arkit61-open-v3`:
+
+- Jaw retargeting uses `0.40 * (3 * j / (1 + 2 * j)) * (1 - MouthClose)`.
+  This fixed monotonic curve expands the source's compressed small/mid range.
+  Zero remains zero, full closure remains closed, and the maximum stays 0.40.
+  There is no per-voice normalization or minimum opening.
+- Output cadence derives from the median positive spacing of validated source
+  timestamps, bounded to 30–60 Hz. The current provider's 60 Hz single-frame
+  poses survive instead of being discarded by a fixed 30 Hz resample. Sparse
+  feeds retain interpolation at 30 Hz; a 50 Hz source remains 50 Hz. This never
+  scales source timestamps or audio duration, and a full 120-second output
+  remains inside the native 7202-frame limit.
+
+The upper/lower aperture curves and caps, closure, funnel, purse and stretch
+gains are unchanged. All ten reserved articulation controls remain zero,
+including the individual upper-lip raisers that previously distorted Judy's
+right lip. The local phonetic and envelope routes are unchanged.
+
+Replay of the same retained PCM and raw source gives the following **predicted
+native jaw weights at the same 158 audible sample times**:
+
+| Measure | v2 | v3 |
+| --- | ---: | ---: |
+| Median | 0.0413 | 0.0740 |
+| 95th percentile | 0.1297 | 0.1916 |
+| Maximum | 0.1706 | 0.2332 |
+
+The 60 Hz timeline contains 446 frames including final cleanup, versus 224
+previously. Its retained intermediate jaw peak is 0.2486. Pucker's peak becomes
+0.2492 versus 0.2083 solely because the previously skipped source frame is now
+present; its mapping gain did not change. At shared timestamps every non-jaw
+control matches the previous mapped value exactly. Audio and provider arrays
+are unchanged.
+
+Regression coverage includes a genuine one-frame 60 Hz jaw/pucker peak, several
+source cadences without time stretching, continuous monotonic opening through
+partial/full closures, quiet consonants, immutable inputs, upper-lip limits,
+and a full two-minute timeline. Native cursor ownership, cancellation, pause
+and final reset retain their existing tests.
+
+These changes are source and offline replay evidence, **not a new visual
+acceptance**. Additional lower-lip contact, corner shaping or expressive retargets
+remain deferred until their native rig mapping can be validated; louder or
+wider deformation alone would not prove correct phonetics.
 
 ## September 30: preserve quiet provider articulation
 

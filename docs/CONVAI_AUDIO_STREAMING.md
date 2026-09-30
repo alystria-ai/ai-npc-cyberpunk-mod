@@ -1,13 +1,91 @@
 # Convai speech transport
 
-## September 30 audit: direct PCM, one native clip
+## Current implementation: continuous original Convai PCM
+
+Convai and Omni now have separate playback producers:
+
+| Provider | Generation | Playback start | Renderer |
+| --- | --- | --- | --- |
+| Convai | One player request; original PCM16 and indexed NeuroSync packets | At least 400 ms of source audio, reply text, and the exact game actor's admission | One continuous AudioWorklet ring for the entire reply |
+| Local OmniVoice | Convai text, then local phrase synthesis at the captured 16/32-step setting | After the first complete phrase and its facial analysis; later phrases generate during playback | Existing native Audioware phrase queue |
+
+Omni does not currently play samples from an unfinished individual phrase.
+Convai does not use Omni's text splitter, local model, phrase queue, browser
+recapture, WAV handoffs, or a complete-file wait. The complete-WAV compatibility
+route is used only until the running Lua adapter advertises continuous support.
+Once continuous audio has begun, a failure never replays a whole WAV over it.
+
+### Boundaries and ownership
+
+`realtime-client.mjs` accepts the original reliable packets through
+`convai-data-audio.mjs`. `continuous-pcm-player.mjs` owns one source-rate audio
+context, gain and pan; `continuous-pcm-worklet.mjs` feeds the bounded PCM16 ring
+implemented in `continuous-pcm-core.mjs`. Packet boundaries never become sound
+boundaries. There is no EQ, normalization, silence trimming or custom resampling.
+The operating system/browser still performs its normal output-device mixing.
+
+`ConvaiContinuousSpeech` is the bridge-to-game boundary, separate from local
+`SpeechStream`. It publishes the exact request, generation, entity and UUID to
+`reply.json` once. `mod/continuous-speech.lua` validates the living actor and
+player and grants a fresh, sequence-numbered lease before any sound can play.
+The lease carries native Master/Dialogue volume, camera-relative pan and
+distance gain. Missing volume access reports an error condition and stays muted.
+The browser is a separate Windows audio session; it is not Audioware spatial
+audio, so native occlusion/reverb is not claimed.
+
+The bridge polls at 40 ms. The reader pauses on a stale heartbeat, menu pause,
+or an underrun, without advancing the source clock. A stale lease eventually
+cancels. Replacement requests, actor loss, death, unload and cancellation retire
+the exact old stream. Buffers are bounded to 120 seconds and 24 MB of source PCM.
+Short complete replies can begin below the 400 ms threshold.
+
+Device-correlated output timestamps map through the reader's actual consumed
+samples. Native subtitles and growing NeuroSync timelines follow that clock;
+they do not advance through buffering gaps. Final provider text and exact PCM
+count must validate, and the device tail must drain, before a delivered receipt
+or the next group speaker is allowed. F9 includes the recognized microphone
+prompt in its initial descriptor and retains the original submitted memory
+receipt when completion refreshes quest context.
+
+NeuroSync maps to the managed character's supported facial feature. The
+`arkit61-open-v3` calibration lifts quiet/intermediate jaw opening while keeping
+full closure and the existing maximum. Actual provider cadence is preserved
+up to 60 Hz. Individual upper-lip raisers remain restricted after the user's
+earlier distortion report. Source-frame correctness is not visual acceptance.
+
+### Research and development method
+
+The official [data-channel documentation](https://github.com/Conv-AI/Convai-Documentation/blob/main/api-reference/core-api-reference/live-apis-beta/audio-data-via-data-channel.md)
+supports consuming original PCM packets. The
+[Web SDK guide](https://docs.convai.com/api-docs/plugins-and-integrations/web-plugins/convai-web-sdk)
+describes audio rendering and timed blendshapes. This implementation keeps the
+existing verified LiveKit identity/session transport and requests data-only
+speech from that same connection.
+
+The reference audit inspected Dawnwalker v0.5.6 at
+[`eec0ce7`](https://github.com/alystria-ai/AI-Companion-Mod-For-Blood-of-Dawnwalker/blob/eec0ce7df58718e98a2a62a67eb8e6d9e5769000/bridge/reply-audio.ts):
+its private first speaker plays the live remote track; prefetched group speech
+uses a continuous worklet with a source-sample clock. Its buffers and spatial
+policy were not copied blindly. Cyberpunk needs its own actor admission, game
+pause, native volume, face mapping and delivery receipts. The installed
+Audioware API has no append-PCM entry point; appending a WAV does not turn its
+fixed-length native decoder into a safe streaming sink.
+
+Tests execute the pure ring, real browser worklet, bridge pump and Lua adapter.
+They cover sample identity/order, pause/underrun clocks, stale ownership, final
+drain, group progression and independent local voice routing. Real-browser
+tests explicitly mute output and use zero or retained test PCM. Live latency,
+audible quality and facial quality remain separate acceptance gates; see the
+[development audit](DEVELOPMENT_AUDIT_2026-09-30.md) for the latest results.
+
+## Earlier September 30 checkpoint: direct PCM, one native clip
 
 Convai receives one submitted player turn and generates its own speech. Local
 OmniVoice alone divides reply text into separately generated phrases. The retired
 Convai adapter instead captured the browser's real-time playback and divided
 that recording into native WAV files. Measured native handoffs left micro-gaps.
 
-The replacement requests the documented LiveKit data-only output. It collects
+That checkpoint requested the documented LiveKit data-only output. It collected
 original PCM16LE packets in reliable arrival order and writes one WAV header
 around those unchanged samples. One native Audioware clip represents the entire
 reply. There is no browser audio recapture, resampling, gain processing, silence
