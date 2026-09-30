@@ -1,0 +1,475 @@
+{
+  "schema": 1,
+  "status": "proposal-not-buildable",
+  "publishAuthorized": false,
+  "installRoot": "game-root",
+  "archives": [
+    {
+      "id": "scripts",
+      "filename": "CyberpunkConvai-Scripts.zip",
+      "onlyExtension": ".lua",
+      "files": [
+        {
+          "source": "mod/continuous-speech.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/continuous-speech.lua"
+        },
+        {
+          "source": "mod/companion-equipment.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-equipment.lua"
+        },
+        {
+          "source": "mod/loot-observer.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/loot-observer.lua"
+        },
+        {
+          "source": "mod/loot-reactions.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/loot-reactions.lua"
+        },
+        {
+          "source": "mod/loot-probe.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/loot-probe.lua"
+        },
+        {
+          "source": "mod/battle-observer.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/battle-observer.lua"
+        },
+        {
+          "source": "mod/battle-reactions.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/battle-reactions.lua"
+        },
+        {
+          "source": "mod/quest-context.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/quest-context.lua"
+        },
+        {
+          "source": "mod/world-knowledge.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/world-knowledge.lua"
+        },
+        {
+          "source": "mod/journal-history.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/journal-history.lua"
+        },
+        {
+          "source": "mod/knowledge-probe.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/knowledge-probe.lua"
+        },
+        {
+          "source": "mod/phone-chat.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/phone-chat.lua"
+        },
+        {
+          "source": "mod/phone-chat-style.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/phone-chat-style.lua"
+        },
+        {
+          "source": "mod/facial-playback.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/facial-playback.lua"
+        },
+        {
+          "source": "mod/phone-layout.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/phone-layout.lua"
+        },
+        {
+          "source": "mod/companion-records.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-records.lua"
+        },
+        {
+          "source": "mod/face-probe.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/face-probe.lua"
+        },
+        {
+          "source": "mod/companion-space.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-space.lua"
+        },
+        {
+          "source": "mod/companion-travel.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-travel.lua"
+        },
+        {
+          "source": "mod/companion-actuator.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-actuator.lua"
+        },
+        {
+          "source": "mod/companion-locomotion.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-locomotion.lua"
+        },
+        {
+          "source": "mod/companion-appearance.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-appearance.lua"
+        },
+        {
+          "source": "mod/companion-behavior.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-behavior.lua"
+        },
+        {
+          "source": "mod/companion-placement.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-placement.lua"
+        },
+        {
+          "source": "mod/mcm.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/mcm.lua"
+        },
+        {
+          "source": "mod/mcm-entry.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/mcm-entry.lua"
+        },
+        {
+          "source": "mod/manager-party.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/manager-party.lua"
+        },
+        {
+          "source": "mod/invitation-readiness.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/invitation-readiness.lua"
+        },
+        {
+          "source": "mod/manager.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/manager.lua"
+        },
+        {
+          "source": "mod/character-catalog.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/character-catalog.lua"
+        },
+        {
+          "source": "mod/group-chat.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/group-chat.lua"
+        },
+        {
+          "source": "mod/microphone.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/microphone.lua"
+        },
+        {
+          "source": "mod/speech.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/speech.lua"
+        },
+        {
+          "source": "mod/composer-input.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/composer-input.lua"
+        },
+        {
+          "source": "mod/subtitles.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/subtitles.lua"
+        },
+        {
+          "source": "mod/phone-input.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/phone-input.lua"
+        },
+        {
+          "source": "mod/init.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/init.lua"
+        },
+        {
+          "source": "mod/diagnostics.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/diagnostics.lua"
+        },
+        {
+          "source": "mod/companions.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companions.lua"
+        }
+      ]
+    },
+    {
+      "id": "runtime",
+      "filename": "CyberpunkConvai-Runtime.zip",
+      "forbiddenExtension": ".lua",
+      "files": [
+        {
+          "source": "characters/world-knowledge.json",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/world-knowledge.json"
+        },
+        {
+          "source": "r6/scripts/CyberpunkConvai/PhoneChatTabs.reds",
+          "target": "r6/scripts/CyberpunkConvai/PhoneChatTabs.reds"
+        },
+        {
+          "source": "r6/scripts/CyberpunkConvai/PhoneChat.reds",
+          "target": "r6/scripts/CyberpunkConvai/PhoneChat.reds"
+        },
+        {
+          "source": "r6/scripts/CyberpunkConvai/Face.reds",
+          "target": "r6/scripts/CyberpunkConvai/Face.reds"
+        },
+        {
+          "source": "r6/scripts/CyberpunkConvai/FaceFeature.reds",
+          "target": "r6/scripts/CyberpunkConvai/FaceFeature.reds"
+        },
+        {
+          "source": "runtime/facial-rig/package/convai_facial.archive",
+          "target": "archive/pc/mod/convai_facial.archive"
+        },
+        {
+          "source": "characters/manager-characters.json",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/manager-characters.json"
+        },
+        {
+          "source": "characters/roster.json",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/conversation-characters.json"
+        },
+        {
+          "source": "r6/scripts/CyberpunkConvai/Speech.reds",
+          "target": "r6/scripts/CyberpunkConvai/Speech.reds"
+        },
+        {
+          "source": "characters/phone-contacts.json",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/phone-contacts.json"
+        },
+        {
+          "source": "r6/scripts/CyberpunkConvai/Composer.reds",
+          "target": "r6/scripts/CyberpunkConvai/Composer.reds"
+        },
+        {
+          "source": "r6/scripts/CyberpunkConvai/Engagement.reds",
+          "target": "r6/scripts/CyberpunkConvai/Engagement.reds"
+        },
+        {
+          "source": "r6/scripts/CyberpunkConvai/Manager.reds",
+          "target": "r6/scripts/CyberpunkConvai/Manager.reds"
+        },
+        {
+          "source": "r6/scripts/CyberpunkConvai/PhoneContacts.reds",
+          "target": "r6/scripts/CyberpunkConvai/PhoneContacts.reds"
+        }
+      ],
+      "plannedComponents": [
+        {
+          "id": "bridge",
+          "destination": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/app/bridge",
+          "source": "bridge",
+          "selection": "production import closure only, excluding tests and retired modules",
+          "status": "requires-runtime-layout-build"
+        },
+        {
+          "id": "browser-client",
+          "destination": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/app/assets",
+          "source": "build-generated",
+          "selection": "fresh bundled client.js plus bridge/continuous-pcm-player.mjs, bridge/continuous-pcm-core.mjs and bridge/continuous-pcm-worklet.mjs",
+          "status": "requires-release-bootstrap"
+        },
+        {
+          "id": "node",
+          "destination": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/app/node",
+          "source": "official-node-windows-x64-distribution",
+          "status": "pin-and-relocation-test-required"
+        },
+        {
+          "id": "browser",
+          "destination": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/app/browser",
+          "source": "playwright-compatible-browser-distribution",
+          "status": "pin-notices-and-configure-executable-required"
+        },
+        {
+          "id": "python",
+          "destination": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/app/python",
+          "source": "fresh-relocatable-cpython-3.11-runtime",
+          "status": "existing-venv-not-portable"
+        },
+        {
+          "id": "python-dependencies",
+          "destination": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/app/python/Lib/site-packages",
+          "source": "resolved-wheel-lock",
+          "status": "minimal-runtime-lock-and-notices-required"
+        },
+        {
+          "id": "voice-adapter",
+          "destination": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/app/voice/voicestudio",
+          "source": "vendor/reference-voicestudio",
+          "revision": "08a1592e3cb9b4c36beef5fa3185ec2313bb1fea",
+          "selection": "reviewed runtime closure plus corresponding source and notices",
+          "status": "license-and-closure-review-required"
+        },
+        {
+          "id": "omni-model",
+          "destination": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/app/models/omnivoice",
+          "source": "vendor/voice-models/hub/models--k2-fsa--OmniVoice/snapshots/c5fdb5ccb189668d56333f77ba2629f4cd7535f4",
+          "revision": "c5fdb5ccb189668d56333f77ba2629f4cd7535f4",
+          "uncompressedBytes": 3267470260,
+          "status": "redistribution-review-and-release-size-check-required"
+        },
+        {
+          "id": "rhubarb",
+          "destination": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/app/tools/rhubarb",
+          "source": "vendor/rhubarb-1.14.0/Rhubarb-Lip-Sync-1.14.0-Windows",
+          "version": "1.14.0",
+          "selection": "executable, required resource files, complete license notices",
+          "status": "relocation-test-required"
+        },
+        {
+          "id": "audio-bank",
+          "destination": "r6/audioware/CyberpunkConvai",
+          "source": "build-generated",
+          "selection": "fresh speech.yml and eight silent placeholders, never live reply WAVs",
+          "status": "fresh-depot-generation-required"
+        },
+        {
+          "id": "bootstrap",
+          "destination": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/app",
+          "source": "to-be-implemented",
+          "selection": "hidden portable service ownership, game path discovery, setup and runtime manifests",
+          "status": "not-implemented"
+        },
+        {
+          "id": "public-catalog",
+          "destination": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/app/characters",
+          "source": "build-generated",
+          "selection": "approved profile ID manifest, curated quest/catalog exports; no developer runtime map",
+          "status": "approved-profile-ownership-required"
+        },
+        {
+          "id": "notices",
+          "destination": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/app/licenses",
+          "source": "build-generated",
+          "selection": "licenses, third-party notices, model terms, hashes and corresponding source inventory",
+          "status": "not-complete"
+        }
+      ]
+    }
+  ],
+  "voice": {
+    "providerDefault": "hybrid",
+    "stepsDefault": 32,
+    "stepsOptions": [
+      16,
+      32
+    ],
+    "precision": "float16",
+    "compute": "CUDA PyTorch",
+    "tensorRT": false,
+    "localProfiles": [
+      "johnny-silverhand",
+      "judy-alvarez",
+      "panam-palmer"
+    ],
+    "residentWhileSelected": true,
+    "convaiAllUnloadsLocalModel": true,
+    "references": {
+      "packageExistingAudio": false,
+      "generateFromUserInstalledGame": true,
+      "status": "portable-extraction-and-reference-manifest-required"
+    }
+  },
+  "licenses": [
+    {
+      "component": "VoiceStudio adapter",
+      "license": "AGPL-3.0-only",
+      "evidence": "vendor/reference-voicestudio/pyproject.toml",
+      "status": "source-and-notices-review-required"
+    },
+    {
+      "component": "OmniVoice model code",
+      "license": "Apache-2.0",
+      "evidence": "pinned model README and VoiceStudio pyproject",
+      "status": "retain-upstream-notices"
+    },
+    {
+      "component": "OmniVoice pretrained weights",
+      "license": "CC-BY-NC; exact version unspecified in local model card",
+      "evidence": "pinned model README License section",
+      "status": "review-required"
+    },
+    {
+      "component": "OmniVoice audio tokenizer",
+      "license": "Boson Higgs Audio 2 Community License",
+      "evidence": "pinned model audio_tokenizer/LICENSE",
+      "status": "review-required"
+    },
+    {
+      "component": "Convai Web SDK 1.7.0",
+      "license": "Apache-2.0",
+      "evidence": "node_modules/@convai/web-sdk/package.json",
+      "status": "retain-notices"
+    },
+    {
+      "component": "Playwright 1.58.2",
+      "license": "Apache-2.0",
+      "evidence": "node_modules/playwright/package.json",
+      "status": "retain-browser-and-dependency-notices-too"
+    },
+    {
+      "component": "Rhubarb 1.14.0",
+      "license": "MIT plus bundled dependency notices",
+      "evidence": "vendor/rhubarb-1.14.0/Rhubarb-Lip-Sync-1.14.0-Windows/LICENSE.md",
+      "status": "retain-complete-license-file"
+    },
+    {
+      "component": "Mod code",
+      "license": "not-yet-declared",
+      "evidence": "no root license file in current tracked tree",
+      "status": "choose-before-publication"
+    }
+  ],
+  "requiredGameDependencies": [
+    {
+      "name": "Cyber Engine Tweaks",
+      "developmentVersion": "1.37.1"
+    },
+    {
+      "name": "RED4ext",
+      "developmentVersion": "1.30.0"
+    },
+    {
+      "name": "redscript",
+      "developmentVersion": "0.5.31"
+    },
+    {
+      "name": "Codeware",
+      "developmentVersion": "1.20.5"
+    },
+    {
+      "name": "TweakXL",
+      "developmentVersion": "1.11.4"
+    },
+    {
+      "name": "Audioware",
+      "developmentVersion": "1.9.9"
+    },
+    {
+      "name": "MCM",
+      "developmentVersion": "0.10.3"
+    }
+  ],
+  "dependencyPolicy": "Version inventory is the current development setup, not an automatic authorization to redistribute third-party game plugins; resolve notices, distribution and compatibility before claiming two ZIPs are sufficient.",
+  "exclusions": [
+    "API keys and authentication tokens",
+    "end-user IDs and memory/session/history files",
+    "developer runtime directory as a tree",
+    "live reply WAVs and microphone recordings",
+    "benchmark samples and training datasets",
+    "raw game dialogue extracts and conditioning reference audio",
+    "research/cache and downloaded reports",
+    "backups",
+    "vendor tree as a whole",
+    "developer virtualenv as a whole",
+    "user-owned files",
+    "tests and diagnostics receipts",
+    "retired native KnowledgeState component",
+    "CET user settings and bindings"
+  ],
+  "generatedUserState": [
+    "credential storage",
+    "one persistent local player ID",
+    "conversation sessions and phone history",
+    "local voice references extracted from installed game",
+    "local voice config with package-relative paths",
+    "logs and transient request/reply files"
+  ],
+  "requiredChecks": [
+    "scripts-archive-lua-only",
+    "runtime-archive-no-lua",
+    "no-path-traversal-or-duplicate-targets",
+    "no-secrets-or-user-state",
+    "same-version-compatibility-manifests",
+    "all-licenses-and-redistribution-decisions-recorded",
+    "relocated-clean-machine-without-developer-paths",
+    "hidden-bridge-start-stop-recovery",
+    "hybrid-32-16-and-convai-unload",
+    "safe-upgrade-keeps-user-state",
+    "native-game-audio-and-ui-acceptance",
+    "actual-compressed-runtime-size"
+  ],
+  "hosting": {
+    "proposed": "GitHub release assets after explicit publication approval",
+    "maxAssetBytesExclusive": 2147483648,
+    "source": "https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases",
+    "measuredZipBytes": null,
+    "status": "full-runtime-size-not-measured; do not silently omit models or switch to bootstrap downloads"
+  }
+}
