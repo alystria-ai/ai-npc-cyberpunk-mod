@@ -1,5 +1,12 @@
 # Native facial retarget calibration
 
+**Current acceptance:** on October 1 the user called v10 "good enough." This
+accepts the current Judy/Convai result and closes that refinement gate. The
+chronological investigations below preserve their earlier qualification limits.
+The shared native renderer/interpolation/cleanup also serve Omni, but the new
+`mapArkit` calibration does not: Omni remains on separate `coarticulated-v4`
+phonetic poses and requires its own corresponding tuning/visual check.
+
 ## October 1: separate jaw opening from lip contact
 
 The source's JawOpen and MouthClose signals are independent. Multiplying the

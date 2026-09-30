@@ -51,8 +51,8 @@
   guidance, JALI/native solver, actual Judy geometry, GPU alternatives,
   licensing/resource limits and calibration method. Retain Convai NeuroSync;
   native retargeting and sampling are the immediate improvement path.
-- [ ] Accept improved Convai articulation in the game. The user still describes
-  a wooden mouth with small/simple shapes. Actual cadence was only 146 native
+- [x] Accept current Convai articulation on Judy. On October 1 the user called
+  v10 "good enough." The original wooden/simple mouth diagnosis found only 146 native
   applications over 8.8167 seconds despite 60 Hz source data. Integrated Lua
   replay reproduces poll quantization; the correction uses a bounded confirmed
   past audio cursor each game frame. Native Judy analysis also identified a
@@ -83,6 +83,12 @@
     100 focused checks pass. Cropped captures now observe roughly 24–28 FPS,
     supporting brief-transition inspection. Overall naturalness, expressions
     and other characters' rendered qualification remain open.
+- [ ] Carry compatible native-rig calibration into Omni's separate phonetic
+  poses. The native facial layer, interpolation, ownership and cleanup are
+  shared, but v6–v10's recent shape mapping changes run only for Convai ARKit
+  frames. Omni still uses `coarticulated-v4`; matching pose tuning and visual
+  validation are separate work, not already inherited improvements. Preserve
+  the accepted Convai version while doing this.
 - [x] Add **Follow-up questions** (`followUpQuestions`) to organized Settings,
   default Off per the user's latest request. Local checkpoint `135264d`; 991
   tests passed with zero failures/skips, including installed MCM integration.
