@@ -29,6 +29,16 @@ local detailSeal = {.14,0,0,.85,.85,0,0,0,0,0}
 local detailKeys = {{0,detailNeutral},{.4,detailBase},{1.4,detailBase},
     {1.8,detailUpper},{3.4,detailUpper},{3.8,detailLower},{5.4,detailLower},
     {5.8,detailSeal},{7.4,detailSeal},{8,detailNeutral},{9,detailNeutral}}
+local rollTracks = {'jaw_mid_open','lips_apart_up','lips_apart_dn',
+    'lips_l_upper_raise','lips_r_upper_raise','lips_suck_up','lips_together_up','lips_together_dn'}
+local rollNeutral = {0,0,0,0,0,0,0,0}
+local rollBase = {.14,.04,.10,.06,.06,0,0,0}
+local rollSmall = {.14,.04,.10,.06,.06,.03,0,0}
+local rollUpper = {.14,.04,.10,.06,.06,.06,0,0}
+local rollSeal = {.14,0,0,.06,.06,.06,.85,.85}
+local rollKeys = {{0,rollNeutral},{.4,rollBase},{1.4,rollBase},
+    {1.8,rollSmall},{3,rollSmall},{3.4,rollUpper},{4.6,rollUpper},
+    {5,rollSeal},{6.2,rollSeal},{6.8,rollNeutral},{7.5,rollNeutral}}
 
 local function poseAt(tracks,keys,at)
     local left, right = keys[1], keys[#keys]
@@ -56,6 +66,12 @@ local function detailAt(at)
     local phase = at < 1.4 and 'baseline' or at < 3.4 and 'upper'
         or at < 5.4 and 'lower' or at < 7.4 and 'seal' or 'neutral'
     return poseAt(detailTracks,detailKeys,at),phase
+end
+
+local function rollAt(at)
+    local phase = at < 1.4 and 'baseline' or at < 3 and 'small-roll'
+        or at < 4.6 and 'upper-roll' or at < 6.2 and 'seal' or 'neutral'
+    return poseAt(rollTracks,rollKeys,at),phase
 end
 
 local function playerReady()
@@ -148,7 +164,7 @@ end
 
 function M.start(profileKey, mode)
     mode = mode or 'jaw'
-    assert(mode == 'jaw' or mode == 'articulation' or mode == 'detail', 'Unknown facial probe mode')
+    assert(mode == 'jaw' or mode == 'articulation' or mode == 'detail' or mode == 'roll', 'Unknown facial probe mode')
     if M.active then M.stop('replaced') end
     local player = assert(playerReady(), 'Gameplay is unavailable')
     assert(not (convaiSpeech and convaiSpeech.requestId), 'Wait until current speech ends')
@@ -161,7 +177,7 @@ function M.start(profileKey, mode)
     M.playerID = tostring(player:GetEntityID().hash)
     M.entity, M.name, M.samples, M.elapsed, M.interval = selected.entity, selected.name, {}, 0, 0
     M.mode, M.phase, M.duration = mode, mode ~= 'jaw' and 'baseline' or 'jaw',
-        mode == 'detail' and 9 or mode == 'articulation' and 7.5 or 5
+        mode == 'detail' and 9 or (mode == 'articulation' or mode == 'roll') and 7.5 or 5
     M.error, M.restored, M.deadline = nil, false, os.time() + 12
     hookUpdates()
     M.active, M.state = true, 'running'
@@ -190,6 +206,9 @@ function M.update(delta)
             for track, value in pairs(controls) do feature[track] = value end
         elseif M.mode == 'detail' then
             controls, M.phase = detailAt(M.elapsed)
+            for track,value in pairs(controls) do feature[track]=value end
+        elseif M.mode == 'roll' then
+            controls, M.phase = rollAt(M.elapsed)
             for track,value in pairs(controls) do feature[track]=value end
         else
             local amount = 0.5 - 0.5 * math.cos(M.elapsed * 2 * math.pi / 2.5)

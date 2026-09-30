@@ -9,7 +9,7 @@ local allowed = {
     lips_l_lower_raise = true, lips_r_lower_raise = true,
     lips_tighten_up = true, lips_tighten_dn = true, lips_suck_dn = true, tongue_mid_tip_up = true,
     lips_l_upper_raise = true, lips_r_upper_raise = true,
-    lips_l_corner_stretch = true, lips_r_corner_stretch = true,
+    lips_l_corner_stretch = true, lips_r_corner_stretch = true, lips_suck_up = true,
 }
 local function finite(value)
     return type(value) == 'number' and value == value and value > -math.huge and value < math.huge
@@ -17,6 +17,7 @@ end
 local function trackLimit(track)
     -- Native lip contact is a jaw corrective, with a different calibrated
     -- range. Do not raise the bound on other mouth, tongue or reserved tracks.
+    if track == 'lips_suck_up' then return .06 end
     return (track == 'lips_together_up' or track == 'lips_together_dn') and .85 or .5
 end
 local function owns(actor, entity)
@@ -57,7 +58,7 @@ function M.start(context, timeline, actor, duration, expectedSegment)
             and finite(timeline.duration) and math.abs(timeline.duration - duration) < 0.001, 'Facial duration mismatch')
         assert(timeline.source == 'convai-arkit61' or timeline.source == 'audio-envelope'
             or timeline.source == 'local-phonetic', 'Unknown facial source')
-        assert(type(timeline.tracks) == 'table' and #timeline.tracks > 0 and #timeline.tracks <= 21
+        assert(type(timeline.tracks) == 'table' and #timeline.tracks > 0 and #timeline.tracks <= 22
             and type(timeline.frames) == 'table' and #timeline.frames >= 2 and #timeline.frames <= 7202,
             'Invalid facial timeline size')
         local used, previous = {}, -1
@@ -127,7 +128,7 @@ function M.updateContinuous(context, timeline, actor, duration)
             and finite(timeline.duration) and math.abs(timeline.duration - duration) < .001,
             'Facial duration mismatch')
         assert(timeline.source == 'convai-arkit61' and timeline.segment == nil, 'Unknown continuous facial source')
-        assert(type(timeline.tracks) == 'table' and #timeline.tracks > 0 and #timeline.tracks <= 21
+        assert(type(timeline.tracks) == 'table' and #timeline.tracks > 0 and #timeline.tracks <= 22
             and type(timeline.frames) == 'table' and #timeline.frames >= 2 and #timeline.frames <= 7202,
             'Invalid facial timeline size')
         local used, previous = {}, -1

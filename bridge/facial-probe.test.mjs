@@ -158,6 +158,33 @@ test('detail probe isolates lip lift and seal with a fixed jaw and restores its 
   assert(report.state=='interrupted' and report.restored and resets==2)
 `));
 
+test('upper-roll probe compares independent depth motion and its contact interaction at a fixed jaw',()=>run(`
+  probe.start('judy-alvarez','roll')
+  for i=1,460 do convaiSpeech.update(1/60) end
+  assert(report.state=='completed' and report.restored and report.duration==7.5 and resets==1)
+  local seen={}
+  for _,sample in ipairs(report.samples) do
+    seen[sample.phase]=true
+    for track,value in pairs(sample.controls) do
+      local cap=track:match('^lips_together_') and .85 or track=='lips_suck_up' and .06 or .14
+      assert(value==value and value>=0 and value<=cap)
+    end
+    if sample.at>.4 and sample.at<6.2 then assert(sample.jaw==.14) end
+    if sample.phase=='small-roll' and sample.at>1.8 then
+      assert(sample.controls.lips_suck_up==.03 and sample.controls.lips_apart_up==.04)
+    elseif sample.phase=='upper-roll' and sample.at>3.4 then
+      assert(sample.controls.lips_suck_up==.06 and sample.controls.lips_l_upper_raise==.06)
+    elseif sample.phase=='seal' and sample.at>5 then
+      assert(sample.controls.lips_suck_up==.06 and sample.controls.lips_together_up==.85)
+    end
+  end
+  assert(seen.baseline and seen['small-roll'] and seen['upper-roll'] and seen.seal and seen.neutral)
+  for _,value in pairs(frames[#frames]) do assert(value==0) end
+  assert(convaiSpeech.update==originalUpdate and not probe.active)
+  probe.start('judy-alvarez','roll');menu=true;convaiSpeech.update(.1)
+  assert(report.state=='interrupted' and report.restored and resets==2)
+`));
+
 test('articulation rejects unsupported ownership or readiness, and resets before incoming speech applies',()=>run(`
   owned=false; assert(not pcall(probe.start,'judy-alvarez','articulation') and #frames==0)
   owned=true; ready=false; assert(not pcall(probe.start,'judy-alvarez','articulation') and #frames==0)

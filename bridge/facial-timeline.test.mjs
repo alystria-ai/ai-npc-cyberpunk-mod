@@ -40,7 +40,7 @@ test('provider stretch reaches the native mouth corners and lower roll keeps its
   const input = {faces, facesFormat: 'arkit61', facesTimebase: 'audio-seconds',
     audio: wav.toString('base64')}, before = structuredClone(input);
   const line = buildFacialTimeline(input, owner);
-  assert.equal(line.articulation, 'arkit61-native-v7');
+  assert.equal(line.articulation, 'arkit61-native-v8');
   assert.equal(weight(line, 12, 'lips_l_stretch'), .042);
   assert.equal(weight(line, 12, 'lips_r_stretch'), .07);
   assert.equal(weight(line, 12, 'lips_l_corner_stretch'), .1294);
@@ -52,7 +52,10 @@ test('provider stretch reaches the native mouth corners and lower roll keeps its
   assert.deepEqual(wav, beforeWav);
   const withoutUpperRoll = buildFacialTimeline({...input,
     faces: faces.map(frame => ({at: frame.at, values: frame.values.map((value, index) => index === 32 ? 0 : value)}))}, owner);
-  assert.deepEqual(withoutUpperRoll.frames, line.frames);
+  assert.equal(weight(line,12,'lips_suck_up'),.0587);
+  assert.equal(weight(withoutUpperRoll,12,'lips_suck_up'),0);
+  for(const track of SPEECH_TRACKS.filter(track=>track!=='lips_suck_up'))
+    assert.deepEqual(withoutUpperRoll.frames.map((_,i)=>weight(withoutUpperRoll,i,track)),line.frames.map((_,i)=>weight(line,i,track)));
 });
 
 test('source-specific corner and roll mapping survives growing prefixes without idle offsets or a new audio dependency', () => {
@@ -61,6 +64,7 @@ test('source-specific corner and roll mapping survives growing prefixes without 
     pose[29] = frame >= 20 && frame < 50 ? .7 : 0;
     pose[30] = frame >= 20 && frame < 50 ? .2 : 0;
     pose[31] = frame >= 20 && frame < 50 ? .4 : 0;
+    pose[32] = frame >= 20 && frame < 50 ? .2 : 0;
     return {at: frame / 60, values: pose};
   });
   const input = {faces, facesFormat: 'arkit61', facesTimebase: 'audio-seconds', complete: false};
@@ -82,6 +86,23 @@ test('source-specific corner and roll mapping survives growing prefixes without 
   assert(final.frames[0].slice(1).every(value => value === 0));
   assert(final.frames.at(-1).slice(1).every(value => value === 0));
   assert.deepEqual({...input}, before);
+});
+
+test('upper roll retains its own source channel, calibrated depth range, timing and neutral rest', () => {
+  const make = roll => {
+    const pose=values(.2);pose[18]=.1;pose[32]=roll;pose[39]=.4;
+    return buildProviderFacialTimeline({duration:1,complete:false,facesFormat:'arkit61',facesTimebase:'audio-seconds',
+      faces:Array.from({length:61},(_,frame)=>({at:frame/60,values:[...pose]}))},owner);
+  };
+  const baseline=make(0), changed=make(.1);
+  assert.equal(weight(baseline,12,'lips_suck_up'),0);
+  assert.equal(weight(changed,12,'lips_suck_up'),.0214);
+  assert.equal(weight(make(1),12,'lips_suck_up'),.06);
+  for(const track of SPEECH_TRACKS.filter(track=>track!=='lips_suck_up'))
+    assert.deepEqual(changed.frames.map((_,i)=>weight(changed,i,track)),baseline.frames.map((_,i)=>weight(baseline,i,track)));
+  const weights=[-10,0,.01,.05,.1,.25,.5,1,10].map(amount=>weight(make(amount),12,'lips_suck_up'));
+  weights.forEach((value,index)=>{assert(value>=0&&value<=.06);if(index)assert(value>=weights[index-1]);});
+  assert(changed.frames[0].slice(1).every(value=>value===0));
 });
 
 test('round and wide source shapes have readable independent contrast within the rendered native endpoints', () => {
@@ -218,7 +239,7 @@ test('continuous provider timelines accept ahead-delivered faces without reading
   assert.equal(line.entity, owner.entity);
   assert.equal(line.generation, owner.generation);
   assert.equal(line.source, 'convai-arkit61');
-  assert.equal(line.articulation, 'arkit61-native-v7');
+  assert.equal(line.articulation, 'arkit61-native-v8');
   assert.equal(line.continuous, true);
   assert.equal(line.complete, false);
   assert.equal(line.duration, .513);
@@ -367,7 +388,7 @@ test('ARKIT-61 mouth controls follow the actual order, preserve provider rest an
   const line = buildFacialTimeline({audio: wav.toString('base64'), faces,
     facesFormat: 'arkit61', facesTimebase: 'audio-seconds'}, owner);
   assert.equal(line.source, 'convai-arkit61'); assert.deepEqual(wav, before);
-  assert.equal(line.articulation, 'arkit61-native-v7');
+  assert.equal(line.articulation, 'arkit61-native-v8');
   assert.equal(weight(line, 6, 'jaw_mid_open'), 0.3902);
   assert.equal(weight(line, 6, 'lips_l_funnel'), 0.2743);
   assert.equal(weight(line, 6, 'lips_l_purse'), 0.2036);

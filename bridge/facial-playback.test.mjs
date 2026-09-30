@@ -140,6 +140,14 @@ test('only native lip-contact tracks admit the calibrated larger range',()=>run(
   assert(speech.start(c,r) and not face.active);speech.stop('cancelled')
   c,r=input(judy,'bad-jaw');r.face.frames[2][2]=.51
   assert(speech.start(c,r) and not face.active)
+  c,r=input(judy,'upper-roll');r.face.tracks={'lips_suck_up'}
+  r.face.frames={{0,0},{.5,.06},{2,0}}
+  assert(speech.start(c,r) and face.active)
+  cursor=.5;speech.update(.1);assert(judy.frames[#judy.frames].lips_suck_up==.06)
+  speech.stop('cancelled')
+  c,r=input(judy,'bad-upper-roll');r.face.tracks={'lips_suck_up'}
+  r.face.frames={{0,0},{.5,.0601},{2,0}}
+  assert(speech.start(c,r) and not face.active)
 `));
 
 test('reserved upper lip and active corner controls reach the native feature and clear with the same owner', () => run(`

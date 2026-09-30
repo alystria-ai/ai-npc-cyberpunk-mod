@@ -494,12 +494,13 @@ if request:match('^party%-combat%-state:') then
     if file then file:write(json.encode(report)); file:close() end
     return
 end
-if request:match('^party%-face%-probe:') or request:match('^party%-face%-articulation:') or request:match('^party%-face%-detail:') then
-    local mode = request:match('^party%-face%-detail:') and 'detail'
+if request:match('^party%-face%-probe:') or request:match('^party%-face%-articulation:') or request:match('^party%-face%-detail:') or request:match('^party%-face%-roll:') then
+    local mode = request:match('^party%-face%-roll:') and 'roll' or request:match('^party%-face%-detail:') and 'detail'
         or request:match('^party%-face%-articulation:') and 'articulation' or 'jaw'
     local key = request:match('^party%-face%-probe:([^:]+):')
         or request:match('^party%-face%-articulation:([^:]+):')
         or request:match('^party%-face%-detail:([^:]+):')
+        or request:match('^party%-face%-roll:([^:]+):')
     local stage = 'load'
     local ok, err = xpcall(function()
         local probe = dofile('face-probe.lua')
@@ -636,6 +637,9 @@ if request:match('^conversation%-state:') then
         f:close()
     end
     return
+end
+if request:match('^speech%-fixture:') then
+    return dofile('speech-replay-probe.lua').run(request)
 end
 if request:match('^speech%-install:') or request:match('^speech%-replay:') then
     local ok, err = pcall(function()

@@ -1,5 +1,36 @@
 # Native facial retarget calibration
 
+## October 1: restore upper-lip roll
+
+After the user found v7 "not bad" and requested further improvement, the next
+isolated change is source MouthRollUpper (index 32) to native `lips_suck_up`.
+The source is active above 0.01 in 427 of the retained 445 frames; v7 discarded
+it. This describes inward upper-lip motion, independently of jaw opening and
+upper-lip raising. It does not justify inventing F/V contact from LowerDown.
+
+A silent High-LOD native comparison holds jaw 0.14, upper aperture 0.04 and
+upper raisers 0.06 while adding roll at 0.03, then 0.06. It also combines 0.06
+roll with the calibrated lip seal, then resets. The 73-frame window capture
+contains all five phases. The added contour change is subtle, without obvious
+distortion or broken lip contact in this view; the face returns to neutral.
+
+The v8 candidate adds `0.06 * (5*r / (1+4*r))`, with zero source still zero.
+All v7 weights and timing are preserved. The native adapter allows the new
+22nd control only up to 0.06. Local Omni poses supply zero on this new track.
+Real producer-to-Lua checks verify the value reaches the feature and clears.
+
+CPU replay of 445 frames and 108 native interaction combinations per rig is
+finite. Typical added local upper-lip motion is 0.111 mm on Judy and 0.064 mm
+on Johnny, with peaks 0.206/0.136 mm. This is a restrained depth/contour change;
+it is not a claim of a large overall quality improvement. Ordinary speech
+comparison is the remaining gate.
+
+Evidence remains ignored: `runtime/upper-roll-images-20261001-013546`,
+`runtime/lip-depth-review-20261001/FINDINGS.md`, and
+`runtime/lips-v8-tests-20261001.log`. The user's authorization now includes
+triggering speech through the mod; a bounded local replay permits matching
+audio across comparisons without adding test dialogue to provider memory.
+
 ## October 1: lip contact and independent upper lift
 
 The user found the rendered v6 speech better but still in need of substantial

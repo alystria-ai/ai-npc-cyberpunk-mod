@@ -8,7 +8,7 @@ import {validateMouthCues} from './phonetic-lipsync.mjs';
 export const SPEECH_TRACKS = Object.freeze([
   'jaw_mid_open', 'lips_apart_up', 'lips_apart_dn', 'lips_together_up', 'lips_together_dn',
   'lips_l_funnel', 'lips_r_funnel', 'lips_l_purse', 'lips_r_purse', 'lips_l_stretch', 'lips_r_stretch',
-  ...PHONETIC_TRACKS,
+  ...PHONETIC_TRACKS, 'lips_suck_up',
 ]);
 const clamp = (value, max = 1) => Math.max(0, Math.min(max, value));
 const zero = () => SPEECH_TRACKS.map(() => 0);
@@ -118,7 +118,10 @@ function mapArkit(v) {
     contact, contact,
     .32 * shapeResponse(a(19), 4), .32 * shapeResponse(a(19), 4),
     .28 * shapeResponse(a(20), 4), .28 * shapeResponse(a(20), 4),
-    .14 * a(29), .14 * a(30), ...PHONETIC_TRACKS.map(track => articulation[track] ?? 0)];
+    .14 * a(29), .14 * a(30), ...PHONETIC_TRACKS.map(track => articulation[track] ?? 0),
+    // ARKit MouthRollUpper retracts the upper lip independently of jaw/lift.
+    // Both .03/.06 and the .06 + contact combination were rendered on Judy.
+    .06 * shapeResponse(a(32), 5)];
 }
 
 function renderTimeline({owner, duration, segment, source, cues, envelope = [], first, last, sampleRate}) {
@@ -168,7 +171,7 @@ function renderTimeline({owner, duration, segment, source, cues, envelope = [], 
   frames.push([duration, ...poseAt(duration)]);
   return {version: 1, requestId: owner.requestId, entity: owner.entity, duration,
     source: source ? 'convai-arkit61' : cues ? 'local-phonetic' : 'audio-envelope',
-    articulation: source ? 'arkit61-native-v7' : cues ? 'coarticulated-v4' : undefined,
+    articulation: source ? 'arkit61-native-v8' : cues ? 'coarticulated-v4' : undefined,
     ...(segment ? {segment} : {}), tracks: [...SPEECH_TRACKS], frames};
 }
 

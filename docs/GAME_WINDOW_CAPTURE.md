@@ -45,3 +45,29 @@ sheets are inspection crops only; do not replace real frames or infer continuous
 motion from them alone. October 1's complete native shape capture is under
 `runtime/articulation-images-20261001-001511`; all four phases and neutral reset
 were captured with LOD High.
+
+## Repeatable local speech comparison
+
+After the user's October 1 authorization to trigger speech through the mod,
+`speech-fixture:<profile-key>:<nonce>` can play a paired retained WAV/timeline.
+It reads `runtime/speech-fixture.json` and starts the existing native speech
+adapter on one nearby owned companion. It creates no provider request and
+does not write input, reply, chat history, identity or session files. The normal
+speech-state telemetry and final delivery receipt are still produced.
+
+Prepare a fixture with `version: 1`, the matching `nonce`/`profileKey`, integer
+`expiresAt` in epoch seconds within the next 120 seconds, an `audio` descriptor
+(`slot`, `event`, `duration`) and a mapped `face` timeline. Maximums are 15 seconds,
+2 MiB, 902 frames and 22 known controls. The probe substitutes current actor
+ownership, consumes each nonce once, refuses observable busy/menu/combat states,
+and uses normal pause, target-loss, unload and facial-reset handling. Its report
+in `runtime/speech-fixture-result.json` contains only status/duration/source/format.
+Cancel with `speech-fixture:cancel:<same nonce>`; it cannot stop a newer owner.
+
+Before triggering, freeze the source and WAV, verify the installed on-demand
+audio slot has the identical bytes, and stop the reply bridge gracefully. The
+Lua descriptor cannot attest the actual WAV bytes, and mailbox checks do not
+expose every private conversation closure. Keep the replay bounded and restore
+the bridge afterward. Capture readiness and the diagnostic request should be
+in the same orchestration command. Native replay qualifies rendered retargeting;
+it does not replace continuous Convai latency/transport verification.
