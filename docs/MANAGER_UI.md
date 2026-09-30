@@ -25,8 +25,11 @@ no longer open it.
 
 Invitations and dismissals are queued while the page pauses gameplay. Their
 pending state appears immediately. They run once after the player returns to
-gameplay; paused spawn timers do not advance. Closing this menu returns to the
-normal pause menu, whose Resume/Escape action returns to gameplay.
+gameplay; paused spawn timers do not advance. Closing Companion Manager now
+returns to gameplay. The adapter waits for native Settings to accept the close
+and detach, then activates the real pause-menu Resume item once. MCM retains
+its unsaved-settings prompt; cancelling that prompt stays in Settings. Other
+providers and native settings retain their own exit behavior.
 
 ## Ownership
 
@@ -66,21 +69,37 @@ No MCM source or saved preferences are modified.
 Companion Manager uses one left edge and MCM's default red label colour
 (`MainColors.Red`) across section names, actions, read-only rows, toggles and selectors.
 Section names remain in the schema for organization and searching; their native
-presentation is a plain read-only row. Controls, selected/disabled values, hover
+category template and separators are retained. Controls, selected/disabled values, hover
 feedback and unsaved-change markers keep their native behaviour.
 
 The differing indentation came from the installed renderer: managed controls
 reserve a marker gutter and start their text at 48 units, actions start at 20,
 and read-only rows add a list-label inset inside a surface at 20. The adapter
 normalizes only its own rendered rows to 20 units, preserves the label's right
-edge, and keeps draft markers in the outer gutter. Resting labels bind to the
-native red token; MCM's global theme is not modified. All hooks are scoped
-to the active Companion Manager surface and reset for the next page.
+edge, and keeps draft markers in the outer gutter. Scaled category labels are
+aligned using their cumulative parent scale. Resting labels bind to the native
+red token; cyan option controls and MCM's global theme are not modified.
 
-The row-lifecycle harness covers the different native row shapes, repeated
-hover/restyling, draft markers, theme changes and leaving other providers alone.
+The first installed attempt was ineffective: the real renderer calls
+`McmUiBegin` with a provisional title, creates the rows, then publishes
+`McmUiSetContentTitle`. The live probe confirmed x=48 managed labels, x=24
+read-only labels and purple saved nondefault labels after that attempt.
+Styling now runs at the final-title boundary, with both exact title and active
+provider ownership checked. Begin clears ownership, including on MCM's global
+routes that retain the prior selected-mod key. Subsequent hover-out callbacks
+restore red on the same owned controller.
+
+The row-lifecycle harness covers the real provisional-title/rows/final-title
+order, scaled headings, the different native row shapes, repeated hover/restyling,
+draft markers, unchanged cyan values and leaving other providers alone.
 This checks the adapter and scoping; visual acceptance still requires opening
 the installed manager in game after CET reload.
+
+The exit adapter also uses the final title and provider ownership. A close
+request alone does not resume gameplay: the same settings controller must
+actually detach. Reset, another Settings screen, a new world or a bounded
+timeout cancels pending resume. Nine focused lifecycle checks cover these
+paths; actual Escape and draft-modal behavior still need the in-game check.
 
 The existing native voice/subtitle and legacy enabled flags remain compatible.
 No new redscript is required: **CET Reload All Mods** activates the adapter with

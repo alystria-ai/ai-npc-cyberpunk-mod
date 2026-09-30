@@ -69,7 +69,7 @@ local function redLabel(widget)
 end
 
 local function styleRow(controller, id, kind)
-    if not presentation.active or not active() then return end
+    if not presentation.active or presentation.controller ~= controller or not active() then return end
     local content = contentWidgets(controller)
     if not content then return end
     presentation.rows[id] = kind
@@ -99,6 +99,51 @@ end
 local function safelyStyleRow(controller, id, kind)
     local ok, err = pcall(styleRow, controller, id, kind)
     if not ok then lastError = 'Settings presentation: ' .. tostring(err) end
+end
+
+local function styleCategory(widget, parentLeft, parentScale, depth)
+    if depth <= 0 then return end
+    local margin = widget:GetMargin()
+    local left = parentLeft + margin.left * parentScale
+    if widget:GetName() == CName.new('label') then
+        -- The native category template is scaled (about 0.52 in the live
+        -- default layout). Align in content coordinates, not template units.
+        alignLabel(widget, margin.left + (20 - left) / parentScale)
+        redLabel(widget)
+        return
+    end
+    local scale = widget:GetScale()
+    local factor = parentScale * scale.X
+    if factor <= 0 then return end
+    local compound, count = pcall(function() return widget:GetNumChildren() end)
+    if compound then
+        for index = 0, math.min(count, 100) - 1 do
+            styleCategory(widget:GetWidgetByIndex(index), left, factor, depth - 1)
+        end
+    end
+end
+
+local function styleCompletedPage(controller, title)
+    -- MCM begins with a provisional title, renders every row, then publishes
+    -- its actual content title. Scope and style only at that final boundary.
+    presentation = {active = title == LABEL and active(), rows = {}, title = title, controller = controller}
+    if not presentation.active then return end
+    local content = contentWidgets(controller)
+    if not content then return end
+    for index = 0, math.min(content:GetNumChildren(), 1200) - 1 do
+        local widget = content:GetWidgetByIndex(index)
+        local name = NameToString(widget:GetName())
+        local managed = name:match('^(.*)_managed_label$')
+        local label = name:match('^(.*)_label$')
+        local surface = name:match('^mcm_action_(.*)$')
+        if managed then styleRow(controller, managed, 'managed')
+        elseif label then styleRow(controller, label, 'action')
+        elseif surface and widget:GetMargin().left <= 60 then styleRow(controller, surface, 'readonly')
+        else
+            local owner = widget:GetController()
+            if owner and owner:IsA('SettingsCategoryController') then styleCategory(widget, 0, 1, 6) end
+        end
+    end
 end
 
 local function readonly(id, label, value, description)
@@ -416,7 +461,7 @@ end
 
 function M.configure(domain, companions, queueFactory, entryFactory, readiness)
     manager, queue = domain, queueFactory.new(companions, readiness)
-    entry = entryFactory.new(LABEL, function() return api ~= nil end, log)
+    entry = entryFactory.new(LABEL, function() return api ~= nil end, log, active)
     provider = {
         id = PROVIDER, registrationKey = 'cyberpunk-convai.manager.v1', apiVersion = 2,
         name = 'Cyberpunk Convai', shortName = 'CONVAI',
@@ -490,7 +535,7 @@ function M.install()
     Override('SettingsMainGameController', 'McmUiBegin', function(controller,
         title, subtitle, sidebarTitle, contentTitle, status, statusKind, transientOwner,
         showSidebarSearch, showContentSearch, listSelectionMode, wrapped)
-        presentation = {active = contentTitle == LABEL and active(), rows = {}}
+        presentation = {active = false, rows = {}}
         if contentTitle == LABEL and active() and actionFeedback
             and tostring(status):sub(1, 10) == 'Completed:' then
             status, statusKind = actionFeedback, 0
@@ -498,17 +543,9 @@ function M.install()
         return wrapped(title, subtitle, sidebarTitle, contentTitle, status, statusKind,
             transientOwner, showSidebarSearch, showContentSearch, listSelectionMode)
     end)
-    -- MCM uses separate layouts for actions, read-only rows and managed
-    -- controls. Its stock category template also has a different colour.
-    -- Keep our section names and native interactions, but use one label column
-    -- and ordinary label style throughout our page. No framework files or
-    -- other mods' settings are changed.
-    Override('SettingsMainGameController', 'McmUiAddCategory', function(controller,
-        id, label, description, frameworkId, wrapped)
-        if presentation.active and active() then
-            return controller:McmUiAddReadonly(id, label, description, '')
-        end
-        return wrapped(id, label, description, frameworkId)
+    ObserveAfter('SettingsMainGameController', 'McmUiSetContentTitle', function(controller, title)
+        local ok, err = pcall(styleCompletedPage, controller, title)
+        if not ok then lastError = 'Settings presentation: ' .. tostring(err) end
     end)
     ObserveAfter('SettingsMainGameController', 'McmUiAddReadonly', function(controller, id)
         safelyStyleRow(controller, id, 'readonly')
@@ -600,7 +637,10 @@ function M.update(currentPlayer, worldReady)
 end
 
 function M.inspect()
+    local rowCount = 0
+    for _ in pairs(presentation.rows) do rowCount = rowCount + 1 end
     return {available = api ~= nil, active = active(), view = view, entry = entry.state(),
+        presentation = {active = presentation.active, title = presentation.title, rows = rowCount},
         entryDetails = entry.inspect and entry.inspect() or nil,
         party = queue.list(), feedback = queue.message(), error = lastError,
         memory = manager.snapshot(player()).memory}

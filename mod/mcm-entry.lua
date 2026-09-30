@@ -3,12 +3,13 @@
 -- modifies MCM's files, preferences, menu scenario or global input handlers.
 local M = {}
 
-function M.new(modName, isAvailable, log)
+function M.new(modName, isAvailable, log, isOwnPage)
     local E = {}
     local stage, deadline = 'idle', 0
     local pauseController, settingsController, selectionAction
     local lastProblem, menuItems = '', {}
     local hooksInstalled = false
+    local ownSettingsController, returnToGame
 
     local function name(value)
         if type(value) == 'string' then return value end
@@ -34,6 +35,53 @@ function M.new(modName, isAvailable, log)
         end
     end
 
+    local function inGameMenu()
+        local player = Game.GetPlayer()
+        if not player or not player:IsAttached() or Game.GetSystemRequestsHandler():IsPreGame() then return nil end
+        local defs = Game.GetAllBlackboardDefs()
+        return Game.GetBlackboardSystem():Get(defs.UI_System):GetBool(defs.UI_System.IsInMenu)
+    end
+
+    local function updateReturnToGame()
+        if not returnToGame then return end
+        local ok, err = pcall(function()
+            -- A real RequestClose is emitted only after MCM resolves its draft
+            -- dialog. Wait for that Settings instance to detach; an Escape in
+            -- search, key binding or a modal must never close the pause host.
+            local inMenu = inGameMenu()
+            if inMenu ~= true then returnToGame = nil; return end
+            if os.time() > returnToGame.deadline then
+                returnToGame = nil
+                lastProblem = 'Could not find the native Resume action after closing the manager.'
+                log('MCM exit: ' .. lastProblem)
+                return
+            end
+            if not returnToGame.detached then return end
+            local controller = livePauseController()
+            local list = controller and controller.menuListController
+            if not list then return end
+            for index = 0, list:Size() - 1 do
+                local widget = list:GetItemAt(index)
+                local target = widget and widget:GetController()
+                local data = target and target:GetData()
+                if data and (data.eventName == CName.new('OnClosePauseMenu')
+                    or data.eventName == 'OnClosePauseMenu') then
+                    -- Use the actual Resume item so the native scenario owns
+                    -- unpausing, input contexts and disposal. Consume first to
+                    -- prevent reentrant callbacks or later frames resuming twice.
+                    returnToGame = nil
+                    controller:OnMenuItemActivated(index, target)
+                    return
+                end
+            end
+        end)
+        if not ok then
+            returnToGame = nil
+            lastProblem = 'Could not resume after closing the manager: ' .. tostring(err)
+            log('MCM exit: ' .. lastProblem)
+        end
+    end
+
     function E.install()
         if hooksInstalled then return end
         hooksInstalled = true
@@ -44,10 +92,39 @@ function M.new(modName, isAvailable, log)
             if stage == 'pause' then pauseController = this end
         end)
         ObserveAfter('SettingsMainGameController', 'OnInitialize', function(this)
+            -- A newly opened Settings screen supersedes any old exit. Never
+            -- carry an auto-resume request into another menu or a new save.
+            ownSettingsController, returnToGame = nil, nil
             settingsController = this
         end)
-        Observe('SettingsMainGameController', 'OnUninitialize', function()
-            settingsController = nil
+        Observe('SettingsMainGameController', 'McmUiBegin', function()
+            ownSettingsController, returnToGame = nil, nil
+        end)
+        ObserveAfter('SettingsMainGameController', 'McmUiSetContentTitle', function(this, contentTitle)
+            -- MCM begins with a provisional title, then resolves the selected
+            -- provider lazily. Only its final title and exact API ownership
+            -- together identify our page; global routes can retain activeModKey.
+            local ok, owned = pcall(function()
+                return contentTitle == modName and isOwnPage ~= nil and isOwnPage() == true
+            end)
+            ownSettingsController = ok and owned and this or nil
+        end)
+        Observe('SettingsMainGameController', 'RequestClose', function(this)
+            if ownSettingsController ~= this then return end
+            -- MCM's own RequestClose observer may already have cleared the API
+            -- activeModKey. Ownership therefore comes from the last rendered
+            -- page, not a lookup during its destruction.
+            local ok, inMenu = pcall(inGameMenu)
+            if ok and inMenu == true then
+                returnToGame = {controller = this, detached = false, deadline = os.time() + 3}
+            end
+        end)
+        Observe('SettingsMainGameController', 'OnUninitialize', function(this)
+            if returnToGame and returnToGame.controller == this then
+                returnToGame.controller, returnToGame.detached = nil, true
+            end
+            if settingsController == this or this == nil then settingsController = nil end
+            if ownSettingsController == this or this == nil then ownSettingsController = nil end
             abort()
         end)
         Observe('SettingsMainGameController', 'McmUiAddSidebarItem', function(this, id, _, label, _, selected)
@@ -60,6 +137,7 @@ function M.new(modName, isAvailable, log)
 
     function E.open()
         if not isAvailable() then return false, 'Install Mod Configuration Menu and its API to open the manager.' end
+        if returnToGame then return true end
         if stage ~= 'idle' then return true end
         if settingsController then
             local ok, active = pcall(function() return settingsController:McmUiIsActive() end)
@@ -94,6 +172,7 @@ function M.new(modName, isAvailable, log)
     end
 
     function E.update()
+        updateReturnToGame()
         if stage == 'idle' then return end
         if os.time() > deadline then
             abort('The shortcut timed out. Choose Companion Manager from the pause menu under Mods.')
@@ -139,8 +218,9 @@ function M.new(modName, isAvailable, log)
 
     function E.selected() if stage == 'selected' then abort() end end
     function E.state() return stage end
-    function E.inspect() return {stage = stage, problem = lastProblem, items = menuItems, capturedPause = pauseController ~= nil} end
-    function E.reset() settingsController = nil; abort() end
+    function E.inspect() return {stage = stage, problem = lastProblem, items = menuItems, capturedPause = pauseController ~= nil,
+        returnToGame = returnToGame ~= nil, settingsDetached = returnToGame and returnToGame.detached or false} end
+    function E.reset() settingsController, ownSettingsController, returnToGame = nil, nil, nil; abort() end
     return E
 end
 
