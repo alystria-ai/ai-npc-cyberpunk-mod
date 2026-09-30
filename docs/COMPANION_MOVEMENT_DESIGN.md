@@ -171,5 +171,7 @@ Two executable Lua regressions fail on the old code and pass on the correction:
 V holds at 0.68, 0.35, and 0.08 metres, both with and without a selected gaze
 target, without starting a walking command. A separate case retains separation
 between overlapping companions without moving the third person. These checks
-verify command decisions; the updated close-face behavior still needs a live
-game observation after CET reload.
+verify command decisions. After CET reload on September 30, the user walked
+up to the companion's face and confirmed she did not back away. Normal following
+after departure retains source coverage and earlier live acceptance; the latest
+report specifically confirms close approach.

@@ -91,6 +91,11 @@ an audible check of all 79 characters. Private receipts remain under
 `after-2026-09-30T07-49-06-744Z.json`, and
 `exceptions-2026-09-30T07-51-41-205Z.json`).
 
+The user subsequently confirmed a live Judy F6 reply with a relevant question
+and no spoken name prefix while the setting was On. This accepts that private
+conversation path; group follow-ups and live microphone input remain separate
+listening checks.
+
 This change uses Lua and bridge code only. It requires one CET **Reload All
 Mods** after installation and a bridge restart, with no game restart. Live
 microphone testing remains deferred at the user's request.

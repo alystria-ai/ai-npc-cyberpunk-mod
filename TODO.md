@@ -53,11 +53,14 @@
   manager opens normally. The corrected implementation queues styling for
   top-level update, performs one lookup/map, and passes 37 focused manager/exit
   checks. Native crash evidence and limits are in `docs/MANAGER_UI.md`.
-- [ ] Check a companion staying put during a close approach. The movement
-  correction is installed; visual movement acceptance remains pending.
-- [ ] Hear a private On reply with a relevant question and no name prefix.
-  Opt-in group listening remains unverified; live microphone testing is still
-  deferred. See `docs/FOLLOW_UP_QUESTIONS.md`.
+- [x] Check a companion staying put during a close approach. After CET reload,
+  the user walked up to her face and confirmed she did not back away. The
+  separate follow-after-departure case has source coverage and earlier acceptance;
+  it was not explicitly re-observed in this latest close-up report.
+- [x] Hear a private On reply with a relevant question and no name prefix.
+  The user confirmed both in Judy's F6 reply. Opt-in group listening remains
+  unverified; live microphone testing is still deferred.
+  See `docs/FOLLOW_UP_QUESTIONS.md`.
 - Keep one persistent player ID across saves, characters and channels. Invite
   may prepare the requested profile immediately, without recording contact or
   creating proactive memories; actual conversations build memory naturally.
