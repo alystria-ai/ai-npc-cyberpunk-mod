@@ -45,19 +45,21 @@ test('quest changes invalidate prepared context and group instructions retain fi
 test('follow-ups default Off, opt in privately or for the last group speaker, and never open automatic reactions', () => {
   for (const channel of ['private', 'phone']) {
     assert.match(conversationContext({...input, channel}), /Follow-up questions are disabled/);
-    assert.match(conversationContext({...input, channel, followUpQuestions: true}), /at most one short, relevant question/);
+    assert.match(conversationContext({...input, channel, followUpQuestions: true}), /ask V one short, relevant follow-up question/);
+    assert.match(conversationContext({...input, channel}), /Do not put a speaker name, role label, or script prefix/);
+    assert.match(conversationContext({...input, channel, followUpQuestions: true}), /says goodbye, explicitly requests no questions/);
   }
   for (const index of [1, 2, 3]) {
     const group = {index, total: 3, audience: ['judy', 'panam', 'alex'], heard: []};
     const enabled = conversationContext({...input, group, followUpQuestions: true});
-    if (index === 3) assert.match(enabled, /at most one short, relevant question/);
-    else { assert.match(enabled, /Do not ask V a question/); assert.doesNotMatch(enabled, /may ask V/); }
-    assert.doesNotMatch(conversationContext({...input, group, followUpQuestions: false}), /may ask V/);
+    if (index === 3) assert.match(enabled, /ask V one short, relevant follow-up question/);
+    else { assert.match(enabled, /Do not ask V a question/); assert.doesNotMatch(enabled, /ask V one/); }
+    assert.doesNotMatch(conversationContext({...input, group, followUpQuestions: false}), /ask V one/);
   }
   for (const kind of ['battle', 'loot']) {
     const automatic = conversationContext({...input, followUpQuestions: true, reaction: {kind}});
     assert.match(automatic, /automatic reaction\. Do not ask V a question/);
-    assert.doesNotMatch(automatic, /may ask V/);
+    assert.doesNotMatch(automatic, /ask V one/);
   }
   assert.notEqual(inputIdentity(input), inputIdentity({...input, followUpQuestions: true}));
 });

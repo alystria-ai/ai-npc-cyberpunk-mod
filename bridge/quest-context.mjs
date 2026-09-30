@@ -64,6 +64,7 @@ const WORLD_UNAVAILABLE = 'Current-save world knowledge is unavailable for this 
 const HISTORY_UNAVAILABLE = "The broader current-save journal history is unavailable for this turn. Missing entries do not establish completion, failure or a character's past participation.";
 const CURRENT_AUTHORITY = 'Current verified save facts and the current tracked-quest snapshot override older journal observations and remembered claims from previous conversations or other saves. '
   + 'An unsupplied or unknown fact remains unknown; it is not proof of a negative outcome or a relationship.';
+const SPOKEN_OUTPUT = 'Speak only your own dialogue. Do not put a speaker name, role label, or script prefix before it.';
 
 function contextIdentity(input) {
   try {
@@ -112,5 +113,5 @@ export function conversationContext(input) {
   const knowledge = trusted?.knowledgeContext || (input.worldKnowledge !== undefined ? WORLD_UNAVAILABLE : '');
   const history = trusted?.historyContext || (input.journalHistory !== undefined ? HISTORY_UNAVAILABLE : '');
   return [groupContext(input), knowledge, history, journalContext(input.journal), battleContext(input), lootContext(input),
-    knowledge || history ? CURRENT_AUTHORITY : '', followUpContext(input)].filter(Boolean).join('\n\n');
+    knowledge || history ? CURRENT_AUTHORITY : '', SPOKEN_OUTPUT, followUpContext(input)].filter(Boolean).join('\n\n');
 }

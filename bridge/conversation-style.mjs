@@ -11,6 +11,7 @@ export function followUpContext(input) {
     return 'Follow-up questions are disabled for this turn. Answer V in character without adding a question or invitation just to keep the conversation going. '
       + 'Ask only when clarification is necessary or V explicitly requests a question. Do not mention this setting.';
   }
-  return 'Follow-up questions are enabled for this turn. You may ask V at most one short, relevant question when it follows naturally. '
-    + 'Do not add a question by habit or repeat one V has already answered. Keep your reply brief and in character; let V choose whether to answer.';
+  return 'Follow-up questions are enabled for this turn. After answering, ask V one short, relevant follow-up question in your own voice. '
+    + 'Build on what V just said rather than offering generic help or repeating an answered question. '
+    + 'If V says goodbye, explicitly requests no questions, or requests an exact fixed reply, omit the question. Keep the exchange brief.';
 }

@@ -8,8 +8,9 @@ On choice is retained. MCM Apply/Revert uses the existing atomic settings save.
 
 Off tells the character to answer without adding a question or invitation merely
 to prolong the exchange. It still permits a necessary clarification or a question
-the player explicitly requests. On allows at most one brief, relevant question
-when natural; it does not require a question after every reply.
+the player explicitly requests. On asks the character to answer and add one brief,
+relevant follow-up in their own voice. It omits that question when V says goodbye,
+explicitly requests no questions, or requests an exact fixed reply.
 
 Private F6, F7 microphone and phone Chat share this policy. For F8 group text,
 only the final remaining scheduled speaker may ask a follow-up when enabled.
