@@ -54,6 +54,18 @@ local lowerKeys = {{0,lowerNeutral},{.4,lowerBase},{1.2,lowerBase},
     {1.6,lowerApart},{2.5,lowerApart},{2.9,lowerSmall},{3.8,lowerSmall},
     {4.2,lowerLeft},{5.1,lowerLeft},{5.5,lowerRight},{6.4,lowerRight},
     {6.8,lowerBoth},{7.9,lowerBoth},{8.6,lowerNeutral},{9.5,lowerNeutral}}
+local closureTracks = {'jaw_mid_open','lips_together_up','lips_together_dn'}
+local closureNeutral = {0,0,0}
+local closureBase = {.14,0,0}
+local closureLow = {.14,.85,.85}
+local closureMid = {.25,.85,.85}
+local closureHigh = {.35,.85,.85}
+local closureMax = {.40,.85,.85}
+local closureReleased = {.40,0,0}
+local closureKeys = {{0,closureNeutral},{.4,closureBase},{.9,closureBase},
+    {1.3,closureLow},{2.1,closureLow},{2.5,closureMid},{3.3,closureMid},
+    {3.7,closureHigh},{4.5,closureHigh},{4.9,closureMax},{5.7,closureMax},
+    {6.1,closureReleased},{7.1,closureReleased},{7.9,closureNeutral},{9,closureNeutral}}
 
 local function poseAt(tracks,keys,at)
     local left, right = keys[1], keys[#keys]
@@ -94,6 +106,13 @@ local function lowerAt(at)
         or at < 3.8 and 'small-lower' or at < 5.1 and 'left-lower'
         or at < 6.4 and 'right-lower' or at < 7.9 and 'both-lower' or 'neutral'
     return poseAt(lowerTracks,lowerKeys,at),phase
+end
+
+local function closureAt(at)
+    local phase = at < .9 and 'baseline' or at < 2.1 and 'seal-low'
+        or at < 3.3 and 'seal-mid' or at < 4.5 and 'seal-high'
+        or at < 5.7 and 'seal-max' or at < 7.1 and 'released-max' or 'neutral'
+    return poseAt(closureTracks,closureKeys,at),phase
 end
 
 local function playerReady()
@@ -186,7 +205,7 @@ end
 
 function M.start(profileKey, mode)
     mode = mode or 'jaw'
-    assert(mode == 'jaw' or mode == 'articulation' or mode == 'detail' or mode == 'roll' or mode == 'lower', 'Unknown facial probe mode')
+    assert(mode == 'jaw' or mode == 'articulation' or mode == 'detail' or mode == 'roll' or mode == 'lower' or mode == 'closure', 'Unknown facial probe mode')
     if M.active then M.stop('replaced') end
     local player = assert(playerReady(), 'Gameplay is unavailable')
     assert(not (convaiSpeech and convaiSpeech.requestId), 'Wait until current speech ends')
@@ -199,7 +218,7 @@ function M.start(profileKey, mode)
     M.playerID = tostring(player:GetEntityID().hash)
     M.entity, M.name, M.samples, M.elapsed, M.interval = selected.entity, selected.name, {}, 0, 0
     M.mode, M.phase, M.duration = mode, mode ~= 'jaw' and 'baseline' or 'jaw',
-        mode == 'lower' and 9.5 or mode == 'detail' and 9 or (mode == 'articulation' or mode == 'roll') and 7.5 or 5
+        mode == 'lower' and 9.5 or (mode == 'detail' or mode == 'closure') and 9 or (mode == 'articulation' or mode == 'roll') and 7.5 or 5
     M.error, M.restored, M.deadline = nil, false, os.time() + 12
     hookUpdates()
     M.active, M.state = true, 'running'
@@ -234,6 +253,9 @@ function M.update(delta)
             for track,value in pairs(controls) do feature[track]=value end
         elseif M.mode == 'lower' then
             controls, M.phase = lowerAt(M.elapsed)
+            for track,value in pairs(controls) do feature[track]=value end
+        elseif M.mode == 'closure' then
+            controls, M.phase = closureAt(M.elapsed)
             for track,value in pairs(controls) do feature[track]=value end
         else
             local amount = 0.5 - 0.5 * math.cos(M.elapsed * 2 * math.pi / 2.5)

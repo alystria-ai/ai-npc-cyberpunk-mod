@@ -494,14 +494,15 @@ if request:match('^party%-combat%-state:') then
     if file then file:write(json.encode(report)); file:close() end
     return
 end
-if request:match('^party%-face%-probe:') or request:match('^party%-face%-articulation:') or request:match('^party%-face%-detail:') or request:match('^party%-face%-roll:') or request:match('^party%-face%-lower:') then
-    local mode = request:match('^party%-face%-lower:') and 'lower' or request:match('^party%-face%-roll:') and 'roll' or request:match('^party%-face%-detail:') and 'detail'
+if request:match('^party%-face%-probe:') or request:match('^party%-face%-articulation:') or request:match('^party%-face%-detail:') or request:match('^party%-face%-roll:') or request:match('^party%-face%-lower:') or request:match('^party%-face%-closure:') then
+    local mode = request:match('^party%-face%-closure:') and 'closure' or request:match('^party%-face%-lower:') and 'lower' or request:match('^party%-face%-roll:') and 'roll' or request:match('^party%-face%-detail:') and 'detail'
         or request:match('^party%-face%-articulation:') and 'articulation' or 'jaw'
     local key = request:match('^party%-face%-probe:([^:]+):')
         or request:match('^party%-face%-articulation:([^:]+):')
         or request:match('^party%-face%-detail:([^:]+):')
         or request:match('^party%-face%-roll:([^:]+):')
         or request:match('^party%-face%-lower:([^:]+):')
+        or request:match('^party%-face%-closure:([^:]+):')
     local stage = 'load'
     local ok, err = xpcall(function()
         local probe = dofile('face-probe.lua')

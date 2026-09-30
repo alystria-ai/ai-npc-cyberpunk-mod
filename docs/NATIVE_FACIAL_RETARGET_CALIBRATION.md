@@ -1,5 +1,41 @@
 # Native facial retarget calibration
 
+## October 1: separate jaw opening from lip contact
+
+The source's JawOpen and MouthClose signals are independent. Multiplying the
+native jaw drive by `1-MouthClose` forced the chin to rise during lip closure
+and weakened the rig's jaw-dependent contact correctives. At jaw drive 0.14
+and source close 0.25, this reduced those corrective weights by exactly 25
+percent; full closure erased them entirely.
+
+The rendered closure sweep holds native together controls at 0.85 while jaw
+opening moves through 0.14, 0.25, 0.35 and 0.40. In the retained 287-frame
+sequence Judy's visible lips close at each level without an obvious teeth gap
+or distortion. Releasing contact at jaw 0.40 opens the mouth, and the sequence
+resets. This rendered result matters more than a separation measurement between
+unskinned bone centers, which does not represent lip-surface contact.
+
+V10 removes only the jaw's closure multiplier. The k10 curve, zero/rest, 0.40
+ceiling and every v9 lip weight remain unchanged. The native rig can close lips
+over an open jaw; aperture and lift still yield to closure. The local Omni
+phonetic path and audio/timing are unchanged.
+
+An independent replay of current v9 versus jaw independence checks 445 source
+frames and 280 stress combinations per rig. Only 54 captured frames change.
+Jaw p95/peak remain 0.29512/0.3382; whole-reply geometry peaks do not increase.
+Maximum changed model-space lip motion is 0.684 mm Judy/0.788 mm Johnny. Zero
+source remains neutral, all transforms are finite, and 0.40 stays below the
+native jaw's first 0.50 in-between. These measurements do not qualify Johnny's
+appearance or replace the same-source speech comparison.
+
+One hundred focused checks pass, including source-order semantics, closure
+independent from jaw, lip contact during quiet audio, stable growing prefixes,
+actual feature delivery and cleanup. Ordinary v10 replay is the next gate.
+
+Ignored evidence: `runtime/closure-images-20261001-021411`,
+`runtime/jaw-independence-v9-20261001/FINDINGS.md`, and
+`runtime/lips-v10-tests-20261001.log`.
+
 ## October 1: independent lower-lip motion
 
 The v8 map collapsed provider LowerDownLeft/Right into one aggregate aperture.
@@ -29,13 +65,19 @@ up to 0.367 mm down/0.465 mm back on Judy and 0.395/0.531 mm on Johnny. All
 frames and 120 stress combinations per rig are finite with unchanged jaw.
 Ninety-nine focused checks pass, including original source ordering, independent
 left/right signals, closure, untouched audio and actual JS-to-Lua feature values.
-The next gate is the same-source spoken comparison; geometry alone does not
-qualify conversational naturalness.
+The paired spoken v8/v9 comparison completed with 329/332 native applications,
+210/204 cropped window frames and both final resets. It shows a lower contour
+change without obvious distortion in the retained view. The capture rate is
+about 24 FPS; head idle and sampling differ, so this is not a registered pixel
+measurement. Overall conversational naturalness remains open.
 
 Ignored evidence: `runtime/lower-lip-direction-20261001/FINDINGS.md`,
 `runtime/lower-lip-images-20261001-020045`, and
 `runtime/lips-v9-tests-20261001.log`. The mouth-close/jaw coupling is a separate
-known semantic issue; it is deliberately preserved for this comparison.
+known semantic issue; it was preserved for this comparison and addressed
+separately above. Paired speech evidence is retained in
+`runtime/speech-motion-arkit61-native-v8-20261001-020805` and
+`runtime/speech-motion-arkit61-native-v9-20261001-020816`.
 
 ## October 1: restore upper-lip roll
 

@@ -118,7 +118,10 @@ function mapArkit(v) {
     // Preserve independent LowerDown signals, with less aggregate aperture.
     lips_l_lower_raise: .12 * lowerLeft * seal, lips_r_lower_raise: .12 * lowerRight * seal,
     lips_suck_dn: .20 * a(31)};
-  return [0.40 * (10 * jaw / (1 + 9 * jaw)) * seal,
+  // JawOpen and MouthClose are independent. Native together controls close
+  // lips over the open jaw through correctives; suppressing jaw here erased
+  // that mechanism and made lip closures drive the chin unnecessarily.
+  return [0.40 * (10 * jaw / (1 + 9 * jaw)),
     0.12 * opening(Math.max(open, (a(39) + a(40)) / 2), .20) * seal * upperBudget,
     0.16 * opening(Math.max(open, (a(37) + a(38)) / 2), .12) * seal * lowerBudget,
     contact, contact,
@@ -177,7 +180,7 @@ function renderTimeline({owner, duration, segment, source, cues, envelope = [], 
   frames.push([duration, ...poseAt(duration)]);
   return {version: 1, requestId: owner.requestId, entity: owner.entity, duration,
     source: source ? 'convai-arkit61' : cues ? 'local-phonetic' : 'audio-envelope',
-    articulation: source ? 'arkit61-native-v9' : cues ? 'coarticulated-v4' : undefined,
+    articulation: source ? 'arkit61-native-v10' : cues ? 'coarticulated-v4' : undefined,
     ...(segment ? {segment} : {}), tracks: [...SPEECH_TRACKS], frames};
 }
 

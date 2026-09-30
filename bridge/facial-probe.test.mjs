@@ -214,6 +214,30 @@ test('lower-lip directional probe separates aperture, each half, paired motion a
   assert(report.state=='interrupted' and report.restored and resets==2)
 `));
 
+test('closure probe holds contact while spanning the admitted jaw range, then releases and resets',()=>run(`
+  probe.start('judy-alvarez','closure')
+  for i=1,550 do convaiSpeech.update(1/60) end
+  assert(report.state=='completed' and report.restored and report.duration==9 and resets==1)
+  local seen={}
+  for _,sample in ipairs(report.samples) do
+    seen[sample.phase]=true
+    for track,value in pairs(sample.controls) do
+      assert(value==value and value>=0 and value<=(track=='jaw_mid_open' and .40 or .85))
+    end
+    if sample.at>1.3 and sample.at<5.7 then
+      assert(sample.controls.lips_together_up==.85 and sample.controls.lips_together_dn==.85)
+    end
+    if sample.phase=='seal-max' and sample.at>4.9 then assert(sample.jaw==.4) end
+    if sample.phase=='released-max' and sample.at>6.1 then
+      assert(sample.jaw==.4 and sample.controls.lips_together_up==0)
+    end
+  end
+  assert(seen.baseline and seen['seal-low'] and seen['seal-mid'] and seen['seal-high']
+    and seen['seal-max'] and seen['released-max'] and seen.neutral)
+  for _,value in pairs(frames[#frames]) do assert(value==0) end
+  assert(convaiSpeech.update==originalUpdate and not probe.active)
+`));
+
 test('articulation rejects unsupported ownership or readiness, and resets before incoming speech applies',()=>run(`
   owned=false; assert(not pcall(probe.start,'judy-alvarez','articulation') and #frames==0)
   owned=true; ready=false; assert(not pcall(probe.start,'judy-alvarez','articulation') and #frames==0)
@@ -294,7 +318,7 @@ test('actual diagnostics routes the articulation trigger and cancellation withou
   diagnose(); assert(probe.active and report.mode=='articulation' and report.duration==7.5)
   request='party-face-articulation:cancel:bounded-test'; diagnose()
   assert(report.state=='cancelled' and resets==1 and not probe.active)
-  for _,mode in ipairs({'roll','lower'}) do
+  for _,mode in ipairs({'roll','lower','closure'}) do
     request='party-face-'..mode..':judy-alvarez:bounded-test';diagnose()
     assert(probe.active and report.mode==mode)
     request='party-face-'..mode..':cancel:bounded-test';diagnose()

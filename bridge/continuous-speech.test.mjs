@@ -174,6 +174,7 @@ test('real continuous publisher facial data is accepted by the actual Lua playba
     assert(math.abs(native.lips_l_upper_raise-.0257)<.000001 and math.abs(native.lips_r_upper_raise-.015)<.000001)
     assert(math.abs(native.lips_suck_up-.0214)<.000001)
     assert(math.abs(native.lips_l_lower_raise-.06)<.000001 and math.abs(native.lips_r_lower_raise-.03)<.000001)
+    assert(math.abs(native.jaw_mid_open-.3478)<.000001)
     assert(face.generation==context.generation and face.requestId==context.requestId)
     speech.stop('cancelled');assert(judy.resets==1 and not face.active)
   `);
