@@ -1,5 +1,24 @@
 # Cyberpunk Convai overhaul
 
+## Next work — full-cast knowledge and local voice profiles
+
+- [ ] Expand verified knowledge across **all supported characters**, not only
+  the major companions. Depth should follow their actual role and evidence:
+  one-off quest characters can have much less information without fabricated
+  history or filler. Four initial lane investigations are checkpointed under
+  the October 1 native reviews; their unintegrated proposals are not runtime
+  acceptance. Finish independent review and resolver scenarios before rollout.
+- [ ] Extend reference-based OmniVoice profiles to the wider voiced cast.
+  October 1: the user requested this after confirming that all voices share one
+  model. This supersedes the earlier three-character-only scope. Keep one warm
+  model and bounded GPU work; prepare clean per-character references/prompts,
+  verify attribution and quality, and retain Convai for missing/unsuitable
+  source voices. Do not create separate model weights for every character.
+- [x] Set global Codex concurrency to 25 spawned subagents, excluding the parent,
+  in the existing agents configuration. Parent model/reasoning inheritance is
+  preserved. The desktop CLI parsed the file successfully; runtime activation
+  will be checked after the user's Codex restart.
+
 ## October 1 — immediate voice preparation and remaining controls
 
 - [x] Implement Omni model loading/warmup immediately when its MCM selector

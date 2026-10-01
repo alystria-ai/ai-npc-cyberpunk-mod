@@ -1,7 +1,7 @@
 {
   "version": 1,
   "id": "cyberpunk-aldecaldos-native",
-  "revision": 1,
+  "revision": 2,
   "gameVersions": [
     "2.31"
   ],
@@ -509,6 +509,69 @@
       "title": "base\\quest\\side_quests\\sq027\\scenes\\sq027_08_camp_saved.scene",
       "assetSha256": "6c5d4682e491207dd70d1aea022b31df8206388decb3534b6cafa95b2300c967",
       "archiveEntrySha1": "977b67e41564200f57baf6e96d55000756d15316"
+    },
+    {
+      "id": "al-oct01-b244352ac03c",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\cyberpunk2077.questphase",
+      "title": "base\\quest\\cyberpunk2077.questphase",
+      "assetSha256": "78d8afd0784575216b090f003610ca973be9d1781bab948c9e4dc12006d750b2",
+      "jsonSha256": "9cc265cc1e6b66f28192713658d829b274338917174a15e3392c210d33761df7",
+      "archiveEntrySha1": "a4bba3783f17fbe8eba427d60bfc7978b21ac262"
+    },
+    {
+      "id": "al-oct01-02b7faff35fd",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\side_quests\\sq004\\sq004_riders_on_the_storm.questphase",
+      "title": "base\\quest\\side_quests\\sq004\\sq004_riders_on_the_storm.questphase",
+      "assetSha256": "156c2b19eea1f8a5ebc17fbadde609b6772d32d9560acc5a76724f4212d10537",
+      "jsonSha256": "419ef65d85e442946334362a2f9569bbac6f93ea0472387d310e746eac778779",
+      "archiveEntrySha1": "ae6b304cf9dfcddb6faef737aeaeb4db465f4403"
+    },
+    {
+      "id": "al-oct01-b8fcaff05508",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\side_quests\\sq004\\sq004_riders_quest.quest",
+      "title": "base\\quest\\side_quests\\sq004\\sq004_riders_quest.quest",
+      "assetSha256": "40333639eb049c02fd4054313a45805ec0d2b5a8fc1ae2f782730e921ff0cd3e",
+      "jsonSha256": "11a730888112f8a9f8708b1f3c221e0b10c3f0445c03c4a2ff64a13ef6dd46a1",
+      "archiveEntrySha1": "e224448db57b0978fbea68a70a52967e7876a065"
+    },
+    {
+      "id": "al-oct01-7b4056163275",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\part1\\q103\\scenes\\q103_11_tunnel_drive.scene",
+      "title": "base\\quest\\main_quests\\part1\\q103\\scenes\\q103_11_tunnel_drive.scene",
+      "assetSha256": "78b4380aa569d60580acf7a2d05f3b0c1b7dc05f27593f2c59dc17207ea5b77e",
+      "jsonSha256": "f38313579dac631597d5d5436f4fd28de2b15a82aaca615cad5a893edbdc1d05",
+      "archiveEntrySha1": "6b88a929dbb7a6a276a37f59716ac746b789f512"
+    },
+    {
+      "id": "al-oct01-61a42d40b642",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\main_quests\\part1\\q103\\scenes\\q103_15_roadhouse_bar.scene",
+      "title": "base\\quest\\main_quests\\part1\\q103\\scenes\\q103_15_roadhouse_bar.scene",
+      "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+      "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+      "archiveEntrySha1": "202ec2de2f529f18b23d90f59f3b9ae60599c379"
+    },
+    {
+      "id": "al-oct01-244a021a2d28",
+      "kind": "native",
+      "locator": "archive/pc/content/basegame_4_gamedata.archive :: base\\quest\\side_quests\\sq004\\scenes\\sq004_08_farm.scene",
+      "title": "base\\quest\\side_quests\\sq004\\scenes\\sq004_08_farm.scene",
+      "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+      "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+      "archiveEntrySha1": "46c0de17a6963299463deb683d0428dba5be4e85"
+    },
+    {
+      "id": "al-oct01-9afb79f8a075",
+      "kind": "native",
+      "locator": "archive/pc/ep1/ep1_2_gamedata.archive :: base\\journal\\cooked_journal.journal",
+      "title": "base\\journal\\cooked_journal.journal",
+      "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+      "jsonSha256": "1c90b9bc1492ce287e55248b55e93216184ed61d49ffc00eeedb97918d1f44ec",
+      "archiveEntrySha1": "be95e34f16d4d1044e5e0104174a1038c02e57e0"
     }
   ],
   "evidence": [
@@ -2063,6 +2126,2307 @@
           "expectedType": "questPhaseNodeDefinition"
         }
       ]
+    },
+    {
+      "id": "al-native.oct01-ghost-production-entry",
+      "sourceId": "al-oct01-b244352ac03c",
+      "kind": "native",
+      "locator": "Release act_1 regular q101 exit2 -> XOR167 -> hub158 -> q10315.In1. Normal q103 In1 progresses through Ghost Town, optional tunnel route and roadhouse; roadhouse scene3.End0 invokes bar4.Start0. EP1/loaded-history gates173/174/176/177 resume whole arcs and do not write the six selected choice receipts. Debug rh_bar invokes chicken_bar separately.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "raw/base/base/quest/cyberpunk2077.questphase.json",
+        "assetSha256": "78d8afd0784575216b090f003610ca973be9d1781bab948c9e4dc12006d750b2",
+        "jsonSha256": "9cc265cc1e6b66f28192713658d829b274338917174a15e3392c210d33761df7",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data",
+        "expectedType": "questPhaseNodeDefinition"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/part1/act_1.questphase.json",
+          "assetSha256": "3259983b6e1a5e1127fc580d34d1b3f2c53619e4db09047791603a785c10c661",
+          "jsonSha256": "b2d92152860c551df1ab1b1ce82e6efb54025e1c88d0c7470ade15ffa177c389",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/part1/act_1.questphase.json",
+          "assetSha256": "3259983b6e1a5e1127fc580d34d1b3f2c53619e4db09047791603a785c10c661",
+          "jsonSha256": "b2d92152860c551df1ab1b1ce82e6efb54025e1c88d0c7470ade15ffa177c389",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/part1/act_1.questphase.json",
+          "assetSha256": "3259983b6e1a5e1127fc580d34d1b3f2c53619e4db09047791603a785c10c661",
+          "jsonSha256": "b2d92152860c551df1ab1b1ce82e6efb54025e1c88d0c7470ade15ffa177c389",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/35/Data",
+          "expectedType": "questLogicalXorNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/part1/act_1.questphase.json",
+          "assetSha256": "3259983b6e1a5e1127fc580d34d1b3f2c53619e4db09047791603a785c10c661",
+          "jsonSha256": "b2d92152860c551df1ab1b1ce82e6efb54025e1c88d0c7470ade15ffa177c389",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/27/Data",
+          "expectedType": "questLogicalHubNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/part1/act_1.questphase.json",
+          "assetSha256": "3259983b6e1a5e1127fc580d34d1b3f2c53619e4db09047791603a785c10c661",
+          "jsonSha256": "b2d92152860c551df1ab1b1ce82e6efb54025e1c88d0c7470ade15ffa177c389",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/39/Data",
+          "expectedType": "questConditionNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/part1/act_1.questphase.json",
+          "assetSha256": "3259983b6e1a5e1127fc580d34d1b3f2c53619e4db09047791603a785c10c661",
+          "jsonSha256": "b2d92152860c551df1ab1b1ce82e6efb54025e1c88d0c7470ade15ffa177c389",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/40/Data",
+          "expectedType": "questConditionNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/part1/act_1.questphase.json",
+          "assetSha256": "3259983b6e1a5e1127fc580d34d1b3f2c53619e4db09047791603a785c10c661",
+          "jsonSha256": "b2d92152860c551df1ab1b1ce82e6efb54025e1c88d0c7470ade15ffa177c389",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/42/Data",
+          "expectedType": "questConditionNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/part1/act_1.questphase.json",
+          "assetSha256": "3259983b6e1a5e1127fc580d34d1b3f2c53619e4db09047791603a785c10c661",
+          "jsonSha256": "b2d92152860c551df1ab1b1ce82e6efb54025e1c88d0c7470ade15ffa177c389",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/43/Data",
+          "expectedType": "questPauseConditionNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/part1/q103/q103.questphase.json",
+          "assetSha256": "0b5629c65de9d883d85268ea4ab76ecaa0d1823c7d9ec23dcf6647ae47bca377",
+          "jsonSha256": "16712e6c77c94540731f4222f23a772046ea7b3ecf0e325f5081f4e97796ec4b",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/0/Data",
+          "expectedType": "questInputNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/part1/q103/q103.questphase.json",
+          "assetSha256": "0b5629c65de9d883d85268ea4ab76ecaa0d1823c7d9ec23dcf6647ae47bca377",
+          "jsonSha256": "16712e6c77c94540731f4222f23a772046ea7b3ecf0e325f5081f4e97796ec4b",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/part1/q103/q103.questphase.json",
+          "assetSha256": "0b5629c65de9d883d85268ea4ab76ecaa0d1823c7d9ec23dcf6647ae47bca377",
+          "jsonSha256": "16712e6c77c94540731f4222f23a772046ea7b3ecf0e325f5081f4e97796ec4b",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/part1/q103/q103.questphase.json",
+          "assetSha256": "0b5629c65de9d883d85268ea4ab76ecaa0d1823c7d9ec23dcf6647ae47bca377",
+          "jsonSha256": "16712e6c77c94540731f4222f23a772046ea7b3ecf0e325f5081f4e97796ec4b",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/part1/q103/phases/q103_05_roadhouse.questphase.json",
+          "assetSha256": "2649527048218221765dc86bdbd1377049f9c1de6f4f1634a3dd23ffdf508524",
+          "jsonSha256": "a56eb644da02cf0797600a8186dcd18528a3547cb9eb2698a6822c459907a6e0",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data",
+          "expectedType": "questSceneNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/part1/q103/phases/q103_05_roadhouse.questphase.json",
+          "assetSha256": "2649527048218221765dc86bdbd1377049f9c1de6f4f1634a3dd23ffdf508524",
+          "jsonSha256": "a56eb644da02cf0797600a8186dcd18528a3547cb9eb2698a6822c459907a6e0",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data",
+          "expectedType": "questSceneNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/part1/q103/phases/q103_05_roadhouse.questphase.json",
+          "assetSha256": "2649527048218221765dc86bdbd1377049f9c1de6f4f1634a3dd23ffdf508524",
+          "jsonSha256": "a56eb644da02cf0797600a8186dcd18528a3547cb9eb2698a6822c459907a6e0",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/sockets/4/Data/connections/0/Data",
+          "expectedType": "graphGraphConnectionDefinition"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/entryPoints/0",
+          "expectedType": "scnEntryPoint"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/0/Data",
+          "expectedType": "scnStartNode"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/part1/q103/phases/q103_05_roadhouse.questphase.json",
+          "assetSha256": "2649527048218221765dc86bdbd1377049f9c1de6f4f1634a3dd23ffdf508524",
+          "jsonSha256": "a56eb644da02cf0797600a8186dcd18528a3547cb9eb2698a6822c459907a6e0",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/10/Data",
+          "expectedType": "questInputNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "al-native.oct01-farm-production-entry",
+      "sourceId": "al-oct01-02b7faff35fd",
+      "kind": "native",
+      "locator": "Normal Riders escape18.Out1 -> cut92 -> farm21.In1, then time/restriction setup261/260/267 -> journal258/259 -> scene6.sq004_08_main_in. The separate Farm_CT and MorningAfterIn entries are not choice evidence. Completed morning scene245 -> revealed Riders quest246.Succeeded guards all farmhouse choice receipts.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "raw/base/base/quest/side_quests/sq004/sq004_riders_on_the_storm.questphase.json",
+        "assetSha256": "156c2b19eea1f8a5ebc17fbadde609b6772d32d9560acc5a76724f4212d10537",
+        "jsonSha256": "419ef65d85e442946334362a2f9569bbac6f93ea0472387d310e746eac778779",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/12/Data",
+        "expectedType": "questPhaseNodeDefinition"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq004/sq004_riders_on_the_storm.questphase.json",
+          "assetSha256": "156c2b19eea1f8a5ebc17fbadde609b6772d32d9560acc5a76724f4212d10537",
+          "jsonSha256": "419ef65d85e442946334362a2f9569bbac6f93ea0472387d310e746eac778779",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/9/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq004/sq004_riders_on_the_storm.questphase.json",
+          "assetSha256": "156c2b19eea1f8a5ebc17fbadde609b6772d32d9560acc5a76724f4212d10537",
+          "jsonSha256": "419ef65d85e442946334362a2f9569bbac6f93ea0472387d310e746eac778779",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/42/Data",
+          "expectedType": "questCutControlNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq004/phases/sq004_05_farm.questphase.json",
+          "assetSha256": "f128a4f4a7e1ba39511bf32b9b0a2ced1e4a79c8e93433c4ef84c3e3130df30e",
+          "jsonSha256": "e64e58e6815a3094f7b5481dfac88edc2895ac0beea8de4bf6f52ebdf52c0989",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/0/Data",
+          "expectedType": "questInputNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq004/phases/sq004_05_farm.questphase.json",
+          "assetSha256": "f128a4f4a7e1ba39511bf32b9b0a2ced1e4a79c8e93433c4ef84c3e3130df30e",
+          "jsonSha256": "e64e58e6815a3094f7b5481dfac88edc2895ac0beea8de4bf6f52ebdf52c0989",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/15/Data",
+          "expectedType": "questTimeManagerNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq004/phases/sq004_05_farm.questphase.json",
+          "assetSha256": "f128a4f4a7e1ba39511bf32b9b0a2ced1e4a79c8e93433c4ef84c3e3130df30e",
+          "jsonSha256": "e64e58e6815a3094f7b5481dfac88edc2895ac0beea8de4bf6f52ebdf52c0989",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/14/Data",
+          "expectedType": "questTimeManagerNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq004/phases/sq004_05_farm.questphase.json",
+          "assetSha256": "f128a4f4a7e1ba39511bf32b9b0a2ced1e4a79c8e93433c4ef84c3e3130df30e",
+          "jsonSha256": "e64e58e6815a3094f7b5481dfac88edc2895ac0beea8de4bf6f52ebdf52c0989",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/19/Data",
+          "expectedType": "questGameManagerNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq004/phases/sq004_05_farm.questphase.json",
+          "assetSha256": "f128a4f4a7e1ba39511bf32b9b0a2ced1e4a79c8e93433c4ef84c3e3130df30e",
+          "jsonSha256": "e64e58e6815a3094f7b5481dfac88edc2895ac0beea8de4bf6f52ebdf52c0989",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/12/Data",
+          "expectedType": "questJournalNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq004/phases/sq004_05_farm.questphase.json",
+          "assetSha256": "f128a4f4a7e1ba39511bf32b9b0a2ced1e4a79c8e93433c4ef84c3e3130df30e",
+          "jsonSha256": "e64e58e6815a3094f7b5481dfac88edc2895ac0beea8de4bf6f52ebdf52c0989",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/13/Data",
+          "expectedType": "questJournalNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq004/phases/sq004_05_farm.questphase.json",
+          "assetSha256": "f128a4f4a7e1ba39511bf32b9b0a2ced1e4a79c8e93433c4ef84c3e3130df30e",
+          "jsonSha256": "e64e58e6815a3094f7b5481dfac88edc2895ac0beea8de4bf6f52ebdf52c0989",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data",
+          "expectedType": "questSceneNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq004/phases/sq004_05_farm.questphase.json",
+          "assetSha256": "f128a4f4a7e1ba39511bf32b9b0a2ced1e4a79c8e93433c4ef84c3e3130df30e",
+          "jsonSha256": "e64e58e6815a3094f7b5481dfac88edc2895ac0beea8de4bf6f52ebdf52c0989",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/sockets/1/Data/connections/0/Data",
+          "expectedType": "graphGraphConnectionDefinition"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/entryPoints/0",
+          "expectedType": "scnEntryPoint"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/0/Data",
+          "expectedType": "scnStartNode"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq004/phases/sq004_05_farm.questphase.json",
+          "assetSha256": "f128a4f4a7e1ba39511bf32b9b0a2ced1e4a79c8e93433c4ef84c3e3130df30e",
+          "jsonSha256": "e64e58e6815a3094f7b5481dfac88edc2895ac0beea8de4bf6f52ebdf52c0989",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/7/Data",
+          "expectedType": "questSceneNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq004/phases/sq004_05_farm.questphase.json",
+          "assetSha256": "f128a4f4a7e1ba39511bf32b9b0a2ced1e4a79c8e93433c4ef84c3e3130df30e",
+          "jsonSha256": "e64e58e6815a3094f7b5481dfac88edc2895ac0beea8de4bf6f52ebdf52c0989",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/8/Data",
+          "expectedType": "questJournalNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/side_quests/sq004/phases/sq004_05_farm.questphase.json",
+          "assetSha256": "f128a4f4a7e1ba39511bf32b9b0a2ced1e4a79c8e93433c4ef84c3e3130df30e",
+          "jsonSha256": "e64e58e6815a3094f7b5481dfac88edc2895ac0beea8de4bf6f52ebdf52c0989",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/7/Data/sockets/8/Data/connections/0/Data",
+          "expectedType": "graphGraphConnectionDefinition"
+        }
+      ]
+    },
+    {
+      "id": "al-native.oct01-choice-writer-audit",
+      "sourceId": "al-oct01-b8fcaff05508",
+      "kind": "native",
+      "locator": "The complete quest index plus all exported scene indexes contain eight writers for these six receipts: six production scene writers, q103 chicken-test helped writer and isolated sq004_riders_quest room-sharing preset. Both test resources are absent from the shipped-root reference closure. No indexed reset/opposite writer or EP1 initializer writer occurs. Missing/zero never selects an opposite branch.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "raw/base/base/quest/side_quests/sq004/sq004_riders_quest.quest.json",
+        "assetSha256": "40333639eb049c02fd4054313a45805ec0d2b5a8fc1ae2f782730e921ff0cd3e",
+        "jsonSha256": "11a730888112f8a9f8708b1f3c221e0b10c3f0445c03c4a2ff64a13ef6dd46a1",
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/10/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "q103_slept_with_panam",
+          "/value": 1,
+          "/setExactValue": 1
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/part1/q103/test/q103_chicken_test.questphase.json",
+          "assetSha256": "eada3f46dcf18731e0a44f74f24d9e6919824f4dfafe0c6cdc12ecbfa86a903d",
+          "jsonSha256": "9045df34233d2f00531a30f9d92d934a1497e8aa470c39c1e266c8e4a197bccc",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/43/Data/type/Data",
+          "expectedType": "questSetVar_NodeType",
+          "expected": {
+            "/factName": "q103_helped_panam",
+            "/value": 1,
+            "/setExactValue": 0
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/74/Data/questNode/Data/type/Data",
+          "expectedType": "questSetVar_NodeType",
+          "expected": {
+            "/factName": "q103_15_rooms_flirt",
+            "/value": 1,
+            "/setExactValue": 1
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/331/Data/questNode/Data/type/Data",
+          "expectedType": "questSetVar_NodeType",
+          "expected": {
+            "/factName": "q103_slept_with_panam",
+            "/value": 1,
+            "/setExactValue": 0
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/41/Data/questNode/Data/type/Data",
+          "expectedType": "questSetVar_NodeType",
+          "expected": {
+            "/factName": "sq004_saul_like",
+            "/value": 1,
+            "/setExactValue": 0
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/162/Data/questNode/Data/type/Data",
+          "expectedType": "questSetVar_NodeType",
+          "expected": {
+            "/factName": "sq004_sided_with_panam",
+            "/value": 1,
+            "/setExactValue": 1
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/246/Data/questNode/Data/type/Data",
+          "expectedType": "questSetVar_NodeType",
+          "expected": {
+            "/factName": "sq004_panam_flirted_farm",
+            "/value": 1,
+            "/setExactValue": 1
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01-nash/raw/base/base/quest/main_quests/part1/q103/scenes/q103_11_tunnel_drive.scene.json",
+          "assetSha256": "78b4380aa569d60580acf7a2d05f3b0c1b7dc05f27593f2c59dc17207ea5b77e",
+          "jsonSha256": "f38313579dac631597d5d5436f4fd28de2b15a82aaca615cad5a893edbdc1d05",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/16/Data/questNode/Data/type/Data",
+          "expectedType": "questSetVar_NodeType",
+          "expected": {
+            "/factName": "q103_helped_panam",
+            "/value": 1,
+            "/setExactValue": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "al-native.oct01-nash-assistance",
+      "sourceId": "al-oct01-7b4056163275",
+      "kind": "native",
+      "locator": "Tunnel proposal scene q103_11 affirmative route -> journal68.Active -> spoken agreement58 -> receipt101(q103_helped_panam+=1) -> go_tunnel2. Require revealed tunnels/defeat_boss Succeeded too: combat545 AND546 accepts killed/defeated/unconscious; AND547 -> TunnelDone512 -> parent401/364/365.Succeeded. This proves assistance and encounter completion, not Nash killed, romance or Rogue knowledge.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/aldecaldos-oct01-nash/raw/base/base/quest/main_quests/part1/q103/scenes/q103_11_tunnel_drive.scene.json",
+        "assetSha256": "78b4380aa569d60580acf7a2d05f3b0c1b7dc05f27593f2c59dc17207ea5b77e",
+        "jsonSha256": "f38313579dac631597d5d5436f4fd28de2b15a82aaca615cad5a893edbdc1d05",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/16/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "q103_helped_panam",
+          "/value": 1,
+          "/setExactValue": 0
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01-nash/raw/base/base/quest/main_quests/part1/q103/scenes/q103_11_tunnel_drive.scene.json",
+          "assetSha256": "78b4380aa569d60580acf7a2d05f3b0c1b7dc05f27593f2c59dc17207ea5b77e",
+          "jsonSha256": "f38313579dac631597d5d5436f4fd28de2b15a82aaca615cad5a893edbdc1d05",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01-nash/raw/base/base/quest/main_quests/part1/q103/scenes/q103_11_tunnel_drive.scene.json",
+          "assetSha256": "78b4380aa569d60580acf7a2d05f3b0c1b7dc05f27593f2c59dc17207ea5b77e",
+          "jsonSha256": "f38313579dac631597d5d5436f4fd28de2b15a82aaca615cad5a893edbdc1d05",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/9/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01-nash/raw/base/base/quest/main_quests/part1/q103/scenes/q103_11_tunnel_drive.scene.json",
+          "assetSha256": "78b4380aa569d60580acf7a2d05f3b0c1b7dc05f27593f2c59dc17207ea5b77e",
+          "jsonSha256": "f38313579dac631597d5d5436f4fd28de2b15a82aaca615cad5a893edbdc1d05",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/1/Data",
+          "expectedType": "scnEndNode"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01-nash/raw/base/base/quest/main_quests/part1/q103/scenes/q103_11_tunnel_drive.scene.json",
+          "assetSha256": "78b4380aa569d60580acf7a2d05f3b0c1b7dc05f27593f2c59dc17207ea5b77e",
+          "jsonSha256": "f38313579dac631597d5d5436f4fd28de2b15a82aaca615cad5a893edbdc1d05",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/23/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01-nash/raw/base/base/quest/main_quests/part1/q103/scenes/q103_11_tunnel_drive.scene.json",
+          "assetSha256": "78b4380aa569d60580acf7a2d05f3b0c1b7dc05f27593f2c59dc17207ea5b77e",
+          "jsonSha256": "f38313579dac631597d5d5436f4fd28de2b15a82aaca615cad5a893edbdc1d05",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/25/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/part1/q103/phases/q103_03_ghost_town.questphase.json",
+          "assetSha256": "ae0562a821a68326002e461b4a972a252fe8fac5e36f77cd3d226b0adc8bb695",
+          "jsonSha256": "7e09cfa40eba3519447b4249025da544ddda3e788932d81683dee08eaa88a096",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/6/Data",
+          "expectedType": "questSceneNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/part1/q103/q103.questphase.json",
+          "assetSha256": "0b5629c65de9d883d85268ea4ab76ecaa0d1823c7d9ec23dcf6647ae47bca377",
+          "jsonSha256": "16712e6c77c94540731f4222f23a772046ea7b3ecf0e325f5081f4e97796ec4b",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/part1/q103/q103.questphase.json",
+          "assetSha256": "0b5629c65de9d883d85268ea4ab76ecaa0d1823c7d9ec23dcf6647ae47bca377",
+          "jsonSha256": "16712e6c77c94540731f4222f23a772046ea7b3ecf0e325f5081f4e97796ec4b",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data",
+          "expectedType": "questPhaseNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/part1/q103/phases/q103_04_tunnels.questphase.json",
+          "assetSha256": "3af9a5e3909e5ee96a7c5ff9edc8c39543e23c46bff2135cd69c713e1d9cecc2",
+          "jsonSha256": "cc3def73304e53d22e7e71e19f4537deacc38c28ff34e6cfd7269bc7028d3268",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/20/Data",
+          "expectedType": "questPauseConditionNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/part1/q103/phases/q103_04_tunnels.questphase.json",
+          "assetSha256": "3af9a5e3909e5ee96a7c5ff9edc8c39543e23c46bff2135cd69c713e1d9cecc2",
+          "jsonSha256": "cc3def73304e53d22e7e71e19f4537deacc38c28ff34e6cfd7269bc7028d3268",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/17/Data",
+          "expectedType": "questInteractiveObjectManagerNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/part1/q103/phases/q103_04_tunnels.questphase.json",
+          "assetSha256": "3af9a5e3909e5ee96a7c5ff9edc8c39543e23c46bff2135cd69c713e1d9cecc2",
+          "jsonSha256": "cc3def73304e53d22e7e71e19f4537deacc38c28ff34e6cfd7269bc7028d3268",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/18/Data",
+          "expectedType": "questJournalNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/part1/q103/phases/q103_04_tunnels.questphase.json",
+          "assetSha256": "3af9a5e3909e5ee96a7c5ff9edc8c39543e23c46bff2135cd69c713e1d9cecc2",
+          "jsonSha256": "cc3def73304e53d22e7e71e19f4537deacc38c28ff34e6cfd7269bc7028d3268",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/17/Data/sockets/2/Data/connections/0/Data",
+          "expectedType": "graphGraphConnectionDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/part1/q103/phases/q103_04a_tunnels_combat.questphase.json",
+          "assetSha256": "410ab49bdef38ed0a5acf667c1abd161bd44d876b1943eb6f105dc38cc41488b",
+          "jsonSha256": "e3e1f73f8104bbc9354037816b60dd803c54627bd6cb104838146e65be957b45",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/64/Data",
+          "expectedType": "questPauseConditionNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/part1/q103/phases/q103_04a_tunnels_combat.questphase.json",
+          "assetSha256": "410ab49bdef38ed0a5acf667c1abd161bd44d876b1943eb6f105dc38cc41488b",
+          "jsonSha256": "e3e1f73f8104bbc9354037816b60dd803c54627bd6cb104838146e65be957b45",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/65/Data",
+          "expectedType": "questPauseConditionNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/part1/q103/phases/q103_04a_tunnels_combat.questphase.json",
+          "assetSha256": "410ab49bdef38ed0a5acf667c1abd161bd44d876b1943eb6f105dc38cc41488b",
+          "jsonSha256": "e3e1f73f8104bbc9354037816b60dd803c54627bd6cb104838146e65be957b45",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/66/Data",
+          "expectedType": "questLogicalAndNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/part1/q103/phases/q103_04a_tunnels_combat.questphase.json",
+          "assetSha256": "410ab49bdef38ed0a5acf667c1abd161bd44d876b1943eb6f105dc38cc41488b",
+          "jsonSha256": "e3e1f73f8104bbc9354037816b60dd803c54627bd6cb104838146e65be957b45",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/45/Data",
+          "expectedType": "questFactsDBManagerNodeDefinition"
+        },
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/part1/q103/phases/q103_04a_tunnels_combat.questphase.json",
+          "assetSha256": "410ab49bdef38ed0a5acf667c1abd161bd44d876b1943eb6f105dc38cc41488b",
+          "jsonSha256": "e3e1f73f8104bbc9354037816b60dd803c54627bd6cb104838146e65be957b45",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/45/Data/sockets/1/Data/connections/0/Data",
+          "expectedType": "graphGraphConnectionDefinition"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01-nash/raw/base/base/quest/main_quests/part1/q103/scenes/q103_11_tunnel_drive.scene.json",
+          "assetSha256": "78b4380aa569d60580acf7a2d05f3b0c1b7dc05f27593f2c59dc17207ea5b77e",
+          "jsonSha256": "f38313579dac631597d5d5436f4fd28de2b15a82aaca615cad5a893edbdc1d05",
+          "jsonPointer": "/Data/RootChunk/actors/0",
+          "expectedType": "scnActorDef"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01-nash/raw/base/base/quest/main_quests/part1/q103/scenes/q103_11_tunnel_drive.scene.json",
+          "assetSha256": "78b4380aa569d60580acf7a2d05f3b0c1b7dc05f27593f2c59dc17207ea5b77e",
+          "jsonSha256": "f38313579dac631597d5d5436f4fd28de2b15a82aaca615cad5a893edbdc1d05",
+          "jsonPointer": "/Data/RootChunk/playerActors/0",
+          "expectedType": "scnPlayerActorDef"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01-nash/raw/base/base/quest/main_quests/part1/q103/scenes/q103_11_tunnel_drive.scene.json",
+          "assetSha256": "78b4380aa569d60580acf7a2d05f3b0c1b7dc05f27593f2c59dc17207ea5b77e",
+          "jsonSha256": "f38313579dac631597d5d5436f4fd28de2b15a82aaca615cad5a893edbdc1d05",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/2",
+          "expectedType": "scnscreenplayDialogLine"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01-nash/raw/base/base/quest/main_quests/part1/q103/scenes/q103_11_tunnel_drive.scene.json",
+          "assetSha256": "78b4380aa569d60580acf7a2d05f3b0c1b7dc05f27593f2c59dc17207ea5b77e",
+          "jsonSha256": "f38313579dac631597d5d5436f4fd28de2b15a82aaca615cad5a893edbdc1d05",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/121",
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01-nash/raw/base/base/quest/main_quests/part1/q103/scenes/q103_11_tunnel_drive.scene.json",
+          "assetSha256": "78b4380aa569d60580acf7a2d05f3b0c1b7dc05f27593f2c59dc17207ea5b77e",
+          "jsonSha256": "f38313579dac631597d5d5436f4fd28de2b15a82aaca615cad5a893edbdc1d05",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/9",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "localization/raw/base/base/localization/en-us/subtitles/quest/q103/q103_11_tunnel_drive.json.json",
+          "assetSha256": "a415036c4d372c26378d58a4b8f93974191e80525f7f619d0db3c4a7818af6d0",
+          "jsonSha256": "03cc27903261646a1b136de1f0a96c4f6a8334964561a712473fb6e94436187e",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/11",
+          "expectedType": "localizationPersistenceSubtitleEntry",
+          "expected": {
+            "/stringId": "1667528233088315392"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01-nash/raw/base/base/quest/main_quests/part1/q103/scenes/q103_11_tunnel_drive.scene.json",
+          "assetSha256": "78b4380aa569d60580acf7a2d05f3b0c1b7dc05f27593f2c59dc17207ea5b77e",
+          "jsonSha256": "f38313579dac631597d5d5436f4fd28de2b15a82aaca615cad5a893edbdc1d05",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/3",
+          "expectedType": "scnscreenplayDialogLine"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01-nash/raw/base/base/quest/main_quests/part1/q103/scenes/q103_11_tunnel_drive.scene.json",
+          "assetSha256": "78b4380aa569d60580acf7a2d05f3b0c1b7dc05f27593f2c59dc17207ea5b77e",
+          "jsonSha256": "f38313579dac631597d5d5436f4fd28de2b15a82aaca615cad5a893edbdc1d05",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/110",
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01-nash/raw/base/base/quest/main_quests/part1/q103/scenes/q103_11_tunnel_drive.scene.json",
+          "assetSha256": "78b4380aa569d60580acf7a2d05f3b0c1b7dc05f27593f2c59dc17207ea5b77e",
+          "jsonSha256": "f38313579dac631597d5d5436f4fd28de2b15a82aaca615cad5a893edbdc1d05",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/12",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "localization/raw/base/base/localization/en-us/subtitles/quest/q103/q103_11_tunnel_drive.json.json",
+          "assetSha256": "a415036c4d372c26378d58a4b8f93974191e80525f7f619d0db3c4a7818af6d0",
+          "jsonSha256": "03cc27903261646a1b136de1f0a96c4f6a8334964561a712473fb6e94436187e",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/0",
+          "expectedType": "localizationPersistenceSubtitleEntry",
+          "expected": {
+            "/stringId": "1522972970182512640"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01-nash/raw/base/base/quest/main_quests/part1/q103/scenes/q103_11_tunnel_drive.scene.json",
+          "assetSha256": "78b4380aa569d60580acf7a2d05f3b0c1b7dc05f27593f2c59dc17207ea5b77e",
+          "jsonSha256": "f38313579dac631597d5d5436f4fd28de2b15a82aaca615cad5a893edbdc1d05",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/4",
+          "expectedType": "scnscreenplayDialogLine"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01-nash/raw/base/base/quest/main_quests/part1/q103/scenes/q103_11_tunnel_drive.scene.json",
+          "assetSha256": "78b4380aa569d60580acf7a2d05f3b0c1b7dc05f27593f2c59dc17207ea5b77e",
+          "jsonSha256": "f38313579dac631597d5d5436f4fd28de2b15a82aaca615cad5a893edbdc1d05",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/117",
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01-nash/raw/base/base/quest/main_quests/part1/q103/scenes/q103_11_tunnel_drive.scene.json",
+          "assetSha256": "78b4380aa569d60580acf7a2d05f3b0c1b7dc05f27593f2c59dc17207ea5b77e",
+          "jsonSha256": "f38313579dac631597d5d5436f4fd28de2b15a82aaca615cad5a893edbdc1d05",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/15",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "localization/raw/base/base/localization/en-us/subtitles/quest/q103/q103_11_tunnel_drive.json.json",
+          "assetSha256": "a415036c4d372c26378d58a4b8f93974191e80525f7f619d0db3c4a7818af6d0",
+          "jsonSha256": "03cc27903261646a1b136de1f0a96c4f6a8334964561a712473fb6e94436187e",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7",
+          "expectedType": "localizationPersistenceSubtitleEntry",
+          "expected": {
+            "/stringId": "1631461391050104832"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01-nash/raw/base/base/quest/main_quests/part1/q103/scenes/q103_11_tunnel_drive.scene.json",
+          "assetSha256": "78b4380aa569d60580acf7a2d05f3b0c1b7dc05f27593f2c59dc17207ea5b77e",
+          "jsonSha256": "f38313579dac631597d5d5436f4fd28de2b15a82aaca615cad5a893edbdc1d05",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/5",
+          "expectedType": "scnscreenplayDialogLine"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01-nash/raw/base/base/quest/main_quests/part1/q103/scenes/q103_11_tunnel_drive.scene.json",
+          "assetSha256": "78b4380aa569d60580acf7a2d05f3b0c1b7dc05f27593f2c59dc17207ea5b77e",
+          "jsonSha256": "f38313579dac631597d5d5436f4fd28de2b15a82aaca615cad5a893edbdc1d05",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/118",
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01-nash/raw/base/base/quest/main_quests/part1/q103/scenes/q103_11_tunnel_drive.scene.json",
+          "assetSha256": "78b4380aa569d60580acf7a2d05f3b0c1b7dc05f27593f2c59dc17207ea5b77e",
+          "jsonSha256": "f38313579dac631597d5d5436f4fd28de2b15a82aaca615cad5a893edbdc1d05",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/18",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "localization/raw/base/base/localization/en-us/subtitles/quest/q103/q103_11_tunnel_drive.json.json",
+          "assetSha256": "a415036c4d372c26378d58a4b8f93974191e80525f7f619d0db3c4a7818af6d0",
+          "jsonSha256": "03cc27903261646a1b136de1f0a96c4f6a8334964561a712473fb6e94436187e",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/8",
+          "expectedType": "localizationPersistenceSubtitleEntry",
+          "expected": {
+            "/stringId": "1631461391050104840"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01-nash/raw/base/base/quest/main_quests/part1/q103/scenes/q103_11_tunnel_drive.scene.json",
+          "assetSha256": "78b4380aa569d60580acf7a2d05f3b0c1b7dc05f27593f2c59dc17207ea5b77e",
+          "jsonSha256": "f38313579dac631597d5d5436f4fd28de2b15a82aaca615cad5a893edbdc1d05",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/6",
+          "expectedType": "scnscreenplayDialogLine"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01-nash/raw/base/base/quest/main_quests/part1/q103/scenes/q103_11_tunnel_drive.scene.json",
+          "assetSha256": "78b4380aa569d60580acf7a2d05f3b0c1b7dc05f27593f2c59dc17207ea5b77e",
+          "jsonSha256": "f38313579dac631597d5d5436f4fd28de2b15a82aaca615cad5a893edbdc1d05",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/143",
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01-nash/raw/base/base/quest/main_quests/part1/q103/scenes/q103_11_tunnel_drive.scene.json",
+          "assetSha256": "78b4380aa569d60580acf7a2d05f3b0c1b7dc05f27593f2c59dc17207ea5b77e",
+          "jsonSha256": "f38313579dac631597d5d5436f4fd28de2b15a82aaca615cad5a893edbdc1d05",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/21",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "localization/raw/base/base/localization/en-us/subtitles/quest/q103/q103_11_tunnel_drive.json.json",
+          "assetSha256": "a415036c4d372c26378d58a4b8f93974191e80525f7f619d0db3c4a7818af6d0",
+          "jsonSha256": "03cc27903261646a1b136de1f0a96c4f6a8334964561a712473fb6e94436187e",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/33",
+          "expectedType": "localizationPersistenceSubtitleEntry",
+          "expected": {
+            "/stringId": "1667563406655877120"
+          }
+        }
+      ]
+    },
+    {
+      "id": "al-native.oct01-motel-shared-room",
+      "sourceId": "al-oct01-61a42d40b642",
+      "kind": "native",
+      "locator": "Bar choice10 option0 -> section12 explicitly offers one room with twin beds -> choice407 -> section410 books twin beds. Room entry AND1256 -> follow_panam_room42.Succeeded -> upstairs sleep choice1141 -> goodnight1144 -> tier858/delay856/Panam-reactivate861 -> q103_slept_with_panam+=1 at2775. Require BOTH positive fact and revealed room-follow objective success. No sex/romance claim.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+        "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+        "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/331/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "q103_slept_with_panam",
+          "/value": 1,
+          "/setExactValue": 0
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data",
+          "expectedType": "scnChoiceNode"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/42/Data",
+          "expectedType": "scnChoiceNode"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/121/Data",
+          "expectedType": "scnAndNode"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/108/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/110/Data",
+          "expectedType": "scnChoiceNode"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/112/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/77/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/76/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/78/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/actors/0",
+          "expectedType": "scnActorDef"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/playerActors/0",
+          "expectedType": "scnPlayerActorDef"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/options/0",
+          "expectedType": "scnscreenplayChoiceOption"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/416",
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/426",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "localization/raw/base/base/localization/en-us/subtitles/quest/q103/q103_15_roadhouse_bar.json.json",
+          "assetSha256": "739c0e1c7833ed76215ac4fdd7e3f0a8e89822b1996c9a9c91f39644c7735c4f",
+          "jsonSha256": "962dc85cb321ee7c21b25e89f09744339813ffc8c61e941977685748144a05a9",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/1",
+          "expectedType": "localizationPersistenceSubtitleEntry",
+          "expected": {
+            "/stringId": "1527287161617911812"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/options/15",
+          "expectedType": "scnscreenplayChoiceOption"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/509",
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/488",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "localization/raw/base/base/localization/en-us/subtitles/quest/q103/q103_15_roadhouse_bar.json.json",
+          "assetSha256": "739c0e1c7833ed76215ac4fdd7e3f0a8e89822b1996c9a9c91f39644c7735c4f",
+          "jsonSha256": "962dc85cb321ee7c21b25e89f09744339813ffc8c61e941977685748144a05a9",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/93",
+          "expectedType": "localizationPersistenceSubtitleEntry",
+          "expected": {
+            "/stringId": "1690786606428581888"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/options/35",
+          "expectedType": "scnscreenplayChoiceOption"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/566",
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/569",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "localization/raw/base/base/localization/en-us/subtitles/quest/q103/q103_15_roadhouse_bar.json.json",
+          "assetSha256": "739c0e1c7833ed76215ac4fdd7e3f0a8e89822b1996c9a9c91f39644c7735c4f",
+          "jsonSha256": "962dc85cb321ee7c21b25e89f09744339813ffc8c61e941977685748144a05a9",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/148",
+          "expectedType": "localizationPersistenceSubtitleEntry",
+          "expected": {
+            "/stringId": "1995274390334844932"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/2",
+          "expectedType": "scnscreenplayDialogLine"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/421",
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/9",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "localization/raw/base/base/localization/en-us/subtitles/quest/q103/q103_15_roadhouse_bar.json.json",
+          "assetSha256": "739c0e1c7833ed76215ac4fdd7e3f0a8e89822b1996c9a9c91f39644c7735c4f",
+          "jsonSha256": "962dc85cb321ee7c21b25e89f09744339813ffc8c61e941977685748144a05a9",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/6",
+          "expectedType": "localizationPersistenceSubtitleEntry",
+          "expected": {
+            "/stringId": "1527289488684879872"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/94",
+          "expectedType": "scnscreenplayDialogLine"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/517",
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/306",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "localization/raw/base/base/localization/en-us/subtitles/quest/q103/q103_15_roadhouse_bar.json.json",
+          "assetSha256": "739c0e1c7833ed76215ac4fdd7e3f0a8e89822b1996c9a9c91f39644c7735c4f",
+          "jsonSha256": "962dc85cb321ee7c21b25e89f09744339813ffc8c61e941977685748144a05a9",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/100",
+          "expectedType": "localizationPersistenceSubtitleEntry",
+          "expected": {
+            "/stringId": "1690807412592340992"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/125",
+          "expectedType": "scnscreenplayDialogLine"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/568",
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/392",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "localization/raw/base/base/localization/en-us/subtitles/quest/q103/q103_15_roadhouse_bar.json.json",
+          "assetSha256": "739c0e1c7833ed76215ac4fdd7e3f0a8e89822b1996c9a9c91f39644c7735c4f",
+          "jsonSha256": "962dc85cb321ee7c21b25e89f09744339813ffc8c61e941977685748144a05a9",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/150",
+          "expectedType": "localizationPersistenceSubtitleEntry",
+          "expected": {
+            "/stringId": "1995278811500359680"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/126",
+          "expectedType": "scnscreenplayDialogLine"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/579",
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/395",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "localization/raw/base/base/localization/en-us/subtitles/quest/q103/q103_15_roadhouse_bar.json.json",
+          "assetSha256": "739c0e1c7833ed76215ac4fdd7e3f0a8e89822b1996c9a9c91f39644c7735c4f",
+          "jsonSha256": "962dc85cb321ee7c21b25e89f09744339813ffc8c61e941977685748144a05a9",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/161",
+          "expectedType": "localizationPersistenceSubtitleEntry",
+          "expected": {
+            "/stringId": "1995422532343820288"
+          }
+        }
+      ]
+    },
+    {
+      "id": "al-native.oct01-motel-flirt",
+      "sourceId": "al-oct01-61a42d40b642",
+      "kind": "native",
+      "locator": "After the shared-room proposal, choice407 option0 selects a further flirt; section406 contains V clarifying interest and Panam deferring intimacy. Socket2 at29.143s writes exact q103_15_rooms_flirt=1 at843 after her boundary line. Guard with revealed Ghost Town quest success. Receipt does not select generic room-sharing as flirting and grants only private Panam knowledge.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+        "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+        "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/74/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "q103_15_rooms_flirt",
+          "/value": 1,
+          "/setExactValue": 1
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/42/Data",
+          "expectedType": "scnChoiceNode"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/41/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/41/Data/events/30/Data",
+          "expectedType": "scneventsSocket",
+          "expected": {
+            "/startTime": 29143
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/options/14",
+          "expectedType": "scnscreenplayChoiceOption"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/508",
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/484",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "localization/raw/base/base/localization/en-us/subtitles/quest/q103/q103_15_roadhouse_bar.json.json",
+          "assetSha256": "739c0e1c7833ed76215ac4fdd7e3f0a8e89822b1996c9a9c91f39644c7735c4f",
+          "jsonSha256": "962dc85cb321ee7c21b25e89f09744339813ffc8c61e941977685748144a05a9",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/92",
+          "expectedType": "localizationPersistenceSubtitleEntry",
+          "expected": {
+            "/stringId": "1690786234360262660"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/86",
+          "expectedType": "scnscreenplayDialogLine"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/507",
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/279",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "localization/raw/base/base/localization/en-us/subtitles/quest/q103/q103_15_roadhouse_bar.json.json",
+          "assetSha256": "739c0e1c7833ed76215ac4fdd7e3f0a8e89822b1996c9a9c91f39644c7735c4f",
+          "jsonSha256": "962dc85cb321ee7c21b25e89f09744339813ffc8c61e941977685748144a05a9",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/91",
+          "expectedType": "localizationPersistenceSubtitleEntry",
+          "expected": {
+            "/stringId": "1690785949902565376"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/87",
+          "expectedType": "scnscreenplayDialogLine"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/510",
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/283",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "localization/raw/base/base/localization/en-us/subtitles/quest/q103/q103_15_roadhouse_bar.json.json",
+          "assetSha256": "739c0e1c7833ed76215ac4fdd7e3f0a8e89822b1996c9a9c91f39644c7735c4f",
+          "jsonSha256": "962dc85cb321ee7c21b25e89f09744339813ffc8c61e941977685748144a05a9",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/94",
+          "expectedType": "localizationPersistenceSubtitleEntry",
+          "expected": {
+            "/stringId": "1690798291390427136"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/88",
+          "expectedType": "scnscreenplayDialogLine"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/511",
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/288",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "localization/raw/base/base/localization/en-us/subtitles/quest/q103/q103_15_roadhouse_bar.json.json",
+          "assetSha256": "739c0e1c7833ed76215ac4fdd7e3f0a8e89822b1996c9a9c91f39644c7735c4f",
+          "jsonSha256": "962dc85cb321ee7c21b25e89f09744339813ffc8c61e941977685748144a05a9",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/95",
+          "expectedType": "localizationPersistenceSubtitleEntry",
+          "expected": {
+            "/stringId": "1690798840290603008"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/89",
+          "expectedType": "scnscreenplayDialogLine"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/513",
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/291",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "localization/raw/base/base/localization/en-us/subtitles/quest/q103/q103_15_roadhouse_bar.json.json",
+          "assetSha256": "739c0e1c7833ed76215ac4fdd7e3f0a8e89822b1996c9a9c91f39644c7735c4f",
+          "jsonSha256": "962dc85cb321ee7c21b25e89f09744339813ffc8c61e941977685748144a05a9",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/96",
+          "expectedType": "localizationPersistenceSubtitleEntry",
+          "expected": {
+            "/stringId": "1690802419239874560"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/93",
+          "expectedType": "scnscreenplayDialogLine"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/541",
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/303",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "localization/raw/base/base/localization/en-us/subtitles/quest/q103/q103_15_roadhouse_bar.json.json",
+          "assetSha256": "739c0e1c7833ed76215ac4fdd7e3f0a8e89822b1996c9a9c91f39644c7735c4f",
+          "jsonSha256": "962dc85cb321ee7c21b25e89f09744339813ffc8c61e941977685748144a05a9",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/123",
+          "expectedType": "localizationPersistenceSubtitleEntry",
+          "expected": {
+            "/stringId": "1691093759957790720"
+          }
+        }
+      ]
+    },
+    {
+      "id": "al-native.oct01-farm-supported-panam",
+      "sourceId": "al-oct01-244a021a2d28",
+      "kind": "native",
+      "locator": "Farm choice1682 option1 -> section805: V criticizes Saul's plan, Panam thanks V and Saul challenges V. Socket2 at8.057s writes exact sq004_sided_with_panam=1 at1990. The next choice812 can retract or elaborate, so the statement is explicitly an initial stance, not permanent allegiance or an assumed lifepath argument. Completed revealed Riders guards it.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+        "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+        "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/162/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sq004_sided_with_panam",
+          "/value": 1,
+          "/setExactValue": 1
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/113/Data",
+          "expectedType": "scnChoiceNode"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/25/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/30/Data",
+          "expectedType": "scnChoiceNode"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/25/Data/events/18/Data",
+          "expectedType": "scneventsSocket",
+          "expected": {
+            "/startTime": 8057
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/actors/0",
+          "expectedType": "scnActorDef"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/playerActors/0",
+          "expectedType": "scnPlayerActorDef"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/actors/1",
+          "expectedType": "scnActorDef"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/options/29",
+          "expectedType": "scnscreenplayChoiceOption"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/723",
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/718",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "localization/raw/base/base/localization/en-us/subtitles/quest/sq004/sq004_08_farm.json.json",
+          "assetSha256": "4d8c047d8e709f42d56eec1195153afcdd99bdcdcddc1a9829552313c632f3ba",
+          "jsonSha256": "cb1d015863564625a64141f88ad8c7698093fef6f936f4eeb45c692e0f562fcf",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/184",
+          "expectedType": "localizationPersistenceSubtitleEntry",
+          "expected": {
+            "/stringId": "1965071426022473744"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/options/11",
+          "expectedType": "scnscreenplayChoiceOption"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/591",
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/644",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "localization/raw/base/base/localization/en-us/subtitles/quest/sq004/sq004_08_farm.json.json",
+          "assetSha256": "4d8c047d8e709f42d56eec1195153afcdd99bdcdcddc1a9829552313c632f3ba",
+          "jsonSha256": "cb1d015863564625a64141f88ad8c7698093fef6f936f4eeb45c692e0f562fcf",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/68",
+          "expectedType": "localizationPersistenceSubtitleEntry",
+          "expected": {
+            "/stringId": "1896559853839724592"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/32",
+          "expectedType": "scnscreenplayDialogLine"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/575",
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/109",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "localization/raw/base/base/localization/en-us/subtitles/quest/sq004/sq004_08_farm.json.json",
+          "assetSha256": "4d8c047d8e709f42d56eec1195153afcdd99bdcdcddc1a9829552313c632f3ba",
+          "jsonSha256": "cb1d015863564625a64141f88ad8c7698093fef6f936f4eeb45c692e0f562fcf",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/54",
+          "expectedType": "localizationPersistenceSubtitleEntry",
+          "expected": {
+            "/stringId": "1896559853621620740"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/33",
+          "expectedType": "scnscreenplayDialogLine"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/577",
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/113",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "localization/raw/base/base/localization/en-us/subtitles/quest/sq004/sq004_08_farm.json.json",
+          "assetSha256": "4d8c047d8e709f42d56eec1195153afcdd99bdcdcddc1a9829552313c632f3ba",
+          "jsonSha256": "cb1d015863564625a64141f88ad8c7698093fef6f936f4eeb45c692e0f562fcf",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55",
+          "expectedType": "localizationPersistenceSubtitleEntry",
+          "expected": {
+            "/stringId": "1896559853621620752"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/34",
+          "expectedType": "scnscreenplayDialogLine"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/578",
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/116",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "localization/raw/base/base/localization/en-us/subtitles/quest/sq004/sq004_08_farm.json.json",
+          "assetSha256": "4d8c047d8e709f42d56eec1195153afcdd99bdcdcddc1a9829552313c632f3ba",
+          "jsonSha256": "cb1d015863564625a64141f88ad8c7698093fef6f936f4eeb45c692e0f562fcf",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56",
+          "expectedType": "localizationPersistenceSubtitleEntry",
+          "expected": {
+            "/stringId": "1896559853621620764"
+          }
+        }
+      ]
+    },
+    {
+      "id": "al-native.oct01-farm-supported-saul",
+      "sourceId": "al-oct01-244a021a2d28",
+      "kind": "native",
+      "locator": "Farm choice1682 option0 -> section807 -> reasoning choice811. Its three affirmative explanations817/818/819 converge at822, where Saul approves and Panam objects; completed section822 writes sq004_saul_like+=1 at823. Retraction811 option3 bypasses that receipt. Only the shared practical stance is authored, not a specific explanation/lifepath or permanent hostility. Completed revealed Riders guards it.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+        "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+        "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/41/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sq004_saul_like",
+          "/value": 1,
+          "/setExactValue": 0
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/113/Data",
+          "expectedType": "scnChoiceNode"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/27/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/29/Data",
+          "expectedType": "scnChoiceNode"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/35/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/36/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/37/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/40/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/options/28",
+          "expectedType": "scnscreenplayChoiceOption"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/722",
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/714",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "localization/raw/base/base/localization/en-us/subtitles/quest/sq004/sq004_08_farm.json.json",
+          "assetSha256": "4d8c047d8e709f42d56eec1195153afcdd99bdcdcddc1a9829552313c632f3ba",
+          "jsonSha256": "cb1d015863564625a64141f88ad8c7698093fef6f936f4eeb45c692e0f562fcf",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/183",
+          "expectedType": "localizationPersistenceSubtitleEntry",
+          "expected": {
+            "/stringId": "1965071426022473728"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/options/4",
+          "expectedType": "scnscreenplayChoiceOption"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/584",
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/613",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "localization/raw/base/base/localization/en-us/subtitles/quest/sq004/sq004_08_farm.json.json",
+          "assetSha256": "4d8c047d8e709f42d56eec1195153afcdd99bdcdcddc1a9829552313c632f3ba",
+          "jsonSha256": "cb1d015863564625a64141f88ad8c7698093fef6f936f4eeb45c692e0f562fcf",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/61",
+          "expectedType": "localizationPersistenceSubtitleEntry",
+          "expected": {
+            "/stringId": "1896559853789392896"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/options/5",
+          "expectedType": "scnscreenplayChoiceOption"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/585",
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/617",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "localization/raw/base/base/localization/en-us/subtitles/quest/sq004/sq004_08_farm.json.json",
+          "assetSha256": "4d8c047d8e709f42d56eec1195153afcdd99bdcdcddc1a9829552313c632f3ba",
+          "jsonSha256": "cb1d015863564625a64141f88ad8c7698093fef6f936f4eeb45c692e0f562fcf",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/62",
+          "expectedType": "localizationPersistenceSubtitleEntry",
+          "expected": {
+            "/stringId": "1896559853806170120"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/options/6",
+          "expectedType": "scnscreenplayChoiceOption"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/586",
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/621",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "localization/raw/base/base/localization/en-us/subtitles/quest/sq004/sq004_08_farm.json.json",
+          "assetSha256": "4d8c047d8e709f42d56eec1195153afcdd99bdcdcddc1a9829552313c632f3ba",
+          "jsonSha256": "cb1d015863564625a64141f88ad8c7698093fef6f936f4eeb45c692e0f562fcf",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/63",
+          "expectedType": "localizationPersistenceSubtitleEntry",
+          "expected": {
+            "/stringId": "1896559853806170136"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/options/7",
+          "expectedType": "scnscreenplayChoiceOption"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/587",
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/626",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "localization/raw/base/base/localization/en-us/subtitles/quest/sq004/sq004_08_farm.json.json",
+          "assetSha256": "4d8c047d8e709f42d56eec1195153afcdd99bdcdcddc1a9829552313c632f3ba",
+          "jsonSha256": "cb1d015863564625a64141f88ad8c7698093fef6f936f4eeb45c692e0f562fcf",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/64",
+          "expectedType": "localizationPersistenceSubtitleEntry",
+          "expected": {
+            "/stringId": "1896559853806170152"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/36",
+          "expectedType": "scnscreenplayDialogLine"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/580",
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/122",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "localization/raw/base/base/localization/en-us/subtitles/quest/sq004/sq004_08_farm.json.json",
+          "assetSha256": "4d8c047d8e709f42d56eec1195153afcdd99bdcdcddc1a9829552313c632f3ba",
+          "jsonSha256": "cb1d015863564625a64141f88ad8c7698093fef6f936f4eeb45c692e0f562fcf",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/58",
+          "expectedType": "localizationPersistenceSubtitleEntry",
+          "expected": {
+            "/stringId": "1896559853671952388"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/37",
+          "expectedType": "scnscreenplayDialogLine"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/581",
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/125",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "localization/raw/base/base/localization/en-us/subtitles/quest/sq004/sq004_08_farm.json.json",
+          "assetSha256": "4d8c047d8e709f42d56eec1195153afcdd99bdcdcddc1a9829552313c632f3ba",
+          "jsonSha256": "cb1d015863564625a64141f88ad8c7698093fef6f936f4eeb45c692e0f562fcf",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/59",
+          "expectedType": "localizationPersistenceSubtitleEntry",
+          "expected": {
+            "/stringId": "1896559853671952400"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/64",
+          "expectedType": "scnscreenplayDialogLine"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/628",
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/224",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "localization/raw/base/base/localization/en-us/subtitles/quest/sq004/sq004_08_farm.json.json",
+          "assetSha256": "4d8c047d8e709f42d56eec1195153afcdd99bdcdcddc1a9829552313c632f3ba",
+          "jsonSha256": "cb1d015863564625a64141f88ad8c7698093fef6f936f4eeb45c692e0f562fcf",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/94",
+          "expectedType": "localizationPersistenceSubtitleEntry",
+          "expected": {
+            "/stringId": "1896559854225600516"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/65",
+          "expectedType": "scnscreenplayDialogLine"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/629",
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/227",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "localization/raw/base/base/localization/en-us/subtitles/quest/sq004/sq004_08_farm.json.json",
+          "assetSha256": "4d8c047d8e709f42d56eec1195153afcdd99bdcdcddc1a9829552313c632f3ba",
+          "jsonSha256": "cb1d015863564625a64141f88ad8c7698093fef6f936f4eeb45c692e0f562fcf",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/95",
+          "expectedType": "localizationPersistenceSubtitleEntry",
+          "expected": {
+            "/stringId": "1896559854225600528"
+          }
+        }
+      ]
+    },
+    {
+      "id": "al-native.oct01-farm-private-flirt",
+      "sourceId": "al-oct01-244a021a2d28",
+      "kind": "native",
+      "locator": "Private conversation928 -> choice932: options0 and1 each write exact sq004_panam_flirted_farm=1 at2657; option2 (sleep) does not. Option0 reaches Panam's boundary in929, whereas option1 takes the gentler banter942. The merged receipt establishes an overture only, not a particular physical gesture, mutual romance or sex. Completed revealed Riders guards the selected exchange; private/phone Panam only.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+        "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+        "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+        "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/246/Data/questNode/Data/type/Data",
+        "expectedType": "questSetVar_NodeType",
+        "expected": {
+          "/factName": "sq004_panam_flirted_farm",
+          "/value": 1,
+          "/setExactValue": 1
+        }
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/46/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/50/Data",
+          "expectedType": "scnChoiceNode"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/51/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/72/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/59/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/47/Data",
+          "expectedType": "scnSectionNode"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/options/12",
+          "expectedType": "scnscreenplayChoiceOption"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/648",
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/648",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "localization/raw/base/base/localization/en-us/subtitles/quest/sq004/sq004_08_farm.json.json",
+          "assetSha256": "4d8c047d8e709f42d56eec1195153afcdd99bdcdcddc1a9829552313c632f3ba",
+          "jsonSha256": "cb1d015863564625a64141f88ad8c7698093fef6f936f4eeb45c692e0f562fcf",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/114",
+          "expectedType": "localizationPersistenceSubtitleEntry",
+          "expected": {
+            "/stringId": "1896726950079246336"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/options/13",
+          "expectedType": "scnscreenplayChoiceOption"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/649",
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/652",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "localization/raw/base/base/localization/en-us/subtitles/quest/sq004/sq004_08_farm.json.json",
+          "assetSha256": "4d8c047d8e709f42d56eec1195153afcdd99bdcdcddc1a9829552313c632f3ba",
+          "jsonSha256": "cb1d015863564625a64141f88ad8c7698093fef6f936f4eeb45c692e0f562fcf",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/115",
+          "expectedType": "localizationPersistenceSubtitleEntry",
+          "expected": {
+            "/stringId": "1896726950079246352"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/options/14",
+          "expectedType": "scnscreenplayChoiceOption"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/650",
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/657",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "localization/raw/base/base/localization/en-us/subtitles/quest/sq004/sq004_08_farm.json.json",
+          "assetSha256": "4d8c047d8e709f42d56eec1195153afcdd99bdcdcddc1a9829552313c632f3ba",
+          "jsonSha256": "cb1d015863564625a64141f88ad8c7698093fef6f936f4eeb45c692e0f562fcf",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/116",
+          "expectedType": "localizationPersistenceSubtitleEntry",
+          "expected": {
+            "/stringId": "1896726950079246368"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/69",
+          "expectedType": "scnscreenplayDialogLine"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/637",
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/239",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "localization/raw/base/base/localization/en-us/subtitles/quest/sq004/sq004_08_farm.json.json",
+          "assetSha256": "4d8c047d8e709f42d56eec1195153afcdd99bdcdcddc1a9829552313c632f3ba",
+          "jsonSha256": "cb1d015863564625a64141f88ad8c7698093fef6f936f4eeb45c692e0f562fcf",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/103",
+          "expectedType": "localizationPersistenceSubtitleEntry",
+          "expected": {
+            "/stringId": "1896726949945028612"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/70",
+          "expectedType": "scnscreenplayDialogLine"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/638",
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/244",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "localization/raw/base/base/localization/en-us/subtitles/quest/sq004/sq004_08_farm.json.json",
+          "assetSha256": "4d8c047d8e709f42d56eec1195153afcdd99bdcdcddc1a9829552313c632f3ba",
+          "jsonSha256": "cb1d015863564625a64141f88ad8c7698093fef6f936f4eeb45c692e0f562fcf",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/104",
+          "expectedType": "localizationPersistenceSubtitleEntry",
+          "expected": {
+            "/stringId": "1896726949945028624"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/71",
+          "expectedType": "scnscreenplayDialogLine"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/639",
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/248",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "localization/raw/base/base/localization/en-us/subtitles/quest/sq004/sq004_08_farm.json.json",
+          "assetSha256": "4d8c047d8e709f42d56eec1195153afcdd99bdcdcddc1a9829552313c632f3ba",
+          "jsonSha256": "cb1d015863564625a64141f88ad8c7698093fef6f936f4eeb45c692e0f562fcf",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/105",
+          "expectedType": "localizationPersistenceSubtitleEntry",
+          "expected": {
+            "/stringId": "1896726949961805828"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/72",
+          "expectedType": "scnscreenplayDialogLine"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/640",
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/251",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "localization/raw/base/base/localization/en-us/subtitles/quest/sq004/sq004_08_farm.json.json",
+          "assetSha256": "4d8c047d8e709f42d56eec1195153afcdd99bdcdcddc1a9829552313c632f3ba",
+          "jsonSha256": "cb1d015863564625a64141f88ad8c7698093fef6f936f4eeb45c692e0f562fcf",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/106",
+          "expectedType": "localizationPersistenceSubtitleEntry",
+          "expected": {
+            "/stringId": "1896726949961805840"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/73",
+          "expectedType": "scnscreenplayDialogLine"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/641",
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/254",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "localization/raw/base/base/localization/en-us/subtitles/quest/sq004/sq004_08_farm.json.json",
+          "assetSha256": "4d8c047d8e709f42d56eec1195153afcdd99bdcdcddc1a9829552313c632f3ba",
+          "jsonSha256": "cb1d015863564625a64141f88ad8c7698093fef6f936f4eeb45c692e0f562fcf",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/107",
+          "expectedType": "localizationPersistenceSubtitleEntry",
+          "expected": {
+            "/stringId": "1896726949978583044"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/74",
+          "expectedType": "scnscreenplayDialogLine"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/642",
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/257",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "localization/raw/base/base/localization/en-us/subtitles/quest/sq004/sq004_08_farm.json.json",
+          "assetSha256": "4d8c047d8e709f42d56eec1195153afcdd99bdcdcddc1a9829552313c632f3ba",
+          "jsonSha256": "cb1d015863564625a64141f88ad8c7698093fef6f936f4eeb45c692e0f562fcf",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/108",
+          "expectedType": "localizationPersistenceSubtitleEntry",
+          "expected": {
+            "/stringId": "1896726949995360260"
+          }
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/75",
+          "expectedType": "scnscreenplayDialogLine"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/643",
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/side_quests/sq004/scenes/sq004_08_farm.scene.json",
+          "assetSha256": "43d1fee3a3403be89874e7e6ba69cc087387b7a555f56fc3ff67c8f4a20a71ef",
+          "jsonSha256": "ea390431e593165a4664617e8b2b2f87ad77d6b22aa51a0cb64ef5e510facb01",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/261",
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "jsonPath": "localization/raw/base/base/localization/en-us/subtitles/quest/sq004/sq004_08_farm.json.json",
+          "assetSha256": "4d8c047d8e709f42d56eec1195153afcdd99bdcdcddc1a9829552313c632f3ba",
+          "jsonSha256": "cb1d015863564625a64141f88ad8c7698093fef6f936f4eeb45c692e0f562fcf",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/109",
+          "expectedType": "localizationPersistenceSubtitleEntry",
+          "expected": {
+            "/stringId": "1896726949995360272"
+          }
+        }
+      ]
+    },
+    {
+      "id": "al-native.oct01-aldecaldos-ghost-tunnel-cleared-journal",
+      "sourceId": "al-oct01-9afb79f8a075",
+      "kind": "native",
+      "locator": "Exact winning cooked journal class/path for the revealed current-save selector; class/path identity is not quest completion by itself.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "1c90b9bc1492ce287e55248b55e93216184ed61d49ffc00eeedb97918d1f44ec",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/0/Data/entries/17/Data/entries/3/Data/entries/0/Data",
+        "expectedType": "gameJournalQuestObjective"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "raw/base/base/quest/main_quests/part1/q103/phases/q103_04_tunnels.questphase.json",
+          "assetSha256": "3af9a5e3909e5ee96a7c5ff9edc8c39543e23c46bff2135cd69c713e1d9cecc2",
+          "jsonSha256": "cc3def73304e53d22e7e71e19f4537deacc38c28ff34e6cfd7269bc7028d3268",
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/18/Data",
+          "expectedType": "questJournalNodeDefinition"
+        }
+      ]
+    },
+    {
+      "id": "al-native.oct01-aldecaldos-ghost-shared-room-entered-journal",
+      "sourceId": "al-oct01-9afb79f8a075",
+      "kind": "native",
+      "locator": "Exact winning cooked journal class/path for the revealed current-save selector; class/path identity is not quest completion by itself.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "1c90b9bc1492ce287e55248b55e93216184ed61d49ffc00eeedb97918d1f44ec",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/0/Data/entries/17/Data/entries/4/Data/entries/2/Data",
+        "expectedType": "gameJournalQuestObjective"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data",
+          "expectedType": "scnQuestNode"
+        }
+      ]
+    },
+    {
+      "id": "al-native.oct01-aldecaldos-ghost-completed-journal",
+      "sourceId": "al-oct01-9afb79f8a075",
+      "kind": "native",
+      "locator": "Exact winning cooked journal class/path for the revealed current-save selector; class/path identity is not quest completion by itself.",
+      "gameVersions": [
+        "2.31"
+      ],
+      "native": {
+        "jsonPath": "raw/ep1/base/journal/cooked_journal.journal.json",
+        "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "jsonSha256": "1c90b9bc1492ce287e55248b55e93216184ed61d49ffc00eeedb97918d1f44ec",
+        "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/1/Data/entries/0/Data/entries/17/Data",
+        "expectedType": "gameJournalQuest"
+      },
+      "nativeRefs": [
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/174/Data",
+          "expectedType": "scnQuestNode"
+        },
+        {
+          "jsonPath": "scene-evidence/aldecaldos-oct01/raw/base/base/quest/main_quests/part1/q103/scenes/q103_15_roadhouse_bar.scene.json",
+          "assetSha256": "a2e44f93910dc8ee83ebf635ae0bfa595b7e5a1d6f8fa96f75aac8fa1a96a75e",
+          "jsonSha256": "45d158b4927e07dc032dad7a34e6caaa7ecae28dfbec19b538c16992ea1d5481",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/178/Data",
+          "expectedType": "scnQuestNode"
+        }
+      ]
     }
   ],
   "factAllowlist": {
@@ -2155,6 +4519,42 @@
       "evidenceRefs": [
         "al-native.convoy-secured"
       ]
+    },
+    "q103_helped_panam": {
+      "evidenceRefs": [
+        "al-native.oct01-nash-assistance",
+        "al-native.oct01-choice-writer-audit"
+      ]
+    },
+    "q103_slept_with_panam": {
+      "evidenceRefs": [
+        "al-native.oct01-motel-shared-room",
+        "al-native.oct01-choice-writer-audit"
+      ]
+    },
+    "q103_15_rooms_flirt": {
+      "evidenceRefs": [
+        "al-native.oct01-motel-flirt",
+        "al-native.oct01-choice-writer-audit"
+      ]
+    },
+    "sq004_sided_with_panam": {
+      "evidenceRefs": [
+        "al-native.oct01-farm-supported-panam",
+        "al-native.oct01-choice-writer-audit"
+      ]
+    },
+    "sq004_saul_like": {
+      "evidenceRefs": [
+        "al-native.oct01-farm-supported-saul",
+        "al-native.oct01-choice-writer-audit"
+      ]
+    },
+    "sq004_panam_flirted_farm": {
+      "evidenceRefs": [
+        "al-native.oct01-farm-private-flirt",
+        "al-native.oct01-choice-writer-audit"
+      ]
     }
   },
   "journalAllowlist": {
@@ -2196,6 +4596,30 @@
       "nativeClass": "gameJournalQuestObjective",
       "evidenceRefs": [
         "al-native.panam-co-leader"
+      ]
+    },
+    "aldecaldos.ghost.tunnel-cleared": {
+      "questKey": "ghost-town",
+      "nativePath": "quests/main_quest/act_01/q103_warhead/tunnels/defeat_boss",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "al-native.oct01-aldecaldos-ghost-tunnel-cleared-journal"
+      ]
+    },
+    "aldecaldos.ghost.shared-room-entered": {
+      "questKey": "ghost-town",
+      "nativePath": "quests/main_quest/act_01/q103_warhead/roadhouse/follow_panam_room",
+      "nativeClass": "gameJournalQuestObjective",
+      "evidenceRefs": [
+        "al-native.oct01-aldecaldos-ghost-shared-room-entered-journal"
+      ]
+    },
+    "aldecaldos.ghost.completed": {
+      "questKey": "ghost-town",
+      "nativePath": "quests/main_quest/act_01/q103_warhead",
+      "nativeClass": "gameJournalQuest",
+      "evidenceRefs": [
+        "al-native.oct01-aldecaldos-ghost-completed-journal"
       ]
     }
   },
@@ -3143,18 +5567,6 @@
       "reason": "No reviewed delivery receipt is authored for the recovered truck and merchandise; a quest title or generic q103 completion would not distinguish this stage."
     },
     {
-      "id": "aldecaldos.unmapped.ghost.nash.helped",
-      "status": "unmapped",
-      "questKey": "ghost-town",
-      "narrativeLinks": [
-        {
-          "decisionId": "aldecaldos.ghost.nash",
-          "outcomeKey": "helped"
-        }
-      ],
-      "reason": "The help-versus-decline choice and resulting Nash fate need the actual reached q103 scene branch. A named death flag alone cannot distinguish this decision."
-    },
-    {
       "id": "aldecaldos.unmapped.ghost.nash.declined",
       "status": "unmapped",
       "questKey": "ghost-town",
@@ -3164,31 +5576,7 @@
           "outcomeKey": "declined"
         }
       ],
-      "reason": "The help-versus-decline choice and resulting Nash fate need the actual reached q103 scene branch. A named death flag alone cannot distinguish this decision."
-    },
-    {
-      "id": "aldecaldos.unmapped.ghost.motel.shared-room",
-      "status": "unmapped",
-      "questKey": "ghost-town",
-      "narrativeLinks": [
-        {
-          "decisionId": "aldecaldos.ghost.motel",
-          "outcomeKey": "shared-room"
-        }
-      ],
-      "reason": "Shared room and flirting are separate private choices. No exact affirmative choice receipt has been reviewed for either; silence cannot imply rejection."
-    },
-    {
-      "id": "aldecaldos.unmapped.ghost.motel.flirted",
-      "status": "unmapped",
-      "questKey": "ghost-town",
-      "narrativeLinks": [
-        {
-          "decisionId": "aldecaldos.ghost.motel",
-          "outcomeKey": "flirted"
-        }
-      ],
-      "reason": "Shared room and flirting are separate private choices. No exact affirmative choice receipt has been reviewed for either; silence cannot imply rejection."
+      "reason": "Oct01 native review: the affirmative choice writes q103_helped_panam; the explicit refusal exits go_roadhouse without a separate persistent positive fact. The subsequent roadhouse comparison uses missing/zero helped state, which cannot serve as proof of refusal. Refusal remains unmapped; no assumption about Nash survival or Rogue receiving a message."
     },
     {
       "id": "aldecaldos.unmapped.lightning.av.downed",
@@ -3323,30 +5711,6 @@
       "reason": "Neither rescued=1 nor full quest success distinguishes unnoticed extraction from pursuit. No positive route-specific receipt is reviewed."
     },
     {
-      "id": "aldecaldos.unmapped.riders.farmhouse.supported-panam",
-      "status": "unmapped",
-      "questKey": "riders-on-the-storm",
-      "narrativeLinks": [
-        {
-          "decisionId": "aldecaldos.riders.farmhouse",
-          "outcomeKey": "supported-panam"
-        }
-      ],
-      "reason": "Supporting Panam, supporting Saul, and no established position require exact dialogue selection evidence; successful rescue does not reveal the choice."
-    },
-    {
-      "id": "aldecaldos.unmapped.riders.farmhouse.supported-saul",
-      "status": "unmapped",
-      "questKey": "riders-on-the-storm",
-      "narrativeLinks": [
-        {
-          "decisionId": "aldecaldos.riders.farmhouse",
-          "outcomeKey": "supported-saul"
-        }
-      ],
-      "reason": "Supporting Panam, supporting Saul, and no established position require exact dialogue selection evidence; successful rescue does not reveal the choice."
-    },
-    {
       "id": "aldecaldos.unmapped.riders.farmhouse.not-established",
       "status": "unmapped",
       "questKey": "riders-on-the-storm",
@@ -3357,18 +5721,6 @@
         }
       ],
       "reason": "Supporting Panam, supporting Saul, and no established position require exact dialogue selection evidence; successful rescue does not reveal the choice."
-    },
-    {
-      "id": "aldecaldos.unmapped.riders.private-affection.affection-expressed",
-      "status": "unmapped",
-      "questKey": "riders-on-the-storm",
-      "narrativeLinks": [
-        {
-          "decisionId": "aldecaldos.riders.private-affection",
-          "outcomeKey": "affection-expressed"
-        }
-      ],
-      "reason": "The farmhouse affection choice is private and cannot be inferred from eventual Basilisk romance. Its individual receipt remains unreviewed."
     },
     {
       "id": "aldecaldos.unmapped.fly.farewell.attended",
@@ -4389,6 +6741,399 @@
         }
       ],
       "reason": "Dakota's full-gig reward offer and actual collection need separate reward-system/message/item receipts. Finishing a subset of gigs proves neither."
+    },
+    {
+      "id": "aldecaldos.native.panam-nash-assistance",
+      "revision": 1,
+      "questKey": "ghost-town",
+      "topic": "panam.nash-assistance",
+      "outcome": "helped",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "V agreed to help Panam pursue Nash after recovering her vehicle and cargo, and joined her raid at the Raffen tunnel hideout. Their tunnel encounter was completed. This does not establish that V killed Nash or that Panam and V became romantic partners.",
+      "sourceIds": [
+        "al-ghost"
+      ],
+      "evidenceRefs": [
+        "al-native.release-entry",
+        "al-native.oct01-ghost-production-entry",
+        "al-native.oct01-choice-writer-audit",
+        "al-native.oct01-nash-assistance",
+        "al-native.oct01-aldecaldos-ghost-tunnel-cleared-journal"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.ghost.nash",
+          "outcomeKey": "helped"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "panam-palmer"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "panam-palmer"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q103_helped_panam",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "aldecaldos.ghost.tunnel-cleared",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      }
+    },
+    {
+      "id": "aldecaldos.native.panam-motel-room-shared",
+      "revision": 1,
+      "questKey": "ghost-town",
+      "topic": "panam.motel-room",
+      "outcome": "shared-room",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "After the Ghost Town job, V and Panam shared a Sunset Motel room with separate twin beds and settled down for the night. Sharing the room was not a sexual encounter or a confirmed romance.",
+      "sourceIds": [
+        "al-panam"
+      ],
+      "evidenceRefs": [
+        "al-native.release-entry",
+        "al-native.oct01-ghost-production-entry",
+        "al-native.oct01-choice-writer-audit",
+        "al-native.oct01-motel-shared-room",
+        "al-native.oct01-aldecaldos-ghost-shared-room-entered-journal"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.ghost.motel",
+          "outcomeKey": "shared-room"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "panam-palmer"
+        ],
+        "perspective": "private",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "panam-palmer"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q103_slept_with_panam",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "aldecaldos.ghost.shared-room-entered",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      }
+    },
+    {
+      "id": "aldecaldos.native.panam-motel-flirt",
+      "revision": 1,
+      "questKey": "ghost-town",
+      "topic": "panam.motel-flirt",
+      "outcome": "flirted",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "At the Sunset Motel after Ghost Town, V made clear that the shared-room suggestion was flirtatious. Panam said she was glad they had met but was too tired for intimacy that night. This early exchange did not establish a committed relationship.",
+      "sourceIds": [
+        "al-panam"
+      ],
+      "evidenceRefs": [
+        "al-native.release-entry",
+        "al-native.oct01-ghost-production-entry",
+        "al-native.oct01-choice-writer-audit",
+        "al-native.oct01-motel-flirt",
+        "al-native.oct01-aldecaldos-ghost-completed-journal"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.ghost.motel",
+          "outcomeKey": "flirted"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "panam-palmer"
+        ],
+        "perspective": "private",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "panam-palmer"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "q103_15_rooms_flirt",
+            "op": "eq",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "aldecaldos.ghost.completed",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      }
+    },
+    {
+      "id": "aldecaldos.native.farmhouse-initially-backed-panam",
+      "revision": 1,
+      "questKey": "riders-on-the-storm",
+      "topic": "aldecaldos.farmhouse-stance",
+      "outcome": "supported-panam",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "While sheltering after Saul's rescue, V initially backed Panam's criticism of Saul's corporate-dependence plan. Panam thanked V and Saul challenged the opinion. This records that initial stance, not which later explanation V gave or a permanent allegiance.",
+      "sourceIds": [
+        "al-saul",
+        "al-riders"
+      ],
+      "evidenceRefs": [
+        "al-native.release-entry",
+        "al-native.oct01-farm-production-entry",
+        "al-native.oct01-choice-writer-audit",
+        "al-native.oct01-farm-supported-panam",
+        "al-native.saul-rescue"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.riders.farmhouse",
+          "outcomeKey": "supported-panam"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "panam-palmer",
+          "saul-bright"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone",
+          "group"
+        ],
+        "recipients": [
+          "v",
+          "panam-palmer",
+          "saul-bright"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "sq004_sided_with_panam",
+            "op": "eq",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "aldecaldos.riders.completed",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "exclusiveGroups": [
+        {
+          "id": "aldecaldos.farmhouse-stance",
+          "outcome": "supported-panam"
+        }
+      ]
+    },
+    {
+      "id": "aldecaldos.native.farmhouse-backed-saul",
+      "revision": 1,
+      "questKey": "riders-on-the-storm",
+      "topic": "aldecaldos.farmhouse-stance",
+      "outcome": "supported-saul",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "While sheltering after his rescue, V defended Saul's practical case for accepting corporate support to help the clan survive. Saul approved the reasoning and Panam objected. This was a position in that conversation, not permanent hostility toward Panam or proof that the Biotechnica agreement later continued.",
+      "sourceIds": [
+        "al-saul",
+        "al-riders"
+      ],
+      "evidenceRefs": [
+        "al-native.release-entry",
+        "al-native.oct01-farm-production-entry",
+        "al-native.oct01-choice-writer-audit",
+        "al-native.oct01-farm-supported-saul",
+        "al-native.saul-rescue"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.riders.farmhouse",
+          "outcomeKey": "supported-saul"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "panam-palmer",
+          "saul-bright"
+        ],
+        "perspective": "participant",
+        "channels": [
+          "private",
+          "phone",
+          "group"
+        ],
+        "recipients": [
+          "v",
+          "panam-palmer",
+          "saul-bright"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "sq004_saul_like",
+            "op": "gte",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "aldecaldos.riders.completed",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      },
+      "exclusiveGroups": [
+        {
+          "id": "aldecaldos.farmhouse-stance",
+          "outcome": "supported-saul"
+        }
+      ]
+    },
+    {
+      "id": "aldecaldos.native.panam-farmhouse-flirt",
+      "revision": 1,
+      "questKey": "riders-on-the-storm",
+      "topic": "panam.farmhouse-overture",
+      "outcome": "affection-expressed",
+      "status": "source-verified",
+      "reviewed": true,
+      "gameVersions": [
+        "2.31"
+      ],
+      "category": "decision",
+      "priority": 7,
+      "stable": true,
+      "statement": "After rescuing Saul, V made a flirtatious overture during the private farmhouse conversation with Panam. The established choice does not distinguish the physical-touch option from gentler banter and does not establish sex, mutual romantic commitment, or permission to ignore her boundaries.",
+      "sourceIds": [
+        "al-panam",
+        "al-riders"
+      ],
+      "evidenceRefs": [
+        "al-native.release-entry",
+        "al-native.oct01-farm-production-entry",
+        "al-native.oct01-choice-writer-audit",
+        "al-native.oct01-farm-private-flirt",
+        "al-native.saul-rescue"
+      ],
+      "narrativeLinks": [
+        {
+          "decisionId": "aldecaldos.riders.private-affection",
+          "outcomeKey": "affection-expressed"
+        }
+      ],
+      "audience": {
+        "speakers": [
+          "panam-palmer"
+        ],
+        "perspective": "private",
+        "channels": [
+          "private",
+          "phone"
+        ],
+        "recipients": [
+          "v",
+          "panam-palmer"
+        ]
+      },
+      "condition": {
+        "all": [
+          {
+            "type": "fact",
+            "key": "sq004_panam_flirted_farm",
+            "op": "eq",
+            "value": 1
+          },
+          {
+            "type": "journal",
+            "key": "aldecaldos.riders.completed",
+            "op": "eq",
+            "value": "succeeded"
+          }
+        ]
+      }
     }
   ]
 }
