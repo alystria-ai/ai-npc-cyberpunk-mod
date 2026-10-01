@@ -899,4 +899,16 @@ shared descriptions restore on foreign hover, the translated sidebar stays
 owned, selector autonyms render before Apply, and late labels/large-page cleanup
 are bounded. Codeware inputs pair visible/hidden measurement fonts only while
 fresh; used inputs defer until recreation to preserve glyph-cache/caret state.
-Final production installation and native glyph/caret qualification are pending.
+The production update passed 1,432 checks and all ten Settings languages were
+visually inspected in-game. A phone-specific follow-up found the popup at
+controller 132, outside the original 128-controller scan, plus private widget
+references unavailable through CET. The bounded scan and inspected subtree
+fallbacks now cover it. An unresolved notification child path may return the
+root canvas rather than nil; validate type before calling text methods.
+Thirty-five focused follow-up checks cover these observed failures.
+
+The user confirmed Japanese phone typing/caret behavior; the unsent draft
+survived returning to Auto. The temporary test modal, draft and installed
+diagnostic hook were cleaned up. The user asked to end additional UI polishing
+and preserve native blinking. Accepted eyes/lip sync/UI are no longer calibration
+tasks; broader device/controller qualification stays a release concern.

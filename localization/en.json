@@ -1215,7 +1215,7 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:151",
-        "mod/phone-chat-style.lua:193",
+        "mod/phone-chat-style.lua:212",
         "r6/scripts/CyberpunkConvai/PhoneChat.reds:416",
         "r6/scripts/CyberpunkConvai/PhoneChatTabs.reds:314"
       ]
@@ -1346,7 +1346,7 @@
         "phone.native"
       ],
       "references": [
-        "mod/phone-chat-style.lua:184",
+        "mod/phone-chat-style.lua:195",
         "r6/scripts/CyberpunkConvai/PhoneChatTabs.reds:282"
       ]
     },
@@ -2900,7 +2900,7 @@
         "phone.chat"
       ],
       "references": [
-        "mod/phone-chat-style.lua:268"
+        "mod/phone-chat-style.lua:287"
       ]
     },
     "Previous": {
@@ -3265,7 +3265,7 @@
         "world.composer.native"
       ],
       "references": [
-        "mod/composer-input.lua:103",
+        "mod/composer-input.lua:117",
         "r6/scripts/CyberpunkConvai/Composer.reds:35"
       ]
     },
@@ -3596,9 +3596,9 @@
         "world.conversation"
       ],
       "references": [
-        "mod/composer-input.lua:106",
-        "mod/composer-input.lua:116",
-        "mod/composer-input.lua:138",
+        "mod/composer-input.lua:120",
+        "mod/composer-input.lua:129",
+        "mod/composer-input.lua:151",
         "mod/composer-input.lua:39",
         "r6/scripts/CyberpunkConvai/Composer.reds:36"
       ]
@@ -3860,7 +3860,7 @@
         "phone.chat"
       ],
       "references": [
-        "mod/phone-chat-style.lua:267"
+        "mod/phone-chat-style.lua:286"
       ]
     },
     "YOUR PARTY": {

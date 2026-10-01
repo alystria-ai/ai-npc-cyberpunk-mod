@@ -129,6 +129,7 @@ local function notification(data)
   local n={m_textInput=c,m_message=message}
   function n:GetRootWidget()return root end
   function n:GetChildWidgetByPath(path)
+    if path==CName.new('notification/main/inkVerticalPanelWidget18/message')then return message end
     assert(path==CName.new('notification/main/inkVerticalPanelWidget18/title'));return title
   end
   function n:IsA(class)return class=='GenericMessageNotification'end
@@ -197,6 +198,31 @@ for _,key in ipairs(calls)do assert(key~='Judy {A}' and key~=c.draft)end
 assert(m.lastError==nil,m.lastError)
 `));
 
+test('world message uses its inspected native path when the compiled text ref is private',()=>runLua(setup+`
+enableNativeFonts();language='ja'
+local m=(function()${composer}end)()
+local data={title='TALK TO Judy',message='Type your message to the character.'}
+local n,c,title,message=notification(data);n.m_message=nil
+m.apply(n);m.applyFonts(n)
+assert(message.text==translations.ja[data.message] and message.fontFamily.path==convaiUiFonts.family('ja'))
+assert(data.message=='Type your message to the character.' and c.draft=='Hey Judy, mixed Case 日本語')
+`));
+
+test('unresolved native message path returning the root canvas cannot suppress its actual text child',()=>runLua(setup+`
+enableNativeFonts();language='ja'
+local m=(function()${composer}end)()
+local data={title='TALK TO Judy',message='Type your message to the character.'}
+local n,c,title,message=notification(data);n.m_message=nil
+message:Reparent(n:GetRootWidget())
+function n:GetChildWidgetByPath(path)
+  if path==CName.new('notification/main/inkVerticalPanelWidget18/title')then return title end
+  return self:GetRootWidget()
+end
+m.apply(n);m.applyFonts(n)
+assert(message.text==translations.ja[data.message] and message.fontFamily.path==convaiUiFonts.family('ja'))
+assert(c.draft=='Hey Judy, mixed Case 日本語' and m.lastError==nil,m.lastError)
+`));
+
 test('world localization rejects unrelated notifications and malformed titles before touching native widgets', () => runLua(setup + `
 local m=(function()${composer}end)()
 for _,data in ipairs({{title='Other mod',message='Type your message to the character.'},
@@ -214,9 +240,9 @@ local data={title='TALK TO Johnny Silverhand',message='Type your message to the 
 local n,c,title=notification(data)
 local checked=0
 local unrelated={IsA=function()checked=checked+1;return false end}
-local controllers={n};for i=2,140 do controllers[i]=unrelated end
+local controllers={n};for i=2,540 do controllers[i]=unrelated end
 Game={GetInkSystem=function()return{GetLayers=function()return{{GetGameControllers=function()return controllers end}}end}end}
-m.refresh();assert(title.text=='PARLER À Johnny Silverhand' and checked==127)
+m.refresh();assert(title.text=='PARLER À Johnny Silverhand' and checked==511)
 language='ja';generation=2;m.refresh();assert(title.text=='Johnny Silverhandと話す')
 assert(data.title=='TALK TO Johnny Silverhand' and c.draft=='Hey Judy, mixed Case 日本語')
 `));
@@ -228,6 +254,7 @@ local focus=widget('focus');focus.tint={Red=0,Green=1,Blue=1};focus:Reparent(pan
 local glyph=widget('text');glyph:Reparent(c:GetRootWidget())
 glyph.controller={GetRootWidget=function()return glyph end,IsEmpty=function()return true end}
 m.composer(n)
+m.composerFonts(n)
 assert(c.placeholder==translations.fr['Press Enter to write  /  Esc to stop typing'])
 assert(glyph.tint==focus.tint and glyph.opacity==.75 and not hint.visible)
 c.focused=true;m.input(c)
@@ -262,13 +289,15 @@ local action={m_acceptButtonLabel=widget('acceptLabel')}
 action.m_acceptButtonLabel.text='Native call'
 local hook=observers['PhoneDialerLogicController.RefreshInputHints']
 hook(action,{convaiChat=false});assert(action.m_acceptButtonLabel.text=='Native call')
-hook(action,{convaiChat=true});assert(action.m_acceptButtonLabel.text=='Discuter')
+hook(action,{convaiChat=true});assert(action.m_acceptButtonLabel.text=='Native call')
+m.action(action,{convaiChat=true},true);assert(action.m_acceptButtonLabel.text=='Discuter')
 -- On returning to Contacts, native RefreshInputHints has restored its own label.
 action.m_acceptButtonLabel.text='Native call';hook(action,{convaiChat=false})
 assert(action.m_acceptButtonLabel.text=='Native call')
 local n,_,_,label=popup('judy')
 local pathHook=observers['PhoneMessagePopupGameController.ConvaiChatPath']
-pathHook(n,true);assert(label.text=='DISCUSSION')
+pathHook(n,true);assert(label.text=='CHAT')
+m.path(n,true,true);assert(label.text=='DISCUSSION')
 label.text='Native messages';pathHook(n,false);assert(label.text=='Native messages')
 assert(m.lastError==nil,m.lastError)
 `));
@@ -305,6 +334,22 @@ language='ja';generation=2;m.refresh()
 assert(scans==2 and label.text=='チャット' and hint.text==translations.ja['Type a message first.'])
 assert(c.draft=='Hey Judy, mixed Case 日本語')
 m.refresh();assert(scans==2)
+`));
+
+test('live-shaped phone popup after stock HUD controllers resolves its private breadcrumb from the native tree', () => runLua(setup + `
+enableNativeFonts();language='ja'
+local composerModule=(function()${composer}end)()
+local m=(function()${phone}end)()
+local n,c,hint,breadcrumb=popup('aaron');n.m_messagesPath=nil;c.draft=''
+local visible,shadow=measuredInput(c)
+local unrelated={GetClassName=function()return CName.new('StockHudController')end}
+local controllers={};for i=1,131 do controllers[i]=unrelated end;controllers[132]=n
+Game={GetPlayer=function()return{ConvaiPhoneIsOpen=function()return true end}end,
+  GetInkSystem=function()return{GetLayers=function()return{{GetGameControllers=function()return controllers end}}end}end}
+m.refresh()
+assert(breadcrumb.text=='チャット' and breadcrumb.fontFamily.path==convaiUiFonts.family('ja'))
+assert(visible.fontFamily.path==convaiUiFonts.family('ja') and shadow.fontFamily.path==visible.fontFamily.path)
+assert(c.draft=='' and m.lastError==nil,m.lastError)
 `));
 
 test('staged installs without the locale module retain English and named-character interpolation', () => runLua(setup + `
@@ -487,6 +532,25 @@ assert(label.fontFamily.path==convaiUiFonts.family('ja'))
 m.refresh()
 assert(label.fontFamily.path=='native-original.inkfontfamily' and label.text=='Native call')
 assert(contactName.fontWrites==0 and contactName.text=='Judy')
+`));
+
+test('compiled private accept hint resolves only its observed right-side subtree from top-level presentation',()=>runLua(setup+`
+enableNativeFonts();language='ja'
+local m=(function()${phone}end)();m.install()
+local root=widget('Root');local hints=widget('inputHintsPanel');hints:Reparent(root)
+local left=widget('leftInputHints');left:Reparent(hints)
+local right=widget('rightInputHints');right:Reparent(hints)
+local leftAccept,rightAccept=widget('inputAccept'),widget('inputAccept')
+leftAccept:Reparent(left);rightAccept:Reparent(right)
+local leftLabel,rightLabel=widget('text'),widget('text')
+leftLabel:Reparent(leftAccept);rightLabel:Reparent(rightAccept)
+leftLabel.text='Other native hint';rightLabel.text='CHAT'
+local nested=true
+local controller={GetRootWidget=function()assert(not nested,'Nested native tree lookup');return root end}
+observers['PhoneDialerLogicController.RefreshInputHints'](controller,{convaiChat=true})
+assert(rightLabel.text=='CHAT' and leftLabel.text=='Other native hint')
+nested=false;m.action(controller,{convaiChat=true},true)
+assert(rightLabel.text=='チャットする' and leftLabel.text=='Other native hint')
 `));
 
 test('owned phone fonts repaint from top-level refresh and restore the reused story breadcrumb', () => runLua(setup + `

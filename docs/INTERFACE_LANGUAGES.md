@@ -111,11 +111,35 @@ font key. Fresh empty inputs receive matching visible/measurement fonts before
 measurement. Used or measuring inputs retain their existing family until safe
 recreation. No synthetic SetText, selection reset or draft rewrite is used.
 
-The full production font fix and all ten translated layouts still need their
-final installed visual check. The combined regression suite for that fix passed
+The production font fix is installed. All ten Settings pages were captured and
+inspected, including titles, sidebar labels, descriptions and selection values.
+Japanese rendered before Apply while English remained selected, and reverting
+restored the original choice. The combined regression suite for that fix passed
 **1,432 tests, zero failures/skips**, including the installed MCM API and font,
-draft, lifecycle, input-cache and restoration coverage. Native framework labels may remain in the game
-language as described above.
+draft, lifecycle, input-cache and restoration coverage. Native framework labels
+remain in the game language as described above.
+
+The phone check found its popup at controller index 132, beyond the former scan
+limit. Both input adapters now use a bounded 512-controller allowance. Compiled
+private phone/notification widget references are absent in CET, so inspected
+native subtrees provide the fallback. A notification child lookup can return
+the root canvas for an unresolved path; its type must be checked before calling
+text methods. These cases have 35 focused regression checks.
+
+Japanese phone Chat/breadcrumb/hint text rendered. The user typed a short unsent
+test draft and confirmed the caret stayed correct. Its visible and measurement
+fonts both reported the Japanese family, Regular, 32 points. The draft survived
+restoring Auto/English. An empty world composer showed matching 38-point input
+fonts; its private instruction-label lookup received the additional correction
+above. This is representative native evidence, not every screen size/input
+method combination.
+
+The temporary heading **UI layout check** belonged only to the development
+probe. Its modal was cancelled, the test draft was removed, Auto/English and the
+original voice settings were restored, and the temporary installed diagnostic
+hook/helper were removed. No test dialogue was submitted. On October 1 the user
+asked to stop further UI polishing; preserve the accepted interface and focus
+on remaining gameplay/content work.
 
 The update is Lua-only. Activation needs CET's **Reload All Mods**, with no
 game restart or voice-service restart. Eye contact and accepted facial/movement

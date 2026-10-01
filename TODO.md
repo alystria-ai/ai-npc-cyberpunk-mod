@@ -23,9 +23,13 @@
   restoration and paired Codeware measurement/display fonts. Full source
   suite passes 1,432 checks, zero failures/skips. Native production checks
   are the remaining activation step.
-- [ ] Activate the language update and inspect translated native menus, phone
-  hints and glyphs. Keep framework-owned labels in their own language, preserve
-  the player's drafts/voice choice, and qualify visual coverage separately.
+- [x] Activate the language update and inspect all ten languages in Settings,
+  including unsaved Japanese selection and restoration to Auto. Japanese phone
+  Chat/input glyphs render, the user confirmed normal typing/caret behavior,
+  and the draft survived switching back to English. Voice settings stayed the
+  same. October 1: the user asked to stop further UI polishing; temporary test
+  windows and the diagnostic hook were removed. No more UI tests are planned
+  unless a concrete defect is reported.
 
 ## September 30 — active continuation
 
@@ -226,8 +230,9 @@ See `docs/PLAYER_MEMORY.md` for the current runtime contract.
 - [ ] Live-check Memory's unspawned character picker,
   inline Confirm/Cancel and exact clear feedback. All targets only contacted
   profiles. The player ID remains the same after both clears.
-- [ ] Live-check the wider Convai ARKit mouth-opening correction. Controlled
-  facial/audio tests pass; visible acceptance remains pending.
+- [x] The earlier mouth-opening check is superseded by the user's October 1
+  acceptance of Convai v10 and the corresponding Omni calibration. Keep broader
+  rig qualification under release testing; do not resume accepted lip/gaze work.
 - Native/save/fact identity and explicit memory-seeding/archive experiments
   are superseded. Keep their research as historical evidence, outside production.
 
@@ -418,7 +423,8 @@ This is the running request and verification list. A checked item means the beha
 
 Port the intent to V and Cyberpunk systems; do not assume Dawnwalker APIs, Coen's relationships, or Horde events exist here. Reference archives: `ref mods/DawnwalkerConvai 0.5.5 Scripts*` and `*Multilingual*`. These are requested features, not completed behavior.
 
-- [ ] Blend smiles, blinking and emotion-driven facial reactions with speech and lip sync; avoid competing face animations and restore normal expressions afterward.
+- [x] Preserve the game's native blinking. October 1: the user confirmed she blinks fine and asked to skip custom blinking.
+- [ ] Blend optional smiles and emotion-driven facial reactions with speech and lip sync; avoid competing face animations and restore normal expressions afterward. Leave native blinking and accepted eye contact alone.
 - [x] Preserve accepted native eye contact: subtle side glance/full focused
   look and natural footstep behavior. On October 1 the user explicitly said
   eye contact works fine and declined further work/testing.
@@ -430,14 +436,14 @@ Port the intent to V and Cyberpunk systems; do not assume Dawnwalker APIs, Coen'
   - [x] Installed the selectors in the October 1 Lua update. The separate
     standing/crouching slider comparison is user-deferred; no claim of that
     specific visual check is made.
-- [ ] Optional natural follow-up questions, **default Off** per the user's September 30 correction. In a group, only the final speaker may ask V a follow-up; coordinate turn completion so speakers do not repeatedly reopen the conversation. This is the active task at the top of the file.
+- [x] Optional natural follow-up questions, **default Off** per the user's September 30 correction. The user accepted Judy's private On reply with a relevant question and no name prefix. Only the final group speaker is permitted to ask; wider group listening remains part of release acceptance, not an unfinished settings feature.
 - Loot batches and their independent default-On setting have representative live acceptance. Combined battle/loot, Legendary equipment and storage-silence acceptance remain in the September 30 loot entry. Solo-exploration reactions are explicitly user-deferred pending reliable provenance; do not enable them merely to match the reference.
 - [x] Discuss the active quest and only objectives revealed in the current save. The user accepted Judy's live objective reply, and the trace confirmed refreshed context for **Freedom**. Hidden/completed branch exclusion and conversation routing are covered by the affected checks. See `docs/QUEST_CONTEXT.md`.
 - [x] Battle opening/ending reactions with default-On control. The user confirmed both with Judy; ten-minute cooldown and save-reset behavior have executable coverage. Pending replies wait for autonomous native speech within their original deadline. Combined loot is now implemented with live acceptance still pending in the loot entry; exploration merging remains deferred with its source feature.
 - [ ] Retain recent battle context: observed actor names, enemy types and relevant encounter progress. Adapt Dawnwalker's cleared-Horde-wave context only if Cyberpunk provides an equivalent verified event.
   - Current implementation records only hostile NPCs V looks at within forty metres during combat, capped at twelve entities, with optional verified Human/Android/Drone/Mech types. It retains the latest encounter for fifteen unpaused minutes and distinguishes witnesses from companions receiving reported facts. No kill, victory or wave count is inferred.
 - [ ] Complete cross-feature acceptance for microphone, mixed-provider group speech, broader facial rigs and gentle distance-based volume. Private F6 and three-speaker F8 text/voice/subtitles are already accepted; duplicate copies remain one speaker. F7/F9 live testing is user-deferred.
-- [ ] Ten interface languages with automatic detection and manual selection. Source and dictionaries are complete for English, Simplified Chinese, Traditional Chinese, Spanish, Brazilian Portuguese, French, German, Russian, Japanese and Korean; installed native glyph/layout verification remains. Interface language is independent of conversation voices. See `docs/INTERFACE_LANGUAGES.md`.
+- [x] Ten interface languages with automatic detection and manual selection. All ten Settings pages were inspected in-game; Japanese phone input and caret behavior are verified. Interface language is independent of conversation voices. The user ended further UI polishing on October 1. See `docs/INTERFACE_LANGUAGES.md` for the exact visual coverage and remaining release-wide limits.
 - [ ] Optional multilingual conversation profile pack with separate character IDs and voices supporting 25 languages, including Russian, Spanish, French, Arabic and Japanese. Verify Convai voice capability and preserve the default Kokoro setup.
 - [ ] Optional native overhead subtitles above the current speaker, synchronized with actual speech timing. Keep the regular dialogue HUD as the default; retain complete short sentences and avoid unnecessary fragmentation. Updated to the user's September 30 preference, overriding the original Dawnwalker-derived default.
 - [ ] Per-character relationship profiles: Auto follows verified relationship history in the current save, On selects a romantic profile, Off selects the ordinary profile. Adapt Anca/Lacra behavior to appropriate Cyberpunk companions rather than copying their identities or flags.

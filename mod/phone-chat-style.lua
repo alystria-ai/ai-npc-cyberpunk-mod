@@ -177,18 +177,37 @@ function M.headerFonts(controller)
     if fonts then fonts.apply(label, nil, '') end
 end
 
-function M.action(controller, contact)
-    M.fontDirty = true
-    if not contact or contact.convaiChat ~= true then return end
-    if inkTextRef and controller.m_acceptButtonLabel then
-        inkTextRef.SetText(controller.m_acceptButtonLabel, text('Chat'))
-    end
+local function actionLabel(controller)
+    local reference = controller.m_acceptButtonLabel
+    local label = reference and inkWidgetRef and inkWidgetRef.Get(reference)
+    if label then return label end
+    -- Actual phone fields are private to compiled redscript. Resolve only the
+    -- inspected right-side accept hint; the left hint and list icons are separate.
+    local hints = find(controller:GetRootWidget(), 'inputHintsPanel', 4)
+    local right = find(hints, 'rightInputHints', 1)
+    return find(find(right, 'inputAccept', 1), 'text', 1)
 end
 
-function M.path(controller, chat)
+function M.action(controller, contact, presentation)
     M.fontDirty = true
-    if chat ~= true or not inkWidgetRef or not controller.m_messagesPath then return end
-    local path = inkWidgetRef.Get(controller.m_messagesPath)
+    if not presentation or not contact or contact.convaiChat ~= true then return end
+    local label = actionLabel(controller)
+    if label then label:SetText(text('Chat')) end
+end
+
+local function messagePath(controller)
+    local reference = controller.m_messagesPath
+    local path = reference and inkWidgetRef and inkWidgetRef.Get(reference)
+    -- The compiled phone owns this private field, but CET does not expose it
+    -- on the actual popup. Its named native subtree is stable and was inspected
+    -- in the running 2.31 phone; keep the fallback within this controller.
+    return path or find(controller:GetRootWidget(), 'messagesPath', 8)
+end
+
+function M.path(controller, chat, presentation)
+    M.fontDirty = true
+    if not presentation or chat ~= true then return end
+    local path = messagePath(controller)
     local label = find(path, 'txtValue', 3)
     if label then label:SetText(text('CHAT')) end
 end
@@ -313,9 +332,10 @@ end
 -- Only called by the bounded top-level refresh. Native paint/focus callbacks
 -- above queue the flag; they never traverse or mutate native font resources.
 function M.composerFonts(controller)
-    if not fonts then return end
     local chat = controller:ConvaiChatContact() ~= ''
-    local path = inkWidgetRef and controller.m_messagesPath and inkWidgetRef.Get(controller.m_messagesPath)
+    M.path(controller, chat, true)
+    if not fonts then return end
+    local path = messagePath(controller)
     local label = find(path, 'txtValue', 3)
     if label then
         if chat then fonts.apply(label, nil, '') else fonts.restore(label) end
@@ -338,7 +358,9 @@ function M.refresh(force)
     if M.wasOpen and not force and not M.fontDirty and M.localeRevision == localeRevision then return end
     M.wasOpen, M.localeRevision = true, localeRevision
     if fonts and fonts.begin then fonts.begin() end
-    local remaining = 128
+    -- The stock live HUD placed PhoneMessagePopupGameController at index 132.
+    -- Leave space for those controllers while retaining an overall scan bound.
+    local remaining = 512
     for layerIndex, layer in ipairs(Game.GetInkSystem():GetLayers()) do
         if layerIndex > 24 or remaining == 0 then break end
         for _, controller in ipairs(layer:GetGameControllers()) do
@@ -376,9 +398,9 @@ function M.refresh(force)
                     if logic and NameToString(logic:GetClassName()) == 'PhoneDialerLogicController' then
                         safely(function()
                             local contact = logic:GetSelectedContactData()
-                            M.action(logic, contact)
-                            if fonts and inkWidgetRef and logic.m_acceptButtonLabel then
-                                local label = inkWidgetRef.Get(logic.m_acceptButtonLabel)
+                            M.action(logic, contact, true)
+                            if fonts then
+                                local label = actionLabel(logic)
                                 if label then
                                     if contact and contact.convaiChat == true then fonts.apply(label, nil, '')
                                     else fonts.restore(label) end

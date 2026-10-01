@@ -94,6 +94,20 @@ local function text(source, args)
     end))
 end
 
+local function messageWidget(controller)
+    local widget = controller.m_message and inkWidgetRef and inkWidgetRef.Get(controller.m_message)
+    if widget and widget:IsA('inkTextWidget') then return widget end
+    if controller.GetChildWidgetByPath then
+        -- Like the phone breadcrumb, the real compiled message ref is not
+        -- exposed to CET. This is the inspected native notification path.
+        widget = controller:GetChildWidgetByPath(CName.new('notification/main/inkVerticalPanelWidget18/message'))
+    end
+    -- This getter returns the root canvas for an unresolved child path in CET.
+    -- Validate the resolved type before using it as the message label.
+    if widget and widget:IsA('inkTextWidget') then return widget end
+    return find(controller:GetRootWidget(), 'message', 8, {left=96})
+end
+
 local function localizePresentation(controller, data)
     -- Codeware's own input wrapper uses this exact native title path. Change
     -- rendered text only: the English notification data remains our ownership
@@ -102,9 +116,8 @@ local function localizePresentation(controller, data)
         local title = controller:GetChildWidgetByPath(CName.new('notification/main/inkVerticalPanelWidget18/title'))
         if title then title:SetText(text('TALK TO {character}', {character = data.title:sub(9)})) end
     end
-    if inkTextRef and controller.m_message then
-        inkTextRef.SetText(controller.m_message, text('Type your message to the character.'))
-    end
+    local message = messageWidget(controller)
+    if message then message:SetText(text('Type your message to the character.')) end
 end
 
 function M.apply(controller)
@@ -153,10 +166,8 @@ function M.applyFonts(controller)
         local title = controller:GetChildWidgetByPath(CName.new('notification/main/inkVerticalPanelWidget18/title'))
         if title then fonts.apply(title, nil, '') end
     end
-    if inkWidgetRef and controller.m_message then
-        local hint = inkWidgetRef.Get(controller.m_message)
-        if hint then fonts.apply(hint, nil, '') end
-    end
+    local hint = messageWidget(controller)
+    if hint then fonts.apply(hint, nil, '') end
     local input = controller.m_textInput
     if not input then
         local root = find(controller:GetRootWidget(), 'TextInput', 12, {left = 128})
@@ -172,7 +183,9 @@ function M.refresh()
     local ok, err = pcall(function()
         local system = Game.GetInkSystem()
         if not system then return end
-        local remaining = 128
+        -- Native notification controllers can follow more than 128 stock HUD
+        -- controllers; use the same bounded allowance as the phone adapter.
+        local remaining = 512
         for layerIndex, layer in ipairs(system:GetLayers()) do
             if layerIndex > 24 or remaining == 0 then break end
             for _, controller in ipairs(layer:GetGameControllers()) do
