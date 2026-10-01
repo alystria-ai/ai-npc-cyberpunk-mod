@@ -10,6 +10,14 @@
       "onlyExtension": ".lua",
       "files": [
         {
+          "source": "mod/ui-fonts.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/ui-fonts.lua"
+        },
+        {
+          "source": "mod/mcm-fonts.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/mcm-fonts.lua"
+        },
+        {
           "source": "mod/ui-locale.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/ui-locale.lua"
         },

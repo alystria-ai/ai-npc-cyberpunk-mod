@@ -5,6 +5,7 @@ import fengari from 'fengari';
 
 const phone = readFileSync(new URL('../mod/phone-chat-style.lua', import.meta.url), 'utf8');
 const composer = readFileSync(new URL('../mod/composer-input.lua', import.meta.url), 'utf8');
+const fonts = readFileSync(new URL('../mod/ui-fonts.lua', import.meta.url), 'utf8');
 
 function runLua(program) {
   const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
@@ -42,7 +43,7 @@ local translations = {
     ['{name}: invite queued.']='{name}：招待待機中。',
     ['{name}: dismiss queued.']='{name}：解散待機中。'},
 }
-local ui={revision=function()return generation end}
+local ui={revision=function()return generation end,current=function()return language end}
 function ui.t(source,args)
   calls[#calls+1]=source
   local value=(translations[language] or {})[source] or source
@@ -56,8 +57,13 @@ textLetterCase={OriginalCase=3}
 Vector2={new=function(value)return value end}
 inkMargin={new=function(value)return value end}
 inkEHorizontalAlign={Left=1};inkEVerticalAlign={Top=1}
+local widgetId=0
+local textNames={title=true,message=true,text=true,shadow=true,txtValue=true,
+  convaiPhoneComposerHint=true,convaiActionFeedback=true,acceptLabel=true,label=true,convaiChatTabLabel=true}
 local function widget(name)
-  local w={name=CName.new(name),children={},visible=true,text='',state=CName.new('Default'),tint={Red=1,Green=0,Blue=0}}
+  widgetId=widgetId+1
+  local w={id=widgetId,name=CName.new(name),children={},visible=true,text='',state=CName.new('Default'),tint={Red=1,Green=0,Blue=0},
+    fontText=textNames[name]==true,fontFamily={path='native-original.inkfontfamily',hash='original'},fontStyle=CName.new('Regular'),fontLock=false,fontWrites=0,fontStyleWrites=0,fontSizeWrites=0}
   function w:GetName()return self.name end
   function w:SetName(value)self.name=value end
   function w:GetParentWidget()return self.parent end
@@ -68,6 +74,7 @@ local function widget(name)
     self.parent=parent;parent.children[#parent.children+1]=self
   end
   function w:GetController()return self.controller end
+  function w:IsA(class)return self.fontText and class=='inkTextWidget'end
   function w:GetState()return self.state end
   function w:SetState(value)self.state=value end
   function w:GetText()return self.text end
@@ -82,8 +89,15 @@ local function widget(name)
   function w:SetFitToContent(value)self.fit=value end
   function w:SetHAlign(value)self.hAlign=value end
   function w:SetVAlign(value)self.vAlign=value end
-  function w:SetFontStyle(value)self.fontStyle=value end
-  function w:SetFontSize(value)self.fontSize=value end
+  function w:SetFontStyle(value)self.fontStyle=value;self.fontStyleWrites=self.fontStyleWrites+1 end
+  function w:GetFontStyle()return self.fontStyle end
+  function w:SetFontSize(value)self.fontSize=value;self.fontSizeWrites=self.fontSizeWrites+1 end
+  function w:SetFontFamily(value,style)
+    if self.failFont then error('Setter failed')end
+    self.fontWrites=self.fontWrites+1;self.fontFamily={path=value,hash=value};self.fontStyle=style
+  end
+  function w:GetLockFontInGame()return self.fontLock end
+  function w:SetLockFontInGame(value)self.fontLock=value end
   function w:SetAffectsLayoutWhenHidden(value)self.affectsLayout=value end
   return w
 end
@@ -99,6 +113,7 @@ local function input(owner)
   local root=widget('input');if owner then root:Reparent(owner)end
   local c={focused=false,draft='Hey Judy, mixed Case 日本語',case=1,placeholder=''}
   function c:GetRootWidget()return root end
+  function c:GetText()return self.draft end
   function c:IsFocused()return self.focused end
   function c:SetDefaultText(value)self.placeholder=value end
   function c:GetDefaultText()return self.placeholder end
@@ -131,6 +146,39 @@ local function popup(contact)
   function n:ConvaiChatContact()return self.contact end
   function n:GetClassName()return CName.new('PhoneMessagePopupGameController')end
   return n,c,hint,label,panel
+end
+local function measuredInput(c)
+  local root=c:GetRootWidget()
+  local viewport=widget('viewport');viewport:Reparent(root)
+  local visible=widget('text');visible:Reparent(viewport)
+  visible.controller={GetRootWidget=function()return visible end,IsEmpty=function()return c.draft==''end}
+  local shadow=widget('shadow');shadow:SetVisible(false);shadow:Reparent(root)
+  local measurer={measuring=false,target='',length=0}
+  function measurer:IsMeasuring()return self.measuring end
+  function measurer:GetTargetText()return self.target end
+  function measurer:GetTargetLength()return self.length end
+  shadow.controller=measurer
+  return visible,shadow,measurer
+end
+local function selector()
+  local root,parent=widget('selectorRoot'),widget('tabs');parent:Reparent(root)
+  local messages,contacts,arrow,thread,tab=widget('messagesTab'),widget('callsTab'),widget('arrow'),widget('thread'),widget('convaiChatTab')
+  for _,w in ipairs({messages,contacts,arrow,thread,tab})do w:Reparent(parent)end
+  local base=widget('line');base:Reparent(contacts)
+  local activePanel,active=widget('linePanel'),widget('line');activePanel:Reparent(root);active:Reparent(activePanel)
+  active.tint={Red=0,Green=1,Blue=1}
+  local icon,label=widget('glyph'),widget('label');icon:Reparent(tab);label:Reparent(tab)
+  local c={GetRootWidget=function()return root end,
+    GetClassName=function()return CName.new('PhoneDialerSelectionController')end,
+    ScrollTo=function()error('Localization navigated the phone')end}
+  root.controller=c
+  return root,c,label
+end
+local function enableNativeFonts()
+  convaiUiLocale=ui
+  CalcSeed=function(w)return w.id end
+  ResRef={ToString=function(ref)return ref.path end}
+  convaiUiFonts=(function()${fonts}end)()
 end
 `;
 
@@ -317,6 +365,154 @@ assert(count==0,'Localization bypassed the existing thinking-message filter')
 local hud,row=overrides['PlayerPuppet.ConvaiPhoneFeedback'],overrides['PhoneContactItemVirtualController.ConvaiShowActionFeedback']
 m.install()
 assert(overrides['PlayerPuppet.ConvaiPhoneFeedback']==hud and overrides['PhoneContactItemVirtualController.ConvaiShowActionFeedback']==row)
+`));
+
+test('fresh world input gets paired native fonts only during a queued top-level update', () => runLua(setup + `
+enableNativeFonts();language='ja'
+local m=(function()${composer}end)();m.install()
+local data={title='TALK TO Judy',message='Type your message to the character.'}
+local n,c,title,hint=notification(data);c.draft=''
+local visible,shadow=measuredInput(c)
+local scans=0
+Game={GetInkSystem=function()scans=scans+1;return{GetLayers=function()return{{GetGameControllers=function()return{n}end}}end}end}
+observers['GenericMessageNotification.OnInitialize'](n)
+assert(scans==0 and visible.fontWrites==0 and shadow.fontWrites==0 and title.fontWrites==0)
+m.update()
+local family=convaiUiFonts.family('ja')
+assert(scans==1 and visible.fontFamily.path==family and shadow.fontFamily.path==family)
+assert(title.fontFamily.path==family and hint.fontFamily.path==family)
+assert(c.draft=='' and c.case==textLetterCase.OriginalCase)
+assert(m.fontScope.count()==4 and not m.fontDirty)
+m.update();assert(scans==1,'Idle frame repeated native font traversal')
+-- Changing UI language restores static labels but freezes this input lifetime.
+language='en';generation=2;m.update()
+assert(title.fontFamily.path=='native-original.inkfontfamily' and hint.fontFamily.path=='native-original.inkfontfamily')
+assert(visible.fontFamily.path==family and shadow.fontFamily.path==family)
+assert(m.fontScope.count()==2,'Frozen input font snapshots were pruned')
+`));
+
+test('typed, cached and measuring inputs defer fonts until recreation, even if subsequently emptied', () => runLua(setup + `
+enableNativeFonts();language='ja'
+local m=(function()${composer}end)()
+for _,state in ipairs({'typed','cached','measuring'})do
+  local c=input();local visible,shadow,measure=measuredInput(c)
+  if state~='typed'then c.draft=''end
+  if state=='cached'then measure.target='a';measure.length=1 end
+  if state=='measuring'then measure.measuring=true end
+  assert(not m.fontInput(c,m.fontScope))
+  c.draft='';measure.target='';measure.length=0;measure.measuring=false
+  assert(not m.fontInput(c,m.fontScope),'Used input changed family after being emptied')
+  assert(visible.fontWrites==0 and shadow.fontWrites==0)
+end
+local fresh=input();fresh.draft='';local visible,shadow=measuredInput(fresh)
+assert(m.fontInput(fresh,m.fontScope))
+assert(visible.fontFamily.path==convaiUiFonts.family('ja') and shadow.fontFamily.path==visible.fontFamily.path)
+`));
+
+test('input font preflight and rollback never leave display and measurement families mismatched', () => runLua(setup + `
+enableNativeFonts();language='ja'
+local m=(function()${composer}end)()
+local c=input();c.draft='';local visible,shadow=measuredInput(c)
+shadow.fontFamily.path='not-a-native-font'
+assert(not m.fontInput(c,m.fontScope))
+assert(visible.fontWrites==0 and shadow.fontWrites==0)
+local c2=input();c2.draft='';local visible2,shadow2=measuredInput(c2)
+visible2.failFont=true
+assert(not m.fontInput(c2,m.fontScope))
+assert(visible2.fontFamily.path=='native-original.inkfontfamily' and shadow2.fontFamily.path=='native-original.inkfontfamily')
+assert(c2.draft=='' and shadow2.fontLock==false)
+local c3=input();c3.draft='';local visible3,shadow3=measuredInput(c3)
+shadow3.failFont=true
+assert(not m.fontInput(c3,m.fontScope))
+assert(visible3.fontWrites==0 and visible3.fontFamily.path=='native-original.inkfontfamily')
+assert(shadow3.fontFamily.path=='native-original.inkfontfamily' and c3.draft=='')
+`));
+
+test('Russian input display and measurement share the fallback style and stay frozen across later focus or language changes', () => runLua(setup + `
+enableNativeFonts();language='ru'
+local m=(function()${composer}end)()
+local c=input();c.draft='';local visible,shadow,measure=measuredInput(c)
+assert(m.fontInput(c,m.fontScope))
+assert(visible.fontStyle==CName.new('Semi-Bold') and shadow.fontStyle==visible.fontStyle)
+c.draft='Привет, Judy';measure.target=c.draft;measure.length=12
+local writes=visible.fontWrites+shadow.fontWrites
+language='ja';generation=2
+assert(m.fontInput(c,m.fontScope))
+assert(visible.fontFamily.path==convaiUiFonts.family('ru') and shadow.fontFamily.path==visible.fontFamily.path)
+assert(visible.fontWrites+shadow.fontWrites==writes and c.draft=='Привет, Judy')
+`));
+
+test('Chat tab font resources and fallback style change only in the top-level refresh', () => runLua(setup + `
+enableNativeFonts();language='ru'
+local m=(function()${phone}end)();m.install()
+local root,c,label=selector()
+local host={GetRootWidget=function()return root end,GetClassName=function()return CName.new('NewHudPhoneGameController')end}
+local scans=0
+Game={GetPlayer=function()return{ConvaiPhoneIsOpen=function()return true end}end,
+  GetInkSystem=function()scans=scans+1;return{GetLayers=function()return{{GetGameControllers=function()return{host}end}}end}end}
+observers['PhoneDialerSelectionController.UpdateHightlight'](c,0)
+assert(scans==0 and label.fontWrites==0 and label.fontStyleWrites==0 and label.fontSizeWrites==0)
+m.refresh()
+assert(label.fontFamily.path==convaiUiFonts.family('ru') and label.fontStyle==CName.new('Semi-Bold') and label.fontSize==50)
+local writes=label.fontWrites
+observers['PhoneDialerSelectionController.UpdateHightlight'](c,0)
+assert(label.fontWrites==writes and label.fontStyle==CName.new('Semi-Bold'))
+m.refresh();assert(label.fontWrites==writes,'Highlight repaint repeatedly rebound the native font')
+language='en';generation=2;m.refresh()
+assert(label.fontFamily.path=='native-original.inkfontfamily' and label.fontStyle==CName.new('Regular') and not label.fontLock)
+`));
+
+test('reused Chat action restores the native contact font and styles only the owned queue feedback', () => runLua(setup + `
+enableNativeFonts();language='ja'
+local m=(function()${phone}end)();m.install()
+local root=widget('dialer')
+local label=widget('acceptLabel');label:Reparent(root)
+local feedback=widget('convaiActionFeedback');feedback:Reparent(root)
+local contactName=widget('text');contactName.text='Judy';contactName:Reparent(root)
+local dialer={contact={convaiChat=true},m_acceptButtonLabel=label,
+  GetRootWidget=function()return root end,GetClassName=function()return CName.new('PhoneDialerLogicController')end}
+function dialer:GetSelectedContactData()return self.contact end
+root.controller=dialer
+local host={GetRootWidget=function()return root end,GetClassName=function()return CName.new('NewHudPhoneGameController')end}
+Game={GetPlayer=function()return{ConvaiPhoneIsOpen=function()return true end}end,
+  GetInkSystem=function()return{GetLayers=function()return{{GetGameControllers=function()return{host}end}}end}end}
+observers['PhoneDialerLogicController.RefreshInputHints'](dialer,dialer.contact)
+assert(label.fontWrites==0 and feedback.fontWrites==0)
+m.refresh()
+assert(label.fontFamily.path==convaiUiFonts.family('ja') and feedback.fontFamily.path==convaiUiFonts.family('ja'))
+assert(contactName.fontWrites==0 and contactName.text=='Judy')
+dialer.contact={convaiChat=false};label.text='Native call'
+observers['PhoneDialerLogicController.RefreshInputHints'](dialer,dialer.contact)
+assert(label.fontFamily.path==convaiUiFonts.family('ja'))
+m.refresh()
+assert(label.fontFamily.path=='native-original.inkfontfamily' and label.text=='Native call')
+assert(contactName.fontWrites==0 and contactName.text=='Judy')
+`));
+
+test('owned phone fonts repaint from top-level refresh and restore the reused story breadcrumb', () => runLua(setup + `
+enableNativeFonts();language='ja'
+local composerModule=(function()${composer}end)()
+local m=(function()${phone}end)();m.install()
+local n,c,hint,breadcrumb=popup('judy');c.draft=''
+local visible,shadow=measuredInput(c)
+local story=widget('text');story.text='Native story message';story:Reparent(n:GetRootWidget())
+local scans=0
+Game={GetPlayer=function()return{ConvaiPhoneIsOpen=function()return true end}end,
+  GetInkSystem=function()scans=scans+1;return{GetLayers=function()return{{GetGameControllers=function()return{n}end}}end}end}
+observers['PhoneMessagePopupGameController.ConvaiChatPresent'](n,{},'Message sent. Waiting for reply.')
+assert(scans==0 and visible.fontWrites==0 and shadow.fontWrites==0 and hint.fontWrites==0)
+m.refresh()
+local family=convaiUiFonts.family('ja')
+assert(visible.fontFamily.path==family and shadow.fontFamily.path==family)
+assert(hint.fontFamily.path==family and breadcrumb.fontFamily.path==family)
+assert(story.fontWrites==0 and story.text=='Native story message' and c.draft=='')
+local before=scans;m.refresh();assert(scans==before)
+n.contact='';breadcrumb.text='Native Messages'
+observers['PhoneMessagePopupGameController.ConvaiChatPath'](n,false)
+assert(breadcrumb.fontFamily.path==family,'A nested native callback changed fonts')
+m.refresh()
+assert(breadcrumb.fontFamily.path=='native-original.inkfontfamily' and breadcrumb.text=='Native Messages')
+assert(story.fontWrites==0)
 `));
 
 test('shared HUD errors stay literal even when they collide with authored phone queue text', () => runLua(setup + `

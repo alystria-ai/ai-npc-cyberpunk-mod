@@ -6,6 +6,16 @@ if type(locale) ~= 'table' then
     local ok, loaded = pcall(dofile, 'ui-locale.lua')
     locale = ok and type(loaded) == 'table' and loaded or nil
 end
+local fontLibrary = convaiUiFonts
+if type(fontLibrary) ~= 'table' then
+    local ok, loaded = pcall(dofile, 'ui-fonts.lua')
+    fontLibrary = ok and type(loaded) == 'table' and loaded or nil
+end
+local fonts = M.fontScope
+if not fonts and fontLibrary and type(fontLibrary.new) == 'function' then
+    fonts = fontLibrary.new()
+    M.fontScope, M.fontDirty = fonts, true
+end
 local function text(source, args)
     if locale and type(locale.t) == 'function' then return locale.t(source, args) end
     return (source:gsub('{([%w_]+)}', function(key)
@@ -85,6 +95,7 @@ local function safely(action, ...)
 end
 
 function M.header(controller, index)
+    M.fontDirty = true
     local root = controller:GetRootWidget()
     local tab = find(root, 'convaiChatTab', 8)
     if not tab then return end
@@ -140,8 +151,6 @@ function M.header(controller, index)
     label:SetText(text('CHAT'))
     icon:SetVAlign(inkEVerticalAlign.Top)
     icon:SetMargin(margin(20, 19.5, 0, 0))
-    label:SetFontStyle(CName.new('Regular'))
-    label:SetFontSize(50)
     label:SetVAlign(inkEVerticalAlign.Top)
     label:SetMargin(margin(72, 12, 0, 0))
     line:SetHAlign(inkEHorizontalAlign.Left)
@@ -157,7 +166,19 @@ function M.header(controller, index)
     M.headerPatched = true
 end
 
+-- Typography changes need a top-level update. In particular, setting Regular
+-- during a native highlight callback would invalidate Russian/Traditional
+-- Chinese labels, whose verified families use Semi-Bold instead.
+function M.headerFonts(controller)
+    local label = find(controller:GetRootWidget(), 'convaiChatTabLabel', 8)
+    if not label then return end
+    if not fonts or not fonts.contains(label) then label:SetFontStyle(CName.new('Regular')) end
+    label:SetFontSize(50)
+    if fonts then fonts.apply(label, nil, '') end
+end
+
 function M.action(controller, contact)
+    M.fontDirty = true
     if not contact or contact.convaiChat ~= true then return end
     if inkTextRef and controller.m_acceptButtonLabel then
         inkTextRef.SetText(controller.m_acceptButtonLabel, text('Chat'))
@@ -165,6 +186,7 @@ function M.action(controller, contact)
 end
 
 function M.path(controller, chat)
+    M.fontDirty = true
     if chat ~= true or not inkWidgetRef or not controller.m_messagesPath then return end
     local path = inkWidgetRef.Get(controller.m_messagesPath)
     local label = find(path, 'txtValue', 3)
@@ -240,6 +262,7 @@ function M.input(input)
     -- Check the actual owning tree before changing any placeholder or style.
     local root = input:GetRootWidget()
     if not phoneComposer(root) then return end
+    M.fontDirty = true
     input:SetDefaultText(text(input:IsFocused()
         and 'Write a message...  /  Enter to send  /  Esc to stop typing'
         or 'Press Enter to write  /  Esc to stop typing'))
@@ -248,6 +271,7 @@ function M.input(input)
 end
 
 function M.composer(controller, status)
+    M.fontDirty = true
     local contact = controller:ConvaiChatContact()
     if contact == '' then return end
     local root = controller:GetRootWidget()
@@ -286,21 +310,44 @@ function M.composer(controller, status)
     M.composerPatched = true
 end
 
+-- Only called by the bounded top-level refresh. Native paint/focus callbacks
+-- above queue the flag; they never traverse or mutate native font resources.
+function M.composerFonts(controller)
+    if not fonts then return end
+    local chat = controller:ConvaiChatContact() ~= ''
+    local path = inkWidgetRef and controller.m_messagesPath and inkWidgetRef.Get(controller.m_messagesPath)
+    local label = find(path, 'txtValue', 3)
+    if label then
+        if chat then fonts.apply(label, nil, '') else fonts.restore(label) end
+    end
+    if not chat then return end
+    local panel = find(controller:GetRootWidget(), 'convaiPhoneComposer', 8)
+    if not panel then return end
+    local hint = find(panel, 'convaiPhoneComposerHint', 1)
+    if hint then fonts.apply(hint, nil, '') end
+    local root = find(panel, 'input', 2)
+    if root and convaiComposerInput and type(convaiComposerInput.fontInput) == 'function' then
+        convaiComposerInput.fontInput(root:GetController(), fonts)
+    end
+end
+
 function M.refresh(force)
     local player = Game.GetPlayer()
     if not player or not player:ConvaiPhoneIsOpen() then M.wasOpen = false; return end
     local localeRevision = revision()
-    if M.wasOpen and not force and M.localeRevision == localeRevision then return end
+    if M.wasOpen and not force and not M.fontDirty and M.localeRevision == localeRevision then return end
     M.wasOpen, M.localeRevision = true, localeRevision
+    if fonts and fonts.begin then fonts.begin() end
     local remaining = 128
     for layerIndex, layer in ipairs(Game.GetInkSystem():GetLayers()) do
-        if layerIndex > 24 then break end
+        if layerIndex > 24 or remaining == 0 then break end
         for _, controller in ipairs(layer:GetGameControllers()) do
-            if remaining == 0 then return end
+            if remaining == 0 then break end
             remaining = remaining - 1
             local class = NameToString(controller:GetClassName())
             if class == 'PhoneMessagePopupGameController' then
                 safely(M.composer, controller)
+                safely(M.composerFonts, controller)
                 if force and convaiPhoneChat then
                     safely(function()
                         local contact = controller:ConvaiChatContact()
@@ -318,11 +365,26 @@ function M.refresh(force)
                     if not widget or depth > 13 or widgetsLeft == 0 then return end
                     widgetsLeft = widgetsLeft - 1
                     local logic = widget:GetController()
+                    if fonts and widget:GetName() == CName.new('convaiActionFeedback') then
+                        safely(fonts.apply, widget, nil, '')
+                    end
                     if logic and NameToString(logic:GetClassName()) == 'PhoneDialerSelectionController' then
-                        safely(M.header, logic); return
+                        safely(M.header, logic)
+                        safely(M.headerFonts, logic)
+                        return
                     end
                     if logic and NameToString(logic:GetClassName()) == 'PhoneDialerLogicController' then
-                        safely(function() M.action(logic, logic:GetSelectedContactData()) end)
+                        safely(function()
+                            local contact = logic:GetSelectedContactData()
+                            M.action(logic, contact)
+                            if fonts and inkWidgetRef and logic.m_acceptButtonLabel then
+                                local label = inkWidgetRef.Get(logic.m_acceptButtonLabel)
+                                if label then
+                                    if contact and contact.convaiChat == true then fonts.apply(label, nil, '')
+                                    else fonts.restore(label) end
+                                end
+                            end
+                        end)
                     end
                     local compound, count = pcall(function() return widget:GetNumChildren() end)
                     if compound then for i = 0, count - 1 do visit(widget:GetWidgetByIndex(i), depth + 1) end end
@@ -331,6 +393,8 @@ function M.refresh(force)
             end
         end
     end
+    if fonts and fonts.finish then fonts.finish() end
+    M.fontDirty = false
 end
 
 function M.install(live)
@@ -420,6 +484,7 @@ function M.install(live)
             return wrapped((M.feedbackQueueDepth or 0) > 0 and M.feedback(message) or message)
         end)
         Override('PhoneContactItemVirtualController', 'ConvaiShowActionFeedback', function(_, message, wrapped)
+            M.fontDirty = true
             return wrapped(M.feedback(message))
         end)
         M.feedbackLocaleHooksInstalled = true

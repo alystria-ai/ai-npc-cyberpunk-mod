@@ -1209,8 +1209,9 @@ registerForEvent('onUpdate', function(delta)
     -- menu adapter needs these frames even when delta is zero; followers don't.
     ui.configure(manager.interfaceLanguage())
     local localeChanged = ui.update(tonumber(delta) or 0)
-    if localeChanged and menuPlayer and convaiComposerInput and convaiComposerInput.refresh then
-        pcall(convaiComposerInput.refresh)
+    if menuPlayer and convaiComposerInput then
+        if convaiComposerInput.update then pcall(convaiComposerInput.update)
+        elseif localeChanged and convaiComposerInput.refresh then pcall(convaiComposerInput.refresh) end
     end
     local mcmOk, mcmError = pcall(mcm.update, menuPlayer, worldReady)
     if not mcmOk then log('MCM update failed: ' .. tostring(mcmError)) end

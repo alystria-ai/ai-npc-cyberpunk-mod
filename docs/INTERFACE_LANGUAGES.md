@@ -83,14 +83,39 @@ fallbacks. The final focused suite passed **97 checks**. Native HUD queue
 translation is scoped to the actual queue call, so a similarly worded provider
 error remains literal even after a native exception.
 
-The installed game contains native Chinese, Traditional Chinese, Japanese,
-Korean and Russian font families. MCM and Codeware default to Raj; static font
-inspection cannot establish fallback when the mod language differs from the
-game language. In-game glyphs, text fit and hot-refresh behavior still require
-visual inspection before claiming all ten layouts are qualified. Any necessary
-font adjustment must include Codeware's separate input-measurement text and
-must remain scoped to owned widgets. Native framework labels may remain in the
-game language as described above.
+The first live check found missing Japanese glyphs and blank Chinese labels
+under an English game. MCM/Codeware hard-code Raj; their ordinary rendering does
+not supply the required fallback for our independent manual choice. A bounded
+native experiment changed 91 owned text widgets to the installed Japanese font
+and restored readable labels. This established the cause rather than assuming
+catalog coverage proved rendering.
+
+`ui-fonts.lua` selects the game's existing Chinese, Traditional Chinese,
+Japanese, Korean and Russian families. It keeps supported original weights and
+uses Semi-Bold when a family lacks that weight. Per-surface scopes retain plain
+original family paths, styles, locks and full-width hash strings; no widget
+handles. Restoration uses ink's family/style setter and checks that a later
+independent font change has not replaced the mod's font. A selector's native
+language name uses its own font before Apply.
+
+The live CET wrapper differs from Codeware's redscript declaration. The tested
+getter is `ResRef.ToString(widget.fontFamily)`; passing that wrapper to
+`ResourceAsyncRef.GetPath(script_ref<ResourceAsyncRef>)` fails. Raw property
+assignment restores the resource value but has no explicit renderer invalidation,
+so production restoration uses `SetFontFamily(originalPath, originalStyle)`.
+The [CET conversion source](https://github.com/maximegmd/CyberEngineTweaks/blob/v1.37.1/src/scripting/Scripting.cpp#L848-L895)
+and the actual game probe support this boundary.
+
+Codeware's input uses a separate hidden measurement text and a cache without a
+font key. Fresh empty inputs receive matching visible/measurement fonts before
+measurement. Used or measuring inputs retain their existing family until safe
+recreation. No synthetic SetText, selection reset or draft rewrite is used.
+
+The full production font fix and all ten translated layouts still need their
+final installed visual check. The combined regression suite for that fix passed
+**1,432 tests, zero failures/skips**, including the installed MCM API and font,
+draft, lifecycle, input-cache and restoration coverage. Native framework labels may remain in the game
+language as described above.
 
 The update is Lua-only. Activation needs CET's **Reload All Mods**, with no
 game restart or voice-service restart. Eye contact and accepted facial/movement

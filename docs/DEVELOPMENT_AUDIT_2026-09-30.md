@@ -884,3 +884,19 @@ passed 97. Both manifests explicitly include all runtime dictionaries in the
 Scripts package. Source tests do not qualify native fonts or layout: live glyph
 checks remain. Framework-owned controls retain their framework/game language.
 See `docs/INTERFACE_LANGUAGES.md` for scope, methods and verification limits.
+
+The first actual manual-language check exposed a native-font gap: Japanese
+lost glyphs and Chinese text was blank under the English game. Changing 91
+owned inkTextWidget descendants to the installed Japanese family restored the
+labels. Native script aliases and redscript signatures were insufficient API
+proof: CET's resource wrapper converts directly through `ResRef.ToString`,
+while `ResourceAsyncRef.GetPath(script_ref<...>)` rejects that wrapper.
+
+The resulting font layer snapshots original path/style/lock/hash as plain Lua
+values, selects verified built-in fonts and restores through ink's setter. Its
+MCM coordinator queues ownership events and paints only from top-level update;
+shared descriptions restore on foreign hover, the translated sidebar stays
+owned, selector autonyms render before Apply, and late labels/large-page cleanup
+are bounded. Codeware inputs pair visible/hidden measurement fonts only while
+fresh; used inputs defer until recreation to preserve glyph-cache/caret state.
+Final production installation and native glyph/caret qualification are pending.

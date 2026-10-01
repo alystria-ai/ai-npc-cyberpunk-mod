@@ -18,6 +18,11 @@
   native on-screen language detection, literal-safe named strings and scoped
   phone/composer feedback. All 1,407 combined checks pass, including installed
   MCM and package/development manifests. See `docs/INTERFACE_LANGUAGES.md`.
+- [x] Diagnose the native glyph failure under an English game and implement
+  scoped built-in fonts, selector autonyms before Apply, shared-panel
+  restoration and paired Codeware measurement/display fonts. Full source
+  suite passes 1,432 checks, zero failures/skips. Native production checks
+  are the remaining activation step.
 - [ ] Activate the language update and inspect translated native menus, phone
   hints and glyphs. Keep framework-owned labels in their own language, preserve
   the player's drafts/voice choice, and qualify visual coverage separately.

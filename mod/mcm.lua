@@ -36,6 +36,9 @@ local function active()
     return ok and data and data.activeModKey == MOD_KEY
 end
 
+local fontPresentation = dofile('mcm-fonts.lua').new({ui = ui, active = active,
+    label = function() return ui.t(LABEL) end})
+
 local function controllerKey(controller)
     if not controller then return nil end
     -- Each native callback receives a new CET WeakReference wrapper. Match
@@ -614,6 +617,7 @@ function M.install()
     if hooksInstalled then return end
     hooksInstalled = true
     entry.install()
+    fontPresentation.install()
     -- MCM's stock action banner says "Completed" when a request is accepted.
     -- Preparation may run while paused; actor creation waits for gameplay.
     -- Render the actual queue message
@@ -693,6 +697,9 @@ function M.update(currentPlayer, worldReady)
     -- drafts.changed listener only marks this work pending in its callback.
     voicePreview.update(currentOwner ~= nil and view == 'settings' and presentation.active and active(),
         presentation.controllerKey, function() return manager.snapshot(currentPlayer).settings end)
+    -- This also restores a shared description on foreign hover and keeps only
+    -- our translated sidebar item readable when another mod is selected.
+    fontPresentation.update()
     if not active() then return end
     local styleOk, styleError = pcall(styleCompletedPage)
     if not styleOk then lastError = 'Settings presentation: ' .. tostring(styleError) end
@@ -741,6 +748,7 @@ function M.inspect()
         entryDetails = entry.inspect and entry.inspect() or nil,
         party = queue.list(), feedback = queue.message(), error = lastError,
         voicePreview = voicePreview.inspect(),
+        fonts = fontPresentation.inspect(),
         memory = manager.snapshot(player()).memory}
 end
 
@@ -757,11 +765,14 @@ function M.resetSession()
     memoryActionCommand = nil
     owner, lastSignature, refreshQueued = nil, '', true
     presentation = {active = false, rows = {}}
+    fontPresentation.reset()
     voicePreview.reset()
     entry.reset()
 end
 
 function M.shutdown()
+    -- onShutdown is a top-level CET lifecycle event, not a native ink callback.
+    fontPresentation.restoreNow()
     queue.bind(nil)
     entry.reset()
     voicePreview.shutdown()

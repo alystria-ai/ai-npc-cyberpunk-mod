@@ -13,6 +13,8 @@ const queueSource = readFileSync(new URL('../mod/manager-party.lua', import.meta
 const mcmSource = readFileSync(new URL('../mod/mcm.lua', import.meta.url), 'utf8');
 const entrySource = readFileSync(new URL('../mod/mcm-entry.lua', import.meta.url), 'utf8');
 const voicePreviewSource = readFileSync(new URL('../mod/voice-preview.lua', import.meta.url), 'utf8');
+const fontsSource = readFileSync(new URL('../mod/ui-fonts.lua', import.meta.url), 'utf8');
+const mcmFontsSource = readFileSync(new URL('../mod/mcm-fonts.lua', import.meta.url), 'utf8');
 const frenchUiSource = readFileSync(new URL('../mod/locales/fr.lua', import.meta.url), 'utf8');
 
 function run(code) {
@@ -406,6 +408,8 @@ const mcmFixture = `
   local originalDofile = dofile
   dofile = function(path)
     if path == 'voice-preview.lua' then return (function() ${voicePreviewSource} end)() end
+    if path == 'ui-fonts.lua' then return (function() ${fontsSource} end)() end
+    if path == 'mcm-fonts.lua' then return (function() ${mcmFontsSource} end)() end
     return originalDofile(path)
   end
   manager.configure(api, profiles)
