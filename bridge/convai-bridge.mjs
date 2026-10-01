@@ -11,7 +11,8 @@ import {RealtimeHost} from './realtime-host.mjs';
 import {MicrophoneSession} from './microphone-session.mjs';
 import {randomUUID} from 'node:crypto';
 import {conversationScope} from './group-context.mjs';
-import {conversationContext} from './quest-context.mjs';
+import {conversationContext as baseConversationContext} from './quest-context.mjs';
+import {createIntrinsicConversationContext, loadIntrinsicCharacterContext} from './intrinsic-character-context.mjs';
 import {battleTrigger, reactionLeaseValid} from './battle-context.mjs';
 import {GroupPrefetch, inputIdentity, validatePrefetch, parsePrewarm} from './group-prefetch.mjs';
 import {abortable, throwIfCancelled} from './transport-pool.mjs';
@@ -56,6 +57,8 @@ await mkdir(runtime, {recursive: true});
 
 const knowledgePack = JSON.parse(await readFile(resolve(project, 'characters/world-knowledge.json'), 'utf8'));
 const questCatalog = JSON.parse(await readFile(resolve(project, 'research/cyberpunk/generated/quest-catalog.json'), 'utf8'));
+const intrinsicHistory = await loadIntrinsicCharacterContext(project);
+if (intrinsicHistory.unavailable.length) console.error('[CyberpunkConvai] Optional intrinsic topic packs unavailable:', intrinsicHistory.unavailable.join(', '));
 // One local player ID is shared across all characters and saves. No save facts,
 // branch IDs, manual memory archive or provider-ID pool participates in routing.
 let worldSession = null, knowledgePolling = false, memoryQuiescing = 0;
@@ -122,6 +125,7 @@ const phone = new PhoneChat({
   contextCurrentSync: context => phoneKnowledge.currentSync(context),
   reply: async options => {
     const prepared = await phoneKnowledge.preparedFor(options);
+    preparedInputs.set(prepared.input, prepared);
     if (!await knowledgeRouter.current(prepared)) throw Error('Phone world changed');
     const remote = prepared.remoteConfig || {};
     if (options.characterId !== prepared.guard.characterId
@@ -199,6 +203,9 @@ let metricsWriting = Promise.resolve();
 let connectionMetricsWriting = Promise.resolve();
 
 const preparedInputs = new WeakMap();
+const conversationContext = createIntrinsicConversationContext({baseContext: baseConversationContext,
+  intrinsic: intrinsicHistory, resolveAdmission: input => preparedInputs.get(input),
+  isCurrentSync: prepared => knowledgeRouter.currentSync(prepared)});
 const boundaryFor = input => ({entity: input?.entity,
   worldToken: input?.worldKnowledge?.worldToken || worldSession?.token,
   generation: input?.worldKnowledge?.generation || worldSession?.generation});
@@ -582,6 +589,11 @@ async function quiescePlayerMemory({signal} = {}) {
 async function admitPlayerConversation(prepared, {signal} = {}) {
   throwIfCancelled(signal);
   if (!prepared?.sendAllowed || !await knowledgeRouter.current(prepared)) throw Error('Conversation world changed');
+  // Capture topic/profile/audience before provider work. This is ephemeral
+  // prompt material, never synthetic dialogue or memory seeding. Automatic and
+  // group routes receive no private intrinsic history. F7's unrecognized
+  // [Microphone] placeholder likewise selects no private topic.
+  intrinsicHistory.select(prepared.input, prepared, value => knowledgeRouter.currentSync(value));
   // An actually admitted battle/loot reply can enter natural provider memory.
   // Register its Forget target locally without enabling or seeding anything.
   if (prepared.input.reaction) {

@@ -3,5 +3,26 @@
   "verified": "2026-09-28",
   "reference": "Dawnwalker Anca, Core API model readback; exported source agrees",
   "profileRevision": 5,
-  "profileSource": "research/cyberpunk/dossiers"
+  "profileSource": "research/cyberpunk/dossiers",
+  "nativeIntrinsicProfiles": [
+    "alex",
+    "evelyn-parker",
+    "hanako-arasaka",
+    "jackie-welles",
+    "johnny-silverhand",
+    "judy-alvarez",
+    "kerry-eurodyne",
+    "mama-welles",
+    "misty-olszewski",
+    "mr-hands",
+    "muamar-reyes",
+    "panam-palmer",
+    "regina-jones",
+    "river-ward",
+    "rogue-amendiares",
+    "solomon-reed",
+    "songbird",
+    "takemura",
+    "viktor-vektor"
+  ]
 }

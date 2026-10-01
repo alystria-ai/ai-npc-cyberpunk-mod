@@ -3,6 +3,8 @@ import {resolve, dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
 import {serializeCharacterSamples} from '../../../scripts/character-samples.mjs';
+import {compileIntrinsicCharacterPacks, intrinsicProfileMaterial, adoptedIntrinsicKeys,
+  requireAdoptedIntrinsicPacks, requireAdoptedIntrinsicMaterial} from './intrinsic_character_claims.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = resolve(here, '../../..');
@@ -117,15 +119,20 @@ export function validateResearch({roster, dossiers, maps}) {
   }};
 }
 
-export function buildProfiles(roster, dossiers) {
+export function buildProfiles(roster, dossiers, {intrinsicPacks = [], intrinsicRoot = root, loadIntrinsicArtifact} = {}) {
   const byKey = new Map(dossiers.map(dossier => [dossier.key, dossier]));
+  const intrinsic = new Map(compileIntrinsicCharacterPacks(intrinsicPacks,
+    {roster, root: intrinsicRoot, loadArtifact: loadIntrinsicArtifact})
+    .map(view => [view.key, intrinsicProfileMaterial(view)]));
   return roster.map(old => {
     const dossier = byKey.get(old.key);
     if (!dossier) throw Error(`Missing dossier ${old.key}`);
+    const native = intrinsic.get(old.key);
     const backstory = [dossier.profile.backstory.trim(),
       ...(dossier.knowledge.background.length ? ['ESTABLISHED BACKGROUND\n' + [...new Set(dossier.knowledge.background)].join('\n')] : []),
       ...(dossier.relationships.length ? ['ESTABLISHED RELATIONSHIPS\n'
         + dossier.relationships.map(row => `${row.withKey}: ${row.baseline}`).join('\n')] : []),
+      ...(native?.backstory ? [native.backstory] : []),
       'KNOWLEDGE AND CURRENT SAVE\nUse verified current-save context for decisions and relationship state. '
         + 'Current game state overrides conflicting memories. Summoning a copy establishes no quest outcome, survival, romance or prior meeting. '
         + 'When asked about unknown events, acknowledge the uncertainty. Your background is your own knowledge, not proof that V or the other listeners know your secrets. '
@@ -138,13 +145,17 @@ export function buildProfiles(roster, dossiers) {
         + 'Give only the spoken reply, without prepending your name or a speaker label. '
         + 'No stage directions or markdown. Dialogue samples are original delivery examples, not memories. '
         + 'In a group, only the final scheduled speaker may ask V a follow-up. Never reveal private conversation history to a group.'].join('\n\n');
-    const {sampleDialogue: retiredExamples, speakingRules: retiredStyle, relationships: retiredRelationships, ...preserved} = old;
+    const {sampleDialogue: retiredExamples, speakingRules: retiredStyle, relationships: retiredRelationships,
+      nativeIntrinsic: retiredNative, nativeIntrinsicRevision: retiredNativeRevision, ...preserved} = old;
+    const samples = serializeCharacterSamples(dossier.profile.speakingStyleSampleDialogues, old).split(/\n\s*\n/u);
     return {...preserved, kind: dossier.kind, summary: dossier.profile.backstory.trim(), backstory, speakingStyleDescription,
       // Keep the research transcript in its dossier; the API field is examples
       // of this character's speech only, with no V prompt or speaker prefix.
-      speakingStyleSampleDialogues: serializeCharacterSamples(dossier.profile.speakingStyleSampleDialogues, old),
+      speakingStyleSampleDialogues: serializeCharacterSamples([...new Set([...samples, ...(native?.samples || [])])], old),
       profileRevision: 5, backstoryWords: backstory.split(/\s+/).length,
-      researchRevision: fingerprint(dossier), researchPath: `research/cyberpunk/dossiers/${old.key}.json`,
+      researchRevision: native?.backstory ? fingerprint({dossier, nativeIntrinsicRevision: native.revision}) : fingerprint(dossier),
+      ...(native?.backstory ? {nativeIntrinsicRevision: native.revision, nativeIntrinsic: native.receipt} : {}),
+      researchPath: `research/cyberpunk/dossiers/${old.key}.json`,
       sources: dossier.sources, uncertainty: dossier.uncertainties};
   });
 }
@@ -153,26 +164,48 @@ async function jsonFiles(path) {
   return Promise.all((await readdir(path).catch(() => [])).filter(name => name.endsWith('.json')).sort()
     .map(async name => JSON.parse((await readFile(resolve(path, name), 'utf8')).replace(/^\uFEFF/, ''))));
 }
-export async function buildResearch({applyProfiles = false} = {}) {
+export async function buildResearch({applyProfiles = false, includeIntrinsicClaims = false, intrinsicPacks,
+  loadIntrinsicArtifact, intrinsicRoot = root} = {}) {
   const roster = JSON.parse((await readFile(resolve(root, 'characters/roster.json'), 'utf8')).replace(/^\uFEFF/, ''));
+  const settingsPath = resolve(root, 'characters/profile-settings.json');
+  const settings = JSON.parse((await readFile(settingsPath, 'utf8')).replace(/^\uFEFF/, ''));
+  const adopted = adoptedIntrinsicKeys(settings, roster);
+  if (intrinsicPacks === undefined) {
+    // Explicit first adoption can include the reviewed folder. Subsequent
+    // ordinary profile builds require exactly the persisted adoption set, even
+    // when the native cache is absent. Never silently shrink an adopted persona.
+    intrinsicPacks = includeIntrinsicClaims ? await jsonFiles(resolve(folder, 'native-character-claims'))
+      : await Promise.all(adopted.map(key => readFile(resolve(folder, 'native-character-claims', key + '.json'), 'utf8')
+        .then(raw => JSON.parse(raw.replace(/^\uFEFF/, '')))
+        .catch(cause => { throw Error(`Adopted intrinsic history ${key} cannot be loaded; restore its source pack and evidence before rebuilding.`, {cause}); })));
+  }
+  requireAdoptedIntrinsicPacks(adopted, intrinsicPacks);
   const dossiers = await jsonFiles(resolve(folder, 'dossiers'));
   const maps = await jsonFiles(resolve(folder, 'quest-maps'));
   const result = validateResearch({roster, dossiers, maps});
+  // Resolve required native history before any generated outputs are replaced.
+  // Explicit opt-in and persisted adoption both reject stale/missing evidence.
+  const profiles = result.errors.length ? [] : buildProfiles(roster, dossiers,
+    {intrinsicPacks, loadIntrinsicArtifact, intrinsicRoot});
+  if (!result.errors.length) requireAdoptedIntrinsicMaterial(adopted, profiles, roster);
+  const nativeIntrinsic = profiles.filter(profile => profile.nativeIntrinsic).map(profile => profile.nativeIntrinsic);
   const generated = resolve(folder, 'generated'); await mkdir(generated, {recursive: true});
-  const report = {version: 1, builtAt: new Date().toISOString(), ...result.coverage, errors: result.errors, warnings: result.warnings};
+  const report = {version: 1, builtAt: new Date().toISOString(), ...result.coverage, errors: result.errors,
+    warnings: result.warnings, nativeIntrinsic};
   await writeFile(resolve(generated, 'coverage.json'), JSON.stringify(report, null, 2) + '\n');
   await writeFile(resolve(generated, 'quest-catalog.json'), JSON.stringify({version: 1, quests: [...result.quests.values()]}, null, 2) + '\n');
   if (result.errors.length) { console.log(JSON.stringify(report, null, 2)); process.exitCode = 1; return report; }
-  const profiles = buildProfiles(roster, dossiers);
   await writeFile(resolve(generated, 'profile-plan.json'), JSON.stringify(profiles, null, 2) + '\n');
   console.log(JSON.stringify({profiles: profiles.length, ...result.coverage, warnings: result.warnings}, null, 2));
   if (applyProfiles) {
     const backup = resolve(root, 'runtime/research-profile-backups'); await mkdir(backup, {recursive: true});
     await writeFile(resolve(backup, Date.now() + '-roster.json'), JSON.stringify(roster, null, 2) + '\n');
+    const adoptedKeys = [...new Set([...adopted, ...nativeIntrinsic.map(profile => profile.key)])].sort();
+    await writeFile(settingsPath, JSON.stringify({...settings, profileRevision: 5,
+      profileSource: 'research/cyberpunk/dossiers', ...(adoptedKeys.length ? {nativeIntrinsicProfiles: adoptedKeys} : {})}, null, 2) + '\n');
+    // Persist the required source set before replacing the adopted persona.
+    // The previous roster's receipt is also a recovery witness on later builds.
     await writeFile(resolve(root, 'characters/roster.json'), JSON.stringify(profiles, null, 2) + '\n');
-    const settingsPath = resolve(root, 'characters/profile-settings.json');
-    const settings = JSON.parse(await readFile(settingsPath, 'utf8'));
-    await writeFile(settingsPath, JSON.stringify({...settings, profileRevision: 5, profileSource: 'research/cyberpunk/dossiers'}, null, 2) + '\n');
     await mkdir(resolve(root, 'characters/profile-text'), {recursive: true});
     for (const profile of profiles) await writeFile(resolve(root, 'characters/profile-text', profile.key + '.txt'), [
       'BACKSTORY (backstory)', profile.backstory,
@@ -183,6 +216,7 @@ export async function buildResearch({applyProfiles = false} = {}) {
       profiles: profiles.length, named: dossiers.filter(row => row.kind === 'named').length,
       ambient: dossiers.filter(row => row.kind === 'ambient').length,
       profileRevision: 5, model: settings.model, source: 'research/cyberpunk/dossiers',
+      nativeIntrinsic,
       sampleDialogueFormat: 'spoken utterances only; no speaker labels or player prompts',
       apiFields: ['backstory', 'speaking_style_description', 'speaking_style_sample_dialogues'],
       characters: profiles.map(profile => ({key: profile.key, words: profile.backstoryWords,
@@ -193,4 +227,5 @@ export async function buildResearch({applyProfiles = false} = {}) {
   }
   return report;
 }
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) await buildResearch({applyProfiles: process.argv.includes('--apply-profiles')});
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) await buildResearch({
+  applyProfiles: process.argv.includes('--apply-profiles'), includeIntrinsicClaims: process.argv.includes('--intrinsic-claims')});

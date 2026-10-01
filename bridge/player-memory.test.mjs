@@ -6,6 +6,7 @@ import {join} from 'node:path';
 import {randomUUID} from 'node:crypto';
 import {runInNewContext} from 'node:vm';
 import {PlayerMemory, PlayerMemoryError} from './player-memory.mjs';
+import {IntrinsicCharacterContext} from './intrinsic-character-context.mjs';
 
 const ids = Object.freeze({judy: 'owned-judy', panam: 'owned-panam', johnny: 'owned-johnny'});
 const deferred = () => { let resolve, reject; const promise = new Promise((yes, no) => { resolve = yes; reject = no; }); return {promise, resolve, reject}; };
@@ -114,6 +115,7 @@ test('a real automatic conversation after invitation becomes a Forget-all target
   const prepared = {sendAllowed: true, route: {profileKey: 'judy', channel: 'private', transport: 'private'},
     guard: invited.guard, input: {requestId: 'fixture-loot-reaction', reaction: {kind: 'loot'}}};
   const admit = runInNewContext('(' + body + ')', {playerMemory: memory, knowledgeRouter: {current: async () => true},
+    intrinsicHistory: new IntrinsicCharacterContext([]),
     throwIfCancelled: signal => { if (signal?.aborted) throw Error('Cancelled'); }});
   await admit(prepared);
   assert.deepEqual(memory.status().characters.map(row => row.profileKey), ['judy']);

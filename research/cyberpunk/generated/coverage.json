@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "builtAt": "2026-10-01T09:20:54.229Z",
+  "builtAt": "2026-10-01T12:07:06.522Z",
   "profilesExpected": 79,
   "profilesAuthored": 79,
   "profilesMissing": [],
@@ -13,5 +13,589 @@
   },
   "nativeMappingComplete": false,
   "errors": [],
-  "warnings": []
+  "warnings": [],
+  "nativeIntrinsic": [
+    {
+      "key": "alex",
+      "claimIds": [
+        "alex.identity.alena-xenakis",
+        "alex.skills.metanthropic-specialist",
+        "alex.origin.los-angeles",
+        "alex.history.braindance-discovery",
+        "alex.history.reed-protege",
+        "alex.history.domestic-and-foreign-ops",
+        "alex.history.unification-war-posting",
+        "alex.history.long-cover",
+        "alex.skills.local-arms-and-tech-network",
+        "alex.motivation.escape-and-purpose",
+        "alex.aspiration.riviera",
+        "alex.aspiration.performer",
+        "alex.taste.musicals",
+        "alex.taste.dancing",
+        "alex.aspiration.honest-make-believe",
+        "alex.values.acting-craft",
+        "alex.taste.tragic-role"
+      ],
+      "sampleIds": [
+        "acting-instead",
+        "musicals",
+        "dance",
+        "riviera",
+        "front",
+        "specialist",
+        "dream-role",
+        "long-assignment"
+      ],
+      "sourceContentSha256": "da87d0c66799f3ed34d61a6e04221f49f125b931fbb8be0e7ea72337b3e98d51",
+      "referencesVerified": 635,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "evelyn-parker",
+      "claimIds": [
+        "identity.curated-appearance",
+        "craft.charm-and-bargaining",
+        "craft.observing-colleagues",
+        "craft.discretion",
+        "craft.professional-standards",
+        "craft.braindance-analysis",
+        "taste.fresh-food",
+        "opinion.fixers",
+        "values.risk-and-determination",
+        "cadence.controlled-teasing",
+        "opinion.control-illusion"
+      ],
+      "sampleIds": [
+        "sample.professional",
+        "sample.private",
+        "sample.bargain",
+        "sample.fixers",
+        "sample.control",
+        "sample.bd",
+        "sample.food",
+        "sample.teasing"
+      ],
+      "sourceContentSha256": "9ae251ccd9efb723b86a7e27ea625d3328d44a5d2119c6c63a5b7cac07e13dd5",
+      "referencesVerified": 742,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "hanako-arasaka",
+      "claimIds": [
+        "identity.family",
+        "duty.family-heart",
+        "values.place-and-agency",
+        "values.symbols",
+        "cadence.hospitality",
+        "cadence.precise-and-brief",
+        "public.privacy",
+        "public.protected-upbringing",
+        "public.net-access",
+        "public.brother-return",
+        "public.biographer-reserve"
+      ],
+      "sampleIds": [
+        "sample.family",
+        "sample.role",
+        "sample.discretion",
+        "sample.rumor",
+        "sample.courtesy",
+        "sample.symbols",
+        "sample.net",
+        "sample.boundary"
+      ],
+      "sourceContentSha256": "b76e0bbfb7b2dbc3d3f803e592568d44c0758cb040f0db85bceeeaed3d34507a",
+      "referencesVerified": 478,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "jackie-welles",
+      "claimIds": [
+        "identity.heywood-mama",
+        "history.valentinos-mercwork",
+        "aspiration.afterlife-money",
+        "history.valentinos-honor",
+        "relationship.misty-understanding",
+        "interests.weights-meditation",
+        "interests.boxing-viktor",
+        "craft.bikes-early",
+        "interests.tequila-reserve",
+        "taste.food-mama",
+        "taste.personal-drink",
+        "temperament.swagger-humor",
+        "temperament.affection-without-analysis",
+        "temperament.money-and-risk",
+        "judgment.street-business",
+        "judgment.practical-questions",
+        "aspiration.legend-risk-blindspot",
+        "relationship.tbug-working-crew"
+      ],
+      "sampleIds": [
+        "appetite",
+        "fair-cut",
+        "self-confidence",
+        "misty",
+        "dangerous-secret",
+        "plan-question",
+        "gang-rules",
+        "ambition",
+        "fixer-business",
+        "quiet-lifting"
+      ],
+      "sourceContentSha256": "073c7db92c5cc631c6ca0b6c62975894647ec48176b624def065bfeef88a6002",
+      "referencesVerified": 903,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "johnny-silverhand",
+      "claimIds": [
+        "johnny.identity.personality-construct",
+        "johnny.music.samurai-frontman",
+        "johnny.service.corporate-army",
+        "johnny.service.mexico-disillusionment",
+        "johnny.music.hands-on-instruments",
+        "johnny.music.old-singles",
+        "johnny.music.kerry-titles",
+        "johnny.music.kerry-independence",
+        "johnny.friends.denny-respect",
+        "johnny.friends.henry-distrust",
+        "johnny.friends.nancy-organizes",
+        "johnny.friends.santiago-backs-rogue"
+      ],
+      "sampleIds": [
+        "war-open",
+        "war-short",
+        "music-craft",
+        "music-title",
+        "nancy-practical",
+        "denny-respect"
+      ],
+      "sourceContentSha256": "5595590d7a6eb007db5056fe3a31dcdfd6f75eb67d60a39700a09c306d651de4",
+      "referencesVerified": 330,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "judy-alvarez",
+      "claimIds": [
+        "judy.craft.editor-and-techie",
+        "judy.values.independent-work",
+        "judy.values.mox-and-injustice",
+        "judy.craft.sensory-calibration",
+        "judy.craft.custom-hardware",
+        "judy.craft.raw-versus-ready-made",
+        "judy.craft.attention-and-editing",
+        "judy.art.emotional-medium",
+        "judy.delivery.dry-interruption",
+        "judy.boundaries.additional-access",
+        "judy.care.practical-reassurance",
+        "judy.history.laguna-bend",
+        "judy.history.grandfather-craft",
+        "judy.history.childhood-games",
+        "judy.taste.childhood-burgers",
+        "judy.family.oregon-visits",
+        "judy.humor.junk-treasure",
+        "judy.curiosity.church-acoustics"
+      ],
+      "sampleIds": [
+        "craft-first",
+        "art-beat",
+        "access-boundary",
+        "sensory-calibration",
+        "ordinary-memory",
+        "grandfather",
+        "food-memory",
+        "independence"
+      ],
+      "sourceContentSha256": "3360675bcb11aa44f2dbd572b6458bb2b36ddb6091bb3700cf3b05aeeb5e4aee",
+      "referencesVerified": 978,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "kerry-eurodyne",
+      "claimIds": [
+        "kerry-eurodyne.identity.rocker-musician",
+        "kerry-eurodyne.music.samurai-and-solo",
+        "kerry-eurodyne.identity.filipino-roots",
+        "kerry-eurodyne.place.night-city-muse",
+        "kerry-eurodyne.privacy.public-and-personal",
+        "kerry-eurodyne.music.early-gigs",
+        "kerry-eurodyne.craft.instrument-priorities",
+        "kerry-eurodyne.place.caliente-history",
+        "kerry-eurodyne.taste.coffee",
+        "kerry-eurodyne.work.label",
+        "kerry-eurodyne.work.song-rights-and-self",
+        "kerry-eurodyne.music.ambition-and-doubt",
+        "kerry-eurodyne.music.craft-over-image",
+        "kerry-eurodyne.delivery.irreverence-and-care"
+      ],
+      "sampleIds": [
+        "solo-identity",
+        "early-band",
+        "city-muse",
+        "coffee-detail",
+        "commercial-tension",
+        "private-family",
+        "craft-first"
+      ],
+      "sourceContentSha256": "adeb1c89e3ac0a74ec4fffaecba32ca49f806277435c9998fa9e9ab350733ff7",
+      "referencesVerified": 623,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "mama-welles",
+      "claimIds": [
+        "identity.guadalupe",
+        "values.listening-and-food",
+        "values.protective-mother",
+        "standing.heywood-respect",
+        "standing.padres-assessment",
+        "family.jackies-mother",
+        "opinion.youth-and-gangs",
+        "history.jackie-boyhood",
+        "temperament.affection-and-authority"
+      ],
+      "sampleIds": [
+        "original.01",
+        "original.02",
+        "original.03",
+        "original.04",
+        "original.05",
+        "original.06",
+        "original.07",
+        "original.08"
+      ],
+      "sourceContentSha256": "a8da578ffe49e2837ce04fadd81a8b4a615d7d79c4435053a25de81ed10d54b4",
+      "referencesVerified": 268,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "misty-olszewski",
+      "claimIds": [
+        "work.esoterica",
+        "craft.spiritual-materials",
+        "relationship.viktor-help",
+        "history.nepal-return",
+        "history.heywood-streets",
+        "relationship.jackie",
+        "craft.tarot-reflection",
+        "belief.reading-fallible",
+        "belief.meditation-gentle",
+        "humor.dry-human",
+        "values.personal-space",
+        "taste.no-meat"
+      ],
+      "sampleIds": [
+        "original.01",
+        "original.02",
+        "original.03",
+        "original.04",
+        "original.05",
+        "original.06",
+        "original.07",
+        "original.08"
+      ],
+      "sourceContentSha256": "67cfa7bc854c707b2d33c440c99e6fd61c6990cc1c8d721514dfe8a4b4449e41",
+      "referencesVerified": 632,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "mr-hands",
+      "claimIds": [
+        "profession.pacifica-fixer",
+        "temperament.calculating",
+        "taste.own-tea-blend",
+        "standards.professionalism",
+        "business.reciprocal-leverage",
+        "business.discretion",
+        "judgment.political-risk",
+        "strategy.indirect-pressure",
+        "humor.polished-indelicate",
+        "presentation.assured-reputation"
+      ],
+      "sampleIds": [
+        "purpose",
+        "discretion",
+        "reciprocity",
+        "tea",
+        "professionalism",
+        "patience",
+        "politics",
+        "boundary"
+      ],
+      "sourceContentSha256": "fee0dce959ac5dc0e80a079d335902de292ab67d099798b832b4311c84cdbf25",
+      "referencesVerified": 264,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "muamar-reyes",
+      "claimIds": [
+        "identity.el-capitan",
+        "history.former-corpo",
+        "history.zero-sum-corporate-world",
+        "profession.working-class-clientele",
+        "business.solidarity-limits",
+        "identity.district-pride",
+        "politics.people-first-rhetoric",
+        "temperament.defensive-corporate-past",
+        "presentation.honest-work",
+        "profession.vehicle-trade",
+        "humor.evasive-vehicle-origin",
+        "temperament.business-contradiction"
+      ],
+      "sampleIds": [
+        "district",
+        "past",
+        "sore-point",
+        "limits",
+        "solidarity",
+        "wheels",
+        "trust",
+        "work"
+      ],
+      "sourceContentSha256": "4091ec852b6fc01faf586af5a2b53a9eacf9e814112dfe3cf3243e5fd8bdd514",
+      "referencesVerified": 294,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "panam-palmer",
+      "claimIds": [
+        "panam.identity.nomad-background",
+        "panam.history.city-mercwork",
+        "panam.friends.mitch-scorpion",
+        "panam.history.california-move",
+        "panam.family.disagreements",
+        "panam.history.road-life",
+        "panam.values.corporate-bargains",
+        "panam.temperament.self-reliance",
+        "panam.boundaries.unwanted-topics",
+        "panam.craft.practical-repair",
+        "panam.humor.familiar-needling",
+        "panam.humor.mock-review",
+        "panam.humor.understatement",
+        "panam.delivery.precise-instructions",
+        "panam.values.government-leverage"
+      ],
+      "sampleIds": [
+        "plan-first",
+        "family-argument",
+        "road-memory",
+        "professional-boundary",
+        "corporate-deal",
+        "familiar-joke",
+        "simple-fix",
+        "favors"
+      ],
+      "sourceContentSha256": "0278d2affc7ad4f1ee32aee54196b515ab2420579609823e618dc4139e56ef04",
+      "referencesVerified": 535,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "regina-jones",
+      "claimIds": [
+        "identity.watson-heritage",
+        "history.independent-reporter",
+        "history.media-consolidation",
+        "profession.contact-network",
+        "temperament.street-fighter",
+        "philosophy.information-weapon",
+        "knowledge.watson-detail",
+        "humor.dry-perceptiveness",
+        "profession.intel-collector",
+        "ethics.nonlethal-preference",
+        "judgment.experimental-caution",
+        "interests.investigative-cyberpsychosis"
+      ],
+      "sampleIds": [
+        "former-media",
+        "source-check",
+        "patronizing",
+        "watson",
+        "nonlethal",
+        "uncertainty",
+        "contacts",
+        "journalism"
+      ],
+      "sourceContentSha256": "97a2b0c2953bc0aa2e18cc484d5f2697705f69f86791408d5abf1cdc7ec516a2",
+      "referencesVerified": 291,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "river-ward",
+      "claimIds": [
+        "river-ward.work.detective-background",
+        "river-ward.work.moral-pressure",
+        "river-ward.work.persistence",
+        "river-ward.family.joss-sister",
+        "river-ward.family.time-and-work",
+        "river-ward.craft.cooks-jambalaya",
+        "river-ward.craft.cooking-process",
+        "river-ward.place.livable-neighborhood",
+        "river-ward.place.city-view",
+        "river-ward.delivery.dry-humor"
+      ],
+      "sampleIds": [
+        "badge-short",
+        "family-time",
+        "food-practical",
+        "neighborhood",
+        "quiet-view",
+        "short-boundary"
+      ],
+      "sourceContentSha256": "6398423cc668e5a4e1680ad9fed87e60603bda330e8d851f0599599f5c597ee4",
+      "referencesVerified": 554,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "rogue-amendiares",
+      "claimIds": [
+        "rogue-amendiares.identity.mercenary-past",
+        "rogue-amendiares.work.afterlife-network",
+        "rogue-amendiares.work.price-and-terms",
+        "rogue-amendiares.work.operational-risk",
+        "rogue-amendiares.work.local-expertise",
+        "rogue-amendiares.work.opportunity-and-people",
+        "rogue-amendiares.work.useful-information",
+        "rogue-amendiares.work.intelligence-with-help",
+        "rogue-amendiares.delivery.plain-and-impatient",
+        "rogue-amendiares.work.autonomy",
+        "rogue-amendiares.history.earlier-discretion",
+        "rogue-amendiares.history.earlier-team-risk"
+      ],
+      "sampleIds": [
+        "business-point",
+        "firepower-check",
+        "local-person",
+        "people-value",
+        "privacy-boundary",
+        "professional-history",
+        "own-call"
+      ],
+      "sourceContentSha256": "03de8f8fd21e3cceb46925f08e4bae744d93a6175270b62add7b93136af08f97",
+      "referencesVerified": 768,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "solomon-reed",
+      "claimIds": [
+        "reed.identity.fia-sleeper",
+        "reed.motivation.service-before-fame",
+        "reed.skills.protective-operations",
+        "reed.skills.hostage-negotiation",
+        "reed.skills.coercive-work",
+        "reed.history.south-american-coups",
+        "reed.history.night-city-network",
+        "reed.history.cell-disbanded",
+        "reed.history.long-inactivity",
+        "reed.history.handler",
+        "reed.history.ordered-to-ground",
+        "reed.personal.survival"
+      ],
+      "sampleIds": [
+        "service-question",
+        "dirty-work",
+        "practical-negotiation",
+        "waiting",
+        "network",
+        "cover-disagreement",
+        "medals",
+        "survival"
+      ],
+      "sourceContentSha256": "d669290fe40cd4d7e93e58ad17fff6f2a47aa843e932cb5027e6f77ac8a6dfcc",
+      "referencesVerified": 369,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "songbird",
+      "claimIds": [
+        "songbird.identity.song-so-mi",
+        "songbird.skills.freelance-netrunner",
+        "songbird.skills.datafort-confidence",
+        "songbird.history.solo-work",
+        "songbird.personal.gear-and-fun",
+        "songbird.history.service-oath",
+        "songbird.skills.prototype-access",
+        "songbird.history.orders-and-teamwork",
+        "songbird.skills.covert-digital-support",
+        "songbird.expertise.blackwall-proximity",
+        "songbird.origin.brooklyn",
+        "songbird.memory.neighborhood-thursday",
+        "songbird.history.night-city-posting"
+      ],
+      "sampleIds": [
+        "identity-name",
+        "early-work",
+        "equipment",
+        "team-habit",
+        "brooklyn-detail",
+        "thursday",
+        "old-assignment",
+        "technology-boundary"
+      ],
+      "sourceContentSha256": "3d7a5b3cd7bceae713e288646b6829ecbdb2fc84f3513c5f90e3a411944ff262",
+      "referencesVerified": 377,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "takemura",
+      "claimIds": [
+        "history.chiba-childhood",
+        "history.canal-shirts",
+        "history.child-recruitment",
+        "history.lottery-and-education",
+        "craft.academy-special-forces",
+        "history.saburo-selection",
+        "values.principles",
+        "values.corporate-order",
+        "culture.grandmother-folklore",
+        "taste.onigiri",
+        "taste.processed-food",
+        "craft.patient-observation",
+        "craft.local-limits",
+        "cadence.formal-with-dry-humor"
+      ],
+      "sampleIds": [
+        "sample.food",
+        "sample.cooking",
+        "sample.past",
+        "sample.service",
+        "sample.principles",
+        "sample.observe",
+        "sample.unknown",
+        "sample.folklore"
+      ],
+      "sourceContentSha256": "daafe0d98d314b6808f7e2692a4ed00cdc6cc11c2d589f6958a0acfaeb729d7d",
+      "referencesVerified": 904,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "viktor-vektor",
+      "claimIds": [
+        "work.no-nonsense-clinic",
+        "values.devils-principles",
+        "history.left-status-race",
+        "values.fewer-illusions",
+        "relationship.misty-shop",
+        "interests.boxing-watcher",
+        "opinion.chrome-in-boxing",
+        "history.jackie-sparring",
+        "craft.technical-plain-language",
+        "craft.patient-feedback",
+        "temperament.blunt-humor",
+        "limits.not-all-knowing"
+      ],
+      "sampleIds": [
+        "original.01",
+        "original.02",
+        "original.03",
+        "original.04",
+        "original.05",
+        "original.06",
+        "original.07",
+        "original.08"
+      ],
+      "sourceContentSha256": "2dbef920f7548b0b704e36c1793ff7c3a522daee3535c2d14c83f1b9e6cf1bf9",
+      "referencesVerified": 530,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    }
+  ]
 }

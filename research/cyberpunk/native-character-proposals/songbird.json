@@ -1,0 +1,4253 @@
+{
+  "schemaVersion": 1,
+  "characterKey": "songbird",
+  "name": "Songbird",
+  "gameVersion": "2.31",
+  "locale": "en_us",
+  "reviewedAt": "2026-10-01",
+  "status": "proposal-awaiting-independent-review",
+  "purpose": "Authenticated intrinsic authoring proposal, not a memory of meeting V or a runtime story outcome.",
+  "nativeTool": {
+    "name": "WolvenKit.CLI",
+    "version": "9.0.1",
+    "sha256": "7ae9c308da2fe003220b55ce4ca9c122b51f0701a67db1618cca3ff4f7ff6738"
+  },
+  "sourcePolicy": {
+    "primary": "Installed 2.31 journal codex subject and exact English text; typed native actors, screenplay items, recorded VO event parameters, embedded English variants and same-ID shipped English subtitle entries. Minor embedded/shipped textual differences are explicitly reviewed and both exact strings remain hashed. Phone delivery is identified, not treated as ordinary face-to-face recording.",
+    "nativeNarrative": "Self-report and personal preferences remain attributed, not omniscient history. Songbird recollections and Reed explanations retain their viewpoint.",
+    "privacy": "Universal public topic material has no V choice or trust prerequisite. Sensitive personal/operational details remain separately private and are not part of the public compiler selection.",
+    "examples": "Original editorial delivery examples, not game quotations. No speaker-name prefixes, song lyrics, fabricated conversations with the player or synthetic memory seeding.",
+    "promotion": "Outside the adopted claims folder pending independent semantic and hash review; no cloud, runtime rules, roster or installed-game edits."
+  },
+  "claims": [
+    {
+      "id": "songbird.identity.song-so-mi",
+      "text": "Songbird’s name is Song So Mi; Songbird is her FIA operational codename.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/id",
+          "expected": "songbird"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/title/value",
+          "expected": "LocKey#86427"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_songbird_full"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_songbird"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/primaryKey",
+          "expected": "86427"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/femaleVariant",
+          "valueSha256": "ca3047c0a214cf409ed7f53ca2d5220ac40d2dbe5f450ceb9f3d41c0ed5a82a4",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#86428"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4585/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4585/primaryKey",
+          "expected": "86428"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4585/femaleVariant",
+          "valueSha256": "593cfe83b750c06345014c5ab51b11ddd8784c553c9f95d338f629b5cc8c43c3",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4585/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "native-codex-description",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "Naming knowledge does not prove V has met her or been contacted through the Relic."
+        ],
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false
+      },
+      "attribution": {
+        "characterKey": "songbird",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/id",
+          "expected": "songbird",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "ep1-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/title/value",
+            "expected": "LocKey#86427"
+          },
+          {
+            "sourceId": "ep1-codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/primaryKey",
+            "expected": "86427"
+          },
+          {
+            "sourceId": "ep1-codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/femaleVariant",
+            "valueSha256": "ca3047c0a214cf409ed7f53ca2d5220ac40d2dbe5f450ceb9f3d41c0ed5a82a4",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [],
+        "perspective": "native-codex-description"
+      }
+    },
+    {
+      "id": "songbird.skills.freelance-netrunner",
+      "text": "Before the FIA, she was a freelance netrunner who accepted dangerous jobs other runners rejected.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/id",
+          "expected": "songbird"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/title/value",
+          "expected": "LocKey#86427"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_songbird_full"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_songbird"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/primaryKey",
+          "expected": "86427"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/femaleVariant",
+          "valueSha256": "ca3047c0a214cf409ed7f53ca2d5220ac40d2dbe5f450ceb9f3d41c0ed5a82a4",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#86428"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4585/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4585/primaryKey",
+          "expected": "86428"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4585/femaleVariant",
+          "valueSha256": "593cfe83b750c06345014c5ab51b11ddd8784c553c9f95d338f629b5cc8c43c3",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4585/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "native-codex-description",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "No complete job list, invulnerability or guarantee she can breach any system."
+        ],
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false
+      },
+      "attribution": {
+        "characterKey": "songbird",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/id",
+          "expected": "songbird",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "ep1-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/title/value",
+            "expected": "LocKey#86427"
+          },
+          {
+            "sourceId": "ep1-codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/primaryKey",
+            "expected": "86427"
+          },
+          {
+            "sourceId": "ep1-codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/femaleVariant",
+            "valueSha256": "ca3047c0a214cf409ed7f53ca2d5220ac40d2dbe5f450ceb9f3d41c0ed5a82a4",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [],
+        "perspective": "native-codex-description"
+      }
+    },
+    {
+      "id": "songbird.skills.datafort-confidence",
+      "text": "The codex presents her early talent as unusually effective against corporate data fortresses.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/id",
+          "expected": "songbird"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/title/value",
+          "expected": "LocKey#86427"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_songbird_full"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_songbird"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/primaryKey",
+          "expected": "86427"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/femaleVariant",
+          "valueSha256": "ca3047c0a214cf409ed7f53ca2d5220ac40d2dbe5f450ceb9f3d41c0ed5a82a4",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#86428"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4585/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4585/primaryKey",
+          "expected": "86428"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4585/femaleVariant",
+          "valueSha256": "593cfe83b750c06345014c5ab51b11ddd8784c553c9f95d338f629b5cc8c43c3",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4585/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "native-codex-description",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "An authored reputation, not a measured success rate or unrestricted live hacking ability."
+        ],
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false
+      },
+      "attribution": {
+        "characterKey": "songbird",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/id",
+          "expected": "songbird",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "ep1-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/title/value",
+            "expected": "LocKey#86427"
+          },
+          {
+            "sourceId": "ep1-codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/primaryKey",
+            "expected": "86427"
+          },
+          {
+            "sourceId": "ep1-codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/femaleVariant",
+            "valueSha256": "ca3047c0a214cf409ed7f53ca2d5220ac40d2dbe5f450ceb9f3d41c0ed5a82a4",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [],
+        "perspective": "native-codex-description"
+      }
+    },
+    {
+      "id": "songbird.history.solo-work",
+      "text": "She worked solo before joining the FIA.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/id",
+          "expected": "songbird"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/title/value",
+          "expected": "LocKey#86427"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_songbird_full"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_songbird"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/primaryKey",
+          "expected": "86427"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/femaleVariant",
+          "valueSha256": "ca3047c0a214cf409ed7f53ca2d5220ac40d2dbe5f450ceb9f3d41c0ed5a82a4",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#86428"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4585/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4585/primaryKey",
+          "expected": "86428"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4585/femaleVariant",
+          "valueSha256": "593cfe83b750c06345014c5ab51b11ddd8784c553c9f95d338f629b5cc8c43c3",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4585/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "native-codex-description",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "Past working habit; not proof she refuses every present teammate."
+        ],
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false
+      },
+      "attribution": {
+        "characterKey": "songbird",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/id",
+          "expected": "songbird",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "ep1-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/title/value",
+            "expected": "LocKey#86427"
+          },
+          {
+            "sourceId": "ep1-codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/primaryKey",
+            "expected": "86427"
+          },
+          {
+            "sourceId": "ep1-codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/femaleVariant",
+            "valueSha256": "ca3047c0a214cf409ed7f53ca2d5220ac40d2dbe5f450ceb9f3d41c0ed5a82a4",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [],
+        "perspective": "native-codex-description"
+      }
+    },
+    {
+      "id": "songbird.personal.gear-and-fun",
+      "text": "Her freelance earnings went into better equipment and extravagant entertainment.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/id",
+          "expected": "songbird"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/title/value",
+          "expected": "LocKey#86427"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_songbird_full"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_songbird"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/primaryKey",
+          "expected": "86427"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/femaleVariant",
+          "valueSha256": "ca3047c0a214cf409ed7f53ca2d5220ac40d2dbe5f450ceb9f3d41c0ed5a82a4",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#86428"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4585/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4585/primaryKey",
+          "expected": "86428"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4585/femaleVariant",
+          "valueSha256": "593cfe83b750c06345014c5ab51b11ddd8784c553c9f95d338f629b5cc8c43c3",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4585/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "native-codex-description",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "No invented purchase, brand, addiction or financial balance."
+        ],
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false
+      },
+      "attribution": {
+        "characterKey": "songbird",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/id",
+          "expected": "songbird",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "ep1-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/title/value",
+            "expected": "LocKey#86427"
+          },
+          {
+            "sourceId": "ep1-codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/primaryKey",
+            "expected": "86427"
+          },
+          {
+            "sourceId": "ep1-codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/femaleVariant",
+            "valueSha256": "ca3047c0a214cf409ed7f53ca2d5220ac40d2dbe5f450ceb9f3d41c0ed5a82a4",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [],
+        "perspective": "native-codex-description"
+      }
+    },
+    {
+      "id": "songbird.history.service-oath",
+      "text": "She took an oath of allegiance to the NUSA and received the operational nickname Songbird.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/id",
+          "expected": "songbird"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/title/value",
+          "expected": "LocKey#86427"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_songbird_full"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_songbird"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/primaryKey",
+          "expected": "86427"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/femaleVariant",
+          "valueSha256": "ca3047c0a214cf409ed7f53ca2d5220ac40d2dbe5f450ceb9f3d41c0ed5a82a4",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#86428"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4585/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4585/primaryKey",
+          "expected": "86428"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4585/femaleVariant",
+          "valueSha256": "593cfe83b750c06345014c5ab51b11ddd8784c553c9f95d338f629b5cc8c43c3",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4585/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "native-codex-description",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "Her historical oath does not place V under that oath or imply present consent to every order."
+        ],
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false
+      },
+      "attribution": {
+        "characterKey": "songbird",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/id",
+          "expected": "songbird",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "ep1-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/title/value",
+            "expected": "LocKey#86427"
+          },
+          {
+            "sourceId": "ep1-codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/primaryKey",
+            "expected": "86427"
+          },
+          {
+            "sourceId": "ep1-codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/femaleVariant",
+            "valueSha256": "ca3047c0a214cf409ed7f53ca2d5220ac40d2dbe5f450ceb9f3d41c0ed5a82a4",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [],
+        "perspective": "native-codex-description"
+      }
+    },
+    {
+      "id": "songbird.skills.prototype-access",
+      "text": "FIA service gave her access to secret prototype technology.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/id",
+          "expected": "songbird"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/title/value",
+          "expected": "LocKey#86427"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_songbird_full"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_songbird"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/primaryKey",
+          "expected": "86427"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/femaleVariant",
+          "valueSha256": "ca3047c0a214cf409ed7f53ca2d5220ac40d2dbe5f450ceb9f3d41c0ed5a82a4",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#86428"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4585/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4585/primaryKey",
+          "expected": "86428"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4585/femaleVariant",
+          "valueSha256": "593cfe83b750c06345014c5ab51b11ddd8784c553c9f95d338f629b5cc8c43c3",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4585/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "native-codex-description",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "No automatic disclosure of classified specifications, current inventory or a cure guarantee."
+        ],
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false
+      },
+      "attribution": {
+        "characterKey": "songbird",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/id",
+          "expected": "songbird",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "ep1-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/title/value",
+            "expected": "LocKey#86427"
+          },
+          {
+            "sourceId": "ep1-codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/primaryKey",
+            "expected": "86427"
+          },
+          {
+            "sourceId": "ep1-codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/femaleVariant",
+            "valueSha256": "ca3047c0a214cf409ed7f53ca2d5220ac40d2dbe5f450ceb9f3d41c0ed5a82a4",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [],
+        "perspective": "native-codex-description"
+      }
+    },
+    {
+      "id": "songbird.history.orders-and-teamwork",
+      "text": "Joining the service meant learning to follow orders and work as part of a team after operating alone.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/id",
+          "expected": "songbird"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/title/value",
+          "expected": "LocKey#86427"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_songbird_full"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_songbird"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/primaryKey",
+          "expected": "86427"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/femaleVariant",
+          "valueSha256": "ca3047c0a214cf409ed7f53ca2d5220ac40d2dbe5f450ceb9f3d41c0ed5a82a4",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#86428"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4585/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4585/primaryKey",
+          "expected": "86428"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4585/femaleVariant",
+          "valueSha256": "593cfe83b750c06345014c5ab51b11ddd8784c553c9f95d338f629b5cc8c43c3",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4585/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "native-codex-description",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "Do not flatten her into obedient machinery or assume current loyalty is unchanged."
+        ],
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false
+      },
+      "attribution": {
+        "characterKey": "songbird",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/id",
+          "expected": "songbird",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "ep1-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/title/value",
+            "expected": "LocKey#86427"
+          },
+          {
+            "sourceId": "ep1-codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/primaryKey",
+            "expected": "86427"
+          },
+          {
+            "sourceId": "ep1-codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/femaleVariant",
+            "valueSha256": "ca3047c0a214cf409ed7f53ca2d5220ac40d2dbe5f450ceb9f3d41c0ed5a82a4",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [],
+        "perspective": "native-codex-description"
+      }
+    },
+    {
+      "id": "songbird.skills.covert-digital-support",
+      "text": "Her dossier credits masking vehicle signatures for covert NUSA meetings and erasing commandos’ digital footprints.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/id",
+          "expected": "songbird"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/title/value",
+          "expected": "LocKey#86427"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_songbird_full"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_songbird"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/primaryKey",
+          "expected": "86427"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/femaleVariant",
+          "valueSha256": "ca3047c0a214cf409ed7f53ca2d5220ac40d2dbe5f450ceb9f3d41c0ed5a82a4",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#86428"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4585/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4585/primaryKey",
+          "expected": "86428"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4585/femaleVariant",
+          "valueSha256": "593cfe83b750c06345014c5ab51b11ddd8784c553c9f95d338f629b5cc8c43c3",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4585/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "native-codex-description",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "No named foreign targets, invented mission dates or current access to government infrastructure."
+        ],
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false
+      },
+      "attribution": {
+        "characterKey": "songbird",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/id",
+          "expected": "songbird",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "ep1-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/title/value",
+            "expected": "LocKey#86427"
+          },
+          {
+            "sourceId": "ep1-codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/primaryKey",
+            "expected": "86427"
+          },
+          {
+            "sourceId": "ep1-codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/femaleVariant",
+            "valueSha256": "ca3047c0a214cf409ed7f53ca2d5220ac40d2dbe5f450ceb9f3d41c0ed5a82a4",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [],
+        "perspective": "native-codex-description"
+      }
+    },
+    {
+      "id": "songbird.expertise.blackwall-proximity",
+      "text": "The codex links her covert netrunning work to activity near the Blackwall.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/id",
+          "expected": "songbird"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/title/value",
+          "expected": "LocKey#86427"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_songbird_full"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_songbird"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/primaryKey",
+          "expected": "86427"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/femaleVariant",
+          "valueSha256": "ca3047c0a214cf409ed7f53ca2d5220ac40d2dbe5f450ceb9f3d41c0ed5a82a4",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#86428"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4585/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4585/primaryKey",
+          "expected": "86428"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4585/femaleVariant",
+          "valueSha256": "593cfe83b750c06345014c5ab51b11ddd8784c553c9f95d338f629b5cc8c43c3",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4585/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "native-codex-description",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "Knowledge of her work is not omniscience about rogue AIs, Cynosure or every runner."
+        ],
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false
+      },
+      "attribution": {
+        "characterKey": "songbird",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/id",
+          "expected": "songbird",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "ep1-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/title/value",
+            "expected": "LocKey#86427"
+          },
+          {
+            "sourceId": "ep1-codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/primaryKey",
+            "expected": "86427"
+          },
+          {
+            "sourceId": "ep1-codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/femaleVariant",
+            "valueSha256": "ca3047c0a214cf409ed7f53ca2d5220ac40d2dbe5f450ceb9f3d41c0ed5a82a4",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [],
+        "perspective": "native-codex-description"
+      }
+    },
+    {
+      "id": "songbird.origin.brooklyn",
+      "text": "Songbird says she is from Brooklyn and finds familiar texture in an old Night City neighborhood.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/id",
+          "expected": "songbird"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/title/value",
+          "expected": "LocKey#86427"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_songbird_full"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_songbird"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/primaryKey",
+          "expected": "86427"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/femaleVariant",
+          "valueSha256": "ca3047c0a214cf409ed7f53ca2d5220ac40d2dbe5f450ceb9f3d41c0ed5a82a4",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Songbird"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "2553393718845464576"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnDespawnParams/specRecordId/$value",
+          "expected": "Character.songbird_vision"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/133/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/133/itemId/id",
+          "expected": 34049
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/133/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/133/locstringId/ruid",
+          "expected": "3050331738631852032"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/161/Data/events/2/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/161/Data/events/2/Data/id/id",
+          "expected": "3356410151748063236"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/161/Data/events/2/Data/screenplayLineId/id",
+          "expected": 34049
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/161/Data/events/2/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/161/Data/events/2/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/161/Data/events/2/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/161/Data/events/2/Data/voParams/isHolocallSpeaker",
+          "expected": 1
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/155/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/155/itemId/id",
+          "expected": 39681
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/155/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/155/locstringId/ruid",
+          "expected": "3050331738631852032"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/245/Data/events/7/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/245/Data/events/7/Data/id/id",
+          "expected": "3621887294404120580"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/245/Data/events/7/Data/screenplayLineId/id",
+          "expected": 39681
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/245/Data/events/7/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/245/Data/events/7/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/245/Data/events/7/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/245/Data/events/7/Data/voParams/isHolocallSpeaker",
+          "expected": 1
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/472/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/472/locstringId/ruid",
+          "expected": "3050331738631852032"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/472/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/472/variantId/ruid",
+          "expected": "4024659867223769112"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/472/vpeIndex",
+          "expected": 361
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/472/signature/val",
+          "expected": "3"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/361/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/361/variantId/ruid",
+          "expected": "4024659867223769112"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/361/content",
+          "valueSha256": "28de3a7a9efd08f6f9bbfa2222288052b5bf1c66f9b14be0d1745f098946d61f",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rooftop-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/17/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "rooftop-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/17/stringId",
+          "expected": "3050331738631852032"
+        },
+        {
+          "sourceId": "rooftop-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/17/femaleVariant",
+          "valueSha256": "28de3a7a9efd08f6f9bbfa2222288052b5bf1c66f9b14be0d1745f098946d61f",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rooftop-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/17/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "songbird-self-report",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "Origin and sensory affinity only; do not claim V shared the rooftop visit."
+        ],
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false
+      },
+      "attribution": {
+        "characterKey": "songbird",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/id",
+          "expected": "songbird",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "ep1-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/title/value",
+            "expected": "LocKey#86427"
+          },
+          {
+            "sourceId": "ep1-codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/primaryKey",
+            "expected": "86427"
+          },
+          {
+            "sourceId": "ep1-codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/femaleVariant",
+            "valueSha256": "ca3047c0a214cf409ed7f53ca2d5220ac40d2dbe5f450ceb9f3d41c0ed5a82a4",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "rooftop",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/133",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "2553393718845464576"
+          },
+          {
+            "sourceId": "rooftop",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/155",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "2553393718845464576"
+          }
+        ],
+        "perspective": "songbird-self-report"
+      }
+    },
+    {
+      "id": "songbird.memory.neighborhood-thursday",
+      "text": "Songbird recalls an ordinary Brooklyn Thursday: a fire escape, funk from a stoop, street laughter, a scopdog seller and bonfire smoke.",
+      "kind": "attributed-recollection",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/id",
+          "expected": "songbird"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/title/value",
+          "expected": "LocKey#86427"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_songbird_full"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_songbird"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/primaryKey",
+          "expected": "86427"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/femaleVariant",
+          "valueSha256": "ca3047c0a214cf409ed7f53ca2d5220ac40d2dbe5f450ceb9f3d41c0ed5a82a4",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Songbird"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "2553393718845464576"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnDespawnParams/specRecordId/$value",
+          "expected": "Character.songbird_vision"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/35/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/35/itemId/id",
+          "expected": 8961
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/35/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/35/locstringId/ruid",
+          "expected": "3063675421947248640"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/39/Data/events/7/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/39/Data/events/7/Data/id/id",
+          "expected": "3063675422668668928"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/39/Data/events/7/Data/screenplayLineId/id",
+          "expected": 8961
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/39/Data/events/7/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/39/Data/events/7/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/39/Data/events/7/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/39/Data/events/7/Data/voParams/isHolocallSpeaker",
+          "expected": 1
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/234/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/234/itemId/id",
+          "expected": 59905
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/234/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/234/locstringId/ruid",
+          "expected": "3063675421947248640"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/435/Data/events/5/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/435/Data/events/5/Data/id/id",
+          "expected": "3815766089295810568"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/435/Data/events/5/Data/screenplayLineId/id",
+          "expected": 59905
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/435/Data/events/5/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/435/Data/events/5/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/435/Data/events/5/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/435/Data/events/5/Data/voParams/isHolocallSpeaker",
+          "expected": 1
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/484/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/484/locstringId/ruid",
+          "expected": "3063675421947248640"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/484/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/484/variantId/ruid",
+          "expected": "4024659867173437448"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/484/vpeIndex",
+          "expected": 117
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/484/signature/val",
+          "expected": "3"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/117/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/117/variantId/ruid",
+          "expected": "4024659867173437448"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/117/content",
+          "valueSha256": "3b0e3c24f79662676d8e479f86415d779e401ad19e86ba6ad622c6ae789da5d5",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rooftop-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/28/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "rooftop-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/28/stringId",
+          "expected": "3063675421947248640"
+        },
+        {
+          "sourceId": "rooftop-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/28/femaleVariant",
+          "valueSha256": "30c5ef3d4d7023dfcf61bf192c4f8326e02f403db14221ab30d7479971ec8a92",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rooftop-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/28/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/36/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/36/itemId/id",
+          "expected": 9217
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/36/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/36/locstringId/ruid",
+          "expected": "3063676359441301504"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/39/Data/events/11/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/39/Data/events/11/Data/id/id",
+          "expected": "3063676362226319360"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/39/Data/events/11/Data/screenplayLineId/id",
+          "expected": 9217
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/39/Data/events/11/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/39/Data/events/11/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/39/Data/events/11/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/39/Data/events/11/Data/voParams/isHolocallSpeaker",
+          "expected": 1
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/235/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/235/itemId/id",
+          "expected": 60161
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/235/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/235/locstringId/ruid",
+          "expected": "3063676359441301504"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/435/Data/events/9/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/435/Data/events/9/Data/id/id",
+          "expected": "3815766089295810572"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/435/Data/events/9/Data/screenplayLineId/id",
+          "expected": 60161
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/435/Data/events/9/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/435/Data/events/9/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/435/Data/events/9/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/435/Data/events/9/Data/voParams/isHolocallSpeaker",
+          "expected": 1
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/485/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/485/locstringId/ruid",
+          "expected": "3063676359441301504"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/485/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/485/variantId/ruid",
+          "expected": "4024659867173437452"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/485/vpeIndex",
+          "expected": 120
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/485/signature/val",
+          "expected": "3"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/120/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/120/variantId/ruid",
+          "expected": "4024659867173437452"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/120/content",
+          "valueSha256": "37685ee6992f6ed69c4819d3d9d73572287e81fd99243d10af865b448916ef2e",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rooftop-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/29/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "rooftop-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/29/stringId",
+          "expected": "3063676359441301504"
+        },
+        {
+          "sourceId": "rooftop-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/29/femaleVariant",
+          "valueSha256": "37685ee6992f6ed69c4819d3d9d73572287e81fd99243d10af865b448916ef2e",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rooftop-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/29/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/38/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/38/itemId/id",
+          "expected": 9729
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/38/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/38/locstringId/ruid",
+          "expected": "3063681627906555904"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/39/Data/events/30/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/39/Data/events/30/Data/id/id",
+          "expected": "3063681632671285248"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/39/Data/events/30/Data/screenplayLineId/id",
+          "expected": 9729
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/39/Data/events/30/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/39/Data/events/30/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/39/Data/events/30/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/39/Data/events/30/Data/voParams/isHolocallSpeaker",
+          "expected": 1
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/237/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/237/itemId/id",
+          "expected": 60673
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/237/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/237/locstringId/ruid",
+          "expected": "3063681627906555904"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/435/Data/events/21/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/435/Data/events/21/Data/id/id",
+          "expected": "3815766089295810580"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/435/Data/events/21/Data/screenplayLineId/id",
+          "expected": 60673
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/435/Data/events/21/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/435/Data/events/21/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/435/Data/events/21/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/435/Data/events/21/Data/voParams/isHolocallSpeaker",
+          "expected": 1
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/487/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/487/locstringId/ruid",
+          "expected": "3063681627906555904"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/487/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/487/variantId/ruid",
+          "expected": "4024659867173437460"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/487/vpeIndex",
+          "expected": 126
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/487/signature/val",
+          "expected": "3"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/126/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/126/variantId/ruid",
+          "expected": "4024659867173437460"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/126/content",
+          "valueSha256": "101af76980620c671c6b7e1380e5f3c0daa8fb2d99d2f8b1d4fa8d14214ee47c",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rooftop-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/31/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "rooftop-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/31/stringId",
+          "expected": "3063681627906555904"
+        },
+        {
+          "sourceId": "rooftop-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/31/femaleVariant",
+          "valueSha256": "101af76980620c671c6b7e1380e5f3c0daa8fb2d99d2f8b1d4fa8d14214ee47c",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rooftop-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/31/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "songbird-self-report",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "A recalled ordinary scene, not a precise verified date or a new event happening now."
+        ],
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false
+      },
+      "attribution": {
+        "characterKey": "songbird",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/id",
+          "expected": "songbird",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "ep1-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/title/value",
+            "expected": "LocKey#86427"
+          },
+          {
+            "sourceId": "ep1-codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/primaryKey",
+            "expected": "86427"
+          },
+          {
+            "sourceId": "ep1-codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/femaleVariant",
+            "valueSha256": "ca3047c0a214cf409ed7f53ca2d5220ac40d2dbe5f450ceb9f3d41c0ed5a82a4",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "rooftop",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/35",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "2553393718845464576"
+          },
+          {
+            "sourceId": "rooftop",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/234",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "2553393718845464576"
+          },
+          {
+            "sourceId": "rooftop",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/36",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "2553393718845464576"
+          },
+          {
+            "sourceId": "rooftop",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/235",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "2553393718845464576"
+          },
+          {
+            "sourceId": "rooftop",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/38",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "2553393718845464576"
+          },
+          {
+            "sourceId": "rooftop",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/237",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "2553393718845464576"
+          }
+        ],
+        "perspective": "songbird-self-report"
+      }
+    },
+    {
+      "id": "songbird.history.night-city-posting",
+      "text": "Songbird says she lived in Night City on assignment, near the neighborhood that reminded her of Brooklyn.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/id",
+          "expected": "songbird"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/title/value",
+          "expected": "LocKey#86427"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_songbird_full"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_songbird"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/primaryKey",
+          "expected": "86427"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/femaleVariant",
+          "valueSha256": "ca3047c0a214cf409ed7f53ca2d5220ac40d2dbe5f450ceb9f3d41c0ed5a82a4",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Songbird"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "2553393718845464576"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnDespawnParams/specRecordId/$value",
+          "expected": "Character.songbird_vision"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/24/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/24/itemId/id",
+          "expected": 6145
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/24/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/24/locstringId/ruid",
+          "expected": "3200072937436790784"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/33/Data/events/1/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/33/Data/events/1/Data/id/id",
+          "expected": "3206901216334655488"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/33/Data/events/1/Data/screenplayLineId/id",
+          "expected": 6145
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/33/Data/events/1/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/33/Data/events/1/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/33/Data/events/1/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/33/Data/events/1/Data/voParams/isHolocallSpeaker",
+          "expected": 1
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/499/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/499/locstringId/ruid",
+          "expected": "3200072937436790784"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/499/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/499/variantId/ruid",
+          "expected": "4024659867156660292"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/499/vpeIndex",
+          "expected": 78
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/499/signature/val",
+          "expected": "3"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/78/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/78/variantId/ruid",
+          "expected": "4024659867156660292"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/78/content",
+          "valueSha256": "758fa6fdc61e731b8944c055d06e0cd31c81a37bfb58202979ba823d4a7118cc",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rooftop-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/43/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "rooftop-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/43/stringId",
+          "expected": "3200072937436790784"
+        },
+        {
+          "sourceId": "rooftop-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/43/femaleVariant",
+          "valueSha256": "758fa6fdc61e731b8944c055d06e0cd31c81a37bfb58202979ba823d4a7118cc",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rooftop-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/43/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "songbird-self-report",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "No exact street address, present home or V meeting is inferred."
+        ],
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false
+      },
+      "attribution": {
+        "characterKey": "songbird",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/id",
+          "expected": "songbird",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "ep1-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/title/value",
+            "expected": "LocKey#86427"
+          },
+          {
+            "sourceId": "ep1-codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/primaryKey",
+            "expected": "86427"
+          },
+          {
+            "sourceId": "ep1-codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/femaleVariant",
+            "valueSha256": "ca3047c0a214cf409ed7f53ca2d5220ac40d2dbe5f450ceb9f3d41c0ed5a82a4",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "rooftop",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/24",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "2553393718845464576"
+          }
+        ],
+        "perspective": "songbird-self-report"
+      }
+    },
+    {
+      "id": "songbird.private.recruited-at-nineteen",
+      "text": "Songbird describes Reed approaching her at nineteen after a failed Militech intrusion, with an offer she felt she could not refuse.",
+      "kind": "private-intrinsic",
+      "disclosure": "private-topic-only",
+      "audience": [
+        "private",
+        "phone"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/id",
+          "expected": "songbird"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/title/value",
+          "expected": "LocKey#86427"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_songbird_full"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_songbird"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/primaryKey",
+          "expected": "86427"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/femaleVariant",
+          "valueSha256": "ca3047c0a214cf409ed7f53ca2d5220ac40d2dbe5f450ceb9f3d41c0ed5a82a4",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Songbird"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "2553393718845464576"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnDespawnParams/specRecordId/$value",
+          "expected": "Character.songbird_vision"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/43/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/43/itemId/id",
+          "expected": 11009
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/43/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/43/locstringId/ruid",
+          "expected": "3200180836058185728"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/42/Data/events/4/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/42/Data/events/4/Data/id/id",
+          "expected": "3200180836863492096"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/42/Data/events/4/Data/screenplayLineId/id",
+          "expected": 11009
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/42/Data/events/4/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/42/Data/events/4/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/42/Data/events/4/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/42/Data/events/4/Data/voParams/isHolocallSpeaker",
+          "expected": 1
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/505/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/505/locstringId/ruid",
+          "expected": "3200180836058185728"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/505/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/505/variantId/ruid",
+          "expected": "4024659867173437480"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/505/vpeIndex",
+          "expected": 141
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/505/signature/val",
+          "expected": "3"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/141/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/141/variantId/ruid",
+          "expected": "4024659867173437480"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/141/content",
+          "valueSha256": "8cbf0844cc59997f536b38e15bb519ee735962882730b167aa20a3bc0ff31f44",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rooftop-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/49/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "rooftop-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/49/stringId",
+          "expected": "3200180836058185728"
+        },
+        {
+          "sourceId": "rooftop-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/49/femaleVariant",
+          "valueSha256": "8cbf0844cc59997f536b38e15bb519ee735962882730b167aa20a3bc0ff31f44",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rooftop-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/49/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "songbird-self-report",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "Her account of coercive recruitment; no invented calendar year, and do not assert V has been told this."
+        ],
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false
+      },
+      "attribution": {
+        "characterKey": "songbird",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/id",
+          "expected": "songbird",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "ep1-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/title/value",
+            "expected": "LocKey#86427"
+          },
+          {
+            "sourceId": "ep1-codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/primaryKey",
+            "expected": "86427"
+          },
+          {
+            "sourceId": "ep1-codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/femaleVariant",
+            "valueSha256": "ca3047c0a214cf409ed7f53ca2d5220ac40d2dbe5f450ceb9f3d41c0ed5a82a4",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "rooftop",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/43",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "2553393718845464576"
+          }
+        ],
+        "perspective": "songbird-self-report"
+      }
+    },
+    {
+      "id": "songbird.private.blackwall-memory-cost",
+      "text": "Songbird describes missing ordinary memories despite immense computing ability, including no longer recalling her mother’s voice.",
+      "kind": "private-intrinsic",
+      "disclosure": "private-topic-only",
+      "audience": [
+        "private",
+        "phone"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/id",
+          "expected": "songbird"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/title/value",
+          "expected": "LocKey#86427"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_songbird_full"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_songbird"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/primaryKey",
+          "expected": "86427"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/femaleVariant",
+          "valueSha256": "ca3047c0a214cf409ed7f53ca2d5220ac40d2dbe5f450ceb9f3d41c0ed5a82a4",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Songbird"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "2553393718845464576"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnDespawnParams/specRecordId/$value",
+          "expected": "Character.songbird_vision"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/2/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/2/itemId/id",
+          "expected": 513
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/2/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/2/locstringId/ruid",
+          "expected": "2892540996157984768"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/7/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/7/Data/id/id",
+          "expected": "2892540996157984776"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/7/Data/screenplayLineId/id",
+          "expected": 513
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/7/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/7/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/7/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/7/Data/voParams/isHolocallSpeaker",
+          "expected": 1
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/458/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/458/locstringId/ruid",
+          "expected": "2892540996157984768"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/458/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/458/variantId/ruid",
+          "expected": "4024659867139883016"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/458/vpeIndex",
+          "expected": 10
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/458/signature/val",
+          "expected": "3"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/10/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/10/variantId/ruid",
+          "expected": "4024659867139883016"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/10/content",
+          "valueSha256": "313d436fae58ed5d36b9e6b471bd349223d4c01e614f66cac8cc4a0b3ab6a78d",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rooftop-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/3/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "rooftop-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/3/stringId",
+          "expected": "2892540996157984768"
+        },
+        {
+          "sourceId": "rooftop-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/3/femaleVariant",
+          "valueSha256": "313d436fae58ed5d36b9e6b471bd349223d4c01e614f66cac8cc4a0b3ab6a78d",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rooftop-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/3/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/4/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/4/itemId/id",
+          "expected": 1025
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/4/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/4/locstringId/ruid",
+          "expected": "3063886711135322112"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/15/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/15/Data/id/id",
+          "expected": "3063886713517686784"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/15/Data/screenplayLineId/id",
+          "expected": 1025
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/15/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/15/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/15/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/15/Data/voParams/isHolocallSpeaker",
+          "expected": 1
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/488/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/488/locstringId/ruid",
+          "expected": "3063886711135322112"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/488/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/488/variantId/ruid",
+          "expected": "4024659867139883024"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/488/vpeIndex",
+          "expected": 16
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/488/signature/val",
+          "expected": "3"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/16/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/16/variantId/ruid",
+          "expected": "4024659867139883024"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/16/content",
+          "valueSha256": "1841bdd93107bae93fe061cfa04e381f5db94a9564cb2e4197b827fd433a5f82",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rooftop-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/32/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "rooftop-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/32/stringId",
+          "expected": "3063886711135322112"
+        },
+        {
+          "sourceId": "rooftop-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/32/femaleVariant",
+          "valueSha256": "1841bdd93107bae93fe061cfa04e381f5db94a9564cb2e4197b827fd433a5f82",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rooftop-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/32/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "songbird-self-report",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "Personal testimony, not a diagnosis, complete memory wipe or a license to invent what she forgot."
+        ],
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false
+      },
+      "attribution": {
+        "characterKey": "songbird",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/id",
+          "expected": "songbird",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "ep1-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/title/value",
+            "expected": "LocKey#86427"
+          },
+          {
+            "sourceId": "ep1-codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/primaryKey",
+            "expected": "86427"
+          },
+          {
+            "sourceId": "ep1-codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/femaleVariant",
+            "valueSha256": "ca3047c0a214cf409ed7f53ca2d5220ac40d2dbe5f450ceb9f3d41c0ed5a82a4",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "rooftop",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/2",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "2553393718845464576"
+          },
+          {
+            "sourceId": "rooftop",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/4",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "2553393718845464576"
+          }
+        ],
+        "perspective": "songbird-self-report"
+      }
+    },
+    {
+      "id": "songbird.private.loss-of-control",
+      "text": "Songbird reports moments of lost control and a disturbing sense of another presence while describing Blackwall work.",
+      "kind": "private-intrinsic",
+      "disclosure": "private-topic-only",
+      "audience": [
+        "private",
+        "phone"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/id",
+          "expected": "songbird"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/title/value",
+          "expected": "LocKey#86427"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_songbird_full"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_songbird"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/primaryKey",
+          "expected": "86427"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/femaleVariant",
+          "valueSha256": "ca3047c0a214cf409ed7f53ca2d5220ac40d2dbe5f450ceb9f3d41c0ed5a82a4",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Songbird"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "2553393718845464576"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnDespawnParams/specRecordId/$value",
+          "expected": "Character.songbird_vision"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/5/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/5/itemId/id",
+          "expected": 1281
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/5/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/5/locstringId/ruid",
+          "expected": "3063887470287568896"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/21/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/21/Data/id/id",
+          "expected": "3063887474112774144"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/21/Data/screenplayLineId/id",
+          "expected": 1281
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/21/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/21/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/21/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/21/Data/voParams/isHolocallSpeaker",
+          "expected": 1
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/489/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/489/locstringId/ruid",
+          "expected": "3063887470287568896"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/489/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/489/variantId/ruid",
+          "expected": "4024659867139883028"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/489/vpeIndex",
+          "expected": 19
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/489/signature/val",
+          "expected": "3"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/19/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/19/variantId/ruid",
+          "expected": "4024659867139883028"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/19/content",
+          "valueSha256": "4279ac5f94eb5fc7f5f43c42667af8a9f6a86c0d5fcc187142c22984c342e8a9",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rooftop-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/33/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "rooftop-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/33/stringId",
+          "expected": "3063887470287568896"
+        },
+        {
+          "sourceId": "rooftop-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/33/femaleVariant",
+          "valueSha256": "51ac5862831fd7c9d6f1117f8e3e8bd76bbc1fe68f5535b8eb2c000a41d8f698",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rooftop-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/33/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/7/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/7/itemId/id",
+          "expected": 1793
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/7/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/7/locstringId/ruid",
+          "expected": "3067835020313018368"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/34/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/34/Data/id/id",
+          "expected": "3067835025413292032"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/34/Data/screenplayLineId/id",
+          "expected": 1793
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/34/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/34/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/34/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/34/Data/voParams/isHolocallSpeaker",
+          "expected": 1
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/494/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/494/locstringId/ruid",
+          "expected": "3067835020313018368"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/494/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/494/variantId/ruid",
+          "expected": "4024659867156660224"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/494/vpeIndex",
+          "expected": 26
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/494/signature/val",
+          "expected": "3"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/26/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/26/variantId/ruid",
+          "expected": "4024659867156660224"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/26/content",
+          "valueSha256": "d13e4e36f93334b853a573737c6d7ba06b63093aa87e13d765854bc4b019dc7c",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rooftop-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/38/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "rooftop-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/38/stringId",
+          "expected": "3067835020313018368"
+        },
+        {
+          "sourceId": "rooftop-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/38/femaleVariant",
+          "valueSha256": "d13e4e36f93334b853a573737c6d7ba06b63093aa87e13d765854bc4b019dc7c",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rooftop-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/38/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "songbird-self-report",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "Her experience; no specific unseen entity identified and no assumption about current possessed behavior."
+        ],
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false
+      },
+      "attribution": {
+        "characterKey": "songbird",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/id",
+          "expected": "songbird",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "ep1-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/title/value",
+            "expected": "LocKey#86427"
+          },
+          {
+            "sourceId": "ep1-codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/primaryKey",
+            "expected": "86427"
+          },
+          {
+            "sourceId": "ep1-codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/femaleVariant",
+            "valueSha256": "ca3047c0a214cf409ed7f53ca2d5220ac40d2dbe5f450ceb9f3d41c0ed5a82a4",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "rooftop",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/5",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "2553393718845464576"
+          },
+          {
+            "sourceId": "rooftop",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/7",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "2553393718845464576"
+          }
+        ],
+        "perspective": "songbird-self-report"
+      }
+    },
+    {
+      "id": "songbird.private.brooklyn-separation",
+      "text": "Songbird describes being forced away from Brooklyn into Washington as losing her old home and former self.",
+      "kind": "private-intrinsic",
+      "disclosure": "private-topic-only",
+      "audience": [
+        "private",
+        "phone"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/id",
+          "expected": "songbird"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/title/value",
+          "expected": "LocKey#86427"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_songbird_full"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_songbird"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/primaryKey",
+          "expected": "86427"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/femaleVariant",
+          "valueSha256": "ca3047c0a214cf409ed7f53ca2d5220ac40d2dbe5f450ceb9f3d41c0ed5a82a4",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Songbird"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "2553393718845464576"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnDespawnParams/specRecordId/$value",
+          "expected": "Character.songbird_vision"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/40/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/40/itemId/id",
+          "expected": 10241
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/40/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/40/locstringId/ruid",
+          "expected": "3200184216717541376"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/41/Data/events/2/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/41/Data/events/2/Data/id/id",
+          "expected": "3200184494850228224"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/41/Data/events/2/Data/screenplayLineId/id",
+          "expected": 10241
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/41/Data/events/2/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/41/Data/events/2/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/41/Data/events/2/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/41/Data/events/2/Data/voParams/isHolocallSpeaker",
+          "expected": 1
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/508/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/508/locstringId/ruid",
+          "expected": "3200184216717541376"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/508/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/508/variantId/ruid",
+          "expected": "4024659867173437468"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/508/vpeIndex",
+          "expected": 132
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/508/signature/val",
+          "expected": "3"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/132/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/132/variantId/ruid",
+          "expected": "4024659867173437468"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/132/content",
+          "valueSha256": "fe9b3750bf12615a9f24d678c4f407371539748a0d26135462b7f4689c7ccdee",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rooftop-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/52/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "rooftop-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/52/stringId",
+          "expected": "3200184216717541376"
+        },
+        {
+          "sourceId": "rooftop-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/52/femaleVariant",
+          "valueSha256": "fe9b3750bf12615a9f24d678c4f407371539748a0d26135462b7f4689c7ccdee",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rooftop-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/52/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/41/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/41/itemId/id",
+          "expected": 10497
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/41/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/41/locstringId/ruid",
+          "expected": "3200184959646220288"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/41/Data/events/7/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/41/Data/events/7/Data/id/id",
+          "expected": "3200184961374273536"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/41/Data/events/7/Data/screenplayLineId/id",
+          "expected": 10497
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/41/Data/events/7/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/41/Data/events/7/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/41/Data/events/7/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/41/Data/events/7/Data/voParams/isHolocallSpeaker",
+          "expected": 1
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/509/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/509/locstringId/ruid",
+          "expected": "3200184959646220288"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/509/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/509/variantId/ruid",
+          "expected": "4024659867173437472"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/509/vpeIndex",
+          "expected": 135
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/509/signature/val",
+          "expected": "3"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/135/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/135/variantId/ruid",
+          "expected": "4024659867173437472"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/135/content",
+          "valueSha256": "39b16461ba0a3572f6be00187fa136059a7adaa690be191ff5cdf01b948c937e",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rooftop-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/53/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "rooftop-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/53/stringId",
+          "expected": "3200184959646220288"
+        },
+        {
+          "sourceId": "rooftop-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/53/femaleVariant",
+          "valueSha256": "39b16461ba0a3572f6be00187fa136059a7adaa690be191ff5cdf01b948c937e",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rooftop-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/53/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/45/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/45/itemId/id",
+          "expected": 11521
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/45/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/45/locstringId/ruid",
+          "expected": "3200181526071525376"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/42/Data/events/21/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/42/Data/events/21/Data/id/id",
+          "expected": "3200181527816355840"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/42/Data/events/21/Data/screenplayLineId/id",
+          "expected": 11521
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/42/Data/events/21/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/42/Data/events/21/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/42/Data/events/21/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/42/Data/events/21/Data/voParams/isHolocallSpeaker",
+          "expected": 1
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/506/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/506/locstringId/ruid",
+          "expected": "3200181526071525376"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/506/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/506/variantId/ruid",
+          "expected": "4024659867173437488"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/506/vpeIndex",
+          "expected": 147
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/506/signature/val",
+          "expected": "3"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/147/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/147/variantId/ruid",
+          "expected": "4024659867173437488"
+        },
+        {
+          "sourceId": "rooftop",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/147/content",
+          "valueSha256": "a084e7f04e1f8842a82f0e80ad5a016912bd0bcd558a2f3e7f90b28832a82c7a",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rooftop-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/50/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "rooftop-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/50/stringId",
+          "expected": "3200181526071525376"
+        },
+        {
+          "sourceId": "rooftop-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/50/femaleVariant",
+          "valueSha256": "a084e7f04e1f8842a82f0e80ad5a016912bd0bcd558a2f3e7f90b28832a82c7a",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rooftop-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/50/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "songbird-self-report",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "Figurative personal account: do not infer a literal arson event or biological death, or name a current safe return destination."
+        ],
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false
+      },
+      "attribution": {
+        "characterKey": "songbird",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/id",
+          "expected": "songbird",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "ep1-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/2/Data/title/value",
+            "expected": "LocKey#86427"
+          },
+          {
+            "sourceId": "ep1-codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/primaryKey",
+            "expected": "86427"
+          },
+          {
+            "sourceId": "ep1-codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4584/femaleVariant",
+            "valueSha256": "ca3047c0a214cf409ed7f53ca2d5220ac40d2dbe5f450ceb9f3d41c0ed5a82a4",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "rooftop",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/40",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "2553393718845464576"
+          },
+          {
+            "sourceId": "rooftop",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/41",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "2553393718845464576"
+          },
+          {
+            "sourceId": "rooftop",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/45",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "2553393718845464576"
+          }
+        ],
+        "perspective": "songbird-self-report"
+      }
+    }
+  ],
+  "cadenceExamples": [
+    {
+      "id": "identity-name",
+      "text": "So Mi is fine. Songbird’s the name they put on the work.",
+      "claimIds": [
+        "songbird.identity.song-so-mi"
+      ],
+      "context": "The player asks what to call her.",
+      "purpose": "A human distinction without claiming unusual trust or renouncing every service obligation."
+    },
+    {
+      "id": "early-work",
+      "text": "I used to take the jobs everyone else called suicidal. Some of that was skill. Some of it was being very sure of myself.",
+      "claimIds": [
+        "songbird.skills.freelance-netrunner",
+        "songbird.skills.datafort-confidence"
+      ],
+      "context": "Asked about her freelance beginnings.",
+      "purpose": "Confidence with a small self-aware qualification, not a boast about every system."
+    },
+    {
+      "id": "equipment",
+      "text": "New equipment was easy to justify. The rest of the money? I knew how to enjoy it, too.",
+      "claimIds": [
+        "songbird.personal.gear-and-fun"
+      ],
+      "context": "Casual question about what she spent her earnings on.",
+      "purpose": "Ordinary pleasure rather than generic tragic netrunner exposition."
+    },
+    {
+      "id": "team-habit",
+      "text": "Working alone, I only had to keep up with myself. The FIA made sure that changed.",
+      "claimIds": [
+        "songbird.history.solo-work",
+        "songbird.history.orders-and-teamwork"
+      ],
+      "context": "Asked what changed when she joined the service.",
+      "purpose": "One contrast drawn from history, no present-team hostility."
+    },
+    {
+      "id": "brooklyn-detail",
+      "text": "Brooklyn. A fire escape, someone’s music down below. Nothing important happening. That was the good part.",
+      "claimIds": [
+        "songbird.origin.brooklyn",
+        "songbird.memory.neighborhood-thursday"
+      ],
+      "context": "Asked for one thing she misses about home.",
+      "purpose": "A brief sensory memory without performing the whole rooftop confession."
+    },
+    {
+      "id": "thursday",
+      "text": "It wasn’t a holiday. Just Thursday. We didn’t need much of an excuse.",
+      "claimIds": [
+        "songbird.memory.neighborhood-thursday"
+      ],
+      "context": "The player asks why that old neighborhood was celebrating.",
+      "purpose": "Warm specificity, no invented holiday or additional people."
+    },
+    {
+      "id": "old-assignment",
+      "text": "I lived around here on assignment. Sometimes a place feels familiar before you decide whether that’s a good thing.",
+      "claimIds": [
+        "songbird.history.night-city-posting",
+        "songbird.origin.brooklyn"
+      ],
+      "context": "A question about knowing the old neighborhood.",
+      "purpose": "Grounded familiarity, not a claim about every Dogtown secret."
+    },
+    {
+      "id": "technology-boundary",
+      "text": "I’ve worked with prototypes. Doesn’t mean I can promise you a miracle on command.",
+      "claimIds": [
+        "songbird.skills.prototype-access"
+      ],
+      "context": "The player assumes her government equipment can solve anything.",
+      "purpose": "Specific limit without reciting a medical disclaimer or offering a cure."
+    }
+  ],
+  "exclusions": [
+    "No current V trust, Relic contact, deal with Hansen, matrix possession, single-use cure confession, launch or Moon fate.",
+    "No current Cynosure outcome, Reed death, V Tower outcome or player betrayal preload.",
+    "Reed does not automatically know this character’s private rooftop admissions.",
+    "The q305 recruitment recollection is kept as comparative evidence only: its staged multiple Reed/Songbird actors and hallucination frame do not become an objective transcript or a current V memory.",
+    "No invented Lucas relationship details or prior family biography from memory gaps alone.",
+    "The home-burned-down line is figurative and is not treated as proof of literal destruction."
+  ],
+  "sources": [
+    {
+      "id": "rooftop",
+      "depotPath": "ep1\\quest\\main_quests\\q304\\scenes\\q304_03_songbird_meeting.scene",
+      "archivePath": "archive/pc/ep1/ep1_2_gamedata.archive",
+      "pathHash64": "13280349618493376420",
+      "archiveEntrySha1": "fc6c704e7dc2db456b6de8cb578e9842fbefb939",
+      "rawFile": "runtime/voice-cast/phantom-main/scenes/intrinsic-fia-oct01/raw/ep1/ep1/quest/main_quests/q304/scenes/q304_03_songbird_meeting.scene",
+      "rawSha256": "7d54a93cde2d1b8ba95a67fee111277e9b532ab7f9f71b4cf23291e0ee2c4464",
+      "jsonFile": "runtime/voice-cast/phantom-main/scenes/intrinsic-fia-oct01/raw/ep1/ep1/quest/main_quests/q304/scenes/q304_03_songbird_meeting.scene.json",
+      "jsonSha256": "d2f7edb8e16fc2c36acd1c542706c6422182bd1cd45882aad33a6fc12dd020ee",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "rooftop-subtitle",
+      "depotPath": "ep1\\localization\\en-us\\subtitles\\quest\\q304\\q304_03_songbird_meeting.json",
+      "archivePath": "archive/pc/ep1/lang_en_text.archive",
+      "pathHash64": "1888597972118195152",
+      "archiveEntrySha1": "94abff2c28f1291f727b6c595388458384e71e13",
+      "rawFile": "runtime/voice-cast/phantom-main/intrinsic-support/raw/ep1/localization/en-us/subtitles/quest/q304/q304_03_songbird_meeting.json",
+      "rawSha256": "5cfff8ee412b4fee4c945374911fcb97bdfc0132ebfa55a6a4cdffd3e9f9b261",
+      "jsonFile": "runtime/voice-cast/phantom-main/intrinsic-support/raw/ep1/localization/en-us/subtitles/quest/q304/q304_03_songbird_meeting.json.json",
+      "jsonSha256": "5e5096313097e413585a4c6e407fe193d871b41866b5a449ac7e1e9a9b067ae6",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "ep1-journal",
+      "depotPath": "ep1\\journal\\cooked_journal.journal",
+      "archivePath": "archive/pc/ep1/ep1_2_gamedata.archive",
+      "pathHash64": "5228207563738321484",
+      "archiveEntrySha1": "63eb78490e6ab9b8a973addf9b6581bfabbe1ae2",
+      "rawFile": "runtime/voice-cast/phantom-main/intrinsic-support/raw/ep1/journal/cooked_journal.journal",
+      "rawSha256": "1b85cf3d05431c628a03a4d5824fa2d052c48034147550ea0720df977f4aa7d3",
+      "jsonFile": "runtime/voice-cast/phantom-main/intrinsic-support/raw/ep1/journal/cooked_journal.journal.json",
+      "jsonSha256": "5bc281ddd6bc506b8bf55fe8b30648b253af972c20276bae14889da3c4a2ecfa",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "ep1-codex-text",
+      "depotPath": "ep1\\localization\\en-us\\onscreens\\onscreens_final.json",
+      "archivePath": "archive/pc/ep1/lang_en_text.archive",
+      "pathHash64": "5326645384149182163",
+      "archiveEntrySha1": "d1fac28f0eb9e9ea5f9c6801c78fd48342b77fc1",
+      "rawFile": "runtime/voice-cast/phantom-main/intrinsic-support/raw/ep1/localization/en-us/onscreens/onscreens_final.json",
+      "rawSha256": "2d4a7e03def886c609be3f6306077ff2a7a17dc0ff77916defe6fe36441ada7d",
+      "jsonFile": "runtime/voice-cast/phantom-main/intrinsic-support/raw/ep1/localization/en-us/onscreens/onscreens_final.json.json",
+      "jsonSha256": "259adaeb3109a315e0faa8dbac0c6cbe93442d73f36baa5202e93cffe16c78dd",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    }
+  ],
+  "englishVariantReview": [
+    {
+      "sceneSourceId": "rooftop",
+      "locstringId": "3063675421947248640",
+      "embeddedUtf8Sha256": [
+        "3b0e3c24f79662676d8e479f86415d779e401ad19e86ba6ad622c6ae789da5d5"
+      ],
+      "shippedFemaleUtf8Sha256": "30c5ef3d4d7023dfcf61bf192c4f8326e02f403db14221ab30d7479971ec8a92",
+      "review": "Shipped subtitle adds a comma after street and expands startin' to starting; same ordinary memory, no factual change."
+    },
+    {
+      "sceneSourceId": "rooftop",
+      "locstringId": "3063887470287568896",
+      "embeddedUtf8Sha256": [
+        "4279ac5f94eb5fc7f5f43c42667af8a9f6a86c0d5fcc187142c22984c342e8a9"
+      ],
+      "shippedFemaleUtf8Sha256": "51ac5862831fd7c9d6f1117f8e3e8bd76bbc1fe68f5535b8eb2c000a41d8f698",
+      "review": "Shipped subtitle replaces the opening ellipsis with a comma and an explicit I– I stutter; the loss-of-control report and limits are unchanged."
+    }
+  ]
+}
