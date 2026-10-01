@@ -92,3 +92,17 @@ test('shipped localization references verify exact values without replacing scen
   reference.expectedValue = 2;
   assert.match((await verifyNativeEvidence(input)).errors.join('\n'), /Native value mismatch/);
 });
+
+test('legacy relative predicates are enforced alongside node type and exact value checks', async () => {
+  const input = fixture(), ref = input.pack.evidence[0].native;
+  ref.expected = {'/value': 1, '/$type': 'questSetVar_NodeType'};
+  assert.deepEqual((await verifyNativeEvidence(input)).errors, []);
+  ref.expected['/value'] = 2;
+  assert.match((await verifyNativeEvidence(input)).errors.join('\n'), /nested value mismatch/);
+  ref.expected = {'/absent': 1};
+  assert.match((await verifyNativeEvidence(input)).errors.join('\n'), /Missing JSON pointer/);
+  ref.expected = {'/constructor': 'forged'};
+  assert.match((await verifyNativeEvidence(input)).errors.join('\n'), /Missing JSON pointer/);
+  ref.expected = [];
+  assert.match((await verifyNativeEvidence(input)).errors.join('\n'), /Invalid native expected/);
+});

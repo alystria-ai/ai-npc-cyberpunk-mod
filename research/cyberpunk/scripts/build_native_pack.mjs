@@ -107,6 +107,16 @@ export async function verifyNativeEvidence({pack, inventory, loadArtifact, decis
         const pointed = jsonPointer(artifact.json, reference.jsonPointer);
         if (reference.expectedType !== undefined && pointed?.$type !== reference.expectedType) throw Error('Native node type mismatch');
         if (own(reference, 'expectedValue') && !equal(pointed, reference.expectedValue)) throw Error('Native value mismatch');
+        // Earlier authored packs express nested predicates as relative JSON
+        // pointers. They are executable evidence checks, not optional notes.
+        if (own(reference, 'expected')) {
+          if (!reference.expected || typeof reference.expected !== 'object' || Array.isArray(reference.expected)) {
+            throw Error('Invalid native expected predicates');
+          }
+          for (const [pointer, expected] of Object.entries(reference.expected)) {
+            if (!equal(jsonPointer(pointed, pointer), expected)) throw Error('Native nested value mismatch');
+          }
+        }
         verified.push({evidenceId: evidence.id, jsonPath: reference.jsonPath, jsonPointer: reference.jsonPointer,
           assetSha256: reference.assetSha256, jsonSha256: artifact.jsonSha256,
           jsonIntegrity: declared.length ? 'hash-verified' : 'legacy-unbound',
