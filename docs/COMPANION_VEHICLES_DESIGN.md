@@ -195,9 +195,13 @@ walking-order early return, so outstanding cars are cleaned up.
 While `vehicles.owns(fleet, entry.serial)` is true, ordinary behavior,
 equipment updates and walking actuator sensing/command issuance are skipped for that member. Transport's
 release callback owns walking/equipment cancellation until terminal state.
-The existing walking frame and accepted gaze/lip-sync implementation remain in
-place; the resume callback creates fresh behavior, equipment and walking state
-at the actor's current stance.
+A separate gaze-only path can attend after completed boarding and a fresh exact
+same-car mount check. It uses eyes and head with zero chest weight, suppresses
+driver attention above 0.5 m/s, and releases during combat and vehicle
+transitions. The resume callback first retires that exact seated look, then
+creates fresh behavior, equipment and walking state at the actor's current
+stance. See [COMPANION_GAZE.md](COMPANION_GAZE.md) for the guards and native
+head-slot targeting evidence.
 `vehicles.snapshot(fleet, serial)` is a cached diagnostic, with no native calls.
 
 Dismissal confirms the exact Codeware managed flag and companion tag before

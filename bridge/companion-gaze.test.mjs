@@ -1,5 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import fengari from 'fengari';
 import {companionEngine} from './companion-fixture.mjs';
 
@@ -158,4 +159,102 @@ test('the real companion update applies settings to independent copies and dismi
   assert(companions.dismiss(companions.list()[1].serial))
   assert(not next(one.looks) and two.looks[changedTwo] and not two.looks[changedOne])
   assert(#companions.list()==1)
+`));
+
+test('seated attention changes only the owned look after a stable mount and yields to a moving driver', () => run(`${fixture}
+  npc.ai.GetCommandState=function() error('Seated gaze queried a locomotion command') end
+  npc.ai.SendCommand=function() error('Seated gaze submitted a locomotion command') end
+  local seated={player=player,vehicle='car',seat='seat_front_right',ready=true,selected=true,speed=12}
+  local function seatTick(count)
+    for _=1,count or 1 do actuator.applySeatedLook(motor,seated,0.1) end
+  end
+  actuator.applySeatedLook(motor,seated,2)
+  assert(not motor.look,'A single delayed frame was mistaken for two stable seat observations')
+  seatTick(3); assert(not motor.look,'Look started during seat settling')
+  seatTick(4); local first=motor.look
+  assert(first and first.parts[1].weight==0.18 and first.parts[2].weight==0 and countLooks()==1)
+  seatTick(20); assert(motor.look==first and #npc.ai.commands==0)
+  seated.seat='seat_front_left'; seatTick()
+  assert(not motor.look and motor.seatedAttention.reason=='Driver watches the road')
+  seated.speed=0; seatTick(3); assert(not motor.look)
+  seatTick(4); assert(motor.look,'Stopped driver never regained attention')
+  seated.speed=0.6; seatTick(); assert(not motor.look)
+  seated.speed=0/0; seatTick(10); assert(not motor.look,'Unknown driver speed allowed a look')
+  seated.seat='seat_front_right'; seated.speed=12; seatTick(7); assert(motor.look)
+  seated.ready=false; seatTick(); assert(not motor.look)
+  seated.ready=true; seatTick(3); assert(not motor.look,'Boarding release retained settled time')
+  seatTick(4); assert(motor.look)
+  seated.selected=false; seatTick(); assert(not motor.look and #npc.ai.commands==0)
+`));
+
+test('seated release retries its exact failed look and abandonment never queries torn down actors', () => run(`${fixture}
+  local foreign={}; npc.looks[foreign]=true
+  local seated={player=player,vehicle='car',seat='seat_front_right',ready=true,selected=true,speed=0}
+  for _=1,7 do actuator.applySeatedLook(motor,seated,0.1) end
+  local owned=motor.look; assert(owned)
+  local originalRemove=LookAtRemoveEvent.QueueRemoveLookatEvent
+  local attempts,blocked=0,true
+  LookAtRemoveEvent.QueueRemoveLookatEvent=function(actor,event)
+    assert(actor==npc and event==owned); attempts=attempts+1
+    if blocked then return false end
+    return originalRemove(actor,event)
+  end
+  seated.ready=false
+  for _=1,15 do actuator.applySeatedLook(motor,seated,0.1) end
+  assert(attempts==1 and motor.look==owned and npc.looks[foreign] and countLooks()==2)
+  blocked=false; actuator.applySeatedLook(motor,seated,3.1)
+  assert(attempts==2 and not motor.look and npc.looks[foreign] and countLooks()==1)
+  assert(#npc.ai.commands==0)
+  npc.IsAttached=function() error('Destroyed actor queried') end
+  actuator.abandon(motor)
+  assert(not motor.look and not motor.seatedAttention)
+`));
+
+const initSource=readFileSync(new URL('../mod/init.lua',import.meta.url),'utf8');
+const targetSource=initSource.slice(initSource.indexOf('local function targetAtCrosshair()'),
+  initSource.indexOf('local function resetGaze()'));
+const targetingFixture=`
+  local player={}
+  local npc={root={x=0.5,y=0,z=0},head={x=0.5,y=0,z=0.9}}
+  function npc:IsNPC() return true end
+  function npc:IsAttached() return true end
+  function npc:IsDeadNoStatPool() return false end
+  function npc:GetEntityID() return {hash='judy'} end
+  function npc:GetWorldPosition() return self.root end
+  function npc:GetSlotComponent() return {GetSlotTransform=function(_,slot,...)
+    assert(slot=='Head' and select('#',...)==0,'CET out parameters must be returned, not supplied')
+    return npc.head~=nil,npc.head and {position=npc.head} or nil
+  end} end
+  WorldTransform={GetWorldPosition=function(value) return value.position end}
+  WorldPosition={ToVector4=function(value) return value end}
+  CName={new=function(value) return value end}
+  local seats={npc}
+  local companions={seatedCandidates=function() return seats end}
+  TargetSearchQuery={new=function() return {} end}
+  TS_TargetPartInfo={GetComponent=function() return {GetEntity=function() return npc end} end}
+  local parts,nearest,looked={}
+  local origin,forward={x=0,y=0,z=0.9},{x=1,y=0,z=0}
+  local targeting={GetTargetParts=function() return true,parts end,
+    GetObjectClosestToCrosshair=function() return nearest end,
+    GetLookAtObject=function() return looked end,
+    GetCrosshairData=function() return origin,forward end}
+  Game={GetPlayer=function() return player end,GetTargetingSystem=function() return targeting end,
+    ['TSF_NPC;']=function() return {} end}
+  ${targetSource}
+`;
+
+test('seated selection uses the native head position when target parts omit a close passenger',()=>run(`${targetingFixture}
+  assert(targetAtCrosshair()==npc,'A close seated head was lost above the fixed standing-height aim point')
+  forward={x=-1,y=0,z=0}
+  assert(targetAtCrosshair()==nil,'A passenger behind the camera acquired focus')
+  forward={x=1,y=0,z=0}; seats={}
+  assert(targetAtCrosshair()==nil,'An actor outside the verified same-car fallback acquired focus')
+`));
+
+test('unavailable seated head geometry cannot invent a fallback aim point or change standing selection',()=>run(`${targetingFixture}
+  npc.head=nil; assert(targetAtCrosshair()==nil)
+  npc.GetSlotComponent=function() error('head component unavailable') end
+  assert(targetAtCrosshair()==nil)
+  seats={}; parts={{}}; origin.z=1.3
+  assert(targetAtCrosshair()==npc,'Standing selection was changed by the seated path')
 `));

@@ -130,6 +130,7 @@ function M.abandon(s)
     s.suspendedHold=nil
     s.lookStyle,s.lookHeight,s.lookStrength='none',nil,nil
     s.lookRemoveRetryAt,s.lookRemoveError=nil,nil
+    s.seatedAttention=nil
     s.feedback={}; s.issued=false
 end
 function M.ownsTravel(s,command)
@@ -217,6 +218,43 @@ local function look(s,style,player,settings)
     s.lookStyle,s.lookHeight,s.lookStrength=style,height,strength
 end
 
+-- This boundary cannot sense, cancel or issue any native locomotion command.
+-- Vehicle seating owns the body while the same exact look owner follows V.
+function M.applyLook(s,style,player,settings)
+    if style~='none' and s.clock<(s.lookRetryAt or 0) then return false,s.lookError end
+    local ok,err=pcall(look,s,style,player,settings)
+    s.lookError=not ok and tostring(err) or nil
+    if not ok then s.lookRetryAt=s.clock+3 end
+    return ok,s.lookError
+end
+
+function M.applySeatedLook(s,c,dt)
+    dt=math.max(0,tonumber(dt) or 0)
+    s.clock=s.clock+dt
+    local attention=s.seatedAttention or {stableFor=0}
+    s.seatedAttention=attention
+    local ready=c.ready==true and c.vehicle~=nil and c.seat~=nil
+    local reason=c.reason or 'Wait for stable seating'
+    if ready and c.seat=='seat_front_left' then
+        local speed=bounded(c.speed,0,math.huge,nil)
+        if not speed or speed>0.5 then ready=false; reason='Driver watches the road' end
+    end
+    if ready then
+        if attention.vehicle~=c.vehicle or attention.seat~=c.seat then attention.stableFor=0
+        else attention.stableFor=attention.stableFor+dt end
+        attention.vehicle,attention.seat=c.vehicle,c.seat
+    else
+        attention.vehicle,attention.seat=nil,nil
+        attention.stableFor=0
+    end
+    local style=ready and attention.stableFor>=0.5 and c.selected==true and 'full' or 'none'
+    attention.phase=style=='full' and 'seated-attend' or 'seated-idle'
+    attention.reason=style=='full' and 'Attend with eyes and head while seated'
+        or (ready and attention.stableFor>=0.5 and 'No selected seated attention' or reason)
+    attention.speed=c.speed
+    return M.applyLook(s,style,c.player,c.gazeSettings)
+end
+
 local function validate(s,intent,c)
     local nav=Game.GetAINavigationSystem()
     local candidates={intent.goal}
@@ -278,11 +316,7 @@ function M.apply(s,decision,c,canPlan)
     local intent=decision.operation
     if not intent then return false end
     local style=decision.look or 'none'
-    if style=='none' or s.clock>=(s.lookRetryAt or 0) then
-        local ok,err=pcall(look,s,style,c.player,c.gazeSettings)
-        s.lookError=not ok and tostring(err) or nil
-        if not ok then s.lookRetryAt=s.clock+3 end
-    end
+    M.applyLook(s,style,c.player,c.gazeSettings)
     if intent.kind=='release' then
         if M.release(s) then s.ticket=intent.ticket; s.kind='release' end
         return false

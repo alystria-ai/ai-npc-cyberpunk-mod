@@ -13,7 +13,7 @@ local function name(value)
 end
 local function vector(x,y,z) return Vector4.new(x,y,z,1) end
 local function speed(entity)
-    local velocity=entity:GetVelocity()
+    local velocity=entity:GetLinearVelocity()
     return math.sqrt(velocity.x^2+velocity.y^2+velocity.z^2)
 end
 local function describe(entity)
@@ -148,9 +148,11 @@ function M.mount(entry,vehicle,seat,unmount)
     data.allowFailsafeTeleport=false
     data.mountEventOptions=NewObject('gameMountEventOptions')
     data.mountEventOptions.silentUnmount=false
-    data.mountEventOptions.entityID=vehicle.entityID
-    data.mountEventOptions.alive=true
-    data.mountEventOptions.occupiedByNeutral=false
+    -- This ID describes an existing occupant for the stealing path, not the car.
+    -- Seats are admitted only when empty; the actual car is mountParentEntityId.
+    data.mountEventOptions.entityID=EntityID.new()
+    data.mountEventOptions.alive=false
+    data.mountEventOptions.occupiedByNonFriendly=false
     cmd.mountData=data
     return command(entry.npc:GetAIControllerComponent(),cmd:Copy(),entry.npc)
 end
@@ -211,12 +213,17 @@ function M.retiredCommand(receipt,owner,vehicle)
         ai=vehicle and owner:GetAIComponent() or owner:GetAIControllerComponent()}
 end
 function M.rebindVehicle(receipt,system)
-    if receipt.owned and (not system:IsManaged(receipt.entityID)
-        or not system:IsTagged(receipt.entityID,CName.new(TAG))) then return nil end
-    local entity=receipt.owned and system:GetEntity(receipt.entityID) or Game.FindEntityByID(receipt.entityID)
+    if receipt.owned and not system:IsManaged(receipt.entityID) then return nil end
+    if receipt.owned and not receipt.deleteRequested
+        and not system:IsTagged(receipt.entityID,CName.new(TAG)) then return nil end
+    local entity
+    if not receipt.deleteRequested then
+        entity=receipt.owned and system:GetEntity(receipt.entityID) or Game.FindEntityByID(receipt.entityID)
+    end
     return {id=receipt.id,entityID=receipt.entityID,owned=receipt.owned,system=receipt.owned and system or nil,
         entity=entity,record=receipt.record,appearance=receipt.appearance,name=receipt.name,
         ordinal=receipt.ordinal,driver=receipt.driver,everAttached=receipt.everAttached,
+        deleteRequested=receipt.deleteRequested==true,
         pendingCommand=receipt.command,retired=true,createdAt=0,followAttempts=0}
 end
 function M.follow(vehicle,player,ordinal)
@@ -243,8 +250,14 @@ function M.brake(vehicle)
 end
 function M.destroy(vehicle)
     if not vehicle.owned or not vehicle.system then return false,'Unowned vehicle.' end
+    if not vehicle.system:IsReady() then return false,'Vehicle world is not ready.' end
     if not vehicle.system:IsManaged(vehicle.entityID) then return true end
     if not vehicle.system:IsTagged(vehicle.entityID,CName.new(TAG)) then return false,'Vehicle ownership tag changed.' end
+    -- Codeware returns true when despawn is accepted. The entity can remain
+    -- managed for later frames, and its components may already be detaching.
+    -- Poll only the system receipt once accepted; never resubmit or inspect
+    -- the retiring vehicle handle while waiting for removal confirmation.
+    if vehicle.deleteRequested then return false,'Waiting for the party car to finish despawning.' end
     local info=M.inspect(vehicle)
     if info.ready then
         if info.playerMounted then return false,'V is using this party vehicle.' end
@@ -255,7 +268,12 @@ function M.destroy(vehicle)
     elseif vehicle.everAttached then
         return false,'Vehicle detached before its occupants could be checked.'
     end
-    return vehicle.system:DeleteEntity(vehicle.entityID)
+    if vehicle.system:DeleteEntity(vehicle.entityID)~=true then
+        return false,'The game did not accept party car deletion.'
+    end
+    vehicle.deleteRequested,vehicle.retired=true,true
+    if vehicle.system:IsReady() and not vehicle.system:IsManaged(vehicle.entityID) then return true end
+    return false,'Waiting for the party car to finish despawning.'
 end
 function M.recover(entry,player,occupied)
     if not entry.npc or not entry.npc:IsAttached() or entry.npc:IsDeadNoStatPool() then

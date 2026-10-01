@@ -253,7 +253,17 @@ test('native command submission preserves an exact cancellable handle even after
   dofile=function() return {} end
   local adapter=(function() ${native} end)()
   CName={new=function(v) return v end}; NameToString=function(v) return v end
-  NewObject=function(kind) return {kind=kind,Copy=function(self) return self end} end
+  EntityID={new=function() return {hash='0ULL'} end}
+  NewObject=function(kind)
+    local value={kind=kind,Copy=function(self) return self end}
+    if kind=='gameMountEventOptions' then
+      local fields={entityID=true,alive=true,occupiedByNonFriendly=true,silentUnmount=true}
+      return setmetatable(value,{__newindex=function(t,key,item)
+        assert(fields[key],'Unknown native MountEventOptions field: '..key);rawset(t,key,item)
+      end})
+    end
+    return value
+  end
   local saved; local cancels=0
   local ai={SendCommand=function(_,handle) saved=handle; error('binding threw after enqueue') end,
     GetCommandState=function(_,handle) assert(handle==saved); return saved.state or 'Executing' end,
@@ -262,7 +272,10 @@ test('native command submission preserves an exact cancellable handle even after
   local operation=adapter.mount({npc=npc},{entityID='car'},'seat_front_right',false)
   assert(operation.handle==saved and operation.sendError)
   assert(not operation.handle.mountData.isInstant and not operation.handle.mountData.allowFailsafeTeleport)
-  assert(not operation.handle.mountData.mountEventOptions.occupiedByNeutral)
+  assert(operation.handle.mountData.mountEventOptions.occupiedByNonFriendly==false)
+  assert(operation.handle.mountData.mountEventOptions.entityID.hash=='0ULL')
+  assert(operation.handle.mountData.mountEventOptions.alive==false)
+  assert(operation.handle.mountData.mountParentEntityId=='car')
   assert(not adapter.cancel(operation)); assert(not adapter.cancel(operation)); assert(cancels==1)
   saved.state='Cancelled'; assert(adapter.cancel(operation))
 `));
@@ -287,7 +300,7 @@ const nativeFixture=`
     IsDestroyed=function() return values.destroyed or false end,GetRecord=function() return record end,
     GetRecordID=function() return values.record end,GetEntityID=function() return {hash='owned-car'} end,
     GetAIComponent=function() return ai end,HasOccupantSlot=function(_,n) return values.slots[n] end,
-    GetVelocity=function() return {x=values.speed or 0,y=0,z=0} end,
+    GetLinearVelocity=function() return {x=values.speed or 0,y=0,z=0} end,
     GetDistanceToPlayerSquared=function() return 0 end,
     IsPlayerMounted=function() return values.playerMounted or false end,IsPerformingSceneAnimation=function() return false end,
     HasPassengers=function() return next(values.occupants)~=nil end,
@@ -295,7 +308,11 @@ const nativeFixture=`
     GetWorldForward=function() return {x=0,y=1,z=0} end,
     GetWorldOrientation=function() return {} end}
   local system={IsManaged=function() return values.managed end,IsTagged=function() return values.tagged end,
-    DeleteEntity=function() values.deletes=(values.deletes or 0)+1; return true end,
+    DeleteEntity=function()
+      values.deletes=(values.deletes or 0)+1
+      if not values.delayDelete then values.managed=false end
+      return true
+    end,
     IsReady=function() return true end,
     CreateEntity=function(_,spec) values.spec=spec; return {hash='new-car'} end}
   Game={GetMountingFacility=function() return {
@@ -378,4 +395,74 @@ test('native transit receipts reacquire only the exact command ID on a fresh own
   assert(not adapter.cancel(operation) and operation.handle==nil and stopped==0,'different command was cancelled')
   currentAI.IsCommandActive=function() return false end
   assert(adapter.cancel(operation) and stopped==0)
+`));
+
+test('accepted native car deletion polls ownership without repeating deletion or touching detached components',()=>run(`${nativeFixture}
+  values.delayDelete=true
+  local done,reason=adapter.destroy(car)
+  assert(not done and reason and car.deleteRequested and car.retired and values.deletes==1)
+  entity.IsAttached=function() error('deleted vehicle component accessed') end
+  for _=1,7 do assert(not adapter.destroy(car) and values.deletes==1) end
+  values.tagged=false
+  assert(not adapter.destroy(car) and values.deletes==1,'changed tag allowed another delete')
+  values.managed=false
+  assert(adapter.destroy(car) and values.deletes==1)
+`));
+
+test('an unavailable vehicle system cannot confirm deletion from its false managed result',()=>run(`${nativeFixture}
+  values.delayDelete=true; assert(not adapter.destroy(car) and car.deleteRequested)
+  system.IsReady=function() return false end
+  system.IsManaged=function() error('managed query while system unavailable') end
+  assert(not adapter.destroy(car) and values.deletes==1)
+`));
+
+test('failed car deletion requests remain retryable and retain tag and occupant guards',()=>run(`${nativeFixture}
+  values.tagged=false; assert(not adapter.destroy(car) and not values.deletes)
+  values.tagged=true; values.occupants.seat_back_left='foreign-passenger'
+  assert(not adapter.destroy(car) and not values.deletes)
+  values.occupants={}
+  system.DeleteEntity=function() values.deletes=(values.deletes or 0)+1; return false end
+  assert(not adapter.destroy(car) and not car.deleteRequested and values.deletes==1)
+  assert(not adapter.destroy(car) and not car.deleteRequested and values.deletes==2)
+`));
+
+test('fleet retains a delayed deletion beyond three polls and never inspects its detached owner',()=>run(`${nativeFixture}
+  local catalog=(function() ${catalog} end)()
+  dofile=function(file) assert(file=='companion-vehicle-catalog.lua'); return catalog end
+  local transport=(function() ${controller} end)()
+  adapter.player=function() return nil end
+  local inspect=adapter.inspect; local staleReads=0
+  adapter.inspect=function(value)
+    if value.deleteRequested then staleReads=staleReads+1; error('retiring vehicle component accessed') end
+    return inspect(value)
+  end
+  values.delayDelete=true
+  local fleet=transport.new(adapter); fleet.cars={car}
+  local hooks={release=function() return true end,resumed=function() end}
+  transport.update(fleet,{}, {},5,hooks)
+  assert(#fleet.cars==1 and car.deleteAttempts==1 and car.deleteRequested and values.deletes==1)
+  values.detached=true
+  for _=1,7 do transport.update(fleet,{}, {},5,hooks) end
+  assert(#fleet.cars==1 and car.deleteAttempts==1 and values.deletes==1 and staleReads==0)
+  values.managed=false; transport.update(fleet,{}, {},5,hooks)
+  assert(#fleet.cars==0 and values.deletes==1 and staleReads==0)
+  assert(fleet.events[#fleet.events].event=='empty-car-deleted')
+`));
+
+test('accepted deletion survives transit without acquiring an entity handle or issuing another delete',()=>run(`${nativeFixture}
+  local catalog=(function() ${catalog} end)()
+  dofile=function(file) assert(file=='companion-vehicle-catalog.lua'); return catalog end
+  local transport=(function() ${controller} end)()
+  values.delayDelete=true
+  assert(not adapter.destroy(car) and values.deletes==1)
+  local fleet=transport.new(adapter); fleet.cars={car}
+  local receipt=transport.suspend(fleet)
+  assert(receipt.cars[1].deleteRequested and receipt.cars[1].entity==nil)
+  system.GetEntity=function() error('retiring entity was reacquired') end
+  values.tagged=false
+  local returned=adapter.rebindVehicle(receipt.cars[1],system)
+  assert(returned and returned.deleteRequested and returned.entity==nil)
+  assert(not adapter.destroy(returned) and values.deletes==1)
+  values.tagged=true; assert(not adapter.destroy(returned) and values.deletes==1)
+  values.managed=false; assert(adapter.destroy(returned) and values.deletes==1)
 `));

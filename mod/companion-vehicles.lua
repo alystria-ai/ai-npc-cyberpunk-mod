@@ -91,8 +91,14 @@ local function refresh(s)
     if s.primary then all[#all+1]=s.primary end
     for _,car in ipairs(s.cars) do if car~=s.primary then all[#all+1]=car end end
     for _,car in ipairs(all) do
-        local info,err=safe(s.api.inspect,car)
-        car.info=info or {ready=false,error=err}
+        if car.deleteRequested then
+            -- An accepted despawn may have already retired the component.
+            -- Its system receipt is the only remaining cleanup authority.
+            car.info={ready=false,deleting=true}
+        else
+            local info,err=safe(s.api.inspect,car)
+            car.info=info or {ready=false,error=err}
+        end
         if car.pendingCommand and car.info.ready then
             local command,reason=safe(s.api.retiredCommand,car.pendingCommand,car.entity,true)
             if command then car.command=command; car.pendingCommand=nil
@@ -286,8 +292,9 @@ local function cleanup(s)
         for _,person in pairs(s.people) do if person.owned and person.vehicle==car then assigned=true; break end end
         if not car.retired and car.driver and s.people[car.driver] and s.people[car.driver].owned then assigned=true end
         if not assigned and not car.command and not car.pendingCommand and not (car.info and car.info.playerMounted)
-            and s.clock>=(car.deleteAt or 0) and (car.deleteAttempts or 0)<MAX_ATTEMPTS then
-            car.deleteAttempts=(car.deleteAttempts or 0)+1; car.deleteAt=s.clock+5
+            and s.clock>=(car.deleteAt or 0) and (car.deleteRequested or (car.deleteAttempts or 0)<MAX_ATTEMPTS) then
+            if not car.deleteRequested then car.deleteAttempts=(car.deleteAttempts or 0)+1 end
+            car.deleteAt=s.clock+5
             local done,err=safe(s.api.destroy,car)
             if done then table.remove(s.cars,i); emit(s,'empty-car-deleted')
             else car.error=err or 'Could not remove the empty party car.' end
@@ -366,7 +373,7 @@ function M.update(s,player,entries,dt,hooks)
         s.phase=riding and 'riding' or 'boarding'
     elseif s.phase=='exiting' or s.phase=='recovering' then
         for _,car in ipairs(s.cars) do
-            if not car.pendingCommand and releaseCommand(s,car) and not car.braked and (car.brakeAttempts or 0)<MAX_ATTEMPTS
+            if not car.deleteRequested and not car.pendingCommand and releaseCommand(s,car) and not car.braked and (car.brakeAttempts or 0)<MAX_ATTEMPTS
                 and s.clock>=(car.brakeAt or 0) then
                 car.brakeAttempts=(car.brakeAttempts or 0)+1; car.brakeAt=s.clock+2
                 local braked,brakeError=safe(s.api.brake,car)
@@ -405,6 +412,7 @@ function M.suspend(s)
         return {id=car.id,entityID=car.entityID,owned=car.owned==true,
             record=car.record,appearance=car.appearance,name=car.name,
             ordinal=car.ordinal,driver=car.driver,everAttached=car.everAttached,
+            deleteRequested=car.deleteRequested==true,
             command=s.api.commandReceipt(car.command)}
     end
     if s.primary then receipt.primary=carReceipt(s.primary) end

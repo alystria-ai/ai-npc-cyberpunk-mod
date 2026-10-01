@@ -15,12 +15,15 @@ function run(body) {
 
 const fixture=`
 local cars,selected,mounts,carSequence,deletions={},nil,{},0,0
+local playerVehicleState,playerMountVisible='Driving',true
+EntityID={new=function() return {hash='0ULL'} end}
 local function car(id,owned)
   local value={id=id,entityID={hash=id},owned=owned,ordinal=1,record='Vehicle.test',name='Test car',followAttempts=0}
   value.entity={id=value.entityID,ai={commands={}},attached=true}
   function value.entity:IsAttached() return self.attached end
   function value.entity:GetAIComponent() return self.ai end
   function value.entity:GetEntityID() return self.id end
+  function value.entity:GetLinearVelocity() return {x=value.speed or 0,y=0,z=0} end
   function value.entity:IsPlayerMounted() return selected==value end
   function value.entity.ai:SendCommand(cmd) cmd.id=#self.commands+1; cmd.state='Executing'; self.commands[#self.commands+1]=cmd end
   function value.entity.ai:GetCommandState(cmd) return cmd.state end
@@ -86,13 +89,18 @@ end
 function system:GetEntity(id) return cars[id.hash] and cars[id.hash].entity or ordinaryEntity(self,id) end
 Game.FindEntityByID=function(id) return system:GetEntity(id) end
 Game.GetMountingFacility=function() return {GetMountingInfoSingleWithObjects=function(_,npc)
+  if npc==player then
+    return selected and playerMountVisible and {parentId=selected.entityID,slotId={id='seat_front_left'}} or nil
+  end
   local mount=mounts[npc:GetEntityID().hash]
   return mount and {parentId={hash=mount.vehicle},slotId={id=mount.seat}} or nil
 end} end
 Quaternion={ToEulerAngles=function() return {} end}
+PlayerPuppet={GetCurrentVehicleState=function() return playerVehicleState end}
+function player:IsInCombat() return self.combat or false end
 Game.GetTeleportationFacility=function() return {Teleport=function(_,npc,position) npc.pos=position end} end
-local function update(count)
-  for _=1,count or 1 do companions.update(player,0.1) end
+local function update(count,focus)
+  for _=1,count or 1 do companions.update(player,0.1,focus) end
 end
 local function row(serial)
   for _,value in ipairs(companions.list()) do if value.serial==serial then return value end end
@@ -115,6 +123,90 @@ selected=nil; update(30)
 assert(not row(saved).transport and not mounts[npc.id.hash])
 assert(row(saved).equipment.phase~='released','walking resumed with a permanently released equipment controller')
 assert(#active(npc)==1 and active(npc)[1].kind~='AIMountCommand')
+`));
+
+test('a passenger in the actual same car responds to focus without any walking command or walking query',()=>run(`
+local npc=spawn(); local serial=companions.list()[1].serial
+selected=primary; update(12,npc.id.hash)
+assert(row(serial).transport.phase=='riding' and mounts[npc.id.hash])
+local look=next(npc.looks)
+assert(look and look.parts[1].weight==0.18 and look.parts[2].weight==0,'Seated passenger did not look at V')
+local commands=#npc.ai.commands
+npc.ai.GetCommandState=function() error('Seated attention queried a walking command') end
+npc.ai.SendCommand=function() error('Seated attention submitted a walking command') end
+primary.speed=15; update(20,npc.id.hash)
+assert(next(npc.looks)==look and #npc.ai.commands==commands and not row(serial).error)
+companions.gazeSettings=function() return {eyeContactHeight=0.05,headFollowStrength=0.5} end
+update(2,npc.id.hash)
+local adjusted=next(npc.looks)
+assert(adjusted and adjusted~=look and not npc.looks[look] and adjusted.parts[2].weight==0)
+assert(adjusted.targetPositionProvider.worldOffset.z==0.05 and #npc.ai.commands==commands)
+update(2); assert(not next(npc.looks))
+`));
+
+test('seated attention releases for combat, player transitions, missing actual mounts and a foreign car',()=>run(`
+local npc=spawn(); local serial=companions.list()[1].serial
+selected=primary; update(12,npc.id.hash); assert(next(npc.looks))
+local commands=#npc.ai.commands
+npc.combat=true; update(1,npc.id.hash); assert(not next(npc.looks))
+npc.combat=false; update(8,npc.id.hash); assert(next(npc.looks))
+player.combat=true; update(1,npc.id.hash); assert(not next(npc.looks))
+player.combat=false; update(8,npc.id.hash); assert(next(npc.looks))
+playerVehicleState='Transition'; update(1,npc.id.hash); assert(not next(npc.looks))
+playerVehicleState='Driving'; update(8,npc.id.hash); assert(next(npc.looks))
+playerMountVisible=false; update(1,npc.id.hash); assert(not next(npc.looks))
+playerMountVisible=true; update(8,npc.id.hash); assert(next(npc.looks))
+local original=mounts[npc.id.hash]
+mounts[npc.id.hash]={vehicle='another-car',seat='seat_front_right'}
+update(1,npc.id.hash); assert(not next(npc.looks))
+assert(#npc.ai.commands==commands,'Look release added a locomotion command')
+mounts[npc.id.hash]=original; update(8,npc.id.hash); assert(next(npc.looks))
+assert(companions.beginFastTravel()); assert(not next(npc.looks),'Fast travel retained seated look')
+`));
+
+test('a mount link while the boarding command still executes cannot start seated attention',()=>run(`
+local npc=spawn(); local send=npc.ai.onSend
+npc.ai.onSend=function(command)
+  send(command)
+  if command.kind=='AIMountCommand' then command.state='Executing' end
+end
+selected=primary; update(20,npc.id.hash)
+assert(mounts[npc.id.hash] and companions.list()[1].transport.phase=='boarding')
+assert(not next(npc.looks),'Low level mount was mistaken for completed boarding')
+last(npc,'AIMountCommand').state='Success'; update(8,npc.id.hash)
+assert(next(npc.looks))
+`));
+
+test('a refused seated-look release retains its owner and delays the walking resume handoff',()=>run(`
+local npc=spawn(); local serial=companions.list()[1].serial
+selected=primary; update(12,npc.id.hash)
+local owned=next(npc.looks); assert(owned)
+local originalRemove=LookAtRemoveEvent.QueueRemoveLookatEvent
+local blocked,attempts=true,0
+LookAtRemoveEvent.QueueRemoveLookatEvent=function(actor,event)
+  assert(actor==npc and event==owned); attempts=attempts+1
+  if blocked then return false end
+  return originalRemove(actor,event)
+end
+selected=nil; update(20,npc.id.hash)
+assert(not mounts[npc.id.hash] and row(serial).transport.owned and npc.looks[owned])
+assert(attempts==1 and #active(npc)==0,'Resume lost its exact look owner or submitted walking too early')
+blocked=false; update(20)
+assert(not row(serial).transport and not npc.looks[owned] and attempts==2)
+assert(#active(npc)==1 and active(npc)[1].kind~='AIMountCommand')
+`));
+
+test('an unreadable seated native state removes existing attention instead of trusting a stale riding phase',()=>run(`
+local npc=spawn(); selected=primary; update(12,npc.id.hash)
+assert(next(npc.looks))
+PlayerPuppet.GetCurrentVehicleState=function() error('native state temporarily unavailable') end
+update(1,npc.id.hash)
+assert(not next(npc.looks) and companions.list()[1].seatedAttention.error)
+assert(companions.list()[1].transport.phase=='riding')
+local nativeCalls=0
+npc.IsAttached=function() nativeCalls=nativeCalls+1; error('world detached') end
+companions.abandon()
+assert(nativeCalls==0 and #companions.list()==0)
 `));
 
 test('the integration honors equipment release phase and waits for a delayed holster before mounting',()=>run(`

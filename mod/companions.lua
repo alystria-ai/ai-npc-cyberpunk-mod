@@ -97,12 +97,59 @@ local vehicleHooks = {
         return not entry.motor or actuator.release(entry.motor)
     end,
     resumed = function(entry)
+        -- A failed gaze removal must keep its old owner alive until retry.
+        -- The fleet catches this error and retains the transport handoff.
+        if entry.motor then
+            local released,reason=actuator.applyLook(entry.motor,'none')
+            if not released then error(reason or 'Waiting for seated attention to release') end
+        end
         entry.motor = actuator.new(entry.npc)
         entry.equipment = equipment.new(entry.npc)
         entry.person = behavior.new(entry.serial)
         entry.position = nil
     end,
 }
+local function seatedMount(entry,playerMount)
+    local transport=vehicles.snapshot(fleet,entry.serial)
+    local person=transport.people[1]
+    if (transport.phase~='boarding' and transport.phase~='riding') or not person
+        or not person.owned or person.phase~='riding' or person.error then
+        return nil,'Wait for completed boarding'
+    end
+    if not playerMount then return nil,'V is no longer mounted' end
+    local mount=vehicleNative.mounting(entry)
+    if not mount or mount.vehicle~=playerMount.vehicle or mount.seat==playerMount.seat
+        or mount.vehicle~=person.vehicle or mount.seat~=person.seat then
+        return nil,'Wait for an actual seat in V\'s current vehicle'
+    end
+    return mount
+end
+local function seatedAttention(entry,player,focusEntity,gazeSettings,step)
+    local context={player=player,gazeSettings=gazeSettings,ready=false,
+        selected=tostring(entry.entityID.hash)==focusEntity,reason='No selected seated attention'}
+    local ok,err=pcall(function()
+        if not context.selected then return end
+        local mount,reason=seatedMount(entry,vehicleNative.mounting({npc=player}))
+        if not mount then context.reason=reason; return end
+        if NPCPuppet.IsInCombat(entry.npc) or player:IsInCombat() then
+            context.reason='Native combat owns attention'; return
+        end
+        -- Installed 2.31 PlayerPuppet exposes its vehicle state directly.
+        -- Mount links can already exist during entry and exit animations.
+        local state=PlayerPuppet.GetCurrentVehicleState(player)
+        if state~=Enum.new('gamePSMVehicle','Driving') and state~=Enum.new('gamePSMVehicle','Passenger') then
+            context.reason='Wait for V to finish the vehicle transition'; return
+        end
+        local car=vehicleNative.player(player)
+        if not car or car.id~=mount.vehicle then context.reason='Current vehicle unavailable'; return end
+        local velocity=car.entity:GetLinearVelocity()
+        context.speed=math.sqrt(velocity.x^2+velocity.y^2+velocity.z^2)
+        context.ready,context.vehicle,context.seat=true,mount.vehicle,mount.seat
+    end)
+    if not ok then context.ready=false; context.reason='Seated attention state unavailable' end
+    actuator.applySeatedLook(entry.motor,context,step)
+    entry.motor.seatedAttention.error=not ok and tostring(err) or nil
+end
 local function distance(a,b) return space.distance(a,b) end
 local function copyPosition(p) return Vector4.new(p.x,p.y,p.z,p.w or 1) end
 local function formationPosition(player,slot)
@@ -402,6 +449,21 @@ function M.conversationCandidates(player, radius)
     return result
 end
 
+-- Native targeting can omit occupants. Admit only current managed passengers
+-- whose real mount agrees with the transport controller and V's current car.
+function M.seatedCandidates(player)
+    local result={}
+    local ok,playerMount=pcall(vehicleNative.mounting,{npc=player})
+    if not ok or not playerMount then return result end
+    for _,entry in ipairs(entries) do
+        if entry.state=='ready' then
+            local valid,mount=pcall(seatedMount,entry,playerMount)
+            if valid and mount then result[#result+1]=entry.npc end
+        end
+    end
+    return result
+end
+
 
 -- Menu snapshots read cached values only. Never query native command handles here.
 function M.list()
@@ -411,14 +473,15 @@ function M.list()
         seen[e.key]=(seen[e.key] or 0)+1
         local p,m=e.person or {},e.motor or {}
         local f=m.feedback or {}
-        local phase=p.phase
+        local attention=m.seatedAttention
+        local phase=attention and attention.phase or p.phase
         local focused=phase and phase:find('attend',1,true)~=nil or false
         rows[#rows+1]={
             serial=e.serial,key=e.key,name=e.name..(totals[e.key]>1 and (' #'..seen[e.key]) or ''),
             profileKey=e.profileKey,profileName=e.profileName,record=e.record,slot=e.slot,lane=e.lane,
             spawnRecord=e.spawnRecord,
             entityID=tostring(e.entityID.hash),state=e.state,error=e.error,
-            behavior=phase,behaviorReason=p.reason,behaviorTrace=p.trace,
+            behavior=phase,behaviorReason=attention and attention.reason or p.reason,behaviorTrace=p.trace,
             mode=m.stage=='orient' and 'route-turn' or (focused and 'busy' or phase),
             playerSpeed=groupFrame and groupFrame.rawSpeed or 0,
             playerRunning=groupFrame and groupFrame.running or false,
@@ -437,6 +500,8 @@ function M.list()
             transport=vehicles.snapshot(fleet,e.serial).people[1],
             focused=focused,focusLook=m.lookStyle=='full',ambientLook=m.lookStyle=='side',
             lookError=m.lookError,
+            seatedAttention=attention and {phase=attention.phase,reason=attention.reason,error=attention.error,
+                vehicle=attention.vehicle,seat=attention.seat,stableFor=attention.stableFor,speed=attention.speed},
             eyeContactHeight=m.lookHeight,headFollowStrength=m.lookStrength,
             holding=m.kind=='hold',requestedGait=m.gait,routeTurning=m.stage=='orient',
             focusStepDone=p.attentionAnchor~=nil,
@@ -668,6 +733,11 @@ function M.update(player,delta,focusEntity)
     -- Service empty fleets too: the last dismissal can leave a car waiting for
     -- native cancellation/empty-seat confirmation after walking has no frame.
     vehicles.update(fleet,player,ready,step,vehicleHooks)
+    for _,entry in ipairs(ready) do
+        if vehicles.owns(fleet,entry.serial) then
+            seatedAttention(entry,player,focusEntity,gazeSettings,step)
+        end
+    end
     if not groupFrame then return end
     local lastReversal=groupFrame.reversal
     local order,others,company={},{},{people={},focus=focusEntity}

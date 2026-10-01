@@ -8,7 +8,7 @@ The installed `r6/config/inputUserMappings.xml` maps `IK_F9` to `QuickLoad_Butto
 
 Existing protections do not cover ordinary gameplay F9: `mod/phone-input.lua` guards phone typing and the phone's J/L actions, `PhoneChat.reds` guards its chat view, and `mod/composer-input.lua` manages the owned text field. The voice callback's gameplay checks only control whether voice begins; they do not consume native quickload.
 
-**F10 was free at this check.** No F10/IK_F10 entry appeared in installed `r6/config` XML/JSON or `%LOCALAPPDATA%/CD Projekt Red/Cyberpunk 2077/UserSettings.json`. Decoding every 16-bit key slot of every saved CET binding found no virtual key 121 (F10). The agreed local controls are F4 manager, F6 text, F7 voice, F8 group text, and F10 group voice, preserving native F5 quicksave and F9 quickload. No quickload override or input suppression module is required for these assignments.
+**F10 was free at this check.** No F10/IK_F10 entry appeared in installed `r6/config` XML/JSON or `%LOCALAPPDATA%/CD Projekt Red/Cyberpunk 2077/UserSettings.json`. Decoding every 16-bit key slot of every saved CET binding found no virtual key 121 (F10). F4 manager, F6 text, F7 voice, F8 group text and F10 group voice are optional development recommendations, preserving native F5 quicksave and F9 quickload. The player may choose different keys; the mod does not assign these automatically.
 
 This was a source and configuration check. It did not press conversation hotkeys, open a microphone, or validate an actual group voice recording.
 # Player-selected bindings
@@ -23,4 +23,4 @@ The API is implemented in pinned CET v1.37.1
 [LuaSandbox.cpp](https://github.com/maximegmd/CyberEngineTweaks/blob/61bd6214f0f5f8748589c9e476538614a13908c0/src/scripting/LuaSandbox.cpp#L621).
 `VKBindings::GetBindString` joins the current chord with ` + `; the overlay edits
 that live map before Save persists it. The default recommendations discussed
-below are for the optional development setup only, not automatic mod behavior.
+above are for the optional development setup only, not automatic mod behavior.

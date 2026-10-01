@@ -2,6 +2,16 @@
 local requestFile = io.open('runtime/diagnostic-request.txt', 'rb')
 local request = requestFile and requestFile:read('*a') or ''
 if requestFile then requestFile:close() end
+if request:match('^seated%-head%-probe:') then
+    local run = dofile('runtime/seated-head-slot-probe.lua')
+    local result = {capturedAt = os.time() * 1000, companions = {}}
+    for _, candidate in ipairs(convaiCompanions.conversationCandidates(Game.GetPlayer(), 30)) do
+        result.companions[#result.companions + 1] = {name = candidate.name, head = run(candidate.npc)}
+    end
+    local output = assert(io.open('runtime/seated-head-slot.json', 'wb'))
+    output:write(json.encode(result)); output:close()
+    return
+end
 if request:match('^companion%-systems:') then
     local report = {capturedAt = os.time() * 1000, readOnly = true, bindings = {}, expressions = {}}
     for _, action in ipairs({'manager', 'text', 'voice', 'group_text', 'group_voice'}) do

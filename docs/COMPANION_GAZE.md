@@ -13,7 +13,8 @@ Gentle retains the accepted focused head weight `0.18` and side-glance weight
 `0.05`. Less multiplies those by `0.5`; More by `1.5`, bounded at `0.27` and
 `0.075`. Eyes only sets the additional head weight to zero. Chest weight remains
 zero in every mode. The selected companion can still make the existing single
-body turn and small attention step; these controls do not redefine locomotion.
+body turn and small attention step while on foot. Seated attention uses only
+the eyes and head; the vehicle controller owns body movement.
 
 The selectors use the existing MCM controls and label styling. Their defaults,
 drafts, Apply, Revert and reset semantics use MCM's ordinary settings flow.
@@ -69,6 +70,39 @@ not establish the exact attachment position or visual gaze result on every rig.
   stale references without querying destroyed actors. New copies read the
   saved policy on their ordinary first update.
 
+## Seated companions
+
+The transport handoff removes the walking look. A separate gaze-only update
+can then attend to V after the companion's mount command has finished, its
+actual vehicle and seat match the controller, and V is actually mounted in a
+different seat of that same car. V must be in the native `Driving` or
+`Passenger` state. The same seat must remain eligible for half a second before
+the selected companion gets the existing full eye/head request. The actuator
+never senses, cancels, or submits a locomotion command in this seated path.
+
+Combat, boarding, exit/scene transitions, mount loss, a different car, focus
+loss and fast travel remove the owned look. A driver gets no social look above
+0.5 m/s or with unknown speed; stopping must satisfy the same settling interval.
+Failed look removal retains the exact event and retries on the existing bounded
+interval. Walking cannot resume by replacing its actuator while that seated
+event remains owned. World teardown discards references without native calls.
+
+Native targeting can omit a passenger, so the selector also considers managed
+copies with a confirmed seat in V's current car. These candidates use their
+actual `Head` slot world position. Standing candidates keep the existing
+selection geometry. An unavailable head slot cannot fabricate a seated target.
+
+The installed 2.31 REDmod sources confirm `NPCPuppet.HasHeadUnderwater`'s
+`GetSlotComponent().GetSlotTransform('Head', out WorldTransform)` and
+`WorldPosition.ToVector4(WorldTransform.GetWorldPosition(...))` conversion,
+`PlayerPuppet.GetCurrentVehicleState`, and the mounting-facility identity fields.
+The October 2 read-only seated probe verified the CET call takes **one input**
+and returns both success and the transform. Judy's sampled head was about
+0.669 m above her root; the previous fixed 1.3 m estimate was above her face.
+That probe verifies the native geometry call, not visual head-turn acceptance.
+The local readback is retained in
+`runtime/verification/seated-head-slot-live-20261002.json`.
+
 ## Verification boundary
 
 Source tests exercise unchanged defaults, world versus local offset arguments,
@@ -76,6 +110,13 @@ bounded/malformed input, settings migration and reload, failed-save rollback,
 MCM selector/default/reset behavior, unchanged movement commands, native removal
 and queue failures, combat cleanup, independent duplicate ownership, dismissal,
 and manager-to-real-companion-actuator routing.
+
+Seated regressions also execute the real companion update through boarding,
+same-car riding, native combat/transition changes, lost or foreign mount links,
+fast travel, failed look removal and walking resumption. The seated actuator
+tests make any AI command read/submission fail and verify driver release at
+speed. Targeting tests execute the actual `targetAtCrosshair` source with
+seated head geometry, native candidate omission, and the standing path.
 
 The settings fixture now records persistence at the successful file rename,
 rather than treating JSON serialization as a committed save. This distinguishes

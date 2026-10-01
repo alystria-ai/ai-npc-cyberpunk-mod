@@ -355,7 +355,7 @@ local function targetAtCrosshair()
     query.includeSecondaryTargets = false
     query.filterObjectByDistance = true
     query.ignoreInstigator = true
-    local candidates = {}
+    local candidates, seated = {}, {}
     local _, parts = targeting:GetTargetParts(player, query)
     for _, part in ipairs(parts or {}) do
         local component = TS_TargetPartInfo.GetComponent(part)
@@ -366,6 +366,12 @@ local function targetAtCrosshair()
     if nearest then candidates[#candidates + 1] = nearest end
     local lookedOk, looked = pcall(function() return targeting:GetLookAtObject(player, true, true) end)
     if lookedOk and looked then candidates[#candidates + 1] = looked end
+    -- Vehicle occupants can be absent from native target parts. This fallback
+    -- admits only actual managed seats in V's current vehicle.
+    for _, npc in ipairs(companions.seatedCandidates(player)) do
+        candidates[#candidates + 1] = npc
+        seated[tostring(npc:GetEntityID().hash)] = true
+    end
     local playerPos, forward = targeting:GetCrosshairData(player)
     local forwardLength = math.sqrt(forward.x^2 + forward.y^2 + forward.z^2)
     local best, bestScore = nil, math.huge
@@ -373,7 +379,19 @@ local function targetAtCrosshair()
         local valid, score = pcall(function()
             if not npc:IsNPC() or not npc:IsAttached() or npc:IsDeadNoStatPool() then return nil end
             local pos = npc:GetWorldPosition()
-            local dx, dy, dz = pos.x - playerPos.x, pos.y - playerPos.y, pos.z + 1.3 - playerPos.z
+            local targetZ = pos.z + 1.3
+            if seated[tostring(npc:GetEntityID().hash)] then
+                -- Installed NPCPuppet.HasHeadUnderwater uses the Head slot and
+                -- this world conversion. CET returns its out transform; the
+                -- live seated probe confirms GetSlotTransform takes one input.
+                local slot = npc:GetSlotComponent()
+                if not slot then return nil end
+                local found, transform = slot:GetSlotTransform(CName.new('Head'))
+                if not found or not transform then return nil end
+                pos = WorldPosition.ToVector4(WorldTransform.GetWorldPosition(transform))
+                targetZ = pos.z
+            end
+            local dx, dy, dz = pos.x - playerPos.x, pos.y - playerPos.y, targetZ - playerPos.z
             local distance = math.sqrt(dx^2 + dy^2 + dz^2)
             if distance < 0.1 or distance > 8.0 or forwardLength < 0.1 then return nil end
             local cosine = (dx * forward.x + dy * forward.y + dz * forward.z) / (distance * forwardLength)
