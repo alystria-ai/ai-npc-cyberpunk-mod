@@ -707,21 +707,21 @@
     },
     {
       "key": "resident-male",
-      "words": 366,
+      "words": 409,
       "speakingStyleWords": 170,
       "sampleDialogueWords": 119,
       "voice": "Ethan (Calm Young-Adult American Male)",
       "sources": 3,
-      "researchRevision": "767f05ba561f0d1356df6df54447e2c0ea785a987b556707219ddb28a8ea8fd0"
+      "researchRevision": "5c3d6a93b39a92087df36ea3f53ecfdaad87718814f3f977d13a579e8a36d6c0"
     },
     {
       "key": "resident-female",
-      "words": 348,
+      "words": 402,
       "speakingStyleWords": 163,
       "sampleDialogueWords": 109,
       "voice": "Emily (Friendly Young-Adult American Female)",
       "sources": 3,
-      "researchRevision": "4bacb00a3c393e300d8ddc8071ff60915876b27b17451cd344969caa739fc2a0"
+      "researchRevision": "64bd2c13a8c8894760962fbc80ddf23722f2c93b9142c49a05062496437a63be"
     }
   ]
 }
