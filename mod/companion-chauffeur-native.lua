@@ -113,40 +113,6 @@ function M.sample(player,entry,leasedCar,api)
         freeRoam=auto:GetFreeRoamEnabled(),remaining=auto:GetDistanceToCurrentDestination()}
     return sample
 end
-function M.mountPlayer(player,car,seat,api,driver)
-    -- Mount() is void. Caller must confirm actual mounting AND the Passenger
-    -- PSM state. An occupied seat must never take the native stealing path.
-    if mounted(player,api) then return false,'V is already seated.' end
-    local entity=Game.FindEntityByID(car.entityID)
-    local driverMount=driver and api.mounting(driver)
-    if not entity or not entity:IsAttached() or not entity:IsVehicle() or not entity:IsPlayerVehicle()
-        or entityID(entity:GetEntityID())~=car.id or not driverMount
-        or driverMount.vehicle~=car.id or driverMount.seat~='seat_front_left' then
-        return false,'The selected driver or owned car is no longer ready.'
-    end
-    car.entity=entity
-    local info=api.inspect(car)
-    if not info.ready or info.invalid or info.speed>0.5 or info.scene then return false,'Wait for the car to stop.' end
-    local free=false
-    for _,row in ipairs(info.seats) do
-        if row.name==seat then free=not row.occupant and not row.reserved end
-    end
-    if not free then return false,'Your passenger seat is no longer available.' end
-    local data=NewObject('gameMountEventData')
-    data.mountParentEntityId=car.entityID; data.slotName=CName.new(seat)
-    data.isInstant=false; data.ignoreHLS=false; data.allowFailsafeTeleport=false
-    data.setEntityVisibleWhenMountFinish=true
-    data.mountEventOptions=NewObject('gameMountEventOptions')
-    data.mountEventOptions.entityID=EntityID.new(); data.mountEventOptions.alive=false
-    data.mountEventOptions.occupiedByNonFriendly=false; data.mountEventOptions.silentUnmount=false
-    local slot=NewObject('gamemountingMountingSlotId'); slot.id=CName.new(seat)
-    local mount=NewObject('gamemountingMountingInfo')
-    mount.childId=player:GetEntityID(); mount.parentId=car.entityID; mount.slotId=slot
-    local request=NewObject('gamemountingMountingRequest')
-    request.lowLevelMountingInfo=mount; request.mountData=data
-    Game.GetMountingFacility():Mount(request)
-    return true
-end
 function M.enable(player,entry,car,pin,seat,api)
     local sample=M.sample(player,entry,car,api)
     local pm,dm=sample.playerMount,sample.driverMount

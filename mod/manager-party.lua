@@ -8,7 +8,8 @@ function M.new(companions, readiness)
     local owner, sequence, joins, leaves = nil, 0, {}, {}
     local attaching, notices = {}, {}
     local feedback = ''
-    local driveIntent, stopIntent, tripFeedback = nil, false, nil
+    local stopIntent, tripFeedback = false, nil
+    local preparationId
 
     local function report(message, failed)
         feedback = message
@@ -20,7 +21,8 @@ function M.new(companions, readiness)
         if identity ~= owner or changed then
             owner, joins, leaves, feedback = identity, {}, {}, ''
             attaching, notices = {}, {}
-            driveIntent, stopIntent, tripFeedback = nil, false, nil
+            stopIntent, tripFeedback = false, nil
+            preparationId = nil
             return true
         end
         return false
@@ -46,6 +48,28 @@ function M.new(companions, readiness)
             return {state = 'error', error = ui.t('Companion preparation returned an invalid state.')}
         end
         return state
+    end
+
+    function Q.preparationFeedback()
+        Q.bind(owner)
+        -- This reads a pending invitation only. Progress does not flush the
+        -- world queue or consume the notices delivered after gameplay resumes.
+        for _, job in ipairs(joins) do
+            if job.id == preparationId then
+                local status = preparation(job)
+                local text = '{name}: preparing memory...'
+                if status.state == 'connecting' then text = '{name}: connecting...'
+                elseif status.state == 'ready' or status.state == 'model-only' then
+                    text = '{name} is ready to join when you return to the game.'
+                elseif status.state == 'error' then
+                    text = '{name}: preparation failed. Cancel and invite again.'
+                end
+                return {id = job.id, revision = job.revision, state = status.state,
+                    message = ui.t(text, {name = job.name}), failed = status.state == 'error',
+                    signature = table.concat({job.id, tostring(job.revision), status.state}, '|')}
+            end
+        end
+        return nil
     end
 
     function Q.list()
@@ -86,32 +110,15 @@ function M.new(companions, readiness)
         -- companions.chauffeurSnapshot copies Lua state only. This function is
         -- safe in the menu's schema and action callbacks.
         local state = companions.chauffeurSnapshot and companions.chauffeurSnapshot() or {active = false, phase = 'idle'}
-        state.pending, state.stopPending = driveIntent ~= nil, stopIntent
-        state.driverSerial = driveIntent and driveIntent.serial or (state.offer and state.offer.actor and state.offer.actor.serial)
+        state.stopPending = stopIntent
+        state.driverSerial = state.offer and state.offer.actor and state.offer.actor.serial
         return state
     end
 
-    function Q.drive(id)
-        if not owner then return false, ui.t('Load a save before requesting a driver.') end
-        local member = find(id)
-        if not member or not member.serial or member.state ~= 'ready' or type(member.entityID) ~= 'string' then
-            return false, ui.t('Choose a ready companion from your party.')
-        end
-        local trip = Q.chauffeur()
-        if trip.active or stopIntent then return false, ui.t('Wait for the current trip to finish stopping.') end
-        driveIntent = {serial = member.serial, entity = member.entityID, name = member.name}
-        feedback = ui.t('{name}: driving request queued until you return to gameplay.', {name = member.name})
-        return true, feedback
-    end
-
-    function Q.cancelDrive()
-        local trip, queued = Q.chauffeur(), driveIntent ~= nil
-        driveIntent = nil
-        if trip.active then
-            stopIntent = true
-            feedback = ui.t('The trip will be stopped when you return to gameplay.')
-        elseif queued then feedback = ui.t('Driving request cancelled.')
-        else return false, ui.t('There is no companion trip to cancel.') end
+    function Q.stopTrip()
+        if not Q.chauffeur().active then return false, ui.t('There is no companion trip to cancel.') end
+        stopIntent = true
+        feedback = ui.t('The trip will be stopped when you return to gameplay.')
         return true, feedback
     end
 
@@ -141,6 +148,7 @@ function M.new(companions, readiness)
             record = definition.id, profileKey = definition.profileKey,
             profileName = definition.profileName or definition.name}
         joins[#joins + 1] = job
+        preparationId = job.id
         local ok, reason = prepare(job)
         if not ok then
             report(ui.t('{name} could not prepare: {reason}', {name = job.name, reason = reason}), true)
@@ -160,7 +168,6 @@ function M.new(companions, readiness)
             if trip.active and trip.driverSerial == member.serial then
                 return false, ui.t('Stop the trip and step out before dismissing your driver.')
             end
-            if driveIntent and driveIntent.serial == member.serial then driveIntent = nil end
             leaves[member.serial] = true
             if attaching[member.serial] and readiness then readiness.cancel(attaching[member.serial]) end
             feedback = ui.t('{name} will leave when you return to the game.', {name = member.name})
@@ -168,6 +175,7 @@ function M.new(companions, readiness)
             for index, job in ipairs(joins) do
                 if job.id == id then
                     if readiness then readiness.cancel(job) end
+                    if preparationId == id then preparationId = nil end
                     table.remove(joins, index); break
                 end
             end
@@ -206,6 +214,7 @@ function M.new(companions, readiness)
             for _, job in ipairs(joins) do
                 if job.id == id then
                     job.profileKey, job.profileName, job.revision = key, name or job.name, job.revision + 1
+                    preparationId = job.id
                     job.error, job.preparationError = nil, nil
                     local ok, reason = prepare(job)
                     if not ok then
@@ -230,18 +239,13 @@ function M.new(companions, readiness)
             report(called and ok and ui.t('Stopping the trip. Wait for the car to stop before stepping out.')
                 or ui.t(called and reason or 'The driving request could not be cancelled.'), not (called and ok))
         end
-        if driveIntent then
-            local job = driveIntent
-            driveIntent = nil
-            local called, ok, reason = pcall(companions.queueChauffeur, job.serial, nil, job.entity)
-            report(ui.t(called and reason or (called and ok and 'Your companion is preparing to drive.'
-                or 'The driving request could not be queued.')), not (called and ok))
-        end
         local trip = Q.chauffeur()
         local signature = table.concat({trip.phase or '', trip.reason or '', trip.error or ''}, '|')
         if signature ~= tripFeedback then
             tripFeedback = signature
             if trip.phase == 'driving' then report(ui.t('Your companion is driving to the selected waypoint.'))
+            elseif trip.phase == 'waiting-for-player' then
+                report(ui.t('Your companion is ready. Get in the passenger seat to start the trip.'))
             elseif trip.phase == 'waiting-for-player-exit' then
                 report(ui.t('The car has stopped. Step out so your companion can leave the driver seat.'))
             elseif trip.error then report(ui.t(trip.error), true)

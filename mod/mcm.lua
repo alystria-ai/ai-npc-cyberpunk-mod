@@ -10,6 +10,8 @@ local actions, hooksInstalled, refreshQueued = {}, false, false
 local owner, lastSignature, pollAt, searchFrames, snapshotAt = nil, '', 0, 0, 0
 local lastError = ''
 local actionFeedback, memoryActionCommand
+local preparationTarget, preparationStatus, preparationActionFeedback
+local preparationAt = 0
 local presentation = {active = false, rows = {}}
 local voiceSelectors = {}
 local localeRevision = -1
@@ -71,7 +73,9 @@ end
 local function contentWidgets(controller)
     -- Native ink wrappers do not reliably expose private redscript fields.
     -- The content canvas and row names are emitted by MCM's native renderer.
-    return findWidget(controller:GetRootWidget(), 'mcm_content_scroll_content', 18)
+    local root = controller:GetRootWidget()
+    local render = findWidget(root, 'MCMRenderRoot', 18)
+    return findWidget(root, 'mcm_content_scroll_content', 18), render and findWidget(render, 'status', 18)
 end
 
 local function alignLabel(widget, left)
@@ -121,7 +125,8 @@ local function styleCompletedPage()
     -- Called only by top-level onUpdate, never inside an observed native call.
     -- CET shares a finite scratch arena across nested reflected calls. Walking
     -- the UI from a native hook can exhaust it even if every getter is valid.
-    local content = contentWidgets(presentation.controller)
+    local content, status = contentWidgets(presentation.controller)
+    presentation.statusWidget = status
     if not content then return end
     local rows, widgets = {}, {}
     for index = 0, math.min(content:GetNumChildren(), 1200) - 1 do
@@ -181,8 +186,7 @@ end
 local function action(id, label, value, description, callback, enabled, raw)
     actions[id] = callback
     raw = raw or {}
-    if id:match('^invite:') or id:match('^dismiss:') or id:match('^chauffeur:drive:')
-        or id:match('^assign%-profile:') or id:match('^memory:select:') then raw.label = true end
+    if id:match('^invite:') or id:match('^dismiss:') or id:match('^assign%-profile:') or id:match('^memory:select:') then raw.label = true end
     if (id:match('^assign:') and id ~= 'assign:none' and value ~= 'Choose a profile')
         or (id == 'memory:choose' and value ~= 'Choose a character') then raw.value = true end
     if id == 'models:previous' or id == 'models:next' or id == 'memory:previous' or id == 'memory:next' then raw.description = true end
@@ -266,6 +270,35 @@ local function updateVoiceStatus(snapshot)
     end
 end
 
+local function samplePreparationFeedback()
+    if not preparationTarget then preparationStatus = nil; return end
+    local current = queue.preparationFeedback()
+    if current and (preparationTarget == true or preparationTarget == current.id) then
+        preparationTarget, preparationStatus = current.id, current
+        if preparationActionFeedback then actionFeedback = current.message end
+    else
+        preparationTarget, preparationStatus = nil, nil
+        if preparationActionFeedback then actionFeedback = nil end
+        preparationActionFeedback = false
+    end
+end
+
+local function updatePreparationBanner()
+    if not presentation.active or not presentation.statusAllowed or not presentation.statusWidget then return end
+    local current = preparationStatus
+    local text, signature
+    if current then text, signature = current.message, current.signature
+    elseif presentation.preparationApplied then text, signature = actionFeedback or presentation.statusRestore or '', ''
+    else return end
+    if text ~= presentation.statusText or signature ~= presentation.preparationSignature then
+        -- The installed renderer creates this inkText as "status". There is
+        -- no MCM status setter: update only this owned widget from onUpdate.
+        presentation.statusWidget:SetText(text)
+        presentation.statusText, presentation.preparationSignature = text, signature
+    end
+    presentation.preparationApplied = current ~= nil
+end
+
 local function memorySettings(snapshot)
     local memory = snapshot.memory
     local pending = memory.command and memory.command.state == 'pending'
@@ -345,18 +378,18 @@ local function schema()
         local status = {readonly('party-count', 'Companions', queue.count() .. ' / 8',
             'Includes reserved invitations and current companions. Invited characters prepare while the menu is open, then join when ready after you return to gameplay. Dismissals take effect in gameplay.')}
         if message ~= '' then status[#status + 1] = readonly('feedback', message, '', message) end
-        if trip.active or trip.pending then
+        if trip.active then
             local tripStates = {releasing = 'Preparing to drive', ['boarding-driver'] = 'Driver boarding',
-                ['boarding-player'] = 'Boarding passenger', ['waiting-for-party'] = 'Waiting for party to board',
+                ['waiting-for-player'] = 'Waiting for you to board', ['waiting-for-party'] = 'Waiting for party to board',
                 starting = 'Starting trip', driving = 'Driving',
                 stopping = 'Stopping', ['waiting-for-player-exit'] = 'Waiting for you to step out',
                 ['exiting-driver'] = 'Driver leaving the car'}
             status[#status + 1] = readonly('chauffeur-state', 'Companion driver',
-                trip.stopPending and 'Stop requested' or (trip.pending and 'Drive requested' or tripStates[trip.phase] or trip.phase),
-                'Summon one of your cars and select a map waypoint. Your companion takes the driver seat and V rides as a passenger.')
-            status[#status + 1] = action('chauffeur:stop', 'Companion driver', trip.pending and 'Cancel drive request' or 'Stop trip',
+                trip.stopPending and 'Stop requested' or tripStates[trip.phase] or trip.phase,
+                'Ask a companion to drive to your selected map waypoint, then get into the passenger seat when they are ready.')
+            status[#status + 1] = action('chauffeur:stop', 'Companion driver', 'Stop trip',
                 'Stop the trip after returning to gameplay. Wait for the car to stop, then step out before dismissing the driver.',
-                function() return queue.cancelDrive() end, not trip.stopPending)
+                function() return queue.stopTrip() end, not trip.stopPending)
         end
         categories[#categories + 1] = category('party-status', 'Your group', status)
         if #party == 0 then rows[#rows + 1] = readonly('empty-party', 'Your party is empty', '', 'Invite someone from Characters or Model browser.') end
@@ -381,11 +414,6 @@ local function schema()
                 ui.t('Choose the personality for {name}. The character model stays the same.',{name=display}),
                 function(context) assigning, view = id, 'assignment'; clearSearch(context); return true end,
                 member.state ~= 'leaving' and member.state ~= 'missing')
-            if member.serial then
-                rows[#rows + 1] = action('chauffeur:drive:' .. id, display, 'Drive to waypoint',
-                    'Summon one of your cars, select a map waypoint, then return to gameplay. This companion will drive while V rides as a passenger.',
-                    function() return queue.drive(id) end, member.state == 'ready' and not trip.active and not trip.stopPending)
-            end
             local leaving = member.state == 'leaving'
             rows[#rows + 1] = action('dismiss:' .. id, display,
                 leaving and 'Keep in party' or (member.serial and 'Dismiss' or 'Cancel invitation'),
@@ -600,8 +628,20 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
         end,
         invokeAction = function(id, actionId, context)
             if id ~= MOD or not actions[actionId] then return {ok = false, error = ui.t('Reopen the manager; that action is no longer available.')} end
+            local assignmentTarget = assigning
             local ok, reason = actions[actionId](context)
             actionFeedback = ok == true and ui.t(reason) or nil
+            preparationActionFeedback = false
+            local pendingAssignment = assignmentTarget and not assignmentTarget:match('^live:')
+                and (actionId:match('^assign%-profile:') or actionId == 'assign:none')
+            if ok == true and (actionId:match('^invite:') or pendingAssignment) then
+                preparationTarget = actionId:match('^invite:') and true or assignmentTarget
+                preparationStatus, preparationAt, preparationActionFeedback = nil, 0, true
+            elseif ok ~= true or reason ~= nil then
+                -- Navigation has no result message and leaves progress visible.
+                -- A memory, dismissal or trip action owns its own result banner.
+                preparationTarget, preparationStatus = nil, nil
+            end
             memoryActionCommand = nil
             if ok == true and actionId:match('^memory:confirm:') then
                 local command = manager.snapshot(player()).memory.command
@@ -679,12 +719,22 @@ function M.install()
     Override('SettingsMainGameController', 'McmUiBegin', function(controller,
         title, subtitle, sidebarTitle, contentTitle, status, statusKind, transientOwner,
         showSidebarSearch, showContentSearch, listSelectionMode, wrapped)
-        presentation = {active = false, rows = {}}
+        local own = active() and (transientOwner == MOD_KEY or contentTitle == ui.t(LABEL))
+        local completed = tostring(status):sub(1, 10) == 'Completed:'
+        local allowed = own and statusKind ~= 2 and (completed or status == '')
+        presentation = {active = false, rows = {}, beginKey = controllerKey(controller),
+            statusAllowed = allowed, statusRestore = allowed and completed and '' or status}
         voiceSelectors = {}
-        if contentTitle == ui.t(LABEL) and active() and actionFeedback
-            and tostring(status):sub(1, 10) == 'Completed:' then
+        if own and actionFeedback and completed and statusKind ~= 2 then
             status, statusKind = actionFeedback, 0
+            presentation.preparationApplied = preparationActionFeedback == true
         end
+        if allowed and preparationStatus then
+            status, statusKind = preparationStatus.message, preparationStatus.failed and 2 or 0
+            presentation.preparationApplied = true
+            presentation.preparationSignature = preparationStatus.signature
+        end
+        presentation.statusText = status
         return wrapped(title, subtitle, sidebarTitle, contentTitle, status, statusKind,
             transientOwner, showSidebarSearch, showContentSearch, listSelectionMode)
     end)
@@ -692,9 +742,13 @@ function M.install()
         local owned = title == ui.t(LABEL) and active()
         local key = owned and controllerKey(controller) or nil
         owned = owned and key ~= nil
+        local previous = owned and presentation.beginKey == key and presentation or {}
         -- Queue only Lua data here. No ink traversal, getters or setters.
         presentation = {active = owned, pending = owned, rows = {}, hovered = {}, title = title,
-            controller = owned and controller or nil, controllerKey = key}
+            controller = owned and controller or nil, controllerKey = key,
+            statusAllowed = previous.statusAllowed, statusRestore = previous.statusRestore,
+            statusText = previous.statusText, preparationApplied = previous.preparationApplied,
+            preparationSignature = previous.preparationSignature}
     end)
     Observe('SettingsMainGameController', 'OnUninitialize', function(controller)
         if ownsPresentation(controller) then
@@ -752,6 +806,8 @@ function M.update(currentPlayer, worldReady)
     local currentOwner = identity(currentPlayer)
     if currentOwner ~= owner then
         owner = currentOwner; queue.bind(owner); lastSignature = ''; refreshQueued = true
+        if preparationActionFeedback then actionFeedback = nil end
+        preparationTarget, preparationStatus, preparationActionFeedback = nil, nil, false
     end
     if worldReady then
         queue.flush()
@@ -770,6 +826,10 @@ function M.update(currentPlayer, worldReady)
         if api and not api.hasDrafts(MOD_KEY) then api.refreshProvider(PROVIDER) end
     end
     local now = os.time()
+    if now >= preparationAt then
+        preparationAt = now + 1
+        samplePreparationFeedback()
+    end
     if now >= pollAt then pollAt = now + 1; M.install() end
     -- Read MCM's supported effective draft values from top-level update. The
     -- drafts.changed listener only marks this work pending in its callback.
@@ -781,6 +841,8 @@ function M.update(currentPlayer, worldReady)
     if not active() then return end
     local styleOk, styleError = pcall(styleCompletedPage)
     if not styleOk then lastError = 'Settings presentation: ' .. tostring(styleError) end
+    local bannerOk, bannerError = pcall(updatePreparationBanner)
+    if not bannerOk then lastError = 'Preparation presentation: ' .. tostring(bannerError) end
     if searchFrames > 0 then
         searchFrames = searchFrames - 1
         if searchFrames == 0 then refreshQueued = true end
@@ -800,7 +862,7 @@ function M.update(currentPlayer, worldReady)
             snapshot.localVoice.provider or '', tostring(snapshot.localVoice.pending),
             tostring(snapshot.localVoice.previewActive), tostring(snapshot.localVoice.preparationOnly)}
         local trip = queue.chauffeur()
-        signature[#signature + 1] = table.concat({trip.phase or '', tostring(trip.pending), tostring(trip.stopPending),
+        signature[#signature + 1] = table.concat({trip.phase or '', tostring(trip.stopPending),
             trip.reason or '', trip.error or ''}, '|')
         local memory = snapshot.memory
         if memory.command and memory.command.id == memoryActionCommand then actionFeedback = memory.feedback end
@@ -844,6 +906,7 @@ function M.resetSession()
     manager.cancelMemoryConfirmation()
     actionFeedback = nil
     memoryActionCommand = nil
+    preparationTarget, preparationStatus, preparationActionFeedback, preparationAt = nil, nil, false, 0
     owner, lastSignature, refreshQueued = nil, '', true
     presentation = {active = false, rows = {}}
     fontPresentation.reset()
@@ -855,6 +918,8 @@ function M.shutdown(worldReady)
     -- onShutdown is a top-level CET lifecycle event, not a native ink callback.
     if worldReady ~= false then fontPresentation.restoreNow() end
     queue.bind(nil)
+    if preparationActionFeedback then actionFeedback = nil end
+    preparationTarget, preparationStatus, preparationActionFeedback, preparationAt = nil, nil, false, 0
     entry.reset()
     voicePreview.shutdown()
     if api then pcall(api.providers.unregisterProvider, PROVIDER, provider.registrationKey) end

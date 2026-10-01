@@ -473,7 +473,7 @@ const mcmFixture = `
   end
 `;
 
-test('Current party drive and stop controls defer all game calls until gameplay resumes', () => {
+test('Current party has no drive initiation and defers active-trip stopping until gameplay resumes', () => {
   run(`${mcmFixture}
     api.spawn('johnny-silverhand');members[1].state='ready';members[1].entityID='42ULL'
     local trip={active=false,phase='idle'}
@@ -481,30 +481,26 @@ test('Current party drive and stop controls defer all game calls until gameplay 
     api.chauffeurSnapshot=function()
       local result={};for key,value in pairs(trip)do result[key]=value end;return result
     end
-    api.queueChauffeur=function(serial,offer,entity)
-      assert(not paused and serial==members[1].serial and offer==nil and entity=='42ULL')
-      nativeCalls=nativeCalls+1;trip={active=true,phase='releasing',offer={actor={serial=serial}}}
-      return true,'Your companion is preparing to drive.'
-    end
+    api.queueChauffeur=function()error('the manager initiated a driving request')end
     api.cancelChauffeur=function()
       assert(not paused);nativeCalls=nativeCalls+1;trip.phase='stopping';return true
     end
     assert(invoke('tab:party').ok)
     local id='chauffeur:drive:live:'..members[1].serial
-    assert(row(id)and row(id).value=='Drive to waypoint'and not row(id).disabled)
+    assert(not row(id)and not row('chauffeur:stop')and not row('chauffeur-state'))
+    assert(mcm.party().drive==nil and mcm.party().cancelDrive==nil)
     local originalPlayer=Game.GetPlayer
-    Game.GetPlayer=function()error('native player query from a drive action callback')end
-    assert(registered.invokeAction('manager',id,{}).ok and nativeCalls==0)
+    Game.GetPlayer=function()error('native player query from a removed drive action')end
+    assert(not registered.invokeAction('manager',id,{}).ok and nativeCalls==0)
     Game.GetPlayer=originalPlayer
+    trip={active=true,phase='waiting-for-player',offer={actor={serial=members[1].serial}}}
     loaded=registered.loadMod('manager')
-    assert(row('chauffeur:stop').value=='Cancel drive request'and row('chauffeur-state').value=='Drive requested')
-    mcm.update(player,false);assert(nativeCalls==0)
-    paused=false;mcm.update(player,true);assert(nativeCalls==1 and trip.active)
-    loaded=registered.loadMod('manager');assert(row('chauffeur:stop').value=='Stop trip'and row(id).disabled)
+    assert(row('chauffeur:stop').value=='Stop trip'and row('chauffeur-state').value=='Waiting for you to board')
+    assert(not row(id))
     paused=true;Game.GetPlayer=function()error('native player query from a stop action callback')end
-    assert(registered.invokeAction('manager','chauffeur:stop',{}).ok and nativeCalls==1)
-    Game.GetPlayer=originalPlayer;mcm.update(player,false);assert(nativeCalls==1)
-    paused=false;mcm.update(player,true);assert(nativeCalls==2 and trip.phase=='stopping')
+    assert(registered.invokeAction('manager','chauffeur:stop',{}).ok and nativeCalls==0)
+    Game.GetPlayer=originalPlayer;mcm.update(player,false);assert(nativeCalls==0)
+    paused=false;mcm.update(player,true);assert(nativeCalls==1 and trip.phase=='stopping')
     assert(invoke('party:back').ok and not row('chauffeur:stop'))
   `);
 });
@@ -852,6 +848,135 @@ const memoryFixture = `
   end
   local function token() return assert(manager.snapshot(player).memory.confirmation).token end
 `;
+
+test('paused invitation preparation snapshots follow the newest ticket and revision without gameplay work', () => {
+  run(`${mcmFixture}${invitationFixture}
+    assert(party.preparationFeedback() == nil)
+    assert(party.invite('johnny-silverhand'))
+    local first = party.preparationFeedback()
+    assert(first.id == 'queued:1' and first.revision == 1 and first.state == 'memory')
+    assert(first.message == 'Johnny Silverhand: preparing memory...' and not first.failed)
+    assert(party.preparationFeedback().signature == first.signature)
+    readiness.receipts[first.id] = {state = 'connecting'}
+    local connecting = party.preparationFeedback()
+    assert(connecting.message == 'Johnny Silverhand: connecting...' and connecting.signature ~= first.signature)
+    assert(party.invite('person-1'))
+    local latest = party.preparationFeedback()
+    assert(latest.id == 'queued:2' and latest.signature ~= first.signature)
+    assert(party.assign(first.id, 'person-2', 'Person 2'))
+    local revised = party.preparationFeedback()
+    assert(revised.id == first.id and revised.revision == 2 and revised.signature ~= first.signature)
+    readiness.receipts[first.id] = {state = 'error', error = 'Private provider detail'}
+    local failed = party.preparationFeedback()
+    assert(failed.failed and failed.message == 'Johnny Silverhand: preparation failed. Cancel and invite again.')
+    assert(not failed.message:find('Private provider detail', 1, true))
+    assert(party.dismiss(first.id) and party.preparationFeedback() == nil,
+      'cancellation resurrected an older invitation banner')
+    assert(party.count() == 1 and #spawned == 0 and #party.takeNotices() == 0)
+    assert(party.invite('johnny-silverhand'))
+    local last = party.preparationFeedback()
+    readiness.receipts[last.id] = {state = 'ready'}
+    assert(party.preparationFeedback().message == 'Johnny Silverhand is ready to join when you return to the game.')
+    party.flush()
+    assert(party.preparationFeedback() == nil and #spawned == 1)
+    party.bind('another-world')
+    assert(party.preparationFeedback() == nil and party.count() == 1)
+  `);
+});
+
+const managerBannerFixture = `
+  local clock, nativeHook, rootReads = 1000, false, 0
+  os.time = function() return clock end
+  CName = {new = function(value) return value end}
+  NameToString = function(value) return value end
+  local banner = {text = '', writes = 0}
+  function banner:GetName() assert(not nativeHook); return 'status' end
+  function banner:SetText(value)
+    assert(not nativeHook, 'banner wrote native widgets from a callback')
+    self.text, self.writes = value, self.writes + 1
+  end
+  local content = {GetName = function() assert(not nativeHook); return 'mcm_content_scroll_content' end,
+    GetNumChildren = function() return 0 end}
+  local root = {GetName = function() assert(not nativeHook); return 'MCMRenderRoot' end,
+    GetNumChildren = function() return 2 end,
+    GetWidgetByIndex = function(_, index) return index == 0 and banner or content end}
+  function controller:GetRootWidget()
+    assert(not nativeHook, 'banner traversed native widgets from a callback')
+    rootReads = rootReads + 1; return root
+  end
+  local function paint(status, title, kind)
+    local before = banner.writes
+    nativeHook = true
+    handlers.McmUiBegin(controller, 'MCM', '', 'Mods', 'Mods', status or '', kind or 1,
+      activeMod or '', true, true, 0,
+      function(_, _, _, _, value) banner.text = value end)
+    handlers.McmUiSetContentTitle(controller, title or 'Companion Manager')
+    nativeHook = false
+    assert(banner.writes == before, 'render callback mutated the status widget')
+  end
+  local function tick() clock = clock + 1; mcm.update(player, false) end
+`;
+
+test('manager invitation banner follows paused preparation without reloading drafts or showing party blocks', () => {
+  run(`${mcmFixture}${invitationFixture}${managerBannerFixture}
+    assert(invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok)
+    drafts = true
+    paint('Completed: Johnny Silverhand')
+    local reloadBefore = reloads
+    tick()
+    assert(banner.text == 'Johnny Silverhand: preparing memory...' and rootReads == 1)
+    assert(not row('party-count') and not row('feedback') and not row('tab:settings'))
+    local writes = banner.writes
+    tick(); tick()
+    assert(banner.writes == writes, 'unchanged preparation repainted every frame')
+    readiness.receipts['queued:1'] = {state = 'connecting'}; tick()
+    assert(banner.text == 'Johnny Silverhand: connecting...' and banner.writes == writes + 1)
+    writes = banner.writes
+    paint('Completed: Johnny Silverhand'); tick()
+    assert(banner.text == 'Johnny Silverhand: connecting...' and banner.writes == writes,
+      'a page rebuild lost or duplicated the cached preparation update')
+    readiness.receipts['queued:1'] = {state = 'ready'}; tick()
+    assert(banner.text == 'Johnny Silverhand is ready to join when you return to the game.')
+    readiness.receipts['queued:1'] = {state = 'error', error = 'Internal detail'}; tick()
+    assert(banner.text == 'Johnny Silverhand: preparation failed. Cancel and invite again.')
+    assert(reloads == reloadBefore and drafts and #spawned == 0, 'paused feedback mutated gameplay or drafts')
+    assert(party.dismiss('queued:1')); tick()
+    assert(banner.text == '', 'cancelled invitation left stale progress in the banner')
+    writes = banner.writes; tick(); assert(banner.writes == writes)
+  `);
+});
+
+test('preparation banners preserve native errors, memory action feedback, foreign pages and detached controllers', () => {
+  run(`${mcmFixture}${invitationFixture}${memoryFixture}${managerBannerFixture}
+    assert(invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok)
+    paint('Action failed', nil, 2); tick()
+    assert(banner.text == 'Action failed' and banner.writes == 0, 'native error was replaced')
+    paint('Completed: Johnny Silverhand'); tick()
+    assert(banner.text == 'Johnny Silverhand: preparing memory...', 'preparation did not resume on an eligible banner')
+    assert(invoke('characters:back').ok and invoke('tab:settings').ok and invoke('memory').ok)
+    memoryClock = clock
+    publishMemory(1, {{profileKey = 'person-20'}}); loaded = registered.loadMod('manager')
+    assert(invoke('memory:forget-all').ok and invoke('memory:cancel:' .. token()).ok)
+    paint('Completed: Cancel')
+    readiness.receipts['queued:1'] = {state = 'connecting'}; tick()
+    assert(banner.text == 'Memory clear cancelled.', 'preparation hid the memory result')
+    assert(invoke('memory:settings').ok and invoke('settings:back').ok and invoke('tab:characters').ok)
+    assert(invoke('invite:person-1').ok)
+    paint('Completed: Person 01'); tick()
+    assert(banner.text == 'Person 01: preparing memory...')
+    activeMod = 'other:mod'
+    paint('Foreign status', 'Another mod'); tick()
+    assert(banner.text == 'Foreign status')
+    activeMod = 'cyberpunk-convai:manager'
+    paint('Completed: Person 01'); tick()
+    local writes = banner.writes
+    handlers.OnUninitialize(controller)
+    readiness.receipts['queued:2'] = {state = 'ready'}; tick()
+    assert(banner.writes == writes, 'detached status widget was used')
+    mcm.resetSession(); paint(''); tick()
+    assert(banner.text == '', 'world reset resurrected invitation feedback')
+  `);
+});
 
 test('voice preparation status updates its owned readonly text without discarding an MCM draft', () => {
   run(`${mcmFixture}

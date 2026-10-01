@@ -76,6 +76,24 @@ dismissal actions describe their queued work instead of the stock "Completed"
 text. Other providers and failure messages retain MCM's ordinary rendering.
 No MCM source or saved preferences are modified.
 
+While an invitation prepares with the manager open, that same status banner
+updates through **preparing memory**, **connecting**, **ready to join** or a
+preparation failure. It tracks the latest requested pending copy and revision;
+cancelling that copy, spawning it or resetting the world clears its progress.
+It does not restore an older copy's banner after cancellation. Navigation keeps
+progress visible, while memory, dismissal and trip results keep priority over
+invitation progress. **Your group** remains exclusive to Current party.
+
+`manager-party.lua` exposes this as a read-only preparation snapshot, separate
+from notices delivered after gameplay resumes. MCM samples it from top-level
+update, then changes only its own existing `status` text inside `MCMRenderRoot`.
+The render observer records Lua arguments and provider ownership, including
+MCM's provisional title; it never traverses or edits native widgets. Duplicate
+states do not repaint, and an open settings draft does not cause a page reload.
+The regression harness covers those paused transitions, rebuilds, cancellation,
+native errors, memory results, foreign pages and detached controllers. Live
+notification visibility still needs the installed game check.
+
 ## Native section and option styling — October 2
 
 Companion Manager uses one left edge. Section names bind to the native white

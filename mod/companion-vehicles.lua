@@ -250,6 +250,7 @@ local function board(s,person,hooks,budget)
     if matching then
         if person.command then
             local status,err=safe(s.api.commandState,person.command)
+            person.commandState=status
             if not terminal(status) then person.error=err; return budget end
             person.command=nil
         end
@@ -259,6 +260,7 @@ local function board(s,person,hooks,budget)
     if mount then person.error='Companion is mounted in another seat or vehicle.'; return budget end
     if person.command then
         local status,err=safe(s.api.commandState,person.command)
+        person.commandState=status
         if terminal(status) or s.clock-person.commandAt>BOARD_TIMEOUT then
             if not releaseCommand(s,person) then return budget end
             person.retryAt=s.clock+3; person.phase='boarding-retry'
@@ -280,6 +282,7 @@ local function board(s,person,hooks,budget)
     end
     person.attempts=person.attempts+1
     person.commandAt=s.clock
+    person.commandState=nil
     local command,err=safe(s.api.mount,person.entry,car,person.seat,false)
     person.command=command; person.phase='boarding'; person.error=err
     if not command then person.retryAt=s.clock+3 end
@@ -344,6 +347,7 @@ local function leave(s,person,player,hooks,budget,recoveryPositions)
     if not known then return budget end
     if person.command then
         local status=safe(s.api.commandState,person.command)
+        person.commandState=status
         if person.phase=='unmounting' and not terminal(status) and s.clock-person.commandAt<=EXIT_TIMEOUT then return budget end
         if not releaseCommand(s,person) then return budget end
         person.retryAt=s.clock+2
@@ -371,6 +375,7 @@ local function leave(s,person,player,hooks,budget,recoveryPositions)
     if car.command or car.pendingCommand then return budget end
     if person.attempts>=MAX_ATTEMPTS then person.phase='exit-failed'; return budget end
     person.attempts=person.attempts+1; person.commandAt=s.clock
+    person.commandState=nil
     local command,err=safe(s.api.mount,person.entry,car,mount.seat,true)
     person.command=command; person.phase='unmounting'; person.error=err
     if not command then person.retryAt=s.clock+2 end
@@ -396,6 +401,65 @@ local function leaveChauffeurParty(s,player,hooks,skipSerial)
     for _,person in pairs(s.people) do if person.owned then return false end end
     return true
 end
+local function protectChauffeurPassenger(s,player)
+    local trip=s.chauffeur
+    trip.passengerYieldPending=false
+    if trip.phase~='releasing' and trip.phase~='boarding-driver' and trip.phase~='waiting-for-player'
+        and trip.phase~='waiting-for-party' then return end
+    local mount,err=safe(s.api.mounting,{npc=player})
+    if err then trip.passengerYieldPending=true; return end
+    if not mount or mount.vehicle~=trip.car.id or (mount.seat~='seat_front_right'
+        and mount.seat~='seat_back_left' and mount.seat~='seat_back_right') then return end
+    local actual=false
+    for _,row in ipairs(trip.car.info and trip.car.info.seats or {}) do
+        if row.name==mount.seat and row.occupant==trip.playerId then actual=true; break end
+    end
+    if not actual then trip.passengerYieldPending=true; return end
+    -- A manually chosen alternate passenger seat takes precedence over our
+    -- uncommitted NPC reservation. Retire that exact mount command before
+    -- reallocating the companion; never move V or evict an actual occupant.
+    for _,person in pairs(s.people) do
+        if not person.chauffeur and person.vehicle==trip.car and person.seat==mount.seat then
+            if not releaseCommand(s,person) then trip.passengerYieldPending=true
+            else
+                local other,known=observeMount(s,person)
+                if not known or (other and (other.vehicle~=trip.car.id or other.seat==mount.seat)) then
+                    trip.passengerYieldPending=true
+                elseif other then person.seat=other.seat
+                else
+                    person.vehicle=nil; person.seat=nil; person.phase='waiting-for-seat'
+                    person.attempts=0; person.retryAt=nil
+                end
+            end
+        end
+    end
+    if not trip.passengerYieldPending then
+        -- The immutable offer remains an audit of the requested seat. Current
+        -- departure/cleanup uses this separately observed physical seat.
+        trip.passengerSeat=mount.seat
+    end
+end
+local function yieldChauffeurToPlayer(s,player,hooks)
+    local trip=s.chauffeur
+    local person=s.people[trip.serial]
+    if person then
+        if not releaseCommand(s,person) then return false end
+        local mount,known=observeMount(s,person)
+        if not known or (mount and mount.vehicle==trip.car.id and mount.seat=='seat_front_left') then return false end
+        person.chauffeur=nil
+        if not mount then
+            finish(s,person,hooks)
+            if person.owned then return false end
+            s.people[trip.serial]=nil
+        elseif mount.vehicle==trip.car.id then
+            person.vehicle=trip.car; person.seat=mount.seat; person.phase='riding'
+        end
+    end
+    -- V entered the driver seat through normal gameplay. Preserve the regular
+    -- party/carpool owner; there is no player mount, exit or seat-switch call.
+    s.phase='boarding'; s.error=nil; s.replan=nil
+    return true
+end
 function M.update(s,player,entries,dt,hooks)
     s.clock=s.clock+math.max(0,tonumber(dt) or 0)
     hooks=hooks or {}
@@ -409,24 +473,42 @@ function M.update(s,player,entries,dt,hooks)
         local trip=s.chauffeur
         local closing=trip.phase=='stopping' or trip.phase=='waiting-for-player-exit' or trip.phase=='exiting-driver'
         if not closing then
-            acquired(s,entries)
-            allocate(s,player)
-            local budget=1
-            for _,person in ipairs(ordered(s)) do
-                if person.entry.serial~=trip.serial then budget=board(s,person,hooks,budget) end
+            protectChauffeurPassenger(s,player)
+            -- Relaxed native followers leave passenger seats when their
+            -- friendly target is on foot (FollowerActions.ExitVehicle).
+            -- Keep everyone except the selected driver under ordinary walking
+            -- ownership until V has completed manual passenger boarding.
+            local partyPhase=trip.phase=='waiting-for-party' or trip.phase=='starting' or trip.phase=='driving'
+            local playerMount=partyPhase and safe(s.api.mounting,{npc=player}) or nil
+            local partyAdmitted=playerMount and playerMount.vehicle==trip.car.id
+                and playerMount.seat==trip.passengerSeat
+            if partyAdmitted then
+                acquired(s,entries)
+                allocate(s,player)
+                local budget=1
+                for _,person in ipairs(ordered(s)) do
+                    if person.entry.serial~=trip.serial then budget=board(s,person,hooks,budget) end
+                end
             end
-            trip.partyReady=true
+            trip.partyReady=partyAdmitted==true
             for _,person in pairs(s.people) do
                 if person.owned and (person.phase~='riding' or person.removing) then trip.partyReady=false end
             end
+            if trip.passengerYieldPending then trip.partyReady=false end
         end
-        chauffeur(s).update(s,player,entries,hooks,{prepare=prepare,board=board,leaveParty=leaveChauffeurParty})
+        chauffeur(s).update(s,player,entries,hooks,{prepare=prepare,board=board,
+            leaveParty=leaveChauffeurParty,yieldToPlayer=yieldChauffeurToPlayer})
         if s.chauffeur then
             if s.chauffeur.phase=='driving' or (s.chauffeur.phase=='starting' and s.chauffeur.partyReady) then
                 local budget=2
                 for _,car in ipairs(s.cars) do budget=follow(s,car,player,budget) end
             elseif s.chauffeur.phase=='stopping' or s.chauffeur.phase=='waiting-for-player-exit'
-                or s.chauffeur.phase=='exiting-driver' then stopChauffeurConvoy(s) end
+                or s.chauffeur.phase=='exiting-driver' then
+                stopChauffeurConvoy(s)
+                for _,person in pairs(s.people) do
+                    if person.command and person.phase~='unmounting' then releaseCommand(s,person) end
+                end
+            end
         end
         cleanup(s)
         return
@@ -549,7 +631,9 @@ function M.snapshot(s,serial)
             rows[#rows+1]={serial=person.entry.serial,phase=person.phase,owned=person.owned,
                 vehicle=person.vehicle and person.vehicle.id,seat=person.seat,error=person.error,
                 attempts=person.attempts,mounted=person.mount and person.mount.vehicle,
-                mountedSeat=person.mount and person.mount.seat}
+                mountedSeat=person.mount and person.mount.seat,commandState=person.commandState,
+                commandActive=person.command~=nil,
+                commandAge=person.commandAt and math.max(0,s.clock-person.commandAt) or nil}
         end
     end
     local cars={}

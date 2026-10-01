@@ -70,32 +70,40 @@ local before=reads
 companions.abandon();assert(#companions.list()==0 and not companions.chauffeurSnapshot().active and reads==before)
 `));
 
-test('manager drive and stop callbacks retain only Lua intent until flush, and the active driver remains protected', () => run(`
+test('manager exposes only an active-trip stop intent, defers cancellation until flush, and protects the driver', () => run(`
 spawn();local member=companions.list()[1]
 local queue=(function() ${partySource} end)().new(companions)
 queue.bind('world-one')
-paused=true;local before=reads
-assert(queue.drive('live:'..member.serial))
-assert(queue.chauffeur().pending and not companions.chauffeurSnapshot().active and reads==before)
-assert(queue.cancelDrive() and not queue.chauffeur().pending and reads==before)
-assert(queue.drive('live:'..member.serial));paused=false;queue.flush()
-assert(companions.chauffeurSnapshot().active and reads==before+1)
+assert(queue.drive==nil and queue.cancelDrive==nil,'obsolete manager initiation API survived')
+assert(not queue.stopTrip());queue.flush();assert(reads==0 and not companions.chauffeurSnapshot().active)
+assert(companions.queueChauffeur(member.serial,nil,member.entityID))
+local before=reads
 paused=true;assert(not queue.dismiss('live:'..member.serial))
-assert(queue.cancelDrive() and queue.chauffeur().stopPending)
-assert(companions.chauffeurSnapshot().phase=='releasing')
+assert(queue.stopTrip() and queue.chauffeur().stopPending)
+assert(companions.chauffeurSnapshot().phase=='releasing' and reads==before)
 paused=false;queue.flush()
 assert(companions.chauffeurSnapshot().phase=='stopping' and not queue.chauffeur().stopPending)
 `));
 
-test('manager world reset, dismissal and a changed waypoint failure cannot replay a deferred trip', () => run(`
+test('manager world reset drops a pending stop without retaining any trip initiation', () => run(`
 spawn();local member=companions.list()[1]
 local queue=(function() ${partySource} end)().new(companions)
-queue.bind('world-one');assert(queue.drive('live:'..member.serial))
+queue.bind('world-one');assert(companions.queueChauffeur(member.serial,nil,member.entityID))
+assert(queue.stopTrip());local before=reads
 queue.bind(nil);queue.bind('world-two');queue.flush()
-assert(reads==0 and not companions.chauffeurSnapshot().active)
-assert(queue.drive('live:'..member.serial));point=nil;queue.flush();queue.flush()
-assert(reads==1 and not companions.chauffeurSnapshot().active)
-local notices=queue.takeNotices();assert(#notices==1 and notices[1].failed and notices[1].message:find('destination',1,true))
-assert(queue.drive('live:'..member.serial));assert(queue.dismiss('live:'..member.serial));queue.flush()
-assert(reads==1 and #companions.list()==0)
+assert(reads==before and companions.chauffeurSnapshot().phase=='releasing' and not queue.chauffeur().stopPending)
+companions.abandon();queue.flush()
+assert(not companions.chauffeurSnapshot().active and reads==before)
+`));
+
+test('manager reports the manual passenger boarding phase once without starting or advancing the trip', () => run(`
+spawn();local member=companions.list()[1]
+local queue=(function() ${partySource} end)().new(companions)
+queue.bind('world-one')
+companions.chauffeurSnapshot=function()return {active=true,phase='waiting-for-player',offer={actor={serial=member.serial}}}end
+companions.queueChauffeur=function()error('manager initiated a trip')end
+queue.flush();queue.flush()
+local notices=queue.takeNotices()
+assert(#notices==1 and notices[1].message=='Your companion is ready. Get in the passenger seat to start the trip.')
+assert(not notices[1].failed and reads==0 and queue.chauffeur().phase=='waiting-for-player')
 `));

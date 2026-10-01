@@ -59,7 +59,7 @@ function api.mount(value,vehicle,seat,exit)
   if not world.delayDriver then actual(value,not exit and seat or nil,vehicle); command.state='Success' end
   return command
 end
-function api.commandState(command) return command.state end
+function api.commandState(command) world.commandReads=(world.commandReads or 0)+1; return command.state end
 function api.cancel(command)
   if world.cancelBlocked then return false end
   command.state='Cancelled'; return true
@@ -99,15 +99,14 @@ function native.sample(_,value)
     info=world.detached and {ready=false} or car.info,summonedId=world.summoned,summonEnRoute=world.enRoute,
     waypoint=world.waypoint,auto=world.auto}
 end
-function native.mountPlayer(_,vehicle,seat)
-  assert(world.mounts[1] and world.mounts[1].seat=='seat_front_left','V boarded before driver')
+function native.mountPlayer()
   world.playerMounts=world.playerMounts+1
-  if world.rejectPlayer then return false,'No passenger entry' end
-  if not world.delayPlayer then actual('player',seat) end
-  return true
+  error('The mod must never mount V')
 end
-function native.enable()
+function native.enable(_,_,_,_,seat)
   assert(world.mounts[1] and world.mounts.player and world.mounts.player.seat~='seat_front_left')
+  assert(world.mounts.player.seat==seat,'Departure used a stale passenger seat')
+  world.enableSeat=seat
   world.enables=world.enables+1
   if world.rejectEnable then return false,'Rejected' end
   if world.delayEnable then world.enableQueued=true
@@ -133,7 +132,11 @@ local function tick(count,step)
 end
 local function queue(expected) return transport.queueChauffeur(fleet,player,entry,expected) end
 local function phase() return transport.chauffeurSnapshot(fleet).phase end
-local function driving() assert(queue()); tick(15); assert(phase()=='driving',phase()) end
+local function boardManually(seat) actual('player',seat or 'seat_front_right'); tick(8) end
+local function driving()
+  assert(queue()); tick(12); assert(phase()=='waiting-for-player',phase())
+  boardManually(); assert(phase()=='driving',phase()); assert(world.playerMounts==0)
+end
 `;
 
 test('offer is read-only, carries exact identities, and stale map intents are rejected',()=>run(`
@@ -152,18 +155,31 @@ assert(world.unmounts==0 and world.playerMounts==0)
 actual('player',nil); world.auto.enabled=true
 assert(not queue() and world.disables==0 and world.brakes==0)
 `));
-test('driver command and actual seat must both complete before passenger boarding',()=>run(`
+test('driver command and actual seat must complete before waiting for V to board manually',()=>run(`
 world.delayDriver=true; assert(queue()); tick(5)
 assert(world.mountsRequested==1 and world.playerMounts==0 and transport.owns(fleet,1))
 actual(entry,'seat_front_left'); tick(5)
 assert(world.playerMounts==0,'mount relation was treated as completed animation')
 world.commands[1].state='Success'; tick(3)
-assert(world.playerMounts==1 and world.mounts.player.seat=='seat_front_right')
+assert(world.playerMounts==0 and not world.mounts.player and phase()=='waiting-for-player')
 assert(not transport.owns(fleet,2) and not world.mounts[2])
+boardManually(); assert(phase()=='driving' and world.enables==1)
+`));
+test('fleet snapshots expose cached native mount state and age without making native reads',()=>run(`
+world.delayDriver=true; assert(queue()); tick(5); actual(entry,'seat_front_left'); tick(5)
+local reads=world.commandReads
+local row=transport.snapshot(fleet,1).people[1]
+assert(row.mountedSeat=='seat_front_left' and row.commandState=='Executing' and row.commandActive and row.commandAge>0)
+assert(world.commandReads==reads,'snapshot queried native command state')
+world.commands[1].state='Success'; tick(3); reads=world.commandReads
+row=transport.snapshot(fleet,1).people[1]
+assert(row.commandState=='Success' and not row.commandActive and row.commandAge>0)
+assert(world.commandReads==reads and phase()=='waiting-for-player')
 `));
 test('passenger PSM transition prevents departure and native activation must be observed',()=>run(`
 world.playerTransition=true; assert(queue()); tick(10)
-assert(world.playerMounts==1 and world.enables==0)
+actual('player','seat_front_right'); tick(5)
+assert(world.playerMounts==0 and world.enables==0 and phase()=='waiting-for-player')
 world.playerTransition=false; world.delayEnable=true; tick(5)
 assert(world.enables==1 and phase()=='starting')
 world.auto.enabled=true; world.auto.vehicleId=car.id; tick()
@@ -183,7 +199,7 @@ assert(not queue() and world.mountsRequested==0 and world.enables==0)
 `));
 test('a stale native destination cannot silently start a different route or Free Roam',()=>run(`
 world.auto.playerTracked=false; world.auto.destinationId='quest-pin'
-assert(queue()); tick(20)
+assert(queue()); tick(12); boardManually()
 assert(world.enables==0 and phase()=='waiting-for-player-exit')
 actual('player',nil); tick(10)
 assert(not fleet.chauffeur and world.deleted==0)
@@ -191,7 +207,7 @@ assert(not fleet.chauffeur and world.deleted==0)
 test('a selected Quest route starts normally and a changed frozen endpoint cancels it',()=>run(`
 world.auto.playerTracked=false; world.auto.questTracked=true
 local offered=transport.chauffeurOffer(fleet,player,entry)
-assert(offered.available and queue(offered)); tick(15)
+assert(offered.available and queue(offered)); tick(12); boardManually()
 assert(phase()=='driving' and world.enables==1)
 world.waypoint.position.z=world.waypoint.position.z+1; tick(4)
 assert(phase()=='waiting-for-player-exit' and world.disables==1 and world.enables==1)
@@ -221,18 +237,15 @@ driving(); world.auto.enabled=false; tick()
 world.auto.enabled=true; world.auto.vehicleId=car.id; tick(8)
 assert(world.enables==1 and world.disables==0 and world.unmounts==0)
 `));
-test('unobserved passenger mount retains the driver after cancellation to avoid a late seat swap',()=>run(`
-world.delayPlayer=true; assert(queue()); tick(10)
-assert(world.playerMounts==1 and world.enables==0)
-transport.cancelChauffeur(fleet); tick(30,1)
-assert(world.unmounts==0 and transport.owns(fleet,1) and phase()=='stopping')
-actual('player','seat_front_right'); tick(2)
-assert(phase()=='waiting-for-player-exit')
-actual('player',nil); tick(6)
-assert(not fleet.chauffeur and world.unmounts==1)
+test('manual waiting allows several minutes without moving V and cancellation releases the driver',()=>run(`
+assert(queue()); tick(12); tick(120,1)
+assert(world.playerMounts==0 and world.enables==0 and not world.mounts.player)
+assert(phase()=='waiting-for-player' and transport.owns(fleet,1) and world.unmounts==0)
+transport.cancelChauffeur(fleet); tick(8)
+assert(not fleet.chauffeur and world.unmounts==1 and world.playerMounts==0)
 `));
 test('timed out departure cancels the pending native request without retrying enable',()=>run(`
-world.delayEnable=true; assert(queue()); tick(12)
+world.delayEnable=true; assert(queue()); tick(12); boardManually()
 assert(world.enableQueued and phase()=='starting')
 tick(12,1)
 assert(not world.enableQueued and world.enables==1 and world.disables==1 and phase()=='waiting-for-player-exit')
@@ -311,9 +324,13 @@ assert(not world.auto.enabled and world.unmounts==0 and world.resumes==0 and tra
 transport.remove(fleet,1); tick(4)
 assert(not fleet.chauffeur and world.resumes==0)
 `));
-test('eight companions carpool around Judy and V, with two owned overflow cars following native AutoDrive',()=>run(`
+test('only Judy is acquired while V waits; all eight copies carpool with two overflow cars after V boards',()=>run(`
 for i=2,8 do entries[i]={serial=i,key='person-'..i,profileKey='person-'..i,entityID={hash=tostring(1000+i)..'ULL'},npc={}} end
-assert(queue()); tick(80)
+assert(queue()); tick(12); tick(120,1)
+assert(phase()=='waiting-for-player' and not car.info.seats[2].occupant and world.playerMounts==0)
+assert(world.mountsRequested==1 and world.releases==1 and #world.spawned==0 and #fleet.cars==0)
+for i=2,8 do assert(not transport.owns(fleet,i) and not world.mounts[i]) end
+boardManually(); tick(80)
 assert(phase()=='driving' and world.enables==1 and #world.spawned==2 and world.follows==2)
 assert(car.info.seats[1].occupant=='1001ULL' and car.info.seats[2].occupant=='1ULL')
 assert(car.info.seats[3].occupant=='1002ULL' and car.info.seats[4].occupant=='1003ULL')
@@ -327,7 +344,12 @@ for _,cmd in ipairs(world.commands) do
   if cmd.entry.serial~=4 then actual(cmd.entry,cmd.seat,cmd.car); cmd.state='Success' end
 end
 tick(10)
-assert(phase()=='boarding-player' and world.playerMounts==0 and world.enables==0 and world.follows==0)
+assert(phase()=='waiting-for-player' and world.playerMounts==0 and world.enables==0 and world.follows==0)
+boardManually(); assert(phase()=='waiting-for-party' and world.enables==0)
+for _,cmd in ipairs(world.commands) do
+  if cmd.entry.serial~=4 then actual(cmd.entry,cmd.seat,cmd.car); cmd.state='Success' end
+end
+tick(3); assert(phase()=='waiting-for-party' and world.enables==0)
 for _,cmd in ipairs(world.commands) do
   if cmd.entry.serial==4 then actual(cmd.entry,cmd.seat,cmd.car); cmd.state='Success' end
 end
@@ -335,7 +357,7 @@ tick(8); assert(phase()=='driving' and world.enables==1 and world.follows==1)
 `));
 test('cancelling a chauffeured group retires convoy commands, dismounts the party, and deletes only overflow cars',()=>run(`
 for i=2,8 do entries[i]={serial=i,key='person-'..i,profileKey='person-'..i,entityID={hash=tostring(1000+i)..'ULL'},npc={}} end
-assert(queue()); tick(80); assert(world.follows==2)
+assert(queue()); tick(80); boardManually(); tick(80); assert(world.follows==2)
 world.cancelBlocked=true; transport.cancelChauffeur(fleet); tick(6)
 assert(world.unmounts==0 and world.deleted==0)
 actual('player',nil); tick(5)
@@ -344,4 +366,55 @@ world.cancelBlocked=false; tick(30)
 assert(not fleet.chauffeur and world.unmounts==8 and world.resumes==8)
 assert(world.deleted==2 and world.cars[car.id]==car and not fleet.primary and #fleet.cars==0)
 for i=1,8 do assert(not transport.owns(fleet,i)) end
+`));
+test('manual waiting times out after five minutes and cancels when V walks away',()=>run(`
+assert(queue()); tick(12); tick(301,1); tick(8)
+assert(not fleet.chauffeur and world.enables==0 and world.playerMounts==0 and world.unmounts==1)
+assert(queue()); tick(12); car.info.playerGap=41; tick(8)
+assert(not fleet.chauffeur and world.enables==0 and world.playerMounts==0 and world.unmounts==2)
+`));
+test('V may choose another available passenger seat without changing the frozen action offer',()=>run(`
+local offer=transport.chauffeurOffer(fleet,player,entry)
+assert(queue(offer)); tick(12); boardManually('seat_back_left')
+assert(phase()=='driving' and world.enableSeat=='seat_back_left' and world.playerMounts==0)
+local snap=transport.chauffeurSnapshot(fleet)
+assert(snap.passengerSeat=='seat_back_left' and snap.offer.passengerSeat=='seat_front_right')
+`));
+test('an alternate manual seat retires an NPC reservation before reallocating that companion',()=>run(`
+entries[2]=other; other.profileKey=other.key; world.delayDriver=true
+assert(queue()); tick(10)
+for _,cmd in ipairs(world.commands) do
+  if cmd.entry.serial==1 then actual(entry,cmd.seat,cmd.car); cmd.state='Success' end
+end
+tick(3); actual('player','seat_front_right'); tick(3)
+assert(phase()=='waiting-for-party' and world.mountsRequested==2)
+world.cancelBlocked=true; actual('player','seat_back_left'); tick(3)
+assert(world.enables==0 and phase()=='waiting-for-party' and fleet.chauffeur.passengerYieldPending)
+world.cancelBlocked=false; world.delayDriver=false; tick(12)
+assert(phase()=='driving' and world.enableSeat=='seat_back_left')
+assert(world.mounts[2].seat=='seat_front_right' and world.playerMounts==0)
+`));
+test('V choosing the driver seat cancels the chauffeur and yields without braking, reseating or ejecting V',()=>run(`
+assert(queue()); tick(12); actual(entry,nil); actual('player','seat_front_left'); car.info.speed=10
+tick()
+assert(not fleet.chauffeur and phase()=='taken-over' and world.enables==0 and world.disables==0 and world.brakes==0)
+assert(world.mounts.player.seat=='seat_front_left' and world.playerMounts==0 and world.unmounts==0)
+assert(world.resumes==1 and transport.canDismissChauffeurDriver(fleet,1))
+`));
+test('V taking the driver seat during owned AutoDrive disables that trip without braking against V',()=>run(`
+driving(); actual(entry,nil); actual('player','seat_front_left'); car.info.speed=10
+tick(3)
+assert(not fleet.chauffeur and phase()=='taken-over' and world.disables==1 and world.brakes==0)
+assert(world.mounts.player.seat=='seat_front_left' and world.playerMounts==0 and world.enables==1)
+`));
+test('a destination change while waiting for manual boarding cancels without moving V',()=>run(`
+assert(queue()); tick(12); assert(phase()=='waiting-for-player')
+world.waypoint.id='different-destination'; tick(8)
+assert(not fleet.chauffeur and world.enables==0 and world.playerMounts==0 and not world.mounts.player)
+assert(world.unmounts==1 and world.mountsRequested==1)
+`));
+test('a driver who gets out while waiting is released without an automatic reseat or departure',()=>run(`
+assert(queue()); tick(12); actual(entry,nil); tick(8)
+assert(not fleet.chauffeur and world.enables==0 and world.playerMounts==0)
+assert(world.mountsRequested==1 and not world.mounts[1] and world.resumes==1)
 `));

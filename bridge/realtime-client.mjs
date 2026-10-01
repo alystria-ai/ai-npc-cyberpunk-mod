@@ -591,8 +591,10 @@ async function updateContext(config, allowActions = false) {
   const verified = verifiedProvider?.connection === client && currentParticipant(client, audioParticipant);
   companionActions.clear();
   const armed = verified && offered && companionActions.open(offered);
-  if (armed) context.text += '\nOnly when V explicitly asks you to drive the summoned car to the selected waypoint, '
+  if (armed) context.text += '\nOnly when V explicitly asks you to drive for them, give them a ride, or take the wheel, '
     + 'request the action Drive To Waypoint with target ' + offered.token + '. This target belongs only to this request. '
+    + 'Use the route V has already selected; if they ask for a different destination, ask them to select it on the map first. '
+    + 'You take the driver seat and wait for V to get into a passenger seat themselves before departing. '
     + 'Do not request it for hypothetical discussion, quoted speech, or an automatic event. '
     + 'The game must confirm boarding, driving, and arrival; never claim success before confirmation.';
   if (armed || actionContextConfigured) {

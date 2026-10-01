@@ -11,6 +11,11 @@ The request begins while V is on foot near a stopped summoned car. If V is
 already driving, the action asks V to step out. It never ejects V, takes over
 an unrelated AutoDrive trip, unlocks another car, or changes garage ownership.
 
+Start a trip by asking the companion in private text or voice conversation.
+The Companion Manager shows active trip status and a Stop trip action; it has
+no driving initiation button or deferred driving request. The companion waits
+for V to enter a passenger seat manually before departure.
+
 ## Files and ownership
 
 | File | Responsibility |
@@ -20,6 +25,7 @@ an unrelated AutoDrive trip, unlocks another car, or changes garage ownership.
 | `mod/companion-chauffeur-native.lua` | Installed 2.31 AutoDrive, summoned car, waypoint, player mount and guarded borrowed-car braking APIs |
 | `bridge/companion-chauffeur.test.mjs` | Real fleet controller plus delayed native-boundary fixtures |
 | `bridge/companion-chauffeur-native.test.mjs` | Native request shapes, live-identity guards and read-only offer inputs |
+| `bridge/chauffeur-game-integration.test.mjs` | Managed actor binding, protected dismissal and active-trip manager cancellation |
 
 The chauffeur owns the same `fleet.people[serial]` record used by ordinary
 transport. There is no second update loop or parallel walking controller. The
@@ -27,12 +33,17 @@ lead car is `fleet.primary`, remains `owned=false`, and is never added to the
 deletable overflow-car list. The driver's front-left seat and V's selected
 passenger seat are unavailable to the ordinary allocator.
 
-The driver and the rest of the party finish native animated boarding before V
-is mounted. This also avoids native follower auto-boarding competing for V's
-seat while V enters. Overflow cars use the existing exact follow-command
-receipts, braking rules and tagged nonpersistent vehicle cleanup. Departure
-waits until every assigned actor has a real matching mount and terminal mount
-command. The chauffeur never replaces those follow commands with AutoDrive.
+Only the selected driver is acquired and boarded while V is on foot. Other
+companions retain their ordinary collision-aware walking owner, and no overflow
+cars are created during this wait. The driver waits for V to enter a passenger
+seat through normal gameplay. The mod never mounts, unmounts, teleports or
+switches seats for V. After observing V's actual passenger mounting and native
+`Passenger` state, the fleet acquires the remaining companions and allocates
+the free lead-car seats and overflow cars. It preserves V's reserved or actually
+chosen passenger slot. Overflow cars use the existing exact
+follow-command receipts, braking rules and tagged nonpersistent vehicle
+cleanup. Departure waits for V's actual passenger mount and `Passenger` state,
+and for every assigned companion's real mount and terminal mount command.
 
 ## Public fleet API
 
@@ -86,6 +97,11 @@ The coordinator runs only from existing `vehicles.update`. Cached snapshots
 make no native calls and are also present as `vehicleSnapshot().chauffeur`.
 They expose phase, offer identity, native enabled/vehicle/distance readings,
 actual driver/player seats, speed, reason, outcome and bounded attempt counts.
+Each fleet person row also exposes `commandState`, `commandActive` and
+`commandAge`. The state is cached from the existing mount/unmount command
+checks; age is time since the last request. Snapshots never query a native
+command. This distinguishes a real driver-seat mount whose command still
+executes from a command that reached a terminal state.
 
 ## State and interruption rules
 
@@ -93,13 +109,14 @@ actual driver/player seats, speed, reason, outcome and bounded attempt counts.
 | --- | --- |
 | Releasing | Existing walking and equipment commands release; 12-second deadline |
 | Boarding driver | Animated exact driver mount plus terminal command; 25-second deadline |
-| Boarding player | Whole party seated first, then one animated native player mount; 75 seconds for party, 25 seconds for V |
-| Waiting for party | V is in the actual reserved passenger seat and native `Passenger` state; all actors seated |
+| Waiting for player | Driver is seated; observe V boarding manually into a valid passenger seat; up to five minutes while V remains within 40 m |
+| Waiting for party | V is in an observed passenger seat and native `Passenger` state; all assigned actors seated, with a 75-second party deadline |
 | Starting | Ordinary `EnableAutoDriveRequest`, once; observe native enabled state for this exact car/destination within 5 seconds |
 | Driving | Exact actor/profile, car, waypoint and mounts stay current; native availability remains true |
 | Stopping | Guarded disable, brake, and fresh native-disabled/stopped evidence; each submission bounded to three attempts |
 | Waiting for player exit | Driver and car retained until V leaves; no forced player exit or automatic seat takeover |
 | Exiting driver/party | Retire exact convoy commands, stop cars, animated NPC exits, then resume walking and remove only empty owned overflow cars |
+| Taken over by V | V chose the driver seat; retire this trip's native requests, yield without braking against V, and retain ordinary party transport |
 
 Stationary/no-progress driving is stopped after 35 seconds; maximum trip time
 is 30 minutes. Native distance is a local traffic-slot path that can initialize
@@ -112,11 +129,20 @@ A failed waypoint/UI read still attempts guarded native shutdown using the
 exact car lease. Uncertain command release, an active foreign AutoDrive journey,
 or missing stopped evidence retains ownership and an explicit error.
 
-Native player `Mount()` returns void and has no exposed cancellable command
-receipt. If submission throws or never produces an observed mount, the driver
-is retained rather than allowing a late V mount into an empty driver seat.
-Entering the car and stepping out resolves that state. There is one player
-mount submission; it is never retried in the background.
+There is no player `Mount()` request in the chauffeur adapter. The waiting
+stage observes actual mounting and gives V time to enter manually. Walking
+more than 40 m away, changing the selected destination or waiting five minutes
+cancels the request without moving V. The manager can show one friendly
+"Get in the passenger seat" notice when the driver is ready; no key is assumed.
+
+V may choose a different available front-right, back-left or back-right seat.
+The current internal reservation changes only after actual player occupancy
+is confirmed. If an NPC has an uncommitted reservation for that seat, its exact
+mount command must retire before the NPC is reassigned. The original action
+offer remains immutable; `snapshot.passengerSeat` reports the current observed
+seat. Choosing the driver seat cancels chauffeur intent and yields to V after
+the companion vacates that slot. No player exit, reseat, or automatic driving
+request is issued during that handoff.
 
 ## Required application hooks
 
@@ -190,6 +216,17 @@ The vendored GitHub script snapshot is 2.3 and lacks several 2.31 changes.
 | `core/gameplay/vehicles.script:104-105` | `ForceBrakesUntilStoppedOrFor(Float, optional callback)` |
 | `core/data/tweakDBRecords.script:9771`, `core/ui/uiTextUtils.script:3` | Vehicle `DisplayName()` returns `CName`; `GetLocalizedTextByKey(CName)` resolves it. CET uses `Game.GetLocalizedTextByKey`, with record-ID fallback on cosmetic lookup failure. Blackboard definitions use the established `Game.GetAllBlackboardDefs()` binding. |
 
+The installed `tools/redmod/tweaks/base/gameplay/static_data/database/ai/actions/library/`
+contains the follower vehicle policy. `followeractions.tweak:1864-1884` defines
+`FollowerActions.ExitVehicle` as `IsFollower AND NotDriver AND NotFollowerInVehicle`
+before it queues `ExitVehicle`. `commonconditionchecks.tweak:15342-15349` makes
+`NotDriver` the inverse of `AIDriverCond`; its implementation in
+`scripts/core/ai/actions/tweakAIConditionChecks.script:2948-2954` tests the NPC's
+actual driver mounting. Judy in the driver seat is therefore excluded from
+this relaxed follower exit rule without any role replacement or extra Hold
+command. Non-driver passengers are eligible while V is on foot, which is why
+their transport acquisition and boarding wait until V is aboard.
+
 CDPR's [2.31 patch notes](https://www.cyberpunk.net/en/news/51794/patch-2-31)
 describe the updated route driving and overtaking. The implementation submits
 native requests rather than reproducing that pathfinding in Lua. The old AMM
@@ -216,8 +253,9 @@ Run the focused, headless checks:
 node --test bridge/companion-chauffeur.test.mjs bridge/companion-chauffeur-native.test.mjs bridge/companion-vehicles.test.mjs bridge/companion-vehicle-integration.test.mjs
 ```
 
-The new checks cover stale offers, exact identities and profiles, delayed
-boarding/activation, whole-party carpool and two overflow cars, native request
+The new checks cover stale offers, exact identities and profiles, manual
+boarding/activation, alternate passenger seats, V taking over, walking away,
+waiting deadlines, whole-party carpool and two overflow cars, native request
 guards, bounded stop attempts, foreign AutoDrive takeover, native arrival,
 route-distance resets, sample failures, cancellation, deletion exclusion,
 save/death/fast-travel interruption and pre-shutdown driver protection.

@@ -124,18 +124,14 @@ values.destinationType='Quest'; values.waypointName='LocKey#36647'; values.waypo
 local sample=native.sample(player,entry,nil,api)
 assert(sample.waypoint.id=='3001ULL' and sample.waypoint.name=='Selected quest destination')
 `));
-test('native passenger mount preserves animation and rejects occupied or driverless cars',()=>run(`
-assert(not native.mountPlayer(player,car,'seat_front_right',api,entry))
-driver(); values.passengerOccupied='foreign'
-assert(not native.mountPlayer(player,car,'seat_front_right',api,entry) and not values.mountRequest)
-values.passengerOccupied=nil
-assert(native.mountPlayer(player,car,'seat_front_right',api,entry))
-local request=values.mountRequest
-assert(request.lowLevelMountingInfo.childId.hash=='1ULL' and request.lowLevelMountingInfo.parentId.hash=='2001ULL')
-assert(request.lowLevelMountingInfo.slotId.id=='seat_front_right')
-assert(request.mountData.isInstant==false and request.mountData.allowFailsafeTeleport==false)
-assert(request.mountData.mountEventOptions.entityID.hash=='0ULL' and request.mountData.mountEventOptions.alive==false)
-assert(request.mountData.mountEventOptions.occupiedByNonFriendly==false)
+test('native boundary observes manual boarding and has no player mounting operation',()=>run(`
+assert(native.mountPlayer==nil)
+driver(); assert(not native.enable(player,entry,car,pin,'seat_front_right',api))
+assert(not values.mountRequest and #values.queued==0)
+passenger(); values.playerState='Transition'
+assert(not native.enable(player,entry,car,pin,'seat_front_right',api) and #values.queued==0)
+values.playerState='Passenger'; assert(native.enable(player,entry,car,pin,'seat_front_right',api))
+assert(not values.mountRequest and #values.queued==1)
 `));
 test('native enable submits the ordinary guarded request only for the exact seated pair and destination',()=>run(`
 driver(); passenger()
