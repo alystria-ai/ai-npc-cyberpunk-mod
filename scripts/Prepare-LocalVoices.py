@@ -1,8 +1,9 @@
 """Validate local voice profiles and plan a shared OmniVoice configuration.
 
-Dry-run is the default. --write explicitly activates the validated configuration
-through an atomic JSON replacement. No extraction, model download, inference,
-training, game installation or cloud call is performed.
+Dry-run is the default. --write atomically writes the validated configuration;
+source-qualified inventory mode always writes a separate activation artifact.
+No extraction, model download, inference, training, game installation or cloud
+call is performed.
 """
 from pathlib import Path
 from contextlib import closing
@@ -18,6 +19,7 @@ import sys
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
+TOOL_ROOT = ROOT
 spec = importlib.util.spec_from_file_location('resident_voice_validation', ROOT / 'bridge/resident-voice-worker.py')
 validation = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(validation)
@@ -384,6 +386,90 @@ def build_config(root, legacy, manifest=None, *, verify_sources=True):
     return config
 
 
+def source_qualified_plan(root, inventory):
+    """Source attribution admission, independent of generated-voice listening."""
+    spec = importlib.util.spec_from_file_location('voice_source_activation', TOOL_ROOT / 'scripts/Generate-VoiceCastAuditions.py')
+    sources = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(sources)
+    plan = sources.plan_auditions(root, inventory)
+    require_accepted_source_profiles(plan)
+    return sources, plan
+
+
+def require_accepted_source_profiles(plan):
+    if any(not any(row['key'] == key and row.get('acceptedExisting') for row in plan['selected']) for key in KEYS):
+        raise ValueError('Source-qualified activation must preserve all three accepted legacy descriptors')
+
+
+def build_source_qualified_config(root, sources, plan):
+    if (sources.digest(root / plan['inventory']) != plan['inventorySha256']
+            or sources.digest(root / 'runtime/local-voices.json') != plan['productionConfigSha256']):
+        raise ValueError('Source-qualified activation inputs changed after admission')
+    require_accepted_source_profiles(plan)
+    voices, selections = {}, []
+    for row in plan['selected']:
+        descriptor, copied = sources.copy_source_reference(root, row)
+        if not row.get('acceptedExisting'):
+            # Readiness means the source chain is qualified. It does not assert
+            # anyone listened to the cloned output or accepted its similarity.
+            descriptor.update(qualificationStatus='source-qualified', listeningVerified=False,
+                              sourceReceipt=row['receipt'], sourceReceiptSha256=row['receiptSha256'])
+        voices[row['key']] = descriptor
+        selections.append({'key': row['key'], 'reference': descriptor['reference'], 'sha256': descriptor['sha256'],
+                           'transcriptSha256': sha256_text(descriptor['transcript']), 'copiedOriginal': copied,
+                           'acceptedExisting': bool(row.get('acceptedExisting')), 'qualificationStatus': 'source-qualified',
+                           **({'sourceReceipt': row['receipt'], 'sourceReceiptSha256': row['receiptSha256']}
+                              if not row.get('acceptedExisting') else {})})
+    for row in plan['unprepared']:
+        voices[row['key']] = {'status': 'unprepared'}
+    config = {'version': 2, 'provider': 'hybrid', 'engine': 'omnivoice', 'steps': 32,
+              **plan['legacyModel'], 'preparation': {'mode': 'lazy', 'startupProfiles': list(KEYS), 'maxCachedProfiles': 8},
+              'qualificationMode': 'source-qualified', 'sourceInventorySha256': plan['inventorySha256'], 'voices': voices}
+    ensure_available(config, root)
+    receipt = {'version': 1, 'kind': 'source-qualified-activation', 'qualificationMode': 'source-qualified',
+               'configuredProfiles': len(voices), 'localProfiles': len(plan['selected']), 'remoteProfiles': len(plan['unprepared']),
+               'listeningVerified': False, 'newListeningApprovals': 0, 'legacyReferencesUnchanged': True,
+               'sourceInventory': plan['inventory'], 'sourceInventorySha256': plan['inventorySha256'],
+               'productionConfigSha256BeforePreparation': plan['productionConfigSha256'],
+               'selections': selections, 'unprepared': plan['unprepared']}
+    return config, receipt
+
+
+def write_source_qualified_activation(root, inventory, output=Path('runtime/voice-cast/activation/local-voices.source-qualified.json')):
+    sources, plan = source_qualified_plan(root, inventory)
+    target = sources.runtime_path(root, output, 'runtime/voice-cast/activation')
+    safe_runtime_path(root, target, output=True)
+    config, receipt = build_source_qualified_config(root, sources, plan)
+    if (sources.digest(root / plan['inventory']) != plan['inventorySha256']
+            or sources.digest(root / 'runtime/local-voices.json') != plan['productionConfigSha256']):
+        raise ValueError('Source-qualified activation inputs changed during preparation')
+    write_config(root, target, config)
+    receipt['configPath'] = target.relative_to(root).as_posix()
+    receipt['configSha256'] = sources.digest(target)
+    receipt_path = target.with_name('activation-receipt.json')
+    receipt_path = sources.runtime_path(root, receipt_path, 'runtime/voice-cast/activation')
+    # The configuration is the activation artifact; this independent receipt
+    # records source admission honestly and is never read as a user approval.
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile('w', encoding='utf-8', dir=receipt_path.parent,
+                                         prefix='activation-receipt.', suffix='.tmp', delete=False) as handle:
+            temporary = Path(handle.name)
+            json.dump(receipt, handle, ensure_ascii=False, indent=2)
+            handle.write('\n')
+            handle.flush()
+            os.fsync(handle.fileno())
+        sources.runtime_path(root, receipt_path, 'runtime/voice-cast/activation')
+        os.replace(temporary, receipt_path)
+        temporary = None
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
+    if sources.digest(root / 'runtime/local-voices.json') != plan['productionConfigSha256']:
+        raise ValueError('Production configuration changed externally during source-qualified preparation')
+    return config, receipt
+
+
 def ensure_available(config, root):
     registry = validation.validate_config(config, root)
     expected = {key for key, descriptor in config['voices'].items() if descriptor.get('status', 'ready') == 'ready'}
@@ -440,18 +526,36 @@ def write_config(root, output, config):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--legacy-config', type=Path, default=Path('runtime/local-voices.json'))
-    parser.add_argument('--manifest', type=Path)
-    parser.add_argument('--output', type=Path, default=Path('runtime/local-voices.json'))
+    inputs = parser.add_mutually_exclusive_group()
+    inputs.add_argument('--manifest', type=Path)
+    inputs.add_argument('--source-qualified-inventory', type=Path,
+                        help='Enable attributed original references without asserting cloned-output listening acceptance')
+    parser.add_argument('--output', type=Path)
     activation = parser.add_mutually_exclusive_group()
     activation.add_argument('--write', action='store_true')
     activation.add_argument('--dry-run', action='store_true')
     args = parser.parse_args(argv)
+    if args.source_qualified_inventory:
+        if args.write:
+            output = args.output or Path('runtime/voice-cast/activation/local-voices.source-qualified.json')
+            config, receipt = write_source_qualified_activation(ROOT, args.source_qualified_inventory, output)
+            print(json.dumps({'mode': 'written', 'version': 2, 'configuredProfiles': receipt['configuredProfiles'],
+                              'availableProfiles': receipt['localProfiles'], 'remoteProfiles': receipt['remoteProfiles'],
+                              'qualificationMode': 'source-qualified', 'newListeningApprovals': 0, 'steps': 32,
+                              'legacyReferencesUnchanged': True}, ensure_ascii=False))
+        else:
+            _, plan = source_qualified_plan(ROOT, args.source_qualified_inventory)
+            print(json.dumps({'mode': 'dry-run', 'version': 2, 'configuredProfiles': len(plan['selected']) + len(plan['unprepared']),
+                              'availableProfiles': len(plan['selected']), 'remoteProfiles': len(plan['unprepared']),
+                              'qualificationMode': 'source-qualified', 'newListeningApprovals': 0, 'steps': 32,
+                              'legacyReferencesUnchanged': True}, ensure_ascii=False))
+        return 0
     legacy = read_json(safe_runtime_path(ROOT, args.legacy_config))
     manifest = read_json(safe_runtime_path(ROOT, args.manifest)) if args.manifest else None
     config = build_config(ROOT, legacy, manifest)
     available = [key for key, descriptor in config['voices'].items() if descriptor.get('status', 'ready') == 'ready']
     if args.write:
-        write_config(ROOT, args.output, config)
+        write_config(ROOT, args.output or Path('runtime/local-voices.json'), config)
     print(json.dumps({'mode': 'written' if args.write else 'dry-run', 'version': config['version'],
                       'configuredProfiles': len(config['voices']), 'availableProfiles': len(available),
                       'remoteProfiles': len(config['voices']) - len(available), 'steps': 32,

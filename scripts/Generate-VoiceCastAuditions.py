@@ -203,6 +203,42 @@ def plan_auditions(root, inventory_path, *, keys=None, max_profiles=MAX_PROFILES
             'productionConfigSha256': legacy_digest}
 
 
+def copy_source_reference(root, row):
+    """Copy one source unchanged; also used by source-qualified activation."""
+    key, descriptor = row['key'], row['descriptor']
+    prefix = 'runtime/voice-references' if row.get('acceptedExisting') else 'runtime/voice-cast'
+    source = runtime_path(root, row['source'], prefix, must_exist=True)
+    if digest(source) != descriptor['sha256']:
+        raise ValueError('Selected original reference changed after planning')
+    if row.get('receipt'):
+        receipt = runtime_path(root, row['receipt'], 'runtime/voice-cast', must_exist=True)
+        if digest(receipt) != row['receiptSha256']:
+            raise ValueError('Selected immutable attribution receipt changed after planning')
+    target = runtime_path(root, f'runtime/voice-references/full-cast-draft/{key}/reference.wav', 'runtime/voice-references/full-cast-draft')
+    if target.exists() and digest(target) != descriptor['sha256']:
+        raise ValueError('Another draft owns a different original reference for ' + key)
+    if not target.exists():
+        target.parent.mkdir(parents=True, exist_ok=True)
+        with source.open('rb') as original:
+            content = original.read(validation.MAX_REFERENCE_BYTES + 1)
+        if len(content) > validation.MAX_REFERENCE_BYTES or hashlib.sha256(content).hexdigest() != descriptor['sha256']:
+            raise ValueError('Original reference changed while copying')
+        created = False
+        try:
+            with target.open('xb') as output:
+                created = True
+                output.write(content)
+        except Exception:
+            if created:
+                target.unlink(missing_ok=True)
+            raise
+    if digest(target) != descriptor['sha256']:
+        raise ValueError('Unchanged draft-copy verification failed')
+    copied = str(target.relative_to(root)).replace('\\', '/')
+    configured = copy.deepcopy(descriptor) if row.get('acceptedExisting') else {**descriptor, 'reference': copied, 'status': 'ready'}
+    return configured, copied
+
+
 def make_draft(root, plan, destination):
     destination = runtime_path(root, destination, 'runtime/voice-cast/auditions')
     if destination.exists():
@@ -211,39 +247,8 @@ def make_draft(root, plan, destination):
         raise ValueError('Audition inputs changed after planning')
     voices, copied = {}, []
     for row in plan['selected']:
-        key, descriptor = row['key'], row['descriptor']
-        prefix = 'runtime/voice-references' if row.get('acceptedExisting') else 'runtime/voice-cast'
-        source = runtime_path(root, row['source'], prefix, must_exist=True)
-        if digest(source) != descriptor['sha256']:
-            raise ValueError('Selected original reference changed after planning')
-        if row.get('receipt'):
-            receipt = runtime_path(root, row['receipt'], 'runtime/voice-cast', must_exist=True)
-            if digest(receipt) != row['receiptSha256']:
-                raise ValueError('Selected immutable attribution receipt changed after planning')
-        target = runtime_path(root, f'runtime/voice-references/full-cast-draft/{key}/reference.wav', 'runtime/voice-references/full-cast-draft')
-        if target.exists() and digest(target) != descriptor['sha256']:
-            raise ValueError('Another draft owns a different original reference for ' + key)
-        if not target.exists():
-            target.parent.mkdir(parents=True, exist_ok=True)
-            # Exclusive create preserves other drafts and original byte identity.
-            with source.open('rb') as original:
-                content = original.read(validation.MAX_REFERENCE_BYTES + 1)
-            if len(content) > validation.MAX_REFERENCE_BYTES or hashlib.sha256(content).hexdigest() != descriptor['sha256']:
-                raise ValueError('Original reference changed while copying')
-            created = False
-            try:
-                with target.open('xb') as output:
-                    created = True
-                    output.write(content)
-            except Exception:
-                if created:
-                    target.unlink(missing_ok=True)
-                raise
-        if digest(target) != descriptor['sha256']:
-            raise ValueError('Unchanged draft-copy verification failed')
-        copied.append(str(target.relative_to(root)).replace('\\', '/'))
-        voices[key] = copy.deepcopy(descriptor) if row.get('acceptedExisting') else {
-                      **descriptor, 'reference': str(target.relative_to(root)).replace('\\', '/'), 'status': 'ready'}
+        voices[row['key']], target = copy_source_reference(root, row)
+        copied.append(target)
     for row in plan['unprepared']:
         voices[row['key']] = {'status': 'unprepared'}
     config = {'version': 2, 'provider': 'hybrid', 'engine': 'omnivoice', 'steps': 32, **plan['legacyModel'],
