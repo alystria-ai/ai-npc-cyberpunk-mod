@@ -390,4 +390,7 @@ return {
   ["Group chat needs two characters nearby. Use {key} for one person."] = "グループチャットには近くに2人のキャラクターが必要です。1人と話すには{key}を使ってください。",
   ["Listening - press {key} again to finish"] = "聞き取り中 - 終えるには{key}をもう一度押してください",
   ["Use {key} to finish this recording."] = "この録音を終えるには{key}を押してください。",
+    ["Back to Companion Manager"] = "コンパニオン管理に戻る",
+    ["Return to Companion Manager."] = "コンパニオン管理に戻ります。",
+    ["Return to your current party."] = "現在のパーティーに戻ります。",
 }

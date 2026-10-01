@@ -390,4 +390,7 @@ return {
     ["Group chat needs two characters nearby. Use {key} for one person."] = "Für den Gruppenchat müssen zwei Charaktere in der Nähe sein. Verwende {key} für eine Person.",
     ["Listening - press {key} again to finish"] = "Aufnahme läuft – zum Beenden erneut {key} drücken",
     ["Use {key} to finish this recording."] = "Verwende {key}, um diese Aufnahme zu beenden.",
+    ["Back to Companion Manager"] = "Zurück zur Begleiterverwaltung",
+    ["Return to Companion Manager."] = "Zur Begleiterverwaltung zurückkehren.",
+    ["Return to your current party."] = "Zur aktuellen Gruppe zurückkehren.",
 }

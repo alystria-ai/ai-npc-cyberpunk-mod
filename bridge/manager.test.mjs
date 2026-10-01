@@ -473,6 +473,67 @@ const mcmFixture = `
   end
 `;
 
+test('manager home owns the four destinations and every inner page has one parent Back action', () => {
+  run(`${mcmFixture}
+    local function category(id)
+      for _, item in ipairs(loaded.categories) do if item.id == id then return item end end
+    end
+    local function inner(expected, back)
+      assert(mcm.inspect().view == expected)
+      assert(not category('navigation'), 'home navigation leaked onto an inner page')
+      for _, name in ipairs({'characters', 'party', 'models', 'settings'}) do
+        assert(not row('tab:' .. name), 'a root destination leaked onto an inner page')
+      end
+      local count = 0
+      for _, section in ipairs(loaded.categories) do
+        for _, item in ipairs(section.settings) do
+          if item.value == 'Back' then count = count + 1; assert(item.id == back) end
+          assert(item.label:sub(1, 1) ~= ' ' and item.indent == nil, 'label has artificial indentation')
+        end
+      end
+      assert(count == 1 and loaded.categories[1].settings[1].id == back, 'parent Back must be first')
+      if expected == 'party' then
+        assert(category('party-status') and row('party-count'))
+      else
+        assert(not category('party-status') and not row('party-count') and not row('feedback'),
+          'party status leaked outside Current party')
+      end
+    end
+    assert(mcm.inspect().view == 'home' and #loaded.categories == 1)
+    assert(#category('navigation').settings == 4 and not row('party-count'))
+    for _, name in ipairs({'characters', 'party', 'models', 'settings'}) do
+      local destination = row('tab:' .. name)
+      assert(destination and destination.value == 'Open' and not destination.disabled)
+      assert(invoke(destination.id).ok)
+      inner(name, name .. ':back')
+      assert(not invoke(destination.id).ok, 'stale destination actions remained callable')
+      assert(invoke(name .. ':back').ok and mcm.inspect().view == 'home')
+    end
+    assert(invoke('tab:settings').ok)
+    for _, page in ipairs({'relationships', 'permissions', 'memory'}) do
+      assert(invoke(page).ok)
+      local back = page == 'memory' and 'memory:settings' or page .. ':back'
+      inner(page, back)
+      assert(invoke(back).ok and mcm.inspect().view == 'settings')
+    end
+    assert(invoke('memory').ok and invoke('memory:choose').ok)
+    inner('memory-characters', 'memory:back')
+    assert(invoke('memory:back').ok and invoke('memory:settings').ok and invoke('settings:back').ok)
+    assert(invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok)
+    inner('characters', 'characters:back')
+    assert(invoke('characters:back').ok and invoke('tab:party').ok)
+    assert(row('party-count').value == '1 / 8' and row('feedback'))
+    assert(invoke('assign:queued:1').ok)
+    inner('assignment', 'assignment:back')
+    local profile = mcm.party().list()[1].profileKey
+    assert(invoke('assignment:back').ok)
+    inner('party', 'party:back')
+    assert(mcm.party().list()[1].profileKey == profile and #spawned == 0,
+      'Back from profile selection changed the invitation')
+    assert(not invoke('assign-profile:person-1').ok, 'an abandoned assignment action remained callable')
+  `);
+});
+
 test('voice selector arrows stay within their displayed direction and use effective drafts', () => {
   run(`${mcmFixture}
     assert(invoke('tab:settings').ok)
@@ -525,11 +586,12 @@ test('interface language persists atomically, localizes the schema and preserves
     assert(saved.uiLanguage=='fr' and convaiUiLocale.selection()=='fr')
     assert(convaiUiLocale.update(0))
     loaded=registered.loadMod('manager')
-    assert(row('tab:settings').label=='Paramètres')
+    assert(row('settings:back').label=='Retour à la gestion des compagnons')
     assert(row('uiLanguage').label~='Interface language' and row('uiLanguage').value==french)
     assert(row('uiLanguage').elements[2]=='English','language names must remain natively recognizable')
     local snapshot=manager.snapshot(player)
     assert(snapshot.settings.voiceProvider==voiceBefore and snapshot.settings.omniSteps==stepsBefore)
+    assert(invoke('settings:back').ok and row('tab:settings').label=='Paramètres')
     assert(invoke('tab:characters').ok)
     assert(row('invite:'..profiles[1].key).label=='Settings','a character name was translated as a UI key')
     local selected,notice=manager.selectMemoryCharacter(profiles[1].key)
@@ -610,7 +672,8 @@ test('native settings styling waits for the final title, aligns scaled rows and 
       return label, marker
     end
     begin()
-    local category = widget('settingsCategory', 0, 1800, nil, {widget('label', 20, 1600, 'white')})
+    local category = widget('settingsCategory', 0, 1800, nil, {
+      widget('label', 20, 1600, 'native-heading'), widget('line', 0, 1800, 'native-cyan-rule')})
     category.scale = 0.5
     content.children[#content.children + 1] = category
     local heading = category.children[1]
@@ -625,7 +688,8 @@ test('native settings styling waits for the final title, aligns scaled rows and 
     finish('Companion Manager')
     assert(toggle.left == 48 and rootReads == 0, 'native observer did work instead of deferring it')
     frame()
-    assert(category.left + category.scale * heading.left == 20 and heading.color == 'MainColors.Red')
+    assert(category.left + category.scale * heading.left == 20 and heading.color == 'MainColors.White')
+    assert(category.children[2].color == 'native-cyan-rule', 'native section rule was recolored')
     assert(cyanValue.left == 620 and cyanValue.color == 'cyan', 'native option styling changed')
     assert(toggle.left == action.left and select.left == action.left)
     assert(readonly.left + readonly.children[1].left == action.left)
@@ -817,12 +881,12 @@ test('native Memory submenu has consistent parent navigation and preserves an un
     assert(row('memory').type == 'action' and row('memory').value == 'Manage')
     assert(not row('memory:choose') and not row('memory-count'), 'memory controls leaked into the Settings page')
     assert(invoke('permissions').ok and mcm.inspect().view == 'permissions')
-    assert(row('tab:settings').value == 'Selected' and row('tab:settings').disabled)
+    assert(not row('tab:settings') and row('permissions:back').label == 'Back to settings')
     assert(invoke('permissions:back').ok and mcm.inspect().view == 'settings')
     assert(invoke('memory').ok and mcm.inspect().view == 'memory')
-    assert(row('tab:settings').value == 'Selected' and row('tab:settings').disabled)
+    assert(not row('tab:settings') and row('memory:settings').label == 'Back to settings')
     assert(invoke('memory:choose').ok and mcm.inspect().view == 'memory-characters')
-    assert(row('tab:settings').value == 'Selected' and row('memory:back').label == 'Back to memory')
+    assert(not row('tab:settings') and row('memory:back').label == 'Back to memory')
     handlers.McmUiEmitSearch(nil, 'content', 'Person 20')
     for _ = 1, 6 do mcm.update(player, false) end
     assert(invoke('memory:back').ok and mcm.inspect().view == 'memory')
@@ -1079,14 +1143,15 @@ test('memory recovery reads an interrupted publication backup and blocks a corru
 test('MCM schema uses native controls, operates on current copies while paused, and preserves setting drafts', () => {
   run(`${mcmFixture}
     assert(registered.apiVersion == 2 and registered.listMods().mods[1].name == 'Companion Manager')
+    assert(invoke('tab:characters').ok)
     assert(row('invite:johnny-silverhand').type == 'action')
     assert(invoke('invite:johnny-silverhand').ok)
     mcm.update(player, false)
     assert(#spawned == 0 and #mcm.inspect().party == 1)
-    assert(invoke('tab:party').ok)
+    assert(invoke('characters:back').ok and invoke('tab:party').ok)
     assert(row('dismiss:queued:1').value == 'Cancel invitation')
     assert(invoke('assign:queued:1').ok and invoke('assign-profile:person-1').ok)
-    assert(invoke('tab:settings').ok)
+    assert(invoke('party:back').ok and invoke('tab:settings').ok)
     assert(row('voice').type == 'bool' and row('omniSteps').type == 'select')
     assert(row('subtitles').type == 'bool' and row('subtitles').value == true)
     assert(row('subtitleStyle').type == 'select' and row('subtitleStyle').value == 2)
@@ -1125,7 +1190,7 @@ test('MCM schema uses native controls, operates on current copies while paused, 
     drafts = false
     mcm.update(player, true)
     assert(#spawned == 1 and members[1].profileKey == 'person-1')
-    assert(invoke('tab:party').ok and row('dismiss:live:1'))
+    assert(invoke('settings:back').ok and invoke('tab:party').ok and row('dismiss:live:1'))
     mcm.shutdown(); assert(registered == nil)
   `);
 });
@@ -1191,12 +1256,13 @@ test('MCM model search covers the full installed catalogue while exposing bounde
     assert(invoke('invite:model:6000').ok and #spawned == 0)
     mcm.update(player, true); assert(members[1].key == 'model:6000')
     assert(members[1].profileKey == nil)
-    assert(invoke('tab:party').ok and mcm.inspect().view == 'party')
+    assert(invoke('models:back').ok and invoke('tab:party').ok and mcm.inspect().view == 'party')
   `);
 });
 
 test('native MCM action banner describes the queued invitation and leaves other pages and errors alone', () => {
   run(`${mcmFixture}
+    assert(invoke('tab:characters').ok)
     assert(invoke('invite:johnny-silverhand').ok)
     local rendered
     local function paint(label, status)
@@ -1207,23 +1273,25 @@ test('native MCM action banner describes the queued invitation and leaves other 
     assert(paint('Companion Manager', 'Completed: Johnny Silverhand'):find('return to the game', 1, true))
     assert(paint('Other Mod', 'Completed: Johnny Silverhand') == 'Completed: Johnny Silverhand')
     assert(paint('Companion Manager', 'Action failed') == 'Action failed')
-    invoke('tab:settings')
+    assert(invoke('characters:back').ok and invoke('tab:settings').ok)
     assert(paint('Companion Manager', 'Completed: Settings') == 'Completed: Settings')
   `);
 });
 
 test('native MCM shows invitation preparation and keeps reserved copies editable until actual attachment', () => {
   run(`${mcmFixture}${invitationFixture}
+    assert(invoke('tab:characters').ok)
     assert(invoke('invite:johnny-silverhand').ok)
     local id = party.list()[1].id
     assert(readiness.prepareCalls == 1 and readiness.jobs[id].profileKey == 'johnny-silverhand')
-    assert(#spawned == 0 and party.count() == 1 and row('party-count').value == '1 / 8')
+    assert(#spawned == 0 and party.count() == 1 and not row('party-count'))
     local rendered
     handlers.McmUiBegin({}, 'MCM', '', 'Mods', 'Companion Manager', 'Completed: Johnny Silverhand', 1, '', true, true, 0,
       function(title, subtitle, sidebar, content, message) rendered = message end)
     assert(rendered:lower():find('prepar', 1, true) and not rendered:find('Completed:', 1, true))
     assert(not rendered:find('joined your group', 1, true))
-    assert(invoke('tab:party').ok)
+    assert(invoke('characters:back').ok and invoke('tab:party').ok)
+    assert(row('party-count').value == '1 / 8')
     assert(row('state:' .. id).value == 'Preparing memory')
     assert(row('dismiss:' .. id).value == 'Cancel invitation' and not row('assign:' .. id).disabled)
     readiness.receipts[id] = {state = 'connecting'}
@@ -1317,6 +1385,10 @@ test('F5 goes through the real Mods entry and selects only its own native sideba
 test('installed MCM API accepts the provider, actions, draft transactions and dynamic model schema',
   {skip: !process.env.CYBERPUNK_MCM_API}, () => {
     const root = process.env.CYBERPUNK_MCM_API;
+    const nativeModel = readFileSync(path.join(root, '..', 'ModConfigurationMenu', 'mcm_ui', 'mcm_model.lua'), 'utf8');
+    const filterStart = nativeModel.indexOf('function Model:flattenSettings(mod)');
+    assert(filterStart >= 0, 'installed MCM settings filter is unavailable');
+    const nativeFilter = nativeModel.slice(filterStart, nativeModel.indexOf('\nend', filterStart) + 4);
     const preloads = readdirSync(path.join(root, 'modules'), {recursive: true})
       .filter(file => file.endsWith('.lua'))
       .map(file => {
@@ -1332,15 +1404,33 @@ test('installed MCM API accepts the provider, actions, draft transactions and dy
       local core = require('modules/core')
       core.init()
       local actual = core.getApi()
+      local Model, Text = {}, {casefold = function(value) return tostring(value or ''):lower() end}
+      ${nativeFilter}
       GetMod = function() return actual end
       mcm.install()
       assert(actual.refreshIndex())
       local key = 'cyberpunk-convai:manager'
+      local function backSurvivesSearch(back, query)
+        handlers.McmUiEmitSearch(nil, 'content', query)
+        for _ = 1, 6 do mcm.update(player, false) end
+        local renderer = {runtime = {state = {api = actual, settingsSortMode = 'file',
+          searchQueries = {content = query}}, safe = function(_, value) return tostring(value or '') end}}
+        for _, value in ipairs(Model.flattenSettings(renderer, {key = key})) do
+          if value.kind == 'setting' and value.setting.id == key .. ':' .. back then return end
+        end
+        error('MCM filtered the only parent Back action: ' .. back)
+      end
       assert(actual.openMod(key))
+      assert(actual.invokeAction(key .. ':tab:characters'))
+      backSurvivesSearch('characters:back', 'no matching character')
+      handlers.McmUiEmitSearch(nil, 'content', '')
+      for _ = 1, 6 do mcm.update(player, false) end
       assert(actual.invokeAction(key .. ':invite:johnny-silverhand'))
       assert(#spawned == 0 and #mcm.inspect().party == 1 and readiness.prepareCalls == 1)
-      assert(actual.getValue(key .. ':party-count') == '1 / 8')
+      assert(actual.getValue(key .. ':party-count') == nil)
+      assert(actual.invokeAction(key .. ':characters:back'))
       assert(actual.invokeAction(key .. ':tab:party'))
+      assert(actual.getValue(key .. ':party-count') == '1 / 8')
       assert(actual.getValue(key .. ':state:queued:1') == 'Preparing memory')
       readiness.receipts['queued:1'] = {state = 'connecting'}
       assert(actual.reloadMod(key) and actual.getValue(key .. ':state:queued:1') == 'Connecting')
@@ -1350,6 +1440,7 @@ test('installed MCM API accepts the provider, actions, draft transactions and dy
       readiness.receipts['queued:1'] = {state = 'ready'}
       assert(actual.reloadMod(key) and actual.getValue(key .. ':state:queued:1') == 'Ready to join')
       mcm.update(player, false); assert(#spawned == 0)
+      assert(actual.invokeAction(key .. ':party:back'))
       assert(actual.invokeAction(key .. ':tab:settings'))
       publishMemory(2, {{profileKey = 'johnny-silverhand'}, {profileKey = 'person-20'}})
       assert(actual.reloadMod(key))
@@ -1366,7 +1457,7 @@ test('installed MCM API accepts the provider, actions, draft transactions and dy
       assert(actual.getValue(key .. ':followUpQuestions') == false)
       assert(actual.setDraft(key .. ':followUpQuestions', true))
       assert(not manager.followUpQuestions(), 'draft must not change running conversations')
-      assert(actual.invokeAction(key .. ':tab:characters') == false)
+      assert(actual.invokeAction(key .. ':settings:back') == false)
       assert(actual.invokeAction(key .. ':memory') == false and memoryWrites() == 0)
       assert(mcm.inspect().view == 'settings', 'a pending draft allowed submenu navigation')
       local ok, err = actual.apply(key)
@@ -1409,12 +1500,13 @@ test('installed MCM API accepts the provider, actions, draft transactions and dy
       assert(actual.getValue(key .. ':eyeContactHeight') == 3 and actual.getValue(key .. ':headFollowStrength') == 3)
       assert(manager.gazeSettings().eyeContactHeight == 0 and manager.gazeSettings().headFollowStrength == 1)
       assert(actual.invokeAction(key .. ':permissions') and mcm.inspect().view == 'permissions')
-      assert(actual.getValue(key .. ':tab:settings') == 'Selected')
+      assert(actual.getValue(key .. ':tab:settings') == nil and actual.getValue(key .. ':permissions:back') == 'Back')
       assert(actual.invokeAction(key .. ':permissions:back') and mcm.inspect().view == 'settings')
       assert(actual.invokeAction(key .. ':memory') and mcm.inspect().view == 'memory')
-      assert(actual.getValue(key .. ':memory-count') == '2' and actual.getValue(key .. ':tab:settings') == 'Selected')
+      assert(actual.getValue(key .. ':memory-count') == '2' and actual.getValue(key .. ':tab:settings') == nil)
       assert(actual.invokeAction(key .. ':memory:choose') and mcm.inspect().view == 'memory-characters')
-      assert(actual.getValue(key .. ':tab:settings') == 'Selected')
+      assert(actual.getValue(key .. ':tab:settings') == nil and actual.getValue(key .. ':memory:back') == 'Back')
+      backSurvivesSearch('memory:back', 'no matching memories')
       assert(actual.invokeAction(key .. ':memory:back') and mcm.inspect().view == 'memory')
       assert(actual.invokeAction(key .. ':memory:choose'))
       assert(actual.invokeAction(key .. ':memory:next'))
@@ -1439,11 +1531,15 @@ test('installed MCM API accepts the provider, actions, draft transactions and dy
       publishMemory(2, nil, 'ready', memoryResult(command, 'succeeded')); assert(actual.reloadMod(key))
       assert(actual.getValue(key .. ':memory-feedback'):find('Memory clear confirmed', 1, true))
       assert(memoryWrites() == 1 and #spawned == 0, 'memory controls caused world work or retried')
+      assert(actual.invokeAction(key .. ':memory:settings'))
+      assert(actual.invokeAction(key .. ':settings:back'))
       assert(actual.invokeAction(key .. ':tab:party'))
       assert(actual.invokeAction(key .. ':dismiss:queued:1'))
       assert(#mcm.inspect().party == 0 and #spawned == 0 and readiness.cancellations['queued:1'])
+      assert(actual.invokeAction(key .. ':party:back'))
       assert(actual.invokeAction(key .. ':tab:models'))
       for _ = 1, 126 do mcm.update(player, false) end
+      backSurvivesSearch('models:back', 'no matching model')
       assert(actual.reloadMod(key))
       local count = 0
       for _, row in ipairs(actual.listSettings(key)) do if row.type == 'action' then count = count + 1 end end

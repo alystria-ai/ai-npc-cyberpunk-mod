@@ -390,4 +390,7 @@ return {
     ["Group chat needs two characters nearby. Use {key} for one person."] = "群聊需要附近有两位角色。与一人交谈请使用 {key}。",
     ["Listening - press {key} again to finish"] = "正在聆听，再按 {key} 结束",
     ["Use {key} to finish this recording."] = "按 {key} 结束本次录音。",
+    ["Back to Companion Manager"] = "返回伙伴管理器",
+    ["Return to Companion Manager."] = "返回伙伴管理器。",
+    ["Return to your current party."] = "返回当前队伍。",
 }

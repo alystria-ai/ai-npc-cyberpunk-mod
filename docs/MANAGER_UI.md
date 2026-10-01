@@ -9,6 +9,8 @@ no longer open it.
 
 - **Manager shortcut (currently F4 locally):** requests the real pause menu's MCM entry and selects **Companion
   Manager**. **Esc → MCM → Companion Manager** is also available.
+- **Home:** four destination actions open Characters, Current party, Model browser
+  and Settings. The destination list appears only on this home page.
 - **Characters:** searchable researched profiles, including Johnny Silverhand
   and Adam Smasher, with Invite / Add copy actions for available models.
   This catalogue is independent of phone contacts and quest unlocks.
@@ -22,6 +24,16 @@ no longer open it.
 - **Settings:** voice playback, native dialogue subtitles, OmniVoice 16/32
   generation steps (32 by default), service readiness and per-character
   conversation participation. MCM owns Apply, Revert, defaults and draft guards.
+
+Every inner page starts with one **Back** action. Characters, Current party,
+Model browser and Settings return to the manager home; Relationships, Memory
+and Character conversations return to Settings. The memory character picker
+returns to Memory, and conversation profile selection returns to Current party
+without changing the profile. Navigation clears the previous page's search.
+The parent Back action remains visible when a search has no matching results.
+**Your group**, including the count and persistent party feedback, appears only
+on Current party. Invitation actions still show their immediate native action
+banner on the catalogue page.
 
 Invitations and dismissals are queued while the page pauses gameplay. Their
 pending state appears immediately. They run once after the player returns to
@@ -64,21 +76,22 @@ dismissal actions describe their queued work instead of the stock "Completed"
 text. Other providers and failure messages retain MCM's ordinary rendering.
 No MCM source or saved preferences are modified.
 
-## Uniform settings labels — September 30
+## Native section and option styling — October 2
 
-Companion Manager uses one left edge and MCM's default red label colour
-(`MainColors.Red`) across section names, actions, read-only rows, toggles and selectors.
-Section names remain in the schema for organization and searching; their native
-category template and separators are retained. Controls, selected/disabled values, hover
-feedback and unsaved-change markers keep their native behaviour.
+Companion Manager uses one left edge. Section names bind to the native white
+heading token (`MainColors.White`) above the category template's cyan rule.
+Actions, read-only rows, toggles and selectors keep MCM's default red option label
+token (`MainColors.Red`). Controls, selected/disabled values, hover feedback and
+unsaved-change markers keep their native behaviour.
 
 The differing indentation came from the installed renderer: managed controls
 reserve a marker gutter and start their text at 48 units, actions start at 20,
 and read-only rows add a list-label inset inside a surface at 20. The adapter
 normalizes only its own rendered rows to 20 units, preserves the label's right
 edge, and keeps draft markers in the outer gutter. Scaled category labels are
-aligned using their cumulative parent scale. Resting labels bind to the native
-red token; cyan option controls and MCM's global theme are not modified.
+aligned using their cumulative parent scale. Resting option labels bind to the
+native red token; section rules, cyan option controls and MCM's global theme are
+not modified.
 
 The first installed attempt was ineffective: the real renderer calls
 `McmUiBegin` with a provisional title, creates the rows, then publishes
@@ -95,8 +108,13 @@ The row-lifecycle harness covers the real provisional-title/rows/final-title/
 update order, rejects widget access inside native observers, and rejects more
 than one root lookup per pass. It also covers scaled headings, row shapes,
 hover/restyling, draft markers, cyan values and leaving other providers alone.
-This checks the adapter and scoping; visual acceptance still requires opening
-the installed manager in game after CET reload.
+The navigation harness traverses all parent links, rejects stale page actions,
+checks that only Current party exposes party status, and confirms Back from
+profile selection leaves the invitation unchanged. The installed MCM API gate
+exercises the same navigation with its actual draft guard and the installed
+renderer filter checks Back visibility on searched catalogues. This checks the
+adapter and scoping; visual acceptance of the October 2 hierarchy and white
+headings still requires opening the installed manager in game after CET reload.
 
 The exit adapter also uses the final title and provider ownership. A close
 request alone does not resume gameplay: the same settings controller must

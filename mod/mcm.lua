@@ -5,7 +5,7 @@ local ui = (convaiUiLocale or dofile('ui-locale.lua'))
 local PROVIDER, MOD, LABEL = 'cyberpunk-convai', 'manager', 'Companion Manager'
 local MOD_KEY, MODEL_PAGE_SIZE = PROVIDER .. ':' .. MOD, 18
 local manager, queue, entry, api, provider
-local view, modelQuery, modelPage, assigning = 'characters', '', 1, nil
+local view, modelQuery, modelPage, assigning = 'home', '', 1, nil
 local actions, hooksInstalled, refreshQueued = {}, false, false
 local owner, lastSignature, pollAt, searchFrames, snapshotAt = nil, '', 0, 0, 0
 local lastError = ''
@@ -98,7 +98,9 @@ local function styleCategory(widget, parentLeft, parentScale, depth)
         -- The native category template is scaled (about 0.52 in the live
         -- default layout). Align in content coordinates, not template units.
         alignLabel(widget, margin.left + (20 - left) / parentScale)
-        redLabel(widget)
+        -- Section titles use the native white heading above its cyan rule.
+        -- Only ordinary option labels use red; leave the template rule alone.
+        widget:BindProperty(CName.new('tintColor'), CName.new('MainColors.White'))
         return
     end
     local scale = widget:GetScale()
@@ -183,8 +185,14 @@ local function action(id, label, value, description, callback, enabled, raw)
     if (id:match('^assign:') and id ~= 'assign:none' and value ~= 'Choose a profile')
         or (id == 'memory:choose' and value ~= 'Choose a character') then raw.value = true end
     if id == 'models:previous' or id == 'models:next' or id == 'memory:previous' or id == 'memory:next' then raw.description = true end
+    local descriptionText = raw.description and description or ui.t(description)
+    if (id:match(':back$') or id == 'memory:settings') and modelQuery ~= '' then
+        -- MCM searches action descriptions too. Keep the sole parent link
+        -- visible even for an empty result set, without changing its label.
+        descriptionText = descriptionText .. '\n' .. modelQuery
+    end
     return {id = id, label = raw.label and label or ui.t(label), value = raw.value and value or ui.t(value),
-        description = raw.description and description or ui.t(description),
+        description = descriptionText,
         type = 'action', disabled = enabled == false,
         capabilities = {read = true, action = enabled ~= false, write = false, draft = false, reset = false}}
 end
@@ -308,24 +316,18 @@ local function schema()
     queue.bind(owner)
     local snapshot, party = manager.snapshot(currentPlayer), queue.list()
     actions = {}
-    local navigation = {}
-    for _, tab in ipairs({{'characters', 'Characters'}, {'party', 'Current party'},
-        {'models', 'Model browser'}, {'settings', 'Settings'}}) do
-        local selected = view == tab[1] or (tab[1] == 'settings'
-            and (view == 'permissions' or view == 'memory' or view == 'memory-characters' or view == 'relationships'))
-        navigation[#navigation + 1] = action('tab:' .. tab[1], tab[2], selected and 'Selected' or 'Open',
-            ui.t('Browse {section}. {query}',{section=ui.t(tab[2]):lower(),query=modelQuery}),
-            function(context) return navigate(tab[1], context) end, not selected)
-    end
-    local categories = {category('navigation', 'Companion Manager', navigation)}
-    local message = queue.message()
-    local status = {readonly('party-count', 'Companions', queue.count() .. ' / 8',
-        'Includes reserved invitations and current companions. Invited characters prepare while the menu is open, then join when ready after you return to gameplay. Dismissals take effect in gameplay.')}
-    if message ~= '' then status[#status + 1] = readonly('feedback', message, '', message) end
-    categories[#categories + 1] = category('party-status', 'Your group', status)
+    local categories = {}
     local rows = {}
     local canInvite = owner ~= nil and queue.count() < 8
-    if view == 'characters' then
+    if view == 'home' then
+        for _, tab in ipairs({{'characters', 'Characters'}, {'party', 'Current party'},
+            {'models', 'Model browser'}, {'settings', 'Settings'}}) do
+            rows[#rows + 1] = action('tab:' .. tab[1], tab[2], 'Open',
+                ui.t('Browse {section}. {query}',{section=ui.t(tab[2]):lower(),query=modelQuery}),
+                function(context) return navigate(tab[1], context) end)
+        end
+        categories[#categories + 1] = category('navigation', 'Companion Manager', rows)
+    elseif view == 'characters' then
         for _, profile in ipairs(snapshot.profiles) do
             local key = profile.key
             local count = countKey(party, key)
@@ -337,6 +339,11 @@ local function schema()
         categories[#categories + 1] = category('characters', 'Characters', rows,
             'Search a character by name. Each invitation reserves a place and starts preparation immediately. Your party can have up to eight copies, including pending invitations.')
     elseif view == 'party' then
+        local message = queue.message()
+        local status = {readonly('party-count', 'Companions', queue.count() .. ' / 8',
+            'Includes reserved invitations and current companions. Invited characters prepare while the menu is open, then join when ready after you return to gameplay. Dismissals take effect in gameplay.')}
+        if message ~= '' then status[#status + 1] = readonly('feedback', message, '', message) end
+        categories[#categories + 1] = category('party-status', 'Your group', status)
         if #party == 0 then rows[#rows + 1] = readonly('empty-party', 'Your party is empty', '', 'Invite someone from Characters or Model browser.') end
         local states = {ready = 'Following', spawning = 'Joining', queued = 'Waiting to join',
             ['preparing-memory'] = 'Preparing memory', connecting = 'Connecting', ['ready-to-join'] = 'Ready to join',
@@ -373,6 +380,8 @@ local function schema()
         local target
         for _, member in ipairs(party) do if member.id == assigning then target = member end end
         if not target then view, assigning = 'party', nil; return schema() end
+        rows[#rows + 1] = action('assignment:back', 'Back to party', 'Back',
+            'Return to your current party.', function(context) return navigate('party', context) end)
         rows[#rows + 1] = action('assign:none', 'No conversation profile', 'Choose',
             ui.t('Keep {name} as a follower without AI conversations.',{name=target.name}),
             function(context)
@@ -485,7 +494,7 @@ local function schema()
                 ui.t('Allow {name} in private and group conversations. Existing copies can still follow you when this is off.',{name=profile.name}))
         end
         categories[#categories + 1] = category('permissions', 'Character conversations', rows)
-    else
+    elseif view == 'settings' then
         local choices, languageElements, languageIndex = ui.choices(), {}, 1
         for index, choice in ipairs(choices) do
             languageElements[index] = choice.label
@@ -545,6 +554,10 @@ local function schema()
             setting('lootReactions', 'React to collected loot', 'bool', snapshot.settings.lootReactions, true,
                 'Companions can comment after you finish collecting world loot. Storage transfers stay silent. A ten-minute cooldown spaces ordinary comments; newly acquired Legendary equipment has a separate two-minute cooldown. Battle and loot comments play separately, one after another.'),
         })
+    end
+    if view == 'characters' or view == 'party' or view == 'models' or view == 'settings' then
+        table.insert(categories[1].settings, 1, action(view .. ':back', 'Back to Companion Manager', 'Back',
+            'Return to Companion Manager.', function(context) return navigate('home', context) end))
     end
     return {name = ui.t(LABEL), description = ui.t('Your companions, character models and conversation settings.'), categories = categories}
 end
@@ -704,7 +717,7 @@ function M.install()
         end
     end)
     Observe('SettingsMainGameController', 'McmUiEmitSearch', function(_, context, value)
-        if context == 'content' and (view == 'models' or view == 'memory-characters') and active() then
+        if context == 'content' and active() then
             modelQuery, modelPage, searchFrames = tostring(value or ''):sub(1, 100), 1, 6
         end
     end)
