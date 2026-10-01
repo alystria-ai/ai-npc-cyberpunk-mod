@@ -21,6 +21,13 @@ local function mounted(player,api) return api.mounting({npc=player}) end
 local function samePoint(a,b)
     return a and b and math.abs(a.x-b.x)<0.25 and math.abs(a.y-b.y)<0.25 and math.abs(a.z-b.z)<0.25
 end
+local function sameDestination(a,b)
+    if not a or not b or a.id~=b.id or a.destinationType~=b.destinationType then return false end
+    -- Quest markers may follow a moving objective. A manually placed marker
+    -- must stay at its captured world location even if the game reuses its ID.
+    return a.destinationType=='Quest' or (a.destinationType=='PlayerTracked'
+        and samePoint(a.markerPosition,b.markerPosition))
+end
 local function vehicleName(record,fallback)
     -- Installed Vehicle_Record.DisplayName() returns CName (unlike NPC record
     -- localization wrappers). Cosmetic lookup failure must not block an offer.
@@ -60,11 +67,14 @@ local function waypoint(auto,value,kind)
     if not id then return nil end
     local pin=maps:GetMappin(value)
     if not pin then return nil end
-    -- A visual mappin can be above the road. Freeze the native route endpoint,
-    -- then recheck it before departure and throughout this exact trip.
+    -- Identity is the selected mappin/type, not a frozen road projection. The
+    -- native AI handler updates its target when GetAutodriveDestination()
+    -- changes. Keep the marker separately to detect a moved manual map pin.
     local pos=routePosition(auto:GetAutodriveDestination())
-    if not pos then return nil end
-    return {id=id,position=pos,name=destinationName(pin,questTracked)}
+    local marker=routePosition(pin:GetWorldPosition())
+    if not pos or not marker then return nil end
+    return {id=id,position=pos,name=destinationName(pin,questTracked),
+        destinationType=questTracked and 'Quest' or 'PlayerTracked',markerPosition=marker}
 end
 function M.sample(player,entry,leasedCar,api)
     local auto=system()
@@ -120,7 +130,7 @@ function M.enable(player,entry,car,pin,seat,api)
         or not sample.info.ready or sample.info.scene
         or sample.summonedId~=car.id or not pm or pm.vehicle~=car.id or pm.seat~=seat
         or not sample.playerPassenger or not dm or dm.vehicle~=car.id or dm.seat~='seat_front_left'
-        or not sample.waypoint or sample.waypoint.id~=pin.id or not samePoint(sample.waypoint.position,pin.position)
+        or not sameDestination(sample.waypoint,pin) or not samePoint(sample.waypoint.position,pin.position)
         or sample.auto.enabled or not sample.auto.available or not (sample.auto.playerTracked or sample.auto.questTracked)
         or sample.auto.destinationId~=pin.id then return false,'The car, seats or destination changed before departure.' end
     local request=NewObject('EnableAutoDriveRequest'); request.isDelamain=false

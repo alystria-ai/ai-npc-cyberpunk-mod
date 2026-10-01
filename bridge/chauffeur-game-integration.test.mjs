@@ -9,7 +9,8 @@ const partySource = readFileSync(new URL('../mod/manager-party.lua', import.meta
 const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
 const setup = `
 local reads,paused=0,false
-local point={id='4001ULL',name='Selected waypoint',position={x=12,y=34,z=0}}
+local point={id='4001ULL',name='Selected waypoint',position={x=12,y=34,z=0},
+ destinationType='PlayerTracked',markerPosition={x=12,y=34,z=1.2}}
 local car={id='3001ULL',entityID={hash='3001ULL'},name='Summoned owned car',record='Vehicle.Test',owned=false}
 local carInfo={ready=true,speed=0,playerGap=3,seats={{name='seat_front_left'},{name='seat_front_right'}}}
 companionChauffeurAdapter=function(api)
@@ -106,4 +107,30 @@ queue.flush();queue.flush()
 local notices=queue.takeNotices()
 assert(#notices==1 and notices[1].message=='Your companion is ready. Get in the passenger seat to start the trip.')
 assert(not notices[1].failed and reads==0 and queue.chauffeur().phase=='waiting-for-player')
+`));
+
+test('trip errors are shown once across repeated native-state changes; later instructions and new trips remain visible', () => run(`
+spawn();local member=companions.list()[1]
+local queue=(function() ${partySource} end)().new(companions)
+queue.bind('world-one')
+local trip={active=true,generation=17,phase='stopping',reason='The map destination changed.',outcome='cancelled'}
+companions.chauffeurSnapshot=function()
+ local state={};for key,value in pairs(trip)do state[key]=value end;return state
+end
+for cycle=1,8 do
+ trip.error=nil;trip.phase='stopping';queue.flush()
+ trip.error='Waiting for confirmed AutoDrive shutdown and a stopped car.';queue.flush()
+ trip.phase='waiting-for-player-exit';queue.flush()
+ trip.error=nil;trip.phase='exiting-driver';queue.flush()
+end
+local notices=queue.takeNotices();local messages={}
+for _,notice in ipairs(notices)do messages[notice.message]=(messages[notice.message]or 0)+1 end
+assert(#notices==3 and messages['The map destination changed.']==1)
+assert(messages['Waiting for confirmed AutoDrive shutdown and a stopped car.']==1)
+assert(messages['The car has stopped. Step out so your companion can leave the driver seat.']==1)
+trip.error='The borrowed car is in use.';queue.flush()
+notices=queue.takeNotices();assert(#notices==1 and notices[1].message=='The borrowed car is in use.' and notices[1].failed)
+trip.error=nil;trip.phase='stopping';trip.generation=18;queue.flush();queue.flush()
+notices=queue.takeNotices();assert(#notices==1 and notices[1].message=='The map destination changed.')
+assert(reads==0,'notification updates submitted native driving requests')
 `));

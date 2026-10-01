@@ -9,6 +9,7 @@ function M.new(companions, readiness)
     local attaching, notices = {}, {}
     local feedback = ''
     local stopIntent, tripFeedback = false, nil
+    local tripGeneration, tripNotices = nil, {}
     local preparationId
 
     local function report(message, failed, invitationId)
@@ -22,6 +23,7 @@ function M.new(companions, readiness)
             owner, joins, leaves, feedback = identity, {}, {}, ''
             attaching, notices = {}, {}
             stopIntent, tripFeedback = false, nil
+            tripGeneration, tripNotices = nil, {}
             preparationId = nil
             return true
         end
@@ -262,16 +264,28 @@ function M.new(companions, readiness)
                 or ui.t(called and reason or 'The driving request could not be cancelled.'), not (called and ok))
         end
         local trip = Q.chauffeur()
+        if trip.generation ~= tripGeneration then
+            tripGeneration, tripNotices, tripFeedback = trip.generation, {}, nil
+        end
         local signature = table.concat({trip.phase or '', trip.reason or '', trip.error or ''}, '|')
         if signature ~= tripFeedback then
             tripFeedback = signature
-            if trip.phase == 'driving' then report(ui.t('Your companion is driving to the selected waypoint.'))
+            local message, failed
+            if trip.phase == 'driving' then message = ui.t('Your companion is driving to the selected waypoint.')
             elseif trip.phase == 'waiting-for-player' then
-                report(ui.t('Your companion is ready. Get in the passenger seat to start the trip.'))
+                message = ui.t('Your companion is ready. Get in the passenger seat to start the trip.')
             elseif trip.phase == 'waiting-for-player-exit' then
-                report(ui.t('The car has stopped. Step out so your companion can leave the driver seat.'))
-            elseif trip.error then report(ui.t(trip.error), true)
-            elseif trip.reason then report(ui.t(trip.reason), trip.outcome == 'failed') end
+                message = ui.t('The car has stopped. Step out so your companion can leave the driver seat.')
+            elseif trip.error then message, failed = ui.t(trip.error), true
+            elseif trip.reason then message, failed = ui.t(trip.reason), trip.outcome == 'failed' end
+            -- Native command polls can alternate an error and a stable stop
+            -- reason. A signature change is not a new actionable message.
+            -- Keep one notice per text per actual trip; a different later
+            -- instruction or a new generation still receives its own notice.
+            if message and not tripNotices[message] then
+                tripNotices[message] = true
+                report(message, failed)
+            end
         end
         -- CreateEntity only accepts the request. Keep the original reservation
         -- until attachment succeeds, fails or is explicitly dismissed.

@@ -15,6 +15,11 @@ end
 local function samePoint(a,b)
     return a and b and math.abs(a.x-b.x)<0.25 and math.abs(a.y-b.y)<0.25 and math.abs(a.z-b.z)<0.25
 end
+local function sameDestination(a,b)
+    if not a or not b or a.id~=b.id or a.destinationType~=b.destinationType then return false end
+    return a.destinationType=='Quest' or (a.destinationType=='PlayerTracked'
+        and samePoint(a.markerPosition,b.markerPosition))
+end
 local function bounded(value,fallback,limit)
     local text=type(value)=='string' and value or fallback
     if text=='' then text=fallback end
@@ -94,7 +99,7 @@ function M.queue(s,player,entry,expected)
     s.people[entry.serial]={entry=entry,phase='releasing',attempts=0,owned=true,chauffeur=true,
         vehicle=s.primary,seat='seat_front_left'}
     s.chauffeur={phase='releasing',phaseAt=s.clock,startedAt=s.clock,offer=copy(value),entry=entry,player=player,
-        car=s.primary,serial=entry.serial,waypoint=copy(value.waypoint),passengerSeat=value.passengerSeat,
+        car=s.primary,serial=entry.serial,waypoint=copy(sample.waypoint),passengerSeat=value.passengerSeat,
         playerId=sample.playerId,generation=s.generation,active=true,stopAttempts=0,brakeAttempts=0}
     s.lastChauffeur=nil; s.phase='chauffeur'; s.error=nil
     return true,'Your companion is preparing to drive.',copy(value)
@@ -151,8 +156,13 @@ local function binding(c,sample,requirePassenger)
     if not sample.carValid or not sample.car or sample.car.id~=c.car.id then return false,'The borrowed car is unavailable.' end
     if sample.info.scene then return false,'A scene has taken control of the car.' end
     if sample.summonedId~=c.car.id then return false,'A different car was summoned.' end
-    if not sample.waypoint or sample.waypoint.id~=c.waypoint.id
-        or not samePoint(sample.waypoint.position,c.waypoint.position) then return false,'The map destination changed.' end
+    if not sameDestination(sample.waypoint,c.waypoint) then return false,'The map destination changed.' end
+    -- Boarding and native path updates can project the same selected marker
+    -- onto a different road endpoint. The immutable public offer stays intact;
+    -- departure receives the latest endpoint plus the original logical lease.
+    -- Never advance the captured manual marker, or repeated small pin moves
+    -- could silently accumulate into a different destination.
+    c.waypoint.position=copy(sample.waypoint.position)
     local pm=sample.playerMount
     if pm and (pm.vehicle~=c.car.id or (pm.seat~=c.passengerSeat
         and not (preparation(c.phase) and c.passengerYieldPending))) then return false,'V changed seats or vehicles.' end

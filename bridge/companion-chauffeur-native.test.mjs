@@ -62,7 +62,7 @@ Game={GetDynamicEntitySystem=function() return owner end,
     GetMappin=function(_,id)
       assert(id.value==values.destinationId,'Selected native destination was not used')
       if values.missingDestination then return nil end
-      return {GetWorldPosition=function() return {x=10,y=20,z=4.2} end,
+      return {GetWorldPosition=function() return values.markerPosition or {x=10,y=20,z=4.2} end,
         GetDisplayName=function() return values.waypointName or 'Waypoint' end}
     end} end,
   GetBlackboardSystem=function() return {Get=function() return {
@@ -79,13 +79,15 @@ local api={mounting=function(value)
       {name='seat_front_right',occupant=values.passengerOccupied,reserved=values.passengerReserved}}} end}
 local function driver() values.driverMount={vehicle=car.id,seat='seat_front_left'} end
 local function passenger() values.playerMount={vehicle=car.id,seat='seat_front_right'}; values.playerState='Passenger' end
-local pin={id='3001ULL',position={x=10,y=20,z=3}}
+local pin={id='3001ULL',position={x=10,y=20,z=3},destinationType='PlayerTracked',
+  markerPosition={x=10,y=20,z=4.2}}
 `;
 
 test('native reads summoned entity and selected native destination without starting or modifying anything',()=>run(`
 local sample=native.sample(player,entry,nil,api)
 assert(sample.actorValid and sample.actor.key=='panam-palmer' and sample.car.id=='2001ULL')
 assert(not sample.car.owned and sample.waypoint.id=='3001ULL' and sample.auto.playerTracked)
+assert(sample.waypoint.destinationType=='PlayerTracked' and sample.waypoint.markerPosition.z==4.2)
 assert(sample.car.name=='Test vehicle')
 assert(#values.queued==0 and values.brakes==0 and not values.mountRequest)
 values.summonState=1; assert(native.sample(player,entry,nil,api).summonEnRoute)
@@ -106,10 +108,34 @@ assert(Game.GetMappinSystem():GetManuallyTrackedMappinID().value=='0ULL')
 local sample=native.sample(player,entry,nil,api)
 assert(sample.auto.questTracked and not sample.auto.playerTracked and sample.waypoint.id=='3001ULL')
 assert(sample.waypoint.position.z==3 and sample.waypoint.name=='Selected quest title')
+assert(sample.waypoint.destinationType=='Quest' and sample.waypoint.markerPosition.z==4.2)
+pin=sample.waypoint
 driver(); passenger(); assert(native.enable(player,entry,car,pin,'seat_front_right',api))
 assert(#values.queued==1 and values.queued[1].kind=='EnableAutoDriveRequest')
 values.routePosition={x=10,y=20,z=4}; assert(not native.enable(player,entry,car,pin,'seat_front_right',api))
 assert(#values.queued==1,'changed native endpoint was accepted')
+`));
+test('native departure uses a fresh road endpoint for the same Quest and retains its logical binding',()=>run(`
+values.destinationType='Quest'; pin=native.sample(player,entry,nil,api).waypoint
+driver(); passenger()
+values.routePosition={x=-1691.3070068359,y=-603.80609130859,z=7.6229648590088}
+values.markerPosition={x=10.28,y=20,z=4.2}
+assert(not native.enable(player,entry,car,pin,'seat_front_right',api),'stale road endpoint reached native enable')
+pin.position=native.sample(player,entry,car,api).waypoint.position
+assert(native.enable(player,entry,car,pin,'seat_front_right',api) and #values.queued==1)
+values.destinationType='PlayerTracked'
+assert(not native.enable(player,entry,car,pin,'seat_front_right',api),'changed destination type was accepted')
+values.destinationType='Quest';values.destinationId='different'
+assert(not native.enable(player,entry,car,pin,'seat_front_right',api) and #values.queued==1)
+`));
+test('manual markers stay fixed while their road projection may change; incomplete identity fails closed',()=>run(`
+driver(); passenger()
+values.routePosition={x=100,y=200,z=8}; pin.position=values.routePosition
+assert(native.enable(player,entry,car,pin,'seat_front_right',api))
+values.markerPosition={x=11,y=20,z=4.2}
+assert(not native.enable(player,entry,car,pin,'seat_front_right',api),'same-ID manual marker move was accepted')
+values.markerPosition=nil;pin.destinationType=nil
+assert(not native.enable(player,entry,car,pin,'seat_front_right',api) and #values.queued==1)
 `));
 test('None, missing native mappin and invalid route points cannot become Free Roam offers',()=>run(`
 values.destinationType='None'; assert(not native.sample(player,entry,nil,api).waypoint)

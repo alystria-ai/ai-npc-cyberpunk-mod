@@ -31,6 +31,7 @@ local entries={entry}
 local car={id='2001ULL',entityID={hash='2001ULL'},record='Vehicle.test',name='Test car',owned=false}
 local world={valid=true,calm=true,carValid=true,summoned=car.id,mounts={},commands={},events={},
   waypoint={id='3001ULL',name='Map pin',position={x=100,y=50,z=0}},
+  destinationType='PlayerTracked',markerPosition={x=100,y=50,z=1.2},
   auto={enabled=false,available=true,playerTracked=true,destinationId='3001ULL',remaining=100,freeRoam=false},
   mountsRequested=0,playerMounts=0,enables=0,disables=0,brakes=0,unmounts=0,resumes=0,releases=0,deleted=0}
 world.cars={[car.id]=car}; world.spawned={}; world.follows=0
@@ -91,21 +92,28 @@ function api.recover() return true end
 local native={}
 function native.sample(_,value)
   if world.readError then error('World unavailable') end
+  local waypoint=world.waypoint and {id=world.waypoint.id,name=world.waypoint.name,position=world.waypoint.position,
+    destinationType=world.destinationType,markerPosition=world.markerPosition}
   return {actor={id=value.entityID.hash,serial=value.serial,key=value.profileKey},actorValid=world.valid,actorCalm=world.calm,
     actorAttached=not world.actorDetached,actorDead=world.actorDead,
     playerId='1ULL',playerMount=world.mounts.player,playerPassenger=world.mounts.player and not world.playerTransition
       and world.mounts.player.seat~='seat_front_left',driverMount=world.mounts[value.serial],
     playerCombat=world.combat,car=not world.detached and car or nil,carValid=world.carValid,
     info=world.detached and {ready=false} or car.info,summonedId=world.summoned,summonEnRoute=world.enRoute,
-    waypoint=world.waypoint,auto=world.auto}
+    waypoint=waypoint,auto=world.auto}
 end
 function native.mountPlayer()
   world.playerMounts=world.playerMounts+1
   error('The mod must never mount V')
 end
-function native.enable(_,_,_,_,seat)
+function native.enable(_,_,_,pin,seat)
   assert(world.mounts[1] and world.mounts.player and world.mounts.player.seat~='seat_front_left')
   assert(world.mounts.player.seat==seat,'Departure used a stale passenger seat')
+  assert(pin.id==world.waypoint.id and pin.destinationType==world.destinationType,'Departure lost logical destination binding')
+  for _,key in ipairs({'x','y','z'}) do
+    assert(pin.position[key]==world.waypoint.position[key],'Departure used the frozen road endpoint')
+  end
+  world.enablePoint={x=pin.position.x,y=pin.position.y,z=pin.position.z}
   world.enableSeat=seat
   world.enables=world.enables+1
   if world.rejectEnable then return false,'Rejected' end
@@ -143,6 +151,10 @@ test('offer is read-only, carries exact identities, and stale map intents are re
 local offer=transport.chauffeurOffer(fleet,player,entry)
 assert(offer.available and offer.actor.id=='1001ULL' and offer.car.id=='2001ULL' and offer.waypoint.id=='3001ULL')
 assert(offer.passengerSeat=='seat_front_right' and not offer.car.entity and world.mountsRequested==0)
+local fields=0;for key in pairs(offer.waypoint) do
+  fields=fields+1;assert(key=='id' or key=='position' or key=='name','native-only route metadata leaked into bridge offer')
+end
+assert(fields==3)
 offer.waypoint.position.x=-55
 assert(world.waypoint.position.x==100,'offer mutated native sample')
 assert(not queue(offer) and not fleet.chauffeur and world.enables==0)
@@ -204,12 +216,41 @@ assert(world.enables==0 and phase()=='waiting-for-player-exit')
 actual('player',nil); tick(10)
 assert(not fleet.chauffeur and world.deleted==0)
 `));
-test('a selected Quest route starts normally and a changed frozen endpoint cancels it',()=>run(`
-world.auto.playerTracked=false; world.auto.questTracked=true
+test('the selected Quest survives boarding road projection changes and moving markers, but not a new selection',()=>run(`
+world.auto.playerTracked=false; world.auto.questTracked=true;world.destinationType='Quest'
+world.waypoint.position={x=-1623.8048095703,y=-386.49038696289,z=-13.099999427795}
+world.markerPosition={x=-1624.0823974609,y=-386.62854003906,z=-12.003639221191}
 local offered=transport.chauffeurOffer(fleet,player,entry)
-assert(offered.available and queue(offered)); tick(12); boardManually()
+assert(offered.available and queue(offered)); tick(12)
+world.waypoint.position={x=-1691.3070068359,y=-603.80609130859,z=7.6229648590088}
+world.markerPosition.x=world.markerPosition.x+0.28
+boardManually()
 assert(phase()=='driving' and world.enables==1)
-world.waypoint.position.z=world.waypoint.position.z+1; tick(4)
+assert(world.enablePoint.x==world.waypoint.position.x and world.enablePoint.z==world.waypoint.position.z)
+assert(fleet.chauffeur.offer.waypoint.position.x==offered.waypoint.position.x,'immutable bridge offer was rewritten')
+world.waypoint.position.z=world.waypoint.position.z+6;world.markerPosition.y=world.markerPosition.y+200;tick(4)
+assert(phase()=='driving' and world.disables==0 and world.enables==1)
+world.waypoint.id='different';world.auto.destinationId='different';tick(4)
+assert(phase()=='waiting-for-player-exit' and world.disables==1 and world.enables==1)
+`));
+test('same-ID manual marker moves cancel, while new native road projections do not',()=>run(`
+assert(queue());tick(12)
+world.waypoint.position={x=101,y=55,z=8};boardManually()
+assert(phase()=='driving' and world.enables==1 and world.enablePoint.z==8)
+world.waypoint.position={x=130,y=155,z=28};tick(4)
+assert(phase()=='driving' and world.disables==0)
+world.markerPosition.x=101;tick(4)
+assert(phase()=='waiting-for-player-exit' and world.disables==1)
+`));
+test('manual marker drift is measured from the original pin, not the previous update',()=>run(`
+driving()
+world.markerPosition.x=100.1;tick();world.markerPosition.x=100.2;tick()
+assert(phase()=='driving')
+world.markerPosition.x=100.3;tick(4)
+assert(phase()=='waiting-for-player-exit' and world.disables==1)
+`));
+test('switching destination type under the same mappin ID cancels the frozen logical selection',()=>run(`
+driving();world.destinationType='Quest';world.auto.playerTracked=false;world.auto.questTracked=true;tick(4)
 assert(phase()=='waiting-for-player-exit' and world.disables==1 and world.enables==1)
 `));
 test('cancel brakes and disables once, waits for stopped evidence and V exit, then resumes only Judy',()=>run(`

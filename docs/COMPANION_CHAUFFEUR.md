@@ -85,13 +85,27 @@ zero; that does not mean the player has no selected destination. The mappin
 must resolve, but its visual position is not used as the driving endpoint:
 the installed read-only Quest probe showed a roughly 1.1 m vertical difference
 between the mappin marker and native route point. The bridge field remains
-named `waypoint`, and its exact shape is unchanged.
+named `waypoint`, and its exact three-field shape is unchanged. The native-only
+sample additionally stores `destinationType` and `markerPosition`; these do
+not appear in the public offer or provider action packet.
 
 `None`, missing native destination IDs/mappins, and nonfinite or unbounded
-route coordinates are rejected. No unspecified route or Free Roam is started.
-The frozen native ID and route coordinates are rechecked before enable and
-throughout the trip. LocKey-style destination labels use guarded localization
-with a friendly fallback, so a cosmetic label cannot block route admission.
+route/marker coordinates are rejected. No unspecified route or Free Roam is
+started. Initial action admission still rechecks the public offer's captured
+native endpoint. Once admitted, the trip binds the selected mappin ID and
+destination type. `PlayerTracked` also binds the original marker's world
+position with the existing 0.25 m component tolerance, detecting a moved pin
+even if the game reuses its ID. This baseline never advances on subsequent
+samples. A `Quest` target may legitimately move under the same selected ID.
+
+The native road endpoint may change when V boards or the game updates its path.
+Each successful destination check refreshes only that internal endpoint. The
+enable adapter resamples and checks the fresh endpoint, original logical
+destination, exact car and actual seats before issuing the ordinary request.
+The public action offer stays immutable. A new ID, changed destination type or
+moved manual pin cancels the trip; native road projection alone does not.
+LocKey-style destination labels use guarded localization with a friendly
+fallback, so a cosmetic label cannot block route admission.
 
 The coordinator runs only from existing `vehicles.update`. Cached snapshots
 make no native calls and are also present as `vehicleSnapshot().chauffeur`.
@@ -123,11 +137,16 @@ is 30 minutes. Native distance is a local traffic-slot path that can initialize
 at zero or reset upward. Confirmed movement and decreasing local distance both
 count as progress. No native route restart is attempted.
 
-Waypoint changes, a different summoned car, combat, driver loss, lost ownership,
+Selected-destination changes, a different summoned car, combat, driver loss, lost ownership,
 native interruption, an incompatible seat change, or a scene cancel the trip.
 A failed waypoint/UI read still attempts guarded native shutdown using the
 exact car lease. Uncertain command release, an active foreign AutoDrive journey,
 or missing stopped evidence retains ownership and an explicit error.
+
+Manager/world feedback keeps one notice per message for the actual trip
+generation. Alternating native command errors and stop reasons do not repeat
+the same blue popup. Distinct later instructions and a new trip remain visible;
+invitation preparation feedback retains its separate ticket ownership.
 
 There is no player `Mount()` request in the chauffeur adapter. The waiting
 stage observes actual mounting and gives V time to enter manually. Walking
@@ -209,8 +228,8 @@ The vendored GitHub script snapshot is 2.3 and lacks several 2.31 changes.
 | `cyberpunk/UI/widgets/autodrive/autodrive.script:129-151,305-325` | HUD action `HoldAutodrive` submits the same request, but its input hint only permits V driving; key simulation is unsuitable for passengers |
 | `core/blackboard/blackboardDefinitions.script:797-802` | Exact summoned world car ID is `VehicleSummonData.SummonedVehicleEntityID` |
 | `cyberpunk/UI/widgets/notifications/vehicle_summon_notification.script:192-209` | Native UI resolves that ID with `FindEntityByID` |
-| `core/systems/autoDriveSystem.script:116-141`, `core/systems/mappinSystem.script:34` | `PlayerTracked` and `Quest` are explicit native destination types; resolve `GetAutodriveDestinationMappinID()` with `GetMappin`, and freeze the native `GetAutodriveDestination()` point |
-| `cyberpunk/ai/commands/aiDriveCommandHandler.script:220-250` | Native AutoDrive reads current destination and updates the traffic drive target |
+| `core/systems/autoDriveSystem.script:116-141`, `core/systems/mappinSystem.script:34` | `PlayerTracked` and `Quest` are explicit native destination types; resolve `GetAutodriveDestinationMappinID()` with `GetMappin`, and use the current native `GetAutodriveDestination()` point |
+| `cyberpunk/ai/commands/aiDriveCommandHandler.script:220-250` | Native AutoDrive reads its initial destination, then submits `DriveToPointAutonomousUpdate` whenever `GetAutodriveDestination()` changes; endpoint changes are part of the native route lifecycle |
 | `core/systems/mountingFacility.script:44-78` | Exact mounting info, request and native mount signatures |
 | `cyberpunk/player/psm/vehicleTransition.script:873-911` | V in front-right automatically switches to an available driver seat after 0.2 seconds; keep driver until V exits |
 | `core/gameplay/vehicles.script:104-105` | `ForceBrakesUntilStoppedOrFor(Float, optional callback)` |
@@ -288,6 +307,32 @@ empty seats, managed Judy identity and native selected Quest destination while
 the manual tracker was empty. Both Quest and PlayerTracked destinations use the
 native route endpoint; the mappin's visual height is not substituted for the road
 target. This qualified the getter bindings without starting a journey.
+
+### Logical destination and native road projection
+
+The installed October 2 test then observed Judy in the front-left driver seat
+with her `AIMountCommand` at terminal `Success`, and V manually in front-right.
+The coordinator cancelled with "The map destination changed." before enabling
+AutoDrive. The selected destination remained the same `Quest` mappin ID/type,
+while the native endpoint changed after boarding:
+
+| Native road endpoint | X | Y | Z |
+| --- | --- | --- | --- |
+| V on foot | -1623.8048095703 | -386.49038696289 | -13.099999427795 |
+| V in passenger seat | -1691.3070068359 | -603.80609130859 | 7.6229648590088 |
+
+The quest marker itself remained near (-1624.0824, -386.6285, -12.0036), moving
+about 0.28 m. This distinguishes a recalculated road endpoint from a new map
+selection. The driver's command completion gate remains unchanged. The
+correction binds logical selection and supplies fresh native endpoints, as
+the installed AI handler does. Executable regressions reproduce these values,
+check immutable public offers, moved manual pins, accumulated pin drift,
+destination type/ID changes and final native enable guards. A separate repeated
+native-state regression checks that an error is shown once per trip while new
+instructions and later trip generations still receive feedback.
+
+These source checks do not qualify actual road departure or arrival; that
+remains an installed gameplay check after the correction is loaded.
 
 The combined source gate passed 1,947 tests with native-source and installed MCM
 checks enabled. Private chat action delivery uses a unique per-request target
