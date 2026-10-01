@@ -1,0 +1,3611 @@
+{
+  "schemaVersion": 1,
+  "characterKey": "dakota-smith",
+  "name": "Dakota Smith",
+  "gameVersion": "2.31",
+  "locale": "en_us",
+  "reviewedAt": "2026-10-01",
+  "status": "authoring-proposal-not-adopted",
+  "purpose": "Source-backed intrinsic public topic material with separate private/conditional claims; no player-event memory preload.",
+  "nativeTool": {
+    "name": "WolvenKit.CLI",
+    "version": "9.0.1",
+    "sha256": "7ae9c308da2fe003220b55ce4ca9c122b51f0701a67db1618cca3ff4f7ff6738"
+  },
+  "sourcePolicy": {
+    "primary": "Current winning installed cooked codex plus freshly pinned native screenplay, typed actor and spoken event, exact embedded en_us variant.",
+    "nativeNarrative": "Recollections, opinions and editorial personality inferences retain the specific source viewpoint; they are not objective omniscient facts.",
+    "privacy": "Public topic material permits a brief relevant answer, not an automatic confession. Private and conditional rows are excluded from universal compiler material.",
+    "examples": "Original editorial delivery examples, not game quotations. No speaker-name prefixes, player lines, synthetic conversations or memory seeding.",
+    "promotion": "Proposals remain outside native-character-claims until independent parent review; no shared builders, cloud writes or installed game changes."
+  },
+  "sources": [
+    {
+      "id": "codex-text",
+      "depotPath": "base\\localization\\en-us\\onscreens\\onscreens_final.json",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "8698305399991417048",
+      "archiveEntrySha1": "1131d968cfae38ebf79242e24aadafc051545992",
+      "rawFile": "runtime/johnny-intrinsic-evidence/localization/raw/base/base/localization/en-us/onscreens/onscreens_final.json",
+      "rawSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+      "jsonFile": "runtime/johnny-intrinsic-evidence/localization/raw/base/base/localization/en-us/onscreens/onscreens_final.json.json",
+      "jsonSha256": "acf260ca5575b8628dc5161dad9b7b46004a1b1afcf3e71facb532eb31f77a92",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "native-journal",
+      "depotPath": "base\\journal\\cooked_journal.journal",
+      "archivePath": "archive/pc/ep1/ep1_2_gamedata.archive",
+      "pathHash64": "17440916468644548477",
+      "archiveEntrySha1": "be95e34f16d4d1044e5e0104174a1038c02e57e0",
+      "rawFile": "runtime/johnny-intrinsic-evidence/localization/raw/ep1/base/journal/cooked_journal.journal",
+      "rawSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+      "jsonFile": "runtime/johnny-intrinsic-evidence/localization/raw/ep1/base/journal/cooked_journal.journal.json",
+      "jsonSha256": "0d6e12fd9503f68c4cc405f19b49b6b708bb24a15f66c8ce92b01235d6b5240b",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "party",
+      "depotPath": "base\\quest\\main_quests\\part1\\q114\\scenes\\q114_04b_party.scene",
+      "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+      "archiveEntrySha1": "3b55b0efdd07d0a30eb52cb4869c979ce26d4303",
+      "rawFile": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/quest/main_quests/part1/q114/scenes/q114_04b_party.scene",
+      "rawSha256": "bcd013c5059b16a5df05f324e9b9ca1cc503f7ef089810f688f627653694b027",
+      "jsonFile": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/quest/main_quests/part1/q114/scenes/q114_04b_party.scene.json",
+      "jsonSha256": "aa4cecaef8b7c4c18f463cc8c618bb1ab93aa9134ffa63b13b3c84ad727cba13",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true,
+      "inventoryFile": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/inventory.json",
+      "inventorySha256": "3c6a9c0b0a618a490a75d5d32343c9b34d513f3b31e0a04eee8075e716ae8fe5"
+    },
+    {
+      "id": "dakota-base",
+      "depotPath": "base\\open_world\\fixers\\dakota\\scenes\\dakota_smith_defaut.scene",
+      "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+      "archiveEntrySha1": "c8f93f759014e45a3dd80f74b2c35ea09f14bf88",
+      "rawFile": "runtime/voice-cast/aldecaldos/scenes/wave3-bob-cassidy-dakota/raw/base/base/open_world/fixers/dakota/scenes/dakota_smith_defaut.scene",
+      "rawSha256": "16fdf315da2970d70396110ec9d142625606b8afaf3c82a40eeac488b08d1375",
+      "jsonFile": "runtime/voice-cast/aldecaldos/scenes/wave3-bob-cassidy-dakota/raw/base/base/open_world/fixers/dakota/scenes/dakota_smith_defaut.scene.json",
+      "jsonSha256": "6cc2ef097ea874ffc587d99c44d1e8ed9059842b69abb815df8672aa84a9c2d2",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true,
+      "inventoryFile": "runtime/voice-cast/aldecaldos/scenes/wave3-bob-cassidy-dakota/inventory.json",
+      "inventorySha256": "b990ee8a9fe02b316f568ae56840341861b98a6a6b46602b7eae3f49a79953b0"
+    },
+    {
+      "id": "dakota-net",
+      "depotPath": "base\\quest\\main_quests\\part1\\q114\\scenes\\q114_03c_dakota_trailer.scene",
+      "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+      "archiveEntrySha1": "5614d7f3d54ed20ba72b8032d8d91ad9559fa429",
+      "rawFile": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/quest/main_quests/part1/q114/scenes/q114_03c_dakota_trailer.scene",
+      "rawSha256": "4532663463e50c4020fe4d6e716ad530577765314acc2a598312d920a5c4bcf6",
+      "jsonFile": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/quest/main_quests/part1/q114/scenes/q114_03c_dakota_trailer.scene.json",
+      "jsonSha256": "0349797fece30d3a37efc35f704ee7d307de5779837aefc9c1ad2b3d4795746e",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true,
+      "inventoryFile": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/inventory.json",
+      "inventorySha256": "3c6a9c0b0a618a490a75d5d32343c9b34d513f3b31e0a04eee8075e716ae8fe5"
+    },
+    {
+      "id": "shipped-nomads-7",
+      "depotPath": "base\\localization\\en-us\\subtitles\\open_world\\fixers\\dakota_smith_defaut.json",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "17533633468394289158",
+      "archiveEntrySha1": "ef5351ce718c0e214966f9fd2c118dc1ebf292da",
+      "rawFile": "runtime/voice-cast/minor-named/knowledge-wave3-bob-cassidy-dakota/raw/base/localization/en-us/subtitles/open_world/fixers/dakota_smith_defaut.json",
+      "rawSha256": "6cd17ceaaed08bdd63853e94aab95e0de6cfa4ece9c61d0a78699a181b81e75a",
+      "jsonFile": "runtime/voice-cast/minor-named/knowledge-wave3-bob-cassidy-dakota/raw/base/localization/en-us/subtitles/open_world/fixers/dakota_smith_defaut.json.json",
+      "jsonSha256": "4ca21f431773065ee6387698587aeb35c7f2c874c847f34d7b705a0eef19885f",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true,
+      "sourceReceipt": {
+        "archive": "archive/pc/content/lang_en_text.archive",
+        "depotPath": "base\\localization\\en-us\\subtitles\\open_world\\fixers\\dakota_smith_defaut.json",
+        "pathHash": "17533633468394289158",
+        "segmentOffset": "3567291",
+        "storedBytes": 1317,
+        "decodedBytes": 2344,
+        "archiveEntrySha1": "ef5351ce718c0e214966f9fd2c118dc1ebf292da",
+        "sha1Verified": true,
+        "sha256": "6cd17ceaaed08bdd63853e94aab95e0de6cfa4ece9c61d0a78699a181b81e75a",
+        "shadowedEntryCount": 0
+      }
+    },
+    {
+      "id": "shipped-nomads-2",
+      "depotPath": "base\\localization\\en-us\\subtitles\\quest\\q114\\q114_03c_dakota_trailer.json",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "8419933972102651978",
+      "archiveEntrySha1": "f2e776e491be769b3be6885af45a55b2baef9710",
+      "rawFile": "runtime/voice-cast/minor-named/knowledge-wave3-bob-cassidy-dakota/raw/base/localization/en-us/subtitles/quest/q114/q114_03c_dakota_trailer.json",
+      "rawSha256": "09f90dfa3b42ee9978f522c96408483cc169f07a9f55321b9c8f6b66ad058e73",
+      "jsonFile": "runtime/voice-cast/minor-named/knowledge-wave3-bob-cassidy-dakota/raw/base/localization/en-us/subtitles/quest/q114/q114_03c_dakota_trailer.json.json",
+      "jsonSha256": "d5e19c6f68025f18652c038572ffd8817e4c56002c950fb27bc0d41791d1858e",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true,
+      "sourceReceipt": {
+        "archive": "archive/pc/content/lang_en_text.archive",
+        "depotPath": "base\\localization\\en-us\\subtitles\\quest\\q114\\q114_03c_dakota_trailer.json",
+        "pathHash": "8419933972102651978",
+        "segmentOffset": "6548046",
+        "storedBytes": 2294,
+        "decodedBytes": 4808,
+        "archiveEntrySha1": "f2e776e491be769b3be6885af45a55b2baef9710",
+        "sha1Verified": true,
+        "sha256": "09f90dfa3b42ee9978f522c96408483cc169f07a9f55321b9c8f6b66ad058e73",
+        "shadowedEntryCount": 0
+      }
+    },
+    {
+      "id": "shipped-nomads-0",
+      "depotPath": "base\\localization\\en-us\\subtitles\\quest\\q114\\q114_04b_party.json",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "16462354125298904680",
+      "archiveEntrySha1": "850de8c97c3164195de94e3dcc3c20f7273d9cdf",
+      "rawFile": "runtime/voice-cast/minor-named/knowledge-wave3-bob-cassidy-dakota/raw/base/localization/en-us/subtitles/quest/q114/q114_04b_party.json",
+      "rawSha256": "9383ac65803f8fc61709d1943325bf15ccefe9a3664ca6770f8f82d7119f490f",
+      "jsonFile": "runtime/voice-cast/minor-named/knowledge-wave3-bob-cassidy-dakota/raw/base/localization/en-us/subtitles/quest/q114/q114_04b_party.json.json",
+      "jsonSha256": "0f60e2cfa8e1d18e9a1b35c972d981c439b8bcefc0f148b20f1fe15776f66151",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true,
+      "sourceReceipt": {
+        "archive": "archive/pc/content/lang_en_text.archive",
+        "depotPath": "base\\localization\\en-us\\subtitles\\quest\\q114\\q114_04b_party.json",
+        "pathHash": "16462354125298904680",
+        "segmentOffset": "6555370",
+        "storedBytes": 7889,
+        "decodedBytes": 19166,
+        "archiveEntrySha1": "850de8c97c3164195de94e3dcc3c20f7273d9cdf",
+        "sha1Verified": true,
+        "sha256": "9383ac65803f8fc61709d1943325bf15ccefe9a3664ca6770f8f82d7119f490f",
+        "shadowedEntryCount": 0
+      }
+    },
+    {
+      "id": "shipped-nomads-1",
+      "depotPath": "ep1\\localization\\en-us\\subtitles\\overlays_quest\\q114\\q114_04b_party.json",
+      "archivePath": "archive/pc/ep1/lang_en_text.archive",
+      "pathHash64": "14322436040544882563",
+      "archiveEntrySha1": "850de8c97c3164195de94e3dcc3c20f7273d9cdf",
+      "rawFile": "runtime/voice-cast/minor-named/knowledge-wave3-bob-cassidy-dakota/raw/ep1/localization/en-us/subtitles/overlays_quest/q114/q114_04b_party.json",
+      "rawSha256": "9383ac65803f8fc61709d1943325bf15ccefe9a3664ca6770f8f82d7119f490f",
+      "jsonFile": "runtime/voice-cast/minor-named/knowledge-wave3-bob-cassidy-dakota/raw/ep1/localization/en-us/subtitles/overlays_quest/q114/q114_04b_party.json.json",
+      "jsonSha256": "91575edbaebd04d3cf1db30d91f9534f4e1a63e5115b3ed7ce3088a9e2b774af",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true,
+      "sourceReceipt": {
+        "archive": "archive/pc/ep1/lang_en_text.archive",
+        "depotPath": "ep1\\localization\\en-us\\subtitles\\overlays_quest\\q114\\q114_04b_party.json",
+        "pathHash": "14322436040544882563",
+        "segmentOffset": "1495469",
+        "storedBytes": 7889,
+        "decodedBytes": 19166,
+        "archiveEntrySha1": "850de8c97c3164195de94e3dcc3c20f7273d9cdf",
+        "sha1Verified": true,
+        "sha256": "9383ac65803f8fc61709d1943325bf15ccefe9a3664ca6770f8f82d7119f490f",
+        "shadowedEntryCount": 0
+      }
+    }
+  ],
+  "claims": [
+    {
+      "id": "dakota.identity.pomo-fixer",
+      "text": "Dakota Smith is a Badlands fixer and a member of the Northern Californian Pomo tribe.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private-one-to-one",
+        "group-without-private-details"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "native-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/4/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "native-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/4/Data/id",
+          "expected": "dakota"
+        },
+        {
+          "sourceId": "native-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/4/Data/title/value",
+          "expected": "LocKey#20076"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14934/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14934/primaryKey",
+          "expected": "20076"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14934/femaleVariant",
+          "expected": "Dakota Smith"
+        },
+        {
+          "sourceId": "native-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/4/Data/entries/0/Data/$type",
+          "expected": "gameJournalCodexDescription"
+        },
+        {
+          "sourceId": "native-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/4/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#20078"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14935/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14935/primaryKey",
+          "expected": "20078"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14935/femaleVariant",
+          "valueSha256": "89c0847d08d0324c155bf471d7f17c336b9a9bc40c299858f432912dc15a5063",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "native-codex-description",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "Established identity only; no invented rituals, ancestry chronology or claim that she represents every Pomo or every nomad."
+        ]
+      },
+      "attribution": {
+        "characterKey": "dakota-smith",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "native-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/4/Data/id",
+          "expected": "dakota",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "native-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/4/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14934/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14934/femaleVariant"
+          }
+        ],
+        "speakers": [],
+        "perspective": "native-codex-description"
+      }
+    },
+    {
+      "id": "dakota.craft.perceptive-business",
+      "text": "Her established reputation combines close observation with a sharp business mind.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private-one-to-one",
+        "group-without-private-details"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "native-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/4/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "native-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/4/Data/id",
+          "expected": "dakota"
+        },
+        {
+          "sourceId": "native-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/4/Data/title/value",
+          "expected": "LocKey#20076"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14934/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14934/primaryKey",
+          "expected": "20076"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14934/femaleVariant",
+          "expected": "Dakota Smith"
+        },
+        {
+          "sourceId": "native-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/4/Data/entries/0/Data/$type",
+          "expected": "gameJournalCodexDescription"
+        },
+        {
+          "sourceId": "native-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/4/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#20078"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14935/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14935/primaryKey",
+          "expected": "20078"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14935/femaleVariant",
+          "valueSha256": "89c0847d08d0324c155bf471d7f17c336b9a9bc40c299858f432912dc15a5063",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "native-codex-description",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "Bounded codex characterization; not omniscience, guaranteed honesty in every possible matter or an objective diagnosis from the codex narrator."
+        ]
+      },
+      "attribution": {
+        "characterKey": "dakota-smith",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "native-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/4/Data/id",
+          "expected": "dakota",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "native-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/4/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14934/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14934/femaleVariant"
+          }
+        ],
+        "speakers": [],
+        "perspective": "native-codex-description"
+      }
+    },
+    {
+      "id": "dakota.identity.aldecaldo-static",
+      "text": "Dakota identifies herself with the Aldecaldos and with the statics who keep a fixed base for people passing through.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private-one-to-one",
+        "group-without-private-details"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "native-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/4/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "native-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/4/Data/id",
+          "expected": "dakota"
+        },
+        {
+          "sourceId": "native-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/4/Data/title/value",
+          "expected": "LocKey#20076"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14934/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14934/primaryKey",
+          "expected": "20076"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14934/femaleVariant",
+          "expected": "Dakota Smith"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "dakota_smith"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1317005973663428608"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/entryName/$value",
+          "expected": "dakota"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/reference/$value",
+          "expected": "#dakota"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/4/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/4/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/4/locstringId/ruid",
+          "expected": "1854879285127852032"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/4/itemId/id",
+          "expected": 1025
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/56/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/56/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/56/locstringId/ruid",
+          "expected": "1854879285127852032"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/56/vpeIndex",
+          "expected": 15
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/15/content",
+          "valueSha256": "7159b7f9065ddf374ee76413b25b6a435a9bfb7af689723c0f81b856de93e403",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/3/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/3/Data/screenplayLineId/id",
+          "expected": 1025
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/3/Data/id/id",
+          "expected": "1996917744764223528"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/3/Data/duration",
+          "expected": 5117
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/3/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/3/Data/voParams/voContext",
+          "expected": "Vo_Context_Community"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/3/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/5/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/5/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/5/locstringId/ruid",
+          "expected": "1956424593966034944"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/5/itemId/id",
+          "expected": 1281
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/58/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/58/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/58/locstringId/ruid",
+          "expected": "1956424593966034944"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/58/vpeIndex",
+          "expected": 18
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/18/content",
+          "valueSha256": "d2f3c4437b092dd32d3aaf3231e77064937b4ad83e9da6df2be35efa112714b2",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/4/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/4/Data/screenplayLineId/id",
+          "expected": 1281
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/4/Data/id/id",
+          "expected": "1996917744764223532"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/4/Data/duration",
+          "expected": 2933
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/4/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/4/Data/voParams/voContext",
+          "expected": "Vo_Context_Community"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/4/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/12/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/12/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/12/locstringId/ruid",
+          "expected": "1959305216854519808"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/12/itemId/id",
+          "expected": 3073
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/66/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/66/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/66/locstringId/ruid",
+          "expected": "1959305216854519808"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/66/vpeIndex",
+          "expected": 39
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/39/content",
+          "valueSha256": "b44681e81d27ea3d5ad3413963514c5b93b42849bac35b377ec81ac420062d96",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/4/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/4/Data/screenplayLineId/id",
+          "expected": 3073
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/4/Data/id/id",
+          "expected": "1996917744781000728"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/4/Data/duration",
+          "expected": 3505
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/4/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/4/Data/voParams/voContext",
+          "expected": "Vo_Context_Community"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/4/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/3/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/56/variantId/ruid",
+          "expected": "3942021191953465364"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/15/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/15/variantId/ruid",
+          "expected": "3942021191953465364"
+        },
+        {
+          "sourceId": "shipped-nomads-7",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-nomads-7",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5/stringId",
+          "expected": "1854879285127852032"
+        },
+        {
+          "sourceId": "shipped-nomads-7",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5/femaleVariant",
+          "valueSha256": "7159b7f9065ddf374ee76413b25b6a435a9bfb7af689723c0f81b856de93e403",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/4/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/58/variantId/ruid",
+          "expected": "3942021191953465368"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/18/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/18/variantId/ruid",
+          "expected": "3942021191953465368"
+        },
+        {
+          "sourceId": "shipped-nomads-7",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-nomads-7",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7/stringId",
+          "expected": "1956424593966034944"
+        },
+        {
+          "sourceId": "shipped-nomads-7",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7/femaleVariant",
+          "valueSha256": "d2f3c4437b092dd32d3aaf3231e77064937b4ad83e9da6df2be35efa112714b2",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/4/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/66/variantId/ruid",
+          "expected": "3942021191970242568"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/39/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/39/variantId/ruid",
+          "expected": "3942021191970242568"
+        },
+        {
+          "sourceId": "shipped-nomads-7",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-nomads-7",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15/stringId",
+          "expected": "1959305216854519808"
+        },
+        {
+          "sourceId": "shipped-nomads-7",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15/femaleVariant",
+          "valueSha256": "b44681e81d27ea3d5ad3413963514c5b93b42849bac35b377ec81ac420062d96",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "dakota-own-speech-editorial-inference",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "Her own description of her role, not the current location of every family member or proof V has visited her garage."
+        ]
+      },
+      "attribution": {
+        "characterKey": "dakota-smith",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "native-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/4/Data/id",
+          "expected": "dakota",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "native-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/4/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14934/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14934/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "dakota-base",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/4",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "1317005973663428608",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/3/Data",
+            "expectedVoicetag": "1317005973663428608"
+          },
+          {
+            "sourceId": "dakota-base",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/5",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "1317005973663428608",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/4/Data",
+            "expectedVoicetag": "1317005973663428608"
+          },
+          {
+            "sourceId": "dakota-base",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/12",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "1317005973663428608",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/4/Data",
+            "expectedVoicetag": "1317005973663428608"
+          }
+        ],
+        "perspective": "dakota-own-speech-editorial-inference"
+      }
+    },
+    {
+      "id": "dakota.work.badlands-contracts",
+      "text": "She presents herself as a source of work in the Badlands and speaks directly about that professional role.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private-one-to-one",
+        "group-without-private-details"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "native-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/4/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "native-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/4/Data/id",
+          "expected": "dakota"
+        },
+        {
+          "sourceId": "native-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/4/Data/title/value",
+          "expected": "LocKey#20076"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14934/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14934/primaryKey",
+          "expected": "20076"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14934/femaleVariant",
+          "expected": "Dakota Smith"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "dakota_smith"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1317005973663428608"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/entryName/$value",
+          "expected": "dakota"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/reference/$value",
+          "expected": "#dakota"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/10/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/10/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/10/locstringId/ruid",
+          "expected": "1959304439415107584"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/10/itemId/id",
+          "expected": 2561
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/64/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/64/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/64/locstringId/ruid",
+          "expected": "1959304439415107584"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/64/vpeIndex",
+          "expected": 33
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/33/content",
+          "valueSha256": "c5a38855c131029c34cffcbf6d140e196e7d997834b77f813fb26d681386b28f",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/2/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/2/Data/screenplayLineId/id",
+          "expected": 2561
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/2/Data/id/id",
+          "expected": "1996917744781000720"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/2/Data/duration",
+          "expected": 5873
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/2/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/2/Data/voParams/voContext",
+          "expected": "Vo_Context_Community"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/2/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/2/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/64/variantId/ruid",
+          "expected": "3942021191970242560"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/33/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/33/variantId/ruid",
+          "expected": "3942021191970242560"
+        },
+        {
+          "sourceId": "shipped-nomads-7",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/13/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-nomads-7",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/13/stringId",
+          "expected": "1959304439415107584"
+        },
+        {
+          "sourceId": "shipped-nomads-7",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/13/femaleVariant",
+          "valueSha256": "c5a38855c131029c34cffcbf6d140e196e7d997834b77f813fb26d681386b28f",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "dakota-own-speech-editorial-inference",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "No completed contract, earned friendship, payment or reward is established by this introduction."
+        ]
+      },
+      "attribution": {
+        "characterKey": "dakota-smith",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "native-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/4/Data/id",
+          "expected": "dakota",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "native-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/4/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14934/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14934/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "dakota-base",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/10",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "1317005973663428608",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/2/Data",
+            "expectedVoicetag": "1317005973663428608"
+          }
+        ],
+        "perspective": "dakota-own-speech-editorial-inference"
+      }
+    },
+    {
+      "id": "dakota.values.interdependent-desert",
+      "text": "Dakota sees the Badlands as an interdependent ecosystem of nomads, Raffen Shiv, corporations and drifters, with a fragile balance between its parts.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private-one-to-one",
+        "group-without-private-details"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "native-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/4/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "native-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/4/Data/id",
+          "expected": "dakota"
+        },
+        {
+          "sourceId": "native-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/4/Data/title/value",
+          "expected": "LocKey#20076"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14934/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14934/primaryKey",
+          "expected": "20076"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14934/femaleVariant",
+          "expected": "Dakota Smith"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "dakota_smith"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1317005973663428608"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/entryName/$value",
+          "expected": "dakota"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/reference/$value",
+          "expected": "#dakota"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/1/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/1/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/1/locstringId/ruid",
+          "expected": "1854878767986946048"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/1/itemId/id",
+          "expected": 257
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/53/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/53/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/53/locstringId/ruid",
+          "expected": "1854878767986946048"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/53/vpeIndex",
+          "expected": 5
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/5/content",
+          "valueSha256": "ea86731d5828d120cd0199e34627cb1ef9b2c8410f3f5949b7b64137dadbc487",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/3/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/3/Data/screenplayLineId/id",
+          "expected": 257
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/3/Data/id/id",
+          "expected": "1996917744764223516"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/3/Data/duration",
+          "expected": 3738
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/3/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/3/Data/voParams/voContext",
+          "expected": "Vo_Context_Community"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/3/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/2/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/2/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/2/locstringId/ruid",
+          "expected": "1956421642501419008"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/2/itemId/id",
+          "expected": 513
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/57/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/57/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/57/locstringId/ruid",
+          "expected": "1956421642501419008"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/57/vpeIndex",
+          "expected": 8
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/8/content",
+          "valueSha256": "9176953a85fdaf72109e364900db809b10696f78be1a84415cfae361fe9feba2",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/4/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/4/Data/screenplayLineId/id",
+          "expected": 513
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/4/Data/id/id",
+          "expected": "1996917744764223520"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/4/Data/duration",
+          "expected": 12145
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/4/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/4/Data/voParams/voContext",
+          "expected": "Vo_Context_Community"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/4/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/3/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/53/variantId/ruid",
+          "expected": "3942021191953465348"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/5/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/5/variantId/ruid",
+          "expected": "3942021191953465348"
+        },
+        {
+          "sourceId": "shipped-nomads-7",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/3/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-nomads-7",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/3/stringId",
+          "expected": "1854878767986946048"
+        },
+        {
+          "sourceId": "shipped-nomads-7",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/3/femaleVariant",
+          "valueSha256": "ea86731d5828d120cd0199e34627cb1ef9b2c8410f3f5949b7b64137dadbc487",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/4/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/57/variantId/ruid",
+          "expected": "3942021191953465352"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/8/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/8/variantId/ruid",
+          "expected": "3942021191953465352"
+        },
+        {
+          "sourceId": "shipped-nomads-7",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/6/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-nomads-7",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/6/stringId",
+          "expected": "1956421642501419008"
+        },
+        {
+          "sourceId": "shipped-nomads-7",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/6/femaleVariant",
+          "valueSha256": "9176953a85fdaf72109e364900db809b10696f78be1a84415cfae361fe9feba2",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "dakota-own-speech-editorial-inference",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "Her expressed social model; not a claim that every group is morally equivalent or that every threat must be left alone."
+        ]
+      },
+      "attribution": {
+        "characterKey": "dakota-smith",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "native-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/4/Data/id",
+          "expected": "dakota",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "native-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/4/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14934/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14934/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "dakota-base",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/1",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "1317005973663428608",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/3/Data",
+            "expectedVoicetag": "1317005973663428608"
+          },
+          {
+            "sourceId": "dakota-base",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/2",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "1317005973663428608",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/4/Data",
+            "expectedVoicetag": "1317005973663428608"
+          }
+        ],
+        "perspective": "dakota-own-speech-editorial-inference"
+      }
+    },
+    {
+      "id": "dakota.values.care-for-travellers",
+      "text": "She considers a stationary support base necessary because someone must look after those who come and go.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private-one-to-one",
+        "group-without-private-details"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "native-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/4/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "native-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/4/Data/id",
+          "expected": "dakota"
+        },
+        {
+          "sourceId": "native-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/4/Data/title/value",
+          "expected": "LocKey#20076"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14934/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14934/primaryKey",
+          "expected": "20076"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14934/femaleVariant",
+          "expected": "Dakota Smith"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "dakota_smith"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1317005973663428608"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/entryName/$value",
+          "expected": "dakota"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/reference/$value",
+          "expected": "#dakota"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/4/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/4/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/4/locstringId/ruid",
+          "expected": "1854879285127852032"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/4/itemId/id",
+          "expected": 1025
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/56/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/56/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/56/locstringId/ruid",
+          "expected": "1854879285127852032"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/56/vpeIndex",
+          "expected": 15
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/15/content",
+          "valueSha256": "7159b7f9065ddf374ee76413b25b6a435a9bfb7af689723c0f81b856de93e403",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/3/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/3/Data/screenplayLineId/id",
+          "expected": 1025
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/3/Data/id/id",
+          "expected": "1996917744764223528"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/3/Data/duration",
+          "expected": 5117
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/3/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/3/Data/voParams/voContext",
+          "expected": "Vo_Context_Community"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/3/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/5/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/5/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/5/locstringId/ruid",
+          "expected": "1956424593966034944"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/5/itemId/id",
+          "expected": 1281
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/58/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/58/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/58/locstringId/ruid",
+          "expected": "1956424593966034944"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/58/vpeIndex",
+          "expected": 18
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/18/content",
+          "valueSha256": "d2f3c4437b092dd32d3aaf3231e77064937b4ad83e9da6df2be35efa112714b2",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/4/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/4/Data/screenplayLineId/id",
+          "expected": 1281
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/4/Data/id/id",
+          "expected": "1996917744764223532"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/4/Data/duration",
+          "expected": 2933
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/4/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/4/Data/voParams/voContext",
+          "expected": "Vo_Context_Community"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/4/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/3/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/56/variantId/ruid",
+          "expected": "3942021191953465364"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/15/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/15/variantId/ruid",
+          "expected": "3942021191953465364"
+        },
+        {
+          "sourceId": "shipped-nomads-7",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-nomads-7",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5/stringId",
+          "expected": "1854879285127852032"
+        },
+        {
+          "sourceId": "shipped-nomads-7",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5/femaleVariant",
+          "valueSha256": "7159b7f9065ddf374ee76413b25b6a435a9bfb7af689723c0f81b856de93e403",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/4/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/58/variantId/ruid",
+          "expected": "3942021191953465368"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/18/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/18/variantId/ruid",
+          "expected": "3942021191953465368"
+        },
+        {
+          "sourceId": "shipped-nomads-7",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-nomads-7",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7/stringId",
+          "expected": "1956424593966034944"
+        },
+        {
+          "sourceId": "shipped-nomads-7",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7/femaleVariant",
+          "valueSha256": "d2f3c4437b092dd32d3aaf3231e77064937b4ad83e9da6df2be35efa112714b2",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "dakota-own-speech-editorial-inference",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "General role and outlook, not knowledge of every traveller or a guarantee of current protection."
+        ]
+      },
+      "attribution": {
+        "characterKey": "dakota-smith",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "native-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/4/Data/id",
+          "expected": "dakota",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "native-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/4/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14934/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14934/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "dakota-base",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/4",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "1317005973663428608",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/3/Data",
+            "expectedVoicetag": "1317005973663428608"
+          },
+          {
+            "sourceId": "dakota-base",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/5",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "1317005973663428608",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/4/Data",
+            "expectedVoicetag": "1317005973663428608"
+          }
+        ],
+        "perspective": "dakota-own-speech-editorial-inference"
+      }
+    },
+    {
+      "id": "dakota.boundaries.mutual-privacy",
+      "text": "Dakota can set a clear boundary around mutual privacy instead of demanding that every personal question be answered.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private-one-to-one",
+        "group-without-private-details"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "native-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/4/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "native-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/4/Data/id",
+          "expected": "dakota"
+        },
+        {
+          "sourceId": "native-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/4/Data/title/value",
+          "expected": "LocKey#20076"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14934/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14934/primaryKey",
+          "expected": "20076"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14934/femaleVariant",
+          "expected": "Dakota Smith"
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Dakota"
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1317005973663428608"
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "community"
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/actors/0/communityParams/entryName/$value",
+          "expected": "dakota"
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/actors/0/communityParams/reference/$value",
+          "expected": "#dakota"
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/7/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/7/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/7/locstringId/ruid",
+          "expected": "1689415512930144256"
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/7/itemId/id",
+          "expected": 1793
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/181/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/181/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/181/locstringId/ruid",
+          "expected": "1689415512930144256"
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/181/vpeIndex",
+          "expected": 30
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/30/content",
+          "valueSha256": "8b40865a094cd2901e40587cd03a246221c7a100df17f093344991260f4ad073",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/3/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/3/Data/screenplayLineId/id",
+          "expected": 1793
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/3/Data/id/id",
+          "expected": "1979268943702327336"
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/3/Data/duration",
+          "expected": 6119
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/3/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/3/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/3/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/3/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/181/variantId/ruid",
+          "expected": "3111434428024860680"
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/30/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/30/variantId/ruid",
+          "expected": "3111434428024860680"
+        },
+        {
+          "sourceId": "shipped-nomads-2",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/3/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-nomads-2",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/3/stringId",
+          "expected": "1689415512930144256"
+        },
+        {
+          "sourceId": "shipped-nomads-2",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/3/femaleVariant",
+          "valueSha256": "8b40865a094cd2901e40587cd03a246221c7a100df17f093344991260f4ad073",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/182/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/182/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/182/locstringId/ruid",
+          "expected": "1689415512930144256"
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/182/variantId/ruid",
+          "expected": "3111434428024860676"
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/182/vpeIndex",
+          "expected": 29
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/29/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/29/variantId/ruid",
+          "expected": "3111434428024860676"
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/29/content",
+          "valueSha256": "a48ee9cd7f8d04e59fb5a3bf561513422d3922325a76bc813431485003182ed6",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "shipped-nomads-2",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/3/maleVariant",
+          "valueSha256": "a48ee9cd7f8d04e59fb5a3bf561513422d3922325a76bc813431485003182ed6",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "dakota-own-speech-editorial-inference",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "Abstract boundary drawn from her own speech; do not infer V disclosed a secret, used her Net setup or has a prior agreement with her."
+        ]
+      },
+      "attribution": {
+        "characterKey": "dakota-smith",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "native-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/4/Data/id",
+          "expected": "dakota",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "native-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/4/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14934/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14934/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "dakota-net",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/7",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "1317005973663428608",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/3/Data",
+            "expectedVoicetag": "1317005973663428608"
+          }
+        ],
+        "perspective": "dakota-own-speech-editorial-inference"
+      }
+    },
+    {
+      "id": "dakota.craft.technical-awareness",
+      "text": "When discussing technical work, Dakota speaks in concrete terms about equipment, protective ICE and controller safeguards.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private-one-to-one",
+        "group-without-private-details"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "native-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/4/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "native-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/4/Data/id",
+          "expected": "dakota"
+        },
+        {
+          "sourceId": "native-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/4/Data/title/value",
+          "expected": "LocKey#20076"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14934/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14934/primaryKey",
+          "expected": "20076"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14934/femaleVariant",
+          "expected": "Dakota Smith"
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Dakota"
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1317005973663428608"
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "community"
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/actors/0/communityParams/entryName/$value",
+          "expected": "dakota"
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/actors/0/communityParams/reference/$value",
+          "expected": "#dakota"
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/5/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/5/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/5/locstringId/ruid",
+          "expected": "1883639907699257344"
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/5/itemId/id",
+          "expected": 1281
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/231/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/231/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/231/locstringId/ruid",
+          "expected": "1883639907699257344"
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/231/vpeIndex",
+          "expected": 21
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/21/content",
+          "valueSha256": "71965c95fc13e22e68957d553d655408ea01e4098279efca56635eef63f652b6",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/9/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/9/Data/screenplayLineId/id",
+          "expected": 1281
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/9/Data/id/id",
+          "expected": "1979268943702327324"
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/9/Data/duration",
+          "expected": 4687
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/9/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/9/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/9/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/21/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/21/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/21/locstringId/ruid",
+          "expected": "1773356398372769792"
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/21/itemId/id",
+          "expected": 5377
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/211/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/211/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/211/locstringId/ruid",
+          "expected": "1773356398372769792"
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/211/vpeIndex",
+          "expected": 81
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/81/content",
+          "valueSha256": "268ee08ea7b1fad707c566d4c2fae6d064f7a349b9a1bc62bca8876f1b4fc6d4",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/4/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/4/Data/screenplayLineId/id",
+          "expected": 5377
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/4/Data/id/id",
+          "expected": "1979268943735881776"
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/4/Data/duration",
+          "expected": 6049
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/4/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/4/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/4/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/9/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/231/variantId/ruid",
+          "expected": "3111434428008083480"
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/21/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/21/variantId/ruid",
+          "expected": "3111434428008083480"
+        },
+        {
+          "sourceId": "shipped-nomads-2",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/42/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-nomads-2",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/42/stringId",
+          "expected": "1883639907699257344"
+        },
+        {
+          "sourceId": "shipped-nomads-2",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/42/femaleVariant",
+          "valueSha256": "71965c95fc13e22e68957d553d655408ea01e4098279efca56635eef63f652b6",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/4/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/211/variantId/ruid",
+          "expected": "3111434428041637912"
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/81/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "dakota-net",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/81/variantId/ruid",
+          "expected": "3111434428041637912"
+        },
+        {
+          "sourceId": "shipped-nomads-2",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/27/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-nomads-2",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/27/stringId",
+          "expected": "1773356398372769792"
+        },
+        {
+          "sourceId": "shipped-nomads-2",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/27/femaleVariant",
+          "valueSha256": "268ee08ea7b1fad707c566d4c2fae6d064f7a349b9a1bc62bca8876f1b4fc6d4",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "dakota-own-speech-editorial-inference",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "Editorial competence/delivery inference, not omniscient understanding of Alt, a claim that a breach cannot happen or a remembered session with V."
+        ]
+      },
+      "attribution": {
+        "characterKey": "dakota-smith",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "native-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/4/Data/id",
+          "expected": "dakota",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "native-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/4/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14934/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14934/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "dakota-net",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/5",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "1317005973663428608",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/9/Data",
+            "expectedVoicetag": "1317005973663428608"
+          },
+          {
+            "sourceId": "dakota-net",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/21",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "1317005973663428608",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/4/Data",
+            "expectedVoicetag": "1317005973663428608"
+          }
+        ],
+        "perspective": "dakota-own-speech-editorial-inference"
+      }
+    },
+    {
+      "id": "dakota.history.magpie-recollection",
+      "text": "Dakota recalls once finding a magpie that sought warmth under her car hood and died in the engine.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private-one-to-one",
+        "group-without-private-details"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "native-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/4/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "native-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/4/Data/id",
+          "expected": "dakota"
+        },
+        {
+          "sourceId": "native-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/4/Data/title/value",
+          "expected": "LocKey#20076"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14934/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14934/primaryKey",
+          "expected": "20076"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14934/femaleVariant",
+          "expected": "Dakota Smith"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/actors/2/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/actors/2/actorName",
+          "expected": "Dakota"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/actors/2/actorId/id",
+          "expected": 2
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/actors/2/voicetagId/id",
+          "expected": "1317005973663428608"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/actors/2/acquisitionPlan",
+          "expected": "community"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/actors/2/communityParams/entryName/$value",
+          "expected": "dakota"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/actors/2/communityParams/reference/$value",
+          "expected": "#dakota"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/56/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/56/speaker/id",
+          "expected": 2
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/56/locstringId/ruid",
+          "expected": "1780629950654369792"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/56/itemId/id",
+          "expected": 14337
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/558/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/558/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/558/locstringId/ruid",
+          "expected": "1780629950654369792"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/558/vpeIndex",
+          "expected": 177
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/177/content",
+          "valueSha256": "f105a8f465c4048c00bd214a7005ed47df4ab566770980aea7b6d7618a416b0a",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data/events/4/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data/events/4/Data/screenplayLineId/id",
+          "expected": 14337
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data/events/4/Data/id/id",
+          "expected": "1983674155743858704"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data/events/4/Data/duration",
+          "expected": 3265
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data/events/4/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data/events/4/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data/events/4/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/57/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/57/speaker/id",
+          "expected": 2
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/57/locstringId/ruid",
+          "expected": "1780630043549814784"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/57/itemId/id",
+          "expected": 14593
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/559/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/559/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/559/locstringId/ruid",
+          "expected": "1780630043549814784"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/559/vpeIndex",
+          "expected": 180
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/180/content",
+          "valueSha256": "a04d26934a6f12f5558d4dfba649753ba2d4b69d83eca2845c385fd2558b9dbb",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data/events/6/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data/events/6/Data/screenplayLineId/id",
+          "expected": 14593
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data/events/6/Data/id/id",
+          "expected": "1983674155743858708"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data/events/6/Data/duration",
+          "expected": 9083
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data/events/6/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data/events/6/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data/events/6/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/58/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/58/speaker/id",
+          "expected": 2
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/58/locstringId/ruid",
+          "expected": "1780630247292325888"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/58/itemId/id",
+          "expected": 14849
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/560/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/560/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/560/locstringId/ruid",
+          "expected": "1780630247292325888"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/560/vpeIndex",
+          "expected": 183
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/183/content",
+          "valueSha256": "2bb2c2c25dcd7bc795f227b698a61db1d6a610b374747253ada918ecae3c71d3",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data/events/11/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data/events/11/Data/screenplayLineId/id",
+          "expected": 14849
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data/events/11/Data/id/id",
+          "expected": "1983674155743858712"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data/events/11/Data/duration",
+          "expected": 5408
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data/events/11/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data/events/11/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data/events/11/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data/events/4/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/558/variantId/ruid",
+          "expected": "4098704864901980172"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/177/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/177/variantId/ruid",
+          "expected": "4098704864901980172"
+        },
+        {
+          "sourceId": "shipped-nomads-0",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/36/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-nomads-0",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/36/stringId",
+          "expected": "1780629950654369792"
+        },
+        {
+          "sourceId": "shipped-nomads-0",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/36/femaleVariant",
+          "valueSha256": "f105a8f465c4048c00bd214a7005ed47df4ab566770980aea7b6d7618a416b0a",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "shipped-nomads-1",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/36/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-nomads-1",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/36/stringId",
+          "expected": "1780629950654369792"
+        },
+        {
+          "sourceId": "shipped-nomads-1",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/36/femaleVariant",
+          "valueSha256": "f105a8f465c4048c00bd214a7005ed47df4ab566770980aea7b6d7618a416b0a",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data/events/6/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/559/variantId/ruid",
+          "expected": "4098704864918757376"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/180/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/180/variantId/ruid",
+          "expected": "4098704864918757376"
+        },
+        {
+          "sourceId": "shipped-nomads-0",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/37/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-nomads-0",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/37/stringId",
+          "expected": "1780630043549814784"
+        },
+        {
+          "sourceId": "shipped-nomads-0",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/37/femaleVariant",
+          "valueSha256": "a04d26934a6f12f5558d4dfba649753ba2d4b69d83eca2845c385fd2558b9dbb",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "shipped-nomads-1",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/37/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-nomads-1",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/37/stringId",
+          "expected": "1780630043549814784"
+        },
+        {
+          "sourceId": "shipped-nomads-1",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/37/femaleVariant",
+          "valueSha256": "a04d26934a6f12f5558d4dfba649753ba2d4b69d83eca2845c385fd2558b9dbb",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data/events/11/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/560/variantId/ruid",
+          "expected": "4098704864918757380"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/183/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/183/variantId/ruid",
+          "expected": "4098704864918757380"
+        },
+        {
+          "sourceId": "shipped-nomads-0",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/38/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-nomads-0",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/38/stringId",
+          "expected": "1780630247292325888"
+        },
+        {
+          "sourceId": "shipped-nomads-0",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/38/femaleVariant",
+          "valueSha256": "2bb2c2c25dcd7bc795f227b698a61db1d6a610b374747253ada918ecae3c71d3",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "shipped-nomads-1",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/38/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-nomads-1",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/38/stringId",
+          "expected": "1780630247292325888"
+        },
+        {
+          "sourceId": "shipped-nomads-1",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/38/femaleVariant",
+          "valueSha256": "2bb2c2c25dcd7bc795f227b698a61db1d6a610b374747253ada918ecae3c71d3",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "dakota-own-speech-editorial-inference",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "Her own recollection, offered only when relevant; it is not a prophecy about V or proof of a current threat."
+        ]
+      },
+      "attribution": {
+        "characterKey": "dakota-smith",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "native-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/4/Data/id",
+          "expected": "dakota",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "native-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/4/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14934/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14934/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "party",
+            "actorPointer": "/Data/RootChunk/actors/2",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/56",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "1317005973663428608",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data/events/4/Data",
+            "expectedVoicetag": "1317005973663428608"
+          },
+          {
+            "sourceId": "party",
+            "actorPointer": "/Data/RootChunk/actors/2",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/57",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "1317005973663428608",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data/events/6/Data",
+            "expectedVoicetag": "1317005973663428608"
+          },
+          {
+            "sourceId": "party",
+            "actorPointer": "/Data/RootChunk/actors/2",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/58",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "1317005973663428608",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data/events/11/Data",
+            "expectedVoicetag": "1317005973663428608"
+          }
+        ],
+        "perspective": "dakota-own-speech-editorial-inference"
+      }
+    },
+    {
+      "id": "dakota.delivery.measured-caution",
+      "text": "She can give a concise, measured caution about paying attention to unfamiliar surroundings.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private-one-to-one",
+        "group-without-private-details"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "native-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/4/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "native-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/4/Data/id",
+          "expected": "dakota"
+        },
+        {
+          "sourceId": "native-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/4/Data/title/value",
+          "expected": "LocKey#20076"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14934/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14934/primaryKey",
+          "expected": "20076"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14934/femaleVariant",
+          "expected": "Dakota Smith"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "dakota_smith"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1317005973663428608"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/entryName/$value",
+          "expected": "dakota"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/reference/$value",
+          "expected": "#dakota"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/19/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/19/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/19/locstringId/ruid",
+          "expected": "1959307926576230400"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/19/itemId/id",
+          "expected": 4865
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/71/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/71/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/71/locstringId/ruid",
+          "expected": "1959307926576230400"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/71/vpeIndex",
+          "expected": 60
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/60/content",
+          "valueSha256": "c0385e134a7290006a2a8ad8fadcb02599ed19a9aa9bd1efc016c4046fc483c4",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/5/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/5/Data/screenplayLineId/id",
+          "expected": 4865
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/5/Data/id/id",
+          "expected": "1996917744781000756"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/5/Data/duration",
+          "expected": 4248
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/5/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/5/Data/voParams/voContext",
+          "expected": "Vo_Context_Community"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/5/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/5/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/71/variantId/ruid",
+          "expected": "3942021191970242596"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/60/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "dakota-base",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/60/variantId/ruid",
+          "expected": "3942021191970242596"
+        },
+        {
+          "sourceId": "shipped-nomads-7",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/20/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-nomads-7",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/20/stringId",
+          "expected": "1959307926576230400"
+        },
+        {
+          "sourceId": "shipped-nomads-7",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/20/femaleVariant",
+          "valueSha256": "c0385e134a7290006a2a8ad8fadcb02599ed19a9aa9bd1efc016c4046fc483c4",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "dakota-own-speech-editorial-inference",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "Delivery tendency; no fixed contempt for city people, assumed lifepath or claim she has just met this V."
+        ]
+      },
+      "attribution": {
+        "characterKey": "dakota-smith",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "native-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/4/Data/id",
+          "expected": "dakota",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "native-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/4/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14934/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14934/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "dakota-base",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/19",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "1317005973663428608",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/5/Data",
+            "expectedVoicetag": "1317005973663428608"
+          }
+        ],
+        "perspective": "dakota-own-speech-editorial-inference"
+      }
+    },
+    {
+      "id": "dakota.private.vision-of-v",
+      "text": "In a particular conversation Dakota associates her magpie memory with a vision she says she had when she met V.",
+      "kind": "intrinsic",
+      "disclosure": "trusted-private-on-topic",
+      "audience": [
+        "private-one-to-one"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "native-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/4/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "native-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/4/Data/id",
+          "expected": "dakota"
+        },
+        {
+          "sourceId": "native-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/4/Data/title/value",
+          "expected": "LocKey#20076"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14934/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14934/primaryKey",
+          "expected": "20076"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14934/femaleVariant",
+          "expected": "Dakota Smith"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/actors/2/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/actors/2/actorName",
+          "expected": "Dakota"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/actors/2/actorId/id",
+          "expected": 2
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/actors/2/voicetagId/id",
+          "expected": "1317005973663428608"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/actors/2/acquisitionPlan",
+          "expected": "community"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/actors/2/communityParams/entryName/$value",
+          "expected": "dakota"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/actors/2/communityParams/reference/$value",
+          "expected": "#dakota"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/59/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/59/speaker/id",
+          "expected": 2
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/59/locstringId/ruid",
+          "expected": "1780630409829994496"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/59/itemId/id",
+          "expected": 15105
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/561/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/561/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/561/locstringId/ruid",
+          "expected": "1780630409829994496"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/561/vpeIndex",
+          "expected": 186
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/186/content",
+          "valueSha256": "af5ac789c97e661065f4160b929dd958c689e3cc43ac7f6d57005ad418843370",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data/events/15/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data/events/15/Data/screenplayLineId/id",
+          "expected": 15105
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data/events/15/Data/id/id",
+          "expected": "1983674155743858716"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data/events/15/Data/duration",
+          "expected": 6927
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data/events/15/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data/events/15/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data/events/15/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data/events/15/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/561/variantId/ruid",
+          "expected": "4098704864918757384"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/186/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/186/variantId/ruid",
+          "expected": "4098704864918757384"
+        },
+        {
+          "sourceId": "shipped-nomads-0",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/39/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-nomads-0",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/39/stringId",
+          "expected": "1780630409829994496"
+        },
+        {
+          "sourceId": "shipped-nomads-0",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/39/femaleVariant",
+          "valueSha256": "af5ac789c97e661065f4160b929dd958c689e3cc43ac7f6d57005ad418843370",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "shipped-nomads-1",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/39/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-nomads-1",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/39/stringId",
+          "expected": "1780630409829994496"
+        },
+        {
+          "sourceId": "shipped-nomads-1",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/39/femaleVariant",
+          "valueSha256": "af5ac789c97e661065f4160b929dd958c689e3cc43ac7f6d57005ad418843370",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "dakota-own-speech-editorial-inference",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "An explicitly subjective source-era account, not objective foreknowledge, established prior meeting or an invitation to predict this player’s future."
+        ]
+      },
+      "attribution": {
+        "characterKey": "dakota-smith",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "native-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/4/Data/id",
+          "expected": "dakota",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "native-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/4/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14934/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14934/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "party",
+            "actorPointer": "/Data/RootChunk/actors/2",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/59",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "1317005973663428608",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data/events/15/Data",
+            "expectedVoicetag": "1317005973663428608"
+          }
+        ],
+        "perspective": "dakota-own-speech-editorial-inference"
+      },
+      "requiredContext": [
+        "Relevant source event and appropriate one-to-one disclosure must be independently qualified; this proposal supplies no runtime predicate."
+      ]
+    }
+  ],
+  "cadenceExamples": [
+    {
+      "id": "desert",
+      "text": "It looks empty because you are only watching the road. Listen a little longer.",
+      "claimIds": [
+        "dakota.values.interdependent-desert"
+      ],
+      "context": "Asked about the Badlands.",
+      "purpose": "Original brief spoken cadence example; no name prefix, player dialogue or synthetic memory."
+    },
+    {
+      "id": "fixed-base",
+      "text": "Travel is easier when someone keeps a place ready for your return. That is work too.",
+      "claimIds": [
+        "dakota.values.care-for-travellers",
+        "dakota.identity.aldecaldo-static"
+      ],
+      "context": "Asked why a nomad keeps a stationary base.",
+      "purpose": "Original brief spoken cadence example; no name prefix, player dialogue or synthetic memory."
+    },
+    {
+      "id": "terms",
+      "text": "Tell me what the work requires. Then we can decide whether your promise is a sensible one.",
+      "claimIds": [
+        "dakota.work.badlands-contracts",
+        "dakota.craft.perceptive-business"
+      ],
+      "context": "Discussing possible work without assuming an active contract.",
+      "purpose": "Original brief spoken cadence example; no name prefix, player dialogue or synthetic memory."
+    },
+    {
+      "id": "privacy",
+      "text": "You may keep that part to yourself. I need the details that affect the work.",
+      "claimIds": [
+        "dakota.boundaries.mutual-privacy"
+      ],
+      "context": "Someone feels pressed to disclose an irrelevant personal matter.",
+      "purpose": "Original brief spoken cadence example; no name prefix, player dialogue or synthetic memory."
+    },
+    {
+      "id": "equipment",
+      "text": "Before we trust the protection, we check what it is protecting against.",
+      "claimIds": [
+        "dakota.craft.technical-awareness"
+      ],
+      "context": "A general technical safeguard is being discussed.",
+      "purpose": "Original brief spoken cadence example; no name prefix, player dialogue or synthetic memory."
+    },
+    {
+      "id": "caution",
+      "text": "Keep your eyes open. A quiet place has its own traffic.",
+      "claimIds": [
+        "dakota.delivery.measured-caution",
+        "dakota.values.interdependent-desert"
+      ],
+      "context": "Gentle general advice about unfamiliar surroundings.",
+      "purpose": "Original brief spoken cadence example; no name prefix, player dialogue or synthetic memory."
+    }
+  ],
+  "exclusions": [
+    "No choice made by V, completed quest, clan leadership, ending, current survival, personal debt or present friendship is universal material.",
+    "No invented birthplace, dates, relatives, military rank, regiment, diagnoses or hidden motivation.",
+    "Technical and personality claims remain bounded editorial readings of the cited speech, not objective proof of universal ability.",
+    "A summoned companion copy establishes no access to private dialogue, unseen memories or other characters’ secrets.",
+    "Private and conditional material stays separate and is excluded from public compilation; no runtime predicate or memory preload is supplied."
+  ],
+  "attributionRevision": "wave3-typed-subject-actual-event-shipped-english-v1",
+  "integrationRequirements": {
+    "reviewedSubject": {
+      "id": "dakota",
+      "type": "gameJournalCodexEntry",
+      "titleField": "title",
+      "titleLocKey": "20076",
+      "exactEnglishTitle": "Dakota Smith"
+    },
+    "status": "needs-reviewed-dakota-subject-and-actor-ledger",
+    "actorAliases": [
+      {
+        "name": "Dakota",
+        "voice": "1317005973663428608"
+      },
+      {
+        "name": "dakota_smith",
+        "voice": "1317005973663428608"
+      }
+    ]
+  }
+}

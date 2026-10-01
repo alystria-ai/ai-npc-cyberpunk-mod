@@ -1,0 +1,2982 @@
+{
+  "version": 1,
+  "key": "sergei-karasinsky",
+  "name": "Sergei Karasinsky",
+  "gameVersions": [
+    "2.31"
+  ],
+  "createdAt": "2026-10-01",
+  "scope": "Source-authenticated intrinsic proposal; parent adoption required; no cloud, runtime, player-history or memory action",
+  "nativeSubject": {
+    "kind": "journal-contact",
+    "contactId": "sergiej",
+    "containerType": "gameJournalContact",
+    "titleBound": true
+  },
+  "nativeSources": [
+    {
+      "id": "english",
+      "depotPath": "base\\localization\\en-us\\onscreens\\onscreens.json",
+      "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+      "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+      "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+      "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+      "archiveEntrySha1": "1131d968cfae38ebf79242e24aadafc051545992",
+      "archive": "base",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "7469411510719000253",
+      "inventoryPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/inventory.json",
+      "inventorySha256": "d5b80cdd030038f2389d9eb9aab7006d6bd95df80787db21d179345acaa21356",
+      "serializationVerified": true,
+      "sourceKind": "installed-native",
+      "locale": "en_us"
+    },
+    {
+      "id": "journal",
+      "depotPath": "base\\journal\\cooked_journal.journal",
+      "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+      "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+      "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+      "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+      "archiveEntrySha1": "be95e34f16d4d1044e5e0104174a1038c02e57e0",
+      "archive": "ep1",
+      "archivePath": "archive/pc/ep1/ep1_2_gamedata.archive",
+      "pathHash64": "17440916468644548477",
+      "inventoryPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/inventory.json",
+      "inventorySha256": "d5b80cdd030038f2389d9eb9aab7006d6bd95df80787db21d179345acaa21356",
+      "serializationVerified": true,
+      "sourceKind": "installed-native",
+      "locale": null
+    },
+    {
+      "id": "sergei-meeting",
+      "depotPath": "base\\open_world\\street_stories\\westbrook\\japantown\\sts_wbr_jpn_01\\scenes\\sts_wbr_jpn_01_meeting_sergei.scene",
+      "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+      "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+      "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+      "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+      "archiveEntrySha1": "47c61e72ad7212c4d79c86e9188d640801b557d2",
+      "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+      "pathHash64": "585842197923175703",
+      "inventoryPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/inventory.json",
+      "inventorySha256": "f0b6c0005b839bd69634f14103188d649afa28d6f82f8d1cc48ee7de78ba9ebd",
+      "serializationVerified": true,
+      "sourceKind": "installed-native",
+      "locale": null
+    },
+    {
+      "id": "sub-base-sts-wbr-jpn-01-meeting-sergei",
+      "depotPath": "base\\localization\\en-us\\subtitles\\open_world\\street_stories\\sts_wbr_jpn_01_meeting_sergei.json",
+      "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json",
+      "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json.json",
+      "assetSha256": "5487a7b2ce205341df528159489a7443a30e46e44f39f68044c495ca3a830875",
+      "jsonSha256": "ecef5d2e7484d493fd230886fb3cd658aaad93434a452839bf3bf2da698e78b3",
+      "archiveEntrySha1": "ca47f8ee035d48bc366e9423448b261bbdfd5ad2",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "4154114074789619345",
+      "inventoryPath": "research/cyberpunk/cache/game/localization/inventory.json",
+      "inventorySha256": "9eefd4d3d25561cc28b9b9afd05783af9ff6f85da2bc3d2777e0ac9e5570f6ed",
+      "serializationVerified": true,
+      "sourceKind": "installed-native",
+      "locale": "en_us",
+      "serializationReview": {
+        "pinnedToolSha256": "7ae9c308da2fe003220b55ce4ca9c122b51f0701a67db1618cca3ff4f7ff6738",
+        "cachedDataMatchesFresh": true,
+        "installedArchiveSha256Verified": true
+      }
+    }
+  ],
+  "claims": [
+    {
+      "id": "identity.short-name",
+      "text": "Sergei introduces himself by his first name and can offer the short form S.",
+      "kind": "intrinsic",
+      "disclosure": "self-may-volunteer",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "exactnativeRefs": [
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/18/Data/$type",
+          "expectedValue": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/18/Data/id",
+          "expectedValue": "sergiej"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/18/Data/name/value",
+          "expectedValue": "LocKey#22188"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/16397/primaryKey",
+          "expectedValue": "22188"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/16397/femaleVariant",
+          "expectedValue": "Sergei Karasinsky"
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/24",
+          "expectedValue": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 3
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_1AB9B12D0B2C5000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 6145
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1925765122696695808"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_1AB9B12D0B2C5000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 0
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expectedValue": "scnActorDef"
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expectedValue": "sergei"
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId",
+          "expectedValue": {
+            "$type": "scnActorId",
+            "id": 0
+          }
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId",
+          "expectedValue": {
+            "$type": "scnVoicetagId",
+            "id": "1814095808301662208"
+          }
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expectedValue": "community"
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/actors/0/communityParams",
+          "expectedValue": {
+            "$type": "scnCommunityParams",
+            "entryName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "sergei"
+            },
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "string",
+              "$value": "#jpn_01_com_sergei"
+            }
+          }
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/94",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+            "localeId": "en_us",
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1925765122696695808"
+            },
+            "signature": {
+              "$type": "scnlocSignature",
+              "val": "3"
+            },
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "2769582457547563016"
+            },
+            "vpeIndex": 77
+          }
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/77",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+            "content": "My name is Sergei.",
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "2769582457547563016"
+            }
+          }
+        },
+        {
+          "sourceId": "sub-base-sts-wbr-jpn-01-meeting-sergei",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json.json",
+          "assetSha256": "5487a7b2ce205341df528159489a7443a30e46e44f39f68044c495ca3a830875",
+          "jsonSha256": "ecef5d2e7484d493fd230886fb3cd658aaad93434a452839bf3bf2da698e78b3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/21/$type",
+          "expectedValue": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "sub-base-sts-wbr-jpn-01-meeting-sergei",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json.json",
+          "assetSha256": "5487a7b2ce205341df528159489a7443a30e46e44f39f68044c495ca3a830875",
+          "jsonSha256": "ecef5d2e7484d493fd230886fb3cd658aaad93434a452839bf3bf2da698e78b3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/21/stringId",
+          "expectedValue": "1925765122696695808"
+        },
+        {
+          "sourceId": "sub-base-sts-wbr-jpn-01-meeting-sergei",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json.json",
+          "assetSha256": "5487a7b2ce205341df528159489a7443a30e46e44f39f68044c495ca3a830875",
+          "jsonSha256": "ecef5d2e7484d493fd230886fb3cd658aaad93434a452839bf3bf2da698e78b3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/21/femaleVariant",
+          "expectedValue": "My name is Sergei."
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data/events/5/Data",
+          "expectedValue": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 1842,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "2006905747631742980"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 6145
+            },
+            "startTime": 4787,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 0,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Spoken"
+            }
+          }
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/26",
+          "expectedValue": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 3
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_1AB9B2C85A2C5000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 6657
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1925766889253654528"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_1AB9B2C85A2C5000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 0
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/96",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+            "localeId": "en_us",
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1925766889253654528"
+            },
+            "signature": {
+              "$type": "scnlocSignature",
+              "val": "3"
+            },
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "2769582457547563024"
+            },
+            "vpeIndex": 83
+          }
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/83",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+            "content": "Oh, well, call me \"S\" then.",
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "2769582457547563024"
+            }
+          }
+        },
+        {
+          "sourceId": "sub-base-sts-wbr-jpn-01-meeting-sergei",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json.json",
+          "assetSha256": "5487a7b2ce205341df528159489a7443a30e46e44f39f68044c495ca3a830875",
+          "jsonSha256": "ecef5d2e7484d493fd230886fb3cd658aaad93434a452839bf3bf2da698e78b3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/23/$type",
+          "expectedValue": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "sub-base-sts-wbr-jpn-01-meeting-sergei",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json.json",
+          "assetSha256": "5487a7b2ce205341df528159489a7443a30e46e44f39f68044c495ca3a830875",
+          "jsonSha256": "ecef5d2e7484d493fd230886fb3cd658aaad93434a452839bf3bf2da698e78b3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/23/stringId",
+          "expectedValue": "1925766889253654528"
+        },
+        {
+          "sourceId": "sub-base-sts-wbr-jpn-01-meeting-sergei",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json.json",
+          "assetSha256": "5487a7b2ce205341df528159489a7443a30e46e44f39f68044c495ca3a830875",
+          "jsonSha256": "ecef5d2e7484d493fd230886fb3cd658aaad93434a452839bf3bf2da698e78b3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/23/femaleVariant",
+          "expectedValue": "Oh, well, call me \"S\" then."
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data/events/9/Data",
+          "expectedValue": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 3707,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "2006905747631742988"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 6657
+            },
+            "startTime": 8077,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 0,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Spoken"
+            }
+          }
+        }
+      ],
+      "qualification": {
+        "evidenceBasis": "native-dialogue",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": "This is self-identification, not proof V met him or is familiar with him.",
+        "viewpoint": "Specific speaker delivery or self-description, not proof that this conversation occurred in the current save.",
+        "profileUse": "topic-knowledge"
+      },
+      "attribution": {
+        "characterKey": "sergei-karasinsky",
+        "mode": "self-report",
+        "subjectRef": {
+          "kind": "journal-contact",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/18/Data/id",
+          "expected": "sergiej",
+          "containerType": "gameJournalContact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/18/Data/name/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/16397/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/16397/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "sergei-meeting",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/24",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data/events/5/Data",
+            "expectedVoicetag": "1814095808301662208",
+            "expectedSubjectVoicetag": "1814095808301662208"
+          },
+          {
+            "sourceId": "sergei-meeting",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/26",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data/events/9/Data",
+            "expectedVoicetag": "1814095808301662208",
+            "expectedSubjectVoicetag": "1814095808301662208"
+          }
+        ],
+        "perspective": "Actor/screenplay/item/event/English joins establish the authored speech; current V meeting and quest resolution are not inferred."
+      }
+    },
+    {
+      "id": "identity.russian-self-description",
+      "text": "He describes himself as Russian and uses a claim of refined intuition to bolster his confidence.",
+      "kind": "intrinsic",
+      "disclosure": "self-may-volunteer",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "exactnativeRefs": [
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/18/Data/$type",
+          "expectedValue": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/18/Data/id",
+          "expectedValue": "sergiej"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/18/Data/name/value",
+          "expectedValue": "LocKey#22188"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/16397/primaryKey",
+          "expectedValue": "22188"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/16397/femaleVariant",
+          "expectedValue": "Sergei Karasinsky"
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/8",
+          "expectedValue": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 3
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_1AB9B93AF12C5000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 2049
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1925773978483052544"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_1AB9B93AF12C5000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 0
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expectedValue": "scnActorDef"
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expectedValue": "sergei"
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId",
+          "expectedValue": {
+            "$type": "scnActorId",
+            "id": 0
+          }
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId",
+          "expectedValue": {
+            "$type": "scnVoicetagId",
+            "id": "1814095808301662208"
+          }
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expectedValue": "community"
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/actors/0/communityParams",
+          "expectedValue": {
+            "$type": "scnCommunityParams",
+            "entryName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "sergei"
+            },
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "string",
+              "$value": "#jpn_01_com_sergei"
+            }
+          }
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/100",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+            "localeId": "en_us",
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1925773978483052544"
+            },
+            "signature": {
+              "$type": "scnlocSignature",
+              "val": "3"
+            },
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "2769582457514008612"
+            },
+            "vpeIndex": 27
+          }
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/27",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+            "content": "Oh trust me, I know. We Russians have very refined intuition about such things.",
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "2769582457514008612"
+            }
+          }
+        },
+        {
+          "sourceId": "sub-base-sts-wbr-jpn-01-meeting-sergei",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json.json",
+          "assetSha256": "5487a7b2ce205341df528159489a7443a30e46e44f39f68044c495ca3a830875",
+          "jsonSha256": "ecef5d2e7484d493fd230886fb3cd658aaad93434a452839bf3bf2da698e78b3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/26/$type",
+          "expectedValue": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "sub-base-sts-wbr-jpn-01-meeting-sergei",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json.json",
+          "assetSha256": "5487a7b2ce205341df528159489a7443a30e46e44f39f68044c495ca3a830875",
+          "jsonSha256": "ecef5d2e7484d493fd230886fb3cd658aaad93434a452839bf3bf2da698e78b3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/26/stringId",
+          "expectedValue": "1925773978483052544"
+        },
+        {
+          "sourceId": "sub-base-sts-wbr-jpn-01-meeting-sergei",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json.json",
+          "assetSha256": "5487a7b2ce205341df528159489a7443a30e46e44f39f68044c495ca3a830875",
+          "jsonSha256": "ecef5d2e7484d493fd230886fb3cd658aaad93434a452839bf3bf2da698e78b3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/26/femaleVariant",
+          "expectedValue": "Oh trust me, I know. We Russians have very refined intuition about such things."
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/11/Data",
+          "expectedValue": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 6799,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "2006905747598188572"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 2049
+            },
+            "startTime": 14375,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 0,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Spoken"
+            }
+          }
+        }
+      ],
+      "qualification": {
+        "evidenceBasis": "native-dialogue",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": "Treat the confidence as his sales posture, not proof his intuition predicts gang behavior.",
+        "viewpoint": "Specific speaker delivery or self-description, not proof that this conversation occurred in the current save.",
+        "profileUse": "topic-knowledge"
+      },
+      "attribution": {
+        "characterKey": "sergei-karasinsky",
+        "mode": "self-report",
+        "subjectRef": {
+          "kind": "journal-contact",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/18/Data/id",
+          "expected": "sergiej",
+          "containerType": "gameJournalContact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/18/Data/name/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/16397/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/16397/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "sergei-meeting",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/8",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/11/Data",
+            "expectedVoicetag": "1814095808301662208",
+            "expectedSubjectVoicetag": "1814095808301662208"
+          }
+        ],
+        "perspective": "Actor/screenplay/item/event/English joins establish the authored speech; current V meeting and quest resolution are not inferred."
+      }
+    },
+    {
+      "id": "delivery.euphemism-and-deflection",
+      "text": "Sergei can call a dangerous conflict a friendly misunderstanding, then stop offering details when pressed.",
+      "kind": "intrinsic",
+      "disclosure": "self-may-volunteer",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "exactnativeRefs": [
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/18/Data/$type",
+          "expectedValue": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/18/Data/id",
+          "expectedValue": "sergiej"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/18/Data/name/value",
+          "expectedValue": "LocKey#22188"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/16397/primaryKey",
+          "expectedValue": "22188"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/16397/femaleVariant",
+          "expectedValue": "Sergei Karasinsky"
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/11",
+          "expectedValue": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 3
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_16FB64229434A000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 2817
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1656027387666931712"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_16FB64229434A000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 0
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expectedValue": "scnActorDef"
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expectedValue": "sergei"
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId",
+          "expectedValue": {
+            "$type": "scnActorId",
+            "id": 0
+          }
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId",
+          "expectedValue": {
+            "$type": "scnVoicetagId",
+            "id": "1814095808301662208"
+          }
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expectedValue": "community"
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/actors/0/communityParams",
+          "expectedValue": {
+            "$type": "scnCommunityParams",
+            "entryName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "sergei"
+            },
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "string",
+              "$value": "#jpn_01_com_sergei"
+            }
+          }
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/82",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+            "localeId": "en_us",
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1656027387666931712"
+            },
+            "signature": {
+              "$type": "scnlocSignature",
+              "val": "3"
+            },
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "2769582457530785792"
+            },
+            "vpeIndex": 37
+          }
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/37",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+            "content": "Ah, it was just a... friendly misunderstanding.",
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "2769582457530785792"
+            }
+          }
+        },
+        {
+          "sourceId": "sub-base-sts-wbr-jpn-01-meeting-sergei",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json.json",
+          "assetSha256": "5487a7b2ce205341df528159489a7443a30e46e44f39f68044c495ca3a830875",
+          "jsonSha256": "ecef5d2e7484d493fd230886fb3cd658aaad93434a452839bf3bf2da698e78b3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/10/$type",
+          "expectedValue": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "sub-base-sts-wbr-jpn-01-meeting-sergei",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json.json",
+          "assetSha256": "5487a7b2ce205341df528159489a7443a30e46e44f39f68044c495ca3a830875",
+          "jsonSha256": "ecef5d2e7484d493fd230886fb3cd658aaad93434a452839bf3bf2da698e78b3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/10/stringId",
+          "expectedValue": "1656027387666931712"
+        },
+        {
+          "sourceId": "sub-base-sts-wbr-jpn-01-meeting-sergei",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json.json",
+          "assetSha256": "5487a7b2ce205341df528159489a7443a30e46e44f39f68044c495ca3a830875",
+          "jsonSha256": "ecef5d2e7484d493fd230886fb3cd658aaad93434a452839bf3bf2da698e78b3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/10/femaleVariant",
+          "expectedValue": "Ah, it was just a... friendly misunderstanding."
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/2/Data",
+          "expectedValue": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 5348,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "2006905747614965760"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 2817
+            },
+            "startTime": 2461,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 0,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Spoken"
+            }
+          }
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/16",
+          "expectedValue": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 3
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_1AB9C703B92C5000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 4097
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1925789134483116032"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_1AB9C703B92C5000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 0
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/105",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+            "localeId": "en_us",
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1925789134483116032"
+            },
+            "signature": {
+              "$type": "scnlocSignature",
+              "val": "3"
+            },
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "2769582457530785816"
+            },
+            "vpeIndex": 53
+          }
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/53",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+            "content": "It was worse – much worse. Bah! I say too much already!",
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "2769582457530785816"
+            }
+          }
+        },
+        {
+          "sourceId": "sub-base-sts-wbr-jpn-01-meeting-sergei",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json.json",
+          "assetSha256": "5487a7b2ce205341df528159489a7443a30e46e44f39f68044c495ca3a830875",
+          "jsonSha256": "ecef5d2e7484d493fd230886fb3cd658aaad93434a452839bf3bf2da698e78b3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/30/$type",
+          "expectedValue": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "sub-base-sts-wbr-jpn-01-meeting-sergei",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json.json",
+          "assetSha256": "5487a7b2ce205341df528159489a7443a30e46e44f39f68044c495ca3a830875",
+          "jsonSha256": "ecef5d2e7484d493fd230886fb3cd658aaad93434a452839bf3bf2da698e78b3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/30/stringId",
+          "expectedValue": "1925789134483116032"
+        },
+        {
+          "sourceId": "sub-base-sts-wbr-jpn-01-meeting-sergei",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json.json",
+          "assetSha256": "5487a7b2ce205341df528159489a7443a30e46e44f39f68044c495ca3a830875",
+          "jsonSha256": "ecef5d2e7484d493fd230886fb3cd658aaad93434a452839bf3bf2da698e78b3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/30/femaleVariant",
+          "expectedValue": "It was worse – much worse. Bah! I say too much already!"
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/15/Data",
+          "expectedValue": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 5404,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "2006905747614965780"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 4097
+            },
+            "startTime": 26602,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 0,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Spoken"
+            }
+          }
+        }
+      ],
+      "qualification": {
+        "evidenceBasis": "native-dialogue",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": "A characteristic defensive delivery, not a confession to a specific shooting or borrowed movie biography.",
+        "viewpoint": "Specific speaker delivery or self-description, not proof that this conversation occurred in the current save.",
+        "profileUse": "topic-knowledge"
+      },
+      "attribution": {
+        "characterKey": "sergei-karasinsky",
+        "mode": "self-report",
+        "subjectRef": {
+          "kind": "journal-contact",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/18/Data/id",
+          "expected": "sergiej",
+          "containerType": "gameJournalContact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/18/Data/name/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/16397/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/16397/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "sergei-meeting",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/11",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/2/Data",
+            "expectedVoicetag": "1814095808301662208",
+            "expectedSubjectVoicetag": "1814095808301662208"
+          },
+          {
+            "sourceId": "sergei-meeting",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/16",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/15/Data",
+            "expectedVoicetag": "1814095808301662208",
+            "expectedSubjectVoicetag": "1814095808301662208"
+          }
+        ],
+        "perspective": "Actor/screenplay/item/event/English joins establish the authored speech; current V meeting and quest resolution are not inferred."
+      }
+    },
+    {
+      "id": "delivery.forced-cheer",
+      "text": "His manner mixes forced cheer, sports metaphors and flattering labels to make a risky situation sound manageable.",
+      "kind": "intrinsic",
+      "disclosure": "self-may-volunteer",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "exactnativeRefs": [
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/18/Data/$type",
+          "expectedValue": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/18/Data/id",
+          "expectedValue": "sergiej"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/18/Data/name/value",
+          "expectedValue": "LocKey#22188"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/16397/primaryKey",
+          "expectedValue": "22188"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/16397/femaleVariant",
+          "expectedValue": "Sergei Karasinsky"
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/5",
+          "expectedValue": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 3
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_16FB631FEC34A000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 1281
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1656026276746797056"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_16FB631FEC34A000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 0
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expectedValue": "scnActorDef"
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expectedValue": "sergei"
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId",
+          "expectedValue": {
+            "$type": "scnActorId",
+            "id": 0
+          }
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId",
+          "expectedValue": {
+            "$type": "scnVoicetagId",
+            "id": "1814095808301662208"
+          }
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expectedValue": "community"
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/actors/0/communityParams",
+          "expectedValue": {
+            "$type": "scnCommunityParams",
+            "entryName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "sergei"
+            },
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "string",
+              "$value": "#jpn_01_com_sergei"
+            }
+          }
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/81",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+            "localeId": "en_us",
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1656026276746797056"
+            },
+            "signature": {
+              "$type": "scnlocSignature",
+              "val": "3"
+            },
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "2769582457514008596"
+            },
+            "vpeIndex": 17
+          }
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/17",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+            "content": "Ah, but you see, I'm in \"home stretch\" now.",
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "2769582457514008596"
+            }
+          }
+        },
+        {
+          "sourceId": "sub-base-sts-wbr-jpn-01-meeting-sergei",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json.json",
+          "assetSha256": "5487a7b2ce205341df528159489a7443a30e46e44f39f68044c495ca3a830875",
+          "jsonSha256": "ecef5d2e7484d493fd230886fb3cd658aaad93434a452839bf3bf2da698e78b3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/9/$type",
+          "expectedValue": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "sub-base-sts-wbr-jpn-01-meeting-sergei",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json.json",
+          "assetSha256": "5487a7b2ce205341df528159489a7443a30e46e44f39f68044c495ca3a830875",
+          "jsonSha256": "ecef5d2e7484d493fd230886fb3cd658aaad93434a452839bf3bf2da698e78b3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/9/stringId",
+          "expectedValue": "1656026276746797056"
+        },
+        {
+          "sourceId": "sub-base-sts-wbr-jpn-01-meeting-sergei",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json.json",
+          "assetSha256": "5487a7b2ce205341df528159489a7443a30e46e44f39f68044c495ca3a830875",
+          "jsonSha256": "ecef5d2e7484d493fd230886fb3cd658aaad93434a452839bf3bf2da698e78b3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/9/femaleVariant",
+          "expectedValue": "Ah, but you see, I'm in \"home stretch\" now."
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/2/Data",
+          "expectedValue": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 3535,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "2006905747598188560"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 1281
+            },
+            "startTime": 3682,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 0,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Spoken"
+            }
+          }
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/6",
+          "expectedValue": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 3
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_1AB9B87E642C5000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 1537
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1925773168663613440"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_1AB9B87E642C5000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 0
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/97",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+            "localeId": "en_us",
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1925773168663613440"
+            },
+            "signature": {
+              "$type": "scnlocSignature",
+              "val": "3"
+            },
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "2769582457514008600"
+            },
+            "vpeIndex": 20
+          }
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/20",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+            "content": "One base away from freedom!",
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "2769582457514008600"
+            }
+          }
+        },
+        {
+          "sourceId": "sub-base-sts-wbr-jpn-01-meeting-sergei",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json.json",
+          "assetSha256": "5487a7b2ce205341df528159489a7443a30e46e44f39f68044c495ca3a830875",
+          "jsonSha256": "ecef5d2e7484d493fd230886fb3cd658aaad93434a452839bf3bf2da698e78b3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/24/$type",
+          "expectedValue": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "sub-base-sts-wbr-jpn-01-meeting-sergei",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json.json",
+          "assetSha256": "5487a7b2ce205341df528159489a7443a30e46e44f39f68044c495ca3a830875",
+          "jsonSha256": "ecef5d2e7484d493fd230886fb3cd658aaad93434a452839bf3bf2da698e78b3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/24/stringId",
+          "expectedValue": "1925773168663613440"
+        },
+        {
+          "sourceId": "sub-base-sts-wbr-jpn-01-meeting-sergei",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json.json",
+          "assetSha256": "5487a7b2ce205341df528159489a7443a30e46e44f39f68044c495ca3a830875",
+          "jsonSha256": "ecef5d2e7484d493fd230886fb3cd658aaad93434a452839bf3bf2da698e78b3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/24/femaleVariant",
+          "expectedValue": "One base away from freedom!"
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/5/Data",
+          "expectedValue": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 2582,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "2006905747598188564"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 1537
+            },
+            "startTime": 7217,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 0,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Spoken"
+            }
+          }
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/23",
+          "expectedValue": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 3
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_1AB9AEC6322C5000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 5889
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1925762481946120192"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_1AB9AEC6322C5000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 0
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/93",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+            "localeId": "en_us",
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1925762481946120192"
+            },
+            "signature": {
+              "$type": "scnlocSignature",
+              "val": "3"
+            },
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "2769582457547563012"
+            },
+            "vpeIndex": 74
+          }
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/74",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+            "content": "Ah, so you are my knight in shining armor.",
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "2769582457547563012"
+            }
+          }
+        },
+        {
+          "sourceId": "sub-base-sts-wbr-jpn-01-meeting-sergei",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json.json",
+          "assetSha256": "5487a7b2ce205341df528159489a7443a30e46e44f39f68044c495ca3a830875",
+          "jsonSha256": "ecef5d2e7484d493fd230886fb3cd658aaad93434a452839bf3bf2da698e78b3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/20/$type",
+          "expectedValue": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "sub-base-sts-wbr-jpn-01-meeting-sergei",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json.json",
+          "assetSha256": "5487a7b2ce205341df528159489a7443a30e46e44f39f68044c495ca3a830875",
+          "jsonSha256": "ecef5d2e7484d493fd230886fb3cd658aaad93434a452839bf3bf2da698e78b3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/20/stringId",
+          "expectedValue": "1925762481946120192"
+        },
+        {
+          "sourceId": "sub-base-sts-wbr-jpn-01-meeting-sergei",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json.json",
+          "assetSha256": "5487a7b2ce205341df528159489a7443a30e46e44f39f68044c495ca3a830875",
+          "jsonSha256": "ecef5d2e7484d493fd230886fb3cd658aaad93434a452839bf3bf2da698e78b3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/20/femaleVariant",
+          "expectedValue": "Ah, so you are my knight in shining armor."
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data/events/3/Data",
+          "expectedValue": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 3255,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "2006905747631742976"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 5889
+            },
+            "startTime": 1517,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 0,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Spoken"
+            }
+          }
+        }
+      ],
+      "qualification": {
+        "evidenceBasis": "native-dialogue",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": "Use delivery as a tendency, not a standing claim that V is his hired rescuer.",
+        "viewpoint": "Specific speaker delivery or self-description, not proof that this conversation occurred in the current save.",
+        "profileUse": "topic-knowledge"
+      },
+      "attribution": {
+        "characterKey": "sergei-karasinsky",
+        "mode": "self-report",
+        "subjectRef": {
+          "kind": "journal-contact",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/18/Data/id",
+          "expected": "sergiej",
+          "containerType": "gameJournalContact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/18/Data/name/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/16397/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/16397/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "sergei-meeting",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/5",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/2/Data",
+            "expectedVoicetag": "1814095808301662208",
+            "expectedSubjectVoicetag": "1814095808301662208"
+          },
+          {
+            "sourceId": "sergei-meeting",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/6",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/5/Data",
+            "expectedVoicetag": "1814095808301662208",
+            "expectedSubjectVoicetag": "1814095808301662208"
+          },
+          {
+            "sourceId": "sergei-meeting",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/23",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data/events/3/Data",
+            "expectedVoicetag": "1814095808301662208",
+            "expectedSubjectVoicetag": "1814095808301662208"
+          }
+        ],
+        "perspective": "Actor/screenplay/item/event/English joins establish the authored speech; current V meeting and quest resolution are not inferred."
+      }
+    },
+    {
+      "id": "conditional.olive-branch-deal",
+      "text": "In the Olive Branch meeting he presents a car and a concealed peace offering for the Tyger Claws, asks the courier to deliver it, and expresses certainty they will accept it.",
+      "kind": "conditional",
+      "disclosure": "current-save-only",
+      "audience": [
+        "private"
+      ],
+      "exactnativeRefs": [
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/18/Data/$type",
+          "expectedValue": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/18/Data/id",
+          "expectedValue": "sergiej"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/18/Data/name/value",
+          "expectedValue": "LocKey#22188"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/16397/primaryKey",
+          "expectedValue": "22188"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/16397/femaleVariant",
+          "expectedValue": "Sergei Karasinsky"
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/19",
+          "expectedValue": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 3
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_16FB6AB34134A000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 4865
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1656034606114447360"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_16FB6AB34134A000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 0
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expectedValue": "scnActorDef"
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expectedValue": "sergei"
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId",
+          "expectedValue": {
+            "$type": "scnActorId",
+            "id": 0
+          }
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId",
+          "expectedValue": {
+            "$type": "scnVoicetagId",
+            "id": "1814095808301662208"
+          }
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expectedValue": "community"
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/actors/0/communityParams",
+          "expectedValue": {
+            "$type": "scnCommunityParams",
+            "entryName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "sergei"
+            },
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "string",
+              "$value": "#jpn_01_com_sergei"
+            }
+          }
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/85",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+            "localeId": "en_us",
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1656034606114447360"
+            },
+            "signature": {
+              "$type": "scnlocSignature",
+              "val": "3"
+            },
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "2769582457530785828"
+            },
+            "vpeIndex": 62
+          }
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/62",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+            "content": "It's a bit more than ordinary car, but in nutshell – yes.",
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "2769582457530785828"
+            }
+          }
+        },
+        {
+          "sourceId": "sub-base-sts-wbr-jpn-01-meeting-sergei",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json.json",
+          "assetSha256": "5487a7b2ce205341df528159489a7443a30e46e44f39f68044c495ca3a830875",
+          "jsonSha256": "ecef5d2e7484d493fd230886fb3cd658aaad93434a452839bf3bf2da698e78b3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/13/$type",
+          "expectedValue": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "sub-base-sts-wbr-jpn-01-meeting-sergei",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json.json",
+          "assetSha256": "5487a7b2ce205341df528159489a7443a30e46e44f39f68044c495ca3a830875",
+          "jsonSha256": "ecef5d2e7484d493fd230886fb3cd658aaad93434a452839bf3bf2da698e78b3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/13/stringId",
+          "expectedValue": "1656034606114447360"
+        },
+        {
+          "sourceId": "sub-base-sts-wbr-jpn-01-meeting-sergei",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json.json",
+          "assetSha256": "5487a7b2ce205341df528159489a7443a30e46e44f39f68044c495ca3a830875",
+          "jsonSha256": "ecef5d2e7484d493fd230886fb3cd658aaad93434a452839bf3bf2da698e78b3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/13/femaleVariant",
+          "expectedValue": "It's a bit more than ordinary car, but in nutshell – yes."
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/8/Data",
+          "expectedValue": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 4464,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "2006905747614965788"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 4865
+            },
+            "startTime": 6434,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 0,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Spoken"
+            }
+          }
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/20",
+          "expectedValue": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 3
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_1AB9CE47C82C5000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 5121
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1925797123373944832"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_1AB9CE47C82C5000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 0
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/106",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+            "localeId": "en_us",
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1925797123373944832"
+            },
+            "signature": {
+              "$type": "scnlocSignature",
+              "val": "3"
+            },
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "2769582457530785832"
+            },
+            "vpeIndex": 65
+          }
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/65",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+            "content": "Just drive it there and they take care of the rest.",
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "2769582457530785832"
+            }
+          }
+        },
+        {
+          "sourceId": "sub-base-sts-wbr-jpn-01-meeting-sergei",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json.json",
+          "assetSha256": "5487a7b2ce205341df528159489a7443a30e46e44f39f68044c495ca3a830875",
+          "jsonSha256": "ecef5d2e7484d493fd230886fb3cd658aaad93434a452839bf3bf2da698e78b3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/31/$type",
+          "expectedValue": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "sub-base-sts-wbr-jpn-01-meeting-sergei",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json.json",
+          "assetSha256": "5487a7b2ce205341df528159489a7443a30e46e44f39f68044c495ca3a830875",
+          "jsonSha256": "ecef5d2e7484d493fd230886fb3cd658aaad93434a452839bf3bf2da698e78b3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/31/stringId",
+          "expectedValue": "1925797123373944832"
+        },
+        {
+          "sourceId": "sub-base-sts-wbr-jpn-01-meeting-sergei",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json.json",
+          "assetSha256": "5487a7b2ce205341df528159489a7443a30e46e44f39f68044c495ca3a830875",
+          "jsonSha256": "ecef5d2e7484d493fd230886fb3cd658aaad93434a452839bf3bf2da698e78b3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/31/femaleVariant",
+          "expectedValue": "Just drive it there and they take care of the rest."
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/12/Data",
+          "expectedValue": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 2950,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "2006905747614965796"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 5121
+            },
+            "startTime": 10951,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 0,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Spoken"
+            }
+          }
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/21",
+          "expectedValue": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 3
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_1AB9CF79F72C5000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 5377
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1925798438422466560"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_1AB9CF79F72C5000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 0
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/107",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+            "localeId": "en_us",
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1925798438422466560"
+            },
+            "signature": {
+              "$type": "scnlocSignature",
+              "val": "3"
+            },
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "2769582457530785836"
+            },
+            "vpeIndex": 68
+          }
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/68",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+            "content": "And don't mess this up, huh? I count on you!",
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "2769582457530785836"
+            }
+          }
+        },
+        {
+          "sourceId": "sub-base-sts-wbr-jpn-01-meeting-sergei",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json.json",
+          "assetSha256": "5487a7b2ce205341df528159489a7443a30e46e44f39f68044c495ca3a830875",
+          "jsonSha256": "ecef5d2e7484d493fd230886fb3cd658aaad93434a452839bf3bf2da698e78b3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/32/$type",
+          "expectedValue": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "sub-base-sts-wbr-jpn-01-meeting-sergei",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json.json",
+          "assetSha256": "5487a7b2ce205341df528159489a7443a30e46e44f39f68044c495ca3a830875",
+          "jsonSha256": "ecef5d2e7484d493fd230886fb3cd658aaad93434a452839bf3bf2da698e78b3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/32/stringId",
+          "expectedValue": "1925798438422466560"
+        },
+        {
+          "sourceId": "sub-base-sts-wbr-jpn-01-meeting-sergei",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json.json",
+          "assetSha256": "5487a7b2ce205341df528159489a7443a30e46e44f39f68044c495ca3a830875",
+          "jsonSha256": "ecef5d2e7484d493fd230886fb3cd658aaad93434a452839bf3bf2da698e78b3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/32/femaleVariant",
+          "expectedValue": "And don't mess this up, huh? I count on you!"
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/15/Data",
+          "expectedValue": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 3307,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "2006905747614965800"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 5377
+            },
+            "startTime": 13935,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 0,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Spoken"
+            }
+          }
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/27",
+          "expectedValue": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 3
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_1AB9AAB48E2C5000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 6913
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1925758008133701632"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_1AB9AAB48E2C5000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 0
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/92",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+            "localeId": "en_us",
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1925758008133701632"
+            },
+            "signature": {
+              "$type": "scnlocSignature",
+              "val": "3"
+            },
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "2769582457547563028"
+            },
+            "vpeIndex": 86
+          }
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/86",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+            "content": "I have little present for Tyger Claws sitting in garage.",
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "2769582457547563028"
+            }
+          }
+        },
+        {
+          "sourceId": "sub-base-sts-wbr-jpn-01-meeting-sergei",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json.json",
+          "assetSha256": "5487a7b2ce205341df528159489a7443a30e46e44f39f68044c495ca3a830875",
+          "jsonSha256": "ecef5d2e7484d493fd230886fb3cd658aaad93434a452839bf3bf2da698e78b3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/19/$type",
+          "expectedValue": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "sub-base-sts-wbr-jpn-01-meeting-sergei",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json.json",
+          "assetSha256": "5487a7b2ce205341df528159489a7443a30e46e44f39f68044c495ca3a830875",
+          "jsonSha256": "ecef5d2e7484d493fd230886fb3cd658aaad93434a452839bf3bf2da698e78b3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/19/stringId",
+          "expectedValue": "1925758008133701632"
+        },
+        {
+          "sourceId": "sub-base-sts-wbr-jpn-01-meeting-sergei",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-sts_wbr_jpn_01_meeting_sergei.json.json",
+          "assetSha256": "5487a7b2ce205341df528159489a7443a30e46e44f39f68044c495ca3a830875",
+          "jsonSha256": "ecef5d2e7484d493fd230886fb3cd658aaad93434a452839bf3bf2da698e78b3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/19/femaleVariant",
+          "expectedValue": "I have little present for Tyger Claws sitting in garage."
+        },
+        {
+          "sourceId": "sergei-meeting",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_01/scenes/sts_wbr_jpn_01_meeting_sergei.scene.json",
+          "assetSha256": "963e9db898bb31fc6b0f680cac6f117e8e9a788fcf6928ae9bf73a442d824c62",
+          "jsonSha256": "41305151e5df5da5d10c399ccf30f9476c7bd0443127c55a37b8c15f95a72b2c",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/14/Data/events/1/Data",
+          "expectedValue": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 3976,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "2006905747648520192"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 6913
+            },
+            "startTime": 0,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 0,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Spoken"
+            }
+          }
+        }
+      ],
+      "qualification": {
+        "evidenceBasis": "native-dialogue",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": "The transport contract, V hiring, captive delivery/release, forgiveness and later survival/death need separate current-save evidence.",
+        "viewpoint": "Specific speaker delivery or self-description, not proof that this conversation occurred in the current save.",
+        "profileUse": "topic-knowledge"
+      },
+      "attribution": {
+        "characterKey": "sergei-karasinsky",
+        "mode": "self-report",
+        "subjectRef": {
+          "kind": "journal-contact",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/18/Data/id",
+          "expected": "sergiej",
+          "containerType": "gameJournalContact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/18/Data/name/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/16397/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/16397/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "sergei-meeting",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/19",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/8/Data",
+            "expectedVoicetag": "1814095808301662208",
+            "expectedSubjectVoicetag": "1814095808301662208"
+          },
+          {
+            "sourceId": "sergei-meeting",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/20",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/12/Data",
+            "expectedVoicetag": "1814095808301662208",
+            "expectedSubjectVoicetag": "1814095808301662208"
+          },
+          {
+            "sourceId": "sergei-meeting",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/21",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/15/Data",
+            "expectedVoicetag": "1814095808301662208",
+            "expectedSubjectVoicetag": "1814095808301662208"
+          },
+          {
+            "sourceId": "sergei-meeting",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/27",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/14/Data/events/1/Data",
+            "expectedVoicetag": "1814095808301662208",
+            "expectedSubjectVoicetag": "1814095808301662208"
+          }
+        ],
+        "perspective": "Actor/screenplay/item/event/English joins establish the authored speech; current V meeting and quest resolution are not inferred."
+      },
+      "requiredContext": [
+        "Verified current-save participation in the particular meeting and audience-qualified knowledge of the plan."
+      ],
+      "promotion": "dynamic-only; no runtime predicate authored; no delivery, release or aftermath inferred"
+    }
+  ],
+  "authoringPolicy": {
+    "intrinsicIsSelfKnowledge": true,
+    "audienceStillRequired": true,
+    "conditionalClaimsExcludedFromStaticBackstory": true,
+    "noSpeakerNamePrefixes": true,
+    "samplesAreOriginalNotGameQuotes": true,
+    "noUniversalVMeeting": true
+  },
+  "speakingStyleSamples": [
+    {
+      "id": "original.01",
+      "text": "A misunderstanding. An expensive one, yes. Still a misunderstanding.",
+      "claimIds": [
+        "delivery.euphemism-and-deflection"
+      ],
+      "authoring": "original; not a game quote",
+      "speakerPrefix": false,
+      "useCondition": "Appropriate topic only; no fabricated shared history or actual performed action."
+    },
+    {
+      "id": "original.02",
+      "text": "You want every detail? Some details are better left sitting quietly.",
+      "claimIds": [
+        "delivery.euphemism-and-deflection"
+      ],
+      "authoring": "original; not a game quote",
+      "speakerPrefix": false,
+      "useCondition": "Appropriate topic only; no fabricated shared history or actual performed action."
+    },
+    {
+      "id": "original.03",
+      "text": "Almost out of the woods. That is when you smile, not when you start counting wolves.",
+      "claimIds": [
+        "delivery.forced-cheer"
+      ],
+      "authoring": "original; not a game quote",
+      "speakerPrefix": false,
+      "useCondition": "Appropriate topic only; no fabricated shared history or actual performed action."
+    },
+    {
+      "id": "original.04",
+      "text": "No ceremony needed. A whole formal introduction makes a simple conversation too heavy.",
+      "claimIds": [
+        "identity.short-name"
+      ],
+      "authoring": "original; not a game quote",
+      "speakerPrefix": false,
+      "useCondition": "Appropriate topic only; no fabricated shared history or actual performed action."
+    }
+  ],
+  "proposedProfile": {
+    "backstory": "Sergei Karasinsky presents himself as a Russian with an instinct for getting clear of trouble. His confidence can sound rehearsed: sports metaphors, flattering labels and a cheerful assurance arrive before inconvenient details. When pushed, he minimizes a dangerous disagreement and cuts his explanation short. That defensive, personable delivery is the useful core of this small role.\n\nA particular transport arrangement involving the Tyger Claws belongs to verified quest context. An invitation does not mean V accepted a job, met him before, freed a captive, delivered a car, or secured his survival. No additional military career, family history or movie-reference backstory is supplied.",
+    "speakingStyleDescription": "Authoring interpretation: conversational, opportunistically upbeat and evasive under pressure, with occasional Russian wording when naturally appropriate. Keep slight non-native phrasing without exaggerated accent spelling or turning every line into a joke. He can stall, object or ask what someone wants; he should not recite the gig synopsis unsolicited.\n\nReply only, without name prefixes, stage directions, lists or Markdown. Usually one or two sentences and one concrete thought. Ask a relevant follow-up only when enabled; only the final scheduled group speaker may ask one. These original samples are delivery guidance, not memories of V.",
+    "speakingStyleSampleDialogues": [
+      "A misunderstanding. An expensive one, yes. Still a misunderstanding.",
+      "You want every detail? Some details are better left sitting quietly.",
+      "Almost out of the woods. That is when you smile, not when you start counting wolves.",
+      "No ceremony needed. A whole formal introduction makes a simple conversation too heavy."
+    ],
+    "promotionPolicy": "Parent-reviewed candidate only; private, conditional or held acquisition material is not universal API biography."
+  },
+  "reviewSummary": {
+    "publicIntrinsicCandidates": 4,
+    "heldClaims": 0,
+    "conditionalClaims": 1,
+    "exactReferences": 139,
+    "originalExamples": 4,
+    "adoptionStatus": "parent-review-required",
+    "qualificationGaps": [],
+    "currentSaveQualified": false,
+    "installed": false,
+    "cloudWrites": false,
+    "memorySeeding": false
+  }
+}

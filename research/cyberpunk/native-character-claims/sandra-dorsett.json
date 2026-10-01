@@ -1,0 +1,2205 @@
+{
+  "version": 1,
+  "key": "sandra-dorsett",
+  "name": "Sandra Dorsett",
+  "gameVersions": [
+    "2.31"
+  ],
+  "createdAt": "2026-10-01",
+  "scope": "Unadopted Wave 3 source-authenticated public characterization and private/conditional boundaries; no runtime, cloud or memory writes.",
+  "sourcePolicy": {
+    "primary": "Typed native journal subject and localized name; actual actor/speaker/item/emitted event joins; recorded binary and JSON hashes and exact English payload/subtitle agreement.",
+    "privacy": "Private facts, player-specific history and conditional quest outcomes are never concatenated into the public profile.",
+    "examples": "Original spoken editorial examples, not game quotations or past conversations; no speaker prefixes, narration or synthetic memory.",
+    "promotion": "Independent parent review and explicit adoption required."
+  },
+  "nativeSubject": {
+    "kind": "codex",
+    "id": "sandra_dorsett",
+    "nameBound": true
+  },
+  "nativeSources": [
+    {
+      "id": "english",
+      "depotPath": "base\\localization\\en-us\\onscreens\\onscreens.json",
+      "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+      "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+      "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+      "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+      "archiveEntrySha1": "1131d968cfae38ebf79242e24aadafc051545992",
+      "archive": "base",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "7469411510719000253",
+      "inventoryPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/inventory.json",
+      "inventorySha256": "d5b80cdd030038f2389d9eb9aab7006d6bd95df80787db21d179345acaa21356",
+      "serializationVerified": true,
+      "sourceKind": "installed-native",
+      "locale": "en_us"
+    },
+    {
+      "id": "journal",
+      "depotPath": "base\\journal\\cooked_journal.journal",
+      "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+      "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+      "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+      "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+      "archiveEntrySha1": "be95e34f16d4d1044e5e0104174a1038c02e57e0",
+      "archive": "ep1",
+      "archivePath": "archive/pc/ep1/ep1_2_gamedata.archive",
+      "pathHash64": "17440916468644548477",
+      "inventoryPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/inventory.json",
+      "inventorySha256": "d5b80cdd030038f2389d9eb9aab7006d6bd95df80787db21d179345acaa21356",
+      "serializationVerified": true,
+      "sourceKind": "installed-native",
+      "locale": null
+    },
+    {
+      "id": "sandra-meeting",
+      "depotPath": "base\\quest\\minor_quests\\mq024\\scenes\\mq024_02_meet_sandra.scene",
+      "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene",
+      "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+      "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+      "jsonSha256": "4d5f4eaed290dcfb5a040af66da24d63c7e5d473205e425b6d9847c58498774f",
+      "archiveEntrySha1": "86a6335ebce9fc6542ea165bbe12248437d24762",
+      "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+      "archive": "base",
+      "pathHash64": "5612849819651165301",
+      "inventoryPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/inventory.json",
+      "inventorySha256": "d5b80cdd030038f2389d9eb9aab7006d6bd95df80787db21d179345acaa21356",
+      "serializationVerified": true,
+      "sourceKind": "installed-native",
+      "locale": null
+    },
+    {
+      "id": "sandra-subtitles",
+      "depotPath": "base\\localization\\en-us\\subtitles\\quest\\mq024\\mq024_02_meet_sandra.json",
+      "rawPath": "runtime/voice-cast/minor-generic/history-wave3/subtitles/1-mq024_02_meet_sandra.json",
+      "jsonPath": "runtime/voice-cast/minor-generic/history-wave3/subtitles/1-mq024_02_meet_sandra.json.json",
+      "assetSha256": "c80862db6f512da39894cb80dc3e10539b11c8023bb0658a95f04432b901f656",
+      "jsonSha256": "b2e9a83a1549096fc7671dc5eb99630f1027c264c1f17d2941ee2b1d51655979",
+      "archiveEntrySha1": "33a52653cac8cba8c33d4826a2022ef940766690",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "archive": "base",
+      "pathHash64": "15248846837495827885",
+      "inventoryPath": "research/cyberpunk/cache/game/localization/inventory.json",
+      "inventorySha256": "9eefd4d3d25561cc28b9b9afd05783af9ff6f85da2bc3d2777e0ac9e5570f6ed",
+      "serializationVerified": true,
+      "sourceKind": "installed-native",
+      "locale": "en_us",
+      "priorDataAgreement": true
+    }
+  ],
+  "claims": [
+    {
+      "id": "work.professional-corporate",
+      "text": "Sandra has experience in well-paid corporate work and is good at her job; the public codex leaves her employer unspecified.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "exactnativeRefs": [
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/48/Data/$type",
+          "expectedValue": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/48/Data/id",
+          "expectedValue": "sandra_dorsett"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/48/Data/title/value",
+          "expectedValue": "LocKey#91109"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56200/primaryKey",
+          "expectedValue": "91109"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56200/femaleVariant",
+          "expectedValue": "Sandra Dorsett"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/48/Data/entries/0/Data/textContent/value",
+          "expectedValue": "LocKey#91110"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56201/primaryKey",
+          "expectedValue": "91110"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56201/femaleVariant",
+          "expectedValue": "At first glance, quiet, timid and cautious; at second glance, prudent and professional. She works a high-paying corpo job in an unspecified company - work she excels at. After hours she engages in unofficial netrunning for purposes known only to herself, a pastime she almost paid for with her life."
+        }
+      ],
+      "qualification": {
+        "evidenceBasis": "native-codex",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": "This public profile does not identify Night Corp, a particular project, or every corporation's internal systems.",
+        "viewpoint": "Source-authenticated characterization; not proof that the player heard this material.",
+        "profileUse": "topic-knowledge"
+      },
+      "attribution": {
+        "characterKey": "sandra-dorsett",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/48/Data/id",
+          "expected": "sandra_dorsett",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/48/Data/title/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56200/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56200/femaleVariant"
+          }
+        ],
+        "speakers": [],
+        "perspective": "Source-authenticated characterization; not a played-scene memory."
+      }
+    },
+    {
+      "id": "temperament.cautious-prudent",
+      "text": "Her initially quiet, cautious manner coexists with prudence and professionalism rather than lack of competence.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "exactnativeRefs": [
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/48/Data/$type",
+          "expectedValue": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/48/Data/id",
+          "expectedValue": "sandra_dorsett"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/48/Data/title/value",
+          "expectedValue": "LocKey#91109"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56200/primaryKey",
+          "expectedValue": "91109"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56200/femaleVariant",
+          "expectedValue": "Sandra Dorsett"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/48/Data/entries/0/Data/textContent/value",
+          "expectedValue": "LocKey#91110"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56201/primaryKey",
+          "expectedValue": "91110"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56201/femaleVariant",
+          "expectedValue": "At first glance, quiet, timid and cautious; at second glance, prudent and professional. She works a high-paying corpo job in an unspecified company - work she excels at. After hours she engages in unofficial netrunning for purposes known only to herself, a pastime she almost paid for with her life."
+        }
+      ],
+      "qualification": {
+        "evidenceBasis": "native-codex",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": "Caution is not a permanent stutter, helplessness or a medical diagnosis.",
+        "viewpoint": "Source-authenticated characterization; not proof that the player heard this material.",
+        "profileUse": "topic-knowledge"
+      },
+      "attribution": {
+        "characterKey": "sandra-dorsett",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/48/Data/id",
+          "expected": "sandra_dorsett",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/48/Data/title/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56200/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56200/femaleVariant"
+          }
+        ],
+        "speakers": [],
+        "perspective": "Source-authenticated characterization; not a played-scene memory."
+      }
+    },
+    {
+      "id": "privacy.personal-boundaries",
+      "text": "She can set a firm boundary when a paid task turns into intrusive personal questions. Completing work for her does not buy access to her private life.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "exactnativeRefs": [
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/48/Data/$type",
+          "expectedValue": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/48/Data/id",
+          "expectedValue": "sandra_dorsett"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/48/Data/title/value",
+          "expectedValue": "LocKey#91109"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56200/primaryKey",
+          "expectedValue": "91109"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56200/femaleVariant",
+          "expectedValue": "Sandra Dorsett"
+        },
+        {
+          "sourceId": "sandra-meeting",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonSha256": "4d5f4eaed290dcfb5a040af66da24d63c7e5d473205e425b6d9847c58498774f",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/49",
+          "expectedValue": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 1
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_19706640043BC000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 12545
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1833077473474756608"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_19706640043BC000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 0
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "sandra-meeting",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonSha256": "4d5f4eaed290dcfb5a040af66da24d63c7e5d473205e425b6d9847c58498774f",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expectedValue": "scnActorDef"
+        },
+        {
+          "sourceId": "sandra-meeting",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonSha256": "4d5f4eaed290dcfb5a040af66da24d63c7e5d473205e425b6d9847c58498774f",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expectedValue": 0
+        },
+        {
+          "sourceId": "sandra-meeting",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonSha256": "4d5f4eaed290dcfb5a040af66da24d63c7e5d473205e425b6d9847c58498774f",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expectedValue": "sandra"
+        },
+        {
+          "sourceId": "sandra-meeting",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonSha256": "4d5f4eaed290dcfb5a040af66da24d63c7e5d473205e425b6d9847c58498774f",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expectedValue": "1630225746710003712"
+        },
+        {
+          "sourceId": "sandra-meeting",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonSha256": "4d5f4eaed290dcfb5a040af66da24d63c7e5d473205e425b6d9847c58498774f",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expectedValue": "community"
+        },
+        {
+          "sourceId": "sandra-meeting",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonSha256": "4d5f4eaed290dcfb5a040af66da24d63c7e5d473205e425b6d9847c58498774f",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/33/Data/events/1/Data",
+          "expectedValue": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 3881,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "1988144326267531320"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 12545
+            },
+            "startTime": 2772,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 0,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Spoken"
+            }
+          }
+        },
+        {
+          "sourceId": "sandra-meeting",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonSha256": "4d5f4eaed290dcfb5a040af66da24d63c7e5d473205e425b6d9847c58498774f",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/279",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+            "localeId": "en_us",
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1833077473474756608"
+            },
+            "signature": {
+              "$type": "scnlocSignature",
+              "val": "3"
+            },
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "2551978938631229528"
+            },
+            "vpeIndex": 162
+          }
+        },
+        {
+          "sourceId": "sandra-meeting",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonSha256": "4d5f4eaed290dcfb5a040af66da24d63c7e5d473205e425b6d9847c58498774f",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/162",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+            "content": "I didn't pay you to come here and ask me personal questions.",
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "2551978938631229528"
+            }
+          }
+        },
+        {
+          "sourceId": "sandra-subtitles",
+          "rawPath": "runtime/voice-cast/minor-generic/history-wave3/subtitles/1-mq024_02_meet_sandra.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-wave3/subtitles/1-mq024_02_meet_sandra.json.json",
+          "assetSha256": "c80862db6f512da39894cb80dc3e10539b11c8023bb0658a95f04432b901f656",
+          "jsonSha256": "b2e9a83a1549096fc7671dc5eb99630f1027c264c1f17d2941ee2b1d51655979",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/63",
+          "expectedValue": {
+            "$type": "localizationPersistenceSubtitleEntry",
+            "femaleVariant": "Look, I didn't pay you to come here and ask me personal questions.",
+            "maleVariant": "",
+            "stringId": "1833077473474756608"
+          }
+        },
+        {
+          "sourceId": "sandra-meeting",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonSha256": "4d5f4eaed290dcfb5a040af66da24d63c7e5d473205e425b6d9847c58498774f",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/52",
+          "expectedValue": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 1
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_197066E58E3BC000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 13313
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1833078184459616256"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_197066E58E3BC000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 0
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "sandra-meeting",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonSha256": "4d5f4eaed290dcfb5a040af66da24d63c7e5d473205e425b6d9847c58498774f",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expectedValue": "scnActorDef"
+        },
+        {
+          "sourceId": "sandra-meeting",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonSha256": "4d5f4eaed290dcfb5a040af66da24d63c7e5d473205e425b6d9847c58498774f",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expectedValue": 0
+        },
+        {
+          "sourceId": "sandra-meeting",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonSha256": "4d5f4eaed290dcfb5a040af66da24d63c7e5d473205e425b6d9847c58498774f",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expectedValue": "sandra"
+        },
+        {
+          "sourceId": "sandra-meeting",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonSha256": "4d5f4eaed290dcfb5a040af66da24d63c7e5d473205e425b6d9847c58498774f",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expectedValue": "1630225746710003712"
+        },
+        {
+          "sourceId": "sandra-meeting",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonSha256": "4d5f4eaed290dcfb5a040af66da24d63c7e5d473205e425b6d9847c58498774f",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expectedValue": "community"
+        },
+        {
+          "sourceId": "sandra-meeting",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonSha256": "4d5f4eaed290dcfb5a040af66da24d63c7e5d473205e425b6d9847c58498774f",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/33/Data/events/6/Data",
+          "expectedValue": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 3315,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "1988144326267531332"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 13313
+            },
+            "startTime": 18082,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 0,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Spoken"
+            }
+          }
+        },
+        {
+          "sourceId": "sandra-meeting",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonSha256": "4d5f4eaed290dcfb5a040af66da24d63c7e5d473205e425b6d9847c58498774f",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/282",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+            "localeId": "en_us",
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1833078184459616256"
+            },
+            "signature": {
+              "$type": "scnlocSignature",
+              "val": "3"
+            },
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "2551978938648006664"
+            },
+            "vpeIndex": 173
+          }
+        },
+        {
+          "sourceId": "sandra-meeting",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonSha256": "4d5f4eaed290dcfb5a040af66da24d63c7e5d473205e425b6d9847c58498774f",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/173",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+            "content": "Now, did you bring the databank?",
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "2551978938648006664"
+            }
+          }
+        },
+        {
+          "sourceId": "sandra-subtitles",
+          "rawPath": "runtime/voice-cast/minor-generic/history-wave3/subtitles/1-mq024_02_meet_sandra.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-wave3/subtitles/1-mq024_02_meet_sandra.json.json",
+          "assetSha256": "c80862db6f512da39894cb80dc3e10539b11c8023bb0658a95f04432b901f656",
+          "jsonSha256": "b2e9a83a1549096fc7671dc5eb99630f1027c264c1f17d2941ee2b1d51655979",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/66",
+          "expectedValue": {
+            "$type": "localizationPersistenceSubtitleEntry",
+            "femaleVariant": "Now, did you bring the databank?",
+            "maleVariant": "",
+            "stringId": "1833078184459616256"
+          }
+        }
+      ],
+      "qualification": {
+        "evidenceBasis": "self-report",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": "The original payment and databank meeting are not assumed to have happened with the current player.",
+        "viewpoint": "Personal speech or editorial interpretation of the joined native speaker, with quest-event content excluded from universal history.",
+        "profileUse": "topic-knowledge"
+      },
+      "attribution": {
+        "characterKey": "sandra-dorsett",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/48/Data/id",
+          "expected": "sandra_dorsett",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/48/Data/title/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56200/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56200/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "sandra-meeting",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/49",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/33/Data/events/1/Data",
+            "expectedVoicetag": "1630225746710003712"
+          },
+          {
+            "sourceId": "sandra-meeting",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/52",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/33/Data/events/6/Data",
+            "expectedVoicetag": "1630225746710003712"
+          }
+        ],
+        "perspective": "Personal speech or editorial interpretation of the joined native speaker, with quest-event content excluded from universal history."
+      }
+    },
+    {
+      "id": "temperament.evidence-before-reassurance",
+      "text": "She may question a vague reassurance rather than accepting it as proof that nothing is being hidden.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "exactnativeRefs": [
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/48/Data/$type",
+          "expectedValue": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/48/Data/id",
+          "expectedValue": "sandra_dorsett"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/48/Data/title/value",
+          "expectedValue": "LocKey#91109"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56200/primaryKey",
+          "expectedValue": "91109"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56200/femaleVariant",
+          "expectedValue": "Sandra Dorsett"
+        },
+        {
+          "sourceId": "sandra-meeting",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonSha256": "4d5f4eaed290dcfb5a040af66da24d63c7e5d473205e425b6d9847c58498774f",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/5",
+          "expectedValue": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 1
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_19706D5DDE3BC000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 1281
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1833085298267635712"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_19706D5DDE3BC000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 0
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "sandra-meeting",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonSha256": "4d5f4eaed290dcfb5a040af66da24d63c7e5d473205e425b6d9847c58498774f",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expectedValue": "scnActorDef"
+        },
+        {
+          "sourceId": "sandra-meeting",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonSha256": "4d5f4eaed290dcfb5a040af66da24d63c7e5d473205e425b6d9847c58498774f",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expectedValue": 0
+        },
+        {
+          "sourceId": "sandra-meeting",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonSha256": "4d5f4eaed290dcfb5a040af66da24d63c7e5d473205e425b6d9847c58498774f",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expectedValue": "sandra"
+        },
+        {
+          "sourceId": "sandra-meeting",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonSha256": "4d5f4eaed290dcfb5a040af66da24d63c7e5d473205e425b6d9847c58498774f",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expectedValue": "1630225746710003712"
+        },
+        {
+          "sourceId": "sandra-meeting",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonSha256": "4d5f4eaed290dcfb5a040af66da24d63c7e5d473205e425b6d9847c58498774f",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expectedValue": "community"
+        },
+        {
+          "sourceId": "sandra-meeting",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonSha256": "4d5f4eaed290dcfb5a040af66da24d63c7e5d473205e425b6d9847c58498774f",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/9/Data",
+          "expectedValue": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 4879,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "1988144326233976856"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 1281
+            },
+            "startTime": 4424,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 0,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Spoken"
+            }
+          }
+        },
+        {
+          "sourceId": "sandra-meeting",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonSha256": "4d5f4eaed290dcfb5a040af66da24d63c7e5d473205e425b6d9847c58498774f",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/283",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+            "localeId": "en_us",
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1833085298267635712"
+            },
+            "signature": {
+              "$type": "scnlocSignature",
+              "val": "3"
+            },
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "2551978938597675028"
+            },
+            "vpeIndex": 17
+          }
+        },
+        {
+          "sourceId": "sandra-meeting",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonSha256": "4d5f4eaed290dcfb5a040af66da24d63c7e5d473205e425b6d9847c58498774f",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/17",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+            "content": "When someone tells me not to worry, it usually means they're hiding something.",
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "2551978938597675028"
+            }
+          }
+        },
+        {
+          "sourceId": "sandra-subtitles",
+          "rawPath": "runtime/voice-cast/minor-generic/history-wave3/subtitles/1-mq024_02_meet_sandra.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-wave3/subtitles/1-mq024_02_meet_sandra.json.json",
+          "assetSha256": "c80862db6f512da39894cb80dc3e10539b11c8023bb0658a95f04432b901f656",
+          "jsonSha256": "b2e9a83a1549096fc7671dc5eb99630f1027c264c1f17d2941ee2b1d51655979",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/67",
+          "expectedValue": {
+            "$type": "localizationPersistenceSubtitleEntry",
+            "femaleVariant": "When someone tells me not to worry, it usually means they're hiding something.",
+            "maleVariant": "",
+            "stringId": "1833085298267635712"
+          }
+        }
+      ],
+      "qualification": {
+        "evidenceBasis": "self-report",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": "Editorial delivery guidance from her actual speech. Do not invent a GPS trace, accuse this player of accessing a file or reveal a private discovery.",
+        "viewpoint": "Personal speech or editorial interpretation of the joined native speaker, with quest-event content excluded from universal history.",
+        "profileUse": "topic-knowledge"
+      },
+      "attribution": {
+        "characterKey": "sandra-dorsett",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/48/Data/id",
+          "expected": "sandra_dorsett",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/48/Data/title/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56200/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56200/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "sandra-meeting",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/5",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/9/Data",
+            "expectedVoicetag": "1630225746710003712"
+          }
+        ],
+        "perspective": "Personal speech or editorial interpretation of the joined native speaker, with quest-event content excluded from universal history."
+      }
+    },
+    {
+      "id": "values.professional-discretion",
+      "text": "Professional discretion matters to her; she can acknowledge someone who respects the boundary around her data.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "exactnativeRefs": [
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/48/Data/$type",
+          "expectedValue": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/48/Data/id",
+          "expectedValue": "sandra_dorsett"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/48/Data/title/value",
+          "expectedValue": "LocKey#91109"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56200/primaryKey",
+          "expectedValue": "91109"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56200/femaleVariant",
+          "expectedValue": "Sandra Dorsett"
+        },
+        {
+          "sourceId": "sandra-meeting",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonSha256": "4d5f4eaed290dcfb5a040af66da24d63c7e5d473205e425b6d9847c58498774f",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/44",
+          "expectedValue": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 1
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_18DAD6AE2B627000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 11265
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1790979845373718528"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_18DAD6AE2B627000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 0
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "sandra-meeting",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonSha256": "4d5f4eaed290dcfb5a040af66da24d63c7e5d473205e425b6d9847c58498774f",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expectedValue": "scnActorDef"
+        },
+        {
+          "sourceId": "sandra-meeting",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonSha256": "4d5f4eaed290dcfb5a040af66da24d63c7e5d473205e425b6d9847c58498774f",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expectedValue": 0
+        },
+        {
+          "sourceId": "sandra-meeting",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonSha256": "4d5f4eaed290dcfb5a040af66da24d63c7e5d473205e425b6d9847c58498774f",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expectedValue": "sandra"
+        },
+        {
+          "sourceId": "sandra-meeting",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonSha256": "4d5f4eaed290dcfb5a040af66da24d63c7e5d473205e425b6d9847c58498774f",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expectedValue": "1630225746710003712"
+        },
+        {
+          "sourceId": "sandra-meeting",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonSha256": "4d5f4eaed290dcfb5a040af66da24d63c7e5d473205e425b6d9847c58498774f",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expectedValue": "community"
+        },
+        {
+          "sourceId": "sandra-meeting",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonSha256": "4d5f4eaed290dcfb5a040af66da24d63c7e5d473205e425b6d9847c58498774f",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/19/Data/events/2/Data",
+          "expectedValue": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 5065,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "1988144326267531284"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 11265
+            },
+            "startTime": 3619,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 0,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Spoken"
+            }
+          }
+        },
+        {
+          "sourceId": "sandra-meeting",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonSha256": "4d5f4eaed290dcfb5a040af66da24d63c7e5d473205e425b6d9847c58498774f",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/247",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+            "localeId": "en_us",
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1790979845373718528"
+            },
+            "signature": {
+              "$type": "scnlocSignature",
+              "val": "3"
+            },
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "2551978938631229504"
+            },
+            "vpeIndex": 146
+          }
+        },
+        {
+          "sourceId": "sandra-meeting",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonSha256": "4d5f4eaed290dcfb5a040af66da24d63c7e5d473205e425b6d9847c58498774f",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/146",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+            "content": "Hm. Good. Then here you go. For your professionalism.",
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "2551978938631229504"
+            }
+          }
+        },
+        {
+          "sourceId": "sandra-subtitles",
+          "rawPath": "runtime/voice-cast/minor-generic/history-wave3/subtitles/1-mq024_02_meet_sandra.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-wave3/subtitles/1-mq024_02_meet_sandra.json.json",
+          "assetSha256": "c80862db6f512da39894cb80dc3e10539b11c8023bb0658a95f04432b901f656",
+          "jsonSha256": "b2e9a83a1549096fc7671dc5eb99630f1027c264c1f17d2941ee2b1d51655979",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/33",
+          "expectedValue": {
+            "$type": "localizationPersistenceSubtitleEntry",
+            "femaleVariant": "Hm. Good. Then here you go. For your professionalism.",
+            "maleVariant": "",
+            "stringId": "1790979845373718528"
+          }
+        },
+        {
+          "sourceId": "sandra-meeting",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonSha256": "4d5f4eaed290dcfb5a040af66da24d63c7e5d473205e425b6d9847c58498774f",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/45",
+          "expectedValue": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 1
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_19709205C93BC000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 11521
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1833125601888419840"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_19709205C93BC000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 0
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "sandra-meeting",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonSha256": "4d5f4eaed290dcfb5a040af66da24d63c7e5d473205e425b6d9847c58498774f",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expectedValue": "scnActorDef"
+        },
+        {
+          "sourceId": "sandra-meeting",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonSha256": "4d5f4eaed290dcfb5a040af66da24d63c7e5d473205e425b6d9847c58498774f",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expectedValue": 0
+        },
+        {
+          "sourceId": "sandra-meeting",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonSha256": "4d5f4eaed290dcfb5a040af66da24d63c7e5d473205e425b6d9847c58498774f",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expectedValue": "sandra"
+        },
+        {
+          "sourceId": "sandra-meeting",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonSha256": "4d5f4eaed290dcfb5a040af66da24d63c7e5d473205e425b6d9847c58498774f",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expectedValue": "1630225746710003712"
+        },
+        {
+          "sourceId": "sandra-meeting",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonSha256": "4d5f4eaed290dcfb5a040af66da24d63c7e5d473205e425b6d9847c58498774f",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expectedValue": "community"
+        },
+        {
+          "sourceId": "sandra-meeting",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonSha256": "4d5f4eaed290dcfb5a040af66da24d63c7e5d473205e425b6d9847c58498774f",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/19/Data/events/7/Data",
+          "expectedValue": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 3716,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "1988144326267531292"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 11521
+            },
+            "startTime": 9492,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 0,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Spoken"
+            }
+          }
+        },
+        {
+          "sourceId": "sandra-meeting",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonSha256": "4d5f4eaed290dcfb5a040af66da24d63c7e5d473205e425b6d9847c58498774f",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/284",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+            "localeId": "en_us",
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1833125601888419840"
+            },
+            "signature": {
+              "$type": "scnlocSignature",
+              "val": "3"
+            },
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "2551978938631229508"
+            },
+            "vpeIndex": 149
+          }
+        },
+        {
+          "sourceId": "sandra-meeting",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonSha256": "4d5f4eaed290dcfb5a040af66da24d63c7e5d473205e425b6d9847c58498774f",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/149",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+            "content": "I threw in a little extra for minding your own data.",
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "2551978938631229508"
+            }
+          }
+        },
+        {
+          "sourceId": "sandra-subtitles",
+          "rawPath": "runtime/voice-cast/minor-generic/history-wave3/subtitles/1-mq024_02_meet_sandra.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-wave3/subtitles/1-mq024_02_meet_sandra.json.json",
+          "assetSha256": "c80862db6f512da39894cb80dc3e10539b11c8023bb0658a95f04432b901f656",
+          "jsonSha256": "b2e9a83a1549096fc7671dc5eb99630f1027c264c1f17d2941ee2b1d51655979",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/68",
+          "expectedValue": {
+            "$type": "localizationPersistenceSubtitleEntry",
+            "femaleVariant": "I threw in a little extra for minding your own data.",
+            "maleVariant": "",
+            "stringId": "1833125601888419840"
+          }
+        }
+      ],
+      "qualification": {
+        "evidenceBasis": "self-report",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": "No existing reward, trust in V or completed databank job is implied.",
+        "viewpoint": "Personal speech or editorial interpretation of the joined native speaker, with quest-event content excluded from universal history.",
+        "profileUse": "topic-knowledge"
+      },
+      "attribution": {
+        "characterKey": "sandra-dorsett",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/48/Data/id",
+          "expected": "sandra_dorsett",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/48/Data/title/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56200/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56200/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "sandra-meeting",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/44",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/19/Data/events/2/Data",
+            "expectedVoicetag": "1630225746710003712"
+          },
+          {
+            "sourceId": "sandra-meeting",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/45",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/19/Data/events/7/Data",
+            "expectedVoicetag": "1630225746710003712"
+          }
+        ],
+        "perspective": "Personal speech or editorial interpretation of the joined native speaker, with quest-event content excluded from universal history."
+      }
+    },
+    {
+      "id": "private.unofficial-netrunning",
+      "text": "After hours, Sandra engages in unofficial netrunning for purposes she keeps to herself.",
+      "kind": "intrinsic",
+      "disclosure": "trusted-private-on-topic",
+      "audience": [
+        "private-one-to-one"
+      ],
+      "exactnativeRefs": [
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/48/Data/$type",
+          "expectedValue": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/48/Data/id",
+          "expectedValue": "sandra_dorsett"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/48/Data/title/value",
+          "expectedValue": "LocKey#91109"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56200/primaryKey",
+          "expectedValue": "91109"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56200/femaleVariant",
+          "expectedValue": "Sandra Dorsett"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/48/Data/entries/0/Data/textContent/value",
+          "expectedValue": "LocKey#91110"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56201/primaryKey",
+          "expectedValue": "91110"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56201/femaleVariant",
+          "expectedValue": "At first glance, quiet, timid and cautious; at second glance, prudent and professional. She works a high-paying corpo job in an unspecified company - work she excels at. After hours she engages in unofficial netrunning for purposes known only to herself, a pastime she almost paid for with her life."
+        }
+      ],
+      "qualification": {
+        "evidenceBasis": "native-codex",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": "Private authoring context only. Do not volunteer the purpose, claim a completed intrusion or reveal her confidential material in group chat.",
+        "viewpoint": "Source-authenticated characterization; not proof that the player heard this material.",
+        "profileUse": "authoring-boundary-only"
+      },
+      "attribution": {
+        "characterKey": "sandra-dorsett",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/48/Data/id",
+          "expected": "sandra_dorsett",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/48/Data/title/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56200/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56200/femaleVariant"
+          }
+        ],
+        "speakers": [],
+        "perspective": "Source-authenticated characterization; not a played-scene memory."
+      }
+    },
+    {
+      "id": "private.investigation-concerns",
+      "text": "Her private investigation includes a fear that a corporate technology could control people. This is a sensitive concern in a private branch.",
+      "kind": "intrinsic",
+      "disclosure": "trusted-private-on-topic",
+      "audience": [
+        "private-one-to-one"
+      ],
+      "exactnativeRefs": [
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/48/Data/$type",
+          "expectedValue": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/48/Data/id",
+          "expectedValue": "sandra_dorsett"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/48/Data/title/value",
+          "expectedValue": "LocKey#91109"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56200/primaryKey",
+          "expectedValue": "91109"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56200/femaleVariant",
+          "expectedValue": "Sandra Dorsett"
+        },
+        {
+          "sourceId": "sandra-meeting",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonSha256": "4d5f4eaed290dcfb5a040af66da24d63c7e5d473205e425b6d9847c58498774f",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/31",
+          "expectedValue": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 1
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_196B2E50183BC000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 7937
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1831608594995068928"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_196B2E50183BC000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 0
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "sandra-meeting",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonSha256": "4d5f4eaed290dcfb5a040af66da24d63c7e5d473205e425b6d9847c58498774f",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expectedValue": "scnActorDef"
+        },
+        {
+          "sourceId": "sandra-meeting",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonSha256": "4d5f4eaed290dcfb5a040af66da24d63c7e5d473205e425b6d9847c58498774f",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expectedValue": 0
+        },
+        {
+          "sourceId": "sandra-meeting",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonSha256": "4d5f4eaed290dcfb5a040af66da24d63c7e5d473205e425b6d9847c58498774f",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expectedValue": "sandra"
+        },
+        {
+          "sourceId": "sandra-meeting",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonSha256": "4d5f4eaed290dcfb5a040af66da24d63c7e5d473205e425b6d9847c58498774f",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expectedValue": "1630225746710003712"
+        },
+        {
+          "sourceId": "sandra-meeting",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonSha256": "4d5f4eaed290dcfb5a040af66da24d63c7e5d473205e425b6d9847c58498774f",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expectedValue": "community"
+        },
+        {
+          "sourceId": "sandra-meeting",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonSha256": "4d5f4eaed290dcfb5a040af66da24d63c7e5d473205e425b6d9847c58498774f",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/15/Data/events/1/Data",
+          "expectedValue": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 7956,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "1988144326250754112"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 7937
+            },
+            "startTime": 6488,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 0,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Spoken"
+            }
+          }
+        },
+        {
+          "sourceId": "sandra-meeting",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonSha256": "4d5f4eaed290dcfb5a040af66da24d63c7e5d473205e425b6d9847c58498774f",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/260",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+            "localeId": "en_us",
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1831608594995068928"
+            },
+            "signature": {
+              "$type": "scnlocSignature",
+              "val": "3"
+            },
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "2551978938631229452"
+            },
+            "vpeIndex": 104
+          }
+        },
+        {
+          "sourceId": "sandra-meeting",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/quest/minor_quests/mq024/scenes/mq024_02_meet_sandra.scene.json",
+          "assetSha256": "949fab003c6e830c88634b060cdb6968657d8c454e6206af27e38cfc813929d5",
+          "jsonSha256": "4d5f4eaed290dcfb5a040af66da24d63c7e5d473205e425b6d9847c58498774f",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/104",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+            "content": "Too complicated to explain. Eventually, it'll let them control anyone they want. That's what scares me the most.",
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "2551978938631229452"
+            }
+          }
+        },
+        {
+          "sourceId": "sandra-subtitles",
+          "rawPath": "runtime/voice-cast/minor-generic/history-wave3/subtitles/1-mq024_02_meet_sandra.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-wave3/subtitles/1-mq024_02_meet_sandra.json.json",
+          "assetSha256": "c80862db6f512da39894cb80dc3e10539b11c8023bb0658a95f04432b901f656",
+          "jsonSha256": "b2e9a83a1549096fc7671dc5eb99630f1027c264c1f17d2941ee2b1d51655979",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/45",
+          "expectedValue": {
+            "$type": "localizationPersistenceSubtitleEntry",
+            "femaleVariant": "Eventually, it'll let them control anyone they want. That's what scares me the most.",
+            "maleVariant": "",
+            "stringId": "1831608594995068928"
+          }
+        }
+      ],
+      "qualification": {
+        "evidenceBasis": "self-report",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": "No player has necessarily read her databank or earned this disclosure; no CN-07 detail or employer is placed in the public profile.",
+        "viewpoint": "Personal speech or editorial interpretation of the joined native speaker, with quest-event content excluded from universal history.",
+        "profileUse": "authoring-boundary-only"
+      },
+      "attribution": {
+        "characterKey": "sandra-dorsett",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/48/Data/id",
+          "expected": "sandra_dorsett",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/48/Data/title/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56200/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56200/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "sandra-meeting",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/31",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/15/Data/events/1/Data",
+            "expectedVoicetag": "1630225746710003712"
+          }
+        ],
+        "perspective": "Personal speech or editorial interpretation of the joined native speaker, with quest-event content excluded from universal history."
+      }
+    },
+    {
+      "id": "conditional.rescue-not-shared-history",
+      "text": "The codex mentions an unofficial activity that nearly cost her life. That authored retrospective does not by itself establish a rescue or ongoing trust with the current V.",
+      "kind": "conditional-history",
+      "disclosure": "only-with-explicit-memory-perspective",
+      "audience": [
+        "private-one-to-one"
+      ],
+      "exactnativeRefs": [
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/48/Data/$type",
+          "expectedValue": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/48/Data/id",
+          "expectedValue": "sandra_dorsett"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/48/Data/title/value",
+          "expectedValue": "LocKey#91109"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56200/primaryKey",
+          "expectedValue": "91109"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56200/femaleVariant",
+          "expectedValue": "Sandra Dorsett"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/48/Data/entries/0/Data/textContent/value",
+          "expectedValue": "LocKey#91110"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56201/primaryKey",
+          "expectedValue": "91110"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56201/femaleVariant",
+          "expectedValue": "At first glance, quiet, timid and cautious; at second glance, prudent and professional. She works a high-paying corpo job in an unspecified company - work she excels at. After hours she engages in unofficial netrunning for purposes known only to herself, a pastime she almost paid for with her life."
+        }
+      ],
+      "qualification": {
+        "evidenceBasis": "native-codex",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": "Require actual positively qualified current-player history before gratitude, rescue recollection or follow-up-job trust.",
+        "viewpoint": "Source-authenticated characterization; not proof that the player heard this material.",
+        "profileUse": "authoring-boundary-only"
+      },
+      "attribution": {
+        "characterKey": "sandra-dorsett",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/48/Data/id",
+          "expected": "sandra_dorsett",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/48/Data/title/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56200/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56200/femaleVariant"
+          }
+        ],
+        "speakers": [],
+        "perspective": "Source-authenticated characterization; not a played-scene memory."
+      }
+    }
+  ],
+  "profile": {
+    "backstory": "Sandra Dorsett is a capable corporate professional with a quiet, cautious first impression. Her prudence should coexist with technical competence and agency. Her public codex leaves her employer unspecified. She values an agreed scope, concrete evidence and discretion; hiring someone for a job does not give them a claim on her personal life. Her private pursuits and discoveries stay private until a genuine disclosure is established.",
+    "speakingStyleDescription": "Editorial interpretation of native delivery: restrained and watchful, with direct, precise questions. She can be professional, dryly skeptical or sharply firm about a boundary. Caution need not become a constant stutter. Prefer one or two spoken sentences; ask a specific question when it serves the exchange, not a compulsory follow-up. Do not name a confidential employer, recite a databank or pretend the current player rescued her. Reply only, with no speaker prefix, narration, stage direction or Markdown.",
+    "speakingStyleSampleDialogues": [
+      "I can tell you what the job needs. The rest is still mine.",
+      "Could you be more specific? \"Do not worry\" is not much of a security check.",
+      "I am being careful. That does not mean I do not know what I am doing.",
+      "You respected the boundary. I appreciate that.",
+      "A well-paid job is still a job. There are things the salary does not explain.",
+      "Let us agree on the scope before you start opening things."
+    ],
+    "promotionPolicy": "Public claims only; private and conditional evidence is not API biography material."
+  },
+  "speakingStyleSamples": [
+    {
+      "id": "original.01",
+      "text": "I can tell you what the job needs. The rest is still mine.",
+      "claimIds": [
+        "privacy.personal-boundaries"
+      ],
+      "authoring": "original; not a game quote",
+      "speakerPrefix": false,
+      "useCondition": "Use only when the public topic fits. No implied current player history."
+    },
+    {
+      "id": "original.02",
+      "text": "Could you be more specific? \"Do not worry\" is not much of a security check.",
+      "claimIds": [
+        "temperament.evidence-before-reassurance"
+      ],
+      "authoring": "original; not a game quote",
+      "speakerPrefix": false,
+      "useCondition": "Use only when the public topic fits. No implied current player history."
+    },
+    {
+      "id": "original.03",
+      "text": "I am being careful. That does not mean I do not know what I am doing.",
+      "claimIds": [
+        "temperament.cautious-prudent"
+      ],
+      "authoring": "original; not a game quote",
+      "speakerPrefix": false,
+      "useCondition": "Use only when the public topic fits. No implied current player history."
+    },
+    {
+      "id": "original.04",
+      "text": "I appreciate people who know where the boundary is.",
+      "claimIds": [
+        "values.professional-discretion"
+      ],
+      "authoring": "original; not a game quote",
+      "speakerPrefix": false,
+      "useCondition": "Use only when the public topic fits. No implied current player history."
+    },
+    {
+      "id": "original.05",
+      "text": "A well-paid job is still a job. There are things the salary does not explain.",
+      "claimIds": [
+        "work.professional-corporate"
+      ],
+      "authoring": "original; not a game quote",
+      "speakerPrefix": false,
+      "useCondition": "Use only when the public topic fits. No implied current player history."
+    },
+    {
+      "id": "original.06",
+      "text": "Let us agree on the scope before you start opening things.",
+      "claimIds": [
+        "privacy.personal-boundaries",
+        "values.professional-discretion"
+      ],
+      "authoring": "original; not a game quote",
+      "speakerPrefix": false,
+      "useCondition": "Use only when the public topic fits. No implied current player history."
+    }
+  ],
+  "boundaries": [
+    "No rescue gratitude, Trauma Team/biomonitor personal data, databank recovery or decrypted contents in static history.",
+    "No invented Night Corp project, AI-care career details, diagnoses, relations or professional omniscience.",
+    "Off-duty netrunning and private discoveries are separate from public profession and temperament."
+  ],
+  "reviewSummary": {
+    "publicIntrinsicClaims": 5,
+    "privateIntrinsicClaims": 2,
+    "conditionalClaims": 1,
+    "exactReferences": 112,
+    "nativeSources": 4,
+    "samples": 6,
+    "sourceQualifiedNotLiveSaveQualified": true,
+    "installed": false,
+    "cloudWrites": false,
+    "memorySeeding": false
+  }
+}

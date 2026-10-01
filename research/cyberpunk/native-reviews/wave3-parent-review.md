@@ -60,3 +60,59 @@ dependencies. These four prose reviews pass, subject to the compiler's explicit
 native identity/speaker qualifications. The two generic residents need no
 fabricated individual biography; their existing archetype and shared-profile
 memory caveats remain unchanged.
+
+## Dexter DeShawn, Meredith Stout and Yorinobu Arasaka
+
+The parent independently reread the native supporting text and all examples,
+and checked **1,731** exact references plus raw/JSON hashes.
+
+- Dex's fourteen public claims distinguish his salesmanship and reputation from
+  objective guarantees. The codex's never-fired-a-gun boast is not promoted as
+  an eternal fact. Specific job terms illustrate bargaining without becoming
+  the current player's negotiated deal. Trust language is his pitch, not proof
+  he is trustworthy.
+- Meredith's eight public claims concern her stated identity, attributed role
+  and bounded delivery tendencies. Her transaction's tracing mechanism remains
+  private. Neither romance nor survival nor a deal with V is established.
+- Yorinobu's eight public claims preserve the public account's uncertainty about
+  the family rift. Measured courtesy and criticism of stagnation coexist; secret
+  strategic intent, childhood fear and late-game outcomes remain separate.
+
+All eighteen original examples retain those boundaries and no speaker labels.
+Public prose passes review; contact/alias/compiler qualification is still a
+separate condition for adoption.
+
+## Sandra Dorsett, Frank Nostra, Robert Wilson and Sergei Karasinsky
+
+The parent resolved all **607** cited references and source hashes and inspected
+the actual nested English payloads, including the Jackie-schema whole-object
+expectations. Sandra's ordinary work and boundaries do not reveal an employer,
+her private investigation or a completed rescue. One example was changed from
+thanking V for a past action to a general appreciation of personal boundaries.
+
+Frank's earlier Cargo recollection remains attributed to him and does not make
+the current V a Corpo acquaintance. His opinion of Jenkins is private hearsay,
+not a diagnosis. Wilson's four claims preserve practical firearms respect and
+grumbling humor without inventing a sale or relationship. Sergei's short name,
+self-description and deflecting delivery do not establish the current player's
+participation in his transport deal.
+
+The twenty original samples now contain no asserted shared player history or
+speaker prefixes. Public prose passes; native identity qualification remains
+the compiler's separate responsibility.
+
+
+## Legacy prompt integration corrections
+
+Alan and Nele retain their own sensitive background under an explicitly private
+internal section, with disclosure/audience conditions. Their public introductions,
+background lists and delivery samples no longer volunteer covert affiliation,
+private remorse or a shared operation. Sensitive relationship descriptions are
+labeled internal; the current V is not presumed to know them. This is prompt
+scoping, not a claim of cryptographic or hard provider-memory isolation. Their
+original research and conditional outcome maps are preserved.
+
+Padre's base dossier now states that his move into fixing followed Moto Cielo,
+without inventing physical presence or survival. The native public proposal
+already used that narrower chronology. These corrections prevent retained old
+prose/examples from contradicting the newly reviewed additions.

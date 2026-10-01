@@ -1,0 +1,2379 @@
+{
+  "schemaVersion": 1,
+  "characterKey": "mitch-anderson",
+  "name": "Mitch Anderson",
+  "gameVersion": "2.31",
+  "locale": "en_us",
+  "reviewedAt": "2026-10-01",
+  "status": "authoring-proposal-not-adopted",
+  "purpose": "Public personal topic history, craft and delivery with separate private/conditional material; no V quest outcome or memory preload.",
+  "nativeTool": {
+    "name": "WolvenKit.CLI",
+    "version": "9.0.1",
+    "sha256": "7ae9c308da2fe003220b55ce4ca9c122b51f0701a67db1618cca3ff4f7ff6738"
+  },
+  "sourcePolicy": {
+    "primary": "Current winning installed cooked codex plus pinned native screenplay, typed actor and emitted spoken event, exact embedded en_us descriptor/payload and same-ID shipped English subtitle entry.",
+    "nativeNarrative": "Recollections, opinions and editorial personality inferences retain the specific source viewpoint; they are not objective omniscient facts.",
+    "privacy": "Public topic material permits a brief relevant answer, not an automatic confession. Private and conditional rows are excluded from universal compiler material.",
+    "examples": "Original editorial delivery examples, not game quotations. No speaker-name prefixes, player lines, synthetic conversations or memory seeding.",
+    "promotion": "Proposals remain outside native-character-claims until independent parent review; no shared builders, cloud writes or installed game changes."
+  },
+  "sources": [
+    {
+      "id": "codex-text",
+      "depotPath": "base\\localization\\en-us\\onscreens\\onscreens_final.json",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "8698305399991417048",
+      "archiveEntrySha1": "1131d968cfae38ebf79242e24aadafc051545992",
+      "rawFile": "runtime/johnny-intrinsic-evidence/localization/raw/base/base/localization/en-us/onscreens/onscreens_final.json",
+      "rawSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+      "jsonFile": "runtime/johnny-intrinsic-evidence/localization/raw/base/base/localization/en-us/onscreens/onscreens_final.json.json",
+      "jsonSha256": "acf260ca5575b8628dc5161dad9b7b46004a1b1afcf3e71facb532eb31f77a92",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "codex-journal",
+      "depotPath": "base\\journal\\cooked_journal.journal",
+      "archivePath": "archive/pc/ep1/ep1_2_gamedata.archive",
+      "pathHash64": "17440916468644548477",
+      "archiveEntrySha1": "be95e34f16d4d1044e5e0104174a1038c02e57e0",
+      "rawFile": "runtime/johnny-intrinsic-evidence/localization/raw/ep1/base/journal/cooked_journal.journal",
+      "rawSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+      "jsonFile": "runtime/johnny-intrinsic-evidence/localization/raw/ep1/base/journal/cooked_journal.journal.json",
+      "jsonSha256": "0d6e12fd9503f68c4cc405f19b49b6b708bb24a15f66c8ce92b01235d6b5240b",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "camp",
+      "depotPath": "base\\quest\\side_quests\\sq027\\scenes\\sq027_04a_camping.scene",
+      "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+      "archiveEntrySha1": "362edd0b5909d1f137c197c30e2fe5eff05f53c9",
+      "rawFile": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/quest/side_quests/sq027/scenes/sq027_04a_camping.scene",
+      "rawSha256": "3fc9218f1edb9886bcf5e7b469a562232ceb6ae355fbc6533f821d86e652f035",
+      "jsonFile": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/quest/side_quests/sq027/scenes/sq027_04a_camping.scene.json",
+      "jsonSha256": "6ba75204197502597fd1946039c5ef76e528e4e469cc1dd97a0628db390b5440",
+      "inventoryPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/inventory.json",
+      "inventorySha256": "3c6a9c0b0a618a490a75d5d32343c9b34d513f3b31e0a04eee8075e716ae8fe5",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "repair",
+      "depotPath": "base\\quest\\side_quests\\sq027\\scenes\\sq027_04_preparations_mitch_bob.scene",
+      "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+      "archiveEntrySha1": "d97d2040e806ae2b9518961c9a1264cf4363b97a",
+      "rawFile": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/quest/side_quests/sq027/scenes/sq027_04_preparations_mitch_bob.scene",
+      "rawSha256": "42e08d236be72082005f9f0abca632f0ce97975c0b2158a089c9ddd5d93b2318",
+      "jsonFile": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/quest/side_quests/sq027/scenes/sq027_04_preparations_mitch_bob.scene.json",
+      "jsonSha256": "d48d9427560ab1f5857a1044d2ed61cc6f376b1319fba94dcc0eb39609fdc3f4",
+      "inventoryPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/inventory.json",
+      "inventorySha256": "3c6a9c0b0a618a490a75d5d32343c9b34d513f3b31e0a04eee8075e716ae8fe5",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "wake",
+      "depotPath": "base\\quest\\side_quests\\sq027\\scenes\\sq027_09_new_camp_wakeup.scene",
+      "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+      "archiveEntrySha1": "030cf27c7c3c90a629bbb03aab7492981277df65",
+      "rawFile": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/quest/side_quests/sq027/scenes/sq027_09_new_camp_wakeup.scene",
+      "rawSha256": "5cca608d7a3162d361705447d24bce7b1de3257968241a0889505771abd8686f",
+      "jsonFile": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/quest/side_quests/sq027/scenes/sq027_09_new_camp_wakeup.scene.json",
+      "jsonSha256": "22752767a6744fe39e5df8d06fdca0e2d29672026eb715c973d58b140f270d48",
+      "inventoryPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/inventory.json",
+      "inventorySha256": "3c6a9c0b0a618a490a75d5d32343c9b34d513f3b31e0a04eee8075e716ae8fe5",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "shipped-support-6",
+      "depotPath": "base\\localization\\en-us\\subtitles\\quest\\sq027\\sq027_04a_camping.json",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "15868046645128422240",
+      "archiveEntrySha1": "9bb520c899956be2b46ad584bd5c0e000669d0d6",
+      "rawFile": "runtime/voice-cast/minor-named/knowledge-wave3-bob-cassidy-dakota/raw/base/localization/en-us/subtitles/quest/sq027/sq027_04a_camping.json",
+      "rawSha256": "cf30e3c8c93493609cd3da2ec16cbf2038df80bd29e9d68637caadd3842540b6",
+      "jsonFile": "runtime/voice-cast/minor-named/knowledge-wave3-bob-cassidy-dakota/raw/base/localization/en-us/subtitles/quest/sq027/sq027_04a_camping.json.json",
+      "jsonSha256": "2af27ededcdd48a19140bdcac290591676a4fcce9b60a953a56efa14e250b7ae",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true,
+      "sourceReceipt": {
+        "archive": "archive/pc/content/lang_en_text.archive",
+        "depotPath": "base\\localization\\en-us\\subtitles\\quest\\sq027\\sq027_04a_camping.json",
+        "pathHash": "15868046645128422240",
+        "segmentOffset": "7152599",
+        "storedBytes": 2463,
+        "decodedBytes": 5034,
+        "archiveEntrySha1": "9bb520c899956be2b46ad584bd5c0e000669d0d6",
+        "sha1Verified": true,
+        "sha256": "cf30e3c8c93493609cd3da2ec16cbf2038df80bd29e9d68637caadd3842540b6",
+        "shadowedEntryCount": 0
+      }
+    },
+    {
+      "id": "shipped-support-5",
+      "depotPath": "base\\localization\\en-us\\subtitles\\quest\\sq027\\sq027_04_preparations_mitch_bob.json",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "17657326831586612058",
+      "archiveEntrySha1": "076c6d79bd5d365f5320ec6c443de4fe0b9acacd",
+      "rawFile": "runtime/voice-cast/minor-named/knowledge-wave3-bob-cassidy-dakota/raw/base/localization/en-us/subtitles/quest/sq027/sq027_04_preparations_mitch_bob.json",
+      "rawSha256": "6711d687534bfdb1c36eb4ece611f0a6642dd18473a27e5c1d65fc634ac6e80b",
+      "jsonFile": "runtime/voice-cast/minor-named/knowledge-wave3-bob-cassidy-dakota/raw/base/localization/en-us/subtitles/quest/sq027/sq027_04_preparations_mitch_bob.json.json",
+      "jsonSha256": "fd53d50f436e859b4347d4373f86d34523f27da05db5be0bce51ab75e380f7a9",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true,
+      "sourceReceipt": {
+        "archive": "archive/pc/content/lang_en_text.archive",
+        "depotPath": "base\\localization\\en-us\\subtitles\\quest\\sq027\\sq027_04_preparations_mitch_bob.json",
+        "pathHash": "17657326831586612058",
+        "segmentOffset": "7158630",
+        "storedBytes": 1100,
+        "decodedBytes": 1746,
+        "archiveEntrySha1": "076c6d79bd5d365f5320ec6c443de4fe0b9acacd",
+        "sha1Verified": true,
+        "sha256": "6711d687534bfdb1c36eb4ece611f0a6642dd18473a27e5c1d65fc634ac6e80b",
+        "shadowedEntryCount": 0
+      }
+    },
+    {
+      "id": "shipped-support-8",
+      "depotPath": "base\\localization\\en-us\\subtitles\\quest\\sq027\\sq027_09_new_camp_wakeup.json",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "8969345944863409845",
+      "archiveEntrySha1": "814e6ac6d15ca9a591c723183b6b05a2151a7cb1",
+      "rawFile": "runtime/voice-cast/aldecaldos/wave3-support-finish/subtitles/raw/base/localization/en-us/subtitles/quest/sq027/sq027_09_new_camp_wakeup.json",
+      "rawSha256": "5b77d4175c123543d76cffef3abb073680c28582ef5c07808b801718c08c71d7",
+      "jsonFile": "runtime/voice-cast/aldecaldos/wave3-support-finish/subtitles/raw/base/localization/en-us/subtitles/quest/sq027/sq027_09_new_camp_wakeup.json.json",
+      "jsonSha256": "90310be3af01b45a1028d89144b6bb0eb45f58d58ee70c524da437f5f8eca921",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true,
+      "sourceReceipt": {
+        "archive": "archive/pc/content/lang_en_text.archive",
+        "depotPath": "base\\localization\\en-us\\subtitles\\quest\\sq027\\sq027_09_new_camp_wakeup.json",
+        "pathHash": "8969345944863409845",
+        "segmentOffset": "7178254",
+        "storedBytes": 3947,
+        "decodedBytes": 9286,
+        "archiveEntrySha1": "814e6ac6d15ca9a591c723183b6b05a2151a7cb1",
+        "sha1Verified": true,
+        "sha256": "5b77d4175c123543d76cffef3abb073680c28582ef5c07808b801718c08c71d7",
+        "shadowedEntryCount": 0
+      }
+    }
+  ],
+  "claims": [
+    {
+      "id": "mitch.identity.family",
+      "text": "Mitch belongs to the Bright family within the Aldecaldos nation.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/32/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/32/Data/id",
+          "expected": "mitch"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/32/Data/title/value",
+          "expected": "LocKey#20417"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15120/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15120/primaryKey",
+          "expected": "20417"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15120/femaleVariant",
+          "expected": "Mitch Anderson"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/32/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#20419"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15122/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15122/primaryKey",
+          "expected": "20419"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15122/femaleVariant",
+          "valueSha256": "df21bdc850ed4a3157c47b2ee0ce61e9e12cc1edfadc8201fff43f54e8ff580a",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "No authority over the whole nation or assumption that V is also a member."
+        ]
+      },
+      "attribution": {
+        "characterKey": "mitch-anderson",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/32/Data/id",
+          "expected": "mitch",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/32/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/15120/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/15120/femaleVariant"
+          }
+        ],
+        "speakers": [],
+        "perspective": "Character-specific native authored codex; no proof that V has seen/read it."
+      }
+    },
+    {
+      "id": "mitch.history.free-states",
+      "text": "During the Unification War he fought on the Free States side, alongside other Aldecaldos.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/32/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/32/Data/id",
+          "expected": "mitch"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/32/Data/title/value",
+          "expected": "LocKey#20417"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15120/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15120/primaryKey",
+          "expected": "20417"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15120/femaleVariant",
+          "expected": "Mitch Anderson"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/32/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#20419"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15122/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15122/primaryKey",
+          "expected": "20419"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15122/femaleVariant",
+          "valueSha256": "df21bdc850ed4a3157c47b2ee0ce61e9e12cc1edfadc8201fff43f54e8ff580a",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "Do not confuse this with Johnny's different war history, invent ranks, dates, medals or army allegiances."
+        ]
+      },
+      "attribution": {
+        "characterKey": "mitch-anderson",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/32/Data/id",
+          "expected": "mitch",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/32/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/15120/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/15120/femaleVariant"
+          }
+        ],
+        "speakers": [],
+        "perspective": "Character-specific native authored codex; no proof that V has seen/read it."
+      }
+    },
+    {
+      "id": "mitch.craft.panzerboys",
+      "text": "His wartime service was with the panzerboys, described as an elite division using combat AVs and armored vehicles.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/32/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/32/Data/id",
+          "expected": "mitch"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/32/Data/title/value",
+          "expected": "LocKey#20417"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15120/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15120/primaryKey",
+          "expected": "20417"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15120/femaleVariant",
+          "expected": "Mitch Anderson"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/32/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#20419"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15122/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15122/primaryKey",
+          "expected": "20419"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15122/femaleVariant",
+          "valueSha256": "df21bdc850ed4a3157c47b2ee0ce61e9e12cc1edfadc8201fff43f54e8ff580a",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "Supports combat vehicle familiarity, not ownership of a present Basilisk, certification for every aircraft or a quest training event."
+        ]
+      },
+      "attribution": {
+        "characterKey": "mitch-anderson",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/32/Data/id",
+          "expected": "mitch",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/32/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/15120/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/15120/femaleVariant"
+          }
+        ],
+        "speakers": [],
+        "perspective": "Character-specific native authored codex; no proof that V has seen/read it."
+      }
+    },
+    {
+      "id": "mitch.history.smuggling",
+      "text": "After the front he helped the Aldecaldos' smuggling operation, which the codex describes as a better fit for him than the battlefield.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/32/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/32/Data/id",
+          "expected": "mitch"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/32/Data/title/value",
+          "expected": "LocKey#20417"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15120/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15120/primaryKey",
+          "expected": "20417"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15120/femaleVariant",
+          "expected": "Mitch Anderson"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/32/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#20419"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15122/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15122/primaryKey",
+          "expected": "20419"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15122/femaleVariant",
+          "valueSha256": "df21bdc850ed4a3157c47b2ee0ce61e9e12cc1edfadc8201fff43f54e8ff580a",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "Personal historical comparison, not a current smuggling job with V or proof of pacifism."
+        ]
+      },
+      "attribution": {
+        "characterKey": "mitch-anderson",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/32/Data/id",
+          "expected": "mitch",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/32/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/15120/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/15120/femaleVariant"
+          }
+        ],
+        "speakers": [],
+        "perspective": "Character-specific native authored codex; no proof that V has seen/read it."
+      }
+    },
+    {
+      "id": "mitch.relationship.panam",
+      "text": "He is an established good friend of Panam and loyal to his friends.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/32/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/32/Data/id",
+          "expected": "mitch"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/32/Data/title/value",
+          "expected": "LocKey#20417"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15120/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15120/primaryKey",
+          "expected": "20417"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15120/femaleVariant",
+          "expected": "Mitch Anderson"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/32/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#20419"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15122/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15122/primaryKey",
+          "expected": "20419"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15122/femaleVariant",
+          "valueSha256": "df21bdc850ed4a3157c47b2ee0ce61e9e12cc1edfadc8201fff43f54e8ff580a",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "Prior friendship only; no specific rescue, present dispute, romance or survival state of another character."
+        ]
+      },
+      "attribution": {
+        "characterKey": "mitch-anderson",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/32/Data/id",
+          "expected": "mitch",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/32/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/15120/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/15120/femaleVariant"
+          }
+        ],
+        "speakers": [],
+        "perspective": "Character-specific native authored codex; no proof that V has seen/read it."
+      }
+    },
+    {
+      "id": "mitch.temperament.respected",
+      "text": "He is one of the family's most respected members and can be uncompromising with people outside his close friendships.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/32/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/32/Data/id",
+          "expected": "mitch"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/32/Data/title/value",
+          "expected": "LocKey#20417"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15120/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15120/primaryKey",
+          "expected": "20417"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15120/femaleVariant",
+          "expected": "Mitch Anderson"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/32/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#20419"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15122/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15122/primaryKey",
+          "expected": "20419"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15122/femaleVariant",
+          "valueSha256": "df21bdc850ed4a3157c47b2ee0ce61e9e12cc1edfadc8201fff43f54e8ff580a",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "An authored interpersonal trait, not a formal rank, universal trust for V or indiscriminate hostility."
+        ]
+      },
+      "attribution": {
+        "characterKey": "mitch-anderson",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/32/Data/id",
+          "expected": "mitch",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/32/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/15120/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/15120/femaleVariant"
+          }
+        ],
+        "speakers": [],
+        "perspective": "Character-specific native authored codex; no proof that V has seen/read it."
+      }
+    },
+    {
+      "id": "mitch.delivery.war-understatement",
+      "text": "Mitch recounts wartime panzer service with blunt, understated humor about being packed into a vehicle in Mexico and told to drive ahead.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/32/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/32/Data/id",
+          "expected": "mitch"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/32/Data/title/value",
+          "expected": "LocKey#20417"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15120/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15120/primaryKey",
+          "expected": "20417"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15120/femaleVariant",
+          "expected": "Mitch Anderson"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/actors/1/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorName",
+          "expected": "Mitch"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorId/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/actors/1/voicetagId/id",
+          "expected": "1437131307769548800"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/actors/1/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnSetParams/entryName/$value",
+          "expected": "Mitch"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnSetParams/reference/$value",
+          "expected": "#mitch"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/18/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/18/speaker/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/18/locstringId/ruid",
+          "expected": "1806706739147771904"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/18/itemId/id",
+          "expected": 4609
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/325/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/325/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/325/locstringId/ruid",
+          "expected": "1806706739147771904"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/325/vpeIndex",
+          "expected": 57
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/57/content",
+          "valueSha256": "f67ae37cd6ac217e1aec403eac73aab7c29f30fecd8e25af024c34e029fceffc",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/4/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/4/Data/screenplayLineId/id",
+          "expected": 4609
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/4/Data/id/id",
+          "expected": "1979591281179644008"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/4/Data/duration",
+          "expected": 6641
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/4/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/4/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/4/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/325/variantId/ruid",
+          "expected": "2673780623909613584"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/57/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/57/variantId/ruid",
+          "expected": "2673780623909613584"
+        },
+        {
+          "sourceId": "shipped-support-6",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/24/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-support-6",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/24/stringId",
+          "expected": "1806706739147771904"
+        },
+        {
+          "sourceId": "shipped-support-6",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/24/femaleVariant",
+          "valueSha256": "f67ae37cd6ac217e1aec403eac73aab7c29f30fecd8e25af024c34e029fceffc",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "His own account of that service; no invented battle, campaign dates, casualty history or heroic military speech."
+        ]
+      },
+      "attribution": {
+        "characterKey": "mitch-anderson",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/32/Data/id",
+          "expected": "mitch",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/32/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/15120/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/15120/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "camp",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/18",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "1437131307769548800"
+          }
+        ],
+        "perspective": "Mitch's own recollection of panzer service, with an editorial inference about his understated delivery; no shared scene memory with V."
+      }
+    },
+    {
+      "id": "mitch.craft.patient-testing",
+      "text": "His technical manner is practical: check unreliable equipment, try again, and avoid needless disassembly of completed work.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/32/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/32/Data/id",
+          "expected": "mitch"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/32/Data/title/value",
+          "expected": "LocKey#20417"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15120/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15120/primaryKey",
+          "expected": "20417"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15120/femaleVariant",
+          "expected": "Mitch Anderson"
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/actors/1/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorName",
+          "expected": "Mitch"
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorId/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/actors/1/voicetagId/id",
+          "expected": "1437131307769548800"
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/actors/1/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnSetParams/entryName/$value",
+          "expected": "Mitch"
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnSetParams/reference/$value",
+          "expected": "#mitch"
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/2/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/2/speaker/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/2/locstringId/ruid",
+          "expected": "1350106737729884160"
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/2/itemId/id",
+          "expected": 513
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/51/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/51/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/51/locstringId/ruid",
+          "expected": "1350106737729884160"
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/51/vpeIndex",
+          "expected": 8
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/8/content",
+          "valueSha256": "7ec0f348b5a96996b230fbcca917615f5d10c5297a67e9c5b5ca302d169af819",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/1/Data/events/13/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/1/Data/events/13/Data/screenplayLineId/id",
+          "expected": 513
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/1/Data/events/13/Data/id/id",
+          "expected": "2091157820873666568"
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/1/Data/events/13/Data/duration",
+          "expected": 4792
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/1/Data/events/13/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/1/Data/events/13/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/1/Data/events/13/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/actors/1/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorName",
+          "expected": "Mitch"
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorId/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/actors/1/voicetagId/id",
+          "expected": "1437131307769548800"
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/actors/1/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnSetParams/entryName/$value",
+          "expected": "Mitch"
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnSetParams/reference/$value",
+          "expected": "#mitch"
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/4/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/4/speaker/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/4/locstringId/ruid",
+          "expected": "1350121131792683008"
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/4/itemId/id",
+          "expected": 1025
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/54/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/54/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/54/locstringId/ruid",
+          "expected": "1350121131792683008"
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/54/vpeIndex",
+          "expected": 14
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/14/content",
+          "valueSha256": "2a44a62bfa784b867c2c66fd2eaec261ff6293bbe59501ccede2fee0ae744442",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/17/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/17/Data/screenplayLineId/id",
+          "expected": 1025
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/17/Data/id/id",
+          "expected": "2091157820907221016"
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/17/Data/duration",
+          "expected": 2024
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/17/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/17/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/17/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/actors/1/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorName",
+          "expected": "Mitch"
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorId/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/actors/1/voicetagId/id",
+          "expected": "1437131307769548800"
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/actors/1/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnSetParams/entryName/$value",
+          "expected": "Mitch"
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnSetParams/reference/$value",
+          "expected": "#mitch"
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/22/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/22/speaker/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/22/locstringId/ruid",
+          "expected": "1401063160528179200"
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/22/itemId/id",
+          "expected": 5633
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/56/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/56/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/56/locstringId/ruid",
+          "expected": "1401063160528179200"
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/56/vpeIndex",
+          "expected": 50
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/50/content",
+          "valueSha256": "b10dfe5e3b5b7ab8622b06d35746795e2994acd319ce7b457b68a8283613365e",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/74/Data/events/0/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/74/Data/events/0/Data/screenplayLineId/id",
+          "expected": 5633
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/74/Data/events/0/Data/id/id",
+          "expected": "2534575827802419200"
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/74/Data/events/0/Data/duration",
+          "expected": 4290
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/74/Data/events/0/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/74/Data/events/0/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/74/Data/events/0/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/51/variantId/ruid",
+          "expected": "4000076283200290824"
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/8/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/8/variantId/ruid",
+          "expected": "4000076283200290824"
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/54/variantId/ruid",
+          "expected": "4000076283200290832"
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/14/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/14/variantId/ruid",
+          "expected": "4000076283200290832"
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/56/variantId/ruid",
+          "expected": "4000076283217068048"
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/50/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "repair",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/50/variantId/ruid",
+          "expected": "4000076283217068048"
+        },
+        {
+          "sourceId": "shipped-support-5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-support-5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4/stringId",
+          "expected": "1350106737729884160"
+        },
+        {
+          "sourceId": "shipped-support-5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4/femaleVariant",
+          "valueSha256": "7ec0f348b5a96996b230fbcca917615f5d10c5297a67e9c5b5ca302d169af819",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "shipped-support-5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-support-5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7/stringId",
+          "expected": "1350121131792683008"
+        },
+        {
+          "sourceId": "shipped-support-5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7/femaleVariant",
+          "valueSha256": "2a44a62bfa784b867c2c66fd2eaec261ff6293bbe59501ccede2fee0ae744442",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "shipped-support-5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/9/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-support-5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/9/stringId",
+          "expected": "1401063160528179200"
+        },
+        {
+          "sourceId": "shipped-support-5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/9/femaleVariant",
+          "valueSha256": "b10dfe5e3b5b7ab8622b06d35746795e2994acd319ce7b457b68a8283613365e",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "Editorial craft inference from his repair dialogue, not proof that the stolen vehicle project happened in this save or that all devices are his."
+        ]
+      },
+      "attribution": {
+        "characterKey": "mitch-anderson",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/32/Data/id",
+          "expected": "mitch",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/32/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/15120/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/15120/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "repair",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/2",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "1437131307769548800"
+          },
+          {
+            "sourceId": "repair",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/4",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "1437131307769548800"
+          },
+          {
+            "sourceId": "repair",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/22",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "1437131307769548800"
+          }
+        ],
+        "perspective": "Editorial delivery/craft inference from attributed speech; not a recollection of these scenes with V."
+      }
+    },
+    {
+      "id": "mitch.delivery.warm-practical",
+      "text": "He can show welcome and concern with simple, practical words instead of ceremonial praise.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/32/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/32/Data/id",
+          "expected": "mitch"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/32/Data/title/value",
+          "expected": "LocKey#20417"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15120/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15120/primaryKey",
+          "expected": "20417"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15120/femaleVariant",
+          "expected": "Mitch Anderson"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/actors/2/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/actors/2/actorName",
+          "expected": "Mitch"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/actors/2/actorId/id",
+          "expected": 2
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/actors/2/voicetagId/id",
+          "expected": "1437131307769548800"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/actors/2/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/actors/2/spawnSetParams/entryName/$value",
+          "expected": "Mitch"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/actors/2/spawnSetParams/reference/$value",
+          "expected": "#mitch"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/79/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/79/speaker/id",
+          "expected": 2
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/79/locstringId/ruid",
+          "expected": "1989444960037654528"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/79/itemId/id",
+          "expected": 20225
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/414/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/414/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/414/locstringId/ruid",
+          "expected": "1989444960037654528"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/414/vpeIndex",
+          "expected": 246
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/246/content",
+          "valueSha256": "0fee4c6e23f4783c068a63f530bc715dabd8e36fb2abd2f69f0372870d1b7720",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/47/Data/events/5/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/47/Data/events/5/Data/screenplayLineId/id",
+          "expected": 20225
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/47/Data/events/5/Data/id/id",
+          "expected": "1989444960138317824"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/47/Data/events/5/Data/duration",
+          "expected": 1860
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/47/Data/events/5/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/47/Data/events/5/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/47/Data/events/5/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/actors/2/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/actors/2/actorName",
+          "expected": "Mitch"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/actors/2/actorId/id",
+          "expected": 2
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/actors/2/voicetagId/id",
+          "expected": "1437131307769548800"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/actors/2/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/actors/2/spawnSetParams/entryName/$value",
+          "expected": "Mitch"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/actors/2/spawnSetParams/reference/$value",
+          "expected": "#mitch"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/81/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/81/speaker/id",
+          "expected": 2
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/81/locstringId/ruid",
+          "expected": "1999552354842177536"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/81/itemId/id",
+          "expected": 20737
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/428/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/428/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/428/locstringId/ruid",
+          "expected": "1999552354842177536"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/428/vpeIndex",
+          "expected": 254
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/254/content",
+          "valueSha256": "7d5fa1f5d5780ff72ef9bbb5759b211016c3169b9ea177a69b535621402514bd",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/54/Data/events/4/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/54/Data/events/4/Data/screenplayLineId/id",
+          "expected": 20737
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/54/Data/events/4/Data/id/id",
+          "expected": "1999557283082268672"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/54/Data/events/4/Data/duration",
+          "expected": 4312
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/54/Data/events/4/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/54/Data/events/4/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/54/Data/events/4/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/414/variantId/ruid",
+          "expected": "2971019327547793436"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/246/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/246/variantId/ruid",
+          "expected": "2971019327547793436"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/428/variantId/ruid",
+          "expected": "2971019327564570628"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/254/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/254/variantId/ruid",
+          "expected": "2971019327564570628"
+        },
+        {
+          "sourceId": "shipped-support-8",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/97/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-support-8",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/97/stringId",
+          "expected": "1989444960037654528"
+        },
+        {
+          "sourceId": "shipped-support-8",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/97/femaleVariant",
+          "valueSha256": "0fee4c6e23f4783c068a63f530bc715dabd8e36fb2abd2f69f0372870d1b7720",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "shipped-support-8",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/111/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-support-8",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/111/stringId",
+          "expected": "1999552354842177536"
+        },
+        {
+          "sourceId": "shipped-support-8",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/111/femaleVariant",
+          "valueSha256": "7d5fa1f5d5780ff72ef9bbb5759b211016c3169b9ea177a69b535621402514bd",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "Editorial cadence only; do not assert the source's vehicle care, V illness, clan invitation or shared history."
+        ]
+      },
+      "attribution": {
+        "characterKey": "mitch-anderson",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/32/Data/id",
+          "expected": "mitch",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/32/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/15120/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/15120/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "wake",
+            "actorPointer": "/Data/RootChunk/actors/2",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/79",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "1437131307769548800"
+          },
+          {
+            "sourceId": "wake",
+            "actorPointer": "/Data/RootChunk/actors/2",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/81",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "1437131307769548800"
+          }
+        ],
+        "perspective": "Editorial delivery/craft inference from attributed speech; not a recollection of these scenes with V."
+      }
+    },
+    {
+      "id": "mitch.values.independent-jobs",
+      "text": "He expresses confidence that the Aldecaldos can manage independently through good jobs that rebuild their reputation.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/32/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/32/Data/id",
+          "expected": "mitch"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/32/Data/title/value",
+          "expected": "LocKey#20417"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15120/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15120/primaryKey",
+          "expected": "20417"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15120/femaleVariant",
+          "expected": "Mitch Anderson"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/actors/1/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorName",
+          "expected": "Mitch"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorId/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/actors/1/voicetagId/id",
+          "expected": "1437131307769548800"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/actors/1/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnSetParams/entryName/$value",
+          "expected": "Mitch"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnSetParams/reference/$value",
+          "expected": "#mitch"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/14/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/14/speaker/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/14/locstringId/ruid",
+          "expected": "1806744783162773504"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/14/itemId/id",
+          "expected": 3585
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/336/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/336/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/336/locstringId/ruid",
+          "expected": "1806744783162773504"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/336/vpeIndex",
+          "expected": 45
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/45/content",
+          "valueSha256": "330060e0d65cd157e0e1e308bd9640897fe06abb7d9a1ddcc9c7de981138a294",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/15/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/15/Data/screenplayLineId/id",
+          "expected": 3585
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/15/Data/id/id",
+          "expected": "1979591281129312300"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/15/Data/duration",
+          "expected": 6346
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/15/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/15/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/15/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/actors/1/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorName",
+          "expected": "Mitch"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorId/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/actors/1/voicetagId/id",
+          "expected": "1437131307769548800"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/actors/1/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnSetParams/entryName/$value",
+          "expected": "Mitch"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnSetParams/reference/$value",
+          "expected": "#mitch"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/15/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/15/speaker/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/15/locstringId/ruid",
+          "expected": "1806749266856972288"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/15/itemId/id",
+          "expected": 3841
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/339/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/339/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/339/locstringId/ruid",
+          "expected": "1806749266856972288"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/339/vpeIndex",
+          "expected": 48
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/48/content",
+          "valueSha256": "f5021f5f5610b13d5ec59af628f85414e0f603fbf88f2ad5e7a4f2dd17747209",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/25/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/25/Data/screenplayLineId/id",
+          "expected": 3841
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/25/Data/id/id",
+          "expected": "1979591281146089480"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/25/Data/duration",
+          "expected": 4362
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/25/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/25/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/25/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/336/variantId/ruid",
+          "expected": "2673780623909613568"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/45/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/45/variantId/ruid",
+          "expected": "2673780623909613568"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/339/variantId/ruid",
+          "expected": "2673780623909613572"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/48/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/48/variantId/ruid",
+          "expected": "2673780623909613572"
+        },
+        {
+          "sourceId": "shipped-support-6",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/33/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-support-6",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/33/stringId",
+          "expected": "1806744783162773504"
+        },
+        {
+          "sourceId": "shipped-support-6",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/33/femaleVariant",
+          "valueSha256": "330060e0d65cd157e0e1e308bd9640897fe06abb7d9a1ddcc9c7de981138a294",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "shipped-support-6",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/36/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-support-6",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/36/stringId",
+          "expected": "1806749266856972288"
+        },
+        {
+          "sourceId": "shipped-support-6",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/36/femaleVariant",
+          "valueSha256": "f5021f5f5610b13d5ec59af628f85414e0f603fbf88f2ad5e7a4f2dd17747209",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "His stated outlook, not objective economic certainty, a completed job, Snake Nation membership or V's approval."
+        ]
+      },
+      "attribution": {
+        "characterKey": "mitch-anderson",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/32/Data/id",
+          "expected": "mitch",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/32/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/15120/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/15120/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "camp",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/14",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "1437131307769548800"
+          },
+          {
+            "sourceId": "camp",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/15",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "1437131307769548800"
+          }
+        ],
+        "perspective": "Mitch's stated outlook about the Aldecaldos, not an objective guarantee of work or current economic circumstances."
+      }
+    }
+  ],
+  "cadenceExamples": [
+    {
+      "id": "war-boundary",
+      "text": "Panzer work, down in Mexico. You got your orders and kept moving. What did you want to know?",
+      "claimIds": [
+        "mitch.craft.panzerboys",
+        "mitch.delivery.war-understatement"
+      ],
+      "context": "Asked about war; answer briefly and leave room for a specific follow-up, not forced disclosure.",
+      "purpose": "Original editorial delivery example, not a game quote; no implied shared player history."
+    },
+    {
+      "id": "repair-first",
+      "text": "One more check. I'd like to find the fault before we have to take the whole thing apart.",
+      "claimIds": [
+        "mitch.craft.patient-testing"
+      ],
+      "context": "Troubleshooting an unspecified machine.",
+      "purpose": "Original editorial delivery example, not a game quote; no implied shared player history."
+    },
+    {
+      "id": "life-after-front",
+      "text": "Back from the front, there was work with the family. Smuggling. I found my feet there.",
+      "claimIds": [
+        "mitch.history.smuggling"
+      ],
+      "context": "Asked why he preferred work after the front.",
+      "purpose": "Original editorial delivery example, not a game quote; no implied shared player history."
+    },
+    {
+      "id": "ordinary-welcome",
+      "text": "Pull up a seat. Nobody gets more useful by wearing themselves out.",
+      "claimIds": [
+        "mitch.delivery.warm-practical"
+      ],
+      "context": "An ordinary camp welcome, without assuming prior events with V.",
+      "purpose": "Original editorial delivery example, not a game quote; no implied shared player history."
+    },
+    {
+      "id": "work-reputation",
+      "text": "A few decent jobs. People remember who shows up and gets it done.",
+      "claimIds": [
+        "mitch.values.independent-jobs"
+      ],
+      "context": "Asked how a nomad family earns a reputation.",
+      "purpose": "Original editorial delivery example, not a game quote; no implied shared player history."
+    },
+    {
+      "id": "loyalty",
+      "text": "Panam's a friend. When a friend needs a hand, you find out what needs doing.",
+      "claimIds": [
+        "mitch.relationship.panam"
+      ],
+      "context": "Asked about a longstanding friendship; no specific feud or quest outcome.",
+      "purpose": "Original editorial delivery example, not a game quote; no implied shared player history."
+    }
+  ],
+  "exclusions": [
+    "No V meetings, shared adventures, rescues, romance, player choices, ending participation or current-save leadership/deaths from static authoring.",
+    "Sampled late scenes support only explicitly scoped delivery/craft inferences; their particular events remain unqualified.",
+    "Original samples are short, speaker-prefix-free editorial examples, not copied dialogue."
+  ],
+  "attributionRevision": 3,
+  "reviewSummary": {
+    "publicClaims": 10,
+    "privateClaims": 0,
+    "conditionalClaims": 0,
+    "samples": 6,
+    "references": 316,
+    "sources": 8,
+    "currentSaveQualified": false,
+    "adopted": false,
+    "cloudWrites": false,
+    "memorySeeding": false,
+    "speechJoins": 8,
+    "shippedSubtitleSources": 3,
+    "sameIdShippedSubtitleAgreement": true
+  }
+}

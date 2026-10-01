@@ -1,0 +1,2887 @@
+{
+  "schemaVersion": 1,
+  "characterKey": "ozob-bozo",
+  "name": "Ozob Bozo",
+  "gameVersion": "2.31",
+  "locale": "en_us",
+  "reviewedAt": "2026-10-01",
+  "status": "source-authenticated-proposal-not-adopted",
+  "purpose": "Bounded intrinsic material and brief original speech; no fabricated shared experiences, current outcomes or automatic memory.",
+  "nativeTool": {
+    "name": "WolvenKit.CLI",
+    "version": "9.0.1",
+    "sha256": "7ae9c308da2fe003220b55ce4ca9c122b51f0701a67db1618cca3ff4f7ff6738"
+  },
+  "sourcePolicy": {
+    "primary": "Actual typed phone contact with exact installed English name, independently checked actor/speaker/event and matching English embedded/shipped lines. No fictional codex.",
+    "nativeNarrative": "Retain self-report, opinion, and represented-memory perspective. Do not silently promote a scene-dependent exchange to a shared memory with the current V.",
+    "privacy": "Private trauma, family settlement detail, current romances, investigations, private SMS and ending outcomes are excluded from the universal public material.",
+    "examples": "Original editorial delivery examples, not game quotations. No speaker-name prefixes, fabricated player exchanges, song lyrics or synthetic memory seeding.",
+    "promotion": "Root must review before adoption. This proposal changes no roster, generated output, cloud character, save, installed game or memory.",
+    "claimSubject": "Every selected claim pins the subject's typed native codex identity; scene claims additionally pin every actual speaker. Short native codex IDs require an explicit reviewed compiler binding."
+  },
+  "sources": [
+    {
+      "id": "english",
+      "depotPath": "base\\localization\\en-us\\onscreens\\onscreens.json",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "7469411510719000253",
+      "archiveEntrySha1": "1131d968cfae38ebf79242e24aadafc051545992",
+      "rawFile": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+      "rawSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+      "jsonFile": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+      "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+      "inventoryFile": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/inventory.json",
+      "inventorySha256": "d5b80cdd030038f2389d9eb9aab7006d6bd95df80787db21d179345acaa21356",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "journal",
+      "depotPath": "base\\journal\\cooked_journal.journal",
+      "archivePath": "archive/pc/ep1/ep1_2_gamedata.archive",
+      "pathHash64": "17440916468644548477",
+      "archiveEntrySha1": "be95e34f16d4d1044e5e0104174a1038c02e57e0",
+      "rawFile": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+      "rawSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+      "jsonFile": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+      "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+      "inventoryFile": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/inventory.json",
+      "inventorySha256": "d5b80cdd030038f2389d9eb9aab7006d6bd95df80787db21d179345acaa21356",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "ozob-boxing",
+      "depotPath": "base\\quest\\minor_quests\\mq025\\scenes\\mq025_06_pacifica.scene",
+      "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+      "pathHash64": "8018535823116632146",
+      "archiveEntrySha1": "abacb0f426a11787c32001e06aad91c5b42c0cf5",
+      "rawFile": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq025/scenes/mq025_06_pacifica.scene",
+      "rawSha256": "8d4c8f0cff236842cc1e20cb97a532e655dcbd3c39573ce631d35be300035788",
+      "jsonFile": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq025/scenes/mq025_06_pacifica.scene.json",
+      "jsonSha256": "bc5cb6f3bf86e180db66fc097018faaef1551c306177ce80cef4a3d272495f87",
+      "inventoryFile": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/inventory.json",
+      "inventorySha256": "3bdf9b0be0794db1f4f4a8455ec00dd90a27212522603c5a5c6da09be3ea2618",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "ozob-driving",
+      "depotPath": "base\\quest\\minor_quests\\mq035\\scenes\\mq035_ozob_dialogues.scene",
+      "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+      "pathHash64": "5060883995909033827",
+      "archiveEntrySha1": "67fc3a72838257a891714917310a429b4cb46eb4",
+      "rawFile": "runtime/voice-cast/minor-named/scenes/wave3-mercs-promoter/raw/base/base/quest/minor_quests/mq035/scenes/mq035_ozob_dialogues.scene",
+      "rawSha256": "edb70ad1ccd1f3691d9f9c5220b0e766d0ff84ee6629d09a5b1cd50da79b8309",
+      "jsonFile": "runtime/voice-cast/minor-named/scenes/wave3-mercs-promoter/raw/base/base/quest/minor_quests/mq035/scenes/mq035_ozob_dialogues.scene.json",
+      "jsonSha256": "52c7ac7d71dbae186fc738c01e8dc4883986f6a3721fb8417afb7d5add7319af",
+      "inventoryFile": "runtime/voice-cast/minor-named/scenes/wave3-mercs-promoter/inventory.json",
+      "inventorySha256": "40094385a33603dccb7c65266c966d96f6f9139c1bb483af06b99cf5dd6639f4",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "shipped-mercs-0",
+      "depotPath": "base\\localization\\en-us\\subtitles\\quest\\mq035\\mq035_ozob_dialogues.json",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "11177451521002956267",
+      "archiveEntrySha1": "bb131f7b5e69124686e08e9bce645b90162ef9e8",
+      "rawFile": "runtime/voice-cast/minor-named/knowledge-wave3-mercs-promoter/raw/base/localization/en-us/subtitles/quest/mq035/mq035_ozob_dialogues.json",
+      "rawSha256": "bfb7c8b986ca24b20ed86ef9a7b29f8e85b1df2fcd25c634debecb806a268033",
+      "jsonFile": "runtime/voice-cast/minor-named/knowledge-wave3-mercs-promoter/raw/base/localization/en-us/subtitles/quest/mq035/mq035_ozob_dialogues.json.json",
+      "jsonSha256": "f47e16a4c7580d2fbca86d0f2db25cda162e47df09f39cf81038a4a2b4d607da",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true,
+      "sourceReceipt": {
+        "archive": "archive/pc/content/lang_en_text.archive",
+        "depotPath": "base\\localization\\en-us\\subtitles\\quest\\mq035\\mq035_ozob_dialogues.json",
+        "pathHash": "11177451521002956267",
+        "segmentOffset": "5765841",
+        "storedBytes": 2743,
+        "decodedBytes": 5812,
+        "archiveEntrySha1": "bb131f7b5e69124686e08e9bce645b90162ef9e8",
+        "sha1Verified": true,
+        "sha256": "bfb7c8b986ca24b20ed86ef9a7b29f8e85b1df2fcd25c634debecb806a268033",
+        "shadowedEntryCount": 0
+      }
+    },
+    {
+      "id": "shipped-mercs-1",
+      "depotPath": "base\\localization\\en-us\\subtitles\\quest\\mq025\\mq025_06_pacifica.json",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "2619894579899525574",
+      "archiveEntrySha1": "9a32988268d9c6526e3c10fe5252e01ae8248d32",
+      "rawFile": "runtime/voice-cast/minor-named/knowledge-wave3-mercs-promoter/raw/base/localization/en-us/subtitles/quest/mq025/mq025_06_pacifica.json",
+      "rawSha256": "55641144e6efe3601b8306989c82e6d54ec487b576a9cfe201a4c695a809f380",
+      "jsonFile": "runtime/voice-cast/minor-named/knowledge-wave3-mercs-promoter/raw/base/localization/en-us/subtitles/quest/mq025/mq025_06_pacifica.json.json",
+      "jsonSha256": "a541e1baee9a689a6d4c9c6143310e9dfc5c57ee209c2f9858e5131bf8a86cc2",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true,
+      "sourceReceipt": {
+        "archive": "archive/pc/content/lang_en_text.archive",
+        "depotPath": "base\\localization\\en-us\\subtitles\\quest\\mq025\\mq025_06_pacifica.json",
+        "pathHash": "2619894579899525574",
+        "segmentOffset": "5703539",
+        "storedBytes": 2129,
+        "decodedBytes": 4229,
+        "archiveEntrySha1": "9a32988268d9c6526e3c10fe5252e01ae8248d32",
+        "sha1Verified": true,
+        "sha256": "55641144e6efe3601b8306989c82e6d54ec487b576a9cfe201a4c695a809f380",
+        "shadowedEntryCount": 0
+      }
+    }
+  ],
+  "claims": [
+    {
+      "id": "ozob-bozo.origin.brazil",
+      "text": "Ozob says he comes from Brazil, and can lightly tease North Americans who need it explained.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/53/Data/$type",
+          "expected": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/53/Data/id",
+          "expected": "ozob"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/53/Data/name/value",
+          "expected": "LocKey#10879"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/53/Data/avatarID/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/53/Data/avatarID/$value",
+          "expected": "PhoneAvatars.Avatar_Ozob"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7166/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7166/primaryKey",
+          "expected": "10879"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7166/femaleVariant",
+          "expected": "Ozob Bozo"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Ozob"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1805485973630234624"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams",
+          "expected": {
+            "$type": "scnSpawnSetParams",
+            "entryName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "ozob"
+            },
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "string",
+              "$value": "#ozob"
+            }
+          }
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnerParams",
+          "expected": {
+            "$type": "scnSpawnerParams",
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "uint64",
+              "$value": "0"
+            }
+          }
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/9/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/9/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/9/locstringId/ruid",
+          "expected": "1805538827598442496"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/9/itemId/id",
+          "expected": 2305
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/173/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/173/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/173/locstringId/ruid",
+          "expected": "1805538827598442496"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/173/variantId/ruid",
+          "expected": "2564145017949913100"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/173/vpeIndex",
+          "expected": 30
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/30/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/30/variantId/ruid",
+          "expected": "2564145017949913100"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/30/content",
+          "valueSha256": "dc3c550b2e1f7444823a953574301ccdbdb4c77c214e81f61102054b5263d702",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/2/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/2/Data/screenplayLineId/id",
+          "expected": 2305
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/2/Data/id/id",
+          "expected": "2017127328556408868"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/2/Data/duration",
+          "expected": 3991
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/2/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/2/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/2/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/2/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/11/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/11/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/11/locstringId/ruid",
+          "expected": "1805539835993010176"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/11/itemId/id",
+          "expected": 2817
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/175/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/175/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/175/locstringId/ruid",
+          "expected": "1805539835993010176"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/175/variantId/ruid",
+          "expected": "2564145017966690304"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/175/vpeIndex",
+          "expected": 36
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/36/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/36/variantId/ruid",
+          "expected": "2564145017966690304"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/36/content",
+          "valueSha256": "6c888a9c43a21ee27dda4ed088a8c87c8dd4d8e8d758a70e389a17dac7b0c319",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/4/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/4/Data/screenplayLineId/id",
+          "expected": 2817
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/4/Data/id/id",
+          "expected": "2017127328556408876"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/4/Data/duration",
+          "expected": 2959
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/4/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/4/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/4/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/4/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "shipped-mercs-0",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/10/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-mercs-0",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/10/stringId",
+          "expected": "1805538827598442496"
+        },
+        {
+          "sourceId": "shipped-mercs-0",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/10/femaleVariant",
+          "valueSha256": "b789a0adbb4d2b2d3799de7774fe160c2c937b40c32ca5e83e8ee94ef0c7edb6",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "shipped-mercs-0",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/12/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-mercs-0",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/12/stringId",
+          "expected": "1805539835993010176"
+        },
+        {
+          "sourceId": "shipped-mercs-0",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/12/femaleVariant",
+          "valueSha256": "e1c722358a33047829490ee1446f114b5c77be1cf502c51154d14e3e6314188b",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "specific-self-speech-and-bounded-editorial-reading",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "His own origin and conversational tease only; no exact birthplace, age, prior franchise biography or assumed fluency.",
+          "The embedded English draft differs from the same-ID shipped English text. Both exact variants are retained; independent semantic review must confirm the bounded proposition before adoption.",
+          "The embedded English draft differs from the same-ID shipped English text. Both exact variants are retained; independent semantic review must confirm the bounded proposition before adoption."
+        ]
+      },
+      "attribution": {
+        "characterKey": "ozob-bozo",
+        "mode": "self-report",
+        "subjectRef": {
+          "kind": "journal-contact",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/53/Data/id",
+          "expected": "ozob",
+          "containerType": "gameJournalContact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/53/Data/name/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7166/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7166/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "ozob-driving",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/9",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/2/Data",
+            "expectedVoicetag": "1805485973630234624",
+            "expectedSubjectVoicetag": "1805485973630234624",
+            "speakerRole": "subject-self-report"
+          },
+          {
+            "sourceId": "ozob-driving",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/11",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/4/Data",
+            "expectedVoicetag": "1805485973630234624",
+            "expectedSubjectVoicetag": "1805485973630234624",
+            "speakerRole": "subject-self-report"
+          }
+        ],
+        "perspective": "Exact subject speech; editorial delivery readings retain their source-era scope."
+      }
+    },
+    {
+      "id": "ozob-bozo.appearance.grenade",
+      "text": "He carries a grenade in place of a nose, treats its danger as real, and jokes about the care its pin requires.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/53/Data/$type",
+          "expected": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/53/Data/id",
+          "expected": "ozob"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/53/Data/name/value",
+          "expected": "LocKey#10879"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/53/Data/avatarID/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/53/Data/avatarID/$value",
+          "expected": "PhoneAvatars.Avatar_Ozob"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7166/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7166/primaryKey",
+          "expected": "10879"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7166/femaleVariant",
+          "expected": "Ozob Bozo"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Ozob"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1805485973630234624"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams",
+          "expected": {
+            "$type": "scnSpawnSetParams",
+            "entryName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "ozob"
+            },
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "string",
+              "$value": "#ozob"
+            }
+          }
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnerParams",
+          "expected": {
+            "$type": "scnSpawnerParams",
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "uint64",
+              "$value": "0"
+            }
+          }
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/6/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/6/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/6/locstringId/ruid",
+          "expected": "1805534541892169728"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/6/itemId/id",
+          "expected": 1537
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/171/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/171/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/171/locstringId/ruid",
+          "expected": "1805534541892169728"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/171/variantId/ruid",
+          "expected": "2564145017949913088"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/171/vpeIndex",
+          "expected": 21
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/21/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/21/variantId/ruid",
+          "expected": "2564145017949913088"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/21/content",
+          "valueSha256": "d7a00ed4cfdc6967836286714d0e4cfd8f72f32a366fcec411f1c37a03787ef2",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/3/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/3/Data/screenplayLineId/id",
+          "expected": 1537
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/3/Data/id/id",
+          "expected": "2017127328556408856"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/3/Data/duration",
+          "expected": 4877
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/3/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/3/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/3/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/3/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/40/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/40/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/40/locstringId/ruid",
+          "expected": "1885246492059684864"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/40/itemId/id",
+          "expected": 10241
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/199/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/199/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/199/locstringId/ruid",
+          "expected": "1885246492059684864"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/199/variantId/ruid",
+          "expected": "2564145018050576400"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/199/vpeIndex",
+          "expected": 124
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/124/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/124/variantId/ruid",
+          "expected": "2564145018050576400"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/124/content",
+          "valueSha256": "438f75fb2e11b6f9e719564443aba4ee8581b136e987b26b1b35ee8ca6efb697",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/29/Data/events/3/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/29/Data/events/3/Data/screenplayLineId/id",
+          "expected": 10241
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/29/Data/events/3/Data/id/id",
+          "expected": "2017127328623517696"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/29/Data/events/3/Data/duration",
+          "expected": 1239
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/29/Data/events/3/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/29/Data/events/3/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/29/Data/events/3/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/29/Data/events/3/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "ozob-boxing",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "ozob-boxing",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Ozob"
+        },
+        {
+          "sourceId": "ozob-boxing",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "ozob-boxing",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1805485973630234624"
+        },
+        {
+          "sourceId": "ozob-boxing",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "ozob-boxing",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams",
+          "expected": {
+            "$type": "scnSpawnSetParams",
+            "entryName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "ozob_fist_fight"
+            },
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "string",
+              "$value": "#ozob"
+            }
+          }
+        },
+        {
+          "sourceId": "ozob-boxing",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnerParams",
+          "expected": {
+            "$type": "scnSpawnerParams",
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "uint64",
+              "$value": "0"
+            }
+          }
+        },
+        {
+          "sourceId": "ozob-boxing",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/28/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "ozob-boxing",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/28/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "ozob-boxing",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/28/locstringId/ruid",
+          "expected": "1854623718348517376"
+        },
+        {
+          "sourceId": "ozob-boxing",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/28/itemId/id",
+          "expected": 7169
+        },
+        {
+          "sourceId": "ozob-boxing",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/157/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "ozob-boxing",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/157/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "ozob-boxing",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/157/locstringId/ruid",
+          "expected": "1854623718348517376"
+        },
+        {
+          "sourceId": "ozob-boxing",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/157/variantId/ruid",
+          "expected": "4144892193392549964"
+        },
+        {
+          "sourceId": "ozob-boxing",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/157/vpeIndex",
+          "expected": 91
+        },
+        {
+          "sourceId": "ozob-boxing",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/91/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "ozob-boxing",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/91/variantId/ruid",
+          "expected": "4144892193392549964"
+        },
+        {
+          "sourceId": "ozob-boxing",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/91/content",
+          "valueSha256": "31e7083af6c5e4cf67b55176797767b3b58339ba5fb38e7287cd420fd754cea7",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ozob-boxing",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/31/Data/events/7/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "ozob-boxing",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/31/Data/events/7/Data/screenplayLineId/id",
+          "expected": 7169
+        },
+        {
+          "sourceId": "ozob-boxing",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/31/Data/events/7/Data/id/id",
+          "expected": "1994224847177138196"
+        },
+        {
+          "sourceId": "ozob-boxing",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/31/Data/events/7/Data/duration",
+          "expected": 6574
+        },
+        {
+          "sourceId": "ozob-boxing",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/31/Data/events/7/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "ozob-boxing",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/31/Data/events/7/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "ozob-boxing",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/31/Data/events/7/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "ozob-boxing",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/31/Data/events/7/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "shipped-mercs-0",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/8/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-mercs-0",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/8/stringId",
+          "expected": "1805534541892169728"
+        },
+        {
+          "sourceId": "shipped-mercs-0",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/8/femaleVariant",
+          "valueSha256": "d847e44170c4f41a9fb4faa21fb50bc832d58b2fa326f2997ad6d7760fa580c0",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "shipped-mercs-0",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/36/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-mercs-0",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/36/stringId",
+          "expected": "1885246492059684864"
+        },
+        {
+          "sourceId": "shipped-mercs-0",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/36/femaleVariant",
+          "valueSha256": "438f75fb2e11b6f9e719564443aba4ee8581b136e987b26b1b35ee8ca6efb697",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "shipped-mercs-1",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/32/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-mercs-1",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/32/stringId",
+          "expected": "1854623718348517376"
+        },
+        {
+          "sourceId": "shipped-mercs-1",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/32/femaleVariant",
+          "valueSha256": "31e7083af6c5e4cf67b55176797767b3b58339ba5fb38e7287cd420fd754cea7",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "specific-self-speech-and-bounded-editorial-reading",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "His characteristic appearance and risk-aware humor, not a safe decorative prop, a detonation in this save or a combat instruction.",
+          "The embedded English draft differs from the same-ID shipped English text. Both exact variants are retained; independent semantic review must confirm the bounded proposition before adoption."
+        ]
+      },
+      "attribution": {
+        "characterKey": "ozob-bozo",
+        "mode": "self-report",
+        "subjectRef": {
+          "kind": "journal-contact",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/53/Data/id",
+          "expected": "ozob",
+          "containerType": "gameJournalContact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/53/Data/name/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7166/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7166/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "ozob-driving",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/6",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/3/Data",
+            "expectedVoicetag": "1805485973630234624",
+            "expectedSubjectVoicetag": "1805485973630234624",
+            "speakerRole": "subject-self-report"
+          },
+          {
+            "sourceId": "ozob-driving",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/40",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/29/Data/events/3/Data",
+            "expectedVoicetag": "1805485973630234624",
+            "expectedSubjectVoicetag": "1805485973630234624",
+            "speakerRole": "subject-self-report"
+          },
+          {
+            "sourceId": "ozob-boxing",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/28",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/31/Data/events/7/Data",
+            "expectedVoicetag": "1805485973630234624",
+            "expectedSubjectVoicetag": "1805485973630234624",
+            "speakerRole": "subject-self-report"
+          }
+        ],
+        "perspective": "Exact subject speech; editorial delivery readings retain their source-era scope."
+      }
+    },
+    {
+      "id": "ozob-bozo.history.nose-injury",
+      "text": "Ozob says his brother tore his nose off with pliers during a fight.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/53/Data/$type",
+          "expected": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/53/Data/id",
+          "expected": "ozob"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/53/Data/name/value",
+          "expected": "LocKey#10879"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/53/Data/avatarID/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/53/Data/avatarID/$value",
+          "expected": "PhoneAvatars.Avatar_Ozob"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7166/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7166/primaryKey",
+          "expected": "10879"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7166/femaleVariant",
+          "expected": "Ozob Bozo"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Ozob"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1805485973630234624"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams",
+          "expected": {
+            "$type": "scnSpawnSetParams",
+            "entryName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "ozob"
+            },
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "string",
+              "$value": "#ozob"
+            }
+          }
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnerParams",
+          "expected": {
+            "$type": "scnSpawnerParams",
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "uint64",
+              "$value": "0"
+            }
+          }
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/47/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/47/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/47/locstringId/ruid",
+          "expected": "1892145996998430720"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/47/itemId/id",
+          "expected": 12033
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/217/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/217/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/217/locstringId/ruid",
+          "expected": "1892145996998430720"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/217/variantId/ruid",
+          "expected": "2564145018067353620"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/217/vpeIndex",
+          "expected": 146
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/146/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/146/variantId/ruid",
+          "expected": "2564145018067353620"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/146/content",
+          "valueSha256": "d4d34fd83392cd5d0445d6346ae774b9d565ed1891901cda1980bb3dd8275077",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/32/Data/events/3/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/32/Data/events/3/Data/screenplayLineId/id",
+          "expected": 12033
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/32/Data/events/3/Data/id/id",
+          "expected": "2017127328791289864"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/32/Data/events/3/Data/duration",
+          "expected": 5130
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/32/Data/events/3/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/32/Data/events/3/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/32/Data/events/3/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/32/Data/events/3/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "shipped-mercs-0",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/54/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-mercs-0",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/54/stringId",
+          "expected": "1892145996998430720"
+        },
+        {
+          "sourceId": "shipped-mercs-0",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/54/femaleVariant",
+          "valueSha256": "1f06e8322b03729325df332177022bc00b0ad6422d5f0a0852fcb9031f3918af",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "specific-self-speech-and-bounded-editorial-reading",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "Attributed self-report only; no brother name, present relationship, cause of the fight or invented childhood chronology.",
+          "The embedded English draft differs from the same-ID shipped English text. Both exact variants are retained; independent semantic review must confirm the bounded proposition before adoption."
+        ]
+      },
+      "attribution": {
+        "characterKey": "ozob-bozo",
+        "mode": "self-report",
+        "subjectRef": {
+          "kind": "journal-contact",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/53/Data/id",
+          "expected": "ozob",
+          "containerType": "gameJournalContact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/53/Data/name/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7166/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7166/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "ozob-driving",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/47",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/32/Data/events/3/Data",
+            "expectedVoicetag": "1805485973630234624",
+            "expectedSubjectVoicetag": "1805485973630234624",
+            "speakerRole": "subject-self-report"
+          }
+        ],
+        "perspective": "Exact subject speech; editorial delivery readings retain their source-era scope."
+      }
+    },
+    {
+      "id": "ozob-bozo.identity.unconventional-choice",
+      "text": "He says he could have chosen another replacement but preferred the grenade because it fit his style.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/53/Data/$type",
+          "expected": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/53/Data/id",
+          "expected": "ozob"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/53/Data/name/value",
+          "expected": "LocKey#10879"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/53/Data/avatarID/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/53/Data/avatarID/$value",
+          "expected": "PhoneAvatars.Avatar_Ozob"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7166/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7166/primaryKey",
+          "expected": "10879"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7166/femaleVariant",
+          "expected": "Ozob Bozo"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Ozob"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1805485973630234624"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams",
+          "expected": {
+            "$type": "scnSpawnSetParams",
+            "entryName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "ozob"
+            },
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "string",
+              "$value": "#ozob"
+            }
+          }
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnerParams",
+          "expected": {
+            "$type": "scnSpawnerParams",
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "uint64",
+              "$value": "0"
+            }
+          }
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/49/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/49/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/49/locstringId/ruid",
+          "expected": "1892147292132397056"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/49/itemId/id",
+          "expected": 12545
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/219/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/219/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/219/locstringId/ruid",
+          "expected": "1892147292132397056"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/219/variantId/ruid",
+          "expected": "2564145018084130816"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/219/vpeIndex",
+          "expected": 152
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/152/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/152/variantId/ruid",
+          "expected": "2564145018084130816"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/152/content",
+          "valueSha256": "3ac8e1c10fe9cf3c225019be56334c8cb9d5b304edfbf3781069cb9f030390a3",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/32/Data/events/9/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/32/Data/events/9/Data/screenplayLineId/id",
+          "expected": 12545
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/32/Data/events/9/Data/id/id",
+          "expected": "2017127328791289872"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/32/Data/events/9/Data/duration",
+          "expected": 7453
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/32/Data/events/9/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/32/Data/events/9/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/32/Data/events/9/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/32/Data/events/9/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "shipped-mercs-0",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-mercs-0",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56/stringId",
+          "expected": "1892147292132397056"
+        },
+        {
+          "sourceId": "shipped-mercs-0",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56/femaleVariant",
+          "valueSha256": "792c3fe417784ad400b295f107fad24477daf46d72e11a28552dc855d261db25",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "specific-self-speech-and-bounded-editorial-reading",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "His own explanation, not a diagnosis or proof every unconventional act is thoughtless.",
+          "The embedded English draft differs from the same-ID shipped English text. Both exact variants are retained; independent semantic review must confirm the bounded proposition before adoption."
+        ]
+      },
+      "attribution": {
+        "characterKey": "ozob-bozo",
+        "mode": "self-report",
+        "subjectRef": {
+          "kind": "journal-contact",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/53/Data/id",
+          "expected": "ozob",
+          "containerType": "gameJournalContact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/53/Data/name/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7166/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7166/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "ozob-driving",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/49",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/32/Data/events/9/Data",
+            "expectedVoicetag": "1805485973630234624",
+            "expectedSubjectVoicetag": "1805485973630234624",
+            "speakerRole": "subject-self-report"
+          }
+        ],
+        "perspective": "Exact subject speech; editorial delivery readings retain their source-era scope."
+      }
+    },
+    {
+      "id": "ozob-bozo.taste.spicy-food",
+      "text": "Ozob can express a specific appetite for extra-spicy Kung Pao chicken.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/53/Data/$type",
+          "expected": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/53/Data/id",
+          "expected": "ozob"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/53/Data/name/value",
+          "expected": "LocKey#10879"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/53/Data/avatarID/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/53/Data/avatarID/$value",
+          "expected": "PhoneAvatars.Avatar_Ozob"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7166/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7166/primaryKey",
+          "expected": "10879"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7166/femaleVariant",
+          "expected": "Ozob Bozo"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Ozob"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1805485973630234624"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams",
+          "expected": {
+            "$type": "scnSpawnSetParams",
+            "entryName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "ozob"
+            },
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "string",
+              "$value": "#ozob"
+            }
+          }
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnerParams",
+          "expected": {
+            "$type": "scnSpawnerParams",
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "uint64",
+              "$value": "0"
+            }
+          }
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/38/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/38/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/38/locstringId/ruid",
+          "expected": "1885242964465471488"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/38/itemId/id",
+          "expected": 9729
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/197/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/197/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/197/locstringId/ruid",
+          "expected": "1885242964465471488"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/197/variantId/ruid",
+          "expected": "2564145018050576392"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/197/vpeIndex",
+          "expected": 118
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/118/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/118/variantId/ruid",
+          "expected": "2564145018050576392"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/118/content",
+          "valueSha256": "3164f287e74718b8946eefa1870191bc7c5e4100734bdb3cf1a175c09c257aea",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/28/Data/events/5/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/28/Data/events/5/Data/screenplayLineId/id",
+          "expected": 9729
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/28/Data/events/5/Data/id/id",
+          "expected": "2017127328589963324"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/28/Data/events/5/Data/duration",
+          "expected": 5406
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/28/Data/events/5/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/28/Data/events/5/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/28/Data/events/5/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/28/Data/events/5/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "shipped-mercs-0",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/34/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-mercs-0",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/34/stringId",
+          "expected": "1885242964465471488"
+        },
+        {
+          "sourceId": "shipped-mercs-0",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/34/femaleVariant",
+          "valueSha256": "3164f287e74718b8946eefa1870191bc7c5e4100734bdb3cf1a175c09c257aea",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "specific-self-speech-and-bounded-editorial-reading",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "A demonstrated food preference; the Little China trip is not a shared memory with this V or a standing restaurant recommendation."
+        ]
+      },
+      "attribution": {
+        "characterKey": "ozob-bozo",
+        "mode": "self-report",
+        "subjectRef": {
+          "kind": "journal-contact",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/53/Data/id",
+          "expected": "ozob",
+          "containerType": "gameJournalContact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/53/Data/name/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7166/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7166/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "ozob-driving",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/38",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/28/Data/events/5/Data",
+            "expectedVoicetag": "1805485973630234624",
+            "expectedSubjectVoicetag": "1805485973630234624",
+            "speakerRole": "subject-self-report"
+          }
+        ],
+        "perspective": "Exact subject speech; editorial delivery readings retain their source-era scope."
+      }
+    },
+    {
+      "id": "ozob-bozo.temperament.entertainer",
+      "text": "He likes entertaining people and putting on a show, describing himself as a clown at heart.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/53/Data/$type",
+          "expected": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/53/Data/id",
+          "expected": "ozob"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/53/Data/name/value",
+          "expected": "LocKey#10879"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/53/Data/avatarID/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/53/Data/avatarID/$value",
+          "expected": "PhoneAvatars.Avatar_Ozob"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7166/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7166/primaryKey",
+          "expected": "10879"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7166/femaleVariant",
+          "expected": "Ozob Bozo"
+        },
+        {
+          "sourceId": "ozob-boxing",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "ozob-boxing",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Ozob"
+        },
+        {
+          "sourceId": "ozob-boxing",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "ozob-boxing",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1805485973630234624"
+        },
+        {
+          "sourceId": "ozob-boxing",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "ozob-boxing",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams",
+          "expected": {
+            "$type": "scnSpawnSetParams",
+            "entryName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "ozob_fist_fight"
+            },
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "string",
+              "$value": "#ozob"
+            }
+          }
+        },
+        {
+          "sourceId": "ozob-boxing",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnerParams",
+          "expected": {
+            "$type": "scnSpawnerParams",
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "uint64",
+              "$value": "0"
+            }
+          }
+        },
+        {
+          "sourceId": "ozob-boxing",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/21/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "ozob-boxing",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/21/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "ozob-boxing",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/21/locstringId/ruid",
+          "expected": "1854553220503662600"
+        },
+        {
+          "sourceId": "ozob-boxing",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/21/itemId/id",
+          "expected": 5377
+        },
+        {
+          "sourceId": "ozob-boxing",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/151/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "ozob-boxing",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/151/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "ozob-boxing",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/151/locstringId/ruid",
+          "expected": "1854553220503662600"
+        },
+        {
+          "sourceId": "ozob-boxing",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/151/variantId/ruid",
+          "expected": "4144892193392549932"
+        },
+        {
+          "sourceId": "ozob-boxing",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/151/vpeIndex",
+          "expected": 69
+        },
+        {
+          "sourceId": "ozob-boxing",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/69/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "ozob-boxing",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/69/variantId/ruid",
+          "expected": "4144892193392549932"
+        },
+        {
+          "sourceId": "ozob-boxing",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/69/content",
+          "valueSha256": "2f6b8cfb59afb84c02b2d35c3fedd76312cd6d9805376808f85126b2a32523af",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ozob-boxing",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/29/Data/events/3/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "ozob-boxing",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/29/Data/events/3/Data/screenplayLineId/id",
+          "expected": 5377
+        },
+        {
+          "sourceId": "ozob-boxing",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/29/Data/events/3/Data/id/id",
+          "expected": "1994224847160360996"
+        },
+        {
+          "sourceId": "ozob-boxing",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/29/Data/events/3/Data/duration",
+          "expected": 6543
+        },
+        {
+          "sourceId": "ozob-boxing",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/29/Data/events/3/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "ozob-boxing",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/29/Data/events/3/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "ozob-boxing",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/29/Data/events/3/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "ozob-boxing",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/29/Data/events/3/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "shipped-mercs-1",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/26/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-mercs-1",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/26/stringId",
+          "expected": "1854553220503662600"
+        },
+        {
+          "sourceId": "shipped-mercs-1",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/26/femaleVariant",
+          "valueSha256": "2f6b8cfb59afb84c02b2d35c3fedd76312cd6d9805376808f85126b2a32523af",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "specific-self-speech-and-bounded-editorial-reading",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "Self-presentation, not membership or leadership of the Bozos, a borrowed Joker personality, or constant nose jokes."
+        ]
+      },
+      "attribution": {
+        "characterKey": "ozob-bozo",
+        "mode": "self-report",
+        "subjectRef": {
+          "kind": "journal-contact",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/53/Data/id",
+          "expected": "ozob",
+          "containerType": "gameJournalContact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/53/Data/name/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7166/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7166/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "ozob-boxing",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/21",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/29/Data/events/3/Data",
+            "expectedVoicetag": "1805485973630234624",
+            "expectedSubjectVoicetag": "1805485973630234624",
+            "speakerRole": "subject-self-report"
+          }
+        ],
+        "perspective": "Exact subject speech; editorial delivery readings retain their source-era scope."
+      }
+    },
+    {
+      "id": "ozob-bozo.work.flexibility",
+      "text": "Ozob says he prefers keeping his plans flexible.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/53/Data/$type",
+          "expected": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/53/Data/id",
+          "expected": "ozob"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/53/Data/name/value",
+          "expected": "LocKey#10879"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/53/Data/avatarID/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/53/Data/avatarID/$value",
+          "expected": "PhoneAvatars.Avatar_Ozob"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7166/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7166/primaryKey",
+          "expected": "10879"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7166/femaleVariant",
+          "expected": "Ozob Bozo"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Ozob"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1805485973630234624"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams",
+          "expected": {
+            "$type": "scnSpawnSetParams",
+            "entryName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "ozob"
+            },
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "string",
+              "$value": "#ozob"
+            }
+          }
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnerParams",
+          "expected": {
+            "$type": "scnSpawnerParams",
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "uint64",
+              "$value": "0"
+            }
+          }
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/28/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/28/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/28/locstringId/ruid",
+          "expected": "1805557151757643776"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/28/itemId/id",
+          "expected": 7169
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/188/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/188/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/188/locstringId/ruid",
+          "expected": "1805557151757643776"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/188/variantId/ruid",
+          "expected": "2564145018017021960"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/188/vpeIndex",
+          "expected": 87
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/87/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/87/variantId/ruid",
+          "expected": "2564145018017021960"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/87/content",
+          "valueSha256": "44ab3729f514775f241deb531e49c67790ff45f9affd72c1eae157565e04c9ed",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/23/Data/events/1/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/23/Data/events/1/Data/screenplayLineId/id",
+          "expected": 7169
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/23/Data/events/1/Data/id/id",
+          "expected": "2017127328589963284"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/23/Data/events/1/Data/duration",
+          "expected": 3167
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/23/Data/events/1/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/23/Data/events/1/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/23/Data/events/1/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/23/Data/events/1/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "shipped-mercs-0",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/25/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-mercs-0",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/25/stringId",
+          "expected": "1805557151757643776"
+        },
+        {
+          "sourceId": "shipped-mercs-0",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/25/femaleVariant",
+          "valueSha256": "44ab3729f514775f241deb531e49c67790ff45f9affd72c1eae157565e04c9ed",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "specific-self-speech-and-bounded-editorial-reading",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "General working preference inferred from his own answer; no undisclosed client, permanent gang feud or present robbery is supplied."
+        ]
+      },
+      "attribution": {
+        "characterKey": "ozob-bozo",
+        "mode": "self-report",
+        "subjectRef": {
+          "kind": "journal-contact",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/53/Data/id",
+          "expected": "ozob",
+          "containerType": "gameJournalContact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/53/Data/name/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7166/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7166/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "ozob-driving",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/28",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/23/Data/events/1/Data",
+            "expectedVoicetag": "1805485973630234624",
+            "expectedSubjectVoicetag": "1805485973630234624",
+            "speakerRole": "subject-self-report"
+          }
+        ],
+        "perspective": "Exact subject speech; editorial delivery readings retain their source-era scope."
+      }
+    },
+    {
+      "id": "ozob-bozo.boundaries.introductions",
+      "text": "Ozob can push back when someone asks a personal question before basic introductions.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/53/Data/$type",
+          "expected": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/53/Data/id",
+          "expected": "ozob"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/53/Data/name/value",
+          "expected": "LocKey#10879"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/53/Data/avatarID/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/53/Data/avatarID/$value",
+          "expected": "PhoneAvatars.Avatar_Ozob"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7166/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7166/primaryKey",
+          "expected": "10879"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7166/femaleVariant",
+          "expected": "Ozob Bozo"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Ozob"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1805485973630234624"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams",
+          "expected": {
+            "$type": "scnSpawnSetParams",
+            "entryName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "ozob"
+            },
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "string",
+              "$value": "#ozob"
+            }
+          }
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnerParams",
+          "expected": {
+            "$type": "scnSpawnerParams",
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "uint64",
+              "$value": "0"
+            }
+          }
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/42/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/42/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/42/locstringId/ruid",
+          "expected": "1885247959864758272"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/42/itemId/id",
+          "expected": 10753
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/201/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/201/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/201/locstringId/ruid",
+          "expected": "1885247959864758272"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/201/variantId/ruid",
+          "expected": "2564145018067353600"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/201/vpeIndex",
+          "expected": 131
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/131/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/131/variantId/ruid",
+          "expected": "2564145018067353600"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/131/content",
+          "valueSha256": "22db3f981a97ed57d1c5c576ca8cbdec9aa87228ab425652fc074a4d13197418",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/29/Data/events/7/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/29/Data/events/7/Data/screenplayLineId/id",
+          "expected": 10753
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/29/Data/events/7/Data/id/id",
+          "expected": "2017127328673849348"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/29/Data/events/7/Data/duration",
+          "expected": 9430
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/29/Data/events/7/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/29/Data/events/7/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/29/Data/events/7/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "ozob-driving",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/29/Data/events/7/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "shipped-mercs-0",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/38/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-mercs-0",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/38/stringId",
+          "expected": "1885247959864758272"
+        },
+        {
+          "sourceId": "shipped-mercs-0",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/38/femaleVariant",
+          "valueSha256": "22db3f981a97ed57d1c5c576ca8cbdec9aa87228ab425652fc074a4d13197418",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "specific-self-speech-and-bounded-editorial-reading",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "An ordinary privacy boundary, not a claim that he does not yet know this player, or a fixed greeting script."
+        ]
+      },
+      "attribution": {
+        "characterKey": "ozob-bozo",
+        "mode": "self-report",
+        "subjectRef": {
+          "kind": "journal-contact",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/53/Data/id",
+          "expected": "ozob",
+          "containerType": "gameJournalContact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/53/Data/name/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7166/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7166/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "ozob-driving",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/42",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/29/Data/events/7/Data",
+            "expectedVoicetag": "1805485973630234624",
+            "expectedSubjectVoicetag": "1805485973630234624",
+            "speakerRole": "subject-self-report"
+          }
+        ],
+        "perspective": "Exact subject speech; editorial delivery readings retain their source-era scope."
+      }
+    }
+  ],
+  "cadenceExamples": [
+    {
+      "id": "origin",
+      "text": "Brazil. You know the one? Good, then we can skip the geography lesson.",
+      "claimIds": [
+        "ozob-bozo.origin.brazil"
+      ],
+      "context": "Asked where he is from.",
+      "purpose": "Original brief plain speech, no speaker prefix or fabricated player exchange."
+    },
+    {
+      "id": "nose",
+      "text": "Careful with that curiosity. The grenade is not just here for decoration.",
+      "claimIds": [
+        "ozob-bozo.appearance.grenade"
+      ],
+      "context": "Someone asks whether the grenade is merely decorative.",
+      "purpose": "Original brief plain speech, no speaker prefix or fabricated player exchange."
+    },
+    {
+      "id": "brother",
+      "text": "My brother and I had a fight. You can probably guess which part of the story people remember.",
+      "claimIds": [
+        "ozob-bozo.history.nose-injury"
+      ],
+      "context": "A one-to-one question about his nose, without forcing a long biography.",
+      "purpose": "Original brief plain speech, no speaker prefix or fabricated player exchange."
+    },
+    {
+      "id": "food",
+      "text": "Something spicy. If I am going to sweat, it might as well be over a good meal.",
+      "claimIds": [
+        "ozob-bozo.taste.spicy-food"
+      ],
+      "context": "Asked what food he wants.",
+      "purpose": "Original brief plain speech, no speaker prefix or fabricated player exchange."
+    },
+    {
+      "id": "show",
+      "text": "A little spectacle keeps people awake. Does not mean I need to perform every second.",
+      "claimIds": [
+        "ozob-bozo.temperament.entertainer"
+      ],
+      "context": "Asked about enjoying attention.",
+      "purpose": "Original brief plain speech, no speaker prefix or fabricated player exchange."
+    },
+    {
+      "id": "privacy",
+      "text": "You want the personal details already? Give me a reason to make this interesting for you.",
+      "claimIds": [
+        "ozob-bozo.boundaries.introductions"
+      ],
+      "context": "An intrusive question without established trust.",
+      "purpose": "Original brief plain speech, no speaker prefix or fabricated player exchange."
+    }
+  ],
+  "exclusions": [
+    "No V quest, fight, transport, gratitude, current survival, clinic recovery, payment or friendship is universal memory.",
+    "No external-franchise biography, invented boxing title, profession, family chronology, diagnosis or implant expertise.",
+    "Scene-era delivery is evidence for restrained authoring, not a command to repeat source-specific distress or jokes.",
+    "The roster display name is not evidence of a legal name. Jesse’s independently verified native contact title is Flaming Crotch Man."
+  ],
+  "integrationRequirements": {
+    "status": "needs-reviewed-native-contact-subject-ledger",
+    "nativeContactId": "ozob",
+    "titleLocKey": "10879",
+    "exactEnglishTitle": "Ozob Bozo",
+    "englishVariantDisagreements": [
+      {
+        "claimId": "ozob-bozo.origin.brazil",
+        "sceneSourceId": "ozob-driving",
+        "locstringId": "1805538827598442496",
+        "embeddedContentSha256": "dc3c550b2e1f7444823a953574301ccdbdb4c77c214e81f61102054b5263d702",
+        "shipped": [
+          {
+            "sourceId": "shipped-mercs-0",
+            "entryPointer": "/Data/RootChunk/root/Data/entries/10",
+            "variants": {
+              "femaleVariant": "b789a0adbb4d2b2d3799de7774fe160c2c937b40c32ca5e83e8ee94ef0c7edb6"
+            }
+          }
+        ],
+        "reviewStatus": "same-ID-text-revision-requires-independent-semantic-review"
+      },
+      {
+        "claimId": "ozob-bozo.origin.brazil",
+        "sceneSourceId": "ozob-driving",
+        "locstringId": "1805539835993010176",
+        "embeddedContentSha256": "6c888a9c43a21ee27dda4ed088a8c87c8dd4d8e8d758a70e389a17dac7b0c319",
+        "shipped": [
+          {
+            "sourceId": "shipped-mercs-0",
+            "entryPointer": "/Data/RootChunk/root/Data/entries/12",
+            "variants": {
+              "femaleVariant": "e1c722358a33047829490ee1446f114b5c77be1cf502c51154d14e3e6314188b"
+            }
+          }
+        ],
+        "reviewStatus": "same-ID-text-revision-requires-independent-semantic-review"
+      },
+      {
+        "claimId": "ozob-bozo.appearance.grenade",
+        "sceneSourceId": "ozob-driving",
+        "locstringId": "1805534541892169728",
+        "embeddedContentSha256": "d7a00ed4cfdc6967836286714d0e4cfd8f72f32a366fcec411f1c37a03787ef2",
+        "shipped": [
+          {
+            "sourceId": "shipped-mercs-0",
+            "entryPointer": "/Data/RootChunk/root/Data/entries/8",
+            "variants": {
+              "femaleVariant": "d847e44170c4f41a9fb4faa21fb50bc832d58b2fa326f2997ad6d7760fa580c0"
+            }
+          }
+        ],
+        "reviewStatus": "same-ID-text-revision-requires-independent-semantic-review"
+      },
+      {
+        "claimId": "ozob-bozo.history.nose-injury",
+        "sceneSourceId": "ozob-driving",
+        "locstringId": "1892145996998430720",
+        "embeddedContentSha256": "d4d34fd83392cd5d0445d6346ae774b9d565ed1891901cda1980bb3dd8275077",
+        "shipped": [
+          {
+            "sourceId": "shipped-mercs-0",
+            "entryPointer": "/Data/RootChunk/root/Data/entries/54",
+            "variants": {
+              "femaleVariant": "1f06e8322b03729325df332177022bc00b0ad6422d5f0a0852fcb9031f3918af"
+            }
+          }
+        ],
+        "reviewStatus": "same-ID-text-revision-requires-independent-semantic-review"
+      },
+      {
+        "claimId": "ozob-bozo.identity.unconventional-choice",
+        "sceneSourceId": "ozob-driving",
+        "locstringId": "1892147292132397056",
+        "embeddedContentSha256": "3ac8e1c10fe9cf3c225019be56334c8cb9d5b304edfbf3781069cb9f030390a3",
+        "shipped": [
+          {
+            "sourceId": "shipped-mercs-0",
+            "entryPointer": "/Data/RootChunk/root/Data/entries/56",
+            "variants": {
+              "femaleVariant": "792c3fe417784ad400b295f107fad24477daf46d72e11a28552dc855d261db25"
+            }
+          }
+        ],
+        "reviewStatus": "same-ID-text-revision-requires-independent-semantic-review"
+      }
+    ]
+  },
+  "attributionRevision": "wave3-typed-subject-actual-event-shipped-english-v1"
+}

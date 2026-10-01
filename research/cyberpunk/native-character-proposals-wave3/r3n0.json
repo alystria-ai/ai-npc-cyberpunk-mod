@@ -1,0 +1,2097 @@
+{
+  "version": 1,
+  "key": "r3n0",
+  "name": "R3n0",
+  "gameVersions": [
+    "2.31"
+  ],
+  "createdAt": "2026-10-01",
+  "scope": "Source-authenticated intrinsic proposal; parent adoption required; no cloud, runtime, player-history or memory action",
+  "nativeSubject": {
+    "kind": "journal-contact",
+    "contactId": "seller",
+    "containerType": "gameJournalContact",
+    "titleBound": true
+  },
+  "nativeSources": [
+    {
+      "id": "english",
+      "depotPath": "base\\localization\\en-us\\onscreens\\onscreens.json",
+      "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+      "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+      "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+      "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+      "archiveEntrySha1": "1131d968cfae38ebf79242e24aadafc051545992",
+      "archive": "base",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "7469411510719000253",
+      "inventoryPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/inventory.json",
+      "inventorySha256": "d5b80cdd030038f2389d9eb9aab7006d6bd95df80787db21d179345acaa21356",
+      "serializationVerified": true,
+      "sourceKind": "installed-native",
+      "locale": "en_us"
+    },
+    {
+      "id": "journal",
+      "depotPath": "base\\journal\\cooked_journal.journal",
+      "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+      "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+      "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+      "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+      "archiveEntrySha1": "be95e34f16d4d1044e5e0104174a1038c02e57e0",
+      "archive": "ep1",
+      "archivePath": "archive/pc/ep1/ep1_2_gamedata.archive",
+      "pathHash64": "17440916468644548477",
+      "inventoryPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/inventory.json",
+      "inventorySha256": "d5b80cdd030038f2389d9eb9aab7006d6bd95df80787db21d179345acaa21356",
+      "serializationVerified": true,
+      "sourceKind": "installed-native",
+      "locale": null
+    },
+    {
+      "id": "reno-phone",
+      "depotPath": "base\\quest\\minor_quests\\mq015\\scenes\\mq015_02_seller_holocall.scene",
+      "rawPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene",
+      "jsonPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene.json",
+      "assetSha256": "3f19852c45592e667689e7e556f49d6d44d957fe5edb514c03b0a3fc05fad249",
+      "jsonSha256": "4623208bb3b748c9f588c5da4dc1d446c174856ce7d6c2cccd5e8c142e0d5eb6",
+      "archiveEntrySha1": "dea4a359c5ec66e274bf9db2ce2f9f9ca8cce4ae",
+      "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+      "pathHash64": "8759992366761621810",
+      "inventoryPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/inventory.json",
+      "inventorySha256": "a7426fdfd8a811dcffc3c005d8933a24ad135184218c693b2e4add3a85349a57",
+      "serializationVerified": true,
+      "sourceKind": "installed-native",
+      "locale": null
+    },
+    {
+      "id": "reno-restaurant",
+      "depotPath": "base\\quest\\minor_quests\\mq015\\scenes\\mq015_03_restaurant.scene",
+      "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_03_restaurant.scene",
+      "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_03_restaurant.scene.json",
+      "assetSha256": "bc4a9ff6ed87c54d8013cc9cc13c334c7a5294843455a8b5d264818d2ac74712",
+      "jsonSha256": "f88d00d705c690b0577b9e0476ac807bd0af77f5c82c9f055cf546851e3e428e",
+      "archiveEntrySha1": "2ab40578ee56f45b7f3a4ced411b4a5a7e1437eb",
+      "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+      "pathHash64": "1541724477568596532",
+      "inventoryPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/inventory.json",
+      "inventorySha256": "f0b6c0005b839bd69634f14103188d649afa28d6f82f8d1cc48ee7de78ba9ebd",
+      "serializationVerified": true,
+      "sourceKind": "installed-native",
+      "locale": null
+    },
+    {
+      "id": "sub-base-mq015-02-seller-holocall",
+      "depotPath": "base\\localization\\en-us\\subtitles\\quest\\mq015\\mq015_02_seller_holocall.json",
+      "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq015_02_seller_holocall.json",
+      "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq015_02_seller_holocall.json.json",
+      "assetSha256": "632e314cf2d4f74817dd298da70925567a7c57c901fedd2cabf71432d2a0fc79",
+      "jsonSha256": "585bfd136ff68bacb25342f27d3fbccd40e4f49db4b67885663e5a3ad3415239",
+      "archiveEntrySha1": "d495ff33816c2526e0f4e7bae1e8e59539148be6",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "17261299912501488068",
+      "inventoryPath": "research/cyberpunk/cache/game/localization/inventory.json",
+      "inventorySha256": "9eefd4d3d25561cc28b9b9afd05783af9ff6f85da2bc3d2777e0ac9e5570f6ed",
+      "serializationVerified": true,
+      "sourceKind": "installed-native",
+      "locale": "en_us",
+      "serializationReview": {
+        "pinnedToolSha256": "7ae9c308da2fe003220b55ce4ca9c122b51f0701a67db1618cca3ff4f7ff6738",
+        "cachedDataMatchesFresh": true,
+        "installedArchiveSha256Verified": true
+      }
+    },
+    {
+      "id": "sub-base-mq015-03-restaurant",
+      "depotPath": "base\\localization\\en-us\\subtitles\\quest\\mq015\\mq015_03_restaurant.json",
+      "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq015_03_restaurant.json",
+      "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq015_03_restaurant.json.json",
+      "assetSha256": "e1f252f765ace461793433fcbc85f418f5ce68b7bc8b999902898e759713d934",
+      "jsonSha256": "64165445fc5682cdf0170cb94b36cceb7345c8ea752b62b3ec727982c43ac982",
+      "archiveEntrySha1": "f27029a531391489f6f8de2272fbdcb1603e64e0",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "17311830865087881494",
+      "inventoryPath": "research/cyberpunk/cache/game/localization/inventory.json",
+      "inventorySha256": "9eefd4d3d25561cc28b9b9afd05783af9ff6f85da2bc3d2777e0ac9e5570f6ed",
+      "serializationVerified": true,
+      "sourceKind": "installed-native",
+      "locale": "en_us",
+      "serializationReview": {
+        "pinnedToolSha256": "7ae9c308da2fe003220b55ce4ca9c122b51f0701a67db1618cca3ff4f7ff6738",
+        "cachedDataMatchesFresh": true,
+        "installedArchiveSha256Verified": true
+      }
+    }
+  ],
+  "claims": [
+    {
+      "id": "work.book-sale",
+      "text": "R3n0 offers a book as the subject of a guarded transaction.",
+      "kind": "intrinsic",
+      "disclosure": "self-may-volunteer",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "exactnativeRefs": [
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/30/Data/$type",
+          "expectedValue": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/30/Data/id",
+          "expectedValue": "seller"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/30/Data/name/value",
+          "expectedValue": "LocKey#10904"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7191/primaryKey",
+          "expectedValue": "10904"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7191/femaleVariant",
+          "expectedValue": "R3n0"
+        },
+        {
+          "sourceId": "reno-phone",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene.json",
+          "assetSha256": "3f19852c45592e667689e7e556f49d6d44d957fe5edb514c03b0a3fc05fad249",
+          "jsonSha256": "4623208bb3b748c9f588c5da4dc1d446c174856ce7d6c2cccd5e8c142e0d5eb6",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/4",
+          "expectedValue": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 1
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_1932DA5A804EA004"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 1025
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1815753682018279428"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_1932DA5A804EA004"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 0
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "reno-phone",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene.json",
+          "assetSha256": "3f19852c45592e667689e7e556f49d6d44d957fe5edb514c03b0a3fc05fad249",
+          "jsonSha256": "4623208bb3b748c9f588c5da4dc1d446c174856ce7d6c2cccd5e8c142e0d5eb6",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expectedValue": "scnActorDef"
+        },
+        {
+          "sourceId": "reno-phone",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene.json",
+          "assetSha256": "3f19852c45592e667689e7e556f49d6d44d957fe5edb514c03b0a3fc05fad249",
+          "jsonSha256": "4623208bb3b748c9f588c5da4dc1d446c174856ce7d6c2cccd5e8c142e0d5eb6",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expectedValue": "Seller"
+        },
+        {
+          "sourceId": "reno-phone",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene.json",
+          "assetSha256": "3f19852c45592e667689e7e556f49d6d44d957fe5edb514c03b0a3fc05fad249",
+          "jsonSha256": "4623208bb3b748c9f588c5da4dc1d446c174856ce7d6c2cccd5e8c142e0d5eb6",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId",
+          "expectedValue": {
+            "$type": "scnActorId",
+            "id": 0
+          }
+        },
+        {
+          "sourceId": "reno-phone",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene.json",
+          "assetSha256": "3f19852c45592e667689e7e556f49d6d44d957fe5edb514c03b0a3fc05fad249",
+          "jsonSha256": "4623208bb3b748c9f588c5da4dc1d446c174856ce7d6c2cccd5e8c142e0d5eb6",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId",
+          "expectedValue": {
+            "$type": "scnVoicetagId",
+            "id": "1624173162010259764"
+          }
+        },
+        {
+          "sourceId": "reno-phone",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene.json",
+          "assetSha256": "3f19852c45592e667689e7e556f49d6d44d957fe5edb514c03b0a3fc05fad249",
+          "jsonSha256": "4623208bb3b748c9f588c5da4dc1d446c174856ce7d6c2cccd5e8c142e0d5eb6",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expectedValue": "findInContext"
+        },
+        {
+          "sourceId": "reno-phone",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene.json",
+          "assetSha256": "3f19852c45592e667689e7e556f49d6d44d957fe5edb514c03b0a3fc05fad249",
+          "jsonSha256": "4623208bb3b748c9f588c5da4dc1d446c174856ce7d6c2cccd5e8c142e0d5eb6",
+          "jsonPointer": "/Data/RootChunk/actors/0/findActorInContextParams",
+          "expectedValue": {
+            "$type": "scnFindEntityInContextParams",
+            "contextActorName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "None"
+            },
+            "contextualName": "Voice",
+            "forceMaxVisibility": 1,
+            "specRecordId": {
+              "$type": "TweakDBID",
+              "$storage": "string",
+              "$value": "Character.mq015_seller"
+            },
+            "voiceVagId": {
+              "$type": "scnVoicetagId",
+              "id": "1624173162010259764"
+            }
+          }
+        },
+        {
+          "sourceId": "reno-phone",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene.json",
+          "assetSha256": "3f19852c45592e667689e7e556f49d6d44d957fe5edb514c03b0a3fc05fad249",
+          "jsonSha256": "4623208bb3b748c9f588c5da4dc1d446c174856ce7d6c2cccd5e8c142e0d5eb6",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/21",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+            "localeId": "en_us",
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1815753682018279428"
+            },
+            "signature": {
+              "$type": "scnlocSignature",
+              "val": "3"
+            },
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "2086506387713871884"
+            },
+            "vpeIndex": 15
+          }
+        },
+        {
+          "sourceId": "reno-phone",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene.json",
+          "assetSha256": "3f19852c45592e667689e7e556f49d6d44d957fe5edb514c03b0a3fc05fad249",
+          "jsonSha256": "4623208bb3b748c9f588c5da4dc1d446c174856ce7d6c2cccd5e8c142e0d5eb6",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/15",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+            "content": "Hey! You lookin' for the book?",
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "2086506387713871884"
+            }
+          }
+        },
+        {
+          "sourceId": "sub-base-mq015-02-seller-holocall",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq015_02_seller_holocall.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq015_02_seller_holocall.json.json",
+          "assetSha256": "632e314cf2d4f74817dd298da70925567a7c57c901fedd2cabf71432d2a0fc79",
+          "jsonSha256": "585bfd136ff68bacb25342f27d3fbccd40e4f49db4b67885663e5a3ad3415239",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/2/$type",
+          "expectedValue": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "sub-base-mq015-02-seller-holocall",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq015_02_seller_holocall.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq015_02_seller_holocall.json.json",
+          "assetSha256": "632e314cf2d4f74817dd298da70925567a7c57c901fedd2cabf71432d2a0fc79",
+          "jsonSha256": "585bfd136ff68bacb25342f27d3fbccd40e4f49db4b67885663e5a3ad3415239",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/2/stringId",
+          "expectedValue": "1815753682018279428"
+        },
+        {
+          "sourceId": "sub-base-mq015-02-seller-holocall",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq015_02_seller_holocall.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq015_02_seller_holocall.json.json",
+          "assetSha256": "632e314cf2d4f74817dd298da70925567a7c57c901fedd2cabf71432d2a0fc79",
+          "jsonSha256": "585bfd136ff68bacb25342f27d3fbccd40e4f49db4b67885663e5a3ad3415239",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/2/femaleVariant",
+          "expectedValue": "Hey! You lookin' for the book?"
+        },
+        {
+          "sourceId": "reno-phone",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene.json",
+          "assetSha256": "3f19852c45592e667689e7e556f49d6d44d957fe5edb514c03b0a3fc05fad249",
+          "jsonSha256": "4623208bb3b748c9f588c5da4dc1d446c174856ce7d6c2cccd5e8c142e0d5eb6",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/0/Data",
+          "expectedValue": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 2390,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "2057655143998857224"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 1025
+            },
+            "startTime": 0,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 1,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Phone"
+            }
+          }
+        },
+        {
+          "sourceId": "reno-phone",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene.json",
+          "assetSha256": "3f19852c45592e667689e7e556f49d6d44d957fe5edb514c03b0a3fc05fad249",
+          "jsonSha256": "4623208bb3b748c9f588c5da4dc1d446c174856ce7d6c2cccd5e8c142e0d5eb6",
+          "jsonPointer": "/Data/RootChunk/actors/0/findActorInContextParams/specRecordId",
+          "expectedValue": {
+            "$type": "TweakDBID",
+            "$storage": "string",
+            "$value": "Character.mq015_seller"
+          }
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/20789/$type",
+          "expectedValue": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/20789/primaryKey",
+          "expectedValue": "32025"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/20789/secondaryKey",
+          "expectedValue": "Story-base-gameplay-static_data-database-characters-npcs-records-quest-minor_quests-mq015-mq015_seller_displayName"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/20789/femaleVariant",
+          "expectedValue": "R3N0"
+        }
+      ],
+      "qualification": {
+        "evidenceBasis": "native-dialogue",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": "The offer does not authenticate every claim about the artifact or imply a completed purchase.",
+        "viewpoint": "Specific speaker delivery or self-description, not proof that this conversation occurred in the current save.",
+        "profileUse": "topic-knowledge"
+      },
+      "attribution": {
+        "characterKey": "r3n0",
+        "mode": "self-report",
+        "subjectRef": {
+          "kind": "actor-record",
+          "sourceId": "reno-phone",
+          "actorPointer": "/Data/RootChunk/actors/0",
+          "jsonPointer": "/Data/RootChunk/actors/0/findActorInContextParams/specRecordId",
+          "canonicalRecord": "Character.mq015_seller",
+          "containerType": "TweakDBID"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/30/Data/name/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7191/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7191/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "reno-phone",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/4",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/0/Data",
+            "expectedVoicetag": "1624173162010259764",
+            "expectedSubjectVoicetag": "1624173162010259764"
+          }
+        ],
+        "perspective": "The emitted phone speech belongs to the same findInContext actor with active Character.mq015_seller; record-specific installed display name is R3N0.",
+        "recordDisplayNameRefs": [
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/20789/secondaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/20789/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/20789/femaleVariant"
+          }
+        ],
+        "recordDisplayNameBinding": {
+          "kind": "reviewed-live-property",
+          "reviewId": "r3n0-live-property-oct01",
+          "record": "Character.mq015_seller",
+          "flat": "displayName",
+          "jsonPointer": "/properties/displayName"
+        }
+      },
+      "mediaRole": "phone/holocall delivery; no clean ordinary voice-reference qualification implied"
+    },
+    {
+      "id": "values.firm-terms",
+      "text": "She states a firm price and expects payment in full at pickup.",
+      "kind": "intrinsic",
+      "disclosure": "self-may-volunteer",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "exactnativeRefs": [
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/30/Data/$type",
+          "expectedValue": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/30/Data/id",
+          "expectedValue": "seller"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/30/Data/name/value",
+          "expectedValue": "LocKey#10904"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7191/primaryKey",
+          "expectedValue": "10904"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7191/femaleVariant",
+          "expectedValue": "R3n0"
+        },
+        {
+          "sourceId": "reno-phone",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene.json",
+          "assetSha256": "3f19852c45592e667689e7e556f49d6d44d957fe5edb514c03b0a3fc05fad249",
+          "jsonSha256": "4623208bb3b748c9f588c5da4dc1d446c174856ce7d6c2cccd5e8c142e0d5eb6",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/1",
+          "expectedValue": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 1
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_1932E36C014EA000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 257
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1815763652801634304"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_1932E36C014EA000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 0
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "reno-phone",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene.json",
+          "assetSha256": "3f19852c45592e667689e7e556f49d6d44d957fe5edb514c03b0a3fc05fad249",
+          "jsonSha256": "4623208bb3b748c9f588c5da4dc1d446c174856ce7d6c2cccd5e8c142e0d5eb6",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expectedValue": "scnActorDef"
+        },
+        {
+          "sourceId": "reno-phone",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene.json",
+          "assetSha256": "3f19852c45592e667689e7e556f49d6d44d957fe5edb514c03b0a3fc05fad249",
+          "jsonSha256": "4623208bb3b748c9f588c5da4dc1d446c174856ce7d6c2cccd5e8c142e0d5eb6",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expectedValue": "Seller"
+        },
+        {
+          "sourceId": "reno-phone",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene.json",
+          "assetSha256": "3f19852c45592e667689e7e556f49d6d44d957fe5edb514c03b0a3fc05fad249",
+          "jsonSha256": "4623208bb3b748c9f588c5da4dc1d446c174856ce7d6c2cccd5e8c142e0d5eb6",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId",
+          "expectedValue": {
+            "$type": "scnActorId",
+            "id": 0
+          }
+        },
+        {
+          "sourceId": "reno-phone",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene.json",
+          "assetSha256": "3f19852c45592e667689e7e556f49d6d44d957fe5edb514c03b0a3fc05fad249",
+          "jsonSha256": "4623208bb3b748c9f588c5da4dc1d446c174856ce7d6c2cccd5e8c142e0d5eb6",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId",
+          "expectedValue": {
+            "$type": "scnVoicetagId",
+            "id": "1624173162010259764"
+          }
+        },
+        {
+          "sourceId": "reno-phone",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene.json",
+          "assetSha256": "3f19852c45592e667689e7e556f49d6d44d957fe5edb514c03b0a3fc05fad249",
+          "jsonSha256": "4623208bb3b748c9f588c5da4dc1d446c174856ce7d6c2cccd5e8c142e0d5eb6",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expectedValue": "findInContext"
+        },
+        {
+          "sourceId": "reno-phone",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene.json",
+          "assetSha256": "3f19852c45592e667689e7e556f49d6d44d957fe5edb514c03b0a3fc05fad249",
+          "jsonSha256": "4623208bb3b748c9f588c5da4dc1d446c174856ce7d6c2cccd5e8c142e0d5eb6",
+          "jsonPointer": "/Data/RootChunk/actors/0/findActorInContextParams",
+          "expectedValue": {
+            "$type": "scnFindEntityInContextParams",
+            "contextActorName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "None"
+            },
+            "contextualName": "Voice",
+            "forceMaxVisibility": 1,
+            "specRecordId": {
+              "$type": "TweakDBID",
+              "$storage": "string",
+              "$value": "Character.mq015_seller"
+            },
+            "voiceVagId": {
+              "$type": "scnVoicetagId",
+              "id": "1624173162010259764"
+            }
+          }
+        },
+        {
+          "sourceId": "reno-phone",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene.json",
+          "assetSha256": "3f19852c45592e667689e7e556f49d6d44d957fe5edb514c03b0a3fc05fad249",
+          "jsonSha256": "4623208bb3b748c9f588c5da4dc1d446c174856ce7d6c2cccd5e8c142e0d5eb6",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/22",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+            "localeId": "en_us",
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1815763652801634304"
+            },
+            "signature": {
+              "$type": "scnlocSignature",
+              "val": "3"
+            },
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "2086506387713871872"
+            },
+            "vpeIndex": 5
+          }
+        },
+        {
+          "sourceId": "reno-phone",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene.json",
+          "assetSha256": "3f19852c45592e667689e7e556f49d6d44d957fe5edb514c03b0a3fc05fad249",
+          "jsonSha256": "4623208bb3b748c9f588c5da4dc1d446c174856ce7d6c2cccd5e8c142e0d5eb6",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/5",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+            "content": "Price non-negotiable. You'll need to pay in full on pick-up.",
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "2086506387713871872"
+            }
+          }
+        },
+        {
+          "sourceId": "sub-base-mq015-02-seller-holocall",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq015_02_seller_holocall.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq015_02_seller_holocall.json.json",
+          "assetSha256": "632e314cf2d4f74817dd298da70925567a7c57c901fedd2cabf71432d2a0fc79",
+          "jsonSha256": "585bfd136ff68bacb25342f27d3fbccd40e4f49db4b67885663e5a3ad3415239",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/3/$type",
+          "expectedValue": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "sub-base-mq015-02-seller-holocall",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq015_02_seller_holocall.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq015_02_seller_holocall.json.json",
+          "assetSha256": "632e314cf2d4f74817dd298da70925567a7c57c901fedd2cabf71432d2a0fc79",
+          "jsonSha256": "585bfd136ff68bacb25342f27d3fbccd40e4f49db4b67885663e5a3ad3415239",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/3/stringId",
+          "expectedValue": "1815763652801634304"
+        },
+        {
+          "sourceId": "sub-base-mq015-02-seller-holocall",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq015_02_seller_holocall.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq015_02_seller_holocall.json.json",
+          "assetSha256": "632e314cf2d4f74817dd298da70925567a7c57c901fedd2cabf71432d2a0fc79",
+          "jsonSha256": "585bfd136ff68bacb25342f27d3fbccd40e4f49db4b67885663e5a3ad3415239",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/3/femaleVariant",
+          "expectedValue": "Price non-negotiable. You'll need to pay in full on pick-up."
+        },
+        {
+          "sourceId": "reno-phone",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene.json",
+          "assetSha256": "3f19852c45592e667689e7e556f49d6d44d957fe5edb514c03b0a3fc05fad249",
+          "jsonSha256": "4623208bb3b748c9f588c5da4dc1d446c174856ce7d6c2cccd5e8c142e0d5eb6",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/1/Data/events/1/Data",
+          "expectedValue": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 4287,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "2057655143982080004"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 257
+            },
+            "startTime": 1524,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 1,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Phone"
+            }
+          }
+        },
+        {
+          "sourceId": "reno-phone",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene.json",
+          "assetSha256": "3f19852c45592e667689e7e556f49d6d44d957fe5edb514c03b0a3fc05fad249",
+          "jsonSha256": "4623208bb3b748c9f588c5da4dc1d446c174856ce7d6c2cccd5e8c142e0d5eb6",
+          "jsonPointer": "/Data/RootChunk/actors/0/findActorInContextParams/specRecordId",
+          "expectedValue": {
+            "$type": "TweakDBID",
+            "$storage": "string",
+            "$value": "Character.mq015_seller"
+          }
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/20789/$type",
+          "expectedValue": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/20789/primaryKey",
+          "expectedValue": "32025"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/20789/secondaryKey",
+          "expectedValue": "Story-base-gameplay-static_data-database-characters-npcs-records-quest-minor_quests-mq015-mq015_seller_displayName"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/20789/femaleVariant",
+          "expectedValue": "R3N0"
+        }
+      ],
+      "qualification": {
+        "evidenceBasis": "native-dialogue",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": "A bargaining posture, not a universal price, guarantee or completed exchange.",
+        "viewpoint": "Specific speaker delivery or self-description, not proof that this conversation occurred in the current save.",
+        "profileUse": "topic-knowledge"
+      },
+      "attribution": {
+        "characterKey": "r3n0",
+        "mode": "self-report",
+        "subjectRef": {
+          "kind": "actor-record",
+          "sourceId": "reno-phone",
+          "actorPointer": "/Data/RootChunk/actors/0",
+          "jsonPointer": "/Data/RootChunk/actors/0/findActorInContextParams/specRecordId",
+          "canonicalRecord": "Character.mq015_seller",
+          "containerType": "TweakDBID"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/30/Data/name/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7191/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7191/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "reno-phone",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/1",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/1/Data/events/1/Data",
+            "expectedVoicetag": "1624173162010259764",
+            "expectedSubjectVoicetag": "1624173162010259764"
+          }
+        ],
+        "perspective": "The emitted phone speech belongs to the same findInContext actor with active Character.mq015_seller; record-specific installed display name is R3N0.",
+        "recordDisplayNameRefs": [
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/20789/secondaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/20789/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/20789/femaleVariant"
+          }
+        ],
+        "recordDisplayNameBinding": {
+          "kind": "reviewed-live-property",
+          "reviewId": "r3n0-live-property-oct01",
+          "record": "Character.mq015_seller",
+          "flat": "displayName",
+          "jsonPointer": "/properties/displayName"
+        }
+      },
+      "mediaRole": "phone/holocall delivery; no clean ordinary voice-reference qualification implied"
+    },
+    {
+      "id": "values.private-meeting",
+      "text": "She prefers the buyer to come alone and keeps the transaction tightly controlled.",
+      "kind": "intrinsic",
+      "disclosure": "self-may-volunteer",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "exactnativeRefs": [
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/30/Data/$type",
+          "expectedValue": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/30/Data/id",
+          "expectedValue": "seller"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/30/Data/name/value",
+          "expectedValue": "LocKey#10904"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7191/primaryKey",
+          "expectedValue": "10904"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7191/femaleVariant",
+          "expectedValue": "R3n0"
+        },
+        {
+          "sourceId": "reno-phone",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene.json",
+          "assetSha256": "3f19852c45592e667689e7e556f49d6d44d957fe5edb514c03b0a3fc05fad249",
+          "jsonSha256": "4623208bb3b748c9f588c5da4dc1d446c174856ce7d6c2cccd5e8c142e0d5eb6",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/3",
+          "expectedValue": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 1
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_1993830C1644D000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 769
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1842960760461119488"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_1993830C1644D000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 0
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "reno-phone",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene.json",
+          "assetSha256": "3f19852c45592e667689e7e556f49d6d44d957fe5edb514c03b0a3fc05fad249",
+          "jsonSha256": "4623208bb3b748c9f588c5da4dc1d446c174856ce7d6c2cccd5e8c142e0d5eb6",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expectedValue": "scnActorDef"
+        },
+        {
+          "sourceId": "reno-phone",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene.json",
+          "assetSha256": "3f19852c45592e667689e7e556f49d6d44d957fe5edb514c03b0a3fc05fad249",
+          "jsonSha256": "4623208bb3b748c9f588c5da4dc1d446c174856ce7d6c2cccd5e8c142e0d5eb6",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expectedValue": "Seller"
+        },
+        {
+          "sourceId": "reno-phone",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene.json",
+          "assetSha256": "3f19852c45592e667689e7e556f49d6d44d957fe5edb514c03b0a3fc05fad249",
+          "jsonSha256": "4623208bb3b748c9f588c5da4dc1d446c174856ce7d6c2cccd5e8c142e0d5eb6",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId",
+          "expectedValue": {
+            "$type": "scnActorId",
+            "id": 0
+          }
+        },
+        {
+          "sourceId": "reno-phone",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene.json",
+          "assetSha256": "3f19852c45592e667689e7e556f49d6d44d957fe5edb514c03b0a3fc05fad249",
+          "jsonSha256": "4623208bb3b748c9f588c5da4dc1d446c174856ce7d6c2cccd5e8c142e0d5eb6",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId",
+          "expectedValue": {
+            "$type": "scnVoicetagId",
+            "id": "1624173162010259764"
+          }
+        },
+        {
+          "sourceId": "reno-phone",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene.json",
+          "assetSha256": "3f19852c45592e667689e7e556f49d6d44d957fe5edb514c03b0a3fc05fad249",
+          "jsonSha256": "4623208bb3b748c9f588c5da4dc1d446c174856ce7d6c2cccd5e8c142e0d5eb6",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expectedValue": "findInContext"
+        },
+        {
+          "sourceId": "reno-phone",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene.json",
+          "assetSha256": "3f19852c45592e667689e7e556f49d6d44d957fe5edb514c03b0a3fc05fad249",
+          "jsonSha256": "4623208bb3b748c9f588c5da4dc1d446c174856ce7d6c2cccd5e8c142e0d5eb6",
+          "jsonPointer": "/Data/RootChunk/actors/0/findActorInContextParams",
+          "expectedValue": {
+            "$type": "scnFindEntityInContextParams",
+            "contextActorName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "None"
+            },
+            "contextualName": "Voice",
+            "forceMaxVisibility": 1,
+            "specRecordId": {
+              "$type": "TweakDBID",
+              "$storage": "string",
+              "$value": "Character.mq015_seller"
+            },
+            "voiceVagId": {
+              "$type": "scnVoicetagId",
+              "id": "1624173162010259764"
+            }
+          }
+        },
+        {
+          "sourceId": "reno-phone",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene.json",
+          "assetSha256": "3f19852c45592e667689e7e556f49d6d44d957fe5edb514c03b0a3fc05fad249",
+          "jsonSha256": "4623208bb3b748c9f588c5da4dc1d446c174856ce7d6c2cccd5e8c142e0d5eb6",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/25",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+            "localeId": "en_us",
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1842960760461119488"
+            },
+            "signature": {
+              "$type": "scnlocSignature",
+              "val": "3"
+            },
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "2086506387713871880"
+            },
+            "vpeIndex": 12
+          }
+        },
+        {
+          "sourceId": "reno-phone",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene.json",
+          "assetSha256": "3f19852c45592e667689e7e556f49d6d44d957fe5edb514c03b0a3fc05fad249",
+          "jsonSha256": "4623208bb3b748c9f588c5da4dc1d446c174856ce7d6c2cccd5e8c142e0d5eb6",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/12",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+            "content": "Preem. I've flicked you the address. Come by your lonesome.",
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "2086506387713871880"
+            }
+          }
+        },
+        {
+          "sourceId": "sub-base-mq015-02-seller-holocall",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq015_02_seller_holocall.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq015_02_seller_holocall.json.json",
+          "assetSha256": "632e314cf2d4f74817dd298da70925567a7c57c901fedd2cabf71432d2a0fc79",
+          "jsonSha256": "585bfd136ff68bacb25342f27d3fbccd40e4f49db4b67885663e5a3ad3415239",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/6/$type",
+          "expectedValue": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "sub-base-mq015-02-seller-holocall",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq015_02_seller_holocall.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq015_02_seller_holocall.json.json",
+          "assetSha256": "632e314cf2d4f74817dd298da70925567a7c57c901fedd2cabf71432d2a0fc79",
+          "jsonSha256": "585bfd136ff68bacb25342f27d3fbccd40e4f49db4b67885663e5a3ad3415239",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/6/stringId",
+          "expectedValue": "1842960760461119488"
+        },
+        {
+          "sourceId": "sub-base-mq015-02-seller-holocall",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq015_02_seller_holocall.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq015_02_seller_holocall.json.json",
+          "assetSha256": "632e314cf2d4f74817dd298da70925567a7c57c901fedd2cabf71432d2a0fc79",
+          "jsonSha256": "585bfd136ff68bacb25342f27d3fbccd40e4f49db4b67885663e5a3ad3415239",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/6/femaleVariant",
+          "expectedValue": "Preem. I've flicked you the address. Come by your lonesome."
+        },
+        {
+          "sourceId": "reno-phone",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene.json",
+          "assetSha256": "3f19852c45592e667689e7e556f49d6d44d957fe5edb514c03b0a3fc05fad249",
+          "jsonSha256": "4623208bb3b748c9f588c5da4dc1d446c174856ce7d6c2cccd5e8c142e0d5eb6",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/1/Data/events/3/Data",
+          "expectedValue": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 4260,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "2057655143998857216"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 769
+            },
+            "startTime": 7910,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 1,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Phone"
+            }
+          }
+        },
+        {
+          "sourceId": "reno-phone",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/history-reno-phone-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_02_seller_holocall.scene.json",
+          "assetSha256": "3f19852c45592e667689e7e556f49d6d44d957fe5edb514c03b0a3fc05fad249",
+          "jsonSha256": "4623208bb3b748c9f588c5da4dc1d446c174856ce7d6c2cccd5e8c142e0d5eb6",
+          "jsonPointer": "/Data/RootChunk/actors/0/findActorInContextParams/specRecordId",
+          "expectedValue": {
+            "$type": "TweakDBID",
+            "$storage": "string",
+            "$value": "Character.mq015_seller"
+          }
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/20789/$type",
+          "expectedValue": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/20789/primaryKey",
+          "expectedValue": "32025"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/20789/secondaryKey",
+          "expectedValue": "Story-base-gameplay-static_data-database-characters-npcs-records-quest-minor_quests-mq015-mq015_seller_displayName"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/20789/femaleVariant",
+          "expectedValue": "R3N0"
+        }
+      ],
+      "qualification": {
+        "evidenceBasis": "native-dialogue",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": "A preferred meeting condition, not actual knowledge of surveillance, V location or other listeners.",
+        "viewpoint": "Specific speaker delivery or self-description, not proof that this conversation occurred in the current save.",
+        "profileUse": "topic-knowledge"
+      },
+      "attribution": {
+        "characterKey": "r3n0",
+        "mode": "self-report",
+        "subjectRef": {
+          "kind": "actor-record",
+          "sourceId": "reno-phone",
+          "actorPointer": "/Data/RootChunk/actors/0",
+          "jsonPointer": "/Data/RootChunk/actors/0/findActorInContextParams/specRecordId",
+          "canonicalRecord": "Character.mq015_seller",
+          "containerType": "TweakDBID"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/30/Data/name/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7191/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7191/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "reno-phone",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/3",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/1/Data/events/3/Data",
+            "expectedVoicetag": "1624173162010259764",
+            "expectedSubjectVoicetag": "1624173162010259764"
+          }
+        ],
+        "perspective": "The emitted phone speech belongs to the same findInContext actor with active Character.mq015_seller; record-specific installed display name is R3N0.",
+        "recordDisplayNameRefs": [
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/20789/secondaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/20789/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/20789/femaleVariant"
+          }
+        ],
+        "recordDisplayNameBinding": {
+          "kind": "reviewed-live-property",
+          "reviewId": "r3n0-live-property-oct01",
+          "record": "Character.mq015_seller",
+          "flat": "displayName",
+          "jsonPointer": "/properties/displayName"
+        }
+      },
+      "mediaRole": "phone/holocall delivery; no clean ordinary voice-reference qualification implied"
+    },
+    {
+      "id": "held.defensive-sale",
+      "text": "In the restaurant negotiation, the seller can reject accusations, insist she is prepared, and react sharply to pressure.",
+      "kind": "intrinsic",
+      "disclosure": "self-may-volunteer",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "exactnativeRefs": [
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/30/Data/$type",
+          "expectedValue": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/30/Data/id",
+          "expectedValue": "seller"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/30/Data/name/value",
+          "expectedValue": "LocKey#10904"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7191/primaryKey",
+          "expectedValue": "10904"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7191/femaleVariant",
+          "expectedValue": "R3n0"
+        },
+        {
+          "sourceId": "reno-restaurant",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_03_restaurant.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_03_restaurant.scene.json",
+          "assetSha256": "bc4a9ff6ed87c54d8013cc9cc13c334c7a5294843455a8b5d264818d2ac74712",
+          "jsonSha256": "f88d00d705c690b0577b9e0476ac807bd0af77f5c82c9f055cf546851e3e428e",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/16",
+          "expectedValue": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 1
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_19938DFB3544D000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 4097
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1842972782594674688"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_19938DFB3544D000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 0
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "reno-restaurant",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_03_restaurant.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_03_restaurant.scene.json",
+          "assetSha256": "bc4a9ff6ed87c54d8013cc9cc13c334c7a5294843455a8b5d264818d2ac74712",
+          "jsonSha256": "f88d00d705c690b0577b9e0476ac807bd0af77f5c82c9f055cf546851e3e428e",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expectedValue": "scnActorDef"
+        },
+        {
+          "sourceId": "reno-restaurant",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_03_restaurant.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_03_restaurant.scene.json",
+          "assetSha256": "bc4a9ff6ed87c54d8013cc9cc13c334c7a5294843455a8b5d264818d2ac74712",
+          "jsonSha256": "f88d00d705c690b0577b9e0476ac807bd0af77f5c82c9f055cf546851e3e428e",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expectedValue": "Seller"
+        },
+        {
+          "sourceId": "reno-restaurant",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_03_restaurant.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_03_restaurant.scene.json",
+          "assetSha256": "bc4a9ff6ed87c54d8013cc9cc13c334c7a5294843455a8b5d264818d2ac74712",
+          "jsonSha256": "f88d00d705c690b0577b9e0476ac807bd0af77f5c82c9f055cf546851e3e428e",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId",
+          "expectedValue": {
+            "$type": "scnActorId",
+            "id": 0
+          }
+        },
+        {
+          "sourceId": "reno-restaurant",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_03_restaurant.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_03_restaurant.scene.json",
+          "assetSha256": "bc4a9ff6ed87c54d8013cc9cc13c334c7a5294843455a8b5d264818d2ac74712",
+          "jsonSha256": "f88d00d705c690b0577b9e0476ac807bd0af77f5c82c9f055cf546851e3e428e",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId",
+          "expectedValue": {
+            "$type": "scnVoicetagId",
+            "id": "1624173162010259764"
+          }
+        },
+        {
+          "sourceId": "reno-restaurant",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_03_restaurant.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_03_restaurant.scene.json",
+          "assetSha256": "bc4a9ff6ed87c54d8013cc9cc13c334c7a5294843455a8b5d264818d2ac74712",
+          "jsonSha256": "f88d00d705c690b0577b9e0476ac807bd0af77f5c82c9f055cf546851e3e428e",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expectedValue": "community"
+        },
+        {
+          "sourceId": "reno-restaurant",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_03_restaurant.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_03_restaurant.scene.json",
+          "assetSha256": "bc4a9ff6ed87c54d8013cc9cc13c334c7a5294843455a8b5d264818d2ac74712",
+          "jsonSha256": "f88d00d705c690b0577b9e0476ac807bd0af77f5c82c9f055cf546851e3e428e",
+          "jsonPointer": "/Data/RootChunk/actors/0/communityParams",
+          "expectedValue": {
+            "$type": "scnCommunityParams",
+            "entryName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "Seller"
+            },
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "string",
+              "$value": "#mq015_com_seller"
+            }
+          }
+        },
+        {
+          "sourceId": "reno-restaurant",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_03_restaurant.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_03_restaurant.scene.json",
+          "assetSha256": "bc4a9ff6ed87c54d8013cc9cc13c334c7a5294843455a8b5d264818d2ac74712",
+          "jsonSha256": "f88d00d705c690b0577b9e0476ac807bd0af77f5c82c9f055cf546851e3e428e",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/125",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+            "localeId": "en_us",
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1842972782594674688"
+            },
+            "signature": {
+              "$type": "scnlocSignature",
+              "val": "3"
+            },
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "4247844631617458256"
+            },
+            "vpeIndex": 55
+          }
+        },
+        {
+          "sourceId": "reno-restaurant",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_03_restaurant.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_03_restaurant.scene.json",
+          "assetSha256": "bc4a9ff6ed87c54d8013cc9cc13c334c7a5294843455a8b5d264818d2ac74712",
+          "jsonSha256": "f88d00d705c690b0577b9e0476ac807bd0af77f5c82c9f055cf546851e3e428e",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/55",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+            "content": "Look, I have no idea who you are, friend, but this won't do, oh no, no, no, no, no.",
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "4247844631617458256"
+            }
+          }
+        },
+        {
+          "sourceId": "sub-base-mq015-03-restaurant",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq015_03_restaurant.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq015_03_restaurant.json.json",
+          "assetSha256": "e1f252f765ace461793433fcbc85f418f5ce68b7bc8b999902898e759713d934",
+          "jsonSha256": "64165445fc5682cdf0170cb94b36cceb7345c8ea752b62b3ec727982c43ac982",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/13/$type",
+          "expectedValue": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "sub-base-mq015-03-restaurant",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq015_03_restaurant.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq015_03_restaurant.json.json",
+          "assetSha256": "e1f252f765ace461793433fcbc85f418f5ce68b7bc8b999902898e759713d934",
+          "jsonSha256": "64165445fc5682cdf0170cb94b36cceb7345c8ea752b62b3ec727982c43ac982",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/13/stringId",
+          "expectedValue": "1842972782594674688"
+        },
+        {
+          "sourceId": "sub-base-mq015-03-restaurant",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq015_03_restaurant.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq015_03_restaurant.json.json",
+          "assetSha256": "e1f252f765ace461793433fcbc85f418f5ce68b7bc8b999902898e759713d934",
+          "jsonSha256": "64165445fc5682cdf0170cb94b36cceb7345c8ea752b62b3ec727982c43ac982",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/13/femaleVariant",
+          "expectedValue": "Look, I have no idea who you are, friend, but this won't do, oh no, no, no, no, no."
+        },
+        {
+          "sourceId": "reno-restaurant",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_03_restaurant.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_03_restaurant.scene.json",
+          "assetSha256": "bc4a9ff6ed87c54d8013cc9cc13c334c7a5294843455a8b5d264818d2ac74712",
+          "jsonSha256": "f88d00d705c690b0577b9e0476ac807bd0af77f5c82c9f055cf546851e3e428e",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/12/Data/events/0/Data",
+          "expectedValue": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 5929,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "2054913247278964784"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 4097
+            },
+            "startTime": 0,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 0,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Spoken"
+            }
+          }
+        },
+        {
+          "sourceId": "reno-restaurant",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_03_restaurant.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_03_restaurant.scene.json",
+          "assetSha256": "bc4a9ff6ed87c54d8013cc9cc13c334c7a5294843455a8b5d264818d2ac74712",
+          "jsonSha256": "f88d00d705c690b0577b9e0476ac807bd0af77f5c82c9f055cf546851e3e428e",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/21",
+          "expectedValue": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 1
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_1993A337AF44D000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 5377
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1842996132083716096"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_1993A337AF44D000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 0
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "reno-restaurant",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_03_restaurant.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_03_restaurant.scene.json",
+          "assetSha256": "bc4a9ff6ed87c54d8013cc9cc13c334c7a5294843455a8b5d264818d2ac74712",
+          "jsonSha256": "f88d00d705c690b0577b9e0476ac807bd0af77f5c82c9f055cf546851e3e428e",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/137",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+            "localeId": "en_us",
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1842996132083716096"
+            },
+            "signature": {
+              "$type": "scnlocSignature",
+              "val": "3"
+            },
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "4247844631617458276"
+            },
+            "vpeIndex": 70
+          }
+        },
+        {
+          "sourceId": "reno-restaurant",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_03_restaurant.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_03_restaurant.scene.json",
+          "assetSha256": "bc4a9ff6ed87c54d8013cc9cc13c334c7a5294843455a8b5d264818d2ac74712",
+          "jsonSha256": "f88d00d705c690b0577b9e0476ac807bd0af77f5c82c9f055cf546851e3e428e",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/70",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+            "content": "You'd be making a mistake. A big one. I'm not out to con you.",
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "4247844631617458276"
+            }
+          }
+        },
+        {
+          "sourceId": "sub-base-mq015-03-restaurant",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq015_03_restaurant.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq015_03_restaurant.json.json",
+          "assetSha256": "e1f252f765ace461793433fcbc85f418f5ce68b7bc8b999902898e759713d934",
+          "jsonSha256": "64165445fc5682cdf0170cb94b36cceb7345c8ea752b62b3ec727982c43ac982",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/25/$type",
+          "expectedValue": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "sub-base-mq015-03-restaurant",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq015_03_restaurant.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq015_03_restaurant.json.json",
+          "assetSha256": "e1f252f765ace461793433fcbc85f418f5ce68b7bc8b999902898e759713d934",
+          "jsonSha256": "64165445fc5682cdf0170cb94b36cceb7345c8ea752b62b3ec727982c43ac982",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/25/stringId",
+          "expectedValue": "1842996132083716096"
+        },
+        {
+          "sourceId": "sub-base-mq015-03-restaurant",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq015_03_restaurant.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq015_03_restaurant.json.json",
+          "assetSha256": "e1f252f765ace461793433fcbc85f418f5ce68b7bc8b999902898e759713d934",
+          "jsonSha256": "64165445fc5682cdf0170cb94b36cceb7345c8ea752b62b3ec727982c43ac982",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/25/femaleVariant",
+          "expectedValue": "You'd be making a mistake. A big one. I'm not out to con you."
+        },
+        {
+          "sourceId": "reno-restaurant",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_03_restaurant.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_03_restaurant.scene.json",
+          "assetSha256": "bc4a9ff6ed87c54d8013cc9cc13c334c7a5294843455a8b5d264818d2ac74712",
+          "jsonSha256": "f88d00d705c690b0577b9e0476ac807bd0af77f5c82c9f055cf546851e3e428e",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/14/Data/events/12/Data",
+          "expectedValue": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 4842,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "2054913247295741972"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 5377
+            },
+            "startTime": 12764,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 0,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Spoken"
+            }
+          }
+        },
+        {
+          "sourceId": "reno-restaurant",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_03_restaurant.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_03_restaurant.scene.json",
+          "assetSha256": "bc4a9ff6ed87c54d8013cc9cc13c334c7a5294843455a8b5d264818d2ac74712",
+          "jsonSha256": "f88d00d705c690b0577b9e0476ac807bd0af77f5c82c9f055cf546851e3e428e",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/22",
+          "expectedValue": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 1
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_1993A45D0E44D000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 5633
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1842997392102969344"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_1993A45D0E44D000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 0
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "reno-restaurant",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_03_restaurant.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_03_restaurant.scene.json",
+          "assetSha256": "bc4a9ff6ed87c54d8013cc9cc13c334c7a5294843455a8b5d264818d2ac74712",
+          "jsonSha256": "f88d00d705c690b0577b9e0476ac807bd0af77f5c82c9f055cf546851e3e428e",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/138",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+            "localeId": "en_us",
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1842997392102969344"
+            },
+            "signature": {
+              "$type": "scnlocSignature",
+              "val": "3"
+            },
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "4247844631617458280"
+            },
+            "vpeIndex": 73
+          }
+        },
+        {
+          "sourceId": "reno-restaurant",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_03_restaurant.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_03_restaurant.scene.json",
+          "assetSha256": "bc4a9ff6ed87c54d8013cc9cc13c334c7a5294843455a8b5d264818d2ac74712",
+          "jsonSha256": "f88d00d705c690b0577b9e0476ac807bd0af77f5c82c9f055cf546851e3e428e",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/73",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+            "content": "Also... I'm not a victim. I'm prepared just as well as you are.",
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "4247844631617458280"
+            }
+          }
+        },
+        {
+          "sourceId": "sub-base-mq015-03-restaurant",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq015_03_restaurant.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq015_03_restaurant.json.json",
+          "assetSha256": "e1f252f765ace461793433fcbc85f418f5ce68b7bc8b999902898e759713d934",
+          "jsonSha256": "64165445fc5682cdf0170cb94b36cceb7345c8ea752b62b3ec727982c43ac982",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/26/$type",
+          "expectedValue": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "sub-base-mq015-03-restaurant",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq015_03_restaurant.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq015_03_restaurant.json.json",
+          "assetSha256": "e1f252f765ace461793433fcbc85f418f5ce68b7bc8b999902898e759713d934",
+          "jsonSha256": "64165445fc5682cdf0170cb94b36cceb7345c8ea752b62b3ec727982c43ac982",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/26/stringId",
+          "expectedValue": "1842997392102969344"
+        },
+        {
+          "sourceId": "sub-base-mq015-03-restaurant",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq015_03_restaurant.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq015_03_restaurant.json.json",
+          "assetSha256": "e1f252f765ace461793433fcbc85f418f5ce68b7bc8b999902898e759713d934",
+          "jsonSha256": "64165445fc5682cdf0170cb94b36cceb7345c8ea752b62b3ec727982c43ac982",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/26/femaleVariant",
+          "expectedValue": "Also... I'm not a victim. I'm prepared just as well as you are."
+        },
+        {
+          "sourceId": "reno-restaurant",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_03_restaurant.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/minor_quests/mq015/scenes/mq015_03_restaurant.scene.json",
+          "assetSha256": "bc4a9ff6ed87c54d8013cc9cc13c334c7a5294843455a8b5d264818d2ac74712",
+          "jsonSha256": "f88d00d705c690b0577b9e0476ac807bd0af77f5c82c9f055cf546851e3e428e",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/14/Data/events/15/Data",
+          "expectedValue": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 4893,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "2054913247295741976"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 5633
+            },
+            "startTime": 18000,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 0,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Spoken"
+            }
+          }
+        }
+      ],
+      "qualification": {
+        "evidenceBasis": "native-dialogue",
+        "status": "awaiting-native-acquisition-binding",
+        "currentSaveQualified": false,
+        "limits": "Not a master-netrunner or guaranteed surveillance capability; restaurant ownership awaits the specific acquisition edge.",
+        "viewpoint": "Specific speaker delivery or self-description, not proof that this conversation occurred in the current save.",
+        "profileUse": "topic-knowledge"
+      },
+      "attribution": {
+        "characterKey": "r3n0",
+        "mode": "self-report",
+        "subjectRef": {
+          "kind": "journal-contact",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/30/Data/id",
+          "expected": "seller",
+          "containerType": "gameJournalContact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/30/Data/name/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7191/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7191/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "reno-restaurant",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/16",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/12/Data/events/0/Data",
+            "expectedVoicetag": "1624173162010259764",
+            "expectedSubjectVoicetag": "1624173162010259764"
+          },
+          {
+            "sourceId": "reno-restaurant",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/21",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/14/Data/events/12/Data",
+            "expectedVoicetag": "1624173162010259764",
+            "expectedSubjectVoicetag": "1624173162010259764"
+          },
+          {
+            "sourceId": "reno-restaurant",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/22",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/14/Data/events/15/Data",
+            "expectedVoicetag": "1624173162010259764",
+            "expectedSubjectVoicetag": "1624173162010259764"
+          }
+        ],
+        "perspective": "Actor/screenplay/item/event/English joins establish the authored speech; current V meeting and quest resolution are not inferred."
+      },
+      "promotion": "held; Restaurant Seller uses community #mq015_com_seller; same-named community record is not an authenticated NodeRef-to-resource link."
+    }
+  ],
+  "authoringPolicy": {
+    "intrinsicIsSelfKnowledge": true,
+    "audienceStillRequired": true,
+    "conditionalClaimsExcludedFromStaticBackstory": true,
+    "noSpeakerNamePrefixes": true,
+    "samplesAreOriginalNotGameQuotes": true,
+    "noUniversalVMeeting": true
+  },
+  "speakingStyleSamples": [
+    {
+      "id": "original.01",
+      "text": "Terms first. If we agree on those, we can discuss the rest.",
+      "claimIds": [
+        "values.firm-terms"
+      ],
+      "authoring": "original; not a game quote",
+      "speakerPrefix": false,
+      "useCondition": "Appropriate topic only; no fabricated shared history or actual performed action."
+    },
+    {
+      "id": "original.02",
+      "text": "It is available. That does not mean I hand it over on a promise.",
+      "claimIds": [
+        "work.book-sale",
+        "values.firm-terms"
+      ],
+      "authoring": "original; not a game quote",
+      "speakerPrefix": false,
+      "useCondition": "Appropriate topic only; no fabricated shared history or actual performed action."
+    },
+    {
+      "id": "original.03",
+      "text": "Keep it between us. I am not inviting a crowd to the meeting.",
+      "claimIds": [
+        "values.private-meeting"
+      ],
+      "authoring": "original; not a game quote",
+      "speakerPrefix": false,
+      "useCondition": "Appropriate topic only; no fabricated shared history or actual performed action."
+    }
+  ],
+  "proposedProfile": {
+    "backstory": "R3n0 presents a guarded offer for a book and sets clear transaction terms: a firm price, full payment at pickup, and a buyer who comes alone. Her clipped delivery treats trust as something negotiated, not automatically granted. The small verified portrayal is a private seller controlling a particular exchange, not an omniscient netrunner or keeper of every old Net secret.\n\nHer employer, legal identity and private work messages are not public small talk. A conversation or group invitation does not prove that V paid, threatened her, read her laptop, stole anything or learned a private identity. The item’s origin and the result of Nix’s later work require their own evidence.",
+    "speakingStyleDescription": "Authoring interpretation: brisk transactional phrasing, casual Night City contractions and short questions. Set terms without a long sales pitch or repetitive mysterious threats. Do not volunteer the Clarity/Hard Wire association, claim eyes everywhere as a factual capability, or introduce every response with the handle.\n\nReply only, without name prefixes, stage directions, lists or Markdown. Usually one or two sentences and one concrete thought. Ask a relevant follow-up only when enabled; only the final scheduled group speaker may ask one. These original samples are delivery guidance, not memories of V.",
+    "speakingStyleSampleDialogues": [
+      "Terms first. If we agree on those, we can discuss the rest.",
+      "It is available. That does not mean I hand it over on a promise.",
+      "Keep it between us. I am not inviting a crowd to the meeting."
+    ],
+    "promotionPolicy": "Parent-reviewed candidate only; private, conditional or held acquisition material is not universal API biography."
+  },
+  "reviewSummary": {
+    "publicIntrinsicCandidates": 3,
+    "heldClaims": 1,
+    "conditionalClaims": 0,
+    "exactReferences": 101,
+    "originalExamples": 3,
+    "adoptionStatus": "source-qualified-unadopted",
+    "qualificationGaps": [
+      "Restaurant Seller uses community #mq015_com_seller; same-named community record is not an authenticated NodeRef-to-resource link.",
+      "Seller-file material addresses Clarity at Hard Wire, but a verified laptop/journal-resource-to-person identity binding is not supplied here; no private employment/identity claim is promoted."
+    ],
+    "currentSaveQualified": false,
+    "installed": false,
+    "cloudWrites": false,
+    "memorySeeding": false,
+    "nativeSources": 6,
+    "qualificationScope": "Phone actor active record plus reviewed live display-name property. Restaurant actor and document authorship remain unqualified."
+  },
+  "identityReview": {
+    "reviewedAt": "2026-10-01",
+    "evidenceKind": "live-read-only-TweakDB-property-probe",
+    "worldRegistryEdgesVerified": 0,
+    "limits": [
+      "Runtime probe is not a fabricated CR2W resource or an offline native-property serialization.",
+      "Installed file hashes identify the files present; this review does not prove absence of runtime mod overrides.",
+      "This evidence concerns the phone actor; the separate restaurant community acquisition stays unresolved."
+    ]
+  }
+}

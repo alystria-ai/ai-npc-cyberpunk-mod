@@ -1,0 +1,2905 @@
+{
+  "schemaVersion": 1,
+  "characterKey": "blue-moon",
+  "name": "Blue Moon",
+  "gameVersion": "2.31",
+  "locale": "en_us",
+  "reviewedAt": "2026-10-01",
+  "status": "authoring-proposal-not-adopted",
+  "purpose": "Source-backed own craft, public history and selective conversational cadence; no player quest outcome or automatic memory.",
+  "nativeTool": {
+    "name": "WolvenKit.CLI",
+    "version": "9.0.1",
+    "sha256": "7ae9c308da2fe003220b55ce4ca9c122b51f0701a67db1618cca3ff4f7ff6738"
+  },
+  "sourcePolicy": {
+    "primary": "Winning native typed subject/title and exact emitted scene speaker/event/English joins with raw and serialization hashes.",
+    "nativeNarrative": "Self-report, public attribution and codex reputation retain their viewpoint. Delivery traits are bounded editorial interpretations of actual speech.",
+    "privacy": "Private investigation, current relationships, violence, stalking and production outcomes remain excluded from universal companion biography.",
+    "examples": "Original editorial delivery examples, no game quotations, lyrics or speaker-name prefixes. No fabricated player encounters.",
+    "promotion": "Root independently reviews and adopts; proposal changes no roster, generated output, cloud profile, installed game or memory."
+  },
+  "sources": [
+    {
+      "id": "journal",
+      "depotPath": "base\\journal\\cooked_journal.journal",
+      "archivePath": "archive/pc/ep1/ep1_2_gamedata.archive",
+      "pathHash64": "17440916468644548477",
+      "archiveEntrySha1": "be95e34f16d4d1044e5e0104174a1038c02e57e0",
+      "rawFile": "runtime/voice-cast/minor-named/knowledge-wave3-nam-residents/raw/base/journal/cooked_journal.journal",
+      "rawSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+      "jsonFile": "runtime/voice-cast/minor-named/knowledge-wave3-nam-residents/raw/base/journal/cooked_journal.journal.json",
+      "jsonSha256": "ae88da966e4a468d7705f07326f6cc781fd072e423ee6cc6a8ff59cfd29fce4b",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true,
+      "sourceReceipt": {
+        "archive": "archive/pc/ep1/ep1_2_gamedata.archive",
+        "depotPath": "base\\journal\\cooked_journal.journal",
+        "pathHash": "17440916468644548477",
+        "segmentOffset": "14604284",
+        "storedBytes": 499675,
+        "decodedBytes": 4785508,
+        "archiveEntrySha1": "be95e34f16d4d1044e5e0104174a1038c02e57e0",
+        "sha1Verified": true,
+        "sha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "shadowedEntryCount": 0
+      }
+    },
+    {
+      "id": "english",
+      "depotPath": "base\\localization\\en-us\\onscreens\\onscreens.json",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "7469411510719000253",
+      "archiveEntrySha1": "1131d968cfae38ebf79242e24aadafc051545992",
+      "rawFile": "runtime/voice-cast/minor-named/knowledge-wave3-nam-residents/raw/base/localization/en-us/onscreens/onscreens.json",
+      "rawSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+      "jsonFile": "runtime/voice-cast/minor-named/knowledge-wave3-nam-residents/raw/base/localization/en-us/onscreens/onscreens.json.json",
+      "jsonSha256": "e9441435f8840d05d07d0fa61907bf927cb1f7fc5c0a231395848bada3014672",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true,
+      "sourceReceipt": {
+        "archive": "archive/pc/content/lang_en_text.archive",
+        "depotPath": "base\\localization\\en-us\\onscreens\\onscreens.json",
+        "pathHash": "7469411510719000253",
+        "segmentOffset": "172",
+        "storedBytes": 1647456,
+        "decodedBytes": 8784923,
+        "archiveEntrySha1": "1131d968cfae38ebf79242e24aadafc051545992",
+        "sha1Verified": true,
+        "sha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+        "shadowedEntryCount": 0
+      }
+    },
+    {
+      "id": "blue-intro",
+      "depotPath": "base\\quest\\side_quests\\sq017\\scenes\\sq017_10_us_crack_intro.scene",
+      "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+      "pathHash64": "5192877399785442269",
+      "archiveEntrySha1": "b61e1f08ae9f8e822f3603b9017cf5543190ca9c",
+      "rawFile": "runtime/voice-cast/minor-named/scenes/wave3-performers-intrinsic-oct01/raw/base/base/quest/side_quests/sq017/scenes/sq017_10_us_crack_intro.scene",
+      "rawSha256": "b4b55ee1eac2f0511a431373c01eb80412a622cf22c3c1c435c706687a5c76ce",
+      "jsonFile": "runtime/voice-cast/minor-named/scenes/wave3-performers-intrinsic-oct01/raw/base/base/quest/side_quests/sq017/scenes/sq017_10_us_crack_intro.scene.json",
+      "jsonSha256": "7c89ddabe54ea9757ea702959c9c9df20dea99044794f63846264eeb9b088010",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "blue-intro-subtitle",
+      "depotPath": "base\\localization\\en-us\\subtitles\\quest\\sq017\\sq017_10_us_crack_intro.json",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "14097439327818677619",
+      "archiveEntrySha1": "aefd718575e73b723d6c9d2a3bea64536fe4f523",
+      "rawFile": "runtime/voice-cast/minor-named/knowledge-wave3-performers/raw/base/localization/en-us/subtitles/quest/sq017/sq017_10_us_crack_intro.json",
+      "rawSha256": "7bb38e408df0c70b9b097c1c3bd02e9de45da194e7bf2fa3508b847f64d6ad75",
+      "jsonFile": "runtime/voice-cast/minor-named/knowledge-wave3-performers/raw/base/localization/en-us/subtitles/quest/sq017/sq017_10_us_crack_intro.json.json",
+      "jsonSha256": "84e2aaaacecbda4580910075c9691dd356c0798dcddbee5f8b8077e246b50b83",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true,
+      "sourceReceipt": {
+        "archive": "archive/pc/content/lang_en_text.archive",
+        "depotPath": "base\\localization\\en-us\\subtitles\\quest\\sq017\\sq017_10_us_crack_intro.json",
+        "pathHash": "14097439327818677619",
+        "segmentOffset": "6941845",
+        "storedBytes": 3870,
+        "decodedBytes": 8240,
+        "archiveEntrySha1": "aefd718575e73b723d6c9d2a3bea64536fe4f523",
+        "sha1Verified": true,
+        "sha256": "7bb38e408df0c70b9b097c1c3bd02e9de45da194e7bf2fa3508b847f64d6ad75",
+        "shadowedEntryCount": 0
+      }
+    }
+  ],
+  "claims": [
+    {
+      "id": "blue-moon.music.us-cracks-work",
+      "text": "Blue Moon is a working member of Us Cracks; she talks in the plural about their recording work and the MSM deal for a Kerry Eurodyne cover.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/122/Data/$type",
+          "expected": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/122/Data/id",
+          "expected": "blue_moon"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/122/Data/name/value",
+          "expected": "LocKey#10585"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/6890/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/6890/primaryKey",
+          "expected": "10585"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/6890/femaleVariant",
+          "valueSha256": "9c96259d29beb2c54dd7a15c58a3f956b18c38258493f2e8e05cfd83bec09e51",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/6890/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/122/Data/avatarID/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/122/Data/avatarID/$value",
+          "expected": "PhoneAvatars.Avatar_Blue_moon"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorName",
+          "expected": "blue_moon"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorId/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/voicetagId/id",
+          "expected": "1792259170252005376"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/acquisitionPlan",
+          "expected": "community"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/communityParams/$type",
+          "expected": "scnCommunityParams"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/communityParams/entryName/$value",
+          "expected": "sq017_blue_moon"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/communityParams/reference/$value",
+          "expected": "#sq017_com_blue_moon"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/44/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/44/speaker/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/44/itemId/id",
+          "expected": 11265
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/44/locstringId/ruid",
+          "expected": "1811308862139752448"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/12/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/12/Data/screenplayLineId/id",
+          "expected": 11265
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/12/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/12/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/12/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/12/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/12/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/259/locstringId/ruid",
+          "expected": "1811308862139752448"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/259/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/259/variantId/ruid",
+          "expected": "2789797062911631364"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/259/vpeIndex",
+          "expected": 137
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/137/variantId/ruid",
+          "expected": "2789797062911631364"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/137/content",
+          "valueSha256": "d1588049a2d3ee34fc833c1c2a9a86caaf80401e8e322a98e7b9631ae02d6969",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "blue-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/38/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "blue-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/38/stringId",
+          "expected": "1811308862139752448"
+        },
+        {
+          "sourceId": "blue-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/38/femaleVariant",
+          "valueSha256": "d1588049a2d3ee34fc833c1c2a9a86caaf80401e8e322a98e7b9631ae02d6969",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "blue-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/38/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorName",
+          "expected": "blue_moon"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorId/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/voicetagId/id",
+          "expected": "1792259170252005376"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/acquisitionPlan",
+          "expected": "community"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/communityParams/$type",
+          "expected": "scnCommunityParams"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/communityParams/entryName/$value",
+          "expected": "sq017_blue_moon"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/communityParams/reference/$value",
+          "expected": "#sq017_com_blue_moon"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/80/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/80/speaker/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/80/itemId/id",
+          "expected": 20481
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/80/locstringId/ruid",
+          "expected": "2231689121133424640"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/199/Data/events/31/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/199/Data/events/31/Data/screenplayLineId/id",
+          "expected": 20481
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/199/Data/events/31/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/199/Data/events/31/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/199/Data/events/31/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/199/Data/events/31/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/199/Data/events/31/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/310/locstringId/ruid",
+          "expected": "2231689121133424640"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/310/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/310/variantId/ruid",
+          "expected": "2789797062961963016"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/310/vpeIndex",
+          "expected": 235
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/235/variantId/ruid",
+          "expected": "2789797062961963016"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/235/content",
+          "valueSha256": "6c285e0ce22c6e2dda0fdcf5042c0b408a115b6f19ba8892e93c768ec5b41706",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "blue-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/88/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "blue-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/88/stringId",
+          "expected": "2231689121133424640"
+        },
+        {
+          "sourceId": "blue-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/88/femaleVariant",
+          "valueSha256": "6c285e0ce22c6e2dda0fdcf5042c0b408a115b6f19ba8892e93c768ec5b41706",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "blue-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/88/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/43/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/43/Data/id",
+          "expected": "us_cracks_blue_moon_purple_force_red_menace"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/43/Data/title/value",
+          "expected": "LocKey#20450"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/43/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_uscracks_full"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/43/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_uscracks"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15142/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15142/primaryKey",
+          "expected": "20450"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15142/femaleVariant",
+          "valueSha256": "60dac5561af7ce2ddb4b61b754534def7abf7dd0c5488c9d231f831d8f1604a1",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15142/maleVariant",
+          "valueSha256": "60dac5561af7ce2ddb4b61b754534def7abf7dd0c5488c9d231f831d8f1604a1",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/43/Data/entries/0/Data/$type",
+          "expected": "gameJournalCodexDescription"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/43/Data/entries/0/Data/id",
+          "expected": "us_cracks_desc"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/43/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#20452"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15143/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15143/primaryKey",
+          "expected": "20452"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15143/femaleVariant",
+          "valueSha256": "8283694687ecbde53b2f93561c8c058d18704dcdf0dc2d5c369eb45760c381a4",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15143/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "Actual emitted personal speech or explicitly connected testimony; no current V experience inferred.",
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "The Us Cracks codex supplies band context only after the individual Blue Moon contact and actual Blue Moon speaker are independently bound. It is not used as her subject ID or as self-spoken group history.",
+          "The deal supports band work, not that V met her, a show was canceled, Kerry consented, or any particular dispute was resolved."
+        ]
+      },
+      "attribution": {
+        "characterKey": "blue-moon",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/122/Data/id",
+          "expected": "blue_moon",
+          "containerType": "gameJournalContact",
+          "kind": "journal-contact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/122/Data/name/value",
+            "expected": "LocKey#10585"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/6890/primaryKey",
+            "expected": "10585"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/6890/femaleVariant",
+            "valueSha256": "9c96259d29beb2c54dd7a15c58a3f956b18c38258493f2e8e05cfd83bec09e51",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "blue-intro",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/44",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/12/Data",
+            "expectedVoicetag": "1792259170252005376",
+            "expectedSubjectVoicetag": "1792259170252005376"
+          },
+          {
+            "sourceId": "blue-intro",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/80",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/199/Data/events/31/Data",
+            "expectedVoicetag": "1792259170252005376",
+            "expectedSubjectVoicetag": "1792259170252005376"
+          }
+        ],
+        "perspective": "Actual emitted personal speech or explicitly connected testimony; no current V experience inferred."
+      }
+    },
+    {
+      "id": "blue-moon.music.admiration",
+      "text": "She expresses sincere admiration for Kerry as an artist while discussing the cover; admiration is distinct from a friendship or completed collaboration.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/122/Data/$type",
+          "expected": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/122/Data/id",
+          "expected": "blue_moon"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/122/Data/name/value",
+          "expected": "LocKey#10585"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/6890/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/6890/primaryKey",
+          "expected": "10585"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/6890/femaleVariant",
+          "valueSha256": "9c96259d29beb2c54dd7a15c58a3f956b18c38258493f2e8e05cfd83bec09e51",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/6890/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/122/Data/avatarID/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/122/Data/avatarID/$value",
+          "expected": "PhoneAvatars.Avatar_Blue_moon"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorName",
+          "expected": "blue_moon"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorId/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/voicetagId/id",
+          "expected": "1792259170252005376"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/acquisitionPlan",
+          "expected": "community"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/communityParams/$type",
+          "expected": "scnCommunityParams"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/communityParams/entryName/$value",
+          "expected": "sq017_blue_moon"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/communityParams/reference/$value",
+          "expected": "#sq017_com_blue_moon"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/2/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/2/speaker/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/2/itemId/id",
+          "expected": 513
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/2/locstringId/ruid",
+          "expected": "1832979007019806720"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/21/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/21/Data/screenplayLineId/id",
+          "expected": 513
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/21/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/21/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/21/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/21/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/21/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/280/locstringId/ruid",
+          "expected": "1832979007019806720"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/280/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/280/variantId/ruid",
+          "expected": "2789797062827745288"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/280/vpeIndex",
+          "expected": 8
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/8/variantId/ruid",
+          "expected": "2789797062827745288"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/8/content",
+          "valueSha256": "cf92f8db7b050e6a0b0847a5aa370a2278b7f1e91665b4856562123ba17cbfe9",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "blue-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/59/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "blue-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/59/stringId",
+          "expected": "1832979007019806720"
+        },
+        {
+          "sourceId": "blue-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/59/femaleVariant",
+          "valueSha256": "cf92f8db7b050e6a0b0847a5aa370a2278b7f1e91665b4856562123ba17cbfe9",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "blue-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/59/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorName",
+          "expected": "blue_moon"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorId/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/voicetagId/id",
+          "expected": "1792259170252005376"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/acquisitionPlan",
+          "expected": "community"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/communityParams/$type",
+          "expected": "scnCommunityParams"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/communityParams/entryName/$value",
+          "expected": "sq017_blue_moon"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/communityParams/reference/$value",
+          "expected": "#sq017_com_blue_moon"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/9/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/9/speaker/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/9/itemId/id",
+          "expected": 2305
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/9/locstringId/ruid",
+          "expected": "1703864947087597568"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/34/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/34/Data/screenplayLineId/id",
+          "expected": 2305
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/34/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/34/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/34/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/34/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/34/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/224/locstringId/ruid",
+          "expected": "1703864947087597568"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/224/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/224/variantId/ruid",
+          "expected": "2789797062844522508"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/224/vpeIndex",
+          "expected": 29
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/29/variantId/ruid",
+          "expected": "2789797062844522508"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/29/content",
+          "valueSha256": "483bf031fb42455ac9a58e4474b894c41ec3d2ead08396bc98fb2fbad8cf06e5",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "blue-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "blue-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5/stringId",
+          "expected": "1703864947087597568"
+        },
+        {
+          "sourceId": "blue-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5/femaleVariant",
+          "valueSha256": "483bf031fb42455ac9a58e4474b894c41ec3d2ead08396bc98fb2fbad8cf06e5",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "blue-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "Actual emitted personal speech or explicitly connected testimony; no current V experience inferred.",
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "Do not assume Kerry reciprocates, current collaboration, romance or a completed Riot encounter."
+        ]
+      },
+      "attribution": {
+        "characterKey": "blue-moon",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/122/Data/id",
+          "expected": "blue_moon",
+          "containerType": "gameJournalContact",
+          "kind": "journal-contact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/122/Data/name/value",
+            "expected": "LocKey#10585"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/6890/primaryKey",
+            "expected": "10585"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/6890/femaleVariant",
+            "valueSha256": "9c96259d29beb2c54dd7a15c58a3f956b18c38258493f2e8e05cfd83bec09e51",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "blue-intro",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/2",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/21/Data",
+            "expectedVoicetag": "1792259170252005376",
+            "expectedSubjectVoicetag": "1792259170252005376"
+          },
+          {
+            "sourceId": "blue-intro",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/9",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/34/Data",
+            "expectedVoicetag": "1792259170252005376",
+            "expectedSubjectVoicetag": "1792259170252005376"
+          }
+        ],
+        "perspective": "Actual emitted personal speech or explicitly connected testimony; no current V experience inferred."
+      }
+    },
+    {
+      "id": "blue-moon.work.artist-agency",
+      "text": "She distinguishes the band from the label and can say they will challenge a label decision rather than passively accept it.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/122/Data/$type",
+          "expected": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/122/Data/id",
+          "expected": "blue_moon"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/122/Data/name/value",
+          "expected": "LocKey#10585"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/6890/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/6890/primaryKey",
+          "expected": "10585"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/6890/femaleVariant",
+          "valueSha256": "9c96259d29beb2c54dd7a15c58a3f956b18c38258493f2e8e05cfd83bec09e51",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/6890/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/122/Data/avatarID/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/122/Data/avatarID/$value",
+          "expected": "PhoneAvatars.Avatar_Blue_moon"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorName",
+          "expected": "blue_moon"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorId/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/voicetagId/id",
+          "expected": "1792259170252005376"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/acquisitionPlan",
+          "expected": "community"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/communityParams/$type",
+          "expected": "scnCommunityParams"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/communityParams/entryName/$value",
+          "expected": "sq017_blue_moon"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/communityParams/reference/$value",
+          "expected": "#sq017_com_blue_moon"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/13/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/13/speaker/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/13/itemId/id",
+          "expected": 3329
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/13/locstringId/ruid",
+          "expected": "1703931303829004320"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/1/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/1/Data/screenplayLineId/id",
+          "expected": 3329
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/1/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/1/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/1/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/1/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/1/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/226/locstringId/ruid",
+          "expected": "1703931303829004320"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/226/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/226/variantId/ruid",
+          "expected": "2789797062844522524"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/226/vpeIndex",
+          "expected": 41
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/41/variantId/ruid",
+          "expected": "2789797062844522524"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/41/content",
+          "valueSha256": "2d106ad7b7739b7e9135004703b239864485ba867a64406465a84ea5cc032eef",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "blue-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "blue-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7/stringId",
+          "expected": "1703931303829004320"
+        },
+        {
+          "sourceId": "blue-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7/femaleVariant",
+          "valueSha256": "2d106ad7b7739b7e9135004703b239864485ba867a64406465a84ea5cc032eef",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "blue-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorName",
+          "expected": "blue_moon"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorId/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/voicetagId/id",
+          "expected": "1792259170252005376"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/acquisitionPlan",
+          "expected": "community"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/communityParams/$type",
+          "expected": "scnCommunityParams"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/communityParams/entryName/$value",
+          "expected": "sq017_blue_moon"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/communityParams/reference/$value",
+          "expected": "#sq017_com_blue_moon"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/44/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/44/speaker/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/44/itemId/id",
+          "expected": 11265
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/44/locstringId/ruid",
+          "expected": "1811308862139752448"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/12/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/12/Data/screenplayLineId/id",
+          "expected": 11265
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/12/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/12/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/12/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/12/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/12/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/259/locstringId/ruid",
+          "expected": "1811308862139752448"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/259/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/259/variantId/ruid",
+          "expected": "2789797062911631364"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/259/vpeIndex",
+          "expected": 137
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/137/variantId/ruid",
+          "expected": "2789797062911631364"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/137/content",
+          "valueSha256": "d1588049a2d3ee34fc833c1c2a9a86caaf80401e8e322a98e7b9631ae02d6969",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "blue-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/38/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "blue-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/38/stringId",
+          "expected": "1811308862139752448"
+        },
+        {
+          "sourceId": "blue-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/38/femaleVariant",
+          "valueSha256": "d1588049a2d3ee34fc833c1c2a9a86caaf80401e8e322a98e7b9631ae02d6969",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "blue-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/38/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "Actual emitted personal speech or explicitly connected testimony; no current V experience inferred.",
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "No claim that every label dispute succeeded or that she has unilateral contractual control."
+        ]
+      },
+      "attribution": {
+        "characterKey": "blue-moon",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/122/Data/id",
+          "expected": "blue_moon",
+          "containerType": "gameJournalContact",
+          "kind": "journal-contact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/122/Data/name/value",
+            "expected": "LocKey#10585"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/6890/primaryKey",
+            "expected": "10585"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/6890/femaleVariant",
+            "valueSha256": "9c96259d29beb2c54dd7a15c58a3f956b18c38258493f2e8e05cfd83bec09e51",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "blue-intro",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/13",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/1/Data",
+            "expectedVoicetag": "1792259170252005376",
+            "expectedSubjectVoicetag": "1792259170252005376"
+          },
+          {
+            "sourceId": "blue-intro",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/44",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/12/Data",
+            "expectedVoicetag": "1792259170252005376",
+            "expectedSubjectVoicetag": "1792259170252005376"
+          }
+        ],
+        "perspective": "Actual emitted personal speech or explicitly connected testimony; no current V experience inferred."
+      }
+    },
+    {
+      "id": "blue-moon.conversation.de-escalation",
+      "text": "When faced with conflict she can ask everyone to calm down, identify a misunderstanding and ask concretely what the other person wants.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/122/Data/$type",
+          "expected": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/122/Data/id",
+          "expected": "blue_moon"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/122/Data/name/value",
+          "expected": "LocKey#10585"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/6890/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/6890/primaryKey",
+          "expected": "10585"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/6890/femaleVariant",
+          "valueSha256": "9c96259d29beb2c54dd7a15c58a3f956b18c38258493f2e8e05cfd83bec09e51",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/6890/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/122/Data/avatarID/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/122/Data/avatarID/$value",
+          "expected": "PhoneAvatars.Avatar_Blue_moon"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorName",
+          "expected": "blue_moon"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorId/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/voicetagId/id",
+          "expected": "1792259170252005376"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/acquisitionPlan",
+          "expected": "community"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/communityParams/$type",
+          "expected": "scnCommunityParams"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/communityParams/entryName/$value",
+          "expected": "sq017_blue_moon"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/communityParams/reference/$value",
+          "expected": "#sq017_com_blue_moon"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/73/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/73/speaker/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/73/itemId/id",
+          "expected": 18689
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/73/locstringId/ruid",
+          "expected": "2231424128479588352"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/196/Data/events/3/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/196/Data/events/3/Data/screenplayLineId/id",
+          "expected": 18689
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/196/Data/events/3/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/196/Data/events/3/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/196/Data/events/3/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/196/Data/events/3/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/196/Data/events/3/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/300/locstringId/ruid",
+          "expected": "2231424128479588352"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/300/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/300/variantId/ruid",
+          "expected": "2789797062961963044"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/300/vpeIndex",
+          "expected": 214
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/214/variantId/ruid",
+          "expected": "2789797062961963044"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/214/content",
+          "valueSha256": "ac9125c330ef42878707eeaf17e111b62ea892d9f4c11bf59774b8b28002d5b7",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "blue-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/78/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "blue-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/78/stringId",
+          "expected": "2231424128479588352"
+        },
+        {
+          "sourceId": "blue-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/78/femaleVariant",
+          "valueSha256": "ac9125c330ef42878707eeaf17e111b62ea892d9f4c11bf59774b8b28002d5b7",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "blue-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/78/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorName",
+          "expected": "blue_moon"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorId/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/voicetagId/id",
+          "expected": "1792259170252005376"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/acquisitionPlan",
+          "expected": "community"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/communityParams/$type",
+          "expected": "scnCommunityParams"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/communityParams/entryName/$value",
+          "expected": "sq017_blue_moon"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/communityParams/reference/$value",
+          "expected": "#sq017_com_blue_moon"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/74/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/74/speaker/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/74/itemId/id",
+          "expected": 18945
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/74/locstringId/ruid",
+          "expected": "2231424468989964288"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/197/Data/events/3/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/197/Data/events/3/Data/screenplayLineId/id",
+          "expected": 18945
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/197/Data/events/3/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/197/Data/events/3/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/197/Data/events/3/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/197/Data/events/3/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/197/Data/events/3/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/301/locstringId/ruid",
+          "expected": "2231424468989964288"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/301/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/301/variantId/ruid",
+          "expected": "2789797062961963040"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/301/vpeIndex",
+          "expected": 217
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/217/variantId/ruid",
+          "expected": "2789797062961963040"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/217/content",
+          "valueSha256": "3e41ef6e97bb3e036fc90503417f8ae2290b2efdfa716af398588f5ed66616fc",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "blue-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/79/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "blue-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/79/stringId",
+          "expected": "2231424468989964288"
+        },
+        {
+          "sourceId": "blue-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/79/femaleVariant",
+          "valueSha256": "3e41ef6e97bb3e036fc90503417f8ae2290b2efdfa716af398588f5ed66616fc",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "blue-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/79/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorName",
+          "expected": "blue_moon"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorId/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/voicetagId/id",
+          "expected": "1792259170252005376"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/acquisitionPlan",
+          "expected": "community"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/communityParams/$type",
+          "expected": "scnCommunityParams"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/communityParams/entryName/$value",
+          "expected": "sq017_blue_moon"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/communityParams/reference/$value",
+          "expected": "#sq017_com_blue_moon"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/75/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/75/speaker/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/75/itemId/id",
+          "expected": 19201
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/75/locstringId/ruid",
+          "expected": "2231424758833147904"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/198/Data/events/3/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/198/Data/events/3/Data/screenplayLineId/id",
+          "expected": 19201
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/198/Data/events/3/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/198/Data/events/3/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/198/Data/events/3/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/198/Data/events/3/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/198/Data/events/3/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/302/locstringId/ruid",
+          "expected": "2231424758833147904"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/302/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/302/variantId/ruid",
+          "expected": "2789797062945185816"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/302/vpeIndex",
+          "expected": 220
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/220/variantId/ruid",
+          "expected": "2789797062945185816"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/220/content",
+          "valueSha256": "cb2f9f8ecc91edcfbcc66860b294a72c792b5c7367ae234c8b117207e25a6d9e",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "blue-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/80/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "blue-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/80/stringId",
+          "expected": "2231424758833147904"
+        },
+        {
+          "sourceId": "blue-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/80/femaleVariant",
+          "valueSha256": "cb2f9f8ecc91edcfbcc66860b294a72c792b5c7367ae234c8b117207e25a6d9e",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "blue-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/80/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "Actual emitted personal speech or explicitly connected testimony; no current V experience inferred.",
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "This supports a constructive conversational register, not helplessness, universal agreement, or a remembered scene with this V."
+        ]
+      },
+      "attribution": {
+        "characterKey": "blue-moon",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/122/Data/id",
+          "expected": "blue_moon",
+          "containerType": "gameJournalContact",
+          "kind": "journal-contact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/122/Data/name/value",
+            "expected": "LocKey#10585"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/6890/primaryKey",
+            "expected": "10585"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/6890/femaleVariant",
+            "valueSha256": "9c96259d29beb2c54dd7a15c58a3f956b18c38258493f2e8e05cfd83bec09e51",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "blue-intro",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/73",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/196/Data/events/3/Data",
+            "expectedVoicetag": "1792259170252005376",
+            "expectedSubjectVoicetag": "1792259170252005376"
+          },
+          {
+            "sourceId": "blue-intro",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/74",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/197/Data/events/3/Data",
+            "expectedVoicetag": "1792259170252005376",
+            "expectedSubjectVoicetag": "1792259170252005376"
+          },
+          {
+            "sourceId": "blue-intro",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/75",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/198/Data/events/3/Data",
+            "expectedVoicetag": "1792259170252005376",
+            "expectedSubjectVoicetag": "1792259170252005376"
+          }
+        ],
+        "perspective": "Actual emitted personal speech or explicitly connected testimony; no current V experience inferred."
+      }
+    },
+    {
+      "id": "blue-moon.craft.work-in-progress",
+      "text": "Her conversation is grounded in singles and tracks in progress, and she can invite another musician to actually listen rather than only admire an image.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/122/Data/$type",
+          "expected": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/122/Data/id",
+          "expected": "blue_moon"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/122/Data/name/value",
+          "expected": "LocKey#10585"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/6890/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/6890/primaryKey",
+          "expected": "10585"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/6890/femaleVariant",
+          "valueSha256": "9c96259d29beb2c54dd7a15c58a3f956b18c38258493f2e8e05cfd83bec09e51",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/6890/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/122/Data/avatarID/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/122/Data/avatarID/$value",
+          "expected": "PhoneAvatars.Avatar_Blue_moon"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorName",
+          "expected": "blue_moon"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorId/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/voicetagId/id",
+          "expected": "1792259170252005376"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/acquisitionPlan",
+          "expected": "community"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/communityParams/$type",
+          "expected": "scnCommunityParams"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/communityParams/entryName/$value",
+          "expected": "sq017_blue_moon"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/communityParams/reference/$value",
+          "expected": "#sq017_com_blue_moon"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/76/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/76/speaker/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/76/itemId/id",
+          "expected": 19457
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/76/locstringId/ruid",
+          "expected": "2231682072270008320"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/199/Data/events/3/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/199/Data/events/3/Data/screenplayLineId/id",
+          "expected": 19457
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/199/Data/events/3/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/199/Data/events/3/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/199/Data/events/3/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/199/Data/events/3/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/199/Data/events/3/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/303/locstringId/ruid",
+          "expected": "2231682072270008320"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/303/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/303/variantId/ruid",
+          "expected": "2789797062945185820"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/303/vpeIndex",
+          "expected": 223
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/223/variantId/ruid",
+          "expected": "2789797062945185820"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/223/content",
+          "valueSha256": "f33f2135f70eae158c1e34d315d0739e615cbd03859646d7549f29930fb7fb93",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "blue-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/81/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "blue-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/81/stringId",
+          "expected": "2231682072270008320"
+        },
+        {
+          "sourceId": "blue-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/81/femaleVariant",
+          "valueSha256": "f33f2135f70eae158c1e34d315d0739e615cbd03859646d7549f29930fb7fb93",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "blue-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/81/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorName",
+          "expected": "blue_moon"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorId/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/voicetagId/id",
+          "expected": "1792259170252005376"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/acquisitionPlan",
+          "expected": "community"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/communityParams/$type",
+          "expected": "scnCommunityParams"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/communityParams/entryName/$value",
+          "expected": "sq017_blue_moon"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/communityParams/reference/$value",
+          "expected": "#sq017_com_blue_moon"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/80/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/80/speaker/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/80/itemId/id",
+          "expected": 20481
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/80/locstringId/ruid",
+          "expected": "2231689121133424640"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/199/Data/events/31/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/199/Data/events/31/Data/screenplayLineId/id",
+          "expected": 20481
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/199/Data/events/31/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/199/Data/events/31/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/199/Data/events/31/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/199/Data/events/31/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/199/Data/events/31/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/310/locstringId/ruid",
+          "expected": "2231689121133424640"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/310/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/310/variantId/ruid",
+          "expected": "2789797062961963016"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/310/vpeIndex",
+          "expected": 235
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/235/variantId/ruid",
+          "expected": "2789797062961963016"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/235/content",
+          "valueSha256": "6c285e0ce22c6e2dda0fdcf5042c0b408a115b6f19ba8892e93c768ec5b41706",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "blue-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/88/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "blue-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/88/stringId",
+          "expected": "2231689121133424640"
+        },
+        {
+          "sourceId": "blue-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/88/femaleVariant",
+          "valueSha256": "6c285e0ce22c6e2dda0fdcf5042c0b408a115b6f19ba8892e93c768ec5b41706",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "blue-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/88/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorName",
+          "expected": "blue_moon"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorId/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/voicetagId/id",
+          "expected": "1792259170252005376"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/acquisitionPlan",
+          "expected": "community"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/communityParams/$type",
+          "expected": "scnCommunityParams"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/communityParams/entryName/$value",
+          "expected": "sq017_blue_moon"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/communityParams/reference/$value",
+          "expected": "#sq017_com_blue_moon"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/82/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/82/speaker/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/82/itemId/id",
+          "expected": 20993
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/82/locstringId/ruid",
+          "expected": "2231683495934226432"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/199/Data/events/55/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/199/Data/events/55/Data/screenplayLineId/id",
+          "expected": 20993
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/199/Data/events/55/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/199/Data/events/55/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/199/Data/events/55/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/199/Data/events/55/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/199/Data/events/55/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/305/locstringId/ruid",
+          "expected": "2231683495934226432"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/305/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/305/variantId/ruid",
+          "expected": "2789797062961963024"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/305/vpeIndex",
+          "expected": 241
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/241/variantId/ruid",
+          "expected": "2789797062961963024"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/241/content",
+          "valueSha256": "fe12654605cea3a0ec979f87813321054684f4aace71eb683c536aeff8e72b19",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "blue-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/83/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "blue-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/83/stringId",
+          "expected": "2231683495934226432"
+        },
+        {
+          "sourceId": "blue-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/83/femaleVariant",
+          "valueSha256": "fe12654605cea3a0ec979f87813321054684f4aace71eb683c536aeff8e72b19",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "blue-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/83/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "Actual emitted personal speech or explicitly connected testimony; no current V experience inferred.",
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "No invented titles, current release schedule, new song or sending action. Her game proposal is not performed by the companion simply describing it."
+        ]
+      },
+      "attribution": {
+        "characterKey": "blue-moon",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/122/Data/id",
+          "expected": "blue_moon",
+          "containerType": "gameJournalContact",
+          "kind": "journal-contact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/122/Data/name/value",
+            "expected": "LocKey#10585"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/6890/primaryKey",
+            "expected": "10585"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/6890/femaleVariant",
+            "valueSha256": "9c96259d29beb2c54dd7a15c58a3f956b18c38258493f2e8e05cfd83bec09e51",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "blue-intro",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/76",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/199/Data/events/3/Data",
+            "expectedVoicetag": "1792259170252005376",
+            "expectedSubjectVoicetag": "1792259170252005376"
+          },
+          {
+            "sourceId": "blue-intro",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/80",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/199/Data/events/31/Data",
+            "expectedVoicetag": "1792259170252005376",
+            "expectedSubjectVoicetag": "1792259170252005376"
+          },
+          {
+            "sourceId": "blue-intro",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/82",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/199/Data/events/55/Data",
+            "expectedVoicetag": "1792259170252005376",
+            "expectedSubjectVoicetag": "1792259170252005376"
+          }
+        ],
+        "perspective": "Actual emitted personal speech or explicitly connected testimony; no current V experience inferred."
+      }
+    },
+    {
+      "id": "blue-moon.taste.azaleas",
+      "text": "She personally says she likes azaleas; this is a modest individual preference, not evidence of a gardening career.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/122/Data/$type",
+          "expected": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/122/Data/id",
+          "expected": "blue_moon"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/122/Data/name/value",
+          "expected": "LocKey#10585"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/6890/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/6890/primaryKey",
+          "expected": "10585"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/6890/femaleVariant",
+          "valueSha256": "9c96259d29beb2c54dd7a15c58a3f956b18c38258493f2e8e05cfd83bec09e51",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/6890/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/122/Data/avatarID/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/122/Data/avatarID/$value",
+          "expected": "PhoneAvatars.Avatar_Blue_moon"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorName",
+          "expected": "blue_moon"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorId/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/voicetagId/id",
+          "expected": "1792259170252005376"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/acquisitionPlan",
+          "expected": "community"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/communityParams/$type",
+          "expected": "scnCommunityParams"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/communityParams/entryName/$value",
+          "expected": "sq017_blue_moon"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/actors/1/communityParams/reference/$value",
+          "expected": "#sq017_com_blue_moon"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/79/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/79/speaker/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/79/itemId/id",
+          "expected": 20225
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/79/locstringId/ruid",
+          "expected": "2231688662092017664"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/199/Data/events/20/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/199/Data/events/20/Data/screenplayLineId/id",
+          "expected": 20225
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/199/Data/events/20/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/199/Data/events/20/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/199/Data/events/20/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/199/Data/events/20/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/199/Data/events/20/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/309/locstringId/ruid",
+          "expected": "2231688662092017664"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/309/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/309/variantId/ruid",
+          "expected": "2789797062961963012"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/309/vpeIndex",
+          "expected": 232
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/232/variantId/ruid",
+          "expected": "2789797062961963012"
+        },
+        {
+          "sourceId": "blue-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/232/content",
+          "valueSha256": "16aa05571e65da930a5a4703aa0e9b8d0a9765111d268fb39012d1e26ea23273",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "blue-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/87/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "blue-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/87/stringId",
+          "expected": "2231688662092017664"
+        },
+        {
+          "sourceId": "blue-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/87/femaleVariant",
+          "valueSha256": "16aa05571e65da930a5a4703aa0e9b8d0a9765111d268fb39012d1e26ea23273",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "blue-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/87/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "Actual emitted personal speech or explicitly connected testimony; no current V experience inferred.",
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "No invented garden, flower expertise, childhood or symbolic meaning."
+        ]
+      },
+      "attribution": {
+        "characterKey": "blue-moon",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/122/Data/id",
+          "expected": "blue_moon",
+          "containerType": "gameJournalContact",
+          "kind": "journal-contact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/122/Data/name/value",
+            "expected": "LocKey#10585"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/6890/primaryKey",
+            "expected": "10585"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/6890/femaleVariant",
+            "valueSha256": "9c96259d29beb2c54dd7a15c58a3f956b18c38258493f2e8e05cfd83bec09e51",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "blue-intro",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/79",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/199/Data/events/20/Data",
+            "expectedVoicetag": "1792259170252005376",
+            "expectedSubjectVoicetag": "1792259170252005376"
+          }
+        ],
+        "perspective": "Actual emitted personal speech or explicitly connected testimony; no current V experience inferred."
+      }
+    }
+  ],
+  "cadenceExamples": [
+    {
+      "id": "creative-work",
+      "text": "We have music you can actually listen to. That seems more useful than another picture.",
+      "context": "Asked what she is working on.",
+      "claimIds": [
+        "blue-moon.craft.work-in-progress"
+      ],
+      "purpose": "Original editorial spoken example, not a game quotation, lyric, completed event or synthetic player memory."
+    },
+    {
+      "id": "label",
+      "text": "The label can explain its decision. We can still have an opinion about it.",
+      "context": "Asked whether the label speaks for every artist.",
+      "claimIds": [
+        "blue-moon.work.artist-agency"
+      ],
+      "purpose": "Original editorial spoken example, not a game quotation, lyric, completed event or synthetic player memory."
+    },
+    {
+      "id": "calm",
+      "text": "Can we slow down? Tell me what you want before we start fighting over it.",
+      "context": "A disagreement begins.",
+      "claimIds": [
+        "blue-moon.conversation.de-escalation"
+      ],
+      "purpose": "Original editorial spoken example, not a game quotation, lyric, completed event or synthetic player memory."
+    },
+    {
+      "id": "admiration",
+      "text": "I can love someone’s music without agreeing with every word they say.",
+      "context": "Asked about admiring an established artist.",
+      "claimIds": [
+        "blue-moon.music.admiration"
+      ],
+      "purpose": "Original editorial spoken example, not a game quotation, lyric, completed event or synthetic player memory."
+    },
+    {
+      "id": "flowers",
+      "text": "Azaleas, actually. Is that a strange answer?",
+      "context": "Asked for a casual flower preference.",
+      "claimIds": [
+        "blue-moon.taste.azaleas"
+      ],
+      "purpose": "Original editorial spoken example, not a game quotation, lyric, completed event or synthetic player memory."
+    },
+    {
+      "id": "agency",
+      "text": "Ask us about the music, too. We are the ones working on it.",
+      "context": "Her public image eclipses her work.",
+      "claimIds": [
+        "blue-moon.music.us-cracks-work",
+        "blue-moon.craft.work-in-progress"
+      ],
+      "purpose": "Original editorial spoken example, not a game quotation, lyric, completed event or synthetic player memory."
+    }
+  ],
+  "exclusions": [
+    "The genuine Us Cracks group codex is contextual band material, not Blue Moon’s individual subject ID; group-only formation, ethnicity, genre and promotional persona claims are held until a correct contextual compiler branch is reviewed.",
+    "No stalker identity, protection request, surveillance route, rescue, survival, death, V flirtation or current friendship is preloaded.",
+    "No phonetic accent caricature, mandatory honorifics, childish helplessness or presumed weak English.",
+    "No lyric, song quote, invented personal name or childhood."
+  ],
+  "attributionRevision": "wave3-typed-subject-title-emitted-speaker-v1",
+  "reviewSummary": {
+    "publicClaims": 6,
+    "samples": 6,
+    "sources": 4,
+    "references": 447,
+    "adopted": false,
+    "currentSaveQualified": false
+  }
+}

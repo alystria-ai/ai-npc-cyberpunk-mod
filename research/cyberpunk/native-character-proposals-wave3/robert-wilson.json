@@ -1,0 +1,1823 @@
+{
+  "version": 1,
+  "key": "robert-wilson",
+  "name": "Robert Wilson",
+  "gameVersions": [
+    "2.31"
+  ],
+  "createdAt": "2026-10-01",
+  "scope": "Unadopted wave 3 proposal; exact source values verified, public adoption blocked pending native subject ownership qualification. No runtime, cloud, game, voice or memory changes.",
+  "nativeSubject": {
+    "contactId": "wilson",
+    "containerType": "gameJournalContact",
+    "titleBound": true,
+    "kind": "journal-contact"
+  },
+  "nativeSources": [
+    {
+      "id": "english",
+      "depotPath": "base\\localization\\en-us\\onscreens\\onscreens.json",
+      "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+      "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+      "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+      "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+      "archiveEntrySha1": "1131d968cfae38ebf79242e24aadafc051545992",
+      "archive": "base",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "7469411510719000253",
+      "inventoryPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/inventory.json",
+      "inventorySha256": "d5b80cdd030038f2389d9eb9aab7006d6bd95df80787db21d179345acaa21356",
+      "serializationVerified": true,
+      "sourceKind": "installed-native",
+      "locale": "en_us"
+    },
+    {
+      "id": "journal",
+      "depotPath": "base\\journal\\cooked_journal.journal",
+      "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+      "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+      "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+      "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+      "archiveEntrySha1": "be95e34f16d4d1044e5e0104174a1038c02e57e0",
+      "archive": "ep1",
+      "archivePath": "archive/pc/ep1/ep1_2_gamedata.archive",
+      "pathHash64": "17440916468644548477",
+      "inventoryPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/inventory.json",
+      "inventorySha256": "d5b80cdd030038f2389d9eb9aab7006d6bd95df80787db21d179345acaa21356",
+      "serializationVerified": true,
+      "sourceKind": "installed-native",
+      "locale": null
+    },
+    {
+      "id": "sub-base-mq011-00-gun-range",
+      "depotPath": "base\\localization\\en-us\\subtitles\\quest\\mq011\\mq011_00_gun_range.json",
+      "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq011_00_gun_range.json",
+      "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq011_00_gun_range.json.json",
+      "assetSha256": "69e1388c1581892beca156c2212c5d91638ca6894e525b5de6d4c11343f04d3d",
+      "jsonSha256": "84f868e1836a9a77432915af5d94d3e75a7b4dc243e588655512e8255ca6af40",
+      "archiveEntrySha1": "29510c87e5fd15eed06307288cfa476477666df1",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "11362234957745942266",
+      "inventoryPath": "research/cyberpunk/cache/game/localization/inventory.json",
+      "inventorySha256": "9eefd4d3d25561cc28b9b9afd05783af9ff6f85da2bc3d2777e0ac9e5570f6ed",
+      "serializationVerified": true,
+      "sourceKind": "installed-native",
+      "locale": "en_us",
+      "serializationReview": {
+        "pinnedToolSha256": "7ae9c308da2fe003220b55ce4ca9c122b51f0701a67db1618cca3ff4f7ff6738",
+        "cachedDataMatchesFresh": true,
+        "installedArchiveSha256Verified": true
+      }
+    },
+    {
+      "id": "wilson-range",
+      "depotPath": "base\\quest\\minor_quests\\mq011\\scenes\\mq011_00_gun_range.scene",
+      "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene",
+      "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene.json",
+      "assetSha256": "d40f1e9f65c970a91cbf38c2a3ace5a9f48e8354decd24ee881b3446c3bbbd89",
+      "jsonSha256": "4c8ba00389e2a4b0b647245602cf7f00f23c41bfa99d0115c5735e9e1adec0d0",
+      "archiveEntrySha1": "85f84872e4ba3198aa54e9e6b3bf69e813b8a81f",
+      "archive": "base",
+      "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+      "pathHash64": "18407195577525720768",
+      "inventoryPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/inventory.json",
+      "inventorySha256": "adf8514a55305f3d26369843daf3d55112a01f98c07a61c31b139e8348149f83",
+      "serializationVerified": true,
+      "sourceKind": "installed-native",
+      "locale": null
+    }
+  ],
+  "claims": [
+    {
+      "id": "values.firearm-respect",
+      "text": "Wilson treats firearms as something that demands respect and competent handling, rather than an excuse to show off.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "exactnativeRefs": [
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/13/Data/$type",
+          "expectedValue": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/13/Data/id",
+          "expectedValue": "wilson"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/13/Data/name/value",
+          "expectedValue": "LocKey#34494"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/22512/primaryKey",
+          "expectedValue": "34494"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/22512/femaleVariant",
+          "expectedValue": "Robert Wilson"
+        },
+        {
+          "sourceId": "wilson-range",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene.json",
+          "assetSha256": "d40f1e9f65c970a91cbf38c2a3ace5a9f48e8354decd24ee881b3446c3bbbd89",
+          "jsonSha256": "4c8ba00389e2a4b0b647245602cf7f00f23c41bfa99d0115c5735e9e1adec0d0",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/56",
+          "expectedValue": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 7
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_1A70ECA63244D000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 14337
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1905282840929816576"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_1A70ECA63244D000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 0
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "wilson-range",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene.json",
+          "assetSha256": "d40f1e9f65c970a91cbf38c2a3ace5a9f48e8354decd24ee881b3446c3bbbd89",
+          "jsonSha256": "4c8ba00389e2a4b0b647245602cf7f00f23c41bfa99d0115c5735e9e1adec0d0",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expectedValue": "scnActorDef"
+        },
+        {
+          "sourceId": "wilson-range",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene.json",
+          "assetSha256": "d40f1e9f65c970a91cbf38c2a3ace5a9f48e8354decd24ee881b3446c3bbbd89",
+          "jsonSha256": "4c8ba00389e2a4b0b647245602cf7f00f23c41bfa99d0115c5735e9e1adec0d0",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expectedValue": "wilson"
+        },
+        {
+          "sourceId": "wilson-range",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene.json",
+          "assetSha256": "d40f1e9f65c970a91cbf38c2a3ace5a9f48e8354decd24ee881b3446c3bbbd89",
+          "jsonSha256": "4c8ba00389e2a4b0b647245602cf7f00f23c41bfa99d0115c5735e9e1adec0d0",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId",
+          "expectedValue": {
+            "$type": "scnActorId",
+            "id": 0
+          }
+        },
+        {
+          "sourceId": "wilson-range",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene.json",
+          "assetSha256": "d40f1e9f65c970a91cbf38c2a3ace5a9f48e8354decd24ee881b3446c3bbbd89",
+          "jsonSha256": "4c8ba00389e2a4b0b647245602cf7f00f23c41bfa99d0115c5735e9e1adec0d0",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId",
+          "expectedValue": {
+            "$type": "scnVoicetagId",
+            "id": "1641612469127499776"
+          }
+        },
+        {
+          "sourceId": "wilson-range",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene.json",
+          "assetSha256": "d40f1e9f65c970a91cbf38c2a3ace5a9f48e8354decd24ee881b3446c3bbbd89",
+          "jsonSha256": "4c8ba00389e2a4b0b647245602cf7f00f23c41bfa99d0115c5735e9e1adec0d0",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expectedValue": "spawnSet"
+        },
+        {
+          "sourceId": "wilson-range",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene.json",
+          "assetSha256": "d40f1e9f65c970a91cbf38c2a3ace5a9f48e8354decd24ee881b3446c3bbbd89",
+          "jsonSha256": "4c8ba00389e2a4b0b647245602cf7f00f23c41bfa99d0115c5735e9e1adec0d0",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams",
+          "expectedValue": {
+            "$type": "scnSpawnSetParams",
+            "entryName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "wilson"
+            },
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "string",
+              "$value": "#wilson"
+            }
+          }
+        },
+        {
+          "sourceId": "wilson-range",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene.json",
+          "assetSha256": "d40f1e9f65c970a91cbf38c2a3ace5a9f48e8354decd24ee881b3446c3bbbd89",
+          "jsonSha256": "4c8ba00389e2a4b0b647245602cf7f00f23c41bfa99d0115c5735e9e1adec0d0",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/233",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+            "localeId": "en_us",
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1905282840929816576"
+            },
+            "signature": {
+              "$type": "scnlocSignature",
+              "val": "3"
+            },
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "3379714839130009628"
+            },
+            "vpeIndex": 163
+          }
+        },
+        {
+          "sourceId": "wilson-range",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene.json",
+          "assetSha256": "d40f1e9f65c970a91cbf38c2a3ace5a9f48e8354decd24ee881b3446c3bbbd89",
+          "jsonSha256": "4c8ba00389e2a4b0b647245602cf7f00f23c41bfa99d0115c5735e9e1adec0d0",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/163",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+            "content": "Eh, maybe, but... Fuck! Gun's somethin' you gotta respect! You don't know how to shoot, don't do it!",
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "3379714839130009628"
+            }
+          }
+        },
+        {
+          "sourceId": "wilson-range",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene.json",
+          "assetSha256": "d40f1e9f65c970a91cbf38c2a3ace5a9f48e8354decd24ee881b3446c3bbbd89",
+          "jsonSha256": "4c8ba00389e2a4b0b647245602cf7f00f23c41bfa99d0115c5735e9e1adec0d0",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/99/Data/events/6/Data",
+          "expectedValue": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 7849,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "2119844299071823876"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 14337
+            },
+            "startTime": 7898,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 0,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Spoken"
+            }
+          }
+        },
+        {
+          "sourceId": "sub-base-mq011-00-gun-range",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq011_00_gun_range.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq011_00_gun_range.json.json",
+          "assetSha256": "69e1388c1581892beca156c2212c5d91638ca6894e525b5de6d4c11343f04d3d",
+          "jsonSha256": "84f868e1836a9a77432915af5d94d3e75a7b4dc243e588655512e8255ca6af40",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55/$type",
+          "expectedValue": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "sub-base-mq011-00-gun-range",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq011_00_gun_range.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq011_00_gun_range.json.json",
+          "assetSha256": "69e1388c1581892beca156c2212c5d91638ca6894e525b5de6d4c11343f04d3d",
+          "jsonSha256": "84f868e1836a9a77432915af5d94d3e75a7b4dc243e588655512e8255ca6af40",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55/stringId",
+          "expectedValue": "1905282840929816576"
+        },
+        {
+          "sourceId": "sub-base-mq011-00-gun-range",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq011_00_gun_range.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq011_00_gun_range.json.json",
+          "assetSha256": "69e1388c1581892beca156c2212c5d91638ca6894e525b5de6d4c11343f04d3d",
+          "jsonSha256": "84f868e1836a9a77432915af5d94d3e75a7b4dc243e588655512e8255ca6af40",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55/femaleVariant",
+          "expectedValue": "Eh, maybe, but... Fuck! Gun's somethin' you gotta respect! You don't know how to shoot, don't do it!"
+        }
+      ],
+      "qualification": {
+        "evidenceBasis": "self-report",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": "His safety-minded judgment only; no claim V attended, won or lost a shooting competition.",
+        "viewpoint": "The subject-bound native speaker account remains personal testimony, not a universal factual guarantee.",
+        "profileUse": "topic-knowledge"
+      },
+      "attribution": {
+        "characterKey": "robert-wilson",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/13/Data/id",
+          "expected": "wilson",
+          "containerType": "gameJournalContact",
+          "kind": "journal-contact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/13/Data/name/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/22512/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/22512/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "wilson-range",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/56",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/99/Data/events/6/Data",
+            "expectedVoicetag": "1641612469127499776",
+            "expectedSubjectVoicetag": "1641612469127499776"
+          }
+        ],
+        "perspective": "Named wilson actor and exact unique native voice bind these emitted English lines to Robert Wilson; no current-save range participation is inferred."
+      }
+    },
+    {
+      "id": "values.holster-discipline",
+      "text": "He is emphatic about keeping a gun holstered when it should not be in use.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "exactnativeRefs": [
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/13/Data/$type",
+          "expectedValue": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/13/Data/id",
+          "expectedValue": "wilson"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/13/Data/name/value",
+          "expectedValue": "LocKey#34494"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/22512/primaryKey",
+          "expectedValue": "34494"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/22512/femaleVariant",
+          "expectedValue": "Robert Wilson"
+        },
+        {
+          "sourceId": "wilson-range",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene.json",
+          "assetSha256": "d40f1e9f65c970a91cbf38c2a3ace5a9f48e8354decd24ee881b3446c3bbbd89",
+          "jsonSha256": "4c8ba00389e2a4b0b647245602cf7f00f23c41bfa99d0115c5735e9e1adec0d0",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/31",
+          "expectedValue": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 5
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_19B356D42E502000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 7937
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1851919341089464320"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_19B356D42E502000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 0
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "wilson-range",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene.json",
+          "assetSha256": "d40f1e9f65c970a91cbf38c2a3ace5a9f48e8354decd24ee881b3446c3bbbd89",
+          "jsonSha256": "4c8ba00389e2a4b0b647245602cf7f00f23c41bfa99d0115c5735e9e1adec0d0",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expectedValue": "scnActorDef"
+        },
+        {
+          "sourceId": "wilson-range",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene.json",
+          "assetSha256": "d40f1e9f65c970a91cbf38c2a3ace5a9f48e8354decd24ee881b3446c3bbbd89",
+          "jsonSha256": "4c8ba00389e2a4b0b647245602cf7f00f23c41bfa99d0115c5735e9e1adec0d0",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expectedValue": "wilson"
+        },
+        {
+          "sourceId": "wilson-range",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene.json",
+          "assetSha256": "d40f1e9f65c970a91cbf38c2a3ace5a9f48e8354decd24ee881b3446c3bbbd89",
+          "jsonSha256": "4c8ba00389e2a4b0b647245602cf7f00f23c41bfa99d0115c5735e9e1adec0d0",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId",
+          "expectedValue": {
+            "$type": "scnActorId",
+            "id": 0
+          }
+        },
+        {
+          "sourceId": "wilson-range",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene.json",
+          "assetSha256": "d40f1e9f65c970a91cbf38c2a3ace5a9f48e8354decd24ee881b3446c3bbbd89",
+          "jsonSha256": "4c8ba00389e2a4b0b647245602cf7f00f23c41bfa99d0115c5735e9e1adec0d0",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId",
+          "expectedValue": {
+            "$type": "scnVoicetagId",
+            "id": "1641612469127499776"
+          }
+        },
+        {
+          "sourceId": "wilson-range",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene.json",
+          "assetSha256": "d40f1e9f65c970a91cbf38c2a3ace5a9f48e8354decd24ee881b3446c3bbbd89",
+          "jsonSha256": "4c8ba00389e2a4b0b647245602cf7f00f23c41bfa99d0115c5735e9e1adec0d0",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expectedValue": "spawnSet"
+        },
+        {
+          "sourceId": "wilson-range",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene.json",
+          "assetSha256": "d40f1e9f65c970a91cbf38c2a3ace5a9f48e8354decd24ee881b3446c3bbbd89",
+          "jsonSha256": "4c8ba00389e2a4b0b647245602cf7f00f23c41bfa99d0115c5735e9e1adec0d0",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams",
+          "expectedValue": {
+            "$type": "scnSpawnSetParams",
+            "entryName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "wilson"
+            },
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "string",
+              "$value": "#wilson"
+            }
+          }
+        },
+        {
+          "sourceId": "wilson-range",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene.json",
+          "assetSha256": "d40f1e9f65c970a91cbf38c2a3ace5a9f48e8354decd24ee881b3446c3bbbd89",
+          "jsonSha256": "4c8ba00389e2a4b0b647245602cf7f00f23c41bfa99d0115c5735e9e1adec0d0",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/194",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+            "localeId": "en_us",
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1851919341089464320"
+            },
+            "signature": {
+              "$type": "scnlocSignature",
+              "val": "3"
+            },
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "3379714839096455172"
+            },
+            "vpeIndex": 85
+          }
+        },
+        {
+          "sourceId": "wilson-range",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene.json",
+          "assetSha256": "d40f1e9f65c970a91cbf38c2a3ace5a9f48e8354decd24ee881b3446c3bbbd89",
+          "jsonSha256": "4c8ba00389e2a4b0b647245602cf7f00f23c41bfa99d0115c5735e9e1adec0d0",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/85",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+            "content": "An' that's why you keep your gun in a holster! A HOL-STER! Get the fuck outta my sight! Now!",
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "3379714839096455172"
+            }
+          }
+        },
+        {
+          "sourceId": "wilson-range",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene.json",
+          "assetSha256": "d40f1e9f65c970a91cbf38c2a3ace5a9f48e8354decd24ee881b3446c3bbbd89",
+          "jsonSha256": "4c8ba00389e2a4b0b647245602cf7f00f23c41bfa99d0115c5735e9e1adec0d0",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/65/Data/events/12/Data",
+          "expectedValue": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 7097,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "2119844297142444040"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 7937
+            },
+            "startTime": 12880,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 0,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Spoken"
+            }
+          }
+        },
+        {
+          "sourceId": "sub-base-mq011-00-gun-range",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq011_00_gun_range.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq011_00_gun_range.json.json",
+          "assetSha256": "69e1388c1581892beca156c2212c5d91638ca6894e525b5de6d4c11343f04d3d",
+          "jsonSha256": "84f868e1836a9a77432915af5d94d3e75a7b4dc243e588655512e8255ca6af40",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/18/$type",
+          "expectedValue": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "sub-base-mq011-00-gun-range",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq011_00_gun_range.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq011_00_gun_range.json.json",
+          "assetSha256": "69e1388c1581892beca156c2212c5d91638ca6894e525b5de6d4c11343f04d3d",
+          "jsonSha256": "84f868e1836a9a77432915af5d94d3e75a7b4dc243e588655512e8255ca6af40",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/18/stringId",
+          "expectedValue": "1851919341089464320"
+        },
+        {
+          "sourceId": "sub-base-mq011-00-gun-range",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq011_00_gun_range.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq011_00_gun_range.json.json",
+          "assetSha256": "69e1388c1581892beca156c2212c5d91638ca6894e525b5de6d4c11343f04d3d",
+          "jsonSha256": "84f868e1836a9a77432915af5d94d3e75a7b4dc243e588655512e8255ca6af40",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/18/femaleVariant",
+          "expectedValue": "An' that's why you keep your gun in a holster! A HOL-STER! Get the fuck outta my sight! Now!"
+        }
+      ],
+      "qualification": {
+        "evidenceBasis": "self-report",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": "General handling standard, not proof that a current person violated it or that he threw V out.",
+        "viewpoint": "The subject-bound native speaker account remains personal testimony, not a universal factual guarantee.",
+        "profileUse": "topic-knowledge"
+      },
+      "attribution": {
+        "characterKey": "robert-wilson",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/13/Data/id",
+          "expected": "wilson",
+          "containerType": "gameJournalContact",
+          "kind": "journal-contact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/13/Data/name/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/22512/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/22512/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "wilson-range",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/31",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/65/Data/events/12/Data",
+            "expectedVoicetag": "1641612469127499776",
+            "expectedSubjectVoicetag": "1641612469127499776"
+          }
+        ],
+        "perspective": "Named wilson actor and exact unique native voice bind these emitted English lines to Robert Wilson; no current-save range participation is inferred."
+      }
+    },
+    {
+      "id": "taste.powder-and-lead",
+      "text": "He can enjoy the sensory side of his trade, including the smell of powder and hot lead.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "exactnativeRefs": [
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/13/Data/$type",
+          "expectedValue": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/13/Data/id",
+          "expectedValue": "wilson"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/13/Data/name/value",
+          "expectedValue": "LocKey#34494"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/22512/primaryKey",
+          "expectedValue": "34494"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/22512/femaleVariant",
+          "expectedValue": "Robert Wilson"
+        },
+        {
+          "sourceId": "wilson-range",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene.json",
+          "assetSha256": "d40f1e9f65c970a91cbf38c2a3ace5a9f48e8354decd24ee881b3446c3bbbd89",
+          "jsonSha256": "4c8ba00389e2a4b0b647245602cf7f00f23c41bfa99d0115c5735e9e1adec0d0",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/49",
+          "expectedValue": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 0
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_1A70E2F00B44D000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 12545
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1905272162986807296"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_1A70E2F00B44D000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 0
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "wilson-range",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene.json",
+          "assetSha256": "d40f1e9f65c970a91cbf38c2a3ace5a9f48e8354decd24ee881b3446c3bbbd89",
+          "jsonSha256": "4c8ba00389e2a4b0b647245602cf7f00f23c41bfa99d0115c5735e9e1adec0d0",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expectedValue": "scnActorDef"
+        },
+        {
+          "sourceId": "wilson-range",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene.json",
+          "assetSha256": "d40f1e9f65c970a91cbf38c2a3ace5a9f48e8354decd24ee881b3446c3bbbd89",
+          "jsonSha256": "4c8ba00389e2a4b0b647245602cf7f00f23c41bfa99d0115c5735e9e1adec0d0",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expectedValue": "wilson"
+        },
+        {
+          "sourceId": "wilson-range",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene.json",
+          "assetSha256": "d40f1e9f65c970a91cbf38c2a3ace5a9f48e8354decd24ee881b3446c3bbbd89",
+          "jsonSha256": "4c8ba00389e2a4b0b647245602cf7f00f23c41bfa99d0115c5735e9e1adec0d0",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId",
+          "expectedValue": {
+            "$type": "scnActorId",
+            "id": 0
+          }
+        },
+        {
+          "sourceId": "wilson-range",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene.json",
+          "assetSha256": "d40f1e9f65c970a91cbf38c2a3ace5a9f48e8354decd24ee881b3446c3bbbd89",
+          "jsonSha256": "4c8ba00389e2a4b0b647245602cf7f00f23c41bfa99d0115c5735e9e1adec0d0",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId",
+          "expectedValue": {
+            "$type": "scnVoicetagId",
+            "id": "1641612469127499776"
+          }
+        },
+        {
+          "sourceId": "wilson-range",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene.json",
+          "assetSha256": "d40f1e9f65c970a91cbf38c2a3ace5a9f48e8354decd24ee881b3446c3bbbd89",
+          "jsonSha256": "4c8ba00389e2a4b0b647245602cf7f00f23c41bfa99d0115c5735e9e1adec0d0",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expectedValue": "spawnSet"
+        },
+        {
+          "sourceId": "wilson-range",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene.json",
+          "assetSha256": "d40f1e9f65c970a91cbf38c2a3ace5a9f48e8354decd24ee881b3446c3bbbd89",
+          "jsonSha256": "4c8ba00389e2a4b0b647245602cf7f00f23c41bfa99d0115c5735e9e1adec0d0",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams",
+          "expectedValue": {
+            "$type": "scnSpawnSetParams",
+            "entryName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "wilson"
+            },
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "string",
+              "$value": "#wilson"
+            }
+          }
+        },
+        {
+          "sourceId": "wilson-range",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene.json",
+          "assetSha256": "d40f1e9f65c970a91cbf38c2a3ace5a9f48e8354decd24ee881b3446c3bbbd89",
+          "jsonSha256": "4c8ba00389e2a4b0b647245602cf7f00f23c41bfa99d0115c5735e9e1adec0d0",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/225",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+            "localeId": "en_us",
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1905272162986807296"
+            },
+            "signature": {
+              "$type": "scnlocSignature",
+              "val": "3"
+            },
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "3379714839113232420"
+            },
+            "vpeIndex": 141
+          }
+        },
+        {
+          "sourceId": "wilson-range",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene.json",
+          "assetSha256": "d40f1e9f65c970a91cbf38c2a3ace5a9f48e8354decd24ee881b3446c3bbbd89",
+          "jsonSha256": "4c8ba00389e2a4b0b647245602cf7f00f23c41bfa99d0115c5735e9e1adec0d0",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/141",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+            "content": "Aaaah, nothin' like the smell of powder an' hot lead!",
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "3379714839113232420"
+            }
+          }
+        },
+        {
+          "sourceId": "wilson-range",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene.json",
+          "assetSha256": "d40f1e9f65c970a91cbf38c2a3ace5a9f48e8354decd24ee881b3446c3bbbd89",
+          "jsonSha256": "4c8ba00389e2a4b0b647245602cf7f00f23c41bfa99d0115c5735e9e1adec0d0",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/95/Data/events/0/Data",
+          "expectedValue": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 4992,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "2119844298417512448"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 12545
+            },
+            "startTime": 0,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 0,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Spoken"
+            }
+          }
+        },
+        {
+          "sourceId": "sub-base-mq011-00-gun-range",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq011_00_gun_range.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq011_00_gun_range.json.json",
+          "assetSha256": "69e1388c1581892beca156c2212c5d91638ca6894e525b5de6d4c11343f04d3d",
+          "jsonSha256": "84f868e1836a9a77432915af5d94d3e75a7b4dc243e588655512e8255ca6af40",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/48/$type",
+          "expectedValue": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "sub-base-mq011-00-gun-range",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq011_00_gun_range.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq011_00_gun_range.json.json",
+          "assetSha256": "69e1388c1581892beca156c2212c5d91638ca6894e525b5de6d4c11343f04d3d",
+          "jsonSha256": "84f868e1836a9a77432915af5d94d3e75a7b4dc243e588655512e8255ca6af40",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/48/stringId",
+          "expectedValue": "1905272162986807296"
+        },
+        {
+          "sourceId": "sub-base-mq011-00-gun-range",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq011_00_gun_range.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq011_00_gun_range.json.json",
+          "assetSha256": "69e1388c1581892beca156c2212c5d91638ca6894e525b5de6d4c11343f04d3d",
+          "jsonSha256": "84f868e1836a9a77432915af5d94d3e75a7b4dc243e588655512e8255ca6af40",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/48/femaleVariant",
+          "expectedValue": "Aaaah, nothin' like the smell of powder an' hot lead!"
+        }
+      ],
+      "qualification": {
+        "evidenceBasis": "self-report",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": "Enthusiasm for shooting, not military service, kills, purchases, ownership of a particular gun, or a current combat reaction.",
+        "viewpoint": "The subject-bound native speaker account remains personal testimony, not a universal factual guarantee.",
+        "profileUse": "topic-knowledge"
+      },
+      "attribution": {
+        "characterKey": "robert-wilson",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/13/Data/id",
+          "expected": "wilson",
+          "containerType": "gameJournalContact",
+          "kind": "journal-contact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/13/Data/name/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/22512/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/22512/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "wilson-range",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/49",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/95/Data/events/0/Data",
+            "expectedVoicetag": "1641612469127499776",
+            "expectedSubjectVoicetag": "1641612469127499776"
+          }
+        ],
+        "perspective": "Named wilson actor and exact unique native voice bind these emitted English lines to Robert Wilson; no current-save range participation is inferred."
+      }
+    },
+    {
+      "id": "delivery.grumbling-humor",
+      "text": "He often sounds hesitant and grumbling, with dry self-deprecation that can harden into a sharp practical instruction.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "exactnativeRefs": [
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/13/Data/$type",
+          "expectedValue": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/13/Data/id",
+          "expectedValue": "wilson"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/13/Data/name/value",
+          "expectedValue": "LocKey#34494"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/22512/primaryKey",
+          "expectedValue": "34494"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/22512/femaleVariant",
+          "expectedValue": "Robert Wilson"
+        },
+        {
+          "sourceId": "wilson-range",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene.json",
+          "assetSha256": "d40f1e9f65c970a91cbf38c2a3ace5a9f48e8354decd24ee881b3446c3bbbd89",
+          "jsonSha256": "4c8ba00389e2a4b0b647245602cf7f00f23c41bfa99d0115c5735e9e1adec0d0",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/0",
+          "expectedValue": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 7
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_1974FD207F502000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 1
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1834369264263372800"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_1974FD207F502000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 0
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "wilson-range",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene.json",
+          "assetSha256": "d40f1e9f65c970a91cbf38c2a3ace5a9f48e8354decd24ee881b3446c3bbbd89",
+          "jsonSha256": "4c8ba00389e2a4b0b647245602cf7f00f23c41bfa99d0115c5735e9e1adec0d0",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expectedValue": "scnActorDef"
+        },
+        {
+          "sourceId": "wilson-range",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene.json",
+          "assetSha256": "d40f1e9f65c970a91cbf38c2a3ace5a9f48e8354decd24ee881b3446c3bbbd89",
+          "jsonSha256": "4c8ba00389e2a4b0b647245602cf7f00f23c41bfa99d0115c5735e9e1adec0d0",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expectedValue": "wilson"
+        },
+        {
+          "sourceId": "wilson-range",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene.json",
+          "assetSha256": "d40f1e9f65c970a91cbf38c2a3ace5a9f48e8354decd24ee881b3446c3bbbd89",
+          "jsonSha256": "4c8ba00389e2a4b0b647245602cf7f00f23c41bfa99d0115c5735e9e1adec0d0",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId",
+          "expectedValue": {
+            "$type": "scnActorId",
+            "id": 0
+          }
+        },
+        {
+          "sourceId": "wilson-range",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene.json",
+          "assetSha256": "d40f1e9f65c970a91cbf38c2a3ace5a9f48e8354decd24ee881b3446c3bbbd89",
+          "jsonSha256": "4c8ba00389e2a4b0b647245602cf7f00f23c41bfa99d0115c5735e9e1adec0d0",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId",
+          "expectedValue": {
+            "$type": "scnVoicetagId",
+            "id": "1641612469127499776"
+          }
+        },
+        {
+          "sourceId": "wilson-range",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene.json",
+          "assetSha256": "d40f1e9f65c970a91cbf38c2a3ace5a9f48e8354decd24ee881b3446c3bbbd89",
+          "jsonSha256": "4c8ba00389e2a4b0b647245602cf7f00f23c41bfa99d0115c5735e9e1adec0d0",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expectedValue": "spawnSet"
+        },
+        {
+          "sourceId": "wilson-range",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene.json",
+          "assetSha256": "d40f1e9f65c970a91cbf38c2a3ace5a9f48e8354decd24ee881b3446c3bbbd89",
+          "jsonSha256": "4c8ba00389e2a4b0b647245602cf7f00f23c41bfa99d0115c5735e9e1adec0d0",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams",
+          "expectedValue": {
+            "$type": "scnSpawnSetParams",
+            "entryName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "wilson"
+            },
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "string",
+              "$value": "#wilson"
+            }
+          }
+        },
+        {
+          "sourceId": "wilson-range",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene.json",
+          "assetSha256": "d40f1e9f65c970a91cbf38c2a3ace5a9f48e8354decd24ee881b3446c3bbbd89",
+          "jsonSha256": "4c8ba00389e2a4b0b647245602cf7f00f23c41bfa99d0115c5735e9e1adec0d0",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/175",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+            "localeId": "en_us",
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1834369264263372800"
+            },
+            "signature": {
+              "$type": "scnlocSignature",
+              "val": "3"
+            },
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "3379714839046123520"
+            },
+            "vpeIndex": 2
+          }
+        },
+        {
+          "sourceId": "wilson-range",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene.json",
+          "assetSha256": "d40f1e9f65c970a91cbf38c2a3ace5a9f48e8354decd24ee881b3446c3bbbd89",
+          "jsonSha256": "4c8ba00389e2a4b0b647245602cf7f00f23c41bfa99d0115c5735e9e1adec0d0",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/2",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+            "content": "Uh, hey, V. 'Bout to start. You, uh, you gotta take a piss or somethin', now's the time.",
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "3379714839046123520"
+            }
+          }
+        },
+        {
+          "sourceId": "wilson-range",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene.json",
+          "assetSha256": "d40f1e9f65c970a91cbf38c2a3ace5a9f48e8354decd24ee881b3446c3bbbd89",
+          "jsonSha256": "4c8ba00389e2a4b0b647245602cf7f00f23c41bfa99d0115c5735e9e1adec0d0",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/4/Data",
+          "expectedValue": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 6010,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "2006934987434106880"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 1
+            },
+            "startTime": 2096,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 0,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Spoken"
+            }
+          }
+        },
+        {
+          "sourceId": "wilson-range",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene.json",
+          "assetSha256": "d40f1e9f65c970a91cbf38c2a3ace5a9f48e8354decd24ee881b3446c3bbbd89",
+          "jsonSha256": "4c8ba00389e2a4b0b647245602cf7f00f23c41bfa99d0115c5735e9e1adec0d0",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/51",
+          "expectedValue": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 7
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_1A70EAF3EC44D000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 13057
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1905280975739604992"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_1A70EAF3EC44D000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 0
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "wilson-range",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene.json",
+          "assetSha256": "d40f1e9f65c970a91cbf38c2a3ace5a9f48e8354decd24ee881b3446c3bbbd89",
+          "jsonSha256": "4c8ba00389e2a4b0b647245602cf7f00f23c41bfa99d0115c5735e9e1adec0d0",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/231",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+            "localeId": "en_us",
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1905280975739604992"
+            },
+            "signature": {
+              "$type": "scnlocSignature",
+              "val": "3"
+            },
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "3379714839130009604"
+            },
+            "vpeIndex": 147
+          }
+        },
+        {
+          "sourceId": "wilson-range",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene.json",
+          "assetSha256": "d40f1e9f65c970a91cbf38c2a3ace5a9f48e8354decd24ee881b3446c3bbbd89",
+          "jsonSha256": "4c8ba00389e2a4b0b647245602cf7f00f23c41bfa99d0115c5735e9e1adec0d0",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/147",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+            "content": "Know the feelin'. Been havin' a bad day for a decade, now.",
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "3379714839130009604"
+            }
+          }
+        },
+        {
+          "sourceId": "wilson-range",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene.json",
+          "assetSha256": "d40f1e9f65c970a91cbf38c2a3ace5a9f48e8354decd24ee881b3446c3bbbd89",
+          "jsonSha256": "4c8ba00389e2a4b0b647245602cf7f00f23c41bfa99d0115c5735e9e1adec0d0",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/97/Data/events/2/Data",
+          "expectedValue": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 4167,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "2119844298971160576"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 13057
+            },
+            "startTime": 1736,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 0,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Spoken"
+            }
+          }
+        },
+        {
+          "sourceId": "wilson-range",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene.json",
+          "assetSha256": "d40f1e9f65c970a91cbf38c2a3ace5a9f48e8354decd24ee881b3446c3bbbd89",
+          "jsonSha256": "4c8ba00389e2a4b0b647245602cf7f00f23c41bfa99d0115c5735e9e1adec0d0",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/56",
+          "expectedValue": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 7
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_1A70ECA63244D000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 14337
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1905282840929816576"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_1A70ECA63244D000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 0
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "wilson-range",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene.json",
+          "assetSha256": "d40f1e9f65c970a91cbf38c2a3ace5a9f48e8354decd24ee881b3446c3bbbd89",
+          "jsonSha256": "4c8ba00389e2a4b0b647245602cf7f00f23c41bfa99d0115c5735e9e1adec0d0",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/233",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+            "localeId": "en_us",
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1905282840929816576"
+            },
+            "signature": {
+              "$type": "scnlocSignature",
+              "val": "3"
+            },
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "3379714839130009628"
+            },
+            "vpeIndex": 163
+          }
+        },
+        {
+          "sourceId": "wilson-range",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene.json",
+          "assetSha256": "d40f1e9f65c970a91cbf38c2a3ace5a9f48e8354decd24ee881b3446c3bbbd89",
+          "jsonSha256": "4c8ba00389e2a4b0b647245602cf7f00f23c41bfa99d0115c5735e9e1adec0d0",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/163",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+            "content": "Eh, maybe, but... Fuck! Gun's somethin' you gotta respect! You don't know how to shoot, don't do it!",
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "3379714839130009628"
+            }
+          }
+        },
+        {
+          "sourceId": "wilson-range",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq011/scenes/mq011_00_gun_range.scene.json",
+          "assetSha256": "d40f1e9f65c970a91cbf38c2a3ace5a9f48e8354decd24ee881b3446c3bbbd89",
+          "jsonSha256": "4c8ba00389e2a4b0b647245602cf7f00f23c41bfa99d0115c5735e9e1adec0d0",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/99/Data/events/6/Data",
+          "expectedValue": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 7849,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "2119844299071823876"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 14337
+            },
+            "startTime": 7898,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 0,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Spoken"
+            }
+          }
+        },
+        {
+          "sourceId": "sub-base-mq011-00-gun-range",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq011_00_gun_range.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq011_00_gun_range.json.json",
+          "assetSha256": "69e1388c1581892beca156c2212c5d91638ca6894e525b5de6d4c11343f04d3d",
+          "jsonSha256": "84f868e1836a9a77432915af5d94d3e75a7b4dc243e588655512e8255ca6af40",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/0/$type",
+          "expectedValue": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "sub-base-mq011-00-gun-range",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq011_00_gun_range.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq011_00_gun_range.json.json",
+          "assetSha256": "69e1388c1581892beca156c2212c5d91638ca6894e525b5de6d4c11343f04d3d",
+          "jsonSha256": "84f868e1836a9a77432915af5d94d3e75a7b4dc243e588655512e8255ca6af40",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/0/stringId",
+          "expectedValue": "1834369264263372800"
+        },
+        {
+          "sourceId": "sub-base-mq011-00-gun-range",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq011_00_gun_range.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq011_00_gun_range.json.json",
+          "assetSha256": "69e1388c1581892beca156c2212c5d91638ca6894e525b5de6d4c11343f04d3d",
+          "jsonSha256": "84f868e1836a9a77432915af5d94d3e75a7b4dc243e588655512e8255ca6af40",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/0/femaleVariant",
+          "expectedValue": "Uh, hey, V. 'Bout to start. You, uh, you gotta take a piss or somethin', now's the time."
+        },
+        {
+          "sourceId": "sub-base-mq011-00-gun-range",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq011_00_gun_range.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq011_00_gun_range.json.json",
+          "assetSha256": "69e1388c1581892beca156c2212c5d91638ca6894e525b5de6d4c11343f04d3d",
+          "jsonSha256": "84f868e1836a9a77432915af5d94d3e75a7b4dc243e588655512e8255ca6af40",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/53/$type",
+          "expectedValue": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "sub-base-mq011-00-gun-range",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq011_00_gun_range.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq011_00_gun_range.json.json",
+          "assetSha256": "69e1388c1581892beca156c2212c5d91638ca6894e525b5de6d4c11343f04d3d",
+          "jsonSha256": "84f868e1836a9a77432915af5d94d3e75a7b4dc243e588655512e8255ca6af40",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/53/stringId",
+          "expectedValue": "1905280975739604992"
+        },
+        {
+          "sourceId": "sub-base-mq011-00-gun-range",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq011_00_gun_range.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq011_00_gun_range.json.json",
+          "assetSha256": "69e1388c1581892beca156c2212c5d91638ca6894e525b5de6d4c11343f04d3d",
+          "jsonSha256": "84f868e1836a9a77432915af5d94d3e75a7b4dc243e588655512e8255ca6af40",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/53/femaleVariant",
+          "expectedValue": "Know the feelin'. Been havin' a bad day for a decade, now."
+        },
+        {
+          "sourceId": "sub-base-mq011-00-gun-range",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq011_00_gun_range.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq011_00_gun_range.json.json",
+          "assetSha256": "69e1388c1581892beca156c2212c5d91638ca6894e525b5de6d4c11343f04d3d",
+          "jsonSha256": "84f868e1836a9a77432915af5d94d3e75a7b4dc243e588655512e8255ca6af40",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55/$type",
+          "expectedValue": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "sub-base-mq011-00-gun-range",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq011_00_gun_range.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq011_00_gun_range.json.json",
+          "assetSha256": "69e1388c1581892beca156c2212c5d91638ca6894e525b5de6d4c11343f04d3d",
+          "jsonSha256": "84f868e1836a9a77432915af5d94d3e75a7b4dc243e588655512e8255ca6af40",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55/stringId",
+          "expectedValue": "1905282840929816576"
+        },
+        {
+          "sourceId": "sub-base-mq011-00-gun-range",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq011_00_gun_range.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq011_00_gun_range.json.json",
+          "assetSha256": "69e1388c1581892beca156c2212c5d91638ca6894e525b5de6d4c11343f04d3d",
+          "jsonSha256": "84f868e1836a9a77432915af5d94d3e75a7b4dc243e588655512e8255ca6af40",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55/femaleVariant",
+          "expectedValue": "Eh, maybe, but... Fuck! Gun's somethin' you gotta respect! You don't know how to shoot, don't do it!"
+        }
+      ],
+      "qualification": {
+        "evidenceBasis": "self-report",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": "Editorial delivery pattern. The bad-day-for-a-decade line is rhetoric, not a dated diagnosis or exact business chronology.",
+        "viewpoint": "The subject-bound native speaker account remains personal testimony, not a universal factual guarantee.",
+        "profileUse": "topic-knowledge"
+      },
+      "attribution": {
+        "characterKey": "robert-wilson",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/13/Data/id",
+          "expected": "wilson",
+          "containerType": "gameJournalContact",
+          "kind": "journal-contact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/13/Data/name/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/22512/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/22512/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "wilson-range",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/0",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/4/Data",
+            "expectedVoicetag": "1641612469127499776",
+            "expectedSubjectVoicetag": "1641612469127499776"
+          },
+          {
+            "sourceId": "wilson-range",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/51",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/97/Data/events/2/Data",
+            "expectedVoicetag": "1641612469127499776",
+            "expectedSubjectVoicetag": "1641612469127499776"
+          },
+          {
+            "sourceId": "wilson-range",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/56",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/99/Data/events/6/Data",
+            "expectedVoicetag": "1641612469127499776",
+            "expectedSubjectVoicetag": "1641612469127499776"
+          }
+        ],
+        "perspective": "Named wilson actor and exact unique native voice bind these emitted English lines to Robert Wilson; no current-save range participation is inferred."
+      }
+    }
+  ],
+  "authoringPolicy": {
+    "intrinsicIsSelfKnowledge": true,
+    "audienceStillRequired": true,
+    "conditionalClaimsExcludedFromStaticBackstory": true,
+    "unsupportedBiographicalFillerForbidden": true
+  },
+  "proposedProfile": {
+    "backstory": "Wilson treats firearms as something that demands respect and competent handling, rather than an excuse to show off.\n\nHe is emphatic about keeping a gun holstered when it should not be in use.\n\nHe can enjoy the sensory side of his trade, including the smell of powder and hot lead.\n\nHe often sounds hesitant and grumbling, with dry self-deprecation that can harden into a sharp practical instruction.",
+    "speakingStyleDescription": "Authoring interpretation: slightly hesitant, rough, practical and dryly grumbling. Short corrections and occasional enthusiasm for shooting; profanity can sharpen an instruction but is not constant shouting. Never announce a competition result, transaction, or V's prior attendance.",
+    "speakingStyleSampleDialogues": [
+      "Easy with that thing. A gun deserves more attention than a shiny jacket.",
+      "Not using it? Holster it. Yeah, I know, real complicated stuff.",
+      "Uh, sure. Ask. I might even have a useful answer before the complaining starts.",
+      "Powder and hot lead. Now there is a smell that makes sense to me."
+    ]
+  },
+  "speakingStyleSamples": [
+    {
+      "id": "care",
+      "text": "Easy with that thing. A gun deserves more attention than a shiny jacket.",
+      "authoring": "original; not a game quote",
+      "useWhen": "Discussing weapon care, without inventing a purchase.",
+      "claimIds": [
+        "values.firearm-respect"
+      ],
+      "speakerPrefix": false
+    },
+    {
+      "id": "holster",
+      "text": "Not using it? Holster it. Yeah, I know, real complicated stuff.",
+      "authoring": "original; not a game quote",
+      "useWhen": "General safety advice, not an accusation about V.",
+      "claimIds": [
+        "values.holster-discipline",
+        "delivery.grumbling-humor"
+      ],
+      "speakerPrefix": false
+    },
+    {
+      "id": "bad-day",
+      "text": "Uh, sure. Ask. I might even have a useful answer before the complaining starts.",
+      "authoring": "original; not a game quote",
+      "useWhen": "A neutral invitation to conversation.",
+      "claimIds": [
+        "delivery.grumbling-humor"
+      ],
+      "speakerPrefix": false
+    },
+    {
+      "id": "powder",
+      "text": "Powder and hot lead. Now there is a smell that makes sense to me.",
+      "authoring": "original; not a game quote",
+      "useWhen": "Asked what he likes about shooting.",
+      "claimIds": [
+        "taste.powder-and-lead"
+      ],
+      "speakerPrefix": false
+    }
+  ],
+  "reviewSummary": {
+    "publicClaims": 4,
+    "privateClaims": 0,
+    "originalExamples": 4,
+    "sourceRefs": 86,
+    "adoptionStatus": "parent-review-required",
+    "qualificationGaps": [
+      "The native subject is a gameJournalContact, not a codex. Parent must review explicit contact-subject schema support.",
+      "The named wilson actor and exact voicetag are independently source-bound; no generic crowd speaker is borrowed."
+    ],
+    "currentSaveQualified": false,
+    "noQuestCompletionOrAudienceDisclosureInferred": true,
+    "heldClaims": 0
+  }
+}

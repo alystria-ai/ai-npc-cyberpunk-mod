@@ -79,6 +79,7 @@ export function validateResearch({roster, dossiers, maps}) {
     const ids = sources(dossier, where);
     const profile = dossier.profile || {};
     if (!text(profile.backstory) || !text(profile.speakingStyleDescription)) error(where, 'Separate biography/style fields required');
+    if (profile.publicSummary !== undefined && !text(profile.publicSummary)) error(where, 'Public summary must be nonempty text');
     if (array(profile.speakingStyleSampleDialogues).length < 6 || !profile.speakingStyleSampleDialogues.every(text)) error(where, 'At least six original delivery examples required');
     if (new Set(array(profile.speakingStyleSampleDialogues)).size !== array(profile.speakingStyleSampleDialogues).length) error(where, 'Duplicate dialogue examples');
     try { serializeCharacterSamples(profile.speakingStyleSampleDialogues, expected.get(dossier.key) || dossier); }
@@ -148,7 +149,7 @@ export function buildProfiles(roster, dossiers, {intrinsicPacks = [], intrinsicR
     const {sampleDialogue: retiredExamples, speakingRules: retiredStyle, relationships: retiredRelationships,
       nativeIntrinsic: retiredNative, nativeIntrinsicRevision: retiredNativeRevision, ...preserved} = old;
     const samples = serializeCharacterSamples(dossier.profile.speakingStyleSampleDialogues, old).split(/\n\s*\n/u);
-    return {...preserved, kind: dossier.kind, summary: dossier.profile.backstory.trim(), backstory, speakingStyleDescription,
+    return {...preserved, kind: dossier.kind, summary: (dossier.profile.publicSummary || dossier.profile.backstory).trim(), backstory, speakingStyleDescription,
       // Keep the research transcript in its dossier; the API field is examples
       // of this character's speech only, with no V prompt or speaker prefix.
       speakingStyleSampleDialogues: serializeCharacterSamples([...new Set([...samples, ...(native?.samples || [])])], old),

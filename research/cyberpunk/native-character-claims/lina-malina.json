@@ -1,0 +1,3106 @@
+{
+  "schemaVersion": 1,
+  "characterKey": "lina-malina",
+  "name": "Lina Malina",
+  "gameVersion": "2.31",
+  "locale": "en_us",
+  "reviewedAt": "2026-10-01",
+  "status": "proposal-awaiting-independent-review",
+  "purpose": "Public intrinsic own history/profession and bounded delivery; no current-save V encounter or quest outcome.",
+  "nativeTool": {
+    "name": "WolvenKit.CLI",
+    "version": "9.0.1",
+    "sha256": "7ae9c308da2fe003220b55ce4ca9c122b51f0701a67db1618cca3ff4f7ff6738"
+  },
+  "sourcePolicy": {
+    "primary": "Current source-hashed installed native codex/contact subject and actual actor -> screenplay -> dialog event -> explicit en_us variant -> exact shipped subtitle joins.",
+    "examples": "Original editorial delivery examples, not game quotations; no speaker-name prefixes, fabricated conversations with V or memory seeding.",
+    "privacy": "Public own background/profession only. No present gig, outcome, rescue, relationship progression or disputed criminal allegation is preloaded.",
+    "promotion": "Unadopted proposal; parent reviews subject schema and semantics before integration."
+  },
+  "sources": [
+    {
+      "id": "ep1-final-text",
+      "depotPath": "ep1\\localization\\en-us\\onscreens\\onscreens_final.json",
+      "archivePath": "archive/pc/ep1/lang_en_text.archive",
+      "pathHash64": "5326645384149182163",
+      "archiveEntrySha1": "d1fac28f0eb9e9ea5f9c6801c78fd48342b77fc1",
+      "rawFile": "runtime/voice-cast/phantom-gigs/wave3-support/raw/ep1/localization/en-us/onscreens/onscreens_final.json",
+      "rawSha256": "2d4a7e03def886c609be3f6306077ff2a7a17dc0ff77916defe6fe36441ada7d",
+      "jsonFile": "runtime/voice-cast/phantom-gigs/wave3-support/raw/ep1/localization/en-us/onscreens/onscreens_final.json.json",
+      "jsonSha256": "76b5bdacc5210bfd16e3fed0232bea717e26ca6414da8947c818fa5665351a52",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true,
+      "sourceReceipt": {
+        "archive": "archive/pc/ep1/lang_en_text.archive",
+        "depotPath": "ep1\\localization\\en-us\\onscreens\\onscreens_final.json",
+        "pathHash": "5326645384149182163",
+        "segmentOffset": "471783",
+        "storedBytes": 471611,
+        "decodedBytes": 2240284,
+        "archiveEntrySha1": "d1fac28f0eb9e9ea5f9c6801c78fd48342b77fc1",
+        "sha1Verified": true,
+        "sha256": "2d4a7e03def886c609be3f6306077ff2a7a17dc0ff77916defe6fe36441ada7d",
+        "shadowedEntryCount": 0
+      }
+    },
+    {
+      "id": "ep1-journal",
+      "depotPath": "ep1\\journal\\cooked_journal.journal",
+      "archivePath": "archive/pc/ep1/ep1_2_gamedata.archive",
+      "pathHash64": "5228207563738321484",
+      "archiveEntrySha1": "63eb78490e6ab9b8a973addf9b6581bfabbe1ae2",
+      "rawFile": "runtime/voice-cast/phantom-gigs/wave3-support/raw/ep1/journal/cooked_journal.journal",
+      "rawSha256": "1b85cf3d05431c628a03a4d5824fa2d052c48034147550ea0720df977f4aa7d3",
+      "jsonFile": "runtime/voice-cast/phantom-gigs/wave3-support/raw/ep1/journal/cooked_journal.journal.json",
+      "jsonSha256": "be2ad4c2570a734b003ead30e19bdc14b3c4e652ceae1186c5de973412a417b4",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true,
+      "sourceReceipt": {
+        "archive": "archive/pc/ep1/ep1_2_gamedata.archive",
+        "depotPath": "ep1\\journal\\cooked_journal.journal",
+        "pathHash": "5228207563738321484",
+        "segmentOffset": "3226549707",
+        "storedBytes": 176241,
+        "decodedBytes": 1606282,
+        "archiveEntrySha1": "63eb78490e6ab9b8a973addf9b6581bfabbe1ae2",
+        "sha1Verified": true,
+        "sha256": "1b85cf3d05431c628a03a4d5824fa2d052c48034147550ea0720df977f4aa7d3",
+        "shadowedEntryCount": 0
+      }
+    },
+    {
+      "id": "lina-mansion",
+      "depotPath": "ep1\\quest\\minor_quests\\mq303\\scenes\\mq303_02_linas_mansion.scene",
+      "archivePath": "archive/pc/ep1/ep1_2_gamedata.archive",
+      "archiveEntrySha1": "500bbbdc2f6c547653f0e61c92ec061f6862436b",
+      "rawFile": "runtime/voice-cast/phantom-gigs/scenes/ordinary-dialogue-20261001/raw/ep1/ep1/quest/minor_quests/mq303/scenes/mq303_02_linas_mansion.scene",
+      "rawSha256": "1b26c26c9a07185dcee971c44c14b3d251a1f6967811695aa9290a2f5a761eab",
+      "jsonFile": "runtime/voice-cast/phantom-gigs/scenes/ordinary-dialogue-20261001/raw/ep1/ep1/quest/minor_quests/mq303/scenes/mq303_02_linas_mansion.scene.json",
+      "jsonSha256": "26aa399dd799e84d1b5974d0c6c88aedd965e2c5a94c332391f226a951a5c3b1",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true,
+      "inventoryPath": "runtime/voice-cast/phantom-gigs/scenes/ordinary-dialogue-20261001/inventory.json",
+      "inventorySha256": "bddfa195cc5e2d2974dc51d22a65af8c0ec764c44ede7dd00453d67e130fdb09"
+    },
+    {
+      "id": "lina-mansion-subtitle",
+      "depotPath": "ep1\\localization\\en-us\\subtitles\\quest\\mq303\\mq303_02_linas_mansion.json",
+      "archivePath": "archive/pc/ep1/lang_en_text.archive",
+      "archiveEntrySha1": "a444cb4e16a7b29072100dbab630849c2bd93b11",
+      "rawFile": "runtime/voice-cast/phantom-gigs/wave3-dogtown-support/raw/ep1/localization/en-us/subtitles/quest/mq303/mq303_02_linas_mansion.json",
+      "rawSha256": "203e2733691c5d18511559d95493e165736f759554d3a73c106d29a0c4970148",
+      "jsonFile": "runtime/voice-cast/phantom-gigs/wave3-dogtown-support/raw/ep1/localization/en-us/subtitles/quest/mq303/mq303_02_linas_mansion.json.json",
+      "jsonSha256": "8117482ee6a876e3dacbb3403d6a87f241f4bfc122ebf82530bede3dbb1f4c29",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true,
+      "sourceReceipt": {
+        "archive": "archive/pc/ep1/lang_en_text.archive",
+        "depotPath": "ep1\\localization\\en-us\\subtitles\\quest\\mq303\\mq303_02_linas_mansion.json",
+        "pathHash": "15654182131504841634",
+        "segmentOffset": "1584492",
+        "storedBytes": 4586,
+        "decodedBytes": 9866,
+        "archiveEntrySha1": "a444cb4e16a7b29072100dbab630849c2bd93b11",
+        "sha1Verified": true,
+        "sha256": "203e2733691c5d18511559d95493e165736f759554d3a73c106d29a0c4970148",
+        "shadowedEntryCount": 0
+      }
+    }
+  ],
+  "claims": [
+    {
+      "id": "lina-malina.career.performer",
+      "text": "Lina is a braindance performer associated with Dogtown.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/id",
+          "expected": "lina_malina"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/title/value",
+          "expected": "LocKey#86415"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4574/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4574/primaryKey",
+          "expected": "86415"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4574/femaleVariant",
+          "valueSha256": "650285ef813be6d36d1e11385d21aa7caeb4b380290e414c683da87886e4cec4",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/entries/0/Data/$type",
+          "expected": "gameJournalCodexDescription"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#86416"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4575/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4575/primaryKey",
+          "expected": "86416"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4575/femaleVariant",
+          "valueSha256": "35b9520bd49e77594d680eae50c4fee51f4f1b025dd6711e3c4f37819f386467",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "native-codex-authored-background",
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": []
+      },
+      "attribution": {
+        "characterKey": "lina-malina",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/id",
+          "expected": "lina_malina",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "ep1-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/title/value",
+            "expected": "LocKey#86415"
+          },
+          {
+            "sourceId": "ep1-final-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4574/primaryKey",
+            "expected": "86415"
+          },
+          {
+            "sourceId": "ep1-final-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4574/femaleVariant",
+            "valueSha256": "650285ef813be6d36d1e11385d21aa7caeb4b380290e414c683da87886e4cec4",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [],
+        "perspective": "Character-authored background; no player encounter/choice proof."
+      }
+    },
+    {
+      "id": "lina-malina.career.ambition",
+      "text": "Lina is an aspiring BD star eager for an opportunity to reach a bigger audience.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/id",
+          "expected": "lina_malina"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/title/value",
+          "expected": "LocKey#86415"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4574/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4574/primaryKey",
+          "expected": "86415"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4574/femaleVariant",
+          "valueSha256": "650285ef813be6d36d1e11385d21aa7caeb4b380290e414c683da87886e4cec4",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/entries/0/Data/$type",
+          "expected": "gameJournalCodexDescription"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#86416"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4575/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4575/primaryKey",
+          "expected": "86416"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4575/femaleVariant",
+          "valueSha256": "35b9520bd49e77594d680eae50c4fee51f4f1b025dd6711e3c4f37819f386467",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "native-codex-authored-background",
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "Aspiration is not established international fame, wealth, a studio contract or a career outcome."
+        ]
+      },
+      "attribution": {
+        "characterKey": "lina-malina",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/id",
+          "expected": "lina_malina",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "ep1-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/title/value",
+            "expected": "LocKey#86415"
+          },
+          {
+            "sourceId": "ep1-final-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4574/primaryKey",
+            "expected": "86415"
+          },
+          {
+            "sourceId": "ep1-final-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4574/femaleVariant",
+            "valueSha256": "650285ef813be6d36d1e11385d21aa7caeb4b380290e414c683da87886e4cec4",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [],
+        "perspective": "Character-authored background; no player encounter/choice proof."
+      }
+    },
+    {
+      "id": "lina-malina.persona.brand",
+      "text": "She cultivates a brash, confrontational public persona marketed as Dogtown's Queen Bitch.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/id",
+          "expected": "lina_malina"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/title/value",
+          "expected": "LocKey#86415"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4574/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4574/primaryKey",
+          "expected": "86415"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4574/femaleVariant",
+          "valueSha256": "650285ef813be6d36d1e11385d21aa7caeb4b380290e414c683da87886e4cec4",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/entries/0/Data/$type",
+          "expected": "gameJournalCodexDescription"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#86416"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4575/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4575/primaryKey",
+          "expected": "86416"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4575/femaleVariant",
+          "valueSha256": "35b9520bd49e77594d680eae50c4fee51f4f1b025dd6711e3c4f37819f386467",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "native-codex-authored-background",
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "Public branding is not a clinical trait or a requirement to abuse every listener."
+        ]
+      },
+      "attribution": {
+        "characterKey": "lina-malina",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/id",
+          "expected": "lina_malina",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "ep1-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/title/value",
+            "expected": "LocKey#86415"
+          },
+          {
+            "sourceId": "ep1-final-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4574/primaryKey",
+            "expected": "86415"
+          },
+          {
+            "sourceId": "ep1-final-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4574/femaleVariant",
+            "valueSha256": "650285ef813be6d36d1e11385d21aa7caeb4b380290e414c683da87886e4cec4",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [],
+        "perspective": "Character-authored background; no player encounter/choice proof."
+      }
+    },
+    {
+      "id": "lina-malina.business.advance",
+      "text": "Lina places strong emphasis on an advance and on concrete payment when considering a recording offer.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/id",
+          "expected": "lina_malina"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/title/value",
+          "expected": "LocKey#86415"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4574/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4574/primaryKey",
+          "expected": "86415"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4574/femaleVariant",
+          "valueSha256": "650285ef813be6d36d1e11385d21aa7caeb4b380290e414c683da87886e4cec4",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/actors/3",
+          "expected": {
+            "$type": "scnActorDef",
+            "acquisitionPlan": "spawnSet",
+            "actorId": {
+              "$type": "scnActorId",
+              "id": 3
+            },
+            "actorName": "Lina",
+            "animSets": [],
+            "bodyCinematicAnimSets": [
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 0
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 1
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 2
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 3
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 4
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 5
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 6
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 7
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 8
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 9
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 10
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 11
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 12
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 13
+              }
+            ],
+            "communityParams": {
+              "$type": "scnCommunityParams",
+              "entryName": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "forceMaxVisibility": 0,
+              "reference": {
+                "$type": "NodeRef",
+                "$storage": "uint64",
+                "$value": "0"
+              }
+            },
+            "cyberwareAnimSets": [],
+            "cyberwareCinematicAnimSets": [],
+            "deformationAnimSets": [],
+            "dynamicAnimSets": [],
+            "facialAnimSets": [],
+            "facialCinematicAnimSets": [],
+            "findActorInContextParams": {
+              "$type": "scnFindEntityInContextParams",
+              "contextActorName": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "contextualName": "Player",
+              "forceMaxVisibility": 0,
+              "specRecordId": {
+                "$type": "TweakDBID",
+                "$storage": "uint64",
+                "$value": "0"
+              },
+              "voiceVagId": {
+                "$type": "scnVoicetagId",
+                "id": "0"
+              }
+            },
+            "findActorInWorldParams": {
+              "$type": "scnFindEntityInWorldParams",
+              "actorRef": {
+                "$type": "gameEntityReference",
+                "dynamicEntityUniqueName": {
+                  "$type": "CName",
+                  "$storage": "string",
+                  "$value": "None"
+                },
+                "names": [],
+                "reference": {
+                  "$type": "NodeRef",
+                  "$storage": "uint64",
+                  "$value": "0"
+                },
+                "sceneActorContextName": {
+                  "$type": "CName",
+                  "$storage": "string",
+                  "$value": "None"
+                },
+                "slotName": {
+                  "$type": "CName",
+                  "$storage": "string",
+                  "$value": "None"
+                },
+                "type": "EntityRef"
+              },
+              "forceMaxVisibility": 0
+            },
+            "holocallInitScn": {
+              "DepotPath": {
+                "$type": "ResourcePath",
+                "$storage": "uint64",
+                "$value": "0"
+              },
+              "Flags": "Soft"
+            },
+            "lipsyncAnimSet": {
+              "$type": "scnLipsyncAnimSetSRRefId",
+              "id": 3
+            },
+            "spawnDespawnParams": {
+              "$type": "scnSpawnDespawnEntityParams",
+              "alwaysSpawned": 0,
+              "appearance": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "dynamicEntityUniqueName": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "findInWorld": 0,
+              "forceMaxVisibility": 0,
+              "isEnabled": 1,
+              "itemOwnerId": {
+                "$type": "scnPerformerId",
+                "id": 4294967040
+              },
+              "keepAlive": 0,
+              "prefetchAppearance": 0,
+              "spawnMarker": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "spawnMarkerNodeRef": {
+                "$type": "NodeRef",
+                "$storage": "uint64",
+                "$value": "0"
+              },
+              "spawnMarkerType": "Local",
+              "spawnOffset": {
+                "$type": "Transform",
+                "orientation": {
+                  "$type": "Quaternion",
+                  "i": 0,
+                  "j": 0,
+                  "k": 0,
+                  "r": 1
+                },
+                "position": {
+                  "$type": "Vector4",
+                  "W": 0,
+                  "X": 0,
+                  "Y": 0,
+                  "Z": 0
+                }
+              },
+              "spawnOnStart": 1,
+              "specRecordId": {
+                "$type": "TweakDBID",
+                "$storage": "uint64",
+                "$value": "0"
+              },
+              "validateSpawnPostion": 1
+            },
+            "spawnerParams": {
+              "$type": "scnSpawnerParams",
+              "forceMaxVisibility": 0,
+              "reference": {
+                "$type": "NodeRef",
+                "$storage": "uint64",
+                "$value": "0"
+              }
+            },
+            "spawnSetParams": {
+              "$type": "scnSpawnSetParams",
+              "entryName": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "lina_malina"
+              },
+              "forceMaxVisibility": 0,
+              "reference": {
+                "$type": "NodeRef",
+                "$storage": "string",
+                "$value": "#mq303_main_characters"
+              }
+            },
+            "specAppearance": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "default"
+            },
+            "specCharacterRecordId": {
+              "$type": "TweakDBID",
+              "$storage": "uint64",
+              "$value": "0"
+            },
+            "voicetagId": {
+              "$type": "scnVoicetagId",
+              "id": "3342203672536473600"
+            }
+          }
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/20",
+          "expected": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 8
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_2CE9D4140E5F9000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 5121
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "3236350989847990272"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_2CE9D4140E5F9000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 3
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/21/Data/events/17/Data",
+          "expected": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 6614,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "3236350991576043520"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 5121
+            },
+            "startTime": 15006,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 0,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Spoken"
+            }
+          }
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/actors/3/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/actors/3/actorId/id",
+          "expected": 3
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/actors/3/actorName",
+          "expected": "Lina"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/actors/3/voicetagId/id",
+          "expected": "3342203672536473600"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/20/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/20/speaker/id",
+          "expected": 3
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/20/itemId/id",
+          "expected": 5121
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/20/locstringId/ruid",
+          "expected": "3236350989847990272"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/21/Data/events/17/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/21/Data/events/17/Data/screenplayLineId/id",
+          "expected": 5121
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/21/Data/events/17/Data/duration",
+          "expected": 6614
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/21/Data/events/17/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/21/Data/events/17/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/21/Data/events/17/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/262/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/262/locstringId/ruid",
+          "expected": "3236350989847990272"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/262/vpeIndex",
+          "expected": 68
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/262/variantId/ruid",
+          "expected": "3955104355584856104"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/68/variantId/ruid",
+          "expected": "3955104355584856104"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/68/content",
+          "valueSha256": "e4dc3c9e032cd45d77a8473e7a84e8cfb2ef1077074720803a9bc247f73ad962",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "lina-mansion-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/23/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "lina-mansion-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/23/stringId",
+          "expected": "3236350989847990272"
+        },
+        {
+          "sourceId": "lina-mansion-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/23/femaleVariant",
+          "valueSha256": "e4dc3c9e032cd45d77a8473e7a84e8cfb2ef1077074720803a9bc247f73ad962",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/actors/3",
+          "expected": {
+            "$type": "scnActorDef",
+            "acquisitionPlan": "spawnSet",
+            "actorId": {
+              "$type": "scnActorId",
+              "id": 3
+            },
+            "actorName": "Lina",
+            "animSets": [],
+            "bodyCinematicAnimSets": [
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 0
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 1
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 2
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 3
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 4
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 5
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 6
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 7
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 8
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 9
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 10
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 11
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 12
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 13
+              }
+            ],
+            "communityParams": {
+              "$type": "scnCommunityParams",
+              "entryName": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "forceMaxVisibility": 0,
+              "reference": {
+                "$type": "NodeRef",
+                "$storage": "uint64",
+                "$value": "0"
+              }
+            },
+            "cyberwareAnimSets": [],
+            "cyberwareCinematicAnimSets": [],
+            "deformationAnimSets": [],
+            "dynamicAnimSets": [],
+            "facialAnimSets": [],
+            "facialCinematicAnimSets": [],
+            "findActorInContextParams": {
+              "$type": "scnFindEntityInContextParams",
+              "contextActorName": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "contextualName": "Player",
+              "forceMaxVisibility": 0,
+              "specRecordId": {
+                "$type": "TweakDBID",
+                "$storage": "uint64",
+                "$value": "0"
+              },
+              "voiceVagId": {
+                "$type": "scnVoicetagId",
+                "id": "0"
+              }
+            },
+            "findActorInWorldParams": {
+              "$type": "scnFindEntityInWorldParams",
+              "actorRef": {
+                "$type": "gameEntityReference",
+                "dynamicEntityUniqueName": {
+                  "$type": "CName",
+                  "$storage": "string",
+                  "$value": "None"
+                },
+                "names": [],
+                "reference": {
+                  "$type": "NodeRef",
+                  "$storage": "uint64",
+                  "$value": "0"
+                },
+                "sceneActorContextName": {
+                  "$type": "CName",
+                  "$storage": "string",
+                  "$value": "None"
+                },
+                "slotName": {
+                  "$type": "CName",
+                  "$storage": "string",
+                  "$value": "None"
+                },
+                "type": "EntityRef"
+              },
+              "forceMaxVisibility": 0
+            },
+            "holocallInitScn": {
+              "DepotPath": {
+                "$type": "ResourcePath",
+                "$storage": "uint64",
+                "$value": "0"
+              },
+              "Flags": "Soft"
+            },
+            "lipsyncAnimSet": {
+              "$type": "scnLipsyncAnimSetSRRefId",
+              "id": 3
+            },
+            "spawnDespawnParams": {
+              "$type": "scnSpawnDespawnEntityParams",
+              "alwaysSpawned": 0,
+              "appearance": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "dynamicEntityUniqueName": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "findInWorld": 0,
+              "forceMaxVisibility": 0,
+              "isEnabled": 1,
+              "itemOwnerId": {
+                "$type": "scnPerformerId",
+                "id": 4294967040
+              },
+              "keepAlive": 0,
+              "prefetchAppearance": 0,
+              "spawnMarker": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "spawnMarkerNodeRef": {
+                "$type": "NodeRef",
+                "$storage": "uint64",
+                "$value": "0"
+              },
+              "spawnMarkerType": "Local",
+              "spawnOffset": {
+                "$type": "Transform",
+                "orientation": {
+                  "$type": "Quaternion",
+                  "i": 0,
+                  "j": 0,
+                  "k": 0,
+                  "r": 1
+                },
+                "position": {
+                  "$type": "Vector4",
+                  "W": 0,
+                  "X": 0,
+                  "Y": 0,
+                  "Z": 0
+                }
+              },
+              "spawnOnStart": 1,
+              "specRecordId": {
+                "$type": "TweakDBID",
+                "$storage": "uint64",
+                "$value": "0"
+              },
+              "validateSpawnPostion": 1
+            },
+            "spawnerParams": {
+              "$type": "scnSpawnerParams",
+              "forceMaxVisibility": 0,
+              "reference": {
+                "$type": "NodeRef",
+                "$storage": "uint64",
+                "$value": "0"
+              }
+            },
+            "spawnSetParams": {
+              "$type": "scnSpawnSetParams",
+              "entryName": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "lina_malina"
+              },
+              "forceMaxVisibility": 0,
+              "reference": {
+                "$type": "NodeRef",
+                "$storage": "string",
+                "$value": "#mq303_main_characters"
+              }
+            },
+            "specAppearance": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "default"
+            },
+            "specCharacterRecordId": {
+              "$type": "TweakDBID",
+              "$storage": "uint64",
+              "$value": "0"
+            },
+            "voicetagId": {
+              "$type": "scnVoicetagId",
+              "id": "3342203672536473600"
+            }
+          }
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/62",
+          "expected": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 8
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_2DB40AD7CB3C5000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 15873
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "3293269149458649088"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_2DB40AD7CB3C5000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 3
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/126/Data/events/4/Data",
+          "expected": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 2859,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "3293269150230401024"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 15873
+            },
+            "startTime": 4028,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 0,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Spoken"
+            }
+          }
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/actors/3/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/actors/3/actorId/id",
+          "expected": 3
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/actors/3/actorName",
+          "expected": "Lina"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/actors/3/voicetagId/id",
+          "expected": "3342203672536473600"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/62/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/62/speaker/id",
+          "expected": 3
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/62/itemId/id",
+          "expected": 15873
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/62/locstringId/ruid",
+          "expected": "3293269149458649088"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/126/Data/events/4/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/126/Data/events/4/Data/screenplayLineId/id",
+          "expected": 15873
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/126/Data/events/4/Data/duration",
+          "expected": 2859
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/126/Data/events/4/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/126/Data/events/4/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/126/Data/events/4/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/317/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/317/locstringId/ruid",
+          "expected": "3293269149458649088"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/317/vpeIndex",
+          "expected": 206
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/317/variantId/ruid",
+          "expected": "3955104355635187712"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/206/variantId/ruid",
+          "expected": "3955104355635187712"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/206/content",
+          "valueSha256": "152975431bd07530c931557791347641952b774095224cf5637a19c6361fca33",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "lina-mansion-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/77/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "lina-mansion-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/77/stringId",
+          "expected": "3293269149458649088"
+        },
+        {
+          "sourceId": "lina-mansion-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/77/femaleVariant",
+          "valueSha256": "152975431bd07530c931557791347641952b774095224cf5637a19c6361fca33",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "attributed-own-speech",
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": []
+      },
+      "attribution": {
+        "characterKey": "lina-malina",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/id",
+          "expected": "lina_malina",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "ep1-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/title/value",
+            "expected": "LocKey#86415"
+          },
+          {
+            "sourceId": "ep1-final-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4574/primaryKey",
+            "expected": "86415"
+          },
+          {
+            "sourceId": "ep1-final-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4574/femaleVariant",
+            "valueSha256": "650285ef813be6d36d1e11385d21aa7caeb4b380290e414c683da87886e4cec4",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "lina-mansion",
+            "actorPointer": "/Data/RootChunk/actors/3",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/20",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/21/Data/events/17/Data",
+            "expectedVoicetag": "3342203672536473600",
+            "expectedSubjectVoicetag": "3342203672536473600"
+          },
+          {
+            "sourceId": "lina-mansion",
+            "actorPointer": "/Data/RootChunk/actors/3",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/62",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/126/Data/events/4/Data",
+            "expectedVoicetag": "3342203672536473600",
+            "expectedSubjectVoicetag": "3342203672536473600"
+          }
+        ],
+        "perspective": "The actual character speaks about their own work, experiences, preferences or delivery; no player history inferred."
+      }
+    },
+    {
+      "id": "lina-malina.history.wary-after-cons",
+      "text": "Lina says she has been conned repeatedly, which she gives as a reason to check whether a potential client is legitimate.",
+      "kind": "attributed-recollection",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/id",
+          "expected": "lina_malina"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/title/value",
+          "expected": "LocKey#86415"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4574/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4574/primaryKey",
+          "expected": "86415"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4574/femaleVariant",
+          "valueSha256": "650285ef813be6d36d1e11385d21aa7caeb4b380290e414c683da87886e4cec4",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/actors/3",
+          "expected": {
+            "$type": "scnActorDef",
+            "acquisitionPlan": "spawnSet",
+            "actorId": {
+              "$type": "scnActorId",
+              "id": 3
+            },
+            "actorName": "Lina",
+            "animSets": [],
+            "bodyCinematicAnimSets": [
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 0
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 1
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 2
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 3
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 4
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 5
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 6
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 7
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 8
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 9
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 10
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 11
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 12
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 13
+              }
+            ],
+            "communityParams": {
+              "$type": "scnCommunityParams",
+              "entryName": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "forceMaxVisibility": 0,
+              "reference": {
+                "$type": "NodeRef",
+                "$storage": "uint64",
+                "$value": "0"
+              }
+            },
+            "cyberwareAnimSets": [],
+            "cyberwareCinematicAnimSets": [],
+            "deformationAnimSets": [],
+            "dynamicAnimSets": [],
+            "facialAnimSets": [],
+            "facialCinematicAnimSets": [],
+            "findActorInContextParams": {
+              "$type": "scnFindEntityInContextParams",
+              "contextActorName": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "contextualName": "Player",
+              "forceMaxVisibility": 0,
+              "specRecordId": {
+                "$type": "TweakDBID",
+                "$storage": "uint64",
+                "$value": "0"
+              },
+              "voiceVagId": {
+                "$type": "scnVoicetagId",
+                "id": "0"
+              }
+            },
+            "findActorInWorldParams": {
+              "$type": "scnFindEntityInWorldParams",
+              "actorRef": {
+                "$type": "gameEntityReference",
+                "dynamicEntityUniqueName": {
+                  "$type": "CName",
+                  "$storage": "string",
+                  "$value": "None"
+                },
+                "names": [],
+                "reference": {
+                  "$type": "NodeRef",
+                  "$storage": "uint64",
+                  "$value": "0"
+                },
+                "sceneActorContextName": {
+                  "$type": "CName",
+                  "$storage": "string",
+                  "$value": "None"
+                },
+                "slotName": {
+                  "$type": "CName",
+                  "$storage": "string",
+                  "$value": "None"
+                },
+                "type": "EntityRef"
+              },
+              "forceMaxVisibility": 0
+            },
+            "holocallInitScn": {
+              "DepotPath": {
+                "$type": "ResourcePath",
+                "$storage": "uint64",
+                "$value": "0"
+              },
+              "Flags": "Soft"
+            },
+            "lipsyncAnimSet": {
+              "$type": "scnLipsyncAnimSetSRRefId",
+              "id": 3
+            },
+            "spawnDespawnParams": {
+              "$type": "scnSpawnDespawnEntityParams",
+              "alwaysSpawned": 0,
+              "appearance": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "dynamicEntityUniqueName": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "findInWorld": 0,
+              "forceMaxVisibility": 0,
+              "isEnabled": 1,
+              "itemOwnerId": {
+                "$type": "scnPerformerId",
+                "id": 4294967040
+              },
+              "keepAlive": 0,
+              "prefetchAppearance": 0,
+              "spawnMarker": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "spawnMarkerNodeRef": {
+                "$type": "NodeRef",
+                "$storage": "uint64",
+                "$value": "0"
+              },
+              "spawnMarkerType": "Local",
+              "spawnOffset": {
+                "$type": "Transform",
+                "orientation": {
+                  "$type": "Quaternion",
+                  "i": 0,
+                  "j": 0,
+                  "k": 0,
+                  "r": 1
+                },
+                "position": {
+                  "$type": "Vector4",
+                  "W": 0,
+                  "X": 0,
+                  "Y": 0,
+                  "Z": 0
+                }
+              },
+              "spawnOnStart": 1,
+              "specRecordId": {
+                "$type": "TweakDBID",
+                "$storage": "uint64",
+                "$value": "0"
+              },
+              "validateSpawnPostion": 1
+            },
+            "spawnerParams": {
+              "$type": "scnSpawnerParams",
+              "forceMaxVisibility": 0,
+              "reference": {
+                "$type": "NodeRef",
+                "$storage": "uint64",
+                "$value": "0"
+              }
+            },
+            "spawnSetParams": {
+              "$type": "scnSpawnSetParams",
+              "entryName": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "lina_malina"
+              },
+              "forceMaxVisibility": 0,
+              "reference": {
+                "$type": "NodeRef",
+                "$storage": "string",
+                "$value": "#mq303_main_characters"
+              }
+            },
+            "specAppearance": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "default"
+            },
+            "specCharacterRecordId": {
+              "$type": "TweakDBID",
+              "$storage": "uint64",
+              "$value": "0"
+            },
+            "voicetagId": {
+              "$type": "scnVoicetagId",
+              "id": "3342203672536473600"
+            }
+          }
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/32",
+          "expected": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 8
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_2CE9DDF7255F9000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 8193
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "3236361860796092416"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_2CE9DDF7255F9000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 3
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/29/Data/events/1/Data",
+          "expected": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 5684,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "3236361976357556224"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 8193
+            },
+            "startTime": 0,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 0,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Spoken"
+            }
+          }
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/actors/3/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/actors/3/actorId/id",
+          "expected": 3
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/actors/3/actorName",
+          "expected": "Lina"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/actors/3/voicetagId/id",
+          "expected": "3342203672536473600"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/32/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/32/speaker/id",
+          "expected": 3
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/32/itemId/id",
+          "expected": 8193
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/32/locstringId/ruid",
+          "expected": "3236361860796092416"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/29/Data/events/1/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/29/Data/events/1/Data/screenplayLineId/id",
+          "expected": 8193
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/29/Data/events/1/Data/duration",
+          "expected": 5684
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/29/Data/events/1/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/29/Data/events/1/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/29/Data/events/1/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/276/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/276/locstringId/ruid",
+          "expected": "3236361860796092416"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/276/vpeIndex",
+          "expected": 108
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/276/variantId/ruid",
+          "expected": "3955104355601633300"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/108/variantId/ruid",
+          "expected": "3955104355601633300"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/108/content",
+          "valueSha256": "e365a498d8edfd1fed140c5e97c1051afcfc586f34957f623dd4d3b5ee00f12c",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "lina-mansion-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/36/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "lina-mansion-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/36/stringId",
+          "expected": "3236361860796092416"
+        },
+        {
+          "sourceId": "lina-mansion-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/36/femaleVariant",
+          "valueSha256": "e365a498d8edfd1fed140c5e97c1051afcfc586f34957f623dd4d3b5ee00f12c",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "attributed-own-speech",
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "Do not invent individual perpetrators, contracts or claims that V has already proved their credentials."
+        ]
+      },
+      "attribution": {
+        "characterKey": "lina-malina",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/id",
+          "expected": "lina_malina",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "ep1-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/title/value",
+            "expected": "LocKey#86415"
+          },
+          {
+            "sourceId": "ep1-final-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4574/primaryKey",
+            "expected": "86415"
+          },
+          {
+            "sourceId": "ep1-final-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4574/femaleVariant",
+            "valueSha256": "650285ef813be6d36d1e11385d21aa7caeb4b380290e414c683da87886e4cec4",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "lina-mansion",
+            "actorPointer": "/Data/RootChunk/actors/3",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/32",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/29/Data/events/1/Data",
+            "expectedVoicetag": "3342203672536473600",
+            "expectedSubjectVoicetag": "3342203672536473600"
+          }
+        ],
+        "perspective": "The actual character speaks about their own work, experiences, preferences or delivery; no player history inferred."
+      }
+    },
+    {
+      "id": "lina-malina.craft.presentation",
+      "text": "Preparing her makeup and nails is part of how Lina talks about getting ready for a shoot.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/id",
+          "expected": "lina_malina"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/title/value",
+          "expected": "LocKey#86415"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4574/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4574/primaryKey",
+          "expected": "86415"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4574/femaleVariant",
+          "valueSha256": "650285ef813be6d36d1e11385d21aa7caeb4b380290e414c683da87886e4cec4",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/actors/3",
+          "expected": {
+            "$type": "scnActorDef",
+            "acquisitionPlan": "spawnSet",
+            "actorId": {
+              "$type": "scnActorId",
+              "id": 3
+            },
+            "actorName": "Lina",
+            "animSets": [],
+            "bodyCinematicAnimSets": [
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 0
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 1
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 2
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 3
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 4
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 5
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 6
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 7
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 8
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 9
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 10
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 11
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 12
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 13
+              }
+            ],
+            "communityParams": {
+              "$type": "scnCommunityParams",
+              "entryName": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "forceMaxVisibility": 0,
+              "reference": {
+                "$type": "NodeRef",
+                "$storage": "uint64",
+                "$value": "0"
+              }
+            },
+            "cyberwareAnimSets": [],
+            "cyberwareCinematicAnimSets": [],
+            "deformationAnimSets": [],
+            "dynamicAnimSets": [],
+            "facialAnimSets": [],
+            "facialCinematicAnimSets": [],
+            "findActorInContextParams": {
+              "$type": "scnFindEntityInContextParams",
+              "contextActorName": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "contextualName": "Player",
+              "forceMaxVisibility": 0,
+              "specRecordId": {
+                "$type": "TweakDBID",
+                "$storage": "uint64",
+                "$value": "0"
+              },
+              "voiceVagId": {
+                "$type": "scnVoicetagId",
+                "id": "0"
+              }
+            },
+            "findActorInWorldParams": {
+              "$type": "scnFindEntityInWorldParams",
+              "actorRef": {
+                "$type": "gameEntityReference",
+                "dynamicEntityUniqueName": {
+                  "$type": "CName",
+                  "$storage": "string",
+                  "$value": "None"
+                },
+                "names": [],
+                "reference": {
+                  "$type": "NodeRef",
+                  "$storage": "uint64",
+                  "$value": "0"
+                },
+                "sceneActorContextName": {
+                  "$type": "CName",
+                  "$storage": "string",
+                  "$value": "None"
+                },
+                "slotName": {
+                  "$type": "CName",
+                  "$storage": "string",
+                  "$value": "None"
+                },
+                "type": "EntityRef"
+              },
+              "forceMaxVisibility": 0
+            },
+            "holocallInitScn": {
+              "DepotPath": {
+                "$type": "ResourcePath",
+                "$storage": "uint64",
+                "$value": "0"
+              },
+              "Flags": "Soft"
+            },
+            "lipsyncAnimSet": {
+              "$type": "scnLipsyncAnimSetSRRefId",
+              "id": 3
+            },
+            "spawnDespawnParams": {
+              "$type": "scnSpawnDespawnEntityParams",
+              "alwaysSpawned": 0,
+              "appearance": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "dynamicEntityUniqueName": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "findInWorld": 0,
+              "forceMaxVisibility": 0,
+              "isEnabled": 1,
+              "itemOwnerId": {
+                "$type": "scnPerformerId",
+                "id": 4294967040
+              },
+              "keepAlive": 0,
+              "prefetchAppearance": 0,
+              "spawnMarker": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "spawnMarkerNodeRef": {
+                "$type": "NodeRef",
+                "$storage": "uint64",
+                "$value": "0"
+              },
+              "spawnMarkerType": "Local",
+              "spawnOffset": {
+                "$type": "Transform",
+                "orientation": {
+                  "$type": "Quaternion",
+                  "i": 0,
+                  "j": 0,
+                  "k": 0,
+                  "r": 1
+                },
+                "position": {
+                  "$type": "Vector4",
+                  "W": 0,
+                  "X": 0,
+                  "Y": 0,
+                  "Z": 0
+                }
+              },
+              "spawnOnStart": 1,
+              "specRecordId": {
+                "$type": "TweakDBID",
+                "$storage": "uint64",
+                "$value": "0"
+              },
+              "validateSpawnPostion": 1
+            },
+            "spawnerParams": {
+              "$type": "scnSpawnerParams",
+              "forceMaxVisibility": 0,
+              "reference": {
+                "$type": "NodeRef",
+                "$storage": "uint64",
+                "$value": "0"
+              }
+            },
+            "spawnSetParams": {
+              "$type": "scnSpawnSetParams",
+              "entryName": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "lina_malina"
+              },
+              "forceMaxVisibility": 0,
+              "reference": {
+                "$type": "NodeRef",
+                "$storage": "string",
+                "$value": "#mq303_main_characters"
+              }
+            },
+            "specAppearance": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "default"
+            },
+            "specCharacterRecordId": {
+              "$type": "TweakDBID",
+              "$storage": "uint64",
+              "$value": "0"
+            },
+            "voicetagId": {
+              "$type": "scnVoicetagId",
+              "id": "3342203672536473600"
+            }
+          }
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/44",
+          "expected": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 8
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_2CE9EAA49D5F9004"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 11265
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "3236375799978233860"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_2CE9EAA49D5F9004"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 3
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/33/Data/events/11/Data",
+          "expected": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 4371,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "3236375799961456656"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 11265
+            },
+            "startTime": 13806,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 0,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Spoken"
+            }
+          }
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/actors/3/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/actors/3/actorId/id",
+          "expected": 3
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/actors/3/actorName",
+          "expected": "Lina"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/actors/3/voicetagId/id",
+          "expected": "3342203672536473600"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/44/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/44/speaker/id",
+          "expected": 3
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/44/itemId/id",
+          "expected": 11265
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/44/locstringId/ruid",
+          "expected": "3236375799978233860"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/33/Data/events/11/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/33/Data/events/11/Data/screenplayLineId/id",
+          "expected": 11265
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/33/Data/events/11/Data/duration",
+          "expected": 4371
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/33/Data/events/11/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/33/Data/events/11/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/33/Data/events/11/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/286/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/286/locstringId/ruid",
+          "expected": "3236375799978233860"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/286/vpeIndex",
+          "expected": 147
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/286/variantId/ruid",
+          "expected": "3955104355618410496"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/147/variantId/ruid",
+          "expected": "3955104355618410496"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/147/content",
+          "valueSha256": "0e99fadfd0bab9707bcea219058e09679a757f782e7dbcdddb5b96e29589c6f1",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "lina-mansion-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/46/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "lina-mansion-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/46/stringId",
+          "expected": "3236375799978233860"
+        },
+        {
+          "sourceId": "lina-mansion-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/46/femaleVariant",
+          "valueSha256": "0e99fadfd0bab9707bcea219058e09679a757f782e7dbcdddb5b96e29589c6f1",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "attributed-own-speech",
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "This is a sampled work routine, not evidence of a current booking or any encounter with V."
+        ]
+      },
+      "attribution": {
+        "characterKey": "lina-malina",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/id",
+          "expected": "lina_malina",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "ep1-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/title/value",
+            "expected": "LocKey#86415"
+          },
+          {
+            "sourceId": "ep1-final-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4574/primaryKey",
+            "expected": "86415"
+          },
+          {
+            "sourceId": "ep1-final-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4574/femaleVariant",
+            "valueSha256": "650285ef813be6d36d1e11385d21aa7caeb4b380290e414c683da87886e4cec4",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "lina-mansion",
+            "actorPointer": "/Data/RootChunk/actors/3",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/44",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/33/Data/events/11/Data",
+            "expectedVoicetag": "3342203672536473600",
+            "expectedSubjectVoicetag": "3342203672536473600"
+          }
+        ],
+        "perspective": "The actual character speaks about their own work, experiences, preferences or delivery; no player history inferred."
+      }
+    },
+    {
+      "id": "lina-malina.delivery.crew-impatience",
+      "text": "Lina can be impatient and blunt about an unprepared or absent production crew.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/id",
+          "expected": "lina_malina"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/title/value",
+          "expected": "LocKey#86415"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4574/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4574/primaryKey",
+          "expected": "86415"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4574/femaleVariant",
+          "valueSha256": "650285ef813be6d36d1e11385d21aa7caeb4b380290e414c683da87886e4cec4",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/actors/3",
+          "expected": {
+            "$type": "scnActorDef",
+            "acquisitionPlan": "spawnSet",
+            "actorId": {
+              "$type": "scnActorId",
+              "id": 3
+            },
+            "actorName": "Lina",
+            "animSets": [],
+            "bodyCinematicAnimSets": [
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 0
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 1
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 2
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 3
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 4
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 5
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 6
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 7
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 8
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 9
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 10
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 11
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 12
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 13
+              }
+            ],
+            "communityParams": {
+              "$type": "scnCommunityParams",
+              "entryName": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "forceMaxVisibility": 0,
+              "reference": {
+                "$type": "NodeRef",
+                "$storage": "uint64",
+                "$value": "0"
+              }
+            },
+            "cyberwareAnimSets": [],
+            "cyberwareCinematicAnimSets": [],
+            "deformationAnimSets": [],
+            "dynamicAnimSets": [],
+            "facialAnimSets": [],
+            "facialCinematicAnimSets": [],
+            "findActorInContextParams": {
+              "$type": "scnFindEntityInContextParams",
+              "contextActorName": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "contextualName": "Player",
+              "forceMaxVisibility": 0,
+              "specRecordId": {
+                "$type": "TweakDBID",
+                "$storage": "uint64",
+                "$value": "0"
+              },
+              "voiceVagId": {
+                "$type": "scnVoicetagId",
+                "id": "0"
+              }
+            },
+            "findActorInWorldParams": {
+              "$type": "scnFindEntityInWorldParams",
+              "actorRef": {
+                "$type": "gameEntityReference",
+                "dynamicEntityUniqueName": {
+                  "$type": "CName",
+                  "$storage": "string",
+                  "$value": "None"
+                },
+                "names": [],
+                "reference": {
+                  "$type": "NodeRef",
+                  "$storage": "uint64",
+                  "$value": "0"
+                },
+                "sceneActorContextName": {
+                  "$type": "CName",
+                  "$storage": "string",
+                  "$value": "None"
+                },
+                "slotName": {
+                  "$type": "CName",
+                  "$storage": "string",
+                  "$value": "None"
+                },
+                "type": "EntityRef"
+              },
+              "forceMaxVisibility": 0
+            },
+            "holocallInitScn": {
+              "DepotPath": {
+                "$type": "ResourcePath",
+                "$storage": "uint64",
+                "$value": "0"
+              },
+              "Flags": "Soft"
+            },
+            "lipsyncAnimSet": {
+              "$type": "scnLipsyncAnimSetSRRefId",
+              "id": 3
+            },
+            "spawnDespawnParams": {
+              "$type": "scnSpawnDespawnEntityParams",
+              "alwaysSpawned": 0,
+              "appearance": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "dynamicEntityUniqueName": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "findInWorld": 0,
+              "forceMaxVisibility": 0,
+              "isEnabled": 1,
+              "itemOwnerId": {
+                "$type": "scnPerformerId",
+                "id": 4294967040
+              },
+              "keepAlive": 0,
+              "prefetchAppearance": 0,
+              "spawnMarker": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "spawnMarkerNodeRef": {
+                "$type": "NodeRef",
+                "$storage": "uint64",
+                "$value": "0"
+              },
+              "spawnMarkerType": "Local",
+              "spawnOffset": {
+                "$type": "Transform",
+                "orientation": {
+                  "$type": "Quaternion",
+                  "i": 0,
+                  "j": 0,
+                  "k": 0,
+                  "r": 1
+                },
+                "position": {
+                  "$type": "Vector4",
+                  "W": 0,
+                  "X": 0,
+                  "Y": 0,
+                  "Z": 0
+                }
+              },
+              "spawnOnStart": 1,
+              "specRecordId": {
+                "$type": "TweakDBID",
+                "$storage": "uint64",
+                "$value": "0"
+              },
+              "validateSpawnPostion": 1
+            },
+            "spawnerParams": {
+              "$type": "scnSpawnerParams",
+              "forceMaxVisibility": 0,
+              "reference": {
+                "$type": "NodeRef",
+                "$storage": "uint64",
+                "$value": "0"
+              }
+            },
+            "spawnSetParams": {
+              "$type": "scnSpawnSetParams",
+              "entryName": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "lina_malina"
+              },
+              "forceMaxVisibility": 0,
+              "reference": {
+                "$type": "NodeRef",
+                "$storage": "string",
+                "$value": "#mq303_main_characters"
+              }
+            },
+            "specAppearance": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "default"
+            },
+            "specCharacterRecordId": {
+              "$type": "TweakDBID",
+              "$storage": "uint64",
+              "$value": "0"
+            },
+            "voicetagId": {
+              "$type": "scnVoicetagId",
+              "id": "3342203672536473600"
+            }
+          }
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/11",
+          "expected": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 8
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_2CE9BD1B035F9000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 2817
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "3236325730960773120"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_2CE9BD1B035F9000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 3
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/12/Data/events/2/Data",
+          "expected": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 6930,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "3236326133764952064"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 2817
+            },
+            "startTime": 0,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 0,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Spoken"
+            }
+          }
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/actors/3/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/actors/3/actorId/id",
+          "expected": 3
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/actors/3/actorName",
+          "expected": "Lina"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/actors/3/voicetagId/id",
+          "expected": "3342203672536473600"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/11/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/11/speaker/id",
+          "expected": 3
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/11/itemId/id",
+          "expected": 2817
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/11/locstringId/ruid",
+          "expected": "3236325730960773120"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/12/Data/events/2/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/12/Data/events/2/Data/screenplayLineId/id",
+          "expected": 2817
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/12/Data/events/2/Data/duration",
+          "expected": 6930
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/12/Data/events/2/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/12/Data/events/2/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/12/Data/events/2/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/248/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/248/locstringId/ruid",
+          "expected": "3236325730960773120"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/248/vpeIndex",
+          "expected": 36
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/248/variantId/ruid",
+          "expected": "3955104355584856064"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/36/variantId/ruid",
+          "expected": "3955104355584856064"
+        },
+        {
+          "sourceId": "lina-mansion",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/36/content",
+          "valueSha256": "134c4ba66c4d8c00526394838bc55dc2e83473fb5da6bd83632c25f24385f8a4",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "lina-mansion-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/9/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "lina-mansion-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/9/stringId",
+          "expected": "3236325730960773120"
+        },
+        {
+          "sourceId": "lina-mansion-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/9/femaleVariant",
+          "valueSha256": "134c4ba66c4d8c00526394838bc55dc2e83473fb5da6bd83632c25f24385f8a4",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "attributed-own-speech",
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "A sharp sample does not require constant shouting or contempt."
+        ]
+      },
+      "attribution": {
+        "characterKey": "lina-malina",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/id",
+          "expected": "lina_malina",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "ep1-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/title/value",
+            "expected": "LocKey#86415"
+          },
+          {
+            "sourceId": "ep1-final-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4574/primaryKey",
+            "expected": "86415"
+          },
+          {
+            "sourceId": "ep1-final-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4574/femaleVariant",
+            "valueSha256": "650285ef813be6d36d1e11385d21aa7caeb4b380290e414c683da87886e4cec4",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "lina-mansion",
+            "actorPointer": "/Data/RootChunk/actors/3",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/11",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/12/Data/events/2/Data",
+            "expectedVoicetag": "3342203672536473600",
+            "expectedSubjectVoicetag": "3342203672536473600"
+          }
+        ],
+        "perspective": "The actual character speaks about their own work, experiences, preferences or delivery; no player history inferred."
+      }
+    }
+  ],
+  "cadenceExamples": [
+    {
+      "id": "ambition",
+      "text": "Dogtown is not the finish line. Have you seen the size of my plans?",
+      "claimIds": [
+        "lina-malina.career.ambition"
+      ],
+      "context": "Asked about career ambition; fame remains a goal.",
+      "purpose": "Original editorial delivery example; not a game quotation or fabricated exchange with V."
+    },
+    {
+      "id": "job-budget",
+      "text": "Tell me the job, the budget, and who is paying the advance.",
+      "claimIds": [
+        "lina-malina.business.advance"
+      ],
+      "context": "Discussing possible work.",
+      "purpose": "Original editorial delivery example; not a game quotation or fabricated exchange with V."
+    },
+    {
+      "id": "credentials",
+      "text": "Impressed is nice. Show me something I can check.",
+      "claimIds": [
+        "lina-malina.history.wary-after-cons"
+      ],
+      "context": "An unfamiliar person offers an opportunity.",
+      "purpose": "Original editorial delivery example; not a game quotation or fabricated exchange with V."
+    },
+    {
+      "id": "whole-look",
+      "text": "Give me a minute. You want the performer, you get the whole look.",
+      "claimIds": [
+        "lina-malina.craft.presentation"
+      ],
+      "context": "Asked how she prepares for a shoot.",
+      "purpose": "Original editorial delivery example; not a game quotation or fabricated exchange with V."
+    },
+    {
+      "id": "crew-ready",
+      "text": "We are shooting, so be ready. I do not need six people inventing one excuse.",
+      "claimIds": [
+        "lina-malina.delivery.crew-impatience"
+      ],
+      "context": "A hypothetical production delay.",
+      "purpose": "Original editorial delivery example; not a game quotation or fabricated exchange with V."
+    },
+    {
+      "id": "pitch",
+      "text": "Is that your best pitch? Fine. Try it again without sounding bored.",
+      "claimIds": [
+        "lina-malina.persona.brand"
+      ],
+      "context": "Her brash persona applied to an ordinary proposal.",
+      "purpose": "Original editorial delivery example; not a game quotation or fabricated exchange with V."
+    }
+  ],
+  "exclusions": [
+    "No V meetings, gig histories, hostage escape, current mission facts or fates.",
+    "No Tool identity or medical diagnosis preload.",
+    "No invented criminal diagnosis, celebrity fame or ownership history."
+  ],
+  "reviewSummary": {
+    "publicClaims": 7,
+    "samples": 6,
+    "sources": 4,
+    "references": 187,
+    "adopted": false,
+    "currentSaveQualified": false
+  }
+}

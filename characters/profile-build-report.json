@@ -7,6 +7,87 @@
   "source": "research/cyberpunk/dossiers",
   "nativeIntrinsic": [
     {
+      "key": "8ug8ear",
+      "claimIds": [
+        "outlook.imagined-old-net",
+        "outlook.bartmoss-cost",
+        "outlook.netwatch-control",
+        "delivery.irreverent-analogy"
+      ],
+      "sampleIds": [
+        "original.01",
+        "original.02",
+        "original.03",
+        "original.04",
+        "original.05",
+        "original.06"
+      ],
+      "sourceContentSha256": "506938b5404050ece4bb39b7d4407ce9cfbecd63c2768ff294e15720de30b47f",
+      "referencesVerified": 120,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "aaron",
+      "claimIds": [
+        "aaron.identity.boxer",
+        "aaron.history.dogtown-roots",
+        "aaron.history.former-animals",
+        "aaron.temperament.no-nonsense",
+        "aaron.history.gang-support",
+        "aaron.values.chose-boxing",
+        "aaron.experience.razor-training",
+        "aaron.craft.distance-and-matchups",
+        "aaron.history.family-construction",
+        "aaron.history.moved-outside-wall",
+        "aaron.history.fathers-expo-ambition"
+      ],
+      "sampleIds": [
+        "career",
+        "technique",
+        "dogtown",
+        "father",
+        "razor",
+        "broad-history"
+      ],
+      "sourceContentSha256": "8793dc5468d16a4cf181616d616969b6cb4da120eceb501db2362542fdb9f8ed",
+      "referencesVerified": 480,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "adam-smasher",
+      "claimIds": [
+        "adam-smasher.body.full-conversion",
+        "adam-smasher.work.arasaka-enforcer",
+        "adam-smasher.history.silverhand-2023",
+        "adam-smasher.viewpoint.organic-contempt"
+      ],
+      "sampleIds": [
+        "chrome",
+        "terms",
+        "history",
+        "fear"
+      ],
+      "sourceContentSha256": "4e6d3183183995c15d1326f26680d4ab1ed1fb54d0fd8f66c6e5af2cb6f7c722",
+      "referencesVerified": 103,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "alan-noel",
+      "claimIds": [
+        "alan-noel.outlook.professional-order",
+        "alan-noel.knowledge.military-hardware-market",
+        "alan-noel.approach.trace-command-chain"
+      ],
+      "sampleIds": [
+        "professional",
+        "market",
+        "method"
+      ],
+      "sourceContentSha256": "d074afda8d6fb1d95a79fa20c1ed49d710f0715f09bca2654c9e8166e043e860",
+      "referencesVerified": 257,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
       "key": "alex",
       "claimIds": [
         "alex.identity.alena-xenakis",
@@ -42,6 +123,409 @@
       "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
     },
     {
+      "key": "ana-friedman",
+      "claimIds": [
+        "ana-friedman.role.brazilian-intelligence-analyst",
+        "ana-friedman.work.corporate-movement-analysis",
+        "ana-friedman.taste.work-adrenaline-and-news",
+        "ana-friedman.limits.no-fieldwork-experience"
+      ],
+      "sampleIds": [
+        "analysis",
+        "field",
+        "work",
+        "boundary"
+      ],
+      "sourceContentSha256": "94f22e25512d95ba9812a6452c8444cb07d934560128a81a7b79ba406662b13a",
+      "referencesVerified": 91,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "arthur-jenkins",
+      "claimIds": [
+        "identity.counterintelligence",
+        "cadence.commanding",
+        "craft.procedural-thinking",
+        "opinion.practical-gains",
+        "craft.known-operators"
+      ],
+      "sampleIds": [
+        "sample.point",
+        "sample.procedure",
+        "sample.gain",
+        "sample.operator"
+      ],
+      "sourceContentSha256": "f5a45373cf713f5cd291a7715e966cd31d743b7dee38fef148b97de034995da4",
+      "referencesVerified": 243,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "babs-okoye",
+      "claimIds": [
+        "babs-okoye.identity.barbara-okoye",
+        "babs-okoye.history.experienced-soldier",
+        "babs-okoye.relationship.pacos-choom",
+        "babs-okoye.relationship.protective-friend",
+        "babs-okoye.temperament.pragmatic",
+        "babs-okoye.taste.quiet-life",
+        "babs-okoye.judgment.vague-advice",
+        "babs-okoye.judgment.discretion"
+      ],
+      "sampleIds": [
+        "plan",
+        "paco",
+        "quiet",
+        "experience",
+        "discretion",
+        "agency"
+      ],
+      "sourceContentSha256": "f2d042e21996728547c7e3568ec8ad34b3fa561adb388013bbe6cdcfb6ce120f",
+      "referencesVerified": 198,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "bill-mitchell",
+      "claimIds": [
+        "bill-mitchell.history.ncpd-employment",
+        "bill-mitchell.history.friend-encouraged-ncpd",
+        "bill-mitchell.character.modest-dreams"
+      ],
+      "sampleIds": [
+        "modest",
+        "hesitation",
+        "work"
+      ],
+      "sourceContentSha256": "bad621e8ff89d34bd51d1df827e852861925a17f4509f54c666c9186532d0df9",
+      "referencesVerified": 48,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "blue-moon",
+      "claimIds": [
+        "blue-moon.music.us-cracks-work",
+        "blue-moon.music.admiration",
+        "blue-moon.work.artist-agency",
+        "blue-moon.conversation.de-escalation",
+        "blue-moon.craft.work-in-progress",
+        "blue-moon.taste.azaleas"
+      ],
+      "sampleIds": [
+        "creative-work",
+        "label",
+        "calm",
+        "admiration",
+        "flowers",
+        "agency"
+      ],
+      "sourceContentSha256": "121008b187f0d4de9693bd43ab3aeb3d42a80549183579871db2a04abc06e15d",
+      "referencesVerified": 510,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "bob-sagan",
+      "claimIds": [
+        "bob.knowledge.panzer-hazards",
+        "bob.craft.equipment-troubleshooting",
+        "bob.humor.hardware-irony",
+        "bob.values.check-promises",
+        "bob.temperament.caution-not-defeatism",
+        "bob.values.family-cooperation",
+        "bob.delivery.concrete-obstacles"
+      ],
+      "sampleIds": [
+        "repair-first",
+        "war-cost",
+        "promises",
+        "not-defeatist",
+        "family-friction",
+        "obstacle"
+      ],
+      "sourceContentSha256": "c4d9b829e17a100196fff5ee980820a38e70f3ef77378fca2d8854f31c0f0a79",
+      "referencesVerified": 492,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "briana-dolson",
+      "claimIds": [
+        "briana.community.stacks",
+        "briana.care.practical-needs",
+        "briana.generosity.own-community",
+        "briana.trust.outsiders",
+        "briana.trust.knowing-people"
+      ],
+      "sampleIds": [
+        "practical-care",
+        "earned-trust",
+        "community"
+      ],
+      "sourceContentSha256": "e76ab4ad8a3b91f7044f7f7f6c82a25a83d437aa261f62850d92759ecde7a364",
+      "referencesVerified": 106,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "carol-emeka",
+      "claimIds": [
+        "carol.identity.chosen-family",
+        "carol.values.corporate-offers",
+        "carol.values.being-needed",
+        "carol.craft.army-training",
+        "carol.history.leaving-army",
+        "carol.history.road-perspective",
+        "carol.craft.old-data",
+        "carol.delivery.technical-aftercare",
+        "carol.delivery.familiar-teasing",
+        "carol.delivery.task-focus",
+        "carol.history.panzer-discomfort"
+      ],
+      "sampleIds": [
+        "cards-explanation",
+        "choice-home",
+        "technical-check",
+        "dry-tease",
+        "useful-work",
+        "panzer-comfort"
+      ],
+      "sourceContentSha256": "6a14717e9cfde571a2b871b357eb36a1cd4bd6f11c3ba4658466070644c3f48a",
+      "referencesVerified": 591,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "cassidy-righter",
+      "claimIds": [
+        "cassidy.values.legacy-tech",
+        "cassidy.history.shooting-quiet",
+        "cassidy.craft.focus-and-practice",
+        "cassidy.temperament.respects-skill",
+        "cassidy.values.self-respect-discipline",
+        "cassidy.pastimes.long-earthy-stories",
+        "cassidy.humor.undercuts-grand-advice",
+        "cassidy.humor.earthy-mischief",
+        "cassidy.values.leadership-work"
+      ],
+      "sampleIds": [
+        "old-machine",
+        "steady-shot",
+        "earned-respect",
+        "book",
+        "discipline",
+        "leadership"
+      ],
+      "sourceContentSha256": "49003ec2a6032a64587818f7ea2c8024820e15c690e79f54aaef7bb2d037e8eb",
+      "referencesVerified": 637,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "chang-hoon-nam",
+      "claimIds": [
+        "nam.craft.analysis",
+        "nam.craft.controlled-code",
+        "nam.relationship.wakako",
+        "nam.values.competing-needs",
+        "nam.values.deliberate-risk",
+        "nam.values.learning-with-help",
+        "nam.delivery.patient-teacher"
+      ],
+      "sampleIds": [
+        "symptoms",
+        "limits",
+        "risk",
+        "expectations",
+        "cooperation",
+        "small-step"
+      ],
+      "sourceContentSha256": "2362db82972a3e7c2305968c1535bfb8e6cc5348131e09e23209643d4d40ecc9",
+      "referencesVerified": 147,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "claire-russell",
+      "claimIds": [
+        "identity.afterlife-bartender",
+        "tradition.legend-drinks",
+        "history.militech-engineer",
+        "craft.autoshop",
+        "interest.street-racing",
+        "identity.transwoman",
+        "opinion.machines-and-body",
+        "disposition.finishes-what-she-starts"
+      ],
+      "sampleIds": [
+        "sample.bar",
+        "sample.machine",
+        "sample.garage",
+        "sample.work",
+        "sample.memorial"
+      ],
+      "sourceContentSha256": "a07b788a81b5fb6a0d3156da59ed373d15636ef15d3507130e935c8a1ce5f456",
+      "referencesVerified": 167,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "coach-fred",
+      "claimIds": [
+        "coach-fred.history.retired-fighter",
+        "coach-fred.work.promoter",
+        "coach-fred.business.commission",
+        "coach-fred.equipment.training-bot",
+        "coach-fred.craft.movement-and-technique",
+        "coach-fred.temperament.direct-dealmaking"
+      ],
+      "sampleIds": [
+        "retired",
+        "training",
+        "bot",
+        "deal",
+        "circuit",
+        "business"
+      ],
+      "sourceContentSha256": "7a8478d4494be7ba0e873ac510898597aec22fcbed90a3d7f8d8141d63f1346d",
+      "referencesVerified": 604,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "cynthia-najarro",
+      "claimIds": [
+        "values.personal-boundaries",
+        "values.direct-questions",
+        "delivery.explanation-after-listening"
+      ],
+      "sampleIds": [
+        "boundary",
+        "ask-directly",
+        "hear-out"
+      ],
+      "sourceContentSha256": "24ad0424451cd707fcdb4b248e75653ef8863b5cc7868f2090e876b107ccedb5",
+      "referencesVerified": 270,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "dakota-smith",
+      "claimIds": [
+        "dakota.identity.pomo-fixer",
+        "dakota.craft.perceptive-business",
+        "dakota.identity.aldecaldo-static",
+        "dakota.work.badlands-contracts",
+        "dakota.values.interdependent-desert",
+        "dakota.values.care-for-travellers",
+        "dakota.boundaries.mutual-privacy",
+        "dakota.craft.technical-awareness",
+        "dakota.history.magpie-recollection",
+        "dakota.delivery.measured-caution"
+      ],
+      "sampleIds": [
+        "desert",
+        "fixed-base",
+        "terms",
+        "privacy",
+        "equipment",
+        "caution"
+      ],
+      "sourceContentSha256": "03f4de1eac1f40f29f5dc68ec406ef5b53a4e00d7bf2471c41202f2a811c53ac",
+      "referencesVerified": 574,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "dennis-cranmer",
+      "claimIds": [
+        "work.direct-contracts",
+        "work.transport-over-consulting",
+        "work.staged-disclosure",
+        "work.compensation",
+        "style.businesslike"
+      ],
+      "sampleIds": [
+        "original.01",
+        "original.02",
+        "original.03",
+        "original.04"
+      ],
+      "sourceContentSha256": "5c1d9641d0ad162479910c7c3298e53716f2e274b76d515771c5ae94e87e88ba",
+      "referencesVerified": 603,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "dexter-deshawn",
+      "claimIds": [
+        "craft.people-first",
+        "public.major-fixer",
+        "public.last-job-rumor",
+        "values.meet-in-person",
+        "history.jackie-and-tbug",
+        "values.quiet-or-glory",
+        "craft.risk-reward",
+        "values.discretion",
+        "temperament.chill-with-limits",
+        "craft.experience-with-amateurs",
+        "craft.bargaining",
+        "values.professed-trust",
+        "public.return-and-brand",
+        "cadence.relaxed-showmanship"
+      ],
+      "sampleIds": [
+        "sample.eyes",
+        "sample.risk",
+        "sample.middleman",
+        "sample.calm",
+        "sample.privacy",
+        "sample.brand"
+      ],
+      "sourceContentSha256": "83f1dc52d340875afb2675b7bf0e0e6a162a99ede62d43e83a0c19e8cdc9968d",
+      "referencesVerified": 786,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "dino-dinovic",
+      "claimIds": [
+        "dino-dinovic.work.city-center",
+        "dino-dinovic.music.gloryhole-bassist",
+        "dino-dinovic.work.varied-requests",
+        "dino-dinovic.social.mixed-company",
+        "dino-dinovic.place.bar",
+        "dino-dinovic.memory.silverhand-gig",
+        "dino-dinovic.memory.backstage-hearsay",
+        "dino-dinovic.music.business-and-playing",
+        "dino-dinovic.social.nightlife-access"
+      ],
+      "sampleIds": [
+        "band",
+        "gig",
+        "hearsay",
+        "contacts",
+        "district"
+      ],
+      "sourceContentSha256": "2947ab8a75229240f0670fa1e8a48b0b1e5687922830ada3fa4f85312e65482e",
+      "referencesVerified": 332,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "elizabeth-peralez",
+      "claimIds": [
+        "history.berkeley-law",
+        "history.met-jefferson",
+        "craft.practicing-law",
+        "family.xochi",
+        "temperament.poised",
+        "public.sincere-manner",
+        "craft.political-pragmatism",
+        "craft.organizes-time",
+        "values.discretion",
+        "values.independence",
+        "craft.media-awareness",
+        "cadence.calm-precision"
+      ],
+      "sampleIds": [
+        "sample.precision",
+        "sample.idealism",
+        "sample.privacy",
+        "sample.time",
+        "sample.publicity",
+        "sample.family"
+      ],
+      "sourceContentSha256": "98c8f8672bfb0d2103895752818a50864500bdeb941a204065005ec37ed857f1",
+      "referencesVerified": 369,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
       "key": "evelyn-parker",
       "claimIds": [
         "identity.curated-appearance",
@@ -71,6 +555,28 @@
       "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
     },
     {
+      "key": "frank-nostra",
+      "claimIds": [
+        "identity.frank-nostra",
+        "history.cape-town-cargo",
+        "history.rifle-crate-recovery",
+        "outlook.operational-pragmatism",
+        "history.abernathy-supervision",
+        "manner.cordial-work-colleague"
+      ],
+      "sampleIds": [
+        "original.01",
+        "original.02",
+        "original.03",
+        "original.04",
+        "original.05",
+        "original.06"
+      ],
+      "sourceContentSha256": "1f79ba36c7f7f3c75ddb0a227a8deee2826150248c3115e811aa9d7d3535badc",
+      "referencesVerified": 288,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
       "key": "hanako-arasaka",
       "claimIds": [
         "identity.family",
@@ -97,6 +603,27 @@
       ],
       "sourceContentSha256": "b76e0bbfb7b2dbc3d3f803e592568d44c0758cb040f0db85bceeeaed3d34507a",
       "referencesVerified": 478,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "iris-tanner",
+      "claimIds": [
+        "identity.techie",
+        "craft.challenge-before-money",
+        "craft.tough-negotiator",
+        "cadence.terse-and-proud",
+        "principle.independent-work",
+        "opinion.no-forced-family",
+        "cadence.clear-terms"
+      ],
+      "sampleIds": [
+        "sample.challenge",
+        "sample.price",
+        "sample.terms",
+        "sample.independent"
+      ],
+      "sourceContentSha256": "fb70e485ea6365c9304d22071c9fdd2c4653da30346ce741d121498522d43c4c",
+      "referencesVerified": 168,
       "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
     },
     {
@@ -138,6 +665,70 @@
       "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
     },
     {
+      "key": "jefferson-peralez",
+      "claimIds": [
+        "history.poor-childhood",
+        "history.scholarship-and-law",
+        "craft.legal-public-service",
+        "values.education-opportunity",
+        "craft.social-adaptability",
+        "family.respects-elizabeth",
+        "values.platform-conviction",
+        "craft.clear-questions",
+        "values.discretion",
+        "craft.tried-contacts",
+        "cadence.personable-business",
+        "cadence.polite-opening"
+      ],
+      "sampleIds": [
+        "sample.education",
+        "sample.evidence",
+        "sample.partner",
+        "sample.conviction",
+        "sample.discretion",
+        "sample.direct"
+      ],
+      "sourceContentSha256": "87ed3585aa9cf7ee9f93592675391d79604ce392e96e73115ed5f6f5108b0486",
+      "referencesVerified": 465,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "jesse",
+      "claimIds": [
+        "jesse.boundaries.medical-privacy",
+        "jesse.delivery.practical-help",
+        "jesse.temperament.embarrassed-humor"
+      ],
+      "sampleIds": [
+        "privacy",
+        "help",
+        "joke",
+        "ordinary"
+      ],
+      "sourceContentSha256": "59c804e7387e7ad8e899ccddbc957e53295b34b2690721e99e987a62f7f659f7",
+      "referencesVerified": 187,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "jim-jarry",
+      "claimIds": [
+        "delivery.firearms-and-vehicles",
+        "cadence.audience-and-showmanship",
+        "craft.benefits-and-catches",
+        "opinion.speed-and-control",
+        "opinion.reliability-over-gimmicks"
+      ],
+      "sampleIds": [
+        "sample.catch",
+        "sample.speed",
+        "sample.pitch",
+        "sample.reliable"
+      ],
+      "sourceContentSha256": "0e28245777ffaf3a088b5baaf3739cbb34bc17e8464b5a1a30e64a0d4ef0ce8c",
+      "referencesVerified": 391,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
       "key": "johnny-silverhand",
       "claimIds": [
         "johnny.identity.personality-construct",
@@ -163,6 +754,29 @@
       ],
       "sourceContentSha256": "5595590d7a6eb007db5056fe3a31dcdfd6f75eb67d60a39700a09c306d651de4",
       "referencesVerified": 330,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "joss-kutcher",
+      "claimIds": [
+        "values.children-first",
+        "values.family-anchor",
+        "temperament.self-deprecation",
+        "cadence.welcoming",
+        "family.encourages-play",
+        "family.randy-food",
+        "cadence.everyday-hospitality"
+      ],
+      "sampleIds": [
+        "sample.children",
+        "sample.perfect",
+        "sample.welcome",
+        "sample.food",
+        "sample.play",
+        "sample.table"
+      ],
+      "sourceContentSha256": "549d3add93d0a52fb8fdb8ef4ac778e95e6e99a13bea39b6e406eee58091e7a8",
+      "referencesVerified": 343,
       "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
     },
     {
@@ -233,6 +847,88 @@
       "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
     },
     {
+      "key": "liam-northom",
+      "claimIds": [
+        "work.lizzys-manager",
+        "values.professional-privacy",
+        "style.defensive-business-speech"
+      ],
+      "sampleIds": [
+        "original.01",
+        "original.02",
+        "original.03"
+      ],
+      "sourceContentSha256": "a92ae1d64c3d4114ee68466c0ccd65a9e1fa2cd6aa4674343ba0bfa5c9a59beb",
+      "referencesVerified": 310,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "life-coach",
+      "claimIds": [
+        "work.quantified-satori",
+        "method.neuromotor-exercises",
+        "delivery.reassuring-professional"
+      ],
+      "sampleIds": [
+        "original.01",
+        "original.02",
+        "original.03"
+      ],
+      "sourceContentSha256": "f859c096a76a9ab6c396071e0a60d694d5c35ffba8ce53f8b793ca4ffcf0d1ee",
+      "referencesVerified": 152,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "lina-malina",
+      "claimIds": [
+        "lina-malina.career.performer",
+        "lina-malina.career.ambition",
+        "lina-malina.persona.brand",
+        "lina-malina.business.advance",
+        "lina-malina.history.wary-after-cons",
+        "lina-malina.craft.presentation",
+        "lina-malina.delivery.crew-impatience"
+      ],
+      "sampleIds": [
+        "ambition",
+        "job-budget",
+        "credentials",
+        "whole-look",
+        "crew-ready",
+        "pitch"
+      ],
+      "sourceContentSha256": "b2da6c47534dcdf9c6e6760746d00c15686bba5da1948e503c07f55c7d6c2be1",
+      "referencesVerified": 230,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "lizzy-wizzy",
+      "claimIds": [
+        "lizzy-wizzy.identity.artist",
+        "lizzy-wizzy.history.full-conversion",
+        "lizzy-wizzy.history.staged-return",
+        "lizzy-wizzy.art.audience-and-identity",
+        "lizzy-wizzy.reputation.contested",
+        "lizzy-wizzy.privacy.boundaries",
+        "lizzy-wizzy.emotion.chrome-heart",
+        "lizzy-wizzy.publicity.constant-scrutiny",
+        "lizzy-wizzy.attention.ambivalence",
+        "lizzy-wizzy.values.deliberation",
+        "lizzy-wizzy.craft.focus"
+      ],
+      "sampleIds": [
+        "work",
+        "privacy",
+        "scrutiny",
+        "emotion",
+        "deliberation",
+        "focus"
+      ],
+      "sourceContentSha256": "c4ffed730d82caa8a6348219d392afa198c97dfab7cb506f4ec5833c65cf0131",
+      "referencesVerified": 498,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
       "key": "mama-welles",
       "claimIds": [
         "identity.guadalupe",
@@ -257,6 +953,47 @@
       ],
       "sourceContentSha256": "a8da578ffe49e2837ce04fadd81a8b4a615d7d79c4435053a25de81ed10d54b4",
       "referencesVerified": 268,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "mark-bana",
+      "claimIds": [
+        "mark.employment.brazilian-intelligence",
+        "mark.career.twelve-years",
+        "mark.age.thirty-seven",
+        "mark.training.combat"
+      ],
+      "sampleIds": [
+        "service-length",
+        "training",
+        "age"
+      ],
+      "sourceContentSha256": "a00a66117804e977d51ab9fd6ca0cc97c28208f935e28c08ae18c3cb58cd43a6",
+      "referencesVerified": 223,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "meredith-stout",
+      "claimIds": [
+        "identity.name",
+        "craft.militech-internal-affairs",
+        "cadence.direct-questions",
+        "craft.wants-a-plan",
+        "cadence.impatient-offers",
+        "temperament.skeptical",
+        "craft.security-direction",
+        "temperament.hard-boundary"
+      ],
+      "sampleIds": [
+        "sample.answer",
+        "sample.plan",
+        "sample.source",
+        "sample.boundary",
+        "sample.concise",
+        "sample.work"
+      ],
+      "sourceContentSha256": "fb895dc6bee158ea0bfde2e4a7ae99d789cb69d0986f051964cf690be974c99a",
+      "referencesVerified": 512,
       "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
     },
     {
@@ -287,6 +1024,32 @@
       ],
       "sourceContentSha256": "67cfa7bc854c707b2d33c440c99e6fd61c6990cc1c8d721514dfe8a4b4449e41",
       "referencesVerified": 632,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "mitch-anderson",
+      "claimIds": [
+        "mitch.identity.family",
+        "mitch.history.free-states",
+        "mitch.craft.panzerboys",
+        "mitch.history.smuggling",
+        "mitch.relationship.panam",
+        "mitch.temperament.respected",
+        "mitch.delivery.war-understatement",
+        "mitch.craft.patient-testing",
+        "mitch.delivery.warm-practical",
+        "mitch.values.independent-jobs"
+      ],
+      "sampleIds": [
+        "war-boundary",
+        "repair-first",
+        "life-after-front",
+        "ordinary-welcome",
+        "work-reputation",
+        "loyalty"
+      ],
+      "sourceContentSha256": "3f2eb322a37e20bce38f504e4a8f14fdbfff319c05929445d75979d866b61734",
+      "referencesVerified": 380,
       "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
     },
     {
@@ -348,6 +1111,149 @@
       "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
     },
     {
+      "key": "nancy-hartley",
+      "claimIds": [
+        "nancy-hartley.identity.media-byline",
+        "nancy-hartley.music.samurai-membership",
+        "nancy-hartley.history.keyboard-to-journalism",
+        "nancy-hartley.music.silverhand-role",
+        "nancy-hartley.reporting.footage-and-editing",
+        "nancy-hartley.reporting.subject-questions",
+        "nancy-hartley.reporting.larger-story",
+        "nancy-hartley.reporting.investigation-method",
+        "nancy-hartley.reporting.uncertainty",
+        "nancy-hartley.social.industry-access",
+        "nancy-hartley.craft.improvisation",
+        "nancy-hartley.music.detail-conscious",
+        "nancy-hartley.privacy.confidential-files"
+      ],
+      "sampleIds": [
+        "byline",
+        "band-perspective",
+        "reporting",
+        "editing",
+        "contacts",
+        "file-boundary"
+      ],
+      "sourceContentSha256": "ba0351a7d218f33d18141712c36ae0494fae11a7ee431887d8e39747e87286ab",
+      "referencesVerified": 1088,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "nele-springer",
+      "claimIds": [
+        "nele-springer.history.farm-family",
+        "nele-springer.history.biotechnica-sale",
+        "nele-springer.education.chemistry",
+        "nele-springer.delivery.boundaries",
+        "nele-springer.delivery.one-at-a-time"
+      ],
+      "sampleIds": [
+        "farm-limits",
+        "chemistry-question",
+        "boundary",
+        "concrete-step"
+      ],
+      "sourceContentSha256": "7df6b7bc6bd3501ab02de9d8330882b37f0c6e72ee4738d9ff84b4bb599aeca6",
+      "referencesVerified": 152,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "nix",
+      "claimIds": [
+        "nix.work.specialist",
+        "nix.craft.bartmoss-study",
+        "nix.work.rogue-trust",
+        "nix.taste.old-technology",
+        "nix.craft.risk-warning",
+        "nix.craft.curiosity",
+        "nix.craft.historical-care",
+        "nix.work.paid-services",
+        "nix.work.negotiation",
+        "nix.social.professional-boundaries"
+      ],
+      "sampleIds": [
+        "old-tech",
+        "risk",
+        "bartmoss",
+        "curiosity",
+        "professional",
+        "rogue"
+      ],
+      "sourceContentSha256": "a923cb6e93f8f312e5cfc1ed68f5b5a3b2798d97f28596018d727242f86cbc3b",
+      "referencesVerified": 581,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "ozob-bozo",
+      "claimIds": [
+        "ozob-bozo.origin.brazil",
+        "ozob-bozo.appearance.grenade",
+        "ozob-bozo.history.nose-injury",
+        "ozob-bozo.identity.unconventional-choice",
+        "ozob-bozo.taste.spicy-food",
+        "ozob-bozo.temperament.entertainer",
+        "ozob-bozo.work.flexibility",
+        "ozob-bozo.boundaries.introductions"
+      ],
+      "sampleIds": [
+        "origin",
+        "nose",
+        "brother",
+        "food",
+        "show",
+        "privacy"
+      ],
+      "sourceContentSha256": "df118ef51fd073897b4095ab75c0064b364f62823b5915644e53bd3198c4db11",
+      "referencesVerified": 445,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "paco-torres",
+      "claimIds": [
+        "paco-torres.identity.barghest-rookie",
+        "paco-torres.temperament.opportunities",
+        "paco-torres.temperament.confidence",
+        "paco-torres.temperament.acts-first",
+        "paco-torres.taste.casual-conversation",
+        "paco-torres.taste.immersive-storytelling"
+      ],
+      "sampleIds": [
+        "rookie",
+        "idea",
+        "story",
+        "chance",
+        "gab",
+        "confidence"
+      ],
+      "sourceContentSha256": "2dd27234cf6751f2cab41370e2471f9ddf6b86b65bda26b54024ed92fce39f49",
+      "referencesVerified": 206,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "padre-ibarra",
+      "claimIds": [
+        "padre-ibarra.identity.name",
+        "padre-ibarra.history.priest-and-fixer",
+        "padre-ibarra.work.heywood-roots",
+        "padre-ibarra.ethics.balance",
+        "padre-ibarra.faith.lived-belief",
+        "padre-ibarra.privacy.may-decline",
+        "padre-ibarra.work.respect-and-danger",
+        "padre-ibarra.social.religious-cadence"
+      ],
+      "sampleIds": [
+        "faith",
+        "privacy",
+        "control",
+        "balance",
+        "business"
+      ],
+      "sourceContentSha256": "5972ef3b99d50dff7f46815c70291852cc308f75450fcb30d94a6589c5259f48",
+      "referencesVerified": 330,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
       "key": "panam-palmer",
       "claimIds": [
         "panam.identity.nomad-background",
@@ -378,6 +1284,84 @@
       ],
       "sourceContentSha256": "0278d2affc7ad4f1ee32aee54196b515ab2420579609823e618dc4139e56ef04",
       "referencesVerified": 535,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "pepe-najarro",
+      "claimIds": [
+        "family.cynthia",
+        "family.child",
+        "values.work-boundary",
+        "delivery.toasts-and-colloquial-warmth"
+      ],
+      "sampleIds": [
+        "family",
+        "on-clock",
+        "toast"
+      ],
+      "sourceContentSha256": "1b514a7bc4d16700b22e52eaed976581fa8834444fd313f22bbcf3a6f6cc878d",
+      "referencesVerified": 446,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "placide",
+      "claimIds": [
+        "identity.voodoo-boys",
+        "disposition.guarded-outsiders",
+        "craft.discretion",
+        "craft.ability-before-promises",
+        "craft.subnet-monitoring",
+        "cadence.task-focus",
+        "opinion.not-corporate-career"
+      ],
+      "sampleIds": [
+        "sample.private",
+        "sample.promises",
+        "sample.focus",
+        "sample.career",
+        "sample.network"
+      ],
+      "sourceContentSha256": "9b33d108378fc5cb297afd6fba359a995aa3e82ef9b5f510a01fe1e4772aacf0",
+      "referencesVerified": 294,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "r3n0",
+      "claimIds": [
+        "work.book-sale",
+        "values.firm-terms",
+        "values.private-meeting"
+      ],
+      "sampleIds": [
+        "original.01",
+        "original.02",
+        "original.03"
+      ],
+      "sourceContentSha256": "cb6c6dc029989050e88f3afb0d454bc2523f5f7526e2841b2ac21d71bd1a427c",
+      "referencesVerified": 96,
+      "policy": "recorded-native-and-reviewed-live-property-public-only"
+    },
+    {
+      "key": "rachel-casich",
+      "claimIds": [
+        "rachel-casich.career.producer",
+        "rachel-casich.career.public-credits",
+        "rachel-casich.work.corporate-studio",
+        "rachel-casich.craft.technology-optimism",
+        "rachel-casich.routine.meditation",
+        "rachel-casich.outlook.personal-spirituality",
+        "rachel-casich.delivery.direct-control"
+      ],
+      "sampleIds": [
+        "experience",
+        "credits",
+        "tech",
+        "breath",
+        "personal",
+        "work"
+      ],
+      "sourceContentSha256": "801fd1ba0a937c2bc05c05b14c6c25536124b8ad9d2a2445df0d6bf2dac8c734",
+      "referencesVerified": 568,
       "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
     },
     {
@@ -437,6 +1421,24 @@
       "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
     },
     {
+      "key": "robert-wilson",
+      "claimIds": [
+        "values.firearm-respect",
+        "values.holster-discipline",
+        "taste.powder-and-lead",
+        "delivery.grumbling-humor"
+      ],
+      "sampleIds": [
+        "care",
+        "holster",
+        "bad-day",
+        "powder"
+      ],
+      "sourceContentSha256": "39bdfc7a5761ceaafe59a1d2a7db4620a6f9c9d1fb5be7475e8ff2847ea9481c",
+      "referencesVerified": 120,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
       "key": "rogue-amendiares",
       "claimIds": [
         "rogue-amendiares.identity.mercenary-past",
@@ -463,6 +1465,113 @@
       ],
       "sourceContentSha256": "03de8f8fd21e3cceb46925f08e4bae744d93a6175270b62add7b93136af08f97",
       "referencesVerified": 768,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "sandra-dorsett",
+      "claimIds": [
+        "work.professional-corporate",
+        "temperament.cautious-prudent",
+        "privacy.personal-boundaries",
+        "temperament.evidence-before-reassurance",
+        "values.professional-discretion"
+      ],
+      "sampleIds": [
+        "original.01",
+        "original.02",
+        "original.03",
+        "original.04",
+        "original.05",
+        "original.06"
+      ],
+      "sourceContentSha256": "b7f6b8978e0b302153a4dc74532257c3cdcefa1c7d455c9c09e899d3fc6f4a13",
+      "referencesVerified": 116,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "santiago",
+      "claimIds": [
+        "santiago.background.clan-travel",
+        "santiago.work.plain-terms",
+        "santiago.work.up-front-payment",
+        "santiago.work.partner-trust",
+        "santiago.work.personal-terms",
+        "santiago.work.pay-and-risk"
+      ],
+      "sampleIds": [
+        "job-and-terms",
+        "up-front",
+        "partner",
+        "risk",
+        "free",
+        "outside-city"
+      ],
+      "sourceContentSha256": "939bd49e340cf067679150a8eae906734c74dc40eaf4a4a3de9aa69eb7db8914",
+      "referencesVerified": 438,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "saul-bright",
+      "claimIds": [
+        "saul.identity.family",
+        "saul.history.difficult-succession",
+        "saul.policy.corporate-connections",
+        "saul.values.accountability",
+        "saul.temperament.principle",
+        "saul.delivery.clarifying",
+        "saul.delivery.triage-metaphor",
+        "saul.values.family-first",
+        "saul.delivery.stern-wry",
+        "saul.care.plain-concern"
+      ],
+      "sampleIds": [
+        "practical-plan",
+        "responsibility",
+        "concrete-question",
+        "family-cost",
+        "modest-joke",
+        "check-in"
+      ],
+      "sourceContentSha256": "513a0d8b6ee118ee6ac09b4ba939d2f5aaa85f85d2f873b2686eaa8459f88bc5",
+      "referencesVerified": 545,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "sergei-karasinsky",
+      "claimIds": [
+        "identity.short-name",
+        "identity.russian-self-description",
+        "delivery.euphemism-and-deflection",
+        "delivery.forced-cheer"
+      ],
+      "sampleIds": [
+        "original.01",
+        "original.02",
+        "original.03",
+        "original.04"
+      ],
+      "sourceContentSha256": "964df0a3707163a24ac67f3837f9fa6ea51aeb1fb3a4ac37a790f26ad925ae1b",
+      "referencesVerified": 140,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "shank",
+      "claimIds": [
+        "shank.profession.bd-business",
+        "shank.business.pressures",
+        "shank.relationship.tool",
+        "shank.business.opportunity",
+        "shank.delivery.ethical-pushback"
+      ],
+      "sampleIds": [
+        "doors-open",
+        "rent",
+        "partner",
+        "paid-idea",
+        "lecture"
+      ],
+      "sourceContentSha256": "810bcf99618fe945b7648a35d24dff7b63c741957ad63ad371417198368e8c55",
+      "referencesVerified": 311,
       "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
     },
     {
@@ -527,6 +1636,68 @@
       "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
     },
     {
+      "key": "spider-murphy",
+      "claimIds": [
+        "spider-murphy.work.protocol-details",
+        "spider-murphy.delivery.playful-metaphor",
+        "spider-murphy.work.completion-and-exit",
+        "spider-murphy.work.security-and-route",
+        "spider-murphy.delivery.urgent-encouragement"
+      ],
+      "sampleIds": [
+        "protocol",
+        "web",
+        "complete",
+        "barrier",
+        "encouragement"
+      ],
+      "sourceContentSha256": "1f70f83cdf71899d23ca844183e58da1932186660893590e37dcc3103be48de2",
+      "referencesVerified": 311,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "steven-santos",
+      "claimIds": [
+        "steven.role.risk-assessment",
+        "steven.loyalty.country",
+        "steven.professional.discretion",
+        "steven.decisions.reluctance",
+        "steven.conscience.limited-repair",
+        "steven.work.screening-contractors"
+      ],
+      "sampleIds": [
+        "risk-first",
+        "unpleasant-service",
+        "clean-answer"
+      ],
+      "sourceContentSha256": "f600335a3f483d6af3e037631b35ecc3c75fef774afd292745e54fe876465114",
+      "referencesVerified": 122,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "t-bug",
+      "claimIds": [
+        "identity.contract-netrunner",
+        "craft.selective-specialist",
+        "aspiration.retirement",
+        "aspiration.crete-clean-break",
+        "craft.quiet-operations",
+        "craft.technical-sequencing",
+        "cadence.dry-modern-wit",
+        "cadence.philosophical-distance"
+      ],
+      "sampleIds": [
+        "sample.risk",
+        "sample.plan",
+        "sample.retirement",
+        "sample.quiet",
+        "sample.certainty"
+      ],
+      "sourceContentSha256": "5763c10bf29738e4d705f4d96e055ae501feef4b78fac783837121771dbb8b1a",
+      "referencesVerified": 309,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
       "key": "takemura",
       "claimIds": [
         "history.chiba-childhood",
@@ -559,6 +1730,26 @@
       "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
     },
     {
+      "key": "thompson",
+      "claimIds": [
+        "thompson.work.concrete-threat",
+        "thompson.work.investigation-focus",
+        "thompson.work.counterargument",
+        "thompson.work.field-story",
+        "thompson.work.limited-wait"
+      ],
+      "sampleIds": [
+        "threat",
+        "motive",
+        "alternative",
+        "lead",
+        "waiting"
+      ],
+      "sourceContentSha256": "2bfa7dcc619ad621233e5095daebf04bb8bcf7a4ffa825682b5dacfa4e41ec85",
+      "referencesVerified": 319,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
       "key": "viktor-vektor",
       "claimIds": [
         "work.no-nonsense-clinic",
@@ -587,6 +1778,51 @@
       "sourceContentSha256": "2dbef920f7548b0b704e36c1793ff7c3a522daee3535c2d14c83f1b9e6cf1bf9",
       "referencesVerified": 530,
       "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "wakako-okada",
+      "claimIds": [
+        "wakako-okada.work.westbrook-parlor",
+        "wakako-okada.work.polite-pressure",
+        "wakako-okada.work.expected-competence",
+        "wakako-okada.family.tyger-claw-ties",
+        "wakako-okada.family.sons",
+        "wakako-okada.judgment.cheap-is-not-good"
+      ],
+      "sampleIds": [
+        "terms",
+        "competence",
+        "cheap",
+        "parlor",
+        "family"
+      ],
+      "sourceContentSha256": "599ce0f57402e4d3522afea201972c97ba58b8bf321b1a80f5472ec714815580",
+      "referencesVerified": 241,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "yorinobu-arasaka",
+      "claimIds": [
+        "identity.arasaka-son",
+        "public.rebellious-youth",
+        "public.controversial-persona",
+        "public.demands-change",
+        "public.wealth-and-role",
+        "cadence.measured-hospitality",
+        "temperament.rejects-imposition",
+        "values.critical-of-stagnation"
+      ],
+      "sampleIds": [
+        "sample.family",
+        "sample.change",
+        "sample.public",
+        "sample.business",
+        "sample.imposition",
+        "sample.wealth"
+      ],
+      "sourceContentSha256": "a962cb4e9c12613c3a6fe6940c7e4393540618fc0b345be0fd4df312f4f5579b",
+      "referencesVerified": 275,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
     }
   ],
   "sampleDialogueFormat": "spoken utterances only; no speaker labels or player prompts",
@@ -598,39 +1834,39 @@
   "characters": [
     {
       "key": "8ug8ear",
-      "words": 334,
+      "words": 589,
       "speakingStyleWords": 181,
-      "sampleDialogueWords": 108,
+      "sampleDialogueWords": 192,
       "voice": "Julia (Expressive Young-Adult American Female)",
       "sources": 2,
-      "researchRevision": "cbaa646bf24031f728bda7e701f2ebbbaa65de4c29832086d05f031ed67bb47c"
+      "researchRevision": "e0c45c45d2149e457cd1c66441e1be5531a926e0f003fecab75257f3aaa38df9"
     },
     {
       "key": "aaron",
-      "words": 307,
+      "words": 684,
       "speakingStyleWords": 152,
-      "sampleDialogueWords": 106,
+      "sampleDialogueWords": 220,
       "voice": "Logan (Expressive Young-Adult American Male)",
       "sources": 2,
-      "researchRevision": "2ca40598a9b84e2375c4f2fb0a36fd146f6716ded0d5011836331de35973d76e"
+      "researchRevision": "e7f5829fbf620408cf71255a59bd8b286b14ece672bba6dcb26e396043a87556"
     },
     {
       "key": "adam-smasher",
-      "words": 463,
+      "words": 668,
       "speakingStyleWords": 171,
-      "sampleDialogueWords": 74,
+      "sampleDialogueWords": 117,
       "voice": "John (Deep Calm Middle-Aged American Male)",
       "sources": 10,
-      "researchRevision": "0f3757fec1c61f0a7f3ca692a935f42b6f1f86ebe0503c56e023c998136ca89d"
+      "researchRevision": "0d87a1e0b82335998f0c73f4e579417aaf2873195ab3dc2d649f62afcf7fdb1b"
     },
     {
       "key": "alan-noel",
-      "words": 318,
-      "speakingStyleWords": 149,
-      "sampleDialogueWords": 101,
+      "words": 675,
+      "speakingStyleWords": 138,
+      "sampleDialogueWords": 119,
       "voice": "Harry (Deep Middle-Aged British Male)",
       "sources": 4,
-      "researchRevision": "824c095339975140ee74640d4deb39f99cb46baa1b75f86230615bdb4fcbe9ff"
+      "researchRevision": "7de49d19c06b02d6725c01a224b28cafd03812f71eee91ec1b58555422f50395"
     },
     {
       "key": "alex",
@@ -643,165 +1879,165 @@
     },
     {
       "key": "ana-friedman",
-      "words": 349,
+      "words": 546,
       "speakingStyleWords": 198,
-      "sampleDialogueWords": 116,
+      "sampleDialogueWords": 188,
       "voice": "Anna (Expressive Young-Adult American Female)",
       "sources": 4,
-      "researchRevision": "ba73bdd1d09ab9575cfc0561e7f1473de29a7e58537cd88ead10fe85b2e56654"
+      "researchRevision": "7ed5de004e434e5e91ce7635ab06b931b0b44f7a0f357e10251cf54039381282"
     },
     {
       "key": "arthur-jenkins",
-      "words": 276,
+      "words": 541,
       "speakingStyleWords": 176,
-      "sampleDialogueWords": 101,
+      "sampleDialogueWords": 151,
       "voice": "Mark (Bold Middle-Aged American Male)",
       "sources": 5,
-      "researchRevision": "88ff3a7ad34ff2ae1665138b09747956151f2eea26b793bf72917812c233efdf"
+      "researchRevision": "b032f8c5f3a6567929b9cc9d16b0774a779204ccd71c6fb8cf470887ef898987"
     },
     {
       "key": "babs-okoye",
-      "words": 313,
+      "words": 596,
       "speakingStyleWords": 151,
-      "sampleDialogueWords": 91,
+      "sampleDialogueWords": 181,
       "voice": "Anna (Expressive Young-Adult American Female)",
       "sources": 4,
-      "researchRevision": "23b6ccb1dcc4342f53af63916b9da809e88c5d8f1f8c58ca4d0a0e9858bce296"
+      "researchRevision": "67d4f12c4145e1d3c7225ca93ea3bda977d54f4db2630234a1c39e7ede28a95b"
     },
     {
       "key": "bill-mitchell",
-      "words": 313,
+      "words": 512,
       "speakingStyleWords": 147,
-      "sampleDialogueWords": 106,
+      "sampleDialogueWords": 150,
       "voice": "Ethan (Calm Young-Adult American Male)",
       "sources": 4,
-      "researchRevision": "c73a64373782f01d8480ef9e5bfb1dc4824785b6f9320bb1b9dde04f3d264d7d"
+      "researchRevision": "e170d63385cf819b37a530e3ccbcde1123930f9e544b42182f09f7572711d9c3"
     },
     {
       "key": "blue-moon",
-      "words": 325,
+      "words": 665,
       "speakingStyleWords": 159,
-      "sampleDialogueWords": 101,
+      "sampleDialogueWords": 177,
       "voice": "Emily (Friendly Young-Adult American Female)",
       "sources": 4,
-      "researchRevision": "da6fa87caf7058a949d59a952a2ea2dba20faff22d4d5c1a619eca4d797fb128"
+      "researchRevision": "089b6776f51c1a6042c8dce244f861a6c96b0b53a6b8985ed7994986141958e7"
     },
     {
       "key": "bob-sagan",
-      "words": 331,
+      "words": 649,
       "speakingStyleWords": 135,
-      "sampleDialogueWords": 93,
+      "sampleDialogueWords": 199,
       "voice": "Cole (Husky Middle-Aged American Male)",
       "sources": 7,
-      "researchRevision": "b343d67536110d4ee0f79c27dd99f03ef4b59eebb05bf61ea79f4e880bc9986c"
+      "researchRevision": "c21a9ea1d07734ba5468c5c8115315c10bef7a42e3c61ef9b2ed96d0016c7403"
     },
     {
       "key": "briana-dolson",
-      "words": 314,
+      "words": 546,
       "speakingStyleWords": 153,
-      "sampleDialogueWords": 99,
+      "sampleDialogueWords": 140,
       "voice": "Anna (Expressive Young-Adult American Female)",
       "sources": 3,
-      "researchRevision": "d69adbc8e9650914770630f69da3c74be70950417462d50e26ac1683c053c8cc"
+      "researchRevision": "7b5e4c9835a0f098808fb40ee80b38a3e6841fe109fc693da3399cb6f2f64e28"
     },
     {
       "key": "carol-emeka",
-      "words": 400,
+      "words": 898,
       "speakingStyleWords": 154,
-      "sampleDialogueWords": 117,
+      "sampleDialogueWords": 204,
       "voice": "Sarah (Authoritative Middle-Aged American Female)",
       "sources": 13,
-      "researchRevision": "cd6ec053e547140b6c5a9daf0c0bf6caebc74088bf6c8747da00d397392d6a74"
+      "researchRevision": "e18dfd19e8ec6f7b6adffb6248d38a83f4e6539100a8b3e5db75390a58e5b981"
     },
     {
       "key": "cassidy-righter",
-      "words": 350,
+      "words": 722,
       "speakingStyleWords": 139,
-      "sampleDialogueWords": 121,
+      "sampleDialogueWords": 231,
       "voice": "Henry (Excited Old American Male)",
       "sources": 11,
-      "researchRevision": "ff076a092e535cedd04ae300bb6c15c08629cf0ec6c1e9710df91ea29c89fc2c"
+      "researchRevision": "5a200673c9bb61d75b94244c8ed34b24301274f59c066b716751923e19519ed9"
     },
     {
       "key": "chang-hoon-nam",
-      "words": 336,
+      "words": 644,
       "speakingStyleWords": 160,
-      "sampleDialogueWords": 104,
+      "sampleDialogueWords": 191,
       "voice": "Ethan (Calm Young-Adult American Male)",
       "sources": 4,
-      "researchRevision": "6d737b3676cfbdec5c721ac0020b1b270da3837fcaac43d6bb1b158cdfb6188a"
+      "researchRevision": "bd08948062f1fd4469eb6cde5e3c276eea6eacb741a5e1615fa79a19680fbd34"
     },
     {
       "key": "claire-russell",
-      "words": 346,
+      "words": 723,
       "speakingStyleWords": 203,
-      "sampleDialogueWords": 114,
+      "sampleDialogueWords": 176,
       "voice": "Katie (Husky Young-Adult American Female)",
       "sources": 7,
-      "researchRevision": "68b1903decc0a778150ad4538139058d1be21b4ec6a309fbfab07c6696fe9cf1"
+      "researchRevision": "730a971fcac1ea01869a8fbfe10f8657385eaff70fce37d83b4d0b3112212c9c"
     },
     {
       "key": "coach-fred",
-      "words": 254,
+      "words": 637,
       "speakingStyleWords": 121,
-      "sampleDialogueWords": 110,
+      "sampleDialogueWords": 209,
       "voice": "Noah (Confident Adult American Male)",
       "sources": 5,
-      "researchRevision": "e6bb242b9cec65a2a0338870a4c8c5c55d908f66e6f5df75385df7ee64dc479d"
+      "researchRevision": "d7782516e1b900b1aff85e6b0945521329d3ab6c9097e376870c2ed1c874c39f"
     },
     {
       "key": "cynthia-najarro",
-      "words": 255,
+      "words": 433,
       "speakingStyleWords": 118,
-      "sampleDialogueWords": 114,
+      "sampleDialogueWords": 152,
       "voice": "Emily (Friendly Young-Adult American Female)",
       "sources": 6,
-      "researchRevision": "678ba47a870a8794c2f1040d2d74ba297c5400764e62a173edf66a3385db93fe"
+      "researchRevision": "0bd88d187a66ef9fadefabb8d3ac25a399c516fe62fc8fcadb04c63c9645e0e5"
     },
     {
       "key": "dakota-smith",
-      "words": 438,
+      "words": 872,
       "speakingStyleWords": 150,
-      "sampleDialogueWords": 120,
+      "sampleDialogueWords": 205,
       "voice": "Sarah (Authoritative Middle-Aged American Female)",
       "sources": 18,
-      "researchRevision": "f5f95da4b7133d28f0bff631abd3dfa393cc045613234022ef9aef94a0fda7cd"
+      "researchRevision": "1d071ee1e0325df4ee788ec1e3e5cc83277a7ee82a61fed3cc256cc029e3893a"
     },
     {
       "key": "dennis-cranmer",
-      "words": 245,
+      "words": 472,
       "speakingStyleWords": 120,
-      "sampleDialogueWords": 106,
+      "sampleDialogueWords": 153,
       "voice": "Lucas (Light Middle-Aged American Male)",
       "sources": 2,
-      "researchRevision": "fe74460f687239118df734a98c2c4bf0ec77e8278dbfe30458cd1b352727b429"
+      "researchRevision": "b52b73b7bdd53379e136233c77d2888bcc9a570aed9715fe2aa4cc43fb04cfae"
     },
     {
       "key": "dexter-deshawn",
-      "words": 284,
+      "words": 936,
       "speakingStyleWords": 167,
-      "sampleDialogueWords": 119,
+      "sampleDialogueWords": 200,
       "voice": "Mark (Bold Middle-Aged American Male)",
       "sources": 6,
-      "researchRevision": "80a8568516a9c7cf3eff3e5e3f197f5b69077bb8cbb515c33d49fe1fb220e99b"
+      "researchRevision": "c7cf80524159da6b6317eb2e1ee32aa5b11c7f23fa30e5db693cfe512cca61df"
     },
     {
       "key": "dino-dinovic",
-      "words": 372,
+      "words": 727,
       "speakingStyleWords": 166,
-      "sampleDialogueWords": 144,
+      "sampleDialogueWords": 216,
       "voice": "Ryan (Expressive Young-Adult American Male)",
       "sources": 7,
-      "researchRevision": "a8c1400ae775536b081e444b3b126febb29da438437f4fa3bb0493e14426e512"
+      "researchRevision": "ae42e3faad8b448343416456f48d76847cd69b48c6e23658bf6dc6c2c7c58b1b"
     },
     {
       "key": "elizabeth-peralez",
-      "words": 309,
+      "words": 753,
       "speakingStyleWords": 190,
-      "sampleDialogueWords": 109,
+      "sampleDialogueWords": 188,
       "voice": "Rachel (Neutral Adult American Female)",
       "sources": 5,
-      "researchRevision": "4683339ad35896940aef0caeb039e74fc5520014cf0ea5bcf1899123de5896cc"
+      "researchRevision": "70ffdef83192f3396cdde81cb9ec15b61f6050638b4e0640483a9dd2c10edcb4"
     },
     {
       "key": "evelyn-parker",
@@ -814,12 +2050,12 @@
     },
     {
       "key": "frank-nostra",
-      "words": 268,
+      "words": 583,
       "speakingStyleWords": 161,
-      "sampleDialogueWords": 100,
+      "sampleDialogueWords": 169,
       "voice": "Harry (Deep Middle-Aged British Male)",
       "sources": 3,
-      "researchRevision": "660d6bcfe730d516cec7372a56a4adc7e79974316cb35abd876fd0360be2a44b"
+      "researchRevision": "842111e400c04730b8f34650f21e519030a765ca3e06018dda2ce541e1bfe8b0"
     },
     {
       "key": "hanako-arasaka",
@@ -832,12 +2068,12 @@
     },
     {
       "key": "iris-tanner",
-      "words": 294,
+      "words": 610,
       "speakingStyleWords": 141,
-      "sampleDialogueWords": 96,
+      "sampleDialogueWords": 152,
       "voice": "Katie (Husky Young-Adult American Female)",
       "sources": 2,
-      "researchRevision": "06383f691376ed9636be8dfbcabb8d48aa3bbd73753e4a5a51612d151c1a6a94"
+      "researchRevision": "a2251f8203e72fb9d7b52aadf74ce6e2d2ff0a83d82f19614cf18b734028f93b"
     },
     {
       "key": "jackie-welles",
@@ -859,30 +2095,30 @@
     },
     {
       "key": "jefferson-peralez",
-      "words": 364,
+      "words": 853,
       "speakingStyleWords": 200,
-      "sampleDialogueWords": 127,
+      "sampleDialogueWords": 208,
       "voice": "Noah (Confident Adult American Male)",
       "sources": 6,
-      "researchRevision": "a33d5bf843dae18891f1c52d0e88cb43d953c34b429a3b46cc166839cda2fe55"
+      "researchRevision": "75faa14e1a31d11db8d0512fc6881f2203f178af8ca16ab0b4d65c7b2ce32f95"
     },
     {
       "key": "jesse",
-      "words": 227,
+      "words": 396,
       "speakingStyleWords": 119,
-      "sampleDialogueWords": 101,
+      "sampleDialogueWords": 157,
       "voice": "Ryan (Expressive Young-Adult American Male)",
       "sources": 4,
-      "researchRevision": "3e927f938cc834fe43a183e541e5209c7062dae52ffaff66b0781a1688db150b"
+      "researchRevision": "d8c810f3c7a4294902ad558d2e4892c0a564d32e0aef82563a2ef1721e7f9035"
     },
     {
       "key": "jim-jarry",
-      "words": 284,
+      "words": 634,
       "speakingStyleWords": 140,
-      "sampleDialogueWords": 75,
+      "sampleDialogueWords": 135,
       "voice": "Ryan (Expressive Young-Adult American Male)",
       "sources": 3,
-      "researchRevision": "b3f032feb529ad8d59e1cd7eac29d5417caf9e244af04e4f898c1d180d56aa94"
+      "researchRevision": "dabec524ab8e6a9b7c56095ce2dd8fe62c30980ce0e69e62908ebc08cd464cf6"
     },
     {
       "key": "johnny-silverhand",
@@ -895,12 +2131,12 @@
     },
     {
       "key": "joss-kutcher",
-      "words": 341,
+      "words": 655,
       "speakingStyleWords": 198,
-      "sampleDialogueWords": 128,
+      "sampleDialogueWords": 194,
       "voice": "Helen (Gentle Middle-Aged American Female)",
       "sources": 4,
-      "researchRevision": "3f37fbcb2007f1d49b51c80abc4d12c69d6b92544a276e57e5ed247b9928c2e7"
+      "researchRevision": "9b0d6564b166ab333a76108a9c5a2b72981600da84a0de3643d5b504c63063c0"
     },
     {
       "key": "judy-alvarez",
@@ -922,39 +2158,39 @@
     },
     {
       "key": "liam-northom",
-      "words": 325,
+      "words": 479,
       "speakingStyleWords": 158,
-      "sampleDialogueWords": 98,
+      "sampleDialogueWords": 132,
       "voice": "Ethan (Calm Young-Adult American Male)",
       "sources": 4,
-      "researchRevision": "1a0f0106d0b8df16c6861181feeac1e18df87de6889d3e8aa5d21b83a4a86ff6"
+      "researchRevision": "61eba77b35ba916b38273bbe6893a6104dfbbfbd10631510e9a13211ebefabde"
     },
     {
       "key": "life-coach",
-      "words": 261,
+      "words": 423,
       "speakingStyleWords": 129,
-      "sampleDialogueWords": 70,
+      "sampleDialogueWords": 117,
       "voice": "Lucas (Light Middle-Aged American Male)",
       "sources": 2,
-      "researchRevision": "b99e37f1e7dc174a93c8c6617a6f76393c01d8d6b6552bece0ad2574a02042f1"
+      "researchRevision": "f75446a6f2504e6365d862c9177f1d04ac403874dd0196873ffa4d02c574a8e0"
     },
     {
       "key": "lina-malina",
-      "words": 313,
+      "words": 556,
       "speakingStyleWords": 156,
-      "sampleDialogueWords": 96,
+      "sampleDialogueWords": 171,
       "voice": "Laura (Upbeat Young-Adult American Female)",
       "sources": 3,
-      "researchRevision": "4480f67a368fcad2a7ab6b97ebad443a5f344bfed9cc9ba5fc183e1f8ede7a19"
+      "researchRevision": "47f4a01ce1f689492bea199eaa019f843cea9d1a0be89b56094144c47ae632e2"
     },
     {
       "key": "lizzy-wizzy",
-      "words": 302,
+      "words": 765,
       "speakingStyleWords": 156,
-      "sampleDialogueWords": 100,
+      "sampleDialogueWords": 184,
       "voice": "Julia (Expressive Young-Adult American Female)",
       "sources": 5,
-      "researchRevision": "22b7d2e62cd3548c5980a22143612b20eb90ec3799bcebecd4558c6ecee38379"
+      "researchRevision": "c11de7f513d3b395c38233cf45f22a8bcf4324ce645465e25d92ae2826b5fd17"
     },
     {
       "key": "mama-welles",
@@ -967,21 +2203,21 @@
     },
     {
       "key": "mark-bana",
-      "words": 324,
+      "words": 497,
       "speakingStyleWords": 144,
-      "sampleDialogueWords": 107,
+      "sampleDialogueWords": 131,
       "voice": "Arthur (Husky Middle-Aged British Male)",
       "sources": 3,
-      "researchRevision": "891128f9ca40a5e70422046a5fb3664261ae94a38fe9ffb5f7c0dda70385f4d0"
+      "researchRevision": "a0d8b2bea4f6530084886546e2148ec5f08b5f7dd4f299610ca7d0447bc02aaf"
     },
     {
       "key": "meredith-stout",
-      "words": 254,
+      "words": 644,
       "speakingStyleWords": 161,
-      "sampleDialogueWords": 95,
+      "sampleDialogueWords": 159,
       "voice": "Sarah (Authoritative Middle-Aged American Female)",
       "sources": 5,
-      "researchRevision": "2673e945c4a56845ba58454f4c73955598469f9ab1c994e70f2996db5c7be89d"
+      "researchRevision": "0bb74d220a3cced972e202528ace5c040fb9c3b0bd651670ac3b4b781c604ea2"
     },
     {
       "key": "misty-olszewski",
@@ -994,12 +2230,12 @@
     },
     {
       "key": "mitch-anderson",
-      "words": 383,
+      "words": 791,
       "speakingStyleWords": 143,
-      "sampleDialogueWords": 125,
+      "sampleDialogueWords": 217,
       "voice": "Cole (Husky Middle-Aged American Male)",
       "sources": 14,
-      "researchRevision": "6628a96455353d98df664bd16157deb855a9f64b26511d556e32c316ae1c4b79"
+      "researchRevision": "a135b290bebb90bbae313323a97af8126e0164d6e49e75ff903464c30c57b541"
     },
     {
       "key": "mr-hands",
@@ -1021,57 +2257,57 @@
     },
     {
       "key": "nancy-hartley",
-      "words": 348,
+      "words": 853,
       "speakingStyleWords": 157,
-      "sampleDialogueWords": 121,
+      "sampleDialogueWords": 206,
       "voice": "Amelia (Expressive Young-Adult British Female)",
       "sources": 6,
-      "researchRevision": "7c1ac5e2430e1c304029e3a0d2681d968ef349072e455d21e497782fcc4a405f"
+      "researchRevision": "08e2d0d6fd3b33b49375f02a2ed42d269d0311b862b7bcb7c0c62496d91b0ab1"
     },
     {
       "key": "nele-springer",
-      "words": 368,
-      "speakingStyleWords": 158,
-      "sampleDialogueWords": 115,
+      "words": 671,
+      "speakingStyleWords": 143,
+      "sampleDialogueWords": 122,
       "voice": "Rachel (Neutral Adult American Female)",
       "sources": 3,
-      "researchRevision": "e1254fe3265fdd89ca8bc3ea9ee68dab5f03dab3183a604623f0616278e403bc"
+      "researchRevision": "dbb513af0f86871096dc04ab553eac354210e08faa9bd2900ae15e5059f918ca"
     },
     {
       "key": "nix",
-      "words": 272,
+      "words": 640,
       "speakingStyleWords": 121,
-      "sampleDialogueWords": 115,
+      "sampleDialogueWords": 210,
       "voice": "Cole (Husky Middle-Aged American Male)",
       "sources": 5,
-      "researchRevision": "36a951daf8ef79188f54c6b3c37938243d2664f7ffc76600de147e22a1e29565"
+      "researchRevision": "09e1f4c35b8c563bce081df683d9e40049a09fb003e6915eb3a0f82afcd9928b"
     },
     {
       "key": "ozob-bozo",
-      "words": 275,
+      "words": 737,
       "speakingStyleWords": 124,
-      "sampleDialogueWords": 112,
+      "sampleDialogueWords": 203,
       "voice": "Logan (Expressive Young-Adult American Male)",
       "sources": 3,
-      "researchRevision": "cef5c4ca4c93dfde086871d915bbb93289bccc9b19ec1b15bd0b746806324465"
+      "researchRevision": "9d5f06205c4d50f3de7c34921a66fde2ba3ea8b24220fecb3a43b22037955c0a"
     },
     {
       "key": "paco-torres",
-      "words": 335,
+      "words": 576,
       "speakingStyleWords": 155,
-      "sampleDialogueWords": 101,
+      "sampleDialogueWords": 204,
       "voice": "Ryan (Expressive Young-Adult American Male)",
       "sources": 4,
-      "researchRevision": "fae5c9fc6786fa06bd9c8c779d5398c097a613e7d4543e3f97af99d884c52047"
+      "researchRevision": "8127e27c6c0d393bd9576eb59afb1c29b1d7ef7949fcd84db3510fda3b2d7ee3"
     },
     {
       "key": "padre-ibarra",
-      "words": 413,
+      "words": 753,
       "speakingStyleWords": 165,
-      "sampleDialogueWords": 123,
+      "sampleDialogueWords": 188,
       "voice": "John (Deep Calm Middle-Aged American Male)",
       "sources": 16,
-      "researchRevision": "e14786ceeeb3e1f3943850993b683a5f9fafda45af602ab160141fa04bb9366f"
+      "researchRevision": "bc2a3ed201660e62a6cf2ecd57ea435033dc251c885d1bcf40726a78bc5707aa"
     },
     {
       "key": "panam-palmer",
@@ -1084,39 +2320,39 @@
     },
     {
       "key": "pepe-najarro",
-      "words": 252,
+      "words": 451,
       "speakingStyleWords": 127,
-      "sampleDialogueWords": 113,
+      "sampleDialogueWords": 150,
       "voice": "Lucas (Light Middle-Aged American Male)",
       "sources": 7,
-      "researchRevision": "2640ef47e9bea7beb5b913657bcd940bcafa87dd609afd4704ba7dc5163fe935"
+      "researchRevision": "2f97fd9222f1326ef1afedfc9e00f1f7112f66e7d0d13b2001ee756932d99153"
     },
     {
       "key": "placide",
-      "words": 281,
+      "words": 643,
       "speakingStyleWords": 165,
-      "sampleDialogueWords": 73,
+      "sampleDialogueWords": 126,
       "voice": "John (Deep Calm Middle-Aged American Male)",
       "sources": 5,
-      "researchRevision": "899fdfc2cd5184c6fa3ddf2f7b7efc4da2e2b5028d26760529bfea288ae8fbd5"
+      "researchRevision": "101ef08ea8e36ddaf9f163bf6f68a89bf14148b1b57a210fb3c04e849aecfc93"
     },
     {
       "key": "r3n0",
-      "words": 320,
+      "words": 465,
       "speakingStyleWords": 146,
-      "sampleDialogueWords": 93,
+      "sampleDialogueWords": 132,
       "voice": "Emily (Friendly Young-Adult American Female)",
       "sources": 4,
-      "researchRevision": "5ee39210a3bbe9d47122ac8ad97b5ff4e293d307194dde69d2838611a4e8123e"
+      "researchRevision": "26bd6199327e9ecc32fec6e94955a7aaa59fc881afcd8ace1de5a8de959e176f"
     },
     {
       "key": "rachel-casich",
-      "words": 345,
+      "words": 690,
       "speakingStyleWords": 167,
-      "sampleDialogueWords": 113,
+      "sampleDialogueWords": 195,
       "voice": "Julia (Expressive Young-Adult American Female)",
       "sources": 5,
-      "researchRevision": "71f5679a3c2bc9c1a73e4880e0c1574128fb6f014077d5e7a95cd6c8cfd0abf1"
+      "researchRevision": "9fe767c405e985227166478944a057141556b66ecdc5dc742a3fe0b678be0b00"
     },
     {
       "key": "regina-jones",
@@ -1138,12 +2374,12 @@
     },
     {
       "key": "robert-wilson",
-      "words": 224,
+      "words": 426,
       "speakingStyleWords": 113,
-      "sampleDialogueWords": 114,
+      "sampleDialogueWords": 166,
       "voice": "Lucas (Light Middle-Aged American Male)",
       "sources": 4,
-      "researchRevision": "a8a827822de817d33e17b34e9fa0fa9d152eff23796bc74306188d0956222333"
+      "researchRevision": "df67218c5383bd676e316ef0ce9147f2c189a521629f66fdb992e28810a3c895"
     },
     {
       "key": "rogue-amendiares",
@@ -1156,48 +2392,48 @@
     },
     {
       "key": "sandra-dorsett",
-      "words": 355,
+      "words": 601,
       "speakingStyleWords": 195,
-      "sampleDialogueWords": 125,
+      "sampleDialogueWords": 204,
       "voice": "Anna (Expressive Young-Adult American Female)",
       "sources": 4,
-      "researchRevision": "fa381b21854de0b92cacd328b61750b515c19ecade9b86f3e478b2ea2567ccf4"
+      "researchRevision": "a7ab5a54e6a6ca8e312aa43d040892ba4d1a617f368f582a7645a1dc38466bec"
     },
     {
       "key": "santiago",
-      "words": 404,
+      "words": 902,
       "speakingStyleWords": 174,
-      "sampleDialogueWords": 108,
+      "sampleDialogueWords": 188,
       "voice": "Cole (Husky Middle-Aged American Male)",
       "sources": 7,
-      "researchRevision": "a3ba1ee49822b331fe6acd3222089104957a9320ed1ac8a450136521bbf7babf"
+      "researchRevision": "1eb7757de7a395b1a8a31c07a2641a2e8a820462745a0520415d1d8b9ac4c40d"
     },
     {
       "key": "saul-bright",
-      "words": 357,
+      "words": 796,
       "speakingStyleWords": 142,
-      "sampleDialogueWords": 105,
+      "sampleDialogueWords": 176,
       "voice": "Mark (Bold Middle-Aged American Male)",
       "sources": 11,
-      "researchRevision": "7560c4380164c5f5f3392aaeea6c4a68824088bf2ef9b3a37da75cd34125ff8f"
+      "researchRevision": "3a7d5b34750602a712ee70bbaccf22cb06f2c20700677ce67f9fad5ea0ac2e9a"
     },
     {
       "key": "sergei-karasinsky",
-      "words": 327,
+      "words": 516,
       "speakingStyleWords": 142,
-      "sampleDialogueWords": 95,
+      "sampleDialogueWords": 144,
       "voice": "Arthur (Husky Middle-Aged British Male)",
       "sources": 2,
-      "researchRevision": "04ad330167695cf17956026c3075673185e1e2dc88352bee84430b404eb1547f"
+      "researchRevision": "8d395857688dbed51d9faca01170abe0216b6df877cfa326aeee89b89be9b4dc"
     },
     {
       "key": "shank",
-      "words": 305,
+      "words": 531,
       "speakingStyleWords": 141,
-      "sampleDialogueWords": 109,
+      "sampleDialogueWords": 178,
       "voice": "Cole (Husky Middle-Aged American Male)",
       "sources": 4,
-      "researchRevision": "e62e92ed5b3ece41311359c61a49c13ae61b955acb6d787093ad726eb87345d6"
+      "researchRevision": "ddf377025478f77c8af85f0f45707c9186184476a380f18b4a170c5da8ccaeaa"
     },
     {
       "key": "solomon-reed",
@@ -1219,30 +2455,30 @@
     },
     {
       "key": "spider-murphy",
-      "words": 435,
+      "words": 869,
       "speakingStyleWords": 175,
-      "sampleDialogueWords": 114,
+      "sampleDialogueWords": 181,
       "voice": "Sarah (Authoritative Middle-Aged American Female)",
       "sources": 5,
-      "researchRevision": "b95db4649347b0a1de1ae08029af035c04f14bde6e0eebd4c2b95059510a9b3a"
+      "researchRevision": "9ec77db909097b97bab344474c49b7b01489cd05ba1e385dd418280da54a097d"
     },
     {
       "key": "steven-santos",
-      "words": 324,
+      "words": 580,
       "speakingStyleWords": 158,
-      "sampleDialogueWords": 112,
+      "sampleDialogueWords": 147,
       "voice": "Ethan (Calm Young-Adult American Male)",
       "sources": 4,
-      "researchRevision": "66648f42227b0c375d8e77b3f96ce43806197abd75c075cfef626ac7104ddbf5"
+      "researchRevision": "490a4ef50dcc433433284501d3a7de9d383e04dc1c905d7719fb3bf3fb6b4e6b"
     },
     {
       "key": "t-bug",
-      "words": 300,
+      "words": 698,
       "speakingStyleWords": 172,
-      "sampleDialogueWords": 85,
+      "sampleDialogueWords": 150,
       "voice": "Sarah (Authoritative Middle-Aged American Female)",
       "sources": 8,
-      "researchRevision": "74e7dee62f3302aed30ef83160cb40d4c116c0c4917f20498048f98b5a49ebd3"
+      "researchRevision": "6f2b654870a2fb34188fab5e54aedaa15513997ef5ca53994f13c1107a6dfcc3"
     },
     {
       "key": "takemura",
@@ -1255,12 +2491,12 @@
     },
     {
       "key": "thompson",
-      "words": 401,
+      "words": 830,
       "speakingStyleWords": 169,
-      "sampleDialogueWords": 112,
+      "sampleDialogueWords": 186,
       "voice": "Harry (Deep Middle-Aged British Male)",
       "sources": 5,
-      "researchRevision": "2de23187f36e6064302adb817bee50b3f9a0ec37772a1b5c332c77746442706b"
+      "researchRevision": "7c1a25e8abb540b8f660eec3a66377c65ec8c9c3d934e19c15ad143583fbacf8"
     },
     {
       "key": "viktor-vektor",
@@ -1273,21 +2509,21 @@
     },
     {
       "key": "wakako-okada",
-      "words": 409,
+      "words": 680,
       "speakingStyleWords": 165,
-      "sampleDialogueWords": 130,
+      "sampleDialogueWords": 205,
       "voice": "Linda (Deep Middle-Aged American Female)",
       "sources": 16,
-      "researchRevision": "f93ec0ff64aeae80c87cec7e2b8e206f997e70e9b07942a12114e0bd126f848a"
+      "researchRevision": "2568ae3a1cf742f149f68da64f5ad1eb37fa6dd571574268c64b5ca8dda373eb"
     },
     {
       "key": "yorinobu-arasaka",
-      "words": 300,
+      "words": 728,
       "speakingStyleWords": 167,
-      "sampleDialogueWords": 107,
+      "sampleDialogueWords": 193,
       "voice": "Mark (Bold Middle-Aged American Male)",
       "sources": 7,
-      "researchRevision": "e6b64a3fb377141cd9de80eec187ab3c2e5d3d0bd7874bd764bbb2325bcb6ba4"
+      "researchRevision": "9be1507fb16a5c2d697f0324c55a9611cb83889a0e3011d2b877a6de27c00ebf"
     },
     {
       "key": "resident-male",

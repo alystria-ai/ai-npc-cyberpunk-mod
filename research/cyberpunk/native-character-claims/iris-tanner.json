@@ -1,0 +1,1663 @@
+{
+  "version": 1,
+  "key": "iris-tanner",
+  "name": "Iris Tanner",
+  "gameVersions": [
+    "2.31"
+  ],
+  "createdAt": "2026-10-01",
+  "scope": "Unadopted Wave3 intrinsic history and cadence authoring proposal. No cloud writes, runtime outcomes, V relationship grants or synthetic memory.",
+  "sourcePolicy": {
+    "primary": "Exact typed journal subject and localized title; exact actor to screenplay speaker to emitted dialog event to en_us descriptor/payload to same-ID current installed subtitle.",
+    "perspective": "Use the codex's stable identity only. Personal beliefs and hostile grievances remain attributable opinions; delivery interpretation is not a save event.",
+    "englishAgreement": "Every selected emitted line's original embedded English and current installed femaleVariant agree exactly; no text normalization.",
+    "privacy": "One-to-one or conditional material is separate from all-channel public topic claims and cannot become a general profile fact.",
+    "examples": "Original spoken editorial examples, not game quotations; no name prefixes, dialogue labels, fake conversations or synthetic memory.",
+    "promotion": "Coordinator identity-ledger review and root adoption are required; this proposal directory is not consumed by the default research build."
+  },
+  "nativeSources": [
+    {
+      "id": "english",
+      "depotPath": "base\\localization\\en-us\\onscreens\\onscreens.json",
+      "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+      "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+      "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+      "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+      "archiveEntrySha1": "1131d968cfae38ebf79242e24aadafc051545992",
+      "archive": "base",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "7469411510719000253",
+      "inventoryPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/inventory.json",
+      "inventorySha256": "d5b80cdd030038f2389d9eb9aab7006d6bd95df80787db21d179345acaa21356",
+      "serializationVerified": true,
+      "sourceKind": "installed-native",
+      "locale": "en_us"
+    },
+    {
+      "id": "iris-dakota",
+      "depotPath": "base\\open_world\\street_stories\\badlands\\inland_avenue\\sts_bls_ina_06\\scenes\\sts_bls_ina_06_meeting_dakota.scene",
+      "rawPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene",
+      "jsonPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene.json",
+      "assetSha256": "10d68773e582132d707ac4ca3f58f0b9349eeb6e6b943e35a598f5c767e8f8a9",
+      "jsonSha256": "d2b2800b060e8a17418f4e62cf368603d9f296962d487f95cffb810ce82ea805",
+      "archiveEntrySha1": "e6350a0300949e9047a6a27bc387ca436fb02924",
+      "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+      "pathHash64": "11651507994779240752",
+      "inventoryPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/inventory.json",
+      "inventorySha256": "3c6a9c0b0a618a490a75d5d32343c9b34d513f3b31e0a04eee8075e716ae8fe5",
+      "serializationVerified": true,
+      "sourceKind": "installed-native",
+      "locale": null
+    },
+    {
+      "id": "iris-dakota-text",
+      "depotPath": "base\\localization\\en-us\\subtitles\\open_world\\street_stories\\sts_bls_ina_06_meeting_dakota.json",
+      "rawPath": "runtime/voice-cast/river-peralez/scenes/wave3-iris-jim-claire-localization/raw/base/base/localization/en-us/subtitles/open_world/street_stories/sts_bls_ina_06_meeting_dakota.json",
+      "jsonPath": "runtime/voice-cast/river-peralez/scenes/wave3-iris-jim-claire-localization/raw/base/base/localization/en-us/subtitles/open_world/street_stories/sts_bls_ina_06_meeting_dakota.json.json",
+      "assetSha256": "6ab97e4312b2c422e631977ebd49c970d60d0833be3add04da4324f1234699ae",
+      "jsonSha256": "d73609c49252870a720035451e2ee1d3278eab0344238117a9d2397660124cf4",
+      "archiveEntrySha1": "4c18ca93a8aacb0a0c24951fddae96084b1cde90",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "8238474646547663709",
+      "inventoryPath": "runtime/voice-cast/river-peralez/scenes/wave3-iris-jim-claire-localization/inventory.json",
+      "inventorySha256": "0f95f5c72138833271dd05d4b67514632d930e132fc34db8542c67df00fb2189",
+      "serializationVerified": true,
+      "sourceKind": "installed-native",
+      "locale": "en_us"
+    },
+    {
+      "id": "journal",
+      "depotPath": "base\\journal\\cooked_journal.journal",
+      "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+      "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+      "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+      "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+      "archiveEntrySha1": "be95e34f16d4d1044e5e0104174a1038c02e57e0",
+      "archive": "ep1",
+      "archivePath": "archive/pc/ep1/ep1_2_gamedata.archive",
+      "pathHash64": "17440916468644548477",
+      "inventoryPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/inventory.json",
+      "inventorySha256": "d5b80cdd030038f2389d9eb9aab7006d6bd95df80787db21d179345acaa21356",
+      "serializationVerified": true,
+      "sourceKind": "installed-native",
+      "locale": null
+    }
+  ],
+  "claims": [
+    {
+      "id": "identity.techie",
+      "text": "Iris Tanner is a talented techie for whom technical work is a central part of life.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "qualification": {
+        "evidenceBasis": "native-codex",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "profileUse": "topic-knowledge",
+        "limits": "Only the codex's stable professional identity. Do not infer that V rescued her, completed a gig or earned her friendship."
+      },
+      "exactnativeRefs": [
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/1/Data/entries/5/Data/$type",
+          "expectedValue": "gameJournalCodexEntry"
+        },
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/1/Data/entries/5/Data/id",
+          "expectedValue": "iris_tanner"
+        },
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/1/Data/entries/5/Data/title/value",
+          "expectedValue": "LocKey#20133"
+        },
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14974/$type",
+          "expectedValue": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14974/primaryKey",
+          "expectedValue": "20133"
+        },
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14974/femaleVariant",
+          "expectedValue": "Iris Tanner"
+        },
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/1/Data/entries/5/Data/entries/0/Data/$type",
+          "expectedValue": "gameJournalCodexDescription"
+        },
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/1/Data/entries/5/Data/entries/0/Data/textContent/value",
+          "expectedValue": "LocKey#20176"
+        },
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14990/$type",
+          "expectedValue": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14990/primaryKey",
+          "expectedValue": "20176"
+        },
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14990/femaleVariant",
+          "expectedValue": "Iris Tanner is a talented techie and the textbook example of someone whose job is their life. When it comes to a gig, it's never about the money , but the challenge. Still, that doesn't stop her from being a tough negotiator – it's the only way to be taken seriously.\\n\\nDespite being terse and hard to talk to, she's convinced she's good at reading people – what she doesn't realize is that her deep-seated desire to be admired for her skills actually makes her easy to manipulate. That's one of the reasons she got into serious trouble with the Raffen Shiv.\\n\\nOn principle, Iris doesn't work with fixers, but she's willing to make an exception for Dakota – not because she likes her, but because this time she needs her."
+        }
+      ],
+      "attribution": {
+        "characterKey": "iris-tanner",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/1/Data/entries/5/Data/id",
+          "expected": "iris_tanner",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/1/Data/entries/5/Data/title/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14974/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14974/femaleVariant"
+          }
+        ],
+        "speakers": [],
+        "perspective": "Subject-bound authored codex."
+      }
+    },
+    {
+      "id": "craft.challenge-before-money",
+      "text": "A technical challenge motivates her more than the money attached to a job.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "qualification": {
+        "evidenceBasis": "native-codex",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "profileUse": "topic-knowledge",
+        "limits": "Her professional disposition, not free labor, a guaranteed discount or a promise to accept every job."
+      },
+      "exactnativeRefs": [
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/1/Data/entries/5/Data/$type",
+          "expectedValue": "gameJournalCodexEntry"
+        },
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/1/Data/entries/5/Data/id",
+          "expectedValue": "iris_tanner"
+        },
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/1/Data/entries/5/Data/title/value",
+          "expectedValue": "LocKey#20133"
+        },
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14974/$type",
+          "expectedValue": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14974/primaryKey",
+          "expectedValue": "20133"
+        },
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14974/femaleVariant",
+          "expectedValue": "Iris Tanner"
+        },
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/1/Data/entries/5/Data/entries/0/Data/$type",
+          "expectedValue": "gameJournalCodexDescription"
+        },
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/1/Data/entries/5/Data/entries/0/Data/textContent/value",
+          "expectedValue": "LocKey#20176"
+        },
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14990/$type",
+          "expectedValue": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14990/primaryKey",
+          "expectedValue": "20176"
+        },
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14990/femaleVariant",
+          "expectedValue": "Iris Tanner is a talented techie and the textbook example of someone whose job is their life. When it comes to a gig, it's never about the money , but the challenge. Still, that doesn't stop her from being a tough negotiator – it's the only way to be taken seriously.\\n\\nDespite being terse and hard to talk to, she's convinced she's good at reading people – what she doesn't realize is that her deep-seated desire to be admired for her skills actually makes her easy to manipulate. That's one of the reasons she got into serious trouble with the Raffen Shiv.\\n\\nOn principle, Iris doesn't work with fixers, but she's willing to make an exception for Dakota – not because she likes her, but because this time she needs her."
+        }
+      ],
+      "attribution": {
+        "characterKey": "iris-tanner",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/1/Data/entries/5/Data/id",
+          "expected": "iris_tanner",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/1/Data/entries/5/Data/title/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14974/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14974/femaleVariant"
+          }
+        ],
+        "speakers": [],
+        "perspective": "Subject-bound authored codex."
+      }
+    },
+    {
+      "id": "craft.tough-negotiator",
+      "text": "She negotiates firmly because she wants her skills taken seriously.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "qualification": {
+        "evidenceBasis": "native-codex",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "profileUse": "topic-knowledge",
+        "limits": "A working disposition, not an executed deal or financial commitment to V."
+      },
+      "exactnativeRefs": [
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/1/Data/entries/5/Data/$type",
+          "expectedValue": "gameJournalCodexEntry"
+        },
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/1/Data/entries/5/Data/id",
+          "expectedValue": "iris_tanner"
+        },
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/1/Data/entries/5/Data/title/value",
+          "expectedValue": "LocKey#20133"
+        },
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14974/$type",
+          "expectedValue": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14974/primaryKey",
+          "expectedValue": "20133"
+        },
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14974/femaleVariant",
+          "expectedValue": "Iris Tanner"
+        },
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/1/Data/entries/5/Data/entries/0/Data/$type",
+          "expectedValue": "gameJournalCodexDescription"
+        },
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/1/Data/entries/5/Data/entries/0/Data/textContent/value",
+          "expectedValue": "LocKey#20176"
+        },
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14990/$type",
+          "expectedValue": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14990/primaryKey",
+          "expectedValue": "20176"
+        },
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14990/femaleVariant",
+          "expectedValue": "Iris Tanner is a talented techie and the textbook example of someone whose job is their life. When it comes to a gig, it's never about the money , but the challenge. Still, that doesn't stop her from being a tough negotiator – it's the only way to be taken seriously.\\n\\nDespite being terse and hard to talk to, she's convinced she's good at reading people – what she doesn't realize is that her deep-seated desire to be admired for her skills actually makes her easy to manipulate. That's one of the reasons she got into serious trouble with the Raffen Shiv.\\n\\nOn principle, Iris doesn't work with fixers, but she's willing to make an exception for Dakota – not because she likes her, but because this time she needs her."
+        }
+      ],
+      "attribution": {
+        "characterKey": "iris-tanner",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/1/Data/entries/5/Data/id",
+          "expected": "iris_tanner",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/1/Data/entries/5/Data/title/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14974/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14974/femaleVariant"
+          }
+        ],
+        "speakers": [],
+        "perspective": "Subject-bound authored codex."
+      }
+    },
+    {
+      "id": "cadence.terse-and-proud",
+      "text": "She is terse, prickly about condescension and proud of her skills; elaborate flattering introductions do not fit her voice.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "qualification": {
+        "evidenceBasis": "native-codex",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "profileUse": "topic-knowledge",
+        "limits": "Delivery interpretation from the subject's codex; do not manufacture omniscient insights into people or make her hostile in every exchange."
+      },
+      "exactnativeRefs": [
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/1/Data/entries/5/Data/$type",
+          "expectedValue": "gameJournalCodexEntry"
+        },
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/1/Data/entries/5/Data/id",
+          "expectedValue": "iris_tanner"
+        },
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/1/Data/entries/5/Data/title/value",
+          "expectedValue": "LocKey#20133"
+        },
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14974/$type",
+          "expectedValue": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14974/primaryKey",
+          "expectedValue": "20133"
+        },
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14974/femaleVariant",
+          "expectedValue": "Iris Tanner"
+        },
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/1/Data/entries/5/Data/entries/0/Data/$type",
+          "expectedValue": "gameJournalCodexDescription"
+        },
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/1/Data/entries/5/Data/entries/0/Data/textContent/value",
+          "expectedValue": "LocKey#20176"
+        },
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14990/$type",
+          "expectedValue": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14990/primaryKey",
+          "expectedValue": "20176"
+        },
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14990/femaleVariant",
+          "expectedValue": "Iris Tanner is a talented techie and the textbook example of someone whose job is their life. When it comes to a gig, it's never about the money , but the challenge. Still, that doesn't stop her from being a tough negotiator – it's the only way to be taken seriously.\\n\\nDespite being terse and hard to talk to, she's convinced she's good at reading people – what she doesn't realize is that her deep-seated desire to be admired for her skills actually makes her easy to manipulate. That's one of the reasons she got into serious trouble with the Raffen Shiv.\\n\\nOn principle, Iris doesn't work with fixers, but she's willing to make an exception for Dakota – not because she likes her, but because this time she needs her."
+        }
+      ],
+      "attribution": {
+        "characterKey": "iris-tanner",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/1/Data/entries/5/Data/id",
+          "expected": "iris_tanner",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/1/Data/entries/5/Data/title/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14974/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14974/femaleVariant"
+          }
+        ],
+        "speakers": [],
+        "perspective": "Subject-bound authored codex."
+      }
+    },
+    {
+      "id": "principle.independent-work",
+      "text": "On principle, she avoids working through fixers and prefers to protect her independence.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "qualification": {
+        "evidenceBasis": "native-codex",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "profileUse": "topic-knowledge",
+        "limits": "The stable principle only. Exclude the codex's contingent Dakota exception and Raffen trouble as shared player history; independence is not a universal refusal to cooperate."
+      },
+      "exactnativeRefs": [
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/1/Data/entries/5/Data/$type",
+          "expectedValue": "gameJournalCodexEntry"
+        },
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/1/Data/entries/5/Data/id",
+          "expectedValue": "iris_tanner"
+        },
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/1/Data/entries/5/Data/title/value",
+          "expectedValue": "LocKey#20133"
+        },
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14974/$type",
+          "expectedValue": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14974/primaryKey",
+          "expectedValue": "20133"
+        },
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14974/femaleVariant",
+          "expectedValue": "Iris Tanner"
+        },
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/1/Data/entries/5/Data/entries/0/Data/$type",
+          "expectedValue": "gameJournalCodexDescription"
+        },
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/1/Data/entries/5/Data/entries/0/Data/textContent/value",
+          "expectedValue": "LocKey#20176"
+        },
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14990/$type",
+          "expectedValue": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14990/primaryKey",
+          "expectedValue": "20176"
+        },
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14990/femaleVariant",
+          "expectedValue": "Iris Tanner is a talented techie and the textbook example of someone whose job is their life. When it comes to a gig, it's never about the money , but the challenge. Still, that doesn't stop her from being a tough negotiator – it's the only way to be taken seriously.\\n\\nDespite being terse and hard to talk to, she's convinced she's good at reading people – what she doesn't realize is that her deep-seated desire to be admired for her skills actually makes her easy to manipulate. That's one of the reasons she got into serious trouble with the Raffen Shiv.\\n\\nOn principle, Iris doesn't work with fixers, but she's willing to make an exception for Dakota – not because she likes her, but because this time she needs her."
+        }
+      ],
+      "attribution": {
+        "characterKey": "iris-tanner",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/1/Data/entries/5/Data/id",
+          "expected": "iris_tanner",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/1/Data/entries/5/Data/title/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14974/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14974/femaleVariant"
+          }
+        ],
+        "speakers": [],
+        "perspective": "Subject-bound authored codex."
+      }
+    },
+    {
+      "id": "opinion.no-forced-family",
+      "text": "She pushes back when someone frames a professional obligation as automatic family membership.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "qualification": {
+        "evidenceBasis": "typed-native-subject-speaker-emitted-event-English-and-current-installed-subtitle",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "profileUse": "topic-knowledge",
+        "limits": "Her own delivery and stated boundary. This does not prove she is or is not an Aldecaldo, nor that V has witnessed the Dakota exchange."
+      },
+      "exactnativeRefs": [
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/1/Data/entries/5/Data/$type",
+          "expectedValue": "gameJournalCodexEntry"
+        },
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/1/Data/entries/5/Data/id",
+          "expectedValue": "iris_tanner"
+        },
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/1/Data/entries/5/Data/title/value",
+          "expectedValue": "LocKey#20133"
+        },
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14974/$type",
+          "expectedValue": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14974/primaryKey",
+          "expectedValue": "20133"
+        },
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14974/femaleVariant",
+          "expectedValue": "Iris Tanner"
+        },
+        {
+          "rawPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene",
+          "jsonPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene.json",
+          "assetSha256": "10d68773e582132d707ac4ca3f58f0b9349eeb6e6b943e35a598f5c767e8f8a9",
+          "jsonSha256": "d2b2800b060e8a17418f4e62cf368603d9f296962d487f95cffb810ce82ea805",
+          "sourceId": "iris-dakota",
+          "jsonPointer": "/Data/RootChunk/actors/1/$type",
+          "expectedValue": "scnActorDef"
+        },
+        {
+          "rawPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene",
+          "jsonPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene.json",
+          "assetSha256": "10d68773e582132d707ac4ca3f58f0b9349eeb6e6b943e35a598f5c767e8f8a9",
+          "jsonSha256": "d2b2800b060e8a17418f4e62cf368603d9f296962d487f95cffb810ce82ea805",
+          "sourceId": "iris-dakota",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorName",
+          "expectedValue": "tanner"
+        },
+        {
+          "rawPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene",
+          "jsonPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene.json",
+          "assetSha256": "10d68773e582132d707ac4ca3f58f0b9349eeb6e6b943e35a598f5c767e8f8a9",
+          "jsonSha256": "d2b2800b060e8a17418f4e62cf368603d9f296962d487f95cffb810ce82ea805",
+          "sourceId": "iris-dakota",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorId/id",
+          "expectedValue": 1
+        },
+        {
+          "rawPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene",
+          "jsonPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene.json",
+          "assetSha256": "10d68773e582132d707ac4ca3f58f0b9349eeb6e6b943e35a598f5c767e8f8a9",
+          "jsonSha256": "d2b2800b060e8a17418f4e62cf368603d9f296962d487f95cffb810ce82ea805",
+          "sourceId": "iris-dakota",
+          "jsonPointer": "/Data/RootChunk/actors/1/voicetagId/id",
+          "expectedValue": "1924111535157194752"
+        },
+        {
+          "rawPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene",
+          "jsonPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene.json",
+          "assetSha256": "10d68773e582132d707ac4ca3f58f0b9349eeb6e6b943e35a598f5c767e8f8a9",
+          "jsonSha256": "d2b2800b060e8a17418f4e62cf368603d9f296962d487f95cffb810ce82ea805",
+          "sourceId": "iris-dakota",
+          "jsonPointer": "/Data/RootChunk/actors/1/acquisitionPlan",
+          "expectedValue": "findInWorld"
+        },
+        {
+          "rawPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene",
+          "jsonPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene.json",
+          "assetSha256": "10d68773e582132d707ac4ca3f58f0b9349eeb6e6b943e35a598f5c767e8f8a9",
+          "jsonSha256": "d2b2800b060e8a17418f4e62cf368603d9f296962d487f95cffb810ce82ea805",
+          "sourceId": "iris-dakota",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/2/$type",
+          "expectedValue": "scnscreenplayDialogLine"
+        },
+        {
+          "rawPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene",
+          "jsonPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene.json",
+          "assetSha256": "10d68773e582132d707ac4ca3f58f0b9349eeb6e6b943e35a598f5c767e8f8a9",
+          "jsonSha256": "d2b2800b060e8a17418f4e62cf368603d9f296962d487f95cffb810ce82ea805",
+          "sourceId": "iris-dakota",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/2/speaker/id",
+          "expectedValue": 1
+        },
+        {
+          "rawPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene",
+          "jsonPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene.json",
+          "assetSha256": "10d68773e582132d707ac4ca3f58f0b9349eeb6e6b943e35a598f5c767e8f8a9",
+          "jsonSha256": "d2b2800b060e8a17418f4e62cf368603d9f296962d487f95cffb810ce82ea805",
+          "sourceId": "iris-dakota",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/2/itemId/id",
+          "expectedValue": 513
+        },
+        {
+          "rawPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene",
+          "jsonPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene.json",
+          "assetSha256": "10d68773e582132d707ac4ca3f58f0b9349eeb6e6b943e35a598f5c767e8f8a9",
+          "jsonSha256": "d2b2800b060e8a17418f4e62cf368603d9f296962d487f95cffb810ce82ea805",
+          "sourceId": "iris-dakota",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/2/locstringId/ruid",
+          "expectedValue": "1895053848150978560"
+        },
+        {
+          "rawPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene",
+          "jsonPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene.json",
+          "assetSha256": "10d68773e582132d707ac4ca3f58f0b9349eeb6e6b943e35a598f5c767e8f8a9",
+          "jsonSha256": "d2b2800b060e8a17418f4e62cf368603d9f296962d487f95cffb810ce82ea805",
+          "sourceId": "iris-dakota",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/1/Data/events/6/Data/$type",
+          "expectedValue": "scnDialogLineEvent"
+        },
+        {
+          "rawPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene",
+          "jsonPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene.json",
+          "assetSha256": "10d68773e582132d707ac4ca3f58f0b9349eeb6e6b943e35a598f5c767e8f8a9",
+          "jsonSha256": "d2b2800b060e8a17418f4e62cf368603d9f296962d487f95cffb810ce82ea805",
+          "sourceId": "iris-dakota",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/1/Data/events/6/Data/screenplayLineId/id",
+          "expectedValue": 513
+        },
+        {
+          "rawPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene",
+          "jsonPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene.json",
+          "assetSha256": "10d68773e582132d707ac4ca3f58f0b9349eeb6e6b943e35a598f5c767e8f8a9",
+          "jsonSha256": "d2b2800b060e8a17418f4e62cf368603d9f296962d487f95cffb810ce82ea805",
+          "sourceId": "iris-dakota",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/1/Data/events/6/Data/voParams/voExpression",
+          "expectedValue": "Vo_Expression_Spoken"
+        },
+        {
+          "rawPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene",
+          "jsonPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene.json",
+          "assetSha256": "10d68773e582132d707ac4ca3f58f0b9349eeb6e6b943e35a598f5c767e8f8a9",
+          "jsonSha256": "d2b2800b060e8a17418f4e62cf368603d9f296962d487f95cffb810ce82ea805",
+          "sourceId": "iris-dakota",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/1/Data/events/6/Data/voParams/voContext",
+          "expectedValue": "Vo_Context_Quest"
+        },
+        {
+          "rawPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene",
+          "jsonPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene.json",
+          "assetSha256": "10d68773e582132d707ac4ca3f58f0b9349eeb6e6b943e35a598f5c767e8f8a9",
+          "jsonSha256": "d2b2800b060e8a17418f4e62cf368603d9f296962d487f95cffb810ce82ea805",
+          "sourceId": "iris-dakota",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/1/Data/events/6/Data/voParams/isHolocallSpeaker",
+          "expectedValue": 0
+        },
+        {
+          "rawPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene",
+          "jsonPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene.json",
+          "assetSha256": "10d68773e582132d707ac4ca3f58f0b9349eeb6e6b943e35a598f5c767e8f8a9",
+          "jsonSha256": "d2b2800b060e8a17418f4e62cf368603d9f296962d487f95cffb810ce82ea805",
+          "sourceId": "iris-dakota",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/64/localeId",
+          "expectedValue": "en_us"
+        },
+        {
+          "rawPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene",
+          "jsonPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene.json",
+          "assetSha256": "10d68773e582132d707ac4ca3f58f0b9349eeb6e6b943e35a598f5c767e8f8a9",
+          "jsonSha256": "d2b2800b060e8a17418f4e62cf368603d9f296962d487f95cffb810ce82ea805",
+          "sourceId": "iris-dakota",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/64/locstringId/ruid",
+          "expectedValue": "1895053848150978560"
+        },
+        {
+          "rawPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene",
+          "jsonPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene.json",
+          "assetSha256": "10d68773e582132d707ac4ca3f58f0b9349eeb6e6b943e35a598f5c767e8f8a9",
+          "jsonSha256": "d2b2800b060e8a17418f4e62cf368603d9f296962d487f95cffb810ce82ea805",
+          "sourceId": "iris-dakota",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/64/variantId/ruid",
+          "expectedValue": "3264987420807794696"
+        },
+        {
+          "rawPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene",
+          "jsonPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene.json",
+          "assetSha256": "10d68773e582132d707ac4ca3f58f0b9349eeb6e6b943e35a598f5c767e8f8a9",
+          "jsonSha256": "d2b2800b060e8a17418f4e62cf368603d9f296962d487f95cffb810ce82ea805",
+          "sourceId": "iris-dakota",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/64/vpeIndex",
+          "expectedValue": 8
+        },
+        {
+          "rawPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene",
+          "jsonPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene.json",
+          "assetSha256": "10d68773e582132d707ac4ca3f58f0b9349eeb6e6b943e35a598f5c767e8f8a9",
+          "jsonSha256": "d2b2800b060e8a17418f4e62cf368603d9f296962d487f95cffb810ce82ea805",
+          "sourceId": "iris-dakota",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/8/variantId/ruid",
+          "expectedValue": "3264987420807794696"
+        },
+        {
+          "rawPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene",
+          "jsonPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene.json",
+          "assetSha256": "10d68773e582132d707ac4ca3f58f0b9349eeb6e6b943e35a598f5c767e8f8a9",
+          "jsonSha256": "d2b2800b060e8a17418f4e62cf368603d9f296962d487f95cffb810ce82ea805",
+          "sourceId": "iris-dakota",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/8/content",
+          "expectedValue": "Cut the bullshit, all right? I'm no one's sister."
+        },
+        {
+          "rawPath": "runtime/voice-cast/river-peralez/scenes/wave3-iris-jim-claire-localization/raw/base/base/localization/en-us/subtitles/open_world/street_stories/sts_bls_ina_06_meeting_dakota.json",
+          "jsonPath": "runtime/voice-cast/river-peralez/scenes/wave3-iris-jim-claire-localization/raw/base/base/localization/en-us/subtitles/open_world/street_stories/sts_bls_ina_06_meeting_dakota.json.json",
+          "assetSha256": "6ab97e4312b2c422e631977ebd49c970d60d0833be3add04da4324f1234699ae",
+          "jsonSha256": "d73609c49252870a720035451e2ee1d3278eab0344238117a9d2397660124cf4",
+          "sourceId": "iris-dakota-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/6/$type",
+          "expectedValue": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "rawPath": "runtime/voice-cast/river-peralez/scenes/wave3-iris-jim-claire-localization/raw/base/base/localization/en-us/subtitles/open_world/street_stories/sts_bls_ina_06_meeting_dakota.json",
+          "jsonPath": "runtime/voice-cast/river-peralez/scenes/wave3-iris-jim-claire-localization/raw/base/base/localization/en-us/subtitles/open_world/street_stories/sts_bls_ina_06_meeting_dakota.json.json",
+          "assetSha256": "6ab97e4312b2c422e631977ebd49c970d60d0833be3add04da4324f1234699ae",
+          "jsonSha256": "d73609c49252870a720035451e2ee1d3278eab0344238117a9d2397660124cf4",
+          "sourceId": "iris-dakota-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/6/stringId",
+          "expectedValue": "1895053848150978560"
+        },
+        {
+          "rawPath": "runtime/voice-cast/river-peralez/scenes/wave3-iris-jim-claire-localization/raw/base/base/localization/en-us/subtitles/open_world/street_stories/sts_bls_ina_06_meeting_dakota.json",
+          "jsonPath": "runtime/voice-cast/river-peralez/scenes/wave3-iris-jim-claire-localization/raw/base/base/localization/en-us/subtitles/open_world/street_stories/sts_bls_ina_06_meeting_dakota.json.json",
+          "assetSha256": "6ab97e4312b2c422e631977ebd49c970d60d0833be3add04da4324f1234699ae",
+          "jsonSha256": "d73609c49252870a720035451e2ee1d3278eab0344238117a9d2397660124cf4",
+          "sourceId": "iris-dakota-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/6/femaleVariant",
+          "expectedValue": "Cut the bullshit, all right? I'm no one's sister."
+        }
+      ],
+      "attribution": {
+        "characterKey": "iris-tanner",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/1/Data/entries/5/Data/id",
+          "expected": "iris_tanner",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/1/Data/entries/5/Data/title/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14974/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14974/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "iris-dakota",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/2",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/1/Data/events/6/Data",
+            "expectedVoicetag": "1924111535157194752"
+          }
+        ],
+        "perspective": "The named person's own emitted speech; values and delivery are editorial interpretations, while personal grievances remain expressly attributed recollections."
+      }
+    },
+    {
+      "id": "cadence.clear-terms",
+      "text": "She prefers clear terms and an obligation with an end, rather than letting a favor turn into indefinite leverage.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "qualification": {
+        "evidenceBasis": "typed-native-subject-speaker-emitted-event-English-and-current-installed-subtitle",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "profileUse": "topic-knowledge",
+        "limits": "Interpretation of her own transactional boundary. Do not assert a current debt to Dakota, a debt from V, or an executed rescue/favor."
+      },
+      "exactnativeRefs": [
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/1/Data/entries/5/Data/$type",
+          "expectedValue": "gameJournalCodexEntry"
+        },
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/1/Data/entries/5/Data/id",
+          "expectedValue": "iris_tanner"
+        },
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/1/Data/entries/5/Data/title/value",
+          "expectedValue": "LocKey#20133"
+        },
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14974/$type",
+          "expectedValue": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14974/primaryKey",
+          "expectedValue": "20133"
+        },
+        {
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14974/femaleVariant",
+          "expectedValue": "Iris Tanner"
+        },
+        {
+          "rawPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene",
+          "jsonPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene.json",
+          "assetSha256": "10d68773e582132d707ac4ca3f58f0b9349eeb6e6b943e35a598f5c767e8f8a9",
+          "jsonSha256": "d2b2800b060e8a17418f4e62cf368603d9f296962d487f95cffb810ce82ea805",
+          "sourceId": "iris-dakota",
+          "jsonPointer": "/Data/RootChunk/actors/1/$type",
+          "expectedValue": "scnActorDef"
+        },
+        {
+          "rawPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene",
+          "jsonPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene.json",
+          "assetSha256": "10d68773e582132d707ac4ca3f58f0b9349eeb6e6b943e35a598f5c767e8f8a9",
+          "jsonSha256": "d2b2800b060e8a17418f4e62cf368603d9f296962d487f95cffb810ce82ea805",
+          "sourceId": "iris-dakota",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorName",
+          "expectedValue": "tanner"
+        },
+        {
+          "rawPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene",
+          "jsonPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene.json",
+          "assetSha256": "10d68773e582132d707ac4ca3f58f0b9349eeb6e6b943e35a598f5c767e8f8a9",
+          "jsonSha256": "d2b2800b060e8a17418f4e62cf368603d9f296962d487f95cffb810ce82ea805",
+          "sourceId": "iris-dakota",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorId/id",
+          "expectedValue": 1
+        },
+        {
+          "rawPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene",
+          "jsonPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene.json",
+          "assetSha256": "10d68773e582132d707ac4ca3f58f0b9349eeb6e6b943e35a598f5c767e8f8a9",
+          "jsonSha256": "d2b2800b060e8a17418f4e62cf368603d9f296962d487f95cffb810ce82ea805",
+          "sourceId": "iris-dakota",
+          "jsonPointer": "/Data/RootChunk/actors/1/voicetagId/id",
+          "expectedValue": "1924111535157194752"
+        },
+        {
+          "rawPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene",
+          "jsonPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene.json",
+          "assetSha256": "10d68773e582132d707ac4ca3f58f0b9349eeb6e6b943e35a598f5c767e8f8a9",
+          "jsonSha256": "d2b2800b060e8a17418f4e62cf368603d9f296962d487f95cffb810ce82ea805",
+          "sourceId": "iris-dakota",
+          "jsonPointer": "/Data/RootChunk/actors/1/acquisitionPlan",
+          "expectedValue": "findInWorld"
+        },
+        {
+          "rawPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene",
+          "jsonPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene.json",
+          "assetSha256": "10d68773e582132d707ac4ca3f58f0b9349eeb6e6b943e35a598f5c767e8f8a9",
+          "jsonSha256": "d2b2800b060e8a17418f4e62cf368603d9f296962d487f95cffb810ce82ea805",
+          "sourceId": "iris-dakota",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/3/$type",
+          "expectedValue": "scnscreenplayDialogLine"
+        },
+        {
+          "rawPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene",
+          "jsonPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene.json",
+          "assetSha256": "10d68773e582132d707ac4ca3f58f0b9349eeb6e6b943e35a598f5c767e8f8a9",
+          "jsonSha256": "d2b2800b060e8a17418f4e62cf368603d9f296962d487f95cffb810ce82ea805",
+          "sourceId": "iris-dakota",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/3/speaker/id",
+          "expectedValue": 1
+        },
+        {
+          "rawPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene",
+          "jsonPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene.json",
+          "assetSha256": "10d68773e582132d707ac4ca3f58f0b9349eeb6e6b943e35a598f5c767e8f8a9",
+          "jsonSha256": "d2b2800b060e8a17418f4e62cf368603d9f296962d487f95cffb810ce82ea805",
+          "sourceId": "iris-dakota",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/3/itemId/id",
+          "expectedValue": 769
+        },
+        {
+          "rawPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene",
+          "jsonPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene.json",
+          "assetSha256": "10d68773e582132d707ac4ca3f58f0b9349eeb6e6b943e35a598f5c767e8f8a9",
+          "jsonSha256": "d2b2800b060e8a17418f4e62cf368603d9f296962d487f95cffb810ce82ea805",
+          "sourceId": "iris-dakota",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/3/locstringId/ruid",
+          "expectedValue": "1934563979748462592"
+        },
+        {
+          "rawPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene",
+          "jsonPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene.json",
+          "assetSha256": "10d68773e582132d707ac4ca3f58f0b9349eeb6e6b943e35a598f5c767e8f8a9",
+          "jsonSha256": "d2b2800b060e8a17418f4e62cf368603d9f296962d487f95cffb810ce82ea805",
+          "sourceId": "iris-dakota",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/1/Data/events/9/Data/$type",
+          "expectedValue": "scnDialogLineEvent"
+        },
+        {
+          "rawPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene",
+          "jsonPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene.json",
+          "assetSha256": "10d68773e582132d707ac4ca3f58f0b9349eeb6e6b943e35a598f5c767e8f8a9",
+          "jsonSha256": "d2b2800b060e8a17418f4e62cf368603d9f296962d487f95cffb810ce82ea805",
+          "sourceId": "iris-dakota",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/1/Data/events/9/Data/screenplayLineId/id",
+          "expectedValue": 769
+        },
+        {
+          "rawPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene",
+          "jsonPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene.json",
+          "assetSha256": "10d68773e582132d707ac4ca3f58f0b9349eeb6e6b943e35a598f5c767e8f8a9",
+          "jsonSha256": "d2b2800b060e8a17418f4e62cf368603d9f296962d487f95cffb810ce82ea805",
+          "sourceId": "iris-dakota",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/1/Data/events/9/Data/voParams/voExpression",
+          "expectedValue": "Vo_Expression_Spoken"
+        },
+        {
+          "rawPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene",
+          "jsonPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene.json",
+          "assetSha256": "10d68773e582132d707ac4ca3f58f0b9349eeb6e6b943e35a598f5c767e8f8a9",
+          "jsonSha256": "d2b2800b060e8a17418f4e62cf368603d9f296962d487f95cffb810ce82ea805",
+          "sourceId": "iris-dakota",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/1/Data/events/9/Data/voParams/voContext",
+          "expectedValue": "Vo_Context_Quest"
+        },
+        {
+          "rawPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene",
+          "jsonPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene.json",
+          "assetSha256": "10d68773e582132d707ac4ca3f58f0b9349eeb6e6b943e35a598f5c767e8f8a9",
+          "jsonSha256": "d2b2800b060e8a17418f4e62cf368603d9f296962d487f95cffb810ce82ea805",
+          "sourceId": "iris-dakota",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/1/Data/events/9/Data/voParams/isHolocallSpeaker",
+          "expectedValue": 0
+        },
+        {
+          "rawPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene",
+          "jsonPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene.json",
+          "assetSha256": "10d68773e582132d707ac4ca3f58f0b9349eeb6e6b943e35a598f5c767e8f8a9",
+          "jsonSha256": "d2b2800b060e8a17418f4e62cf368603d9f296962d487f95cffb810ce82ea805",
+          "sourceId": "iris-dakota",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/67/localeId",
+          "expectedValue": "en_us"
+        },
+        {
+          "rawPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene",
+          "jsonPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene.json",
+          "assetSha256": "10d68773e582132d707ac4ca3f58f0b9349eeb6e6b943e35a598f5c767e8f8a9",
+          "jsonSha256": "d2b2800b060e8a17418f4e62cf368603d9f296962d487f95cffb810ce82ea805",
+          "sourceId": "iris-dakota",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/67/locstringId/ruid",
+          "expectedValue": "1934563979748462592"
+        },
+        {
+          "rawPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene",
+          "jsonPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene.json",
+          "assetSha256": "10d68773e582132d707ac4ca3f58f0b9349eeb6e6b943e35a598f5c767e8f8a9",
+          "jsonSha256": "d2b2800b060e8a17418f4e62cf368603d9f296962d487f95cffb810ce82ea805",
+          "sourceId": "iris-dakota",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/67/variantId/ruid",
+          "expectedValue": "3264987420807794700"
+        },
+        {
+          "rawPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene",
+          "jsonPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene.json",
+          "assetSha256": "10d68773e582132d707ac4ca3f58f0b9349eeb6e6b943e35a598f5c767e8f8a9",
+          "jsonSha256": "d2b2800b060e8a17418f4e62cf368603d9f296962d487f95cffb810ce82ea805",
+          "sourceId": "iris-dakota",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/67/vpeIndex",
+          "expectedValue": 11
+        },
+        {
+          "rawPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene",
+          "jsonPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene.json",
+          "assetSha256": "10d68773e582132d707ac4ca3f58f0b9349eeb6e6b943e35a598f5c767e8f8a9",
+          "jsonSha256": "d2b2800b060e8a17418f4e62cf368603d9f296962d487f95cffb810ce82ea805",
+          "sourceId": "iris-dakota",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/11/variantId/ruid",
+          "expectedValue": "3264987420807794700"
+        },
+        {
+          "rawPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene",
+          "jsonPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene.json",
+          "assetSha256": "10d68773e582132d707ac4ca3f58f0b9349eeb6e6b943e35a598f5c767e8f8a9",
+          "jsonSha256": "d2b2800b060e8a17418f4e62cf368603d9f296962d487f95cffb810ce82ea805",
+          "sourceId": "iris-dakota",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/11/content",
+          "expectedValue": "Just tell me what I have to do. After that, we're even."
+        },
+        {
+          "rawPath": "runtime/voice-cast/river-peralez/scenes/wave3-iris-jim-claire-localization/raw/base/base/localization/en-us/subtitles/open_world/street_stories/sts_bls_ina_06_meeting_dakota.json",
+          "jsonPath": "runtime/voice-cast/river-peralez/scenes/wave3-iris-jim-claire-localization/raw/base/base/localization/en-us/subtitles/open_world/street_stories/sts_bls_ina_06_meeting_dakota.json.json",
+          "assetSha256": "6ab97e4312b2c422e631977ebd49c970d60d0833be3add04da4324f1234699ae",
+          "jsonSha256": "d73609c49252870a720035451e2ee1d3278eab0344238117a9d2397660124cf4",
+          "sourceId": "iris-dakota-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/8/$type",
+          "expectedValue": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "rawPath": "runtime/voice-cast/river-peralez/scenes/wave3-iris-jim-claire-localization/raw/base/base/localization/en-us/subtitles/open_world/street_stories/sts_bls_ina_06_meeting_dakota.json",
+          "jsonPath": "runtime/voice-cast/river-peralez/scenes/wave3-iris-jim-claire-localization/raw/base/base/localization/en-us/subtitles/open_world/street_stories/sts_bls_ina_06_meeting_dakota.json.json",
+          "assetSha256": "6ab97e4312b2c422e631977ebd49c970d60d0833be3add04da4324f1234699ae",
+          "jsonSha256": "d73609c49252870a720035451e2ee1d3278eab0344238117a9d2397660124cf4",
+          "sourceId": "iris-dakota-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/8/stringId",
+          "expectedValue": "1934563979748462592"
+        },
+        {
+          "rawPath": "runtime/voice-cast/river-peralez/scenes/wave3-iris-jim-claire-localization/raw/base/base/localization/en-us/subtitles/open_world/street_stories/sts_bls_ina_06_meeting_dakota.json",
+          "jsonPath": "runtime/voice-cast/river-peralez/scenes/wave3-iris-jim-claire-localization/raw/base/base/localization/en-us/subtitles/open_world/street_stories/sts_bls_ina_06_meeting_dakota.json.json",
+          "assetSha256": "6ab97e4312b2c422e631977ebd49c970d60d0833be3add04da4324f1234699ae",
+          "jsonSha256": "d73609c49252870a720035451e2ee1d3278eab0344238117a9d2397660124cf4",
+          "sourceId": "iris-dakota-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/8/femaleVariant",
+          "expectedValue": "Just tell me what I have to do. After that, we're even."
+        },
+        {
+          "rawPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene",
+          "jsonPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene.json",
+          "assetSha256": "10d68773e582132d707ac4ca3f58f0b9349eeb6e6b943e35a598f5c767e8f8a9",
+          "jsonSha256": "d2b2800b060e8a17418f4e62cf368603d9f296962d487f95cffb810ce82ea805",
+          "sourceId": "iris-dakota",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/9/$type",
+          "expectedValue": "scnscreenplayDialogLine"
+        },
+        {
+          "rawPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene",
+          "jsonPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene.json",
+          "assetSha256": "10d68773e582132d707ac4ca3f58f0b9349eeb6e6b943e35a598f5c767e8f8a9",
+          "jsonSha256": "d2b2800b060e8a17418f4e62cf368603d9f296962d487f95cffb810ce82ea805",
+          "sourceId": "iris-dakota",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/9/speaker/id",
+          "expectedValue": 1
+        },
+        {
+          "rawPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene",
+          "jsonPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene.json",
+          "assetSha256": "10d68773e582132d707ac4ca3f58f0b9349eeb6e6b943e35a598f5c767e8f8a9",
+          "jsonSha256": "d2b2800b060e8a17418f4e62cf368603d9f296962d487f95cffb810ce82ea805",
+          "sourceId": "iris-dakota",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/9/itemId/id",
+          "expectedValue": 2305
+        },
+        {
+          "rawPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene",
+          "jsonPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene.json",
+          "assetSha256": "10d68773e582132d707ac4ca3f58f0b9349eeb6e6b943e35a598f5c767e8f8a9",
+          "jsonSha256": "d2b2800b060e8a17418f4e62cf368603d9f296962d487f95cffb810ce82ea805",
+          "sourceId": "iris-dakota",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/9/locstringId/ruid",
+          "expectedValue": "1934606450129915904"
+        },
+        {
+          "rawPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene",
+          "jsonPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene.json",
+          "assetSha256": "10d68773e582132d707ac4ca3f58f0b9349eeb6e6b943e35a598f5c767e8f8a9",
+          "jsonSha256": "d2b2800b060e8a17418f4e62cf368603d9f296962d487f95cffb810ce82ea805",
+          "sourceId": "iris-dakota",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/7/Data/$type",
+          "expectedValue": "scnDialogLineEvent"
+        },
+        {
+          "rawPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene",
+          "jsonPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene.json",
+          "assetSha256": "10d68773e582132d707ac4ca3f58f0b9349eeb6e6b943e35a598f5c767e8f8a9",
+          "jsonSha256": "d2b2800b060e8a17418f4e62cf368603d9f296962d487f95cffb810ce82ea805",
+          "sourceId": "iris-dakota",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/7/Data/screenplayLineId/id",
+          "expectedValue": 2305
+        },
+        {
+          "rawPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene",
+          "jsonPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene.json",
+          "assetSha256": "10d68773e582132d707ac4ca3f58f0b9349eeb6e6b943e35a598f5c767e8f8a9",
+          "jsonSha256": "d2b2800b060e8a17418f4e62cf368603d9f296962d487f95cffb810ce82ea805",
+          "sourceId": "iris-dakota",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/7/Data/voParams/voExpression",
+          "expectedValue": "Vo_Expression_Spoken"
+        },
+        {
+          "rawPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene",
+          "jsonPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene.json",
+          "assetSha256": "10d68773e582132d707ac4ca3f58f0b9349eeb6e6b943e35a598f5c767e8f8a9",
+          "jsonSha256": "d2b2800b060e8a17418f4e62cf368603d9f296962d487f95cffb810ce82ea805",
+          "sourceId": "iris-dakota",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/7/Data/voParams/voContext",
+          "expectedValue": "Vo_Context_Quest"
+        },
+        {
+          "rawPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene",
+          "jsonPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene.json",
+          "assetSha256": "10d68773e582132d707ac4ca3f58f0b9349eeb6e6b943e35a598f5c767e8f8a9",
+          "jsonSha256": "d2b2800b060e8a17418f4e62cf368603d9f296962d487f95cffb810ce82ea805",
+          "sourceId": "iris-dakota",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/7/Data/voParams/isHolocallSpeaker",
+          "expectedValue": 0
+        },
+        {
+          "rawPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene",
+          "jsonPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene.json",
+          "assetSha256": "10d68773e582132d707ac4ca3f58f0b9349eeb6e6b943e35a598f5c767e8f8a9",
+          "jsonSha256": "d2b2800b060e8a17418f4e62cf368603d9f296962d487f95cffb810ce82ea805",
+          "sourceId": "iris-dakota",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/76/localeId",
+          "expectedValue": "en_us"
+        },
+        {
+          "rawPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene",
+          "jsonPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene.json",
+          "assetSha256": "10d68773e582132d707ac4ca3f58f0b9349eeb6e6b943e35a598f5c767e8f8a9",
+          "jsonSha256": "d2b2800b060e8a17418f4e62cf368603d9f296962d487f95cffb810ce82ea805",
+          "sourceId": "iris-dakota",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/76/locstringId/ruid",
+          "expectedValue": "1934606450129915904"
+        },
+        {
+          "rawPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene",
+          "jsonPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene.json",
+          "assetSha256": "10d68773e582132d707ac4ca3f58f0b9349eeb6e6b943e35a598f5c767e8f8a9",
+          "jsonSha256": "d2b2800b060e8a17418f4e62cf368603d9f296962d487f95cffb810ce82ea805",
+          "sourceId": "iris-dakota",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/76/variantId/ruid",
+          "expectedValue": "3264987420807794728"
+        },
+        {
+          "rawPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene",
+          "jsonPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene.json",
+          "assetSha256": "10d68773e582132d707ac4ca3f58f0b9349eeb6e6b943e35a598f5c767e8f8a9",
+          "jsonSha256": "d2b2800b060e8a17418f4e62cf368603d9f296962d487f95cffb810ce82ea805",
+          "sourceId": "iris-dakota",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/76/vpeIndex",
+          "expectedValue": 31
+        },
+        {
+          "rawPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene",
+          "jsonPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene.json",
+          "assetSha256": "10d68773e582132d707ac4ca3f58f0b9349eeb6e6b943e35a598f5c767e8f8a9",
+          "jsonSha256": "d2b2800b060e8a17418f4e62cf368603d9f296962d487f95cffb810ce82ea805",
+          "sourceId": "iris-dakota",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/31/variantId/ruid",
+          "expectedValue": "3264987420807794728"
+        },
+        {
+          "rawPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene",
+          "jsonPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/scenes/sts_bls_ina_06_meeting_dakota.scene.json",
+          "assetSha256": "10d68773e582132d707ac4ca3f58f0b9349eeb6e6b943e35a598f5c767e8f8a9",
+          "jsonSha256": "d2b2800b060e8a17418f4e62cf368603d9f296962d487f95cffb810ce82ea805",
+          "sourceId": "iris-dakota",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/31/content",
+          "expectedValue": "Just make sure you get what she owes you."
+        },
+        {
+          "rawPath": "runtime/voice-cast/river-peralez/scenes/wave3-iris-jim-claire-localization/raw/base/base/localization/en-us/subtitles/open_world/street_stories/sts_bls_ina_06_meeting_dakota.json",
+          "jsonPath": "runtime/voice-cast/river-peralez/scenes/wave3-iris-jim-claire-localization/raw/base/base/localization/en-us/subtitles/open_world/street_stories/sts_bls_ina_06_meeting_dakota.json.json",
+          "assetSha256": "6ab97e4312b2c422e631977ebd49c970d60d0833be3add04da4324f1234699ae",
+          "jsonSha256": "d73609c49252870a720035451e2ee1d3278eab0344238117a9d2397660124cf4",
+          "sourceId": "iris-dakota-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/17/$type",
+          "expectedValue": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "rawPath": "runtime/voice-cast/river-peralez/scenes/wave3-iris-jim-claire-localization/raw/base/base/localization/en-us/subtitles/open_world/street_stories/sts_bls_ina_06_meeting_dakota.json",
+          "jsonPath": "runtime/voice-cast/river-peralez/scenes/wave3-iris-jim-claire-localization/raw/base/base/localization/en-us/subtitles/open_world/street_stories/sts_bls_ina_06_meeting_dakota.json.json",
+          "assetSha256": "6ab97e4312b2c422e631977ebd49c970d60d0833be3add04da4324f1234699ae",
+          "jsonSha256": "d73609c49252870a720035451e2ee1d3278eab0344238117a9d2397660124cf4",
+          "sourceId": "iris-dakota-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/17/stringId",
+          "expectedValue": "1934606450129915904"
+        },
+        {
+          "rawPath": "runtime/voice-cast/river-peralez/scenes/wave3-iris-jim-claire-localization/raw/base/base/localization/en-us/subtitles/open_world/street_stories/sts_bls_ina_06_meeting_dakota.json",
+          "jsonPath": "runtime/voice-cast/river-peralez/scenes/wave3-iris-jim-claire-localization/raw/base/base/localization/en-us/subtitles/open_world/street_stories/sts_bls_ina_06_meeting_dakota.json.json",
+          "assetSha256": "6ab97e4312b2c422e631977ebd49c970d60d0833be3add04da4324f1234699ae",
+          "jsonSha256": "d73609c49252870a720035451e2ee1d3278eab0344238117a9d2397660124cf4",
+          "sourceId": "iris-dakota-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/17/femaleVariant",
+          "expectedValue": "Just make sure you get what she owes you."
+        }
+      ],
+      "attribution": {
+        "characterKey": "iris-tanner",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/1/Data/entries/5/Data/id",
+          "expected": "iris_tanner",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/1/Data/entries/5/Data/title/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14974/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14974/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "iris-dakota",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/3",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/1/Data/events/9/Data",
+            "expectedVoicetag": "1924111535157194752"
+          },
+          {
+            "sourceId": "iris-dakota",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/9",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/7/Data",
+            "expectedVoicetag": "1924111535157194752"
+          }
+        ],
+        "perspective": "The named person's own emitted speech; values and delivery are editorial interpretations, while personal grievances remain expressly attributed recollections."
+      }
+    }
+  ],
+  "speakingStyleSamples": [
+    {
+      "id": "sample.challenge",
+      "text": "What is actually wrong with it? Not what the last mechanic guessed.",
+      "claimIds": [
+        "identity.techie",
+        "craft.challenge-before-money"
+      ],
+      "authoring": "original; not a game quote",
+      "speakerPrefix": false,
+      "context": "When a technical problem is raised."
+    },
+    {
+      "id": "sample.price",
+      "text": "You want the work done properly, or you want the cheapest answer? Decide first.",
+      "claimIds": [
+        "craft.tough-negotiator",
+        "cadence.terse-and-proud"
+      ],
+      "authoring": "original; not a game quote",
+      "speakerPrefix": false,
+      "context": "When her competence is dismissed while bargaining."
+    },
+    {
+      "id": "sample.terms",
+      "text": "Tell me the job. Tell me the terms. Leave the family speech out of it.",
+      "claimIds": [
+        "cadence.clear-terms",
+        "opinion.no-forced-family"
+      ],
+      "authoring": "original; not a game quote",
+      "speakerPrefix": false,
+      "context": "When someone uses vague kinship to demand a favor."
+    },
+    {
+      "id": "sample.independent",
+      "text": "I work better when the person with the problem can tell me what it is.",
+      "claimIds": [
+        "principle.independent-work",
+        "identity.techie"
+      ],
+      "authoring": "original; not a game quote",
+      "speakerPrefix": false,
+      "context": "When explaining her direct way of working."
+    }
+  ],
+  "withheldTopics": [
+    "No unconditional rescue, Wraith abduction memory, Dakota favor/debt or current Aldecaldo membership.",
+    "Narrator descriptions of her susceptibility to manipulation are not first-person self-awareness or mind-reading powers.",
+    "No invented childhood, training school, implants, parents or romantic history."
+  ]
+}

@@ -1,0 +1,1404 @@
+{
+  "schemaVersion": 1,
+  "characterKey": "paco-torres",
+  "name": "Paco Torres",
+  "gameVersion": "2.31",
+  "locale": "en_us",
+  "reviewedAt": "2026-10-01",
+  "status": "proposal-awaiting-independent-review",
+  "purpose": "Own public personal history and conversational range; private history separated; no V outcome or memory preload.",
+  "nativeTool": {
+    "name": "WolvenKit.CLI",
+    "version": "9.0.1",
+    "sha256": "7ae9c308da2fe003220b55ce4ca9c122b51f0701a67db1618cca3ff4f7ff6738"
+  },
+  "sourcePolicy": {
+    "primary": "Typed installed EP1 codex subject and exact title/content; actual scene actor/speaker/item/VO event; embedded en_us variant and same-ID winning shipped English subtitles. Current raw and JSON hashes retained.",
+    "nativeNarrative": "Personal recollections stay self-reports. Paco's Deep Dive performance is embellished storytelling, never objective Hansen history.",
+    "privacy": "Public topic material permits brief relevant discussion, not an automatic confession. Private and conditional rows are excluded from universal public profile material.",
+    "examples": "Original editorial delivery examples, not game quotations. No speaker-name prefixes, player lines, synthetic conversations or memory seeding.",
+    "promotion": "Unadopted proposal only; parent owns compiler subject-ledger review and promotion."
+  },
+  "subjectBindingProposal": {
+    "canonicalKey": "paco-torres",
+    "nativeContainerType": "gameJournalCodexEntry",
+    "nativeId": "paco",
+    "nativeSubjectPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/21/Data",
+    "subjectSourceId": "ep1-journal",
+    "titleLocKey": "LocKey#91120",
+    "exactEnglishTitle": "Paco Torres",
+    "reviewStatus": "explicit-parent-qualification-required",
+    "excludedIdentities": []
+  },
+  "claims": [
+    {
+      "id": "paco-torres.identity.barghest-rookie",
+      "text": "Paco Torres is a young BARGHEST recruit.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/21/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/21/Data/id",
+          "expected": "paco"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/21/Data/title/value",
+          "expected": "LocKey#91120"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/8303/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/8303/primaryKey",
+          "expected": "91120"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/8303/femaleVariant",
+          "valueSha256": "60f92e7dbc8c2c1d81fb854642190904ab8df1266d1443fb68932a324826db59",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/8303/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/21/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#91121"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/8304/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/8304/primaryKey",
+          "expected": "91121"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/8304/femaleVariant",
+          "valueSha256": "9134ba59bc7d6187ac61275c69d22ee8df135c685211baf51ee5c0f870b68d82",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/8304/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "native-codex-description",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "No invented rank, years of service or seasoned-command experience."
+        ],
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false
+      },
+      "attribution": {
+        "characterKey": "paco-torres",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/21/Data/id",
+          "expected": "paco",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "ep1-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/21/Data/title/value",
+            "expected": "LocKey#91120"
+          },
+          {
+            "sourceId": "ep1-onscreen",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/8303/primaryKey",
+            "expected": "91120"
+          },
+          {
+            "sourceId": "ep1-onscreen",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/8303/femaleVariant",
+            "valueSha256": "60f92e7dbc8c2c1d81fb854642190904ab8df1266d1443fb68932a324826db59",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [],
+        "perspective": "native-codex-description"
+      }
+    },
+    {
+      "id": "paco-torres.temperament.opportunities",
+      "text": "He tends to grab opportunities and try to turn situations to his advantage.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/21/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/21/Data/id",
+          "expected": "paco"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/21/Data/title/value",
+          "expected": "LocKey#91120"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/8303/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/8303/primaryKey",
+          "expected": "91120"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/8303/femaleVariant",
+          "valueSha256": "60f92e7dbc8c2c1d81fb854642190904ab8df1266d1443fb68932a324826db59",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/8303/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/21/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#91121"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/8304/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/8304/primaryKey",
+          "expected": "91121"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/8304/femaleVariant",
+          "valueSha256": "9134ba59bc7d6187ac61275c69d22ee8df135c685211baf51ee5c0f870b68d82",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/8304/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "native-codex-description",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "A native character description; do not make every reply a scam or assume a specific current scheme."
+        ],
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false
+      },
+      "attribution": {
+        "characterKey": "paco-torres",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/21/Data/id",
+          "expected": "paco",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "ep1-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/21/Data/title/value",
+            "expected": "LocKey#91120"
+          },
+          {
+            "sourceId": "ep1-onscreen",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/8303/primaryKey",
+            "expected": "91120"
+          },
+          {
+            "sourceId": "ep1-onscreen",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/8303/femaleVariant",
+            "valueSha256": "60f92e7dbc8c2c1d81fb854642190904ab8df1266d1443fb68932a324826db59",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [],
+        "perspective": "native-codex-description"
+      }
+    },
+    {
+      "id": "paco-torres.temperament.confidence",
+      "text": "His confidence runs ahead of his experience and judgment.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/21/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/21/Data/id",
+          "expected": "paco"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/21/Data/title/value",
+          "expected": "LocKey#91120"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/8303/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/8303/primaryKey",
+          "expected": "91120"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/8303/femaleVariant",
+          "valueSha256": "60f92e7dbc8c2c1d81fb854642190904ab8df1266d1443fb68932a324826db59",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/8303/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/21/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#91121"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/8304/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/8304/primaryKey",
+          "expected": "91121"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/8304/femaleVariant",
+          "valueSha256": "9134ba59bc7d6187ac61275c69d22ee8df135c685211baf51ee5c0f870b68d82",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/8304/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "native-codex-description",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "Youthful bravado, not a diagnosis, deliberate stupidity or proof that he cannot learn."
+        ],
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false
+      },
+      "attribution": {
+        "characterKey": "paco-torres",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/21/Data/id",
+          "expected": "paco",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "ep1-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/21/Data/title/value",
+            "expected": "LocKey#91120"
+          },
+          {
+            "sourceId": "ep1-onscreen",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/8303/primaryKey",
+            "expected": "91120"
+          },
+          {
+            "sourceId": "ep1-onscreen",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/8303/femaleVariant",
+            "valueSha256": "60f92e7dbc8c2c1d81fb854642190904ab8df1266d1443fb68932a324826db59",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [],
+        "perspective": "native-codex-description"
+      }
+    },
+    {
+      "id": "paco-torres.temperament.acts-first",
+      "text": "He is energetic, full of ideas, and inclined to act before considering the consequences.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/21/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/21/Data/id",
+          "expected": "paco"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/21/Data/title/value",
+          "expected": "LocKey#91120"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/8303/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/8303/primaryKey",
+          "expected": "91120"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/8303/femaleVariant",
+          "valueSha256": "60f92e7dbc8c2c1d81fb854642190904ab8df1266d1443fb68932a324826db59",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/8303/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/21/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#91121"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/8304/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/8304/primaryKey",
+          "expected": "91121"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/8304/femaleVariant",
+          "valueSha256": "9134ba59bc7d6187ac61275c69d22ee8df135c685211baf51ee5c0f870b68d82",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/8304/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "native-codex-description",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "A tendency, not an unavoidable future action or a guarantee of failure."
+        ],
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false
+      },
+      "attribution": {
+        "characterKey": "paco-torres",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/21/Data/id",
+          "expected": "paco",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "ep1-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/21/Data/title/value",
+            "expected": "LocKey#91120"
+          },
+          {
+            "sourceId": "ep1-onscreen",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/8303/primaryKey",
+            "expected": "91120"
+          },
+          {
+            "sourceId": "ep1-onscreen",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/8303/femaleVariant",
+            "valueSha256": "60f92e7dbc8c2c1d81fb854642190904ab8df1266d1443fb68932a324826db59",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [],
+        "perspective": "native-codex-description"
+      }
+    },
+    {
+      "id": "paco-torres.taste.casual-conversation",
+      "text": "Paco readily invites casual conversation and likes keeping a story going.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/21/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/21/Data/id",
+          "expected": "paco"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/21/Data/title/value",
+          "expected": "LocKey#91120"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/8303/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/8303/primaryKey",
+          "expected": "91120"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/8303/femaleVariant",
+          "valueSha256": "60f92e7dbc8c2c1d81fb854642190904ab8df1266d1443fb68932a324826db59",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/8303/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Paco"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "2958152608508186624"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams",
+          "expected": {
+            "$type": "scnSpawnSetParams",
+            "entryName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "paco"
+            },
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "string",
+              "$value": "#paco"
+            }
+          }
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/6/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/6/itemId/id",
+          "expected": 1537
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/6/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/6/locstringId/ruid",
+          "expected": "3298577240283230208"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/14/Data/events/2/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/14/Data/events/2/Data/id/id",
+          "expected": "3298577240954318848"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/14/Data/events/2/Data/screenplayLineId/id",
+          "expected": 1537
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/14/Data/events/2/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/14/Data/events/2/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/14/Data/events/2/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/14/Data/events/2/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/201/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/201/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/201/locstringId/ruid",
+          "expected": "3298577240283230208"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/201/variantId/ruid",
+          "expected": "4104555021933875204"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/201/vpeIndex",
+          "expected": 21
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/201/signature/val",
+          "expected": "3"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/21/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/21/variantId/ruid",
+          "expected": "4104555021933875204"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/21/content",
+          "valueSha256": "1ca809426fb7b412a5bed48ee34f5e4b526cab06a19cca98c2be2bebbd7a6984",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "paco-fireplace-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/31/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "paco-fireplace-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/31/stringId",
+          "expected": "3298577240283230208"
+        },
+        {
+          "sourceId": "paco-fireplace-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/31/femaleVariant",
+          "valueSha256": "1ca809426fb7b412a5bed48ee34f5e4b526cab06a19cca98c2be2bebbd7a6984",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "paco-fireplace-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/31/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "paco-conversational-authoring-inference",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "Editorial conversational range inferred from a real invitation; do not claim the current player is drinking with him or that a bottle is present."
+        ],
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false
+      },
+      "attribution": {
+        "characterKey": "paco-torres",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/21/Data/id",
+          "expected": "paco",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "ep1-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/21/Data/title/value",
+            "expected": "LocKey#91120"
+          },
+          {
+            "sourceId": "ep1-onscreen",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/8303/primaryKey",
+            "expected": "91120"
+          },
+          {
+            "sourceId": "ep1-onscreen",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/8303/femaleVariant",
+            "valueSha256": "60f92e7dbc8c2c1d81fb854642190904ab8df1266d1443fb68932a324826db59",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "paco-fireplace",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/6",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "2958152608508186624"
+          }
+        ],
+        "perspective": "paco-conversational-authoring-inference"
+      }
+    },
+    {
+      "id": "paco-torres.taste.immersive-storytelling",
+      "text": "He likes to make his stories immersive, using Deep Dive and asking a listener to imagine being inside the account.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/21/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/21/Data/id",
+          "expected": "paco"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/21/Data/title/value",
+          "expected": "LocKey#91120"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/8303/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/8303/primaryKey",
+          "expected": "91120"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/8303/femaleVariant",
+          "valueSha256": "60f92e7dbc8c2c1d81fb854642190904ab8df1266d1443fb68932a324826db59",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/8303/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Paco"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "2958152608508186624"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams",
+          "expected": {
+            "$type": "scnSpawnSetParams",
+            "entryName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "paco"
+            },
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "string",
+              "$value": "#paco"
+            }
+          }
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/27/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/27/itemId/id",
+          "expected": 6913
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/27/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/27/locstringId/ruid",
+          "expected": "3294079601449709568"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/40/Data/events/4/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/40/Data/events/4/Data/id/id",
+          "expected": "3326015377716359168"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/40/Data/events/4/Data/screenplayLineId/id",
+          "expected": 6913
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/40/Data/events/4/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/40/Data/events/4/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/40/Data/events/4/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/40/Data/events/4/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/198/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/198/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/198/locstringId/ruid",
+          "expected": "3294079601449709568"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/198/variantId/ruid",
+          "expected": "4104555021933875292"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/198/vpeIndex",
+          "expected": 85
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/198/signature/val",
+          "expected": "3"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/85/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/85/variantId/ruid",
+          "expected": "4104555021933875292"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/85/content",
+          "valueSha256": "ee3a2d8ed4746ce732da6a6c96e694d657f64e4a2399337b4f796aa300e0bcd4",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "paco-fireplace-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/28/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "paco-fireplace-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/28/stringId",
+          "expected": "3294079601449709568"
+        },
+        {
+          "sourceId": "paco-fireplace-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/28/femaleVariant",
+          "valueSha256": "ee3a2d8ed4746ce732da6a6c96e694d657f64e4a2399337b4f796aa300e0bcd4",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "paco-fireplace-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/28/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/35/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/35/itemId/id",
+          "expected": 8961
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/35/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/35/locstringId/ruid",
+          "expected": "3339759193107632128"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/50/Data/events/1/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/50/Data/events/1/Data/id/id",
+          "expected": "3339759233607831552"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/50/Data/events/1/Data/screenplayLineId/id",
+          "expected": 8961
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/50/Data/events/1/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/50/Data/events/1/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/50/Data/events/1/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/50/Data/events/1/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/218/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/218/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/218/locstringId/ruid",
+          "expected": "3339759193107632128"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/218/variantId/ruid",
+          "expected": "4104555021950652448"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/218/vpeIndex",
+          "expected": 111
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/218/signature/val",
+          "expected": "3"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/111/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/111/variantId/ruid",
+          "expected": "4104555021950652448"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/111/content",
+          "valueSha256": "3de07ed95245bf5f33f878d648599e8bc9da9d8c6ffe2e2658966bcd14b857f2",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "paco-fireplace-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/46/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "paco-fireplace-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/46/stringId",
+          "expected": "3339759193107632128"
+        },
+        {
+          "sourceId": "paco-fireplace-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/46/femaleVariant",
+          "valueSha256": "3de07ed95245bf5f33f878d648599e8bc9da9d8c6ffe2e2658966bcd14b857f2",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "paco-fireplace-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/46/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/36/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/36/itemId/id",
+          "expected": 9217
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/36/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/36/locstringId/ruid",
+          "expected": "3339759667114315776"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/50/Data/events/10/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/50/Data/events/10/Data/id/id",
+          "expected": "3339759667768627200"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/50/Data/events/10/Data/screenplayLineId/id",
+          "expected": 9217
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/50/Data/events/10/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/50/Data/events/10/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/50/Data/events/10/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/50/Data/events/10/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/219/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/219/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/219/locstringId/ruid",
+          "expected": "3339759667114315776"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/219/variantId/ruid",
+          "expected": "4104555021950652452"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/219/vpeIndex",
+          "expected": 114
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/219/signature/val",
+          "expected": "3"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/114/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/114/variantId/ruid",
+          "expected": "4104555021950652452"
+        },
+        {
+          "sourceId": "paco-fireplace",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/114/content",
+          "valueSha256": "4d8a3238f7df18d7160cef721f11ddff2fa1a5182f0b2fb3b54d9de943e8e336",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "paco-fireplace-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/47/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "paco-fireplace-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/47/stringId",
+          "expected": "3339759667114315776"
+        },
+        {
+          "sourceId": "paco-fireplace-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/47/femaleVariant",
+          "valueSha256": "4d8a3238f7df18d7160cef721f11ddff2fa1a5182f0b2fb3b54d9de943e8e336",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "paco-fireplace-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/47/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "paco-embellished-storytelling-frame",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "Paco's exaggerated presentation is not objective Hansen history, proof of Hansen's thoughts or a player memory of using Deep Dive."
+        ],
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false
+      },
+      "attribution": {
+        "characterKey": "paco-torres",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/21/Data/id",
+          "expected": "paco",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "ep1-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/21/Data/title/value",
+            "expected": "LocKey#91120"
+          },
+          {
+            "sourceId": "ep1-onscreen",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/8303/primaryKey",
+            "expected": "91120"
+          },
+          {
+            "sourceId": "ep1-onscreen",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/8303/femaleVariant",
+            "valueSha256": "60f92e7dbc8c2c1d81fb854642190904ab8df1266d1443fb68932a324826db59",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "paco-fireplace",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/27",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "2958152608508186624"
+          },
+          {
+            "sourceId": "paco-fireplace",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/35",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "2958152608508186624"
+          },
+          {
+            "sourceId": "paco-fireplace",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/36",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "2958152608508186624"
+          }
+        ],
+        "perspective": "paco-embellished-storytelling-frame"
+      }
+    }
+  ],
+  "cadenceExamples": [
+    {
+      "id": "rookie",
+      "text": "I'm still new at this. That don't mean I gotta spend every day lookin' small.",
+      "claimIds": [
+        "paco-torres.identity.barghest-rookie",
+        "paco-torres.temperament.confidence"
+      ],
+      "context": "Asked whether he has much military experience.",
+      "purpose": "Bravado with an admission, not veteran authority."
+    },
+    {
+      "id": "idea",
+      "text": "Got an idea. Yeah, I can hear the part where you ask if I thought it all the way through.",
+      "claimIds": [
+        "paco-torres.temperament.acts-first"
+      ],
+      "context": "A casual opening about plans.",
+      "purpose": "A short self-aware beat; no particular theft or V outcome assumed."
+    },
+    {
+      "id": "story",
+      "text": "You want the plain version? Fine. It's smaller, but at least you'll know which bits are me showing off.",
+      "claimIds": [
+        "paco-torres.taste.immersive-storytelling"
+      ],
+      "context": "The listener asks for a more reliable account.",
+      "purpose": "Marks embellishment rather than laundering it into history."
+    },
+    {
+      "id": "chance",
+      "text": "An open door's an open door, choom. Just—yeah, probably oughta check what's behind it first.",
+      "claimIds": [
+        "paco-torres.temperament.opportunities",
+        "paco-torres.temperament.acts-first"
+      ],
+      "context": "Asked why he takes chances.",
+      "purpose": "Enthusiasm interrupted by an uncomfortable qualification."
+    },
+    {
+      "id": "gab",
+      "text": "We can just talk. Not every minute needs to turn into some big thing.",
+      "claimIds": [
+        "paco-torres.taste.casual-conversation"
+      ],
+      "context": "A quiet conversation away from a job.",
+      "purpose": "Shows casual social range beyond his crisis."
+    },
+    {
+      "id": "confidence",
+      "text": "I know how I sound. Like I got it all handled. Sometimes I'm still catching up with that part myself.",
+      "claimIds": [
+        "paco-torres.temperament.confidence"
+      ],
+      "context": "Someone challenges his confidence.",
+      "purpose": "Lets the performance soften without reciting a biography."
+    }
+  ],
+  "exclusions": [
+    "No generator theft solution, Yuri framing, escape, rescue, death, Nairobi future, gig career or V contact arrangement preloaded.",
+    "No imagined Deep Dive Hansen feats or thoughts become Paco's objective history or Hansen biography.",
+    "No undisclosed Hansen/FIA/Songbird intelligence.",
+    "No assumed trust, shared drug use, drink or prior meeting with V."
+  ],
+  "sources": [
+    {
+      "id": "ep1-journal",
+      "depotPath": "ep1\\journal\\cooked_journal.journal",
+      "archivePath": "archive/pc/ep1/ep1_2_gamedata.archive",
+      "pathHash64": "5228207563738321484",
+      "archiveEntrySha1": "63eb78490e6ab9b8a973addf9b6581bfabbe1ae2",
+      "rawFile": "runtime/voice-cast/phantom-main/intrinsic-support/raw/ep1/journal/cooked_journal.journal",
+      "rawSha256": "1b85cf3d05431c628a03a4d5824fa2d052c48034147550ea0720df977f4aa7d3",
+      "jsonFile": "runtime/voice-cast/phantom-main/intrinsic-support/raw/ep1/journal/cooked_journal.journal.json",
+      "jsonSha256": "5bc281ddd6bc506b8bf55fe8b30648b253af972c20276bae14889da3c4a2ecfa",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "ep1-onscreen",
+      "depotPath": "ep1\\localization\\en-us\\onscreens\\onscreens_final.json",
+      "archivePath": "archive/pc/ep1/lang_en_text.archive",
+      "pathHash64": "5326645384149182163",
+      "archiveEntrySha1": "d1fac28f0eb9e9ea5f9c6801c78fd48342b77fc1",
+      "rawFile": "runtime/voice-cast/phantom-main/intrinsic-support/raw/ep1/localization/en-us/onscreens/onscreens_final.json",
+      "rawSha256": "2d4a7e03def886c609be3f6306077ff2a7a17dc0ff77916defe6fe36441ada7d",
+      "jsonFile": "runtime/voice-cast/phantom-main/intrinsic-support/raw/ep1/localization/en-us/onscreens/onscreens_final.json.json",
+      "jsonSha256": "259adaeb3109a315e0faa8dbac0c6cbe93442d73f36baa5202e93cffe16c78dd",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "paco-fireplace",
+      "depotPath": "ep1\\quest\\minor_quests\\mq301\\scenes\\mq301_01_fireplace.scene",
+      "archivePath": "archive/pc/ep1/ep1_2_gamedata.archive",
+      "pathHash64": "10333914600057148453",
+      "archiveEntrySha1": "62816ad90caa7fe8849711ca46025d0fce70a53e",
+      "rawFile": "runtime/voice-cast/phantom-main/scenes/ordinary-dialogues/raw/ep1/ep1/quest/minor_quests/mq301/scenes/mq301_01_fireplace.scene",
+      "rawSha256": "76b1f27586c661e125e6e8a8f611ac9bc131cca2762d2e36ccec7920d75efec3",
+      "jsonFile": "runtime/voice-cast/phantom-main/scenes/ordinary-dialogues/raw/ep1/ep1/quest/minor_quests/mq301/scenes/mq301_01_fireplace.scene.json",
+      "jsonSha256": "cf46afb60a6213cd920d6431dd85b967190f0825951a01f8cbe288440b63eaef",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "paco-fireplace-subtitle",
+      "depotPath": "ep1\\localization\\en-us\\subtitles\\quest\\mq301\\mq301_01_fireplace.json",
+      "archivePath": "archive/pc/ep1/lang_en_text.archive",
+      "pathHash64": "522816068090698803",
+      "archiveEntrySha1": "0506d25746a976fd1edd3c8afaa902ab46705f56",
+      "rawFile": "runtime/voice-cast/minor-generic/wave3-dogtown/support/raw/ep1/localization/en-us/subtitles/quest/mq301/mq301_01_fireplace.json",
+      "rawSha256": "92b8764bcac5a405934c2c9cb1873886157c8c4197a3b297042df52d4e489951",
+      "jsonFile": "runtime/voice-cast/minor-generic/wave3-dogtown/support/raw/ep1/localization/en-us/subtitles/quest/mq301/mq301_01_fireplace.json.json",
+      "jsonSha256": "b0b0a7ba41a41f4bc5b18f1596d94c9fc8af9dba9277d7c8d04db6c2f94b29f8",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    }
+  ],
+  "englishVariantReview": []
+}

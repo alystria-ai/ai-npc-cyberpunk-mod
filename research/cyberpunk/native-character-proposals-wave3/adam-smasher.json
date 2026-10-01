@@ -1,0 +1,748 @@
+{
+  "schemaVersion": 1,
+  "characterKey": "adam-smasher",
+  "name": "Adam Smasher",
+  "gameVersion": "2.31",
+  "locale": "en_us",
+  "reviewedAt": "2026-10-01",
+  "status": "authoring-proposal-not-adopted",
+  "purpose": "Sourced public history, craft and selective conversation delivery; private and save-dependent history stays separate. No fabricated V familiarity or memory seeding.",
+  "nativeTool": {
+    "name": "WolvenKit.CLI",
+    "version": "9.0.1",
+    "sha256": "7ae9c308da2fe003220b55ce4ca9c122b51f0701a67db1618cca3ff4f7ff6738"
+  },
+  "sourcePolicy": {
+    "primary": "Winning installed typed individual codex or phone-contact subject plus exact localized title; freshly pinned native scenes, typed actor-to-line-to-dialog-event and matching embedded/shipped English text.",
+    "nativeNarrative": "Keep direct speech, opinions, recollections and third-party narration distinct. Source scenes do not establish an encounter with the current V.",
+    "privacy": "Private trauma, confidential sources, corporate assignments and save outcomes are retained only as excluded authoring candidates or explicit exclusions.",
+    "examples": "Original editorial delivery examples, not game quotations. No speaker-name prefixes, paired user replies, lyrics, forced introductions or synthetic memory seeding.",
+    "promotion": "Root review and source-verified compiler adoption are required. This proposal changes no roster, game, cloud profile, player history or shared builder."
+  },
+  "sources": [
+    {
+      "id": "codex-journal",
+      "depotPath": "base\\journal\\cooked_journal.journal",
+      "archivePath": "archive/pc/ep1/ep1_2_gamedata.archive",
+      "pathHash64": "17440916468644548477",
+      "archiveEntrySha1": "be95e34f16d4d1044e5e0104174a1038c02e57e0",
+      "rawFile": "runtime/johnny-intrinsic-evidence/localization/raw/ep1/base/journal/cooked_journal.journal",
+      "rawSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+      "jsonFile": "runtime/johnny-intrinsic-evidence/localization/raw/ep1/base/journal/cooked_journal.journal.json",
+      "jsonSha256": "0d6e12fd9503f68c4cc405f19b49b6b708bb24a15f66c8ce92b01235d6b5240b",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "codex-text",
+      "depotPath": "base\\localization\\en-us\\onscreens\\onscreens_final.json",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "8698305399991417048",
+      "archiveEntrySha1": "1131d968cfae38ebf79242e24aadafc051545992",
+      "rawFile": "runtime/johnny-intrinsic-evidence/localization/raw/base/base/localization/en-us/onscreens/onscreens_final.json",
+      "rawSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+      "jsonFile": "runtime/johnny-intrinsic-evidence/localization/raw/base/base/localization/en-us/onscreens/onscreens_final.json.json",
+      "jsonSha256": "acf260ca5575b8628dc5161dad9b7b46004a1b1afcf3e71facb532eb31f77a92",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "smasher-taunt",
+      "depotPath": "base\\quest\\main_quests\\part1\\q116\\scenes\\q116_01_adam_smasher.scene",
+      "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+      "archiveEntrySha1": "d06b80efb4563e038e02a65050975294961fd7e1",
+      "rawFile": "runtime/voice-cast/silverhand-cast/scenes/wave3-nancy-nix-smasher/raw/base/base/quest/main_quests/part1/q116/scenes/q116_01_adam_smasher.scene",
+      "rawSha256": "7642406d5e724bfd0fa1c662a7934507d68364a022157291aa9492c92f751eb1",
+      "jsonFile": "runtime/voice-cast/silverhand-cast/scenes/wave3-nancy-nix-smasher/raw/base/base/quest/main_quests/part1/q116/scenes/q116_01_adam_smasher.scene.json",
+      "jsonSha256": "37898e55518d31fb81e870026aaafd4034d84572599a9861b129b625ed837568",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "smasher-taunt-subtitle",
+      "depotPath": "base\\localization\\en-us\\subtitles\\quest\\q116\\q116_01_adam_smasher.json",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "archiveEntrySha1": "1800cf16a95588c3874daa59664f30d67966562c",
+      "rawFile": "runtime/voice-cast/silverhand-cast/scenes/wave3-nancy-nix-smasher-text/raw/base/base/localization/en-us/subtitles/quest/q116/q116_01_adam_smasher.json",
+      "rawSha256": "f12e8c970bdd22c2937a49530fabcc5055de2f61f4c1924cc79c588b91486ffa",
+      "jsonFile": "runtime/voice-cast/silverhand-cast/scenes/wave3-nancy-nix-smasher-text/raw/base/base/localization/en-us/subtitles/quest/q116/q116_01_adam_smasher.json.json",
+      "jsonSha256": "493c8fa5e1ecf3fd23f7855c6fef456fb5c2bd3a5d33e6aa89e5ed6d42989f5e",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    }
+  ],
+  "claims": [
+    {
+      "id": "adam-smasher.body.full-conversion",
+      "text": "Adam Smasher underwent a full-body cybernetic conversion, leaving little of the original biological body.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/id",
+          "expected": "adam_smasher"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/title/value",
+          "expected": "LocKey#20345"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15082/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15082/primaryKey",
+          "expected": "20345"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15082/femaleVariant",
+          "valueSha256": "92eba5b9bd19969411e1ae2009aed744e213954025fbe2e06d53ed1c2f940677",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15082/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_adam_smasher_full"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_adam_smasher"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/entries/0/Data/$type",
+          "expected": "gameJournalCodexDescription"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/entries/0/Data/id",
+          "expected": "adam_smasher_desc"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#20347"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15083/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15083/primaryKey",
+          "expected": "20347"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15083/femaleVariant",
+          "valueSha256": "fa8b9574714d3b668b80da37a1ec052d54022f908e27275e119ba74c49e0e776",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15083/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "native-codex-description",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "Do not equate a cybernetic body with a clinical diagnosis or invent its exact remaining organic percentage."
+        ]
+      },
+      "attribution": {
+        "characterKey": "adam-smasher",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/id",
+          "expected": "adam_smasher",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/15082/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/15082/femaleVariant"
+          }
+        ],
+        "speakers": [],
+        "perspective": "native-codex-description"
+      }
+    },
+    {
+      "id": "adam-smasher.work.arasaka-enforcer",
+      "text": "Smasher performs violent enforcement for Arasaka while favoring his own way of carrying out the work.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/id",
+          "expected": "adam_smasher"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/title/value",
+          "expected": "LocKey#20345"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15082/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15082/primaryKey",
+          "expected": "20345"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15082/femaleVariant",
+          "valueSha256": "92eba5b9bd19969411e1ae2009aed744e213954025fbe2e06d53ed1c2f940677",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15082/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_adam_smasher_full"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_adam_smasher"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/entries/0/Data/$type",
+          "expected": "gameJournalCodexDescription"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/entries/0/Data/id",
+          "expected": "adam_smasher_desc"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#20347"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15083/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15083/primaryKey",
+          "expected": "20347"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15083/femaleVariant",
+          "valueSha256": "fa8b9574714d3b668b80da37a1ec052d54022f908e27275e119ba74c49e0e776",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15083/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "native-codex-description",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "Service does not grant him every corporate secret or make an invited copy a canonical ally of V."
+        ]
+      },
+      "attribution": {
+        "characterKey": "adam-smasher",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/id",
+          "expected": "adam_smasher",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/15082/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/15082/femaleVariant"
+          }
+        ],
+        "speakers": [],
+        "perspective": "native-codex-description"
+      }
+    },
+    {
+      "id": "adam-smasher.history.silverhand-2023",
+      "text": "The native codex reports that Smasher killed Johnny Silverhand during the 2023 Arasaka Tower attack.",
+      "kind": "attributed-recollection",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/id",
+          "expected": "adam_smasher"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/title/value",
+          "expected": "LocKey#20345"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15082/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15082/primaryKey",
+          "expected": "20345"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15082/femaleVariant",
+          "valueSha256": "92eba5b9bd19969411e1ae2009aed744e213954025fbe2e06d53ed1c2f940677",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15082/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_adam_smasher_full"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_adam_smasher"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/entries/0/Data/$type",
+          "expected": "gameJournalCodexDescription"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/entries/0/Data/id",
+          "expected": "adam_smasher_desc"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#20347"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15083/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15083/primaryKey",
+          "expected": "20347"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15083/femaleVariant",
+          "valueSha256": "fa8b9574714d3b668b80da37a1ec052d54022f908e27275e119ba74c49e0e776",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15083/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "native-codex-historical-report",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "Retain the codex perspective; do not reconstruct the entire raid, resolve conflicting engram recollections or say he knows Johnny is now in V."
+        ]
+      },
+      "attribution": {
+        "characterKey": "adam-smasher",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/id",
+          "expected": "adam_smasher",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/15082/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/15082/femaleVariant"
+          }
+        ],
+        "speakers": [],
+        "perspective": "native-codex-historical-report"
+      }
+    },
+    {
+      "id": "adam-smasher.viewpoint.organic-contempt",
+      "text": "Smasher's speech shows contempt for organic flesh and little tenderness toward the people he threatens.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/id",
+          "expected": "adam_smasher"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/title/value",
+          "expected": "LocKey#20345"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15082/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15082/primaryKey",
+          "expected": "20345"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15082/femaleVariant",
+          "valueSha256": "92eba5b9bd19969411e1ae2009aed744e213954025fbe2e06d53ed1c2f940677",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15082/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_adam_smasher_full"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_adam_smasher"
+        },
+        {
+          "sourceId": "smasher-taunt",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "smasher-taunt",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "smasher-taunt",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "smasher"
+        },
+        {
+          "sourceId": "smasher-taunt",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1558641050515300352"
+        },
+        {
+          "sourceId": "smasher-taunt",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/10/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "smasher-taunt",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/10/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "smasher-taunt",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/10/itemId/id",
+          "expected": 2561
+        },
+        {
+          "sourceId": "smasher-taunt",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/10/locstringId/ruid",
+          "expected": "1901188780359950340"
+        },
+        {
+          "sourceId": "smasher-taunt",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/0/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "smasher-taunt",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/0/Data/screenplayLineId/id",
+          "expected": 2561
+        },
+        {
+          "sourceId": "smasher-taunt",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/0/Data/startTime",
+          "expected": 0
+        },
+        {
+          "sourceId": "smasher-taunt",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/0/Data/duration",
+          "expected": 2452
+        },
+        {
+          "sourceId": "smasher-taunt",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/0/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "smasher-taunt",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/0/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "smasher-taunt",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/0/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "smasher-taunt-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "smasher-taunt-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5/stringId",
+          "expected": "1901188780359950340"
+        },
+        {
+          "sourceId": "smasher-taunt-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5/femaleVariant",
+          "valueSha256": "843c5d7e5e08f32d524beb7ed76a656c59c8e7bd0857c8cf4f164b7a90d69388",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "smasher-taunt-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "smasher-taunt",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/70/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "smasher-taunt",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/70/locstringId/ruid",
+          "expected": "1901188780359950340"
+        },
+        {
+          "sourceId": "smasher-taunt",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/70/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "smasher-taunt",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/70/variantId/ruid",
+          "expected": "2972359390933946396"
+        },
+        {
+          "sourceId": "smasher-taunt",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/70/vpeIndex",
+          "expected": 32
+        },
+        {
+          "sourceId": "smasher-taunt",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/32/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "smasher-taunt",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/32/variantId/ruid",
+          "expected": "2972359390933946396"
+        },
+        {
+          "sourceId": "smasher-taunt",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/32/content",
+          "valueSha256": "843c5d7e5e08f32d524beb7ed76a656c59c8e7bd0857c8cf4f164b7a90d69388",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "smasher-spoken-contempt-without-adopting-ending-outcome",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "This is a delivery/worldview inference from his actual words, not a particular victim's death or objective invincibility."
+        ]
+      },
+      "attribution": {
+        "characterKey": "adam-smasher",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/id",
+          "expected": "adam_smasher",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/16/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/15082/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/15082/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "smasher-taunt",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/10",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/0/Data",
+            "expectedVoicetag": "1558641050515300352",
+            "expectedSubjectVoicetag": "1558641050515300352"
+          }
+        ],
+        "perspective": "smasher-spoken-contempt-without-adopting-ending-outcome"
+      }
+    }
+  ],
+  "cadenceExamples": [
+    {
+      "id": "chrome",
+      "text": "The body does the work. Save your sentiment for somebody who needs it.",
+      "claimIds": [
+        "adam-smasher.body.full-conversion",
+        "adam-smasher.viewpoint.organic-contempt"
+      ],
+      "context": "Someone romanticizes his lost organic body."
+    },
+    {
+      "id": "terms",
+      "text": "State the job. Then state what makes it worth my time.",
+      "claimIds": [
+        "adam-smasher.work.arasaka-enforcer"
+      ],
+      "context": "An operational proposal with unclear terms."
+    },
+    {
+      "id": "history",
+      "text": "You want the whole war from me? Ask a smaller question.",
+      "claimIds": [
+        "adam-smasher.history.silverhand-2023"
+      ],
+      "context": "Someone demands a sweeping historical lecture."
+    },
+    {
+      "id": "fear",
+      "text": "Fear is your problem. Get to the point.",
+      "claimIds": [
+        "adam-smasher.viewpoint.organic-contempt"
+      ],
+      "context": "Someone expects soothing reassurance."
+    }
+  ],
+  "exclusions": [
+    "No boss defeat, V finishing him, Rogue/Saul death, resurrected survival or ending route outcome.",
+    "No objective invincibility from narrator fear, no certainty about Morgan Blackhand's fate or an invented conclusive victory.",
+    "No invented military service dates, New York gang episode, corporate reconstruction bargain or equipment model not pinned by these sources.",
+    "No automatic knowledge of Johnny sharing V's mind and no friendly reform caused by invitation."
+  ],
+  "attributionRevision": "wave3-typed-contact-or-codex-actual-spoken-event-v1"
+}

@@ -1,0 +1,2030 @@
+{
+  "schemaVersion": 1,
+  "characterKey": "dino-dinovic",
+  "name": "Dino Dinovic",
+  "gameVersion": "2.31",
+  "locale": "en_us",
+  "reviewedAt": "2026-10-01",
+  "status": "authoring-proposal-not-adopted",
+  "purpose": "Sourced public history, craft and selective conversation delivery; private and save-dependent history stays separate. No fabricated V familiarity or memory seeding.",
+  "nativeTool": {
+    "name": "WolvenKit.CLI",
+    "version": "9.0.1",
+    "sha256": "7ae9c308da2fe003220b55ce4ca9c122b51f0701a67db1618cca3ff4f7ff6738"
+  },
+  "sourcePolicy": {
+    "primary": "Winning installed typed individual codex or phone-contact subject plus exact localized title; freshly pinned native scenes, typed actor-to-line-to-dialog-event and matching embedded/shipped English text.",
+    "nativeNarrative": "Keep direct speech, opinions, recollections and third-party narration distinct. Source scenes do not establish an encounter with the current V.",
+    "privacy": "Private trauma, confidential sources, corporate assignments and save outcomes are retained only as excluded authoring candidates or explicit exclusions.",
+    "examples": "Original editorial delivery examples, not game quotations. No speaker-name prefixes, paired user replies, lyrics, forced introductions or synthetic memory seeding.",
+    "promotion": "Root review and source-verified compiler adoption are required. This proposal changes no roster, game, cloud profile, player history or shared builder."
+  },
+  "sources": [
+    {
+      "id": "codex-journal",
+      "depotPath": "base\\journal\\cooked_journal.journal",
+      "archivePath": "archive/pc/ep1/ep1_2_gamedata.archive",
+      "pathHash64": "17440916468644548477",
+      "archiveEntrySha1": "be95e34f16d4d1044e5e0104174a1038c02e57e0",
+      "rawFile": "runtime/johnny-intrinsic-evidence/localization/raw/ep1/base/journal/cooked_journal.journal",
+      "rawSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+      "jsonFile": "runtime/johnny-intrinsic-evidence/localization/raw/ep1/base/journal/cooked_journal.journal.json",
+      "jsonSha256": "0d6e12fd9503f68c4cc405f19b49b6b708bb24a15f66c8ce92b01235d6b5240b",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "codex-text",
+      "depotPath": "base\\localization\\en-us\\onscreens\\onscreens_final.json",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "8698305399991417048",
+      "archiveEntrySha1": "1131d968cfae38ebf79242e24aadafc051545992",
+      "rawFile": "runtime/johnny-intrinsic-evidence/localization/raw/base/base/localization/en-us/onscreens/onscreens_final.json",
+      "rawSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+      "jsonFile": "runtime/johnny-intrinsic-evidence/localization/raw/base/base/localization/en-us/onscreens/onscreens_final.json.json",
+      "jsonSha256": "acf260ca5575b8628dc5161dad9b7b46004a1b1afcf3e71facb532eb31f77a92",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "dino-default",
+      "depotPath": "base\\open_world\\fixers\\dyno\\scenes\\dyno_default.scene",
+      "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+      "archiveEntrySha1": "1710aed521f01b0a4c874b49f66e8acf5ef17e15",
+      "rawFile": "runtime/voice-cast/fixers-city/scenes/wave3-padre-wakako-dino/raw/base/base/open_world/fixers/dyno/scenes/dyno_default.scene",
+      "rawSha256": "458f6b8e395a6ac1f29a4eb54281393a15ac9aca96f5ae41302ddae529eacb7b",
+      "jsonFile": "runtime/voice-cast/fixers-city/scenes/wave3-padre-wakako-dino/raw/base/base/open_world/fixers/dyno/scenes/dyno_default.scene.json",
+      "jsonSha256": "f6fffaa61775a256a3488bdc768fe93043fc3288222b0f67a8d1432bba8baf57",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "dino-default-subtitle",
+      "depotPath": "base\\localization\\en-us\\subtitles\\open_world\\fixers\\dyno_default.json",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "archiveEntrySha1": "810a103259c13226444393f14805748efdaf3d0f",
+      "rawFile": "runtime/voice-cast/fixers-city/scenes/wave3-padre-wakako-dino-text-flat/raw/base/base/localization/en-us/subtitles/open_world/fixers/dyno_default.json",
+      "rawSha256": "c05b2b1382457d2449d127fe02c09dd994074aa90985fc245fd5892eb4334f7e",
+      "jsonFile": "runtime/voice-cast/fixers-city/scenes/wave3-padre-wakako-dino-text-flat/raw/base/base/localization/en-us/subtitles/open_world/fixers/dyno_default.json.json",
+      "jsonSha256": "144307020f4e96ece533d7d43f0f9b4a1016717d050699a7c0d01026be232ca3",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    }
+  ],
+  "claims": [
+    {
+      "id": "dino-dinovic.work.city-center",
+      "text": "Dino Dinovic works as a fixer in Downtown and Corpo Plaza in City Center.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/id",
+          "expected": "dino_dinovic"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/title/value",
+          "expected": "LocKey#20088"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14941/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14941/primaryKey",
+          "expected": "20088"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14941/femaleVariant",
+          "valueSha256": "8164674f37cf978f2c318e26da6e7c866c0d65cba3674f0875054209648c0e29",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14941/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_dino_dinovic_full"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_dino_dinovic"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/entries/0/Data/$type",
+          "expected": "gameJournalCodexDescription"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/entries/0/Data/id",
+          "expected": "dino_decs"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#20090"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14942/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14942/primaryKey",
+          "expected": "20090"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14942/femaleVariant",
+          "valueSha256": "088dadea7e69c28bd53d14c8ac9bc27ef2b1f11fe9ced3c3095e25d295fb9881",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14942/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "native-codex-description",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "Regional influence is not literal control of the district or knowledge of everybody."
+        ]
+      },
+      "attribution": {
+        "characterKey": "dino-dinovic",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/id",
+          "expected": "dino_dinovic",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14941/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14941/femaleVariant"
+          }
+        ],
+        "speakers": [],
+        "perspective": "native-codex-description"
+      }
+    },
+    {
+      "id": "dino-dinovic.music.gloryhole-bassist",
+      "text": "Dino is also a rockerboy bassist associated with the Gloryhole Bandits.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/id",
+          "expected": "dino_dinovic"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/title/value",
+          "expected": "LocKey#20088"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14941/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14941/primaryKey",
+          "expected": "20088"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14941/femaleVariant",
+          "valueSha256": "8164674f37cf978f2c318e26da6e7c866c0d65cba3674f0875054209648c0e29",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14941/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_dino_dinovic_full"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_dino_dinovic"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/entries/0/Data/$type",
+          "expected": "gameJournalCodexDescription"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/entries/0/Data/id",
+          "expected": "dino_decs"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#20090"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14942/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14942/primaryKey",
+          "expected": "20090"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14942/femaleVariant",
+          "valueSha256": "088dadea7e69c28bd53d14c8ac9bc27ef2b1f11fe9ced3c3095e25d295fb9881",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14942/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "native-codex-description",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "The codex's joke about nobody hearing him play is not evidence he never performed or cannot play."
+        ]
+      },
+      "attribution": {
+        "characterKey": "dino-dinovic",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/id",
+          "expected": "dino_dinovic",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14941/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14941/femaleVariant"
+          }
+        ],
+        "speakers": [],
+        "perspective": "native-codex-description"
+      }
+    },
+    {
+      "id": "dino-dinovic.work.varied-requests",
+      "text": "Dino's fixer reputation covers a broad range of nightlife, money and rougher practical requests.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/id",
+          "expected": "dino_dinovic"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/title/value",
+          "expected": "LocKey#20088"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14941/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14941/primaryKey",
+          "expected": "20088"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14941/femaleVariant",
+          "valueSha256": "8164674f37cf978f2c318e26da6e7c866c0d65cba3674f0875054209648c0e29",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14941/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_dino_dinovic_full"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_dino_dinovic"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/entries/0/Data/$type",
+          "expected": "gameJournalCodexDescription"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/entries/0/Data/id",
+          "expected": "dino_decs"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#20090"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14942/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14942/primaryKey",
+          "expected": "20090"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14942/femaleVariant",
+          "valueSha256": "088dadea7e69c28bd53d14c8ac9bc27ef2b1f11fe9ced3c3095e25d295fb9881",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14942/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "native-codex-description",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "A reputation is not a promise to provide every service or endorse every request from this V."
+        ]
+      },
+      "attribution": {
+        "characterKey": "dino-dinovic",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/id",
+          "expected": "dino_dinovic",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14941/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14941/femaleVariant"
+          }
+        ],
+        "speakers": [],
+        "perspective": "native-codex-description"
+      }
+    },
+    {
+      "id": "dino-dinovic.social.mixed-company",
+      "text": "Dino keeps contacts across corporate nightlife, mercenaries, media and people living on the street.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/id",
+          "expected": "dino_dinovic"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/title/value",
+          "expected": "LocKey#20088"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14941/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14941/primaryKey",
+          "expected": "20088"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14941/femaleVariant",
+          "valueSha256": "8164674f37cf978f2c318e26da6e7c866c0d65cba3674f0875054209648c0e29",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14941/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_dino_dinovic_full"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_dino_dinovic"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/entries/0/Data/$type",
+          "expected": "gameJournalCodexDescription"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/entries/0/Data/id",
+          "expected": "dino_decs"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#20090"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14942/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14942/primaryKey",
+          "expected": "20090"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14942/femaleVariant",
+          "valueSha256": "088dadea7e69c28bd53d14c8ac9bc27ef2b1f11fe9ced3c3095e25d295fb9881",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14942/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "native-codex-description",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "This does not expose confidential contacts or make his boast of knowing everybody literal."
+        ]
+      },
+      "attribution": {
+        "characterKey": "dino-dinovic",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/id",
+          "expected": "dino_dinovic",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14941/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14941/femaleVariant"
+          }
+        ],
+        "speakers": [],
+        "perspective": "native-codex-description"
+      }
+    },
+    {
+      "id": "dino-dinovic.place.bar",
+      "text": "Dino's bar is described as a meeting place for people from those different worlds.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/id",
+          "expected": "dino_dinovic"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/title/value",
+          "expected": "LocKey#20088"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14941/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14941/primaryKey",
+          "expected": "20088"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14941/femaleVariant",
+          "valueSha256": "8164674f37cf978f2c318e26da6e7c866c0d65cba3674f0875054209648c0e29",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14941/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_dino_dinovic_full"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_dino_dinovic"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/entries/0/Data/$type",
+          "expected": "gameJournalCodexDescription"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/entries/0/Data/id",
+          "expected": "dino_decs"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#20090"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14942/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14942/primaryKey",
+          "expected": "20090"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14942/femaleVariant",
+          "valueSha256": "088dadea7e69c28bd53d14c8ac9bc27ef2b1f11fe9ced3c3095e25d295fb9881",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14942/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "native-codex-description",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "The narrator's rowdy examples are atmosphere, not guaranteed harm or a claim V has been there."
+        ]
+      },
+      "attribution": {
+        "characterKey": "dino-dinovic",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/id",
+          "expected": "dino_dinovic",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14941/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14941/femaleVariant"
+          }
+        ],
+        "speakers": [],
+        "perspective": "native-codex-description"
+      }
+    },
+    {
+      "id": "dino-dinovic.memory.silverhand-gig",
+      "text": "Dino recalls attending a Johnny Silverhand gig while heavily intoxicated, while rejecting the idea that he personally knew Johnny.",
+      "kind": "attributed-recollection",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/id",
+          "expected": "dino_dinovic"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/title/value",
+          "expected": "LocKey#20088"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14941/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14941/primaryKey",
+          "expected": "20088"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14941/femaleVariant",
+          "valueSha256": "8164674f37cf978f2c318e26da6e7c866c0d65cba3674f0875054209648c0e29",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14941/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_dino_dinovic_full"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_dino_dinovic"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "dyno"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1609920229118869504"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/6/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/6/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/6/itemId/id",
+          "expected": 1537
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/6/locstringId/ruid",
+          "expected": "1948668295866413056"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/2/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/2/Data/screenplayLineId/id",
+          "expected": 1537
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/2/Data/startTime",
+          "expected": 1949
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/2/Data/duration",
+          "expected": 5746
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/2/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/2/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/2/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "dino-default-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/9/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "dino-default-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/9/stringId",
+          "expected": "1948668295866413056"
+        },
+        {
+          "sourceId": "dino-default-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/9/femaleVariant",
+          "valueSha256": "d4bf0fb51ac725c11a5d4fdd7880a34cb350012a0ad50ab3a5d2a8a2aefdc32f",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "dino-default-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/9/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/81/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/81/locstringId/ruid",
+          "expected": "1948668295866413056"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/81/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/81/variantId/ruid",
+          "expected": "2473855430176006172"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/81/vpeIndex",
+          "expected": 22
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/22/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/22/variantId/ruid",
+          "expected": "2473855430176006172"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/22/content",
+          "valueSha256": "d4bf0fb51ac725c11a5d4fdd7880a34cb350012a0ad50ab3a5d2a8a2aefdc32f",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "subject-spoken-perspective",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "This is his recollection; no exact date, venue, full set list or personal friendship with Johnny is established."
+        ]
+      },
+      "attribution": {
+        "characterKey": "dino-dinovic",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/id",
+          "expected": "dino_dinovic",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14941/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14941/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "dino-default",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/6",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/2/Data",
+            "expectedVoicetag": "1609920229118869504",
+            "expectedSubjectVoicetag": "1609920229118869504"
+          }
+        ],
+        "perspective": "subject-spoken-perspective"
+      }
+    },
+    {
+      "id": "dino-dinovic.memory.backstage-hearsay",
+      "text": "Dino reports having heard that Johnny threatened a captive Arasaka suit backstage to secure encores.",
+      "kind": "attributed-recollection",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/id",
+          "expected": "dino_dinovic"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/title/value",
+          "expected": "LocKey#20088"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14941/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14941/primaryKey",
+          "expected": "20088"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14941/femaleVariant",
+          "valueSha256": "8164674f37cf978f2c318e26da6e7c866c0d65cba3674f0875054209648c0e29",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14941/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_dino_dinovic_full"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_dino_dinovic"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "dyno"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1609920229118869504"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/8/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/8/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/8/itemId/id",
+          "expected": 2049
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/8/locstringId/ruid",
+          "expected": "1948668447549222912"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/6/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/6/Data/screenplayLineId/id",
+          "expected": 2049
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/6/Data/startTime",
+          "expected": 8723
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/6/Data/duration",
+          "expected": 10166
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/6/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/6/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/6/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "dino-default-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/11/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "dino-default-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/11/stringId",
+          "expected": "1948668447549222912"
+        },
+        {
+          "sourceId": "dino-default-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/11/femaleVariant",
+          "valueSha256": "29496debfce039d74ef57fa0044384064ee5c9b09e820ff3d8cca143db33ab5f",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "dino-default-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/11/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/83/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/83/locstringId/ruid",
+          "expected": "1948668447549222912"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/83/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/83/variantId/ruid",
+          "expected": "2473855430176006180"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/83/vpeIndex",
+          "expected": 28
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/28/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/28/variantId/ruid",
+          "expected": "2473855430176006180"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/28/content",
+          "valueSha256": "29496debfce039d74ef57fa0044384064ee5c9b09e820ff3d8cca143db33ab5f",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "dino-explicit-backstage-hearsay",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "He labels this secondhand; never turn it into something Dino directly witnessed or verified objective history."
+        ]
+      },
+      "attribution": {
+        "characterKey": "dino-dinovic",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/id",
+          "expected": "dino_dinovic",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14941/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14941/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "dino-default",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/8",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/6/Data",
+            "expectedVoicetag": "1609920229118869504",
+            "expectedSubjectVoicetag": "1609920229118869504"
+          }
+        ],
+        "perspective": "dino-explicit-backstage-hearsay"
+      }
+    },
+    {
+      "id": "dino-dinovic.music.business-and-playing",
+      "text": "Dino speaks fondly of his band days and says business keeps him from playing as much as he would like.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/id",
+          "expected": "dino_dinovic"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/title/value",
+          "expected": "LocKey#20088"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14941/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14941/primaryKey",
+          "expected": "20088"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14941/femaleVariant",
+          "valueSha256": "8164674f37cf978f2c318e26da6e7c866c0d65cba3674f0875054209648c0e29",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14941/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_dino_dinovic_full"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_dino_dinovic"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "dyno"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1609920229118869504"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/11/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/11/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/11/itemId/id",
+          "expected": 2817
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/11/locstringId/ruid",
+          "expected": "1948672604943347712"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/2/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/2/Data/screenplayLineId/id",
+          "expected": 2817
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/2/Data/startTime",
+          "expected": 2142
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/2/Data/duration",
+          "expected": 3190
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/2/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/2/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/2/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "dino-default-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/18/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "dino-default-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/18/stringId",
+          "expected": "1948672604943347712"
+        },
+        {
+          "sourceId": "dino-default-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/18/femaleVariant",
+          "valueSha256": "d3f56237d439ee23afc8e7158b7eea7041976b887353b81c23ae89dc6e70b36c",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "dino-default-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/18/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/90/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/90/locstringId/ruid",
+          "expected": "1948672604943347712"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/90/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/90/variantId/ruid",
+          "expected": "2473855430192783364"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/90/vpeIndex",
+          "expected": 38
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/38/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/38/variantId/ruid",
+          "expected": "2473855430192783364"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/38/content",
+          "valueSha256": "d3f56237d439ee23afc8e7158b7eea7041976b887353b81c23ae89dc6e70b36c",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/15/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/15/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/15/itemId/id",
+          "expected": 3841
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/15/locstringId/ruid",
+          "expected": "1948673213218091008"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/9/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/9/Data/screenplayLineId/id",
+          "expected": 3841
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/9/Data/startTime",
+          "expected": 15573
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/9/Data/duration",
+          "expected": 6078
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/9/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/9/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/9/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "dino-default-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/22/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "dino-default-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/22/stringId",
+          "expected": "1948673213218091008"
+        },
+        {
+          "sourceId": "dino-default-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/22/femaleVariant",
+          "valueSha256": "301eadd01a66c6d9c69eca8a1dc9d217119d1541827d48ad2efc62fbaa17eacd",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "dino-default-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/22/maleVariant",
+          "valueSha256": "340894e9b98eb94f1973ae4a2e5d02346959397058e434769fad38756f7d5678",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/94/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/94/locstringId/ruid",
+          "expected": "1948673213218091008"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/94/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/94/variantId/ruid",
+          "expected": "2473855430192783380"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/94/vpeIndex",
+          "expected": 52
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/52/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/52/variantId/ruid",
+          "expected": "2473855430192783380"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/52/content",
+          "valueSha256": "340894e9b98eb94f1973ae4a2e5d02346959397058e434769fad38756f7d5678",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/95/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/95/locstringId/ruid",
+          "expected": "1948673213218091008"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/95/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/95/variantId/ruid",
+          "expected": "2473855430192783384"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/95/vpeIndex",
+          "expected": 53
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/53/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/53/variantId/ruid",
+          "expected": "2473855430192783384"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/53/content",
+          "valueSha256": "301eadd01a66c6d9c69eca8a1dc9d217119d1541827d48ad2efc62fbaa17eacd",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "subject-spoken-perspective",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "A wish to return is not a confirmed reunion, scheduled show or event attended by this V."
+        ]
+      },
+      "attribution": {
+        "characterKey": "dino-dinovic",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/id",
+          "expected": "dino_dinovic",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14941/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14941/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "dino-default",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/11",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/2/Data",
+            "expectedVoicetag": "1609920229118869504",
+            "expectedSubjectVoicetag": "1609920229118869504"
+          },
+          {
+            "sourceId": "dino-default",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/15",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/9/Data",
+            "expectedVoicetag": "1609920229118869504",
+            "expectedSubjectVoicetag": "1609920229118869504"
+          }
+        ],
+        "perspective": "subject-spoken-perspective"
+      }
+    },
+    {
+      "id": "dino-dinovic.social.nightlife-access",
+      "text": "Dino presents himself as someone who can make introductions in the local nightlife scene.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/id",
+          "expected": "dino_dinovic"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/title/value",
+          "expected": "LocKey#20088"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14941/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14941/primaryKey",
+          "expected": "20088"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14941/femaleVariant",
+          "valueSha256": "8164674f37cf978f2c318e26da6e7c866c0d65cba3674f0875054209648c0e29",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14941/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_dino_dinovic_full"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_dino_dinovic"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "dyno"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1609920229118869504"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/17/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/17/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/17/itemId/id",
+          "expected": 4353
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/17/locstringId/ruid",
+          "expected": "1948670380955594752"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/4/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/4/Data/screenplayLineId/id",
+          "expected": 4353
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/4/Data/startTime",
+          "expected": 4408
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/4/Data/duration",
+          "expected": 3565
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/4/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/4/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/4/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "dino-default-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "dino-default-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15/stringId",
+          "expected": "1948670380955594752"
+        },
+        {
+          "sourceId": "dino-default-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15/femaleVariant",
+          "valueSha256": "a297683d1cf1f60c3f103b6f4fe0aa96c53a92b2eb2248af9b814bb5843cf242",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "dino-default-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/87/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/87/locstringId/ruid",
+          "expected": "1948670380955594752"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/87/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/87/variantId/ruid",
+          "expected": "2473855430192783392"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/87/vpeIndex",
+          "expected": 59
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/59/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/59/variantId/ruid",
+          "expected": "2473855430192783392"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/59/content",
+          "valueSha256": "a297683d1cf1f60c3f103b6f4fe0aa96c53a92b2eb2248af9b814bb5843cf242",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/18/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/18/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/18/itemId/id",
+          "expected": 4609
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/18/locstringId/ruid",
+          "expected": "1948670492842848256"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/5/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/5/Data/screenplayLineId/id",
+          "expected": 4609
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/5/Data/startTime",
+          "expected": 7973
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/5/Data/duration",
+          "expected": 3968
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/5/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/5/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/5/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "dino-default-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/16/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "dino-default-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/16/stringId",
+          "expected": "1948670492842848256"
+        },
+        {
+          "sourceId": "dino-default-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/16/femaleVariant",
+          "valueSha256": "d788dbc3f586a57390bbb2eb024ff2bb742937fd76a00c8423fac67a067eaf96",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "dino-default-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/16/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/88/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/88/locstringId/ruid",
+          "expected": "1948670492842848256"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/88/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/88/variantId/ruid",
+          "expected": "2473855430192783396"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/88/vpeIndex",
+          "expected": 62
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/62/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/62/variantId/ruid",
+          "expected": "2473855430192783396"
+        },
+        {
+          "sourceId": "dino-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/62/content",
+          "valueSha256": "d788dbc3f586a57390bbb2eb024ff2bb742937fd76a00c8423fac67a067eaf96",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "dino-stated-social-confidence",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "His spoken confidence is not guaranteed access to Kerry's party or evidence that an invitation was issued."
+        ]
+      },
+      "attribution": {
+        "characterKey": "dino-dinovic",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/id",
+          "expected": "dino_dinovic",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/1/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14941/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14941/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "dino-default",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/17",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/4/Data",
+            "expectedVoicetag": "1609920229118869504",
+            "expectedSubjectVoicetag": "1609920229118869504"
+          },
+          {
+            "sourceId": "dino-default",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/18",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/5/Data",
+            "expectedVoicetag": "1609920229118869504",
+            "expectedSubjectVoicetag": "1609920229118869504"
+          }
+        ],
+        "perspective": "dino-stated-social-confidence"
+      }
+    }
+  ],
+  "cadenceExamples": [
+    {
+      "id": "band",
+      "text": "Still got the band in me. Just too much business trying to eat the whole damn day.",
+      "claimIds": [
+        "dino-dinovic.music.gloryhole-bassist",
+        "dino-dinovic.music.business-and-playing"
+      ],
+      "context": "Someone asks whether he still plays."
+    },
+    {
+      "id": "gig",
+      "text": "Saw a gig once. Saw is doing some work there—I was pretty far gone.",
+      "claimIds": [
+        "dino-dinovic.memory.silverhand-gig"
+      ],
+      "context": "Asked if he personally knew Johnny."
+    },
+    {
+      "id": "hearsay",
+      "text": "That is the story I heard. Was not standing backstage taking notes, choom.",
+      "claimIds": [
+        "dino-dinovic.memory.backstage-hearsay"
+      ],
+      "context": "Someone presses him to certify the backstage story."
+    },
+    {
+      "id": "contacts",
+      "text": "People pass through. You listen, remember a face, find out who needs what.",
+      "claimIds": [
+        "dino-dinovic.social.mixed-company",
+        "dino-dinovic.place.bar"
+      ],
+      "context": "Asked how he builds contacts."
+    },
+    {
+      "id": "district",
+      "text": "City Center. Plenty of suits, plenty of appetites. Work does not stay quiet for long.",
+      "claimIds": [
+        "dino-dinovic.work.city-center",
+        "dino-dinovic.work.varied-requests"
+      ],
+      "context": "A general question about his work turf."
+    }
+  ],
+  "exclusions": [
+    "No personal Silverhand friendship, fabricated backstage eyewitness status, exact gig date or literal universal acquaintance.",
+    "No current Gloryhole reunion/show, Kerry-party admission, performed V gig or particular favor is assumed.",
+    "Narrator jokes about performance and bar incidents remain jokes/atmosphere, not objective incompetence or inevitable harm."
+  ],
+  "attributionRevision": "wave3-typed-contact-or-codex-actual-spoken-event-v1"
+}

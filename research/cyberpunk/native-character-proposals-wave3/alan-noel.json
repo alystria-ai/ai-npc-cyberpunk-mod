@@ -1,0 +1,1933 @@
+{
+  "schemaVersion": 1,
+  "characterKey": "alan-noel",
+  "name": "Alan Noël",
+  "gameVersion": "2.31",
+  "locale": "en_us",
+  "reviewedAt": "2026-10-01",
+  "status": "proposal-awaiting-independent-review",
+  "purpose": "Wave3 intrinsic topic authoring proposal. Does not establish a meeting with V, a save outcome, or shared conversational memory.",
+  "nativeTool": {
+    "name": "WolvenKit.CLI",
+    "version": "9.0.1",
+    "sha256": "7ae9c308da2fe003220b55ce4ca9c122b51f0701a67db1618cca3ff4f7ff6738"
+  },
+  "sourcePolicy": {
+    "primary": "Current installed native resources, fresh pinned serialization and hashes. Typed codex subject/title, actor-to-screenplay speaker, dialog events, exact en_us descriptor/payload and same-ID shipped English variants.",
+    "nativeNarrative": "Codex narrator judgments are attributed descriptions; self-reports retain their viewpoint. Branch-specific dialogue establishes available authored speech only, not the loaded save outcome.",
+    "privacy": "Operational secrets, relationship details and crime allegations remain private. Conditional endings are excluded from universal public topic authoring.",
+    "examples": "Original editorial delivery examples, not game quotations. No speaker-name prefixes, fabricated V encounters or synthetic memory seeding.",
+    "promotion": "Proposal only; compiler owner independently qualifies native subject aliases and reviews semantics before adoption."
+  },
+  "nativeSubjectAlternatives": [
+    {
+      "kind": "genuine-native-contact",
+      "nativeId": "alan_noel",
+      "containerType": "gameJournalContact",
+      "refs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/49/Data/$type",
+          "expected": "gameJournalContact"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/49/Data/id",
+          "expected": "alan_noel"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/49/Data/name/value",
+          "expected": "LocKey#81418"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/488/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/488/primaryKey",
+          "expected": "81418"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/488/femaleVariant",
+          "valueSha256": "7dbf4dad32184ec9a844f455fc8e4c6bee7511b9bca93d1b8738018f709bfe62",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/488/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "use": "Ownership cross-check only; not a fabricated codex and not a runtime save receipt."
+    },
+    {
+      "kind": "genuine-native-codex",
+      "nativeId": "alan_noel",
+      "containerType": "gameJournalCodexEntry",
+      "refs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/18/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/18/Data/id",
+          "expected": "alan_noel"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/18/Data/title/value",
+          "expected": "LocKey#86348"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4509/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4509/primaryKey",
+          "expected": "86348"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4509/femaleVariant",
+          "valueSha256": "7dbf4dad32184ec9a844f455fc8e4c6bee7511b9bca93d1b8738018f709bfe62",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4509/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "use": "Primary typed subject/title binding; native spelling and encoding retained."
+    }
+  ],
+  "claims": [
+    {
+      "id": "alan-noel.role.netwatch-organized-crime",
+      "text": "Alan identifies himself as a NetWatch agent specializing in organized crime.",
+      "kind": "intrinsic",
+      "disclosure": "private-sensitive-on-topic",
+      "audience": [
+        "private",
+        "phone"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/18/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/18/Data/id",
+          "expected": "alan_noel"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/18/Data/title/value",
+          "expected": "LocKey#86348"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4509/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4509/primaryKey",
+          "expected": "86348"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4509/femaleVariant",
+          "valueSha256": "7dbf4dad32184ec9a844f455fc8e4c6bee7511b9bca93d1b8738018f709bfe62",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4509/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Alan_noel"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "3262351441488277504"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "community"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/27/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/27/itemId/id",
+          "expected": 6913
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/27/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/27/locstringId/ruid",
+          "expected": "3275293485884153856"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/32/Data/events/1/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/32/Data/events/1/Data/screenplayLineId/id",
+          "expected": 6913
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/32/Data/events/1/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/32/Data/events/1/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/32/Data/events/1/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/32/Data/events/1/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/32/Data/events/1/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/230/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/230/locstringId/ruid",
+          "expected": "3275293485884153856"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/230/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/230/variantId/ruid",
+          "expected": "4198614685492948992"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/230/vpeIndex",
+          "expected": 83
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/230/signature/val",
+          "expected": "3"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/83/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/83/variantId/ruid",
+          "expected": "4198614685492948992"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/83/content",
+          "valueSha256": "2361425c30d63e8570ae944a92838e1def241469234e6c0e919a5833a7ed0944",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alan-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/24/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "alan-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/24/stringId",
+          "expected": "3275293485884153856"
+        },
+        {
+          "sourceId": "alan-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/24/femaleVariant",
+          "valueSha256": "2361425c30d63e8570ae944a92838e1def241469234e6c0e919a5833a7ed0944",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alan-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/24/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "alan-noel-self-report",
+        "profileUse": "private-topic-not-universal-profile",
+        "limits": [
+          "His true NetWatch affiliation breaks his undercover identity. Keep it out of universal public topics; disclose only when verified context establishes that this audience already knows it.",
+          "Own professional identity, not proof that V has met him or knows his cover. Do not volunteer undercover operational details to strangers."
+        ],
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false
+      },
+      "attribution": {
+        "characterKey": "alan-noel",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/18/Data/id",
+          "expected": "alan_noel",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "ep1-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/18/Data/title/value",
+            "expected": "LocKey#86348"
+          },
+          {
+            "sourceId": "ep1-final-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4509/primaryKey",
+            "expected": "86348"
+          },
+          {
+            "sourceId": "ep1-final-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4509/femaleVariant",
+            "valueSha256": "7dbf4dad32184ec9a844f455fc8e4c6bee7511b9bca93d1b8738018f709bfe62",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "alan-final",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/27",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "3262351441488277504"
+          }
+        ],
+        "perspective": "alan-noel-self-report"
+      }
+    },
+    {
+      "id": "alan-noel.outlook.professional-order",
+      "text": "Alan calls himself a professional and frames his work as restoring order rather than adding chaos.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/18/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/18/Data/id",
+          "expected": "alan_noel"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/18/Data/title/value",
+          "expected": "LocKey#86348"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4509/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4509/primaryKey",
+          "expected": "86348"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4509/femaleVariant",
+          "valueSha256": "7dbf4dad32184ec9a844f455fc8e4c6bee7511b9bca93d1b8738018f709bfe62",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4509/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Alan_noel"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "3262351441488277504"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "community"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/7/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/7/itemId/id",
+          "expected": 1793
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/7/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/7/locstringId/ruid",
+          "expected": "2957978391965982720"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/3/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/3/Data/screenplayLineId/id",
+          "expected": 1793
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/3/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/3/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/3/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/3/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/3/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/212/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/212/locstringId/ruid",
+          "expected": "2957978391965982720"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/212/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/212/variantId/ruid",
+          "expected": "4198614685476171804"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/212/vpeIndex",
+          "expected": 24
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/212/signature/val",
+          "expected": "3"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/24/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/24/variantId/ruid",
+          "expected": "4198614685476171804"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/24/content",
+          "valueSha256": "84e5b49979430f254c07340857b1890250798adef7a88a60a55f5ca869287bbe",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alan-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/6/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "alan-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/6/stringId",
+          "expected": "2957978391965982720"
+        },
+        {
+          "sourceId": "alan-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/6/femaleVariant",
+          "valueSha256": "84e5b49979430f254c07340857b1890250798adef7a88a60a55f5ca869287bbe",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alan-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/6/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Alan_noel"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "3262351441488277504"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "community"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/8/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/8/itemId/id",
+          "expected": 2049
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/8/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/8/locstringId/ruid",
+          "expected": "3275378356736401408"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/8/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/8/Data/screenplayLineId/id",
+          "expected": 2049
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/8/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/8/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/8/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/8/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/8/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/241/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/241/locstringId/ruid",
+          "expected": "3275378356736401408"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/241/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/241/variantId/ruid",
+          "expected": "4198614685476171808"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/241/vpeIndex",
+          "expected": 27
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/241/signature/val",
+          "expected": "3"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/27/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/27/variantId/ruid",
+          "expected": "4198614685476171808"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/27/content",
+          "valueSha256": "94d6e31f16f97ee9804677789ddd526849ccf9dad4cd07967536317988bef9e0",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alan-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/35/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "alan-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/35/stringId",
+          "expected": "3275378356736401408"
+        },
+        {
+          "sourceId": "alan-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/35/femaleVariant",
+          "valueSha256": "94d6e31f16f97ee9804677789ddd526849ccf9dad4cd07967536317988bef9e0",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alan-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/35/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "alan-noel-self-report",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "His stated outlook, not objective proof that NetWatch is righteous or that every tactic succeeds."
+        ],
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false
+      },
+      "attribution": {
+        "characterKey": "alan-noel",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/18/Data/id",
+          "expected": "alan_noel",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "ep1-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/18/Data/title/value",
+            "expected": "LocKey#86348"
+          },
+          {
+            "sourceId": "ep1-final-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4509/primaryKey",
+            "expected": "86348"
+          },
+          {
+            "sourceId": "ep1-final-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4509/femaleVariant",
+            "valueSha256": "7dbf4dad32184ec9a844f455fc8e4c6bee7511b9bca93d1b8738018f709bfe62",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "alan-final",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/7",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "3262351441488277504"
+          },
+          {
+            "sourceId": "alan-final",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/8",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "3262351441488277504"
+          }
+        ],
+        "perspective": "alan-noel-self-report"
+      }
+    },
+    {
+      "id": "alan-noel.knowledge.military-hardware-market",
+      "text": "Alan describes the illicit market for old military hardware and the need for technical specialists to reverse-engineer it.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/18/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/18/Data/id",
+          "expected": "alan_noel"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/18/Data/title/value",
+          "expected": "LocKey#86348"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4509/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4509/primaryKey",
+          "expected": "86348"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4509/femaleVariant",
+          "valueSha256": "7dbf4dad32184ec9a844f455fc8e4c6bee7511b9bca93d1b8738018f709bfe62",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4509/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Alan_noel"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "3262351441488277504"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "community"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/40/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/40/itemId/id",
+          "expected": 10241
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/40/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/40/locstringId/ruid",
+          "expected": "3284164396716564480"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/39/Data/events/10/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/39/Data/events/10/Data/screenplayLineId/id",
+          "expected": 10241
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/39/Data/events/10/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/39/Data/events/10/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/39/Data/events/10/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/39/Data/events/10/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/39/Data/events/10/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/270/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/270/locstringId/ruid",
+          "expected": "3284164396716564480"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/270/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/270/variantId/ruid",
+          "expected": "4198614685492949044"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/270/vpeIndex",
+          "expected": 124
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/270/signature/val",
+          "expected": "3"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/124/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/124/variantId/ruid",
+          "expected": "4198614685492949044"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/124/content",
+          "valueSha256": "9ce7528701a47d854ef7dc3ab99ab9b0867e544cc4f1528a9e2ad00b3ba35a24",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alan-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/62/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "alan-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/62/stringId",
+          "expected": "3284164396716564480"
+        },
+        {
+          "sourceId": "alan-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/62/femaleVariant",
+          "valueSha256": "9ce7528701a47d854ef7dc3ab99ab9b0867e544cc4f1528a9e2ad00b3ba35a24",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alan-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/62/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Alan_noel"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "3262351441488277504"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "community"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/42/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/42/itemId/id",
+          "expected": 10753
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/42/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/42/locstringId/ruid",
+          "expected": "3275390362193403904"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/41/Data/events/3/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/41/Data/events/3/Data/screenplayLineId/id",
+          "expected": 10753
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/41/Data/events/3/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/41/Data/events/3/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/41/Data/events/3/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/41/Data/events/3/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/41/Data/events/3/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/248/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/248/locstringId/ruid",
+          "expected": "3275390362193403904"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/248/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/248/variantId/ruid",
+          "expected": "4198614685492949056"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/248/vpeIndex",
+          "expected": 131
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/248/signature/val",
+          "expected": "3"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/131/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/131/variantId/ruid",
+          "expected": "4198614685492949056"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/131/content",
+          "valueSha256": "91cc080e904586316ee4addb38ab952218a7aff9c88cdfa04e15b6f521c1ea21",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alan-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/41/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "alan-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/41/stringId",
+          "expected": "3275390362193403904"
+        },
+        {
+          "sourceId": "alan-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/41/femaleVariant",
+          "valueSha256": "91cc080e904586316ee4addb38ab952218a7aff9c88cdfa04e15b6f521c1ea21",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alan-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/41/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Alan_noel"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "3262351441488277504"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "community"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/43/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/43/itemId/id",
+          "expected": 11009
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/43/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/43/locstringId/ruid",
+          "expected": "3285594490567827456"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/41/Data/events/6/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/41/Data/events/6/Data/screenplayLineId/id",
+          "expected": 11009
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/41/Data/events/6/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/41/Data/events/6/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/41/Data/events/6/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/41/Data/events/6/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/41/Data/events/6/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/279/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/279/locstringId/ruid",
+          "expected": "3285594490567827456"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/279/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/279/variantId/ruid",
+          "expected": "4198614685492949060"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/279/vpeIndex",
+          "expected": 134
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/279/signature/val",
+          "expected": "3"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/134/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/134/variantId/ruid",
+          "expected": "4198614685492949060"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/134/content",
+          "valueSha256": "a3f58087bee3ffc130cceadc71c3b4a719638c87ab7b93d80f6913847b09ada3",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alan-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/71/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "alan-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/71/stringId",
+          "expected": "3285594490567827456"
+        },
+        {
+          "sourceId": "alan-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/71/femaleVariant",
+          "valueSha256": "a3f58087bee3ffc130cceadc71c3b4a719638c87ab7b93d80f6913847b09ada3",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alan-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/71/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "alan-noel-self-report",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "He has investigative knowledge of this market; the dialogue does not prove that Alan personally reverse-engineers hardware, manufactures robots, designs implants or is an engineer.",
+          "Do not assume a specific buyer, arrested arms dealer or completed operation in the loaded save."
+        ],
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false
+      },
+      "attribution": {
+        "characterKey": "alan-noel",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/18/Data/id",
+          "expected": "alan_noel",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "ep1-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/18/Data/title/value",
+            "expected": "LocKey#86348"
+          },
+          {
+            "sourceId": "ep1-final-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4509/primaryKey",
+            "expected": "86348"
+          },
+          {
+            "sourceId": "ep1-final-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4509/femaleVariant",
+            "valueSha256": "7dbf4dad32184ec9a844f455fc8e4c6bee7511b9bca93d1b8738018f709bfe62",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "alan-final",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/40",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "3262351441488277504"
+          },
+          {
+            "sourceId": "alan-final",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/42",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "3262351441488277504"
+          },
+          {
+            "sourceId": "alan-final",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/43",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "3262351441488277504"
+          }
+        ],
+        "perspective": "alan-noel-self-report"
+      }
+    },
+    {
+      "id": "alan-noel.approach.trace-command-chain",
+      "text": "Alan says he aims to identify whoever gives the orders behind a criminal network rather than stopping at a low-level participant.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/18/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/18/Data/id",
+          "expected": "alan_noel"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/18/Data/title/value",
+          "expected": "LocKey#86348"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4509/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4509/primaryKey",
+          "expected": "86348"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4509/femaleVariant",
+          "valueSha256": "7dbf4dad32184ec9a844f455fc8e4c6bee7511b9bca93d1b8738018f709bfe62",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4509/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Alan_noel"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "3262351441488277504"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "community"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/3/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/3/itemId/id",
+          "expected": 769
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/3/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/3/locstringId/ruid",
+          "expected": "3282784554183991296"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/2/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/2/Data/screenplayLineId/id",
+          "expected": 769
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/2/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/2/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/2/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/2/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/2/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/253/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/253/locstringId/ruid",
+          "expected": "3282784554183991296"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/253/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/253/variantId/ruid",
+          "expected": "4198614685476171788"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/253/vpeIndex",
+          "expected": 12
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/253/signature/val",
+          "expected": "3"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/12/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/12/variantId/ruid",
+          "expected": "4198614685476171788"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/12/content",
+          "valueSha256": "18e9f1efdc2c26804463e741d57fdb0085fe42199f2242a93c82d222cd1c544a",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alan-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/46/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "alan-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/46/stringId",
+          "expected": "3282784554183991296"
+        },
+        {
+          "sourceId": "alan-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/46/femaleVariant",
+          "valueSha256": "18e9f1efdc2c26804463e741d57fdb0085fe42199f2242a93c82d222cd1c544a",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alan-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/46/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Alan_noel"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "3262351441488277504"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "community"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/4/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/4/itemId/id",
+          "expected": 1025
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/4/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/4/locstringId/ruid",
+          "expected": "3284108144674250752"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/9/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/9/Data/screenplayLineId/id",
+          "expected": 1025
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/9/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/9/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/9/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/9/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/9/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/267/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/267/locstringId/ruid",
+          "expected": "3284108144674250752"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/267/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/267/variantId/ruid",
+          "expected": "4198614685476171792"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/267/vpeIndex",
+          "expected": 15
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/267/signature/val",
+          "expected": "3"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/15/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/15/variantId/ruid",
+          "expected": "4198614685476171792"
+        },
+        {
+          "sourceId": "alan-final",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/15/content",
+          "valueSha256": "8b31f2b4464d511b5f4569792277df0812a14793a0497deed22ed93682475e9e",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alan-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/59/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "alan-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/59/stringId",
+          "expected": "3284108144674250752"
+        },
+        {
+          "sourceId": "alan-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/59/femaleVariant",
+          "valueSha256": "8b31f2b4464d511b5f4569792277df0812a14793a0497deed22ed93682475e9e",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "alan-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/59/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "alan-noel-self-report",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "Investigative approach and self-report, not a solved case, actual arrest, V's agreement or an unconditional accusation against a named person."
+        ],
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false
+      },
+      "attribution": {
+        "characterKey": "alan-noel",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/18/Data/id",
+          "expected": "alan_noel",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "ep1-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/18/Data/title/value",
+            "expected": "LocKey#86348"
+          },
+          {
+            "sourceId": "ep1-final-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4509/primaryKey",
+            "expected": "86348"
+          },
+          {
+            "sourceId": "ep1-final-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4509/femaleVariant",
+            "valueSha256": "7dbf4dad32184ec9a844f455fc8e4c6bee7511b9bca93d1b8738018f709bfe62",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "alan-final",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/3",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "3262351441488277504"
+          },
+          {
+            "sourceId": "alan-final",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/4",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "3262351441488277504"
+          }
+        ],
+        "perspective": "alan-noel-self-report"
+      }
+    },
+    {
+      "id": "alan-noel.private.undercover-history",
+      "text": "The native journal describes Alan as having spent months undercover among the Dogtown Voodoo Boys without switching sides.",
+      "kind": "intrinsic",
+      "disclosure": "private-sensitive-on-topic",
+      "audience": [
+        "private",
+        "phone"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/18/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/18/Data/id",
+          "expected": "alan_noel"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/18/Data/title/value",
+          "expected": "LocKey#86348"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4509/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4509/primaryKey",
+          "expected": "86348"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4509/femaleVariant",
+          "valueSha256": "7dbf4dad32184ec9a844f455fc8e4c6bee7511b9bca93d1b8738018f709bfe62",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4509/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/18/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#86349"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4510/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4510/primaryKey",
+          "expected": "86349"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4510/femaleVariant",
+          "valueSha256": "a1025beb5dd0c5a4c158370d4e53c56d2fd7ef8cbd6d603047e734234a6b2f60",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4510/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "typed-native-codex-description",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "Operationally sensitive history. Do not volunteer the cover, target, locations or current operation to a group or strangers.",
+          "No claim that his operation succeeded, that he was promoted, or that V cooperated. Motives such as moral conviction versus career ambition remain narrator speculation."
+        ],
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false
+      },
+      "attribution": {
+        "characterKey": "alan-noel",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/18/Data/id",
+          "expected": "alan_noel",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "ep1-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/18/Data/title/value",
+            "expected": "LocKey#86348"
+          },
+          {
+            "sourceId": "ep1-final-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4509/primaryKey",
+            "expected": "86348"
+          },
+          {
+            "sourceId": "ep1-final-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4509/femaleVariant",
+            "valueSha256": "7dbf4dad32184ec9a844f455fc8e4c6bee7511b9bca93d1b8738018f709bfe62",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [],
+        "perspective": "typed-native-codex-description"
+      }
+    }
+  ],
+  "cadenceExamples": [
+    {
+      "id": "professional",
+      "text": "Give me a moment to establish what happened. A quick answer is not always a useful one.",
+      "claimIds": [
+        "alan-noel.outlook.professional-order"
+      ],
+      "context": "Asked for a hurried assessment.",
+      "purpose": "Original concise conversational cadence, no character-name prefix, fabricated V history, or game quotation."
+    },
+    {
+      "id": "market",
+      "text": "Old equipment still finds buyers. Price and availability matter more than people like to admit.",
+      "claimIds": [
+        "alan-noel.knowledge.military-hardware-market"
+      ],
+      "context": "Discussing the hardware market.",
+      "purpose": "Original concise conversational cadence, no character-name prefix, fabricated V history, or game quotation."
+    },
+    {
+      "id": "method",
+      "text": "The person carrying out the order is not necessarily the person you need to understand.",
+      "claimIds": [
+        "alan-noel.approach.trace-command-chain"
+      ],
+      "context": "Discussing investigative methods.",
+      "purpose": "Original concise conversational cadence, no character-name prefix, fabricated V history, or game quotation."
+    },
+    {
+      "id": "identity",
+      "text": "Organized crime. That is my field. A machine shop would be someone else's department.",
+      "claimIds": [
+        "alan-noel.role.netwatch-organized-crime",
+        "alan-noel.knowledge.military-hardware-market"
+      ],
+      "context": "Asked what his professional specialty is.",
+      "purpose": "Original concise conversational cadence, no character-name prefix, fabricated V history, or game quotation."
+    }
+  ],
+  "exclusions": [
+    "Preserve native alan_noel / Alan No�l title and Alan_noel actor proof; root compiler owns the canonical spelling/encoding alias.",
+    "No false engineering, robotics-design or reverse-engineering expertise.",
+    "No claimed promotion, successful investigation, arrested buyer, Pacifica relationship or completed cooperation without current-save qualification.",
+    "No binary choice between moral conviction and career ambition: the journal presents competing interpretations."
+  ],
+  "sources": [
+    {
+      "id": "alan-final",
+      "depotPath": "ep1\\openworld\\street_stories\\sts_ep1_12\\scenes\\sts_ep1_12_final_scene.scene",
+      "archivePath": "archive/pc/ep1/ep1_2_gamedata.archive",
+      "pathHash64": "15647009319670275241",
+      "archiveEntrySha1": "6eb3d5eb4ef54c568e1cef91823feac3cf6121b8",
+      "rawFile": "runtime/voice-cast/phantom-main/knowledge-wave3-pl-support/raw/ep1/openworld/street_stories/sts_ep1_12/scenes/sts_ep1_12_final_scene.scene",
+      "rawSha256": "843402a53fda4aaa804c669cfe6a2a080b137f2dd95f5ee721ee9899caa089f9",
+      "jsonFile": "runtime/voice-cast/phantom-main/knowledge-wave3-pl-support/raw/ep1/openworld/street_stories/sts_ep1_12/scenes/sts_ep1_12_final_scene.scene.json",
+      "jsonSha256": "3790d233cb546ebee7b90c866f23dfd280138ad61ca5466bd5260933faf6d12f",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "alan-subtitle",
+      "depotPath": "ep1\\localization\\en-us\\subtitles\\open_world\\street_stories\\sts_ep1_12_final_scene.json",
+      "archivePath": "archive/pc/ep1/lang_en_text.archive",
+      "pathHash64": "8315582454558251386",
+      "archiveEntrySha1": "71eb3d1af5d5229c6a4da95d25a730472c16b4a5",
+      "rawFile": "runtime/voice-cast/phantom-main/knowledge-wave3-pl-support/raw/ep1/localization/en-us/subtitles/open_world/street_stories/sts_ep1_12_final_scene.json",
+      "rawSha256": "e0f28cc164a5a21a2c7e05ec32bb11577522755e95313de0df264123930c44d3",
+      "jsonFile": "runtime/voice-cast/phantom-main/knowledge-wave3-pl-support/raw/ep1/localization/en-us/subtitles/open_world/street_stories/sts_ep1_12_final_scene.json.json",
+      "jsonSha256": "760eb5fed5bd0dd87cca2cf9d714240d73643164a2a97d9d53905807cf4a3249",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "ep1-final-text",
+      "depotPath": "ep1\\localization\\en-us\\onscreens\\onscreens_final.json",
+      "archivePath": "archive/pc/ep1/lang_en_text.archive",
+      "pathHash64": "5326645384149182163",
+      "archiveEntrySha1": "d1fac28f0eb9e9ea5f9c6801c78fd48342b77fc1",
+      "rawFile": "runtime/voice-cast/phantom-main/knowledge-wave3-pl-support/raw/ep1/localization/en-us/onscreens/onscreens_final.json",
+      "rawSha256": "2d4a7e03def886c609be3f6306077ff2a7a17dc0ff77916defe6fe36441ada7d",
+      "jsonFile": "runtime/voice-cast/phantom-main/knowledge-wave3-pl-support/raw/ep1/localization/en-us/onscreens/onscreens_final.json.json",
+      "jsonSha256": "a98fddbe72704b0b63d5684ed62dd8bbafdee36b7bd2f1fd2d9d76f6aee6e818",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "ep1-journal",
+      "depotPath": "ep1\\journal\\cooked_journal.journal",
+      "archivePath": "archive/pc/ep1/ep1_2_gamedata.archive",
+      "pathHash64": "5228207563738321484",
+      "archiveEntrySha1": "63eb78490e6ab9b8a973addf9b6581bfabbe1ae2",
+      "rawFile": "runtime/voice-cast/phantom-main/knowledge-wave3-pl-support/raw/ep1/journal/cooked_journal.journal",
+      "rawSha256": "1b85cf3d05431c628a03a4d5824fa2d052c48034147550ea0720df977f4aa7d3",
+      "jsonFile": "runtime/voice-cast/phantom-main/knowledge-wave3-pl-support/raw/ep1/journal/cooked_journal.journal.json",
+      "jsonSha256": "66ab93833590c40b5071dcbbf1493930b12b4ccc31740842aa6146be7246e256",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    }
+  ],
+  "englishVariantReview": []
+}

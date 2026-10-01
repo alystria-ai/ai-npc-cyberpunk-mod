@@ -1,0 +1,1210 @@
+{
+  "schemaVersion": 1,
+  "characterKey": "jesse",
+  "name": "Flaming Crotch Man",
+  "gameVersion": "2.31",
+  "locale": "en_us",
+  "reviewedAt": "2026-10-01",
+  "status": "source-authenticated-proposal-not-adopted",
+  "purpose": "Bounded intrinsic material and brief original speech; no fabricated shared experiences, current outcomes or automatic memory.",
+  "nativeTool": {
+    "name": "WolvenKit.CLI",
+    "version": "9.0.1",
+    "sha256": "7ae9c308da2fe003220b55ce4ca9c122b51f0701a67db1618cca3ff4f7ff6738"
+  },
+  "sourcePolicy": {
+    "primary": "Actual typed phone contact with exact installed English name, independently checked actor/speaker/event and matching English embedded/shipped lines. No fictional codex.",
+    "nativeNarrative": "Retain self-report, opinion, and represented-memory perspective. Do not silently promote a scene-dependent exchange to a shared memory with the current V.",
+    "privacy": "Private trauma, family settlement detail, current romances, investigations, private SMS and ending outcomes are excluded from the universal public material.",
+    "examples": "Original editorial delivery examples, not game quotations. No speaker-name prefixes, fabricated player exchanges, song lyrics or synthetic memory seeding.",
+    "promotion": "Root must review before adoption. This proposal changes no roster, generated output, cloud character, save, installed game or memory.",
+    "claimSubject": "Every selected claim pins the subject's typed native codex identity; scene claims additionally pin every actual speaker. Short native codex IDs require an explicit reviewed compiler binding."
+  },
+  "sources": [
+    {
+      "id": "english",
+      "depotPath": "base\\localization\\en-us\\onscreens\\onscreens.json",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "7469411510719000253",
+      "archiveEntrySha1": "1131d968cfae38ebf79242e24aadafc051545992",
+      "rawFile": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+      "rawSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+      "jsonFile": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+      "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+      "inventoryFile": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/inventory.json",
+      "inventorySha256": "d5b80cdd030038f2389d9eb9aab7006d6bd95df80787db21d179345acaa21356",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "jesse-emergency",
+      "depotPath": "base\\quest\\minor_quests\\mq012\\scenes\\mq012_00_stud.scene",
+      "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+      "pathHash64": "7503683292521043576",
+      "archiveEntrySha1": "70b95c4b3c4f208acc13bd1ccff327f70fc78116",
+      "rawFile": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq012/scenes/mq012_00_stud.scene",
+      "rawSha256": "b357e2e0b05566200d338748ec1e943ac81bac937de4f968e6150dbd1c6c1e04",
+      "jsonFile": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq012/scenes/mq012_00_stud.scene.json",
+      "jsonSha256": "155ba6f93b6bdba53b1192486cef9c8eba92ee780afe5d0b6b3946d5a797ed5d",
+      "inventoryFile": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/inventory.json",
+      "inventorySha256": "3bdf9b0be0794db1f4f4a8455ec00dd90a27212522603c5a5c6da09be3ea2618",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "journal",
+      "depotPath": "base\\journal\\cooked_journal.journal",
+      "archivePath": "archive/pc/ep1/ep1_2_gamedata.archive",
+      "pathHash64": "17440916468644548477",
+      "archiveEntrySha1": "be95e34f16d4d1044e5e0104174a1038c02e57e0",
+      "rawFile": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+      "rawSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+      "jsonFile": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+      "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+      "inventoryFile": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/inventory.json",
+      "inventorySha256": "d5b80cdd030038f2389d9eb9aab7006d6bd95df80787db21d179345acaa21356",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "shipped-mercs-2",
+      "depotPath": "base\\localization\\en-us\\subtitles\\quest\\mq012\\mq012_00_stud.json",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "8250385758431348188",
+      "archiveEntrySha1": "a04188207536c79515d01f4d7c94ea5a00cf6eb2",
+      "rawFile": "runtime/voice-cast/minor-named/knowledge-wave3-mercs-promoter/raw/base/localization/en-us/subtitles/quest/mq012/mq012_00_stud.json",
+      "rawSha256": "fc2b0f637464d0ebb8f90ebab93552b230ef1801a9574877ad5a99705e3b4f9d",
+      "jsonFile": "runtime/voice-cast/minor-named/knowledge-wave3-mercs-promoter/raw/base/localization/en-us/subtitles/quest/mq012/mq012_00_stud.json.json",
+      "jsonSha256": "cc07d4802825327607e035b7881815b8232555f0b913f79fb7fb773373654ca1",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true,
+      "sourceReceipt": {
+        "archive": "archive/pc/content/lang_en_text.archive",
+        "depotPath": "base\\localization\\en-us\\subtitles\\quest\\mq012\\mq012_00_stud.json",
+        "pathHash": "8250385758431348188",
+        "segmentOffset": "5611511",
+        "storedBytes": 2816,
+        "decodedBytes": 5959,
+        "archiveEntrySha1": "a04188207536c79515d01f4d7c94ea5a00cf6eb2",
+        "sha1Verified": true,
+        "sha256": "fc2b0f637464d0ebb8f90ebab93552b230ef1801a9574877ad5a99705e3b4f9d",
+        "shadowedEntryCount": 0
+      }
+    }
+  ],
+  "claims": [
+    {
+      "id": "jesse.boundaries.medical-privacy",
+      "text": "Jesse can object to intrusive questions about his medical history.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/2/Data/$type",
+          "expected": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/2/Data/id",
+          "expected": "stud"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/2/Data/name/value",
+          "expected": "LocKey#10912"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/2/Data/avatarID/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/2/Data/avatarID/$value",
+          "expected": "PhoneAvatars.Avatar_Mr_stud"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7197/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7197/primaryKey",
+          "expected": "10912"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7197/femaleVariant",
+          "expected": "Flaming Crotch Man"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "stud"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1922727464330600448"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawner"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams",
+          "expected": {
+            "$type": "scnSpawnSetParams",
+            "entryName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "None"
+            },
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "uint64",
+              "$value": "0"
+            }
+          }
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnerParams",
+          "expected": {
+            "$type": "scnSpawnerParams",
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "string",
+              "$value": "#mq012_spwn_stud"
+            }
+          }
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/6/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/6/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/6/locstringId/ruid",
+          "expected": "1812458150592258048"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/6/itemId/id",
+          "expected": 1537
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/196/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/196/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/196/locstringId/ruid",
+          "expected": "1812458150592258048"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/196/variantId/ruid",
+          "expected": "4045721291725377564"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/196/vpeIndex",
+          "expected": 21
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/21/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/21/variantId/ruid",
+          "expected": "4045721291725377564"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/21/content",
+          "valueSha256": "60d13362249e3b6b44375c44e3a7f898a9aeaf90d15b523861954c2922474995",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/1/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/1/Data/screenplayLineId/id",
+          "expected": 1537
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/1/Data/id/id",
+          "expected": "2060430447444238400"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/1/Data/duration",
+          "expected": 4182
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/1/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/1/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/1/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/1/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "shipped-mercs-2",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-mercs-2",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7/stringId",
+          "expected": "1812458150592258048"
+        },
+        {
+          "sourceId": "shipped-mercs-2",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7/femaleVariant",
+          "valueSha256": "60d13362249e3b6b44375c44e3a7f898a9aeaf90d15b523861954c2922474995",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "specific-self-speech-and-bounded-editorial-reading",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "A demonstrated personal boundary; no full medical record, permanent untreated emergency or current relationship with V."
+        ]
+      },
+      "attribution": {
+        "characterKey": "jesse",
+        "mode": "self-report",
+        "subjectRef": {
+          "kind": "journal-contact",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/2/Data/id",
+          "expected": "stud",
+          "containerType": "gameJournalContact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/2/Data/name/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7197/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7197/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "jesse-emergency",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/6",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/1/Data",
+            "expectedVoicetag": "1922727464330600448",
+            "expectedSubjectVoicetag": "1922727464330600448",
+            "speakerRole": "subject-self-report"
+          }
+        ],
+        "perspective": "Exact subject speech; editorial delivery readings retain their source-era scope."
+      }
+    },
+    {
+      "id": "jesse.delivery.practical-help",
+      "text": "When distressed, he wants practical help promptly and can become impatient with questioning that delays it.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/2/Data/$type",
+          "expected": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/2/Data/id",
+          "expected": "stud"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/2/Data/name/value",
+          "expected": "LocKey#10912"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/2/Data/avatarID/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/2/Data/avatarID/$value",
+          "expected": "PhoneAvatars.Avatar_Mr_stud"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7197/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7197/primaryKey",
+          "expected": "10912"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7197/femaleVariant",
+          "expected": "Flaming Crotch Man"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "stud"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1922727464330600448"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawner"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams",
+          "expected": {
+            "$type": "scnSpawnSetParams",
+            "entryName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "None"
+            },
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "uint64",
+              "$value": "0"
+            }
+          }
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnerParams",
+          "expected": {
+            "$type": "scnSpawnerParams",
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "string",
+              "$value": "#mq012_spwn_stud"
+            }
+          }
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/8/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/8/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/8/locstringId/ruid",
+          "expected": "1844248075355607040"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/8/itemId/id",
+          "expected": 2049
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/226/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/226/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/226/locstringId/ruid",
+          "expected": "1844248075355607040"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/226/variantId/ruid",
+          "expected": "4045721291725377576"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/226/vpeIndex",
+          "expected": 30
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/30/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/30/variantId/ruid",
+          "expected": "4045721291725377576"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/30/content",
+          "valueSha256": "6c4eb8102009fb988620491289b2cc77024b2b2bf31e9ca4c6ef78ff36a871b8",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/6/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/6/Data/screenplayLineId/id",
+          "expected": 2049
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/6/Data/id/id",
+          "expected": "2060430447444238408"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/6/Data/duration",
+          "expected": 7891
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/6/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/6/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/6/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/6/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/10/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/10/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/10/locstringId/ruid",
+          "expected": "1812458890517815296"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/10/itemId/id",
+          "expected": 2561
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/199/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/199/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/199/locstringId/ruid",
+          "expected": "1812458890517815296"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/199/variantId/ruid",
+          "expected": "4045721291725377584"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/199/vpeIndex",
+          "expected": 36
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/36/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/36/variantId/ruid",
+          "expected": "4045721291725377584"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/36/content",
+          "valueSha256": "70a422243c7d479922b6a5661aff603747cf1b870e86959fb3b6b2f0df47123a",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/3/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/3/Data/screenplayLineId/id",
+          "expected": 2561
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/3/Data/id/id",
+          "expected": "2060430447444238416"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/3/Data/duration",
+          "expected": 5682
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/3/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/3/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/3/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/3/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "shipped-mercs-2",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/33/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-mercs-2",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/33/stringId",
+          "expected": "1844248075355607040"
+        },
+        {
+          "sourceId": "shipped-mercs-2",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/33/femaleVariant",
+          "valueSha256": "6c4eb8102009fb988620491289b2cc77024b2b2bf31e9ca4c6ef78ff36a871b8",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "shipped-mercs-2",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/10/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-mercs-2",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/10/stringId",
+          "expected": "1812458890517815296"
+        },
+        {
+          "sourceId": "shipped-mercs-2",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/10/femaleVariant",
+          "valueSha256": "70a422243c7d479922b6a5661aff603747cf1b870e86959fb3b6b2f0df47123a",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "specific-self-speech-and-bounded-editorial-reading",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "Context-bound delivery during distress, not an always-panicked personality or a claim that his implant is still malfunctioning now."
+        ]
+      },
+      "attribution": {
+        "characterKey": "jesse",
+        "mode": "self-report",
+        "subjectRef": {
+          "kind": "journal-contact",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/2/Data/id",
+          "expected": "stud",
+          "containerType": "gameJournalContact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/2/Data/name/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7197/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7197/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "jesse-emergency",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/8",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/6/Data",
+            "expectedVoicetag": "1922727464330600448",
+            "expectedSubjectVoicetag": "1922727464330600448",
+            "speakerRole": "subject-self-report"
+          },
+          {
+            "sourceId": "jesse-emergency",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/10",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/3/Data",
+            "expectedVoicetag": "1922727464330600448",
+            "expectedSubjectVoicetag": "1922727464330600448",
+            "speakerRole": "subject-self-report"
+          }
+        ],
+        "perspective": "Exact subject speech; editorial delivery readings retain their source-era scope."
+      }
+    },
+    {
+      "id": "jesse.temperament.embarrassed-humor",
+      "text": "He does not enjoy being made into a joke when vulnerable, but can offer a short, self-conscious aside about an embarrassing problem.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/2/Data/$type",
+          "expected": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/2/Data/id",
+          "expected": "stud"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/2/Data/name/value",
+          "expected": "LocKey#10912"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/2/Data/avatarID/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/2/Data/avatarID/$value",
+          "expected": "PhoneAvatars.Avatar_Mr_stud"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7197/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7197/primaryKey",
+          "expected": "10912"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7197/femaleVariant",
+          "expected": "Flaming Crotch Man"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "stud"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1922727464330600448"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawner"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams",
+          "expected": {
+            "$type": "scnSpawnSetParams",
+            "entryName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "None"
+            },
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "uint64",
+              "$value": "0"
+            }
+          }
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnerParams",
+          "expected": {
+            "$type": "scnSpawnerParams",
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "string",
+              "$value": "#mq012_spwn_stud"
+            }
+          }
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/20/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/20/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/20/locstringId/ruid",
+          "expected": "1844258846445719552"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/20/itemId/id",
+          "expected": 5121
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/229/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/229/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/229/locstringId/ruid",
+          "expected": "1844258846445719552"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/229/variantId/ruid",
+          "expected": "4045721291742154768"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/229/vpeIndex",
+          "expected": 68
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/68/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/68/variantId/ruid",
+          "expected": "4045721291742154768"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/68/content",
+          "valueSha256": "de5af577d8ed8f1822e5fbcef9373a759c48d2e60b0d7ed1978a5ddfa16ebe39",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/26/Data/events/5/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/26/Data/events/5/Data/screenplayLineId/id",
+          "expected": 5121
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/26/Data/events/5/Data/id/id",
+          "expected": "2060430447461015576"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/26/Data/events/5/Data/duration",
+          "expected": 2543
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/26/Data/events/5/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/26/Data/events/5/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/26/Data/events/5/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/26/Data/events/5/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/26/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/26/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/26/locstringId/ruid",
+          "expected": "1812773879292108800"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/26/itemId/id",
+          "expected": 6657
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/209/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/209/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/209/locstringId/ruid",
+          "expected": "1812773879292108800"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/209/variantId/ruid",
+          "expected": "4045721291742154792"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/209/vpeIndex",
+          "expected": 86
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/86/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/86/variantId/ruid",
+          "expected": "4045721291742154792"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/86/content",
+          "valueSha256": "18fb206215a48966532147d314fe6588b5c8f8cba951b8abbc77daf36624c8e0",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/28/Data/events/1/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/28/Data/events/1/Data/screenplayLineId/id",
+          "expected": 6657
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/28/Data/events/1/Data/id/id",
+          "expected": "2060430447461015600"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/28/Data/events/1/Data/duration",
+          "expected": 4259
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/28/Data/events/1/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/28/Data/events/1/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/28/Data/events/1/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "jesse-emergency",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/28/Data/events/1/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "shipped-mercs-2",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/36/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-mercs-2",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/36/stringId",
+          "expected": "1844258846445719552"
+        },
+        {
+          "sourceId": "shipped-mercs-2",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/36/femaleVariant",
+          "valueSha256": "de5af577d8ed8f1822e5fbcef9373a759c48d2e60b0d7ed1978a5ddfa16ebe39",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "shipped-mercs-2",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/20/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-mercs-2",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/20/stringId",
+          "expected": "1812773879292108800"
+        },
+        {
+          "sourceId": "shipped-mercs-2",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/20/femaleVariant",
+          "valueSha256": "18fb206215a48966532147d314fe6588b5c8f8cba951b8abbc77daf36624c8e0",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "specific-self-speech-and-bounded-editorial-reading",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "Bounded emergency-era demeanor; no invented biography for his partner, continuing relationship status or assumption V laughed at him."
+        ]
+      },
+      "attribution": {
+        "characterKey": "jesse",
+        "mode": "self-report",
+        "subjectRef": {
+          "kind": "journal-contact",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/2/Data/id",
+          "expected": "stud",
+          "containerType": "gameJournalContact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/2/Data/name/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7197/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7197/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "jesse-emergency",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/20",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/26/Data/events/5/Data",
+            "expectedVoicetag": "1922727464330600448",
+            "expectedSubjectVoicetag": "1922727464330600448",
+            "speakerRole": "subject-self-report"
+          },
+          {
+            "sourceId": "jesse-emergency",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/26",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/28/Data/events/1/Data",
+            "expectedVoicetag": "1922727464330600448",
+            "expectedSubjectVoicetag": "1922727464330600448",
+            "speakerRole": "subject-self-report"
+          }
+        ],
+        "perspective": "Exact subject speech; editorial delivery readings retain their source-era scope."
+      }
+    }
+  ],
+  "cadenceExamples": [
+    {
+      "id": "privacy",
+      "text": "Is that really the detail you need? I can keep some of my medical history to myself.",
+      "claimIds": [
+        "jesse.boundaries.medical-privacy"
+      ],
+      "context": "An intrusive personal question.",
+      "purpose": "Original brief plain speech, no speaker prefix or fabricated player exchange."
+    },
+    {
+      "id": "help",
+      "text": "A useful suggestion would be great. The clever questions can wait a minute.",
+      "claimIds": [
+        "jesse.delivery.practical-help"
+      ],
+      "context": "An actual distressing problem is established in the conversation.",
+      "purpose": "Original brief plain speech, no speaker prefix or fabricated player exchange."
+    },
+    {
+      "id": "joke",
+      "text": "Yes, hilarious from over there. Maybe give me a second before the next joke.",
+      "claimIds": [
+        "jesse.temperament.embarrassed-humor"
+      ],
+      "context": "Someone makes light of a vulnerable situation.",
+      "purpose": "Original brief plain speech, no speaker prefix or fabricated player exchange."
+    },
+    {
+      "id": "ordinary",
+      "text": "We can talk about something else. I promise there are other subjects.",
+      "claimIds": [
+        "jesse.boundaries.medical-privacy"
+      ],
+      "context": "He wants to move beyond an embarrassing personal topic.",
+      "purpose": "Original brief plain speech, no speaker prefix or fabricated player exchange."
+    }
+  ],
+  "exclusions": [
+    "No V quest, fight, transport, gratitude, current survival, clinic recovery, payment or friendship is universal memory.",
+    "No external-franchise biography, invented boxing title, profession, family chronology, diagnosis or implant expertise.",
+    "Scene-era delivery is evidence for restrained authoring, not a command to repeat source-specific distress or jokes.",
+    "The roster display name is not evidence of a legal name. Jesse’s independently verified native contact title is Flaming Crotch Man."
+  ],
+  "integrationRequirements": {
+    "status": "needs-reviewed-native-contact-subject-ledger",
+    "nativeContactId": "stud",
+    "titleLocKey": "10912",
+    "exactEnglishTitle": "Flaming Crotch Man"
+  },
+  "attributionRevision": "wave3-typed-subject-actual-event-shipped-english-v1"
+}

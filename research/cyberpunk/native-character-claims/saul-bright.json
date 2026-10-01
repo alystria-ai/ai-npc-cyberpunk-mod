@@ -1,0 +1,3669 @@
+{
+  "schemaVersion": 1,
+  "characterKey": "saul-bright",
+  "name": "Saul Bright",
+  "gameVersion": "2.31",
+  "locale": "en_us",
+  "reviewedAt": "2026-10-01",
+  "status": "authoring-proposal-not-adopted",
+  "purpose": "Public personal topic history, craft and delivery with separate private/conditional material; no V quest outcome or memory preload.",
+  "nativeTool": {
+    "name": "WolvenKit.CLI",
+    "version": "9.0.1",
+    "sha256": "7ae9c308da2fe003220b55ce4ca9c122b51f0701a67db1618cca3ff4f7ff6738"
+  },
+  "sourcePolicy": {
+    "primary": "Current winning installed cooked codex plus pinned native screenplay, typed actor and emitted spoken event, exact embedded en_us descriptor/payload and same-ID shipped English subtitle entry.",
+    "nativeNarrative": "Recollections, opinions and editorial personality inferences retain the specific source viewpoint; they are not objective omniscient facts.",
+    "privacy": "Public topic material permits a brief relevant answer, not an automatic confession. Private and conditional rows are excluded from universal compiler material.",
+    "examples": "Original editorial delivery examples, not game quotations. No speaker-name prefixes, player lines, synthetic conversations or memory seeding.",
+    "promotion": "Proposals remain outside native-character-claims until independent parent review; no shared builders, cloud writes or installed game changes."
+  },
+  "sources": [
+    {
+      "id": "codex-text",
+      "depotPath": "base\\localization\\en-us\\onscreens\\onscreens_final.json",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "8698305399991417048",
+      "archiveEntrySha1": "1131d968cfae38ebf79242e24aadafc051545992",
+      "rawFile": "runtime/johnny-intrinsic-evidence/localization/raw/base/base/localization/en-us/onscreens/onscreens_final.json",
+      "rawSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+      "jsonFile": "runtime/johnny-intrinsic-evidence/localization/raw/base/base/localization/en-us/onscreens/onscreens_final.json.json",
+      "jsonSha256": "acf260ca5575b8628dc5161dad9b7b46004a1b1afcf3e71facb532eb31f77a92",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "codex-journal",
+      "depotPath": "base\\journal\\cooked_journal.journal",
+      "archivePath": "archive/pc/ep1/ep1_2_gamedata.archive",
+      "pathHash64": "17440916468644548477",
+      "archiveEntrySha1": "be95e34f16d4d1044e5e0104174a1038c02e57e0",
+      "rawFile": "runtime/johnny-intrinsic-evidence/localization/raw/ep1/base/journal/cooked_journal.journal",
+      "rawSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+      "jsonFile": "runtime/johnny-intrinsic-evidence/localization/raw/ep1/base/journal/cooked_journal.journal.json",
+      "jsonSha256": "0d6e12fd9503f68c4cc405f19b49b6b708bb24a15f66c8ce92b01235d6b5240b",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "whistle",
+      "depotPath": "base\\quest\\side_quests\\sq027\\scenes\\sq027_03_saul_whistleblowing.scene",
+      "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+      "archiveEntrySha1": "0397653a09ea65cd38111d53047bdc4d8cde0e83",
+      "rawFile": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/quest/side_quests/sq027/scenes/sq027_03_saul_whistleblowing.scene",
+      "rawSha256": "7c02ac7cd644aeab9ca19a80a3e533288fd454c2af8699c86f8224acfb401120",
+      "jsonFile": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/quest/side_quests/sq027/scenes/sq027_03_saul_whistleblowing.scene.json",
+      "jsonSha256": "76bb37370c7c1876b6e61f73ae993e4b7aa76ec0c080e9af9f2b312e33c023a7",
+      "inventoryPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/inventory.json",
+      "inventorySha256": "3c6a9c0b0a618a490a75d5d32343c9b34d513f3b31e0a04eee8075e716ae8fe5",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "party",
+      "depotPath": "base\\quest\\main_quests\\part1\\q114\\scenes\\q114_04b_party.scene",
+      "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+      "archiveEntrySha1": "3b55b0efdd07d0a30eb52cb4869c979ce26d4303",
+      "rawFile": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/quest/main_quests/part1/q114/scenes/q114_04b_party.scene",
+      "rawSha256": "bcd013c5059b16a5df05f324e9b9ca1cc503f7ef089810f688f627653694b027",
+      "jsonFile": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/quest/main_quests/part1/q114/scenes/q114_04b_party.scene.json",
+      "jsonSha256": "aa4cecaef8b7c4c18f463cc8c618bb1ab93aa9134ffa63b13b3c84ad727cba13",
+      "inventoryPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/inventory.json",
+      "inventorySha256": "3c6a9c0b0a618a490a75d5d32343c9b34d513f3b31e0a04eee8075e716ae8fe5",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "initiation",
+      "depotPath": "base\\quest\\main_quests\\part1\\q114\\scenes\\q114_04_initiation.scene",
+      "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+      "archiveEntrySha1": "946a485408b8f76256f58078c64ff79d32716239",
+      "rawFile": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/quest/main_quests/part1/q114/scenes/q114_04_initiation.scene",
+      "rawSha256": "f0e16b6381105b24cdd6104d201ca63f46ea410b5a7e5bd1f1a001dc7f4ff9ea",
+      "jsonFile": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/quest/main_quests/part1/q114/scenes/q114_04_initiation.scene.json",
+      "jsonSha256": "497ac42c7cc592a65158255174b070715e332c32f7b1959209091b62ae150a6d",
+      "inventoryPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/inventory.json",
+      "inventorySha256": "3c6a9c0b0a618a490a75d5d32343c9b34d513f3b31e0a04eee8075e716ae8fe5",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "co-lead",
+      "depotPath": "base\\quest\\side_quests\\sq027\\scenes\\sq027_08_camp_saved.scene",
+      "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+      "archiveEntrySha1": "977b67e41564200f57baf6e96d55000756d15316",
+      "rawFile": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/quest/side_quests/sq027/scenes/sq027_08_camp_saved.scene",
+      "rawSha256": "6c5d4682e491207dd70d1aea022b31df8206388decb3534b6cafa95b2300c967",
+      "jsonFile": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/quest/side_quests/sq027/scenes/sq027_08_camp_saved.scene.json",
+      "jsonSha256": "4a5a5b41c9ce46826d042be69c8807fbfd042bef66cc1a658ff23b035d0d82a0",
+      "inventoryPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/inventory.json",
+      "inventorySha256": "3c6a9c0b0a618a490a75d5d32343c9b34d513f3b31e0a04eee8075e716ae8fe5",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "wake",
+      "depotPath": "base\\quest\\side_quests\\sq027\\scenes\\sq027_09_new_camp_wakeup.scene",
+      "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+      "archiveEntrySha1": "030cf27c7c3c90a629bbb03aab7492981277df65",
+      "rawFile": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/quest/side_quests/sq027/scenes/sq027_09_new_camp_wakeup.scene",
+      "rawSha256": "5cca608d7a3162d361705447d24bce7b1de3257968241a0889505771abd8686f",
+      "jsonFile": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/quest/side_quests/sq027/scenes/sq027_09_new_camp_wakeup.scene.json",
+      "jsonSha256": "22752767a6744fe39e5df8d06fdca0e2d29672026eb715c973d58b140f270d48",
+      "inventoryPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/inventory.json",
+      "inventorySha256": "3c6a9c0b0a618a490a75d5d32343c9b34d513f3b31e0a04eee8075e716ae8fe5",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "shipped-support-3",
+      "depotPath": "base\\localization\\en-us\\subtitles\\quest\\sq027\\sq027_03_saul_whistleblowing.json",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "2477611503709172361",
+      "archiveEntrySha1": "051a32c4dc1321b4b0fa2c1e6d9a94e0af46d9e5",
+      "rawFile": "runtime/voice-cast/aldecaldos/wave3-support-finish/subtitles/raw/base/localization/en-us/subtitles/quest/sq027/sq027_03_saul_whistleblowing.json",
+      "rawSha256": "c8df7b9ef7ed16b08a5310e86f034ca440ddf64f6faa1979c8bb9beea89ad99b",
+      "jsonFile": "runtime/voice-cast/aldecaldos/wave3-support-finish/subtitles/raw/base/localization/en-us/subtitles/quest/sq027/sq027_03_saul_whistleblowing.json.json",
+      "jsonSha256": "2d0b55c40dd8c889afa8d0c24594aad345adc0e0edead56e7eae9894cf207044",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true,
+      "sourceReceipt": {
+        "archive": "archive/pc/content/lang_en_text.archive",
+        "depotPath": "base\\localization\\en-us\\subtitles\\quest\\sq027\\sq027_03_saul_whistleblowing.json",
+        "pathHash": "2477611503709172361",
+        "segmentOffset": "7150364",
+        "storedBytes": 2235,
+        "decodedBytes": 4535,
+        "archiveEntrySha1": "051a32c4dc1321b4b0fa2c1e6d9a94e0af46d9e5",
+        "sha1Verified": true,
+        "sha256": "c8df7b9ef7ed16b08a5310e86f034ca440ddf64f6faa1979c8bb9beea89ad99b",
+        "shadowedEntryCount": 0
+      }
+    },
+    {
+      "id": "shipped-support-2",
+      "depotPath": "base\\localization\\en-us\\subtitles\\quest\\q114\\q114_04b_party.json",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "16462354125298904680",
+      "archiveEntrySha1": "850de8c97c3164195de94e3dcc3c20f7273d9cdf",
+      "rawFile": "runtime/voice-cast/minor-named/knowledge-wave3-bob-cassidy-dakota/raw/base/localization/en-us/subtitles/quest/q114/q114_04b_party.json",
+      "rawSha256": "9383ac65803f8fc61709d1943325bf15ccefe9a3664ca6770f8f82d7119f490f",
+      "jsonFile": "runtime/voice-cast/minor-named/knowledge-wave3-bob-cassidy-dakota/raw/base/localization/en-us/subtitles/quest/q114/q114_04b_party.json.json",
+      "jsonSha256": "0f60e2cfa8e1d18e9a1b35c972d981c439b8bcefc0f148b20f1fe15776f66151",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true,
+      "sourceReceipt": {
+        "archive": "archive/pc/content/lang_en_text.archive",
+        "depotPath": "base\\localization\\en-us\\subtitles\\quest\\q114\\q114_04b_party.json",
+        "pathHash": "16462354125298904680",
+        "segmentOffset": "6555370",
+        "storedBytes": 7889,
+        "decodedBytes": 19166,
+        "archiveEntrySha1": "850de8c97c3164195de94e3dcc3c20f7273d9cdf",
+        "sha1Verified": true,
+        "sha256": "9383ac65803f8fc61709d1943325bf15ccefe9a3664ca6770f8f82d7119f490f",
+        "shadowedEntryCount": 0
+      }
+    },
+    {
+      "id": "shipped-support-9",
+      "depotPath": "ep1\\localization\\en-us\\subtitles\\overlays_quest\\q114\\q114_04b_party.json",
+      "archivePath": "archive/pc/ep1/lang_en_text.archive",
+      "pathHash64": "14322436040544882563",
+      "archiveEntrySha1": "850de8c97c3164195de94e3dcc3c20f7273d9cdf",
+      "rawFile": "runtime/voice-cast/minor-named/knowledge-wave3-bob-cassidy-dakota/raw/ep1/localization/en-us/subtitles/overlays_quest/q114/q114_04b_party.json",
+      "rawSha256": "9383ac65803f8fc61709d1943325bf15ccefe9a3664ca6770f8f82d7119f490f",
+      "jsonFile": "runtime/voice-cast/minor-named/knowledge-wave3-bob-cassidy-dakota/raw/ep1/localization/en-us/subtitles/overlays_quest/q114/q114_04b_party.json.json",
+      "jsonSha256": "91575edbaebd04d3cf1db30d91f9534f4e1a63e5115b3ed7ce3088a9e2b774af",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true,
+      "sourceReceipt": {
+        "archive": "archive/pc/ep1/lang_en_text.archive",
+        "depotPath": "ep1\\localization\\en-us\\subtitles\\overlays_quest\\q114\\q114_04b_party.json",
+        "pathHash": "14322436040544882563",
+        "segmentOffset": "1495469",
+        "storedBytes": 7889,
+        "decodedBytes": 19166,
+        "archiveEntrySha1": "850de8c97c3164195de94e3dcc3c20f7273d9cdf",
+        "sha1Verified": true,
+        "sha256": "9383ac65803f8fc61709d1943325bf15ccefe9a3664ca6770f8f82d7119f490f",
+        "shadowedEntryCount": 0
+      }
+    },
+    {
+      "id": "shipped-support-1",
+      "depotPath": "base\\localization\\en-us\\subtitles\\quest\\q114\\q114_04_initiation.json",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "16563797265752935910",
+      "archiveEntrySha1": "0683212ddf85ca760495478817458cc8547c05e9",
+      "rawFile": "runtime/voice-cast/aldecaldos/wave3-support-finish/subtitles/raw/base/localization/en-us/subtitles/quest/q114/q114_04_initiation.json",
+      "rawSha256": "3b05882c4537dd1fcf1f7fc3d67517ff8d4c833852c231b63d7c4671d6e2f9ae",
+      "jsonFile": "runtime/voice-cast/aldecaldos/wave3-support-finish/subtitles/raw/base/localization/en-us/subtitles/quest/q114/q114_04_initiation.json.json",
+      "jsonSha256": "6564169fa6ab229c65fcec5566128d55f1819f86d20973344dfb8f582414732b",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true,
+      "sourceReceipt": {
+        "archive": "archive/pc/content/lang_en_text.archive",
+        "depotPath": "base\\localization\\en-us\\subtitles\\quest\\q114\\q114_04_initiation.json",
+        "pathHash": "16563797265752935910",
+        "segmentOffset": "6565775",
+        "storedBytes": 3651,
+        "decodedBytes": 8491,
+        "archiveEntrySha1": "0683212ddf85ca760495478817458cc8547c05e9",
+        "sha1Verified": true,
+        "sha256": "3b05882c4537dd1fcf1f7fc3d67517ff8d4c833852c231b63d7c4671d6e2f9ae",
+        "shadowedEntryCount": 0
+      }
+    },
+    {
+      "id": "shipped-support-8",
+      "depotPath": "base\\localization\\en-us\\subtitles\\quest\\sq027\\sq027_09_new_camp_wakeup.json",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "8969345944863409845",
+      "archiveEntrySha1": "814e6ac6d15ca9a591c723183b6b05a2151a7cb1",
+      "rawFile": "runtime/voice-cast/aldecaldos/wave3-support-finish/subtitles/raw/base/localization/en-us/subtitles/quest/sq027/sq027_09_new_camp_wakeup.json",
+      "rawSha256": "5b77d4175c123543d76cffef3abb073680c28582ef5c07808b801718c08c71d7",
+      "jsonFile": "runtime/voice-cast/aldecaldos/wave3-support-finish/subtitles/raw/base/localization/en-us/subtitles/quest/sq027/sq027_09_new_camp_wakeup.json.json",
+      "jsonSha256": "90310be3af01b45a1028d89144b6bb0eb45f58d58ee70c524da437f5f8eca921",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true,
+      "sourceReceipt": {
+        "archive": "archive/pc/content/lang_en_text.archive",
+        "depotPath": "base\\localization\\en-us\\subtitles\\quest\\sq027\\sq027_09_new_camp_wakeup.json",
+        "pathHash": "8969345944863409845",
+        "segmentOffset": "7178254",
+        "storedBytes": 3947,
+        "decodedBytes": 9286,
+        "archiveEntrySha1": "814e6ac6d15ca9a591c723183b6b05a2151a7cb1",
+        "sha1Verified": true,
+        "sha256": "5b77d4175c123543d76cffef3abb073680c28582ef5c07808b801718c08c71d7",
+        "shadowedEntryCount": 0
+      }
+    },
+    {
+      "id": "shipped-support-7",
+      "depotPath": "base\\localization\\en-us\\subtitles\\quest\\sq027\\sq027_08_camp_saved.json",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "11541989094909502005",
+      "archiveEntrySha1": "7b47fa25228a0e9d929759291d3eddeb89be0dd3",
+      "rawFile": "runtime/voice-cast/aldecaldos/wave3-support-finish/subtitles/raw/base/localization/en-us/subtitles/quest/sq027/sq027_08_camp_saved.json",
+      "rawSha256": "09f5f9e207b6dd92cee49c888544d598aa5af8bd63886ce36cfa80b219c129bd",
+      "jsonFile": "runtime/voice-cast/aldecaldos/wave3-support-finish/subtitles/raw/base/localization/en-us/subtitles/quest/sq027/sq027_08_camp_saved.json.json",
+      "jsonSha256": "1ff231ef9444c112b7454aceae6b5724dc008a558bf3f5af45713047b55f4cdf",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true,
+      "sourceReceipt": {
+        "archive": "archive/pc/content/lang_en_text.archive",
+        "depotPath": "base\\localization\\en-us\\subtitles\\quest\\sq027\\sq027_08_camp_saved.json",
+        "pathHash": "11541989094909502005",
+        "segmentOffset": "7174870",
+        "storedBytes": 3384,
+        "decodedBytes": 7387,
+        "archiveEntrySha1": "7b47fa25228a0e9d929759291d3eddeb89be0dd3",
+        "sha1Verified": true,
+        "sha256": "09f5f9e207b6dd92cee49c888544d598aa5af8bd63886ce36cfa80b219c129bd",
+        "shadowedEntryCount": 0
+      }
+    }
+  ],
+  "claims": [
+    {
+      "id": "saul.identity.family",
+      "text": "Saul is the leader described in the native codex for the Aldecaldo family that includes Panam. He leads this family, not the entire Aldecaldo nation.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/23/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/23/Data/id",
+          "expected": "saul_bright"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/23/Data/title/value",
+          "expected": "LocKey#20444"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15139/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15139/primaryKey",
+          "expected": "20444"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15139/femaleVariant",
+          "expected": "Saul Bright"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/23/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#20446"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15140/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15140/primaryKey",
+          "expected": "20446"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15140/femaleVariant",
+          "valueSha256": "5a8bc3e98e82135f09408d4dbd85a4b448cbfb754502f100235d67c25c9ba6ac",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "Historical authored role, not proof of current exclusive leadership, survival or a player invitation. Loaded-save changes take precedence."
+        ]
+      },
+      "attribution": {
+        "characterKey": "saul-bright",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/23/Data/id",
+          "expected": "saul_bright",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/23/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/15139/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/15139/femaleVariant"
+          }
+        ],
+        "speakers": [],
+        "perspective": "Character-specific native authored codex; no proof that V has seen/read it."
+      }
+    },
+    {
+      "id": "saul.history.difficult-succession",
+      "text": "He became leader at a difficult time when a strategic error could tear the family apart.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/23/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/23/Data/id",
+          "expected": "saul_bright"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/23/Data/title/value",
+          "expected": "LocKey#20444"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15139/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15139/primaryKey",
+          "expected": "20444"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15139/femaleVariant",
+          "expected": "Saul Bright"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/23/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#20446"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15140/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15140/primaryKey",
+          "expected": "20446"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15140/femaleVariant",
+          "valueSha256": "5a8bc3e98e82135f09408d4dbd85a4b448cbfb754502f100235d67c25c9ba6ac",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "No invented date, predecessor, election process or specific crisis beyond the codex."
+        ]
+      },
+      "attribution": {
+        "characterKey": "saul-bright",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/23/Data/id",
+          "expected": "saul_bright",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/23/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/15139/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/15139/femaleVariant"
+          }
+        ],
+        "speakers": [],
+        "perspective": "Character-specific native authored codex; no proof that V has seen/read it."
+      }
+    },
+    {
+      "id": "saul.policy.corporate-connections",
+      "text": "After becoming leader he moved away from the clan's smuggling tradition toward corporate connections, a change that was unpopular around camp.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/23/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/23/Data/id",
+          "expected": "saul_bright"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/23/Data/title/value",
+          "expected": "LocKey#20444"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15139/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15139/primaryKey",
+          "expected": "20444"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15139/femaleVariant",
+          "expected": "Saul Bright"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/23/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#20446"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15140/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15140/primaryKey",
+          "expected": "20446"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15140/femaleVariant",
+          "valueSha256": "5a8bc3e98e82135f09408d4dbd85a4b448cbfb754502f100235d67c25c9ba6ac",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "Historical policy, not proof of a currently signed deal, any Biotechnica terms, or V's side in the disagreement."
+        ]
+      },
+      "attribution": {
+        "characterKey": "saul-bright",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/23/Data/id",
+          "expected": "saul_bright",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/23/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/15139/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/15139/femaleVariant"
+          }
+        ],
+        "speakers": [],
+        "perspective": "Character-specific native authored codex; no proof that V has seen/read it."
+      }
+    },
+    {
+      "id": "saul.values.accountability",
+      "text": "He tries to act responsibly and does not deny responsibility for his choices.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/23/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/23/Data/id",
+          "expected": "saul_bright"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/23/Data/title/value",
+          "expected": "LocKey#20444"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15139/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15139/primaryKey",
+          "expected": "20444"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15139/femaleVariant",
+          "expected": "Saul Bright"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/23/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#20446"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15140/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15140/primaryKey",
+          "expected": "20446"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15140/femaleVariant",
+          "valueSha256": "5a8bc3e98e82135f09408d4dbd85a4b448cbfb754502f100235d67c25c9ba6ac",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "An authored trait, not an assurance that every decision is correct or that he has apologized to V."
+        ]
+      },
+      "attribution": {
+        "characterKey": "saul-bright",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/23/Data/id",
+          "expected": "saul_bright",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/23/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/15139/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/15139/femaleVariant"
+          }
+        ],
+        "speakers": [],
+        "perspective": "Character-specific native authored codex; no proof that V has seen/read it."
+      }
+    },
+    {
+      "id": "saul.temperament.principle",
+      "text": "The codex describes Saul as bold, principled, stubborn and uncompromising, a combination that commands reluctant respect.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/23/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/23/Data/id",
+          "expected": "saul_bright"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/23/Data/title/value",
+          "expected": "LocKey#20444"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15139/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15139/primaryKey",
+          "expected": "20444"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15139/femaleVariant",
+          "expected": "Saul Bright"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/23/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#20446"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15140/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15140/primaryKey",
+          "expected": "20446"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15140/femaleVariant",
+          "valueSha256": "5a8bc3e98e82135f09408d4dbd85a4b448cbfb754502f100235d67c25c9ba6ac",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "Avoid reducing him to cowardice or turning this evaluative characterization into universal approval by everyone."
+        ]
+      },
+      "attribution": {
+        "characterKey": "saul-bright",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/23/Data/id",
+          "expected": "saul_bright",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/23/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/15139/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/15139/femaleVariant"
+          }
+        ],
+        "speakers": [],
+        "perspective": "Character-specific native authored codex; no proof that V has seen/read it."
+      }
+    },
+    {
+      "id": "saul.delivery.clarifying",
+      "text": "His delivery can pause for a concrete explanation before he commits to a response: he asks what the visitor actually wants to tell him.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/23/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/23/Data/id",
+          "expected": "saul_bright"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/23/Data/title/value",
+          "expected": "LocKey#20444"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15139/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15139/primaryKey",
+          "expected": "20444"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15139/femaleVariant",
+          "expected": "Saul Bright"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Saul"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1537319941382881280"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/entryName/$value",
+          "expected": "saul"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/reference/$value",
+          "expected": "#saul"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/2/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/2/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/2/locstringId/ruid",
+          "expected": "1882156311710027776"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/2/itemId/id",
+          "expected": 513
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/161/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/161/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/161/locstringId/ruid",
+          "expected": "1882156311710027776"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/161/vpeIndex",
+          "expected": 8
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/8/content",
+          "valueSha256": "4c9bcbbf32aa5dff0b79046fed2f11212e059187ebe0f30a8ab2acd89d053cc7",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/1/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/1/Data/screenplayLineId/id",
+          "expected": 513
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/1/Data/id/id",
+          "expected": "2014089942814969864"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/1/Data/duration",
+          "expected": 2231
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/1/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/1/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/1/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Saul"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1537319941382881280"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/entryName/$value",
+          "expected": "saul"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/reference/$value",
+          "expected": "#saul"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/3/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/3/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/3/locstringId/ruid",
+          "expected": "1883927256563994624"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/3/itemId/id",
+          "expected": 769
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/179/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/179/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/179/locstringId/ruid",
+          "expected": "1883927256563994624"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/179/vpeIndex",
+          "expected": 63
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/63/content",
+          "valueSha256": "30c855a894247132597a08e634ca686c8ad080f6ce39fd0f42a578bb2bd7d955",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/4/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/4/Data/screenplayLineId/id",
+          "expected": 769
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/4/Data/id/id",
+          "expected": "2014089942814969876"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/4/Data/duration",
+          "expected": 2751
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/4/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/4/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/4/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/161/variantId/ruid",
+          "expected": "2679734310846885896"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/8/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/8/variantId/ruid",
+          "expected": "2679734310846885896"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/179/variantId/ruid",
+          "expected": "2679734310863663144"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/63/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/63/variantId/ruid",
+          "expected": "2679734310863663144"
+        },
+        {
+          "sourceId": "shipped-support-3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-support-3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7/stringId",
+          "expected": "1882156311710027776"
+        },
+        {
+          "sourceId": "shipped-support-3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7/femaleVariant",
+          "valueSha256": "4c9bcbbf32aa5dff0b79046fed2f11212e059187ebe0f30a8ab2acd89d053cc7",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "shipped-support-3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/24/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-support-3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/24/stringId",
+          "expected": "1883927256563994624"
+        },
+        {
+          "sourceId": "shipped-support-3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/24/femaleVariant",
+          "valueSha256": "30c855a894247132597a08e634ca686c8ad080f6ce39fd0f42a578bb2bd7d955",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "Editorial cadence inference from his own speech; do not import the source's confidential report, gratitude, reward or hostility toward Panam."
+        ]
+      },
+      "attribution": {
+        "characterKey": "saul-bright",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/23/Data/id",
+          "expected": "saul_bright",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/23/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/15139/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/15139/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "whistle",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/2",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "1537319941382881280"
+          },
+          {
+            "sourceId": "whistle",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/3",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "1537319941382881280"
+          }
+        ],
+        "perspective": "Editorial delivery/craft inference from attributed speech; not a recollection of these scenes with V."
+      }
+    },
+    {
+      "id": "saul.delivery.triage-metaphor",
+      "text": "Saul favors practical comparisons that distinguish urgent survival work from attractive improvements: repair the burning car before its appearance.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/23/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/23/Data/id",
+          "expected": "saul_bright"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/23/Data/title/value",
+          "expected": "LocKey#20444"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15139/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15139/primaryKey",
+          "expected": "20444"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15139/femaleVariant",
+          "expected": "Saul Bright"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Saul"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1537319941382881280"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/entryName/$value",
+          "expected": "saul"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/reference/$value",
+          "expected": "#saul"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/21/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/21/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/21/locstringId/ruid",
+          "expected": "1883892930648494080"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/21/itemId/id",
+          "expected": 5377
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/172/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/172/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/172/locstringId/ruid",
+          "expected": "1883892930648494080"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/172/vpeIndex",
+          "expected": 69
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/69/content",
+          "valueSha256": "5641cd8c5e3b057badabc36d271d67b19c2990ee5c9f55a06eabc4877406d6df",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/9/Data/events/6/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/9/Data/events/6/Data/screenplayLineId/id",
+          "expected": 5377
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/9/Data/events/6/Data/id/id",
+          "expected": "2014089942865301512"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/9/Data/events/6/Data/duration",
+          "expected": 2540
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/9/Data/events/6/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/9/Data/events/6/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/9/Data/events/6/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Saul"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1537319941382881280"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/entryName/$value",
+          "expected": "saul"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/reference/$value",
+          "expected": "#saul"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/24/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/24/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/24/locstringId/ruid",
+          "expected": "1883897032224821248"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/24/itemId/id",
+          "expected": 6145
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/176/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/176/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/176/locstringId/ruid",
+          "expected": "1883897032224821248"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/176/vpeIndex",
+          "expected": 78
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/78/content",
+          "valueSha256": "4e792687211b4da2e0a01085f4b556cf13bc41dade97e922f826c4b45140e722",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/9/Data/events/21/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/9/Data/events/21/Data/screenplayLineId/id",
+          "expected": 6145
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/9/Data/events/21/Data/id/id",
+          "expected": "2014089942865301528"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/9/Data/events/21/Data/duration",
+          "expected": 4204
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/9/Data/events/21/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/9/Data/events/21/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/9/Data/events/21/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Saul"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1537319941382881280"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/entryName/$value",
+          "expected": "saul"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/reference/$value",
+          "expected": "#saul"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/25/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/25/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/25/locstringId/ruid",
+          "expected": "1883894741564411904"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/25/itemId/id",
+          "expected": 6401
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/175/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/175/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/175/locstringId/ruid",
+          "expected": "1883894741564411904"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/175/vpeIndex",
+          "expected": 81
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/81/content",
+          "valueSha256": "2db416c70cac4258cc33c881a92761a019f8052e339d96369103229b32cb1364",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/9/Data/events/26/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/9/Data/events/26/Data/screenplayLineId/id",
+          "expected": 6401
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/9/Data/events/26/Data/id/id",
+          "expected": "2014089942865301524"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/9/Data/events/26/Data/duration",
+          "expected": 4295
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/9/Data/events/26/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/9/Data/events/26/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/9/Data/events/26/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/172/variantId/ruid",
+          "expected": "2679734310863663152"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/69/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/69/variantId/ruid",
+          "expected": "2679734310863663152"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/176/variantId/ruid",
+          "expected": "2679734310863663164"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/78/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/78/variantId/ruid",
+          "expected": "2679734310863663164"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/175/variantId/ruid",
+          "expected": "2679734310863663168"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/81/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "whistle",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/81/variantId/ruid",
+          "expected": "2679734310863663168"
+        },
+        {
+          "sourceId": "shipped-support-3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/17/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-support-3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/17/stringId",
+          "expected": "1883892930648494080"
+        },
+        {
+          "sourceId": "shipped-support-3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/17/femaleVariant",
+          "valueSha256": "5641cd8c5e3b057badabc36d271d67b19c2990ee5c9f55a06eabc4877406d6df",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "shipped-support-3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/21/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-support-3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/21/stringId",
+          "expected": "1883897032224821248"
+        },
+        {
+          "sourceId": "shipped-support-3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/21/femaleVariant",
+          "valueSha256": "4e792687211b4da2e0a01085f4b556cf13bc41dade97e922f826c4b45140e722",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "shipped-support-3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/20/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-support-3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/20/stringId",
+          "expected": "1883894741564411904"
+        },
+        {
+          "sourceId": "shipped-support-3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/20/femaleVariant",
+          "valueSha256": "2db416c70cac4258cc33c881a92761a019f8052e339d96369103229b32cb1364",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "Editorial delivery inference, not a claim of expertise in all vehicle repairs or a present corporate bargain."
+        ]
+      },
+      "attribution": {
+        "characterKey": "saul-bright",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/23/Data/id",
+          "expected": "saul_bright",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/23/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/15139/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/15139/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "whistle",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/21",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "1537319941382881280"
+          },
+          {
+            "sourceId": "whistle",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/24",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "1537319941382881280"
+          },
+          {
+            "sourceId": "whistle",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/25",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "1537319941382881280"
+          }
+        ],
+        "perspective": "Editorial delivery/craft inference from attributed speech; not a recollection of these scenes with V."
+      }
+    },
+    {
+      "id": "saul.values.family-first",
+      "text": "His own speech puts the family's welfare ahead of personal gain; leadership makes him consider who survives the decision.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/23/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/23/Data/id",
+          "expected": "saul_bright"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/23/Data/title/value",
+          "expected": "LocKey#20444"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15139/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15139/primaryKey",
+          "expected": "20444"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15139/femaleVariant",
+          "expected": "Saul Bright"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/actors/1/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorName",
+          "expected": "Saul"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorId/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/actors/1/voicetagId/id",
+          "expected": "1537319941382881280"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/actors/1/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnSetParams/entryName/$value",
+          "expected": "saul"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnSetParams/reference/$value",
+          "expected": "#saul"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/93/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/93/speaker/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/93/locstringId/ruid",
+          "expected": "1878011343142514688"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/93/itemId/id",
+          "expected": 23809
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/620/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/620/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/620/locstringId/ruid",
+          "expected": "1878011343142514688"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/620/vpeIndex",
+          "expected": 292
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/292/content",
+          "valueSha256": "aa92d74d8eab1b21c70ed1c627b619f839c898daa4fb65cb4d5edd7fd55a62e3",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/66/Data/events/8/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/66/Data/events/8/Data/screenplayLineId/id",
+          "expected": 23809
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/66/Data/events/8/Data/id/id",
+          "expected": "1983674155861299212"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/66/Data/events/8/Data/duration",
+          "expected": 7631
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/66/Data/events/8/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/66/Data/events/8/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/66/Data/events/8/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/actors/1/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorName",
+          "expected": "Saul"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorId/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/actors/1/voicetagId/id",
+          "expected": "1537319941382881280"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/actors/1/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnSetParams/entryName/$value",
+          "expected": "saul"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnSetParams/reference/$value",
+          "expected": "#saul"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/100/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/100/speaker/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/100/locstringId/ruid",
+          "expected": "1878047630985654272"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/100/itemId/id",
+          "expected": 25601
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/631/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/631/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/631/locstringId/ruid",
+          "expected": "1878047630985654272"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/631/vpeIndex",
+          "expected": 314
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/314/content",
+          "valueSha256": "348a5eb7ce657b6903f9b27a65c2a81bd602643411a35ac0eaa6e0038af3119e",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/68/Data/events/10/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/68/Data/events/10/Data/screenplayLineId/id",
+          "expected": 25601
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/68/Data/events/10/Data/id/id",
+          "expected": "1983674155894853632"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/68/Data/events/10/Data/duration",
+          "expected": 8383
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/68/Data/events/10/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/68/Data/events/10/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/68/Data/events/10/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/actors/1/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorName",
+          "expected": "Saul"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorId/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/actors/1/voicetagId/id",
+          "expected": "1537319941382881280"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/actors/1/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnSetParams/entryName/$value",
+          "expected": "saul"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnSetParams/reference/$value",
+          "expected": "#saul"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/106/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/106/speaker/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/106/locstringId/ruid",
+          "expected": "1886520455258042368"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/106/itemId/id",
+          "expected": 27137
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/705/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/705/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/705/locstringId/ruid",
+          "expected": "1886520455258042368"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/705/vpeIndex",
+          "expected": 335
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/335/content",
+          "valueSha256": "b5f0473ea80fc82cad2a71f5b35d3e5132584748f0a258ffabdd21f885695e6c",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/69/Data/events/9/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/69/Data/events/9/Data/screenplayLineId/id",
+          "expected": 27137
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/69/Data/events/9/Data/id/id",
+          "expected": "1983674155894853656"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/69/Data/events/9/Data/duration",
+          "expected": 4948
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/69/Data/events/9/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/69/Data/events/9/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/69/Data/events/9/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/620/variantId/ruid",
+          "expected": "4098704864969089064"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/292/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/292/variantId/ruid",
+          "expected": "4098704864969089064"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/631/variantId/ruid",
+          "expected": "4098704864985866244"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/314/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/314/variantId/ruid",
+          "expected": "4098704864985866244"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/705/variantId/ruid",
+          "expected": "4098704865002643460"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/335/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/335/variantId/ruid",
+          "expected": "4098704865002643460"
+        },
+        {
+          "sourceId": "shipped-support-2",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/95/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-support-2",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/95/stringId",
+          "expected": "1878011343142514688"
+        },
+        {
+          "sourceId": "shipped-support-2",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/95/femaleVariant",
+          "valueSha256": "aa92d74d8eab1b21c70ed1c627b619f839c898daa4fb65cb4d5edd7fd55a62e3",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "shipped-support-9",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/95/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-support-9",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/95/stringId",
+          "expected": "1878011343142514688"
+        },
+        {
+          "sourceId": "shipped-support-9",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/95/femaleVariant",
+          "valueSha256": "aa92d74d8eab1b21c70ed1c627b619f839c898daa4fb65cb4d5edd7fd55a62e3",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "shipped-support-2",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/104/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-support-2",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/104/stringId",
+          "expected": "1878047630985654272"
+        },
+        {
+          "sourceId": "shipped-support-2",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/104/femaleVariant",
+          "valueSha256": "348a5eb7ce657b6903f9b27a65c2a81bd602643411a35ac0eaa6e0038af3119e",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "shipped-support-9",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/104/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-support-9",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/104/stringId",
+          "expected": "1878047630985654272"
+        },
+        {
+          "sourceId": "shipped-support-9",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/104/femaleVariant",
+          "valueSha256": "348a5eb7ce657b6903f9b27a65c2a81bd602643411a35ac0eaa6e0038af3119e",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "shipped-support-2",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/172/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-support-2",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/172/stringId",
+          "expected": "1886520455258042368"
+        },
+        {
+          "sourceId": "shipped-support-2",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/172/femaleVariant",
+          "valueSha256": "b5f0473ea80fc82cad2a71f5b35d3e5132584748f0a258ffabdd21f885695e6c",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "shipped-support-9",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/172/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-support-9",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/172/stringId",
+          "expected": "1886520455258042368"
+        },
+        {
+          "sourceId": "shipped-support-9",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/172/femaleVariant",
+          "valueSha256": "b5f0473ea80fc82cad2a71f5b35d3e5132584748f0a258ffabdd21f885695e6c",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "General stated leadership ethic only. No Mikoshi plan, imminent raid, V membership, clan split or reconciliation is assumed."
+        ]
+      },
+      "attribution": {
+        "characterKey": "saul-bright",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/23/Data/id",
+          "expected": "saul_bright",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/23/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/15139/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/15139/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "party",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/93",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "1537319941382881280"
+          },
+          {
+            "sourceId": "party",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/100",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "1537319941382881280"
+          },
+          {
+            "sourceId": "party",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/106",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "1537319941382881280"
+          }
+        ],
+        "perspective": "Editorial delivery/craft inference from attributed speech; not a recollection of these scenes with V."
+      }
+    },
+    {
+      "id": "saul.delivery.stern-wry",
+      "text": "He can mix formal, direct instructions with an unexpectedly old-fashioned, faintly comic choice of words.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/23/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/23/Data/id",
+          "expected": "saul_bright"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/23/Data/title/value",
+          "expected": "LocKey#20444"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15139/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15139/primaryKey",
+          "expected": "20444"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15139/femaleVariant",
+          "expected": "Saul Bright"
+        },
+        {
+          "sourceId": "initiation",
+          "jsonPointer": "/Data/RootChunk/actors/3/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "initiation",
+          "jsonPointer": "/Data/RootChunk/actors/3/actorName",
+          "expected": "Saul"
+        },
+        {
+          "sourceId": "initiation",
+          "jsonPointer": "/Data/RootChunk/actors/3/actorId/id",
+          "expected": 3
+        },
+        {
+          "sourceId": "initiation",
+          "jsonPointer": "/Data/RootChunk/actors/3/voicetagId/id",
+          "expected": "1537319941382881280"
+        },
+        {
+          "sourceId": "initiation",
+          "jsonPointer": "/Data/RootChunk/actors/3/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "initiation",
+          "jsonPointer": "/Data/RootChunk/actors/3/spawnSetParams/entryName/$value",
+          "expected": "saul"
+        },
+        {
+          "sourceId": "initiation",
+          "jsonPointer": "/Data/RootChunk/actors/3/spawnSetParams/reference/$value",
+          "expected": "#saul"
+        },
+        {
+          "sourceId": "initiation",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/60/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "initiation",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/60/speaker/id",
+          "expected": 3
+        },
+        {
+          "sourceId": "initiation",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/60/locstringId/ruid",
+          "expected": "1888111599880368128"
+        },
+        {
+          "sourceId": "initiation",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/60/itemId/id",
+          "expected": 15361
+        },
+        {
+          "sourceId": "initiation",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/324/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "initiation",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/324/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "initiation",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/324/locstringId/ruid",
+          "expected": "1888111599880368128"
+        },
+        {
+          "sourceId": "initiation",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/324/vpeIndex",
+          "expected": 210
+        },
+        {
+          "sourceId": "initiation",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/210/content",
+          "valueSha256": "4a3d532a6d3b3b4afdad727aba988f1627fd1bda6a9208099cc522522e04edf7",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "initiation",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/30/Data/events/8/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "initiation",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/30/Data/events/8/Data/screenplayLineId/id",
+          "expected": 15361
+        },
+        {
+          "sourceId": "initiation",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/30/Data/events/8/Data/id/id",
+          "expected": "1979334725220106260"
+        },
+        {
+          "sourceId": "initiation",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/30/Data/events/8/Data/duration",
+          "expected": 3321
+        },
+        {
+          "sourceId": "initiation",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/30/Data/events/8/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "initiation",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/30/Data/events/8/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "initiation",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/30/Data/events/8/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "initiation",
+          "jsonPointer": "/Data/RootChunk/actors/3/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "initiation",
+          "jsonPointer": "/Data/RootChunk/actors/3/actorName",
+          "expected": "Saul"
+        },
+        {
+          "sourceId": "initiation",
+          "jsonPointer": "/Data/RootChunk/actors/3/actorId/id",
+          "expected": 3
+        },
+        {
+          "sourceId": "initiation",
+          "jsonPointer": "/Data/RootChunk/actors/3/voicetagId/id",
+          "expected": "1537319941382881280"
+        },
+        {
+          "sourceId": "initiation",
+          "jsonPointer": "/Data/RootChunk/actors/3/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "initiation",
+          "jsonPointer": "/Data/RootChunk/actors/3/spawnSetParams/entryName/$value",
+          "expected": "saul"
+        },
+        {
+          "sourceId": "initiation",
+          "jsonPointer": "/Data/RootChunk/actors/3/spawnSetParams/reference/$value",
+          "expected": "#saul"
+        },
+        {
+          "sourceId": "initiation",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/65/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "initiation",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/65/speaker/id",
+          "expected": 3
+        },
+        {
+          "sourceId": "initiation",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/65/locstringId/ruid",
+          "expected": "1882371903699152896"
+        },
+        {
+          "sourceId": "initiation",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/65/itemId/id",
+          "expected": 16641
+        },
+        {
+          "sourceId": "initiation",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/300/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "initiation",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/300/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "initiation",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/300/locstringId/ruid",
+          "expected": "1882371903699152896"
+        },
+        {
+          "sourceId": "initiation",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/300/vpeIndex",
+          "expected": 229
+        },
+        {
+          "sourceId": "initiation",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/229/content",
+          "valueSha256": "eb81152724074ba65b724fc6547464a3da811ced0dc14d0960f5389ac6ba70c1",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "initiation",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/50/Data/events/1/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "initiation",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/50/Data/events/1/Data/screenplayLineId/id",
+          "expected": 16641
+        },
+        {
+          "sourceId": "initiation",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/50/Data/events/1/Data/id/id",
+          "expected": "2025531431201665024"
+        },
+        {
+          "sourceId": "initiation",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/50/Data/events/1/Data/duration",
+          "expected": 5185
+        },
+        {
+          "sourceId": "initiation",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/50/Data/events/1/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "initiation",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/50/Data/events/1/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "initiation",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/50/Data/events/1/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "initiation",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/324/variantId/ruid",
+          "expected": "4146535160992378916"
+        },
+        {
+          "sourceId": "initiation",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/210/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "initiation",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/210/variantId/ruid",
+          "expected": "4146535160992378916"
+        },
+        {
+          "sourceId": "initiation",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/300/variantId/ruid",
+          "expected": "4146535160992378936"
+        },
+        {
+          "sourceId": "initiation",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/229/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "initiation",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/229/variantId/ruid",
+          "expected": "4146535160992378936"
+        },
+        {
+          "sourceId": "shipped-support-1",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/68/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-support-1",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/68/stringId",
+          "expected": "1888111599880368128"
+        },
+        {
+          "sourceId": "shipped-support-1",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/68/femaleVariant",
+          "valueSha256": "4a3d532a6d3b3b4afdad727aba988f1627fd1bda6a9208099cc522522e04edf7",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "shipped-support-1",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/48/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-support-1",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/48/stringId",
+          "expected": "1882371903699152896"
+        },
+        {
+          "sourceId": "shipped-support-1",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/48/femaleVariant",
+          "valueSha256": "eb81152724074ba65b724fc6547464a3da811ced0dc14d0960f5389ac6ba70c1",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "Editorial delivery inference only; the source's rescue debt and initiation do not belong to this playthrough without separate proof."
+        ]
+      },
+      "attribution": {
+        "characterKey": "saul-bright",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/23/Data/id",
+          "expected": "saul_bright",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/23/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/15139/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/15139/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "initiation",
+            "actorPointer": "/Data/RootChunk/actors/3",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/60",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "1537319941382881280"
+          },
+          {
+            "sourceId": "initiation",
+            "actorPointer": "/Data/RootChunk/actors/3",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/65",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "1537319941382881280"
+          }
+        ],
+        "perspective": "Editorial delivery/craft inference from attributed speech; not a recollection of these scenes with V."
+      }
+    },
+    {
+      "id": "saul.care.plain-concern",
+      "text": "When concerned about someone he can ask plainly whether they are all right rather than turn the moment into a speech.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/23/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/23/Data/id",
+          "expected": "saul_bright"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/23/Data/title/value",
+          "expected": "LocKey#20444"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15139/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15139/primaryKey",
+          "expected": "20444"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15139/femaleVariant",
+          "expected": "Saul Bright"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/actors/1/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorName",
+          "expected": "Saul"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorId/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/actors/1/voicetagId/id",
+          "expected": "1537319941382881280"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/actors/1/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnSetParams/entryName/$value",
+          "expected": "saul"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnSetParams/reference/$value",
+          "expected": "#saul"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/69/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/69/speaker/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/69/locstringId/ruid",
+          "expected": "1999530197072343040"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/69/itemId/id",
+          "expected": 17665
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/423/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/423/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/423/locstringId/ruid",
+          "expected": "1999530197072343040"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/423/vpeIndex",
+          "expected": 216
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/216/content",
+          "valueSha256": "fb2614f48f248817a51706967e929c98ba7a016858a35f10acce68a7008f54be",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/40/Data/events/7/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/40/Data/events/7/Data/screenplayLineId/id",
+          "expected": 17665
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/40/Data/events/7/Data/id/id",
+          "expected": "2077856882834567168"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/40/Data/events/7/Data/duration",
+          "expected": 2418
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/40/Data/events/7/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/40/Data/events/7/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/40/Data/events/7/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/actors/1/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorName",
+          "expected": "Saul"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorId/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/actors/1/voicetagId/id",
+          "expected": "1537319941382881280"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/actors/1/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnSetParams/entryName/$value",
+          "expected": "saul"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnSetParams/reference/$value",
+          "expected": "#saul"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/72/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/72/speaker/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/72/locstringId/ruid",
+          "expected": "1999536111594631168"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/72/itemId/id",
+          "expected": 18433
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/424/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/424/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/424/locstringId/ruid",
+          "expected": "1999536111594631168"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/424/vpeIndex",
+          "expected": 225
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/225/content",
+          "valueSha256": "92fc40ab0ce519ee723e06a8a5215832b33ee80523202a98861d6aac3f81a438",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/40/Data/events/23/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/40/Data/events/23/Data/screenplayLineId/id",
+          "expected": 18433
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/40/Data/events/23/Data/id/id",
+          "expected": "2077858121949409280"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/40/Data/events/23/Data/duration",
+          "expected": 1600
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/40/Data/events/23/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/40/Data/events/23/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/40/Data/events/23/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/actors/1/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorName",
+          "expected": "Saul"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorId/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/actors/1/voicetagId/id",
+          "expected": "1537319941382881280"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/actors/1/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnSetParams/entryName/$value",
+          "expected": "saul"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnSetParams/reference/$value",
+          "expected": "#saul"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/91/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/91/speaker/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/91/locstringId/ruid",
+          "expected": "1999540554755076096"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/91/itemId/id",
+          "expected": 23297
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/425/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/425/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/425/locstringId/ruid",
+          "expected": "1999540554755076096"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/425/vpeIndex",
+          "expected": 267
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/267/content",
+          "valueSha256": "0eaa5285b4950521c979172ffe80544272ac65caa9fe65c865ef7148e098feff",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/106/Data/events/1/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/106/Data/events/1/Data/screenplayLineId/id",
+          "expected": 23297
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/106/Data/events/1/Data/id/id",
+          "expected": "2211101763278499840"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/106/Data/events/1/Data/duration",
+          "expected": 3662
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/106/Data/events/1/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/106/Data/events/1/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/106/Data/events/1/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/423/variantId/ruid",
+          "expected": "2971019327531016220"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/216/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/216/variantId/ruid",
+          "expected": "2971019327531016220"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/424/variantId/ruid",
+          "expected": "2971019327547793408"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/225/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/225/variantId/ruid",
+          "expected": "2971019327547793408"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/425/variantId/ruid",
+          "expected": "2971019327564570632"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/267/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "wake",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/267/variantId/ruid",
+          "expected": "2971019327564570632"
+        },
+        {
+          "sourceId": "shipped-support-8",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/106/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-support-8",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/106/stringId",
+          "expected": "1999530197072343040"
+        },
+        {
+          "sourceId": "shipped-support-8",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/106/femaleVariant",
+          "valueSha256": "fb2614f48f248817a51706967e929c98ba7a016858a35f10acce68a7008f54be",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "shipped-support-8",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/107/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-support-8",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/107/stringId",
+          "expected": "1999536111594631168"
+        },
+        {
+          "sourceId": "shipped-support-8",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/107/femaleVariant",
+          "valueSha256": "92fc40ab0ce519ee723e06a8a5215832b33ee80523202a98861d6aac3f81a438",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "shipped-support-8",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/108/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-support-8",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/108/stringId",
+          "expected": "1999540554755076096"
+        },
+        {
+          "sourceId": "shipped-support-8",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/108/femaleVariant",
+          "valueSha256": "0eaa5285b4950521c979172ffe80544272ac65caa9fe65c865ef7148e098feff",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "Editorial interpersonal inference; no assumption that V suffered the collapse in the sampled scene or has earned clan support."
+        ]
+      },
+      "attribution": {
+        "characterKey": "saul-bright",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/23/Data/id",
+          "expected": "saul_bright",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/23/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/15139/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/15139/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "wake",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/69",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "1537319941382881280"
+          },
+          {
+            "sourceId": "wake",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/72",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "1537319941382881280"
+          },
+          {
+            "sourceId": "wake",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/91",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "1537319941382881280"
+          }
+        ],
+        "perspective": "Editorial delivery/craft inference from attributed speech; not a recollection of these scenes with V."
+      }
+    },
+    {
+      "id": "saul.conditional.co-leadership",
+      "text": "In the successful later camp branch Saul acknowledges he was wrong and says Panam will lead the family by his side.",
+      "kind": "intrinsic",
+      "disclosure": "only-after-native-outcome-qualified",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/23/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/23/Data/id",
+          "expected": "saul_bright"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/23/Data/title/value",
+          "expected": "LocKey#20444"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15139/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15139/primaryKey",
+          "expected": "20444"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15139/femaleVariant",
+          "expected": "Saul Bright"
+        },
+        {
+          "sourceId": "co-lead",
+          "jsonPointer": "/Data/RootChunk/actors/1/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "co-lead",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorName",
+          "expected": "Saul"
+        },
+        {
+          "sourceId": "co-lead",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorId/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "co-lead",
+          "jsonPointer": "/Data/RootChunk/actors/1/voicetagId/id",
+          "expected": "1537319941382881280"
+        },
+        {
+          "sourceId": "co-lead",
+          "jsonPointer": "/Data/RootChunk/actors/1/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "co-lead",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnSetParams/entryName/$value",
+          "expected": "saul"
+        },
+        {
+          "sourceId": "co-lead",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnSetParams/reference/$value",
+          "expected": "#saul"
+        },
+        {
+          "sourceId": "co-lead",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/7/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "co-lead",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/7/speaker/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "co-lead",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/7/locstringId/ruid",
+          "expected": "1807198217741602816"
+        },
+        {
+          "sourceId": "co-lead",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/7/itemId/id",
+          "expected": 1793
+        },
+        {
+          "sourceId": "co-lead",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/267/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "co-lead",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/267/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "co-lead",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/267/locstringId/ruid",
+          "expected": "1807198217741602816"
+        },
+        {
+          "sourceId": "co-lead",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/267/vpeIndex",
+          "expected": 23
+        },
+        {
+          "sourceId": "co-lead",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/23/content",
+          "valueSha256": "96577265c65d72b6e892aabbb3744f62a3d7b9ad6de350f74b714d377b92bff5",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "co-lead",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/28/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "co-lead",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/28/Data/screenplayLineId/id",
+          "expected": 1793
+        },
+        {
+          "sourceId": "co-lead",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/28/Data/id/id",
+          "expected": "1979538061300355080"
+        },
+        {
+          "sourceId": "co-lead",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/28/Data/duration",
+          "expected": 4880
+        },
+        {
+          "sourceId": "co-lead",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/28/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "co-lead",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/28/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "co-lead",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/28/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "co-lead",
+          "jsonPointer": "/Data/RootChunk/actors/1/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "co-lead",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorName",
+          "expected": "Saul"
+        },
+        {
+          "sourceId": "co-lead",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorId/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "co-lead",
+          "jsonPointer": "/Data/RootChunk/actors/1/voicetagId/id",
+          "expected": "1537319941382881280"
+        },
+        {
+          "sourceId": "co-lead",
+          "jsonPointer": "/Data/RootChunk/actors/1/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "co-lead",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnSetParams/entryName/$value",
+          "expected": "saul"
+        },
+        {
+          "sourceId": "co-lead",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnSetParams/reference/$value",
+          "expected": "#saul"
+        },
+        {
+          "sourceId": "co-lead",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/10/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "co-lead",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/10/speaker/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "co-lead",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/10/locstringId/ruid",
+          "expected": "1807199135673421824"
+        },
+        {
+          "sourceId": "co-lead",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/10/itemId/id",
+          "expected": 2561
+        },
+        {
+          "sourceId": "co-lead",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/269/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "co-lead",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/269/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "co-lead",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/269/locstringId/ruid",
+          "expected": "1807199135673421824"
+        },
+        {
+          "sourceId": "co-lead",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/269/vpeIndex",
+          "expected": 32
+        },
+        {
+          "sourceId": "co-lead",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/32/content",
+          "valueSha256": "b70d6221e46178ab44eeb78e8bfcaa8ba2732ed18cd17e5d49b47e73f44caf43",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "co-lead",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/48/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "co-lead",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/48/Data/screenplayLineId/id",
+          "expected": 2561
+        },
+        {
+          "sourceId": "co-lead",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/48/Data/id/id",
+          "expected": "1979538061300355088"
+        },
+        {
+          "sourceId": "co-lead",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/48/Data/duration",
+          "expected": 3998
+        },
+        {
+          "sourceId": "co-lead",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/48/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "co-lead",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/48/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "co-lead",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/48/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "co-lead",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/267/variantId/ruid",
+          "expected": "2791073744456949776"
+        },
+        {
+          "sourceId": "co-lead",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/23/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "co-lead",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/23/variantId/ruid",
+          "expected": "2791073744456949776"
+        },
+        {
+          "sourceId": "co-lead",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/269/variantId/ruid",
+          "expected": "2791073744473726980"
+        },
+        {
+          "sourceId": "co-lead",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/32/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "co-lead",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/32/variantId/ruid",
+          "expected": "2791073744473726980"
+        },
+        {
+          "sourceId": "shipped-support-7",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/10/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-support-7",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/10/stringId",
+          "expected": "1807198217741602816"
+        },
+        {
+          "sourceId": "shipped-support-7",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/10/femaleVariant",
+          "valueSha256": "96577265c65d72b6e892aabbb3744f62a3d7b9ad6de350f74b714d377b92bff5",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "shipped-support-7",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/12/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-support-7",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/12/stringId",
+          "expected": "1807199135673421824"
+        },
+        {
+          "sourceId": "shipped-support-7",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/12/femaleVariant",
+          "valueSha256": "b70d6221e46178ab44eeb78e8bfcaa8ba2732ed18cd17e5d49b47e73f44caf43",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "Later branch-specific development, excluded from universal topic knowledge. Requires independent save outcome qualification; dialogue text alone proves no current leadership."
+        ]
+      },
+      "attribution": {
+        "characterKey": "saul-bright",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/23/Data/id",
+          "expected": "saul_bright",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/23/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/15139/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/15139/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "co-lead",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/7",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "1537319941382881280"
+          },
+          {
+            "sourceId": "co-lead",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/10",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "1537319941382881280"
+          }
+        ],
+        "perspective": "Editorial delivery/craft inference from attributed speech; not a recollection of these scenes with V."
+      },
+      "requiredContext": [
+        "Exact loaded-save branch and dialogue delivery qualified independently; never static authoring."
+      ]
+    }
+  ],
+  "cadenceExamples": [
+    {
+      "id": "practical-plan",
+      "text": "Start with what the family needs. The impressive part of your plan can wait.",
+      "claimIds": [
+        "saul.delivery.triage-metaphor",
+        "saul.values.family-first"
+      ],
+      "context": "Someone proposes a flashy but vague plan.",
+      "purpose": "Original editorial delivery example, not a game quote; no implied shared player history."
+    },
+    {
+      "id": "responsibility",
+      "text": "If it is my decision, then its cost is mine to answer for.",
+      "claimIds": [
+        "saul.values.accountability"
+      ],
+      "context": "Asked about taking responsibility, without invoking a particular quest.",
+      "purpose": "Original editorial delivery example, not a game quote; no implied shared player history."
+    },
+    {
+      "id": "concrete-question",
+      "text": "What exactly are you asking me to agree to?",
+      "claimIds": [
+        "saul.delivery.clarifying"
+      ],
+      "context": "The other speaker has skipped essential details.",
+      "purpose": "Original editorial delivery example, not a game quote; no implied shared player history."
+    },
+    {
+      "id": "family-cost",
+      "text": "I hear the opportunity. Now tell me who carries the risk.",
+      "claimIds": [
+        "saul.values.family-first"
+      ],
+      "context": "Considering work in general terms.",
+      "purpose": "Original editorial delivery example, not a game quote; no implied shared player history."
+    },
+    {
+      "id": "modest-joke",
+      "text": "A little less ceremony, please. We have enough dust to make the occasion official.",
+      "claimIds": [
+        "saul.delivery.stern-wry"
+      ],
+      "context": "A light moment; no initiation or current event implied.",
+      "purpose": "Original editorial delivery example, not a game quote; no implied shared player history."
+    },
+    {
+      "id": "check-in",
+      "text": "You all right? Sit a moment if you need it.",
+      "claimIds": [
+        "saul.care.plain-concern"
+      ],
+      "context": "A brief practical check rather than a paternal monologue.",
+      "purpose": "Original editorial delivery example, not a game quote; no implied shared player history."
+    }
+  ],
+  "exclusions": [
+    "No V meetings, shared adventures, rescues, romance, player choices, ending participation or current-save leadership/deaths from static authoring.",
+    "Sampled late scenes support only explicitly scoped delivery/craft inferences; their particular events remain unqualified.",
+    "Original samples are short, speaker-prefix-free editorial examples, not copied dialogue."
+  ],
+  "attributionRevision": 3,
+  "reviewSummary": {
+    "publicClaims": 10,
+    "privateClaims": 0,
+    "conditionalClaims": 1,
+    "samples": 6,
+    "references": 530,
+    "sources": 13,
+    "currentSaveQualified": false,
+    "adopted": false,
+    "cloudWrites": false,
+    "memorySeeding": false,
+    "speechJoins": 15,
+    "shippedSubtitleSources": 6,
+    "sameIdShippedSubtitleAgreement": true
+  }
+}

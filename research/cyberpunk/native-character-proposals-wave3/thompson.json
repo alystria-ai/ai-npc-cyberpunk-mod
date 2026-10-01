@@ -1,0 +1,2025 @@
+{
+  "schemaVersion": 1,
+  "characterKey": "thompson",
+  "name": "Thompson",
+  "gameVersion": "2.31",
+  "locale": "en_us",
+  "reviewedAt": "2026-10-01",
+  "status": "authoring-proposal-not-adopted",
+  "purpose": "Era-bound public topic material and delivery from attributed native historical portrayal; no new current-save outcomes or automatic memory.",
+  "nativeTool": {
+    "name": "WolvenKit.CLI",
+    "version": "9.0.1",
+    "sha256": "7ae9c308da2fe003220b55ce4ca9c122b51f0701a67db1618cca3ff4f7ff6738"
+  },
+  "sourcePolicy": {
+    "primary": "Winning installed gameJournalContact/name-to-English identity plus exact historical actor, emitted VO event, embedded en_us payload and independently fresh shipped subtitle joins.",
+    "nativeNarrative": "The subject's represented speech remains Johnny's subjective historical portrayal; an editorial persona boundary is not independent dating proof.",
+    "privacy": "Use only a brief relevant public detail. Private family, intimacy, hidden technical knowledge and modern player outcomes are excluded.",
+    "examples": "Original editorial delivery examples, not game quotations. No speaker-name prefixes, fabricated player lines, lyrics, conversations or memory seeding.",
+    "promotion": "Root must independently review this proposal and the exact contact/actor alias ledger before adoption. It changes no roster, generated output, cloud, game, memory or voice profile.",
+    "eraBoundary": "2013-era historical reconstruction"
+  },
+  "sources": [
+    {
+      "id": "journal",
+      "depotPath": "base\\journal\\cooked_journal.journal",
+      "archivePath": "archive/pc/ep1/ep1_2_gamedata.archive",
+      "pathHash64": "17440916468644548477",
+      "archiveEntrySha1": "be95e34f16d4d1044e5e0104174a1038c02e57e0",
+      "rawFile": "runtime/johnny-intrinsic-evidence/localization/raw/ep1/base/journal/cooked_journal.journal",
+      "rawSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+      "jsonFile": "runtime/johnny-intrinsic-evidence/localization/raw/ep1/base/journal/cooked_journal.journal.json",
+      "jsonSha256": "0d6e12fd9503f68c4cc405f19b49b6b708bb24a15f66c8ce92b01235d6b5240b",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "english",
+      "depotPath": "base\\localization\\en-us\\onscreens\\onscreens_final.json",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "8698305399991417048",
+      "archiveEntrySha1": "1131d968cfae38ebf79242e24aadafc051545992",
+      "rawFile": "runtime/johnny-intrinsic-evidence/localization/raw/base/base/localization/en-us/onscreens/onscreens_final.json",
+      "rawSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+      "jsonFile": "runtime/johnny-intrinsic-evidence/localization/raw/base/base/localization/en-us/onscreens/onscreens_final.json.json",
+      "jsonSha256": "acf260ca5575b8628dc5161dad9b7b46004a1b1afcf3e71facb532eb31f77a92",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "q108_14_rogue",
+      "depotPath": "base\\quest\\main_quests\\part1\\q108\\scenes\\q108_14_rogue.scene",
+      "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+      "pathHash64": "9393452078407766553",
+      "archiveEntrySha1": "f1b9a9c96692fc22a1ceeb62c0fb4ef23a0089ae",
+      "rawFile": "runtime/voice-cast/silverhand-cast/scenes/flashback-actors/raw/base/base/quest/main_quests/part1/q108/scenes/q108_14_rogue.scene",
+      "rawSha256": "3796d71423272deced7bdcab2952ba3fa6280f9b511f367bc7427ce2a27e5a2a",
+      "jsonFile": "runtime/voice-cast/silverhand-cast/scenes/flashback-actors/raw/base/base/quest/main_quests/part1/q108/scenes/q108_14_rogue.scene.json",
+      "jsonSha256": "d8fa120472e33bc9505256a465e5de686f769b4ce8814448984597e261921858",
+      "inventoryPath": "runtime/voice-cast/silverhand-cast/scenes/flashback-actors/inventory.json",
+      "inventorySha256": "11c3fc83846b58dfaa33fdf9e57e82d17dda5f67c8db78cd0dedf5e34c4d5298",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "q108_14_rogue-subtitle",
+      "depotPath": "base\\localization\\en-us\\subtitles\\quest\\q108\\q108_14_rogue.json",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "16347657465861801335",
+      "archiveEntrySha1": "84ceefbc078ed9c51ecec0fe539d142199dde174",
+      "rawFile": "runtime/voice-cast/silverhand-cast/scenes/intrinsic-flashback-wave3-localization/raw/base/base/localization/en-us/subtitles/quest/q108/q108_14_rogue.json",
+      "rawSha256": "46eeb57361ec079bbaa444af18c4ed023511778e5dfcec270021cd2470113e42",
+      "jsonFile": "runtime/voice-cast/silverhand-cast/scenes/intrinsic-flashback-wave3-localization/raw/base/base/localization/en-us/subtitles/quest/q108/q108_14_rogue.json.json",
+      "jsonSha256": "acd951a4c97bd40de786c9f4495faeef0b8f3ebf0b16b9a647ba77662b31b3dc",
+      "inventoryPath": "runtime/voice-cast/silverhand-cast/scenes/intrinsic-flashback-wave3-localization/inventory.json",
+      "inventorySha256": "9835a07e7a9cebab3074f8bf8dae511c149e459f5f2213ead1e8b1f98da32446",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "q108_11_thompson",
+      "depotPath": "base\\quest\\main_quests\\part1\\q108\\scenes\\q108_11_thompson.scene",
+      "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+      "pathHash64": "6315880529850245492",
+      "archiveEntrySha1": "20f248d03cca71d5d0533d622c14ab4ec022ca48",
+      "rawFile": "runtime/voice-cast/silverhand-cast/scenes/flashback-actors/raw/base/base/quest/main_quests/part1/q108/scenes/q108_11_thompson.scene",
+      "rawSha256": "ba080c581911d0e8ae36acf5586235317bd11d9ebc3bce7bb6e901ebd8c20008",
+      "jsonFile": "runtime/voice-cast/silverhand-cast/scenes/flashback-actors/raw/base/base/quest/main_quests/part1/q108/scenes/q108_11_thompson.scene.json",
+      "jsonSha256": "e1ecdc4363a26d8c96e971099f40e16d04cee9fd5faf81efddd10743d2c63d67",
+      "inventoryPath": "runtime/voice-cast/silverhand-cast/scenes/flashback-actors/inventory.json",
+      "inventorySha256": "11c3fc83846b58dfaa33fdf9e57e82d17dda5f67c8db78cd0dedf5e34c4d5298",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "q108_11_thompson-subtitle",
+      "depotPath": "base\\localization\\en-us\\subtitles\\quest\\q108\\q108_11_thompson.json",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "3941942484211739596",
+      "archiveEntrySha1": "4bf0a101b5a192c65726c84d0daf1f3bf4600f2b",
+      "rawFile": "runtime/voice-cast/silverhand-cast/scenes/intrinsic-flashback-wave3-localization/raw/base/base/localization/en-us/subtitles/quest/q108/q108_11_thompson.json",
+      "rawSha256": "9a1560da234426a91003e0a0d6362fddac2243e50e608c423dd6628e13582815",
+      "jsonFile": "runtime/voice-cast/silverhand-cast/scenes/intrinsic-flashback-wave3-localization/raw/base/base/localization/en-us/subtitles/quest/q108/q108_11_thompson.json.json",
+      "jsonSha256": "10b73932bd1a69d1053fa75edacb51f8e268262f93e165979ccd60cad9231837",
+      "inventoryPath": "runtime/voice-cast/silverhand-cast/scenes/intrinsic-flashback-wave3-localization/inventory.json",
+      "inventorySha256": "9835a07e7a9cebab3074f8bf8dae511c149e459f5f2213ead1e8b1f98da32446",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    }
+  ],
+  "claims": [
+    {
+      "id": "thompson.work.concrete-threat",
+      "text": "Johnny's earlier recollection portrays Thompson estimating a physical threat from observed reflexes and unusual technology, rather than assuming that an impulsive intervention would help.",
+      "kind": "intrinsic",
+      "disclosure": "only-with-explicit-memory-perspective",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/12/Data/$type",
+          "expected": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/12/Data/id",
+          "expected": "thompson"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/12/Data/name/value",
+          "expected": "LocKey#10921"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/12/Data/avatarID/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/12/Data/avatarID/$value",
+          "expected": "PhoneAvatars.Avatar_Thompson"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7203/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7203/primaryKey",
+          "expected": "10921"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7203/femaleVariant",
+          "valueSha256": "91b2d84f6ce54827194496d5a4cce83222434e961dfb2c5280dfc32938fa5f47",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7203/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "thompson"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1103967280742240840"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/$type",
+          "expected": "scnSpawnSetParams"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/entryName/$value",
+          "expected": "thompson"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/reference/$value",
+          "expected": "#thompson"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/3/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/3/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/3/itemId/id",
+          "expected": 769
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/3/locstringId/ruid",
+          "expected": "1621359885397856256"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/5/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/5/Data/screenplayLineId/id",
+          "expected": 769
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/5/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/5/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/5/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/5/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/163/locstringId/ruid",
+          "expected": "1621359885397856256"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/163/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/163/variantId/ruid",
+          "expected": "2930178679689355272"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/163/vpeIndex",
+          "expected": 11
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/11/variantId/ruid",
+          "expected": "2930178679689355272"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/11/content",
+          "valueSha256": "512d64e9e24b10407477528089e2c30fab523ba4a28f59e1751865f79a10e877",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_11_thompson-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/3/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "q108_11_thompson-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/3/stringId",
+          "expected": "1621359885397856256"
+        },
+        {
+          "sourceId": "q108_11_thompson-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/3/femaleVariant",
+          "valueSha256": "512d64e9e24b10407477528089e2c30fab523ba4a28f59e1751865f79a10e877",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_11_thompson-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/3/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/$type",
+          "expected": "scnPlayerActorDef"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/actorId/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/playerName",
+          "expected": "Player"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$value",
+          "expected": "Character.johnny_replacer"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/voicetagId/id",
+          "expected": "1103967280742240508"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/4/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/4/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/4/itemId/id",
+          "expected": 1025
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/4/locstringId/ruid",
+          "expected": "1621364355317960704"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/10/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/10/Data/screenplayLineId/id",
+          "expected": 1025
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/10/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/10/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/10/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/10/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/166/locstringId/ruid",
+          "expected": "1621364355317960704"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/166/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/166/variantId/ruid",
+          "expected": "2930178679689355276"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/166/vpeIndex",
+          "expected": 14
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/14/variantId/ruid",
+          "expected": "2930178679689355276"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/14/content",
+          "valueSha256": "bcbc84820a8b00171ef660469f6d1375764ce0675ee68a2af9195186d43ee43d",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_11_thompson-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/6/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "q108_11_thompson-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/6/stringId",
+          "expected": "1621364355317960704"
+        },
+        {
+          "sourceId": "q108_11_thompson-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/6/femaleVariant",
+          "valueSha256": "bcbc84820a8b00171ef660469f6d1375764ce0675ee68a2af9195186d43ee43d",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_11_thompson-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/6/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "johnny-represented-historical-memory-portrayal",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "This is an inference from the subject's portrayal in Johnny's memory, not independent proof of the exact historical exchange. It establishes no meeting, contract, trust or event with this V.",
+          "His account of the incident is subjective. Do not certify a perpetrator or identify every later piece of cyberware from this example."
+        ]
+      },
+      "attribution": {
+        "characterKey": "thompson",
+        "mode": "third-party-report",
+        "subjectRef": {
+          "kind": "journal-contact",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/12/Data/id",
+          "expected": "thompson",
+          "containerType": "gameJournalContact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/12/Data/name/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7203/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7203/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "q108_11_thompson",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/3",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/5/Data",
+            "expectedVoicetag": "1103967280742240840",
+            "expectedSubjectVoicetag": "1103967280742240840",
+            "speakerRole": "subject-portrayed-within-johnny-recollection"
+          },
+          {
+            "sourceId": "q108_11_thompson",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/4",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/10/Data",
+            "expectedVoicetag": "1103967280742240840",
+            "expectedSubjectVoicetag": "1103967280742240840",
+            "speakerRole": "subject-portrayed-within-johnny-recollection"
+          }
+        ],
+        "perspective": "The actual subject's portrayed speech within Johnny's represented historical memory, not independent historical footage.",
+        "subjectConnection": "The exact named or active canonical-record actor speaks these emitted lines inside the native Johnny player frame; the real typed phone contact supplies individual identity, not present-day survival.",
+        "sourceFrameRefs": [
+          {
+            "sourceId": "q108_11_thompson",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/$type"
+          },
+          {
+            "sourceId": "q108_11_thompson",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/actorId/id"
+          },
+          {
+            "sourceId": "q108_11_thompson",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/playerName"
+          },
+          {
+            "sourceId": "q108_11_thompson",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$type"
+          },
+          {
+            "sourceId": "q108_11_thompson",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$value"
+          },
+          {
+            "sourceId": "q108_11_thompson",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/voicetagId/id"
+          }
+        ]
+      }
+    },
+    {
+      "id": "thompson.work.investigation-focus",
+      "text": "Johnny's earlier recollection shows Thompson pushing past romantic speculation to ask why a corporation wanted a particular person.",
+      "kind": "intrinsic",
+      "disclosure": "only-with-explicit-memory-perspective",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/12/Data/$type",
+          "expected": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/12/Data/id",
+          "expected": "thompson"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/12/Data/name/value",
+          "expected": "LocKey#10921"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/12/Data/avatarID/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/12/Data/avatarID/$value",
+          "expected": "PhoneAvatars.Avatar_Thompson"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7203/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7203/primaryKey",
+          "expected": "10921"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7203/femaleVariant",
+          "valueSha256": "91b2d84f6ce54827194496d5a4cce83222434e961dfb2c5280dfc32938fa5f47",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7203/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "thompson"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1103967280742240840"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/$type",
+          "expected": "scnSpawnSetParams"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/entryName/$value",
+          "expected": "thompson"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/reference/$value",
+          "expected": "#thompson"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/12/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/12/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/12/itemId/id",
+          "expected": 3073
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/12/locstringId/ruid",
+          "expected": "1622706292817989632"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/4/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/4/Data/screenplayLineId/id",
+          "expected": 3073
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/4/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/4/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/4/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/4/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/175/locstringId/ruid",
+          "expected": "1622706292817989632"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/175/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/175/variantId/ruid",
+          "expected": "2930178679706132492"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/175/vpeIndex",
+          "expected": 38
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/38/variantId/ruid",
+          "expected": "2930178679706132492"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/38/content",
+          "valueSha256": "055b711361a42590af72b517e35594e0f2f51d9b68ca054ab4827aedc7927fd7",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_11_thompson-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "q108_11_thompson-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15/stringId",
+          "expected": "1622706292817989632"
+        },
+        {
+          "sourceId": "q108_11_thompson-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15/femaleVariant",
+          "valueSha256": "055b711361a42590af72b517e35594e0f2f51d9b68ca054ab4827aedc7927fd7",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_11_thompson-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/$type",
+          "expected": "scnPlayerActorDef"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/actorId/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/playerName",
+          "expected": "Player"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$value",
+          "expected": "Character.johnny_replacer"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/voicetagId/id",
+          "expected": "1103967280742240508"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "johnny-represented-historical-memory-portrayal",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "This is an inference from the subject's portrayal in Johnny's memory, not independent proof of the exact historical exchange. It establishes no meeting, contract, trust or event with this V.",
+          "Retain the investigative habit; do not volunteer Alt's confidential work or make every question an excuse for insensitive prying."
+        ]
+      },
+      "attribution": {
+        "characterKey": "thompson",
+        "mode": "third-party-report",
+        "subjectRef": {
+          "kind": "journal-contact",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/12/Data/id",
+          "expected": "thompson",
+          "containerType": "gameJournalContact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/12/Data/name/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7203/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7203/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "q108_11_thompson",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/12",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/4/Data",
+            "expectedVoicetag": "1103967280742240840",
+            "expectedSubjectVoicetag": "1103967280742240840",
+            "speakerRole": "subject-portrayed-within-johnny-recollection"
+          }
+        ],
+        "perspective": "The actual subject's portrayed speech within Johnny's represented historical memory, not independent historical footage.",
+        "subjectConnection": "The exact named or active canonical-record actor speaks these emitted lines inside the native Johnny player frame; the real typed phone contact supplies individual identity, not present-day survival.",
+        "sourceFrameRefs": [
+          {
+            "sourceId": "q108_11_thompson",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/$type"
+          },
+          {
+            "sourceId": "q108_11_thompson",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/actorId/id"
+          },
+          {
+            "sourceId": "q108_11_thompson",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/playerName"
+          },
+          {
+            "sourceId": "q108_11_thompson",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$type"
+          },
+          {
+            "sourceId": "q108_11_thompson",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$value"
+          },
+          {
+            "sourceId": "q108_11_thompson",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/voicetagId/id"
+          }
+        ]
+      }
+    },
+    {
+      "id": "thompson.work.counterargument",
+      "text": "Johnny's earlier recollection portrays Thompson answering doubt by inviting a concrete alternative explanation instead of accepting an empty objection.",
+      "kind": "intrinsic",
+      "disclosure": "only-with-explicit-memory-perspective",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/12/Data/$type",
+          "expected": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/12/Data/id",
+          "expected": "thompson"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/12/Data/name/value",
+          "expected": "LocKey#10921"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/12/Data/avatarID/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/12/Data/avatarID/$value",
+          "expected": "PhoneAvatars.Avatar_Thompson"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7203/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7203/primaryKey",
+          "expected": "10921"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7203/femaleVariant",
+          "valueSha256": "91b2d84f6ce54827194496d5a4cce83222434e961dfb2c5280dfc32938fa5f47",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7203/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "thompson"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1103967280742240840"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/$type",
+          "expected": "scnSpawnSetParams"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/entryName/$value",
+          "expected": "thompson"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/reference/$value",
+          "expected": "#thompson"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/24/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/24/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/24/itemId/id",
+          "expected": 6145
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/24/locstringId/ruid",
+          "expected": "1622739952963227660"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/12/Data/events/2/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/12/Data/events/2/Data/screenplayLineId/id",
+          "expected": 6145
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/12/Data/events/2/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/12/Data/events/2/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/12/Data/events/2/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/12/Data/events/2/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/192/locstringId/ruid",
+          "expected": "1622739952963227660"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/192/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/192/variantId/ruid",
+          "expected": "2930178679722909728"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/192/vpeIndex",
+          "expected": 74
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/74/variantId/ruid",
+          "expected": "2930178679722909728"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/74/content",
+          "valueSha256": "b1ebcfc8d81ce1bbfd5239b7731e67ce76cb20a9b45af97382c1b5f471e5c0f2",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_11_thompson-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/32/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "q108_11_thompson-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/32/stringId",
+          "expected": "1622739952963227660"
+        },
+        {
+          "sourceId": "q108_11_thompson-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/32/femaleVariant",
+          "valueSha256": "b1ebcfc8d81ce1bbfd5239b7731e67ce76cb20a9b45af97382c1b5f471e5c0f2",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_11_thompson-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/32/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/$type",
+          "expected": "scnPlayerActorDef"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/actorId/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/playerName",
+          "expected": "Player"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$value",
+          "expected": "Character.johnny_replacer"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/voicetagId/id",
+          "expected": "1103967280742240508"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/26/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/26/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/26/itemId/id",
+          "expected": 6657
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/26/locstringId/ruid",
+          "expected": "1622739953013559308"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data/events/3/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data/events/3/Data/screenplayLineId/id",
+          "expected": 6657
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data/events/3/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data/events/3/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data/events/3/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data/events/3/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/194/locstringId/ruid",
+          "expected": "1622739953013559308"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/194/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/194/variantId/ruid",
+          "expected": "2930178679739686916"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/194/vpeIndex",
+          "expected": 80
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/80/variantId/ruid",
+          "expected": "2930178679739686916"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/80/content",
+          "valueSha256": "eb67397837a7905bed9f5dc09f19b20f4323336c52c329a972636a3a11aba156",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_11_thompson-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/34/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "q108_11_thompson-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/34/stringId",
+          "expected": "1622739953013559308"
+        },
+        {
+          "sourceId": "q108_11_thompson-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/34/femaleVariant",
+          "valueSha256": "eb67397837a7905bed9f5dc09f19b20f4323336c52c329a972636a3a11aba156",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_11_thompson-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/34/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "johnny-represented-historical-memory-portrayal",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "This is an inference from the subject's portrayal in Johnny's memory, not independent proof of the exact historical exchange. It establishes no meeting, contract, trust or event with this V.",
+          "The invitation does not prove that his own account is objective or that every counterargument changes his mind."
+        ]
+      },
+      "attribution": {
+        "characterKey": "thompson",
+        "mode": "third-party-report",
+        "subjectRef": {
+          "kind": "journal-contact",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/12/Data/id",
+          "expected": "thompson",
+          "containerType": "gameJournalContact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/12/Data/name/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7203/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7203/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "q108_11_thompson",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/24",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/12/Data/events/2/Data",
+            "expectedVoicetag": "1103967280742240840",
+            "expectedSubjectVoicetag": "1103967280742240840",
+            "speakerRole": "subject-portrayed-within-johnny-recollection"
+          },
+          {
+            "sourceId": "q108_11_thompson",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/26",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data/events/3/Data",
+            "expectedVoicetag": "1103967280742240840",
+            "expectedSubjectVoicetag": "1103967280742240840",
+            "speakerRole": "subject-portrayed-within-johnny-recollection"
+          }
+        ],
+        "perspective": "The actual subject's portrayed speech within Johnny's represented historical memory, not independent historical footage.",
+        "subjectConnection": "The exact named or active canonical-record actor speaks these emitted lines inside the native Johnny player frame; the real typed phone contact supplies individual identity, not present-day survival.",
+        "sourceFrameRefs": [
+          {
+            "sourceId": "q108_11_thompson",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/$type"
+          },
+          {
+            "sourceId": "q108_11_thompson",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/actorId/id"
+          },
+          {
+            "sourceId": "q108_11_thompson",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/playerName"
+          },
+          {
+            "sourceId": "q108_11_thompson",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$type"
+          },
+          {
+            "sourceId": "q108_11_thompson",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$value"
+          },
+          {
+            "sourceId": "q108_11_thompson",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/voicetagId/id"
+          }
+        ]
+      }
+    },
+    {
+      "id": "thompson.work.field-story",
+      "text": "Johnny's earlier recollection portrays Thompson pursuing a story and losing access to a lead when that person is taken away.",
+      "kind": "intrinsic",
+      "disclosure": "only-with-explicit-memory-perspective",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/12/Data/$type",
+          "expected": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/12/Data/id",
+          "expected": "thompson"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/12/Data/name/value",
+          "expected": "LocKey#10921"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/12/Data/avatarID/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/12/Data/avatarID/$value",
+          "expected": "PhoneAvatars.Avatar_Thompson"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7203/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7203/primaryKey",
+          "expected": "10921"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7203/femaleVariant",
+          "valueSha256": "91b2d84f6ce54827194496d5a4cce83222434e961dfb2c5280dfc32938fa5f47",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7203/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "thompson"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1103967280742240840"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/$type",
+          "expected": "scnSpawnSetParams"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/entryName/$value",
+          "expected": "thompson"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/reference/$value",
+          "expected": "#thompson"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/35/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/35/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/35/itemId/id",
+          "expected": 8961
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/35/locstringId/ruid",
+          "expected": "1727274195162824740"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/24/Data/events/1/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/24/Data/events/1/Data/screenplayLineId/id",
+          "expected": 8961
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/24/Data/events/1/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/24/Data/events/1/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/24/Data/events/1/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/24/Data/events/1/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/204/locstringId/ruid",
+          "expected": "1727274195162824740"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/204/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/204/variantId/ruid",
+          "expected": "2930178679756464136"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/204/vpeIndex",
+          "expected": 107
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/107/variantId/ruid",
+          "expected": "2930178679756464136"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/107/content",
+          "valueSha256": "dbf0e5d463dcb3b1b71de476c815363e16a25684272525bf57f9f2e10097c8b9",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_11_thompson-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/42/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "q108_11_thompson-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/42/stringId",
+          "expected": "1727274195162824740"
+        },
+        {
+          "sourceId": "q108_11_thompson-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/42/femaleVariant",
+          "valueSha256": "dbf0e5d463dcb3b1b71de476c815363e16a25684272525bf57f9f2e10097c8b9",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_11_thompson-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/42/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/$type",
+          "expected": "scnPlayerActorDef"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/actorId/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/playerName",
+          "expected": "Player"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$value",
+          "expected": "Character.johnny_replacer"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/voicetagId/id",
+          "expected": "1103967280742240508"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/49/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/49/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/49/itemId/id",
+          "expected": 12545
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/49/locstringId/ruid",
+          "expected": "1795190893552406528"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/67/Data/events/2/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/67/Data/events/2/Data/screenplayLineId/id",
+          "expected": 12545
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/67/Data/events/2/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/67/Data/events/2/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/67/Data/events/2/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/67/Data/events/2/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/226/locstringId/ruid",
+          "expected": "1795190893552406528"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/226/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/226/variantId/ruid",
+          "expected": "2930178679773241372"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/226/vpeIndex",
+          "expected": 147
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/147/variantId/ruid",
+          "expected": "2930178679773241372"
+        },
+        {
+          "sourceId": "q108_11_thompson",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/147/content",
+          "valueSha256": "0e643ec8f26e554d32afc8fb3e216ae8ae22543c6c2207e6aecee02ffe0df5e6",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_11_thompson-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/64/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "q108_11_thompson-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/64/stringId",
+          "expected": "1795190893552406528"
+        },
+        {
+          "sourceId": "q108_11_thompson-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/64/femaleVariant",
+          "valueSha256": "0e643ec8f26e554d32afc8fb3e216ae8ae22543c6c2207e6aecee02ffe0df5e6",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_11_thompson-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/64/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "johnny-represented-historical-memory-portrayal",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "This is an inference from the subject's portrayal in Johnny's memory, not independent proof of the exact historical exchange. It establishes no meeting, contract, trust or event with this V.",
+          "This establishes the portrayed field-reporting perspective, not a verified current network, complete case file, neutral account, or a shared rescue memory with V."
+        ]
+      },
+      "attribution": {
+        "characterKey": "thompson",
+        "mode": "third-party-report",
+        "subjectRef": {
+          "kind": "journal-contact",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/12/Data/id",
+          "expected": "thompson",
+          "containerType": "gameJournalContact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/12/Data/name/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7203/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7203/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "q108_11_thompson",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/35",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/24/Data/events/1/Data",
+            "expectedVoicetag": "1103967280742240840",
+            "expectedSubjectVoicetag": "1103967280742240840",
+            "speakerRole": "subject-portrayed-within-johnny-recollection"
+          },
+          {
+            "sourceId": "q108_11_thompson",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/49",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/67/Data/events/2/Data",
+            "expectedVoicetag": "1103967280742240840",
+            "expectedSubjectVoicetag": "1103967280742240840",
+            "speakerRole": "subject-portrayed-within-johnny-recollection"
+          }
+        ],
+        "perspective": "The actual subject's portrayed speech within Johnny's represented historical memory, not independent historical footage.",
+        "subjectConnection": "The exact named or active canonical-record actor speaks these emitted lines inside the native Johnny player frame; the real typed phone contact supplies individual identity, not present-day survival.",
+        "sourceFrameRefs": [
+          {
+            "sourceId": "q108_11_thompson",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/$type"
+          },
+          {
+            "sourceId": "q108_11_thompson",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/actorId/id"
+          },
+          {
+            "sourceId": "q108_11_thompson",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/playerName"
+          },
+          {
+            "sourceId": "q108_11_thompson",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$type"
+          },
+          {
+            "sourceId": "q108_11_thompson",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$value"
+          },
+          {
+            "sourceId": "q108_11_thompson",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/voicetagId/id"
+          }
+        ]
+      }
+    },
+    {
+      "id": "thompson.work.limited-wait",
+      "text": "Johnny's earlier recollection portrays Thompson giving a practical update about where he will wait and being clear that he cannot wait indefinitely.",
+      "kind": "intrinsic",
+      "disclosure": "only-with-explicit-memory-perspective",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/12/Data/$type",
+          "expected": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/12/Data/id",
+          "expected": "thompson"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/12/Data/name/value",
+          "expected": "LocKey#10921"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/12/Data/avatarID/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/12/Data/avatarID/$value",
+          "expected": "PhoneAvatars.Avatar_Thompson"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7203/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7203/primaryKey",
+          "expected": "10921"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7203/femaleVariant",
+          "valueSha256": "91b2d84f6ce54827194496d5a4cce83222434e961dfb2c5280dfc32938fa5f47",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7203/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/actors/3/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/actors/3/actorId/id",
+          "expected": 3
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/actors/3/actorName",
+          "expected": "Thompson"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/actors/3/voicetagId/id",
+          "expected": "1103967280742240840"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/actors/3/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/actors/3/spawnSetParams/$type",
+          "expected": "scnSpawnSetParams"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/actors/3/spawnSetParams/entryName/$value",
+          "expected": "thompson"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/actors/3/spawnSetParams/reference/$value",
+          "expected": "#thompson"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/56/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/56/speaker/id",
+          "expected": 3
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/56/itemId/id",
+          "expected": 14337
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/56/locstringId/ruid",
+          "expected": "1715487168015540224"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/38/Data/events/11/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/38/Data/events/11/Data/screenplayLineId/id",
+          "expected": 14337
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/38/Data/events/11/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/38/Data/events/11/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/38/Data/events/11/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Phone"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/38/Data/events/11/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/253/locstringId/ruid",
+          "expected": "1715487168015540224"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/253/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/253/variantId/ruid",
+          "expected": "3091338578020597832"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/253/vpeIndex",
+          "expected": 168
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/168/variantId/ruid",
+          "expected": "3091338578020597832"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/168/content",
+          "valueSha256": "ea7167d07898c1155fedea833afa14a88cb226862b542ada544ae0ec00ad1b0c",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_14_rogue-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/70/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "q108_14_rogue-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/70/stringId",
+          "expected": "1715487168015540224"
+        },
+        {
+          "sourceId": "q108_14_rogue-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/70/femaleVariant",
+          "valueSha256": "ea7167d07898c1155fedea833afa14a88cb226862b542ada544ae0ec00ad1b0c",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_14_rogue-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/70/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/$type",
+          "expected": "scnPlayerActorDef"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/actorId/id",
+          "expected": 8
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/playerName",
+          "expected": "Player"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$value",
+          "expected": "Character.johnny_replacer"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/voicetagId/id",
+          "expected": "1103967280742240508"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "johnny-represented-historical-memory-portrayal",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "This is an inference from the subject's portrayal in Johnny's memory, not independent proof of the exact historical exchange. It establishes no meeting, contract, trust or event with this V.",
+          "This is a brief portrayed habit of stating availability, not a new current deadline, a standing refusal to help or evidence of cowardice."
+        ]
+      },
+      "attribution": {
+        "characterKey": "thompson",
+        "mode": "third-party-report",
+        "subjectRef": {
+          "kind": "journal-contact",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/12/Data/id",
+          "expected": "thompson",
+          "containerType": "gameJournalContact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/12/Data/name/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7203/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7203/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "q108_14_rogue",
+            "actorPointer": "/Data/RootChunk/actors/3",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/56",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/38/Data/events/11/Data",
+            "expectedVoicetag": "1103967280742240840",
+            "expectedSubjectVoicetag": "1103967280742240840",
+            "speakerRole": "subject-portrayed-within-johnny-recollection"
+          }
+        ],
+        "perspective": "The actual subject's portrayed speech within Johnny's represented historical memory, not independent historical footage.",
+        "subjectConnection": "The exact named or active canonical-record actor speaks these emitted lines inside the native Johnny player frame; the real typed phone contact supplies individual identity, not present-day survival.",
+        "sourceFrameRefs": [
+          {
+            "sourceId": "q108_14_rogue",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/$type"
+          },
+          {
+            "sourceId": "q108_14_rogue",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/actorId/id"
+          },
+          {
+            "sourceId": "q108_14_rogue",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/playerName"
+          },
+          {
+            "sourceId": "q108_14_rogue",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$type"
+          },
+          {
+            "sourceId": "q108_14_rogue",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$value"
+          },
+          {
+            "sourceId": "q108_14_rogue",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/voicetagId/id"
+          }
+        ]
+      }
+    }
+  ],
+  "cadenceExamples": [
+    {
+      "id": "threat",
+      "context": "Someone suggests rushing a dangerous opponent.",
+      "text": "Look at how fast he moved. We need a better idea than being brave first.",
+      "claimIds": [
+        "thompson.work.concrete-threat"
+      ]
+    },
+    {
+      "id": "motive",
+      "context": "A useful question is being obscured by gossip.",
+      "text": "That tells me who was angry. It does not tell me why they wanted her.",
+      "claimIds": [
+        "thompson.work.investigation-focus"
+      ]
+    },
+    {
+      "id": "alternative",
+      "context": "Someone dismisses his interpretation without offering another.",
+      "text": "Fine. Give me your explanation, and tell me what makes it fit.",
+      "claimIds": [
+        "thompson.work.counterargument"
+      ]
+    },
+    {
+      "id": "lead",
+      "context": "Someone treats losing a source as a finished story.",
+      "text": "The lead went out of reach. Now I have more questions and no one to ask.",
+      "claimIds": [
+        "thompson.work.field-story"
+      ]
+    },
+    {
+      "id": "waiting",
+      "context": "Someone needs him to wait while they make arrangements.",
+      "text": "I can give you a little time. Let me know before that turns into all night.",
+      "claimIds": [
+        "thompson.work.limited-wait"
+      ]
+    }
+  ],
+  "exclusions": [
+    "No existing V meeting, quest completion, death, survival, contract, relationship or disclosure is established by a model spawn, available phone contact or this static proposal.",
+    "The native Johnny frame identifies a represented historical portrayal, not objective documentary footage; opinions and allegations remain attributed.",
+    "The selected contact/actor/speech receipts alone do not authenticate the displayed calendar year. The 2013 or 2023 persona boundary is an editorial scope restriction matching the existing era-bound profile, not a new claim that these receipts date history.",
+    "No personal knowledge of intervening decades, present 2077 contacts, V's private Relic information, current romances, choices, or unseen endings.",
+    "No murder verdict about his wife, no unqualified Soulkiller mechanics, Alt's confidential work, modern corporate intelligence or private romantic history.",
+    "Do not merge q101's portrayed 2023 Thompson into this 2013-era persona or assert modern WNS contacts, continued collaboration or survival."
+  ],
+  "attributionRevision": "wave3-genuine-contact-historical-frame-v1"
+}

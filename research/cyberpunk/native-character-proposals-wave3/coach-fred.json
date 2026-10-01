@@ -1,0 +1,2499 @@
+{
+  "schemaVersion": 1,
+  "characterKey": "coach-fred",
+  "name": "Coach Fred",
+  "gameVersion": "2.31",
+  "locale": "en_us",
+  "reviewedAt": "2026-10-01",
+  "status": "source-qualified-unadopted",
+  "purpose": "Bounded intrinsic material and brief original speech; no fabricated shared experiences, current outcomes or automatic memory.",
+  "nativeTool": {
+    "name": "WolvenKit.CLI",
+    "version": "9.0.1",
+    "sha256": "7ae9c308da2fe003220b55ce4ca9c122b51f0701a67db1618cca3ff4f7ff6738"
+  },
+  "sourcePolicy": {
+    "primary": "Actual typed phone contact with exact installed English name, independently checked actor/speaker/event and matching English embedded/shipped lines. No fictional codex.",
+    "nativeNarrative": "Retain self-report, opinion, and represented-memory perspective. Do not silently promote a scene-dependent exchange to a shared memory with the current V.",
+    "privacy": "Private trauma, family settlement detail, current romances, investigations, private SMS and ending outcomes are excluded from the universal public material.",
+    "examples": "Original editorial delivery examples, not game quotations. No speaker-name prefixes, fabricated player exchanges, song lyrics or synthetic memory seeding.",
+    "promotion": "Root must review before adoption. This proposal changes no roster, generated output, cloud character, save, installed game or memory.",
+    "claimSubject": "Each selected claim pins the genuine typed contact and exact localized name, with independently reviewed source-scoped narrative actor identity and actual emitted speech."
+  },
+  "sources": [
+    {
+      "id": "english",
+      "depotPath": "base\\localization\\en-us\\onscreens\\onscreens.json",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "7469411510719000253",
+      "archiveEntrySha1": "1131d968cfae38ebf79242e24aadafc051545992",
+      "rawFile": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+      "rawSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+      "jsonFile": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+      "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+      "inventoryFile": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/inventory.json",
+      "inventorySha256": "d5b80cdd030038f2389d9eb9aab7006d6bd95df80787db21d179345acaa21356",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "fred-tutorial",
+      "depotPath": "base\\quest\\main_quests\\prologue\\q001\\scenes\\q001_02a_fistfight_tutorial.scene",
+      "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+      "pathHash64": "17781437284018761035",
+      "archiveEntrySha1": "4da4539240455ac9b6d7d3b89dc74f1c6971abe9",
+      "rawFile": "runtime/voice-cast/river-peralez/scenes/coach-tutorial/raw/base/base/quest/main_quests/prologue/q001/scenes/q001_02a_fistfight_tutorial.scene",
+      "rawSha256": "f315616211d560ad85834754418c270fd27f456e9afe5b65b8d26587f6e8d1d8",
+      "jsonFile": "runtime/voice-cast/river-peralez/scenes/coach-tutorial/raw/base/base/quest/main_quests/prologue/q001/scenes/q001_02a_fistfight_tutorial.scene.json",
+      "jsonSha256": "90ff91e38fa90aa447367de3e78a8bac2216648a7d0c50126d1c0b351259ac09",
+      "inventoryFile": "runtime/voice-cast/river-peralez/scenes/coach-tutorial/inventory.json",
+      "inventorySha256": "6da73c973649f10e9f0ffbd7cf9b01d7051342a16dc8b477e1c02d1b9377da17",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "fred-vendor",
+      "depotPath": "base\\open_world\\vendors\\watson\\little_china\\wat_lch_melee_01\\wat_lch_melee_01.scene",
+      "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+      "pathHash64": "13811386490005971160",
+      "archiveEntrySha1": "e236b11cab639c9dc0381387b7fb48d5f19dda6e",
+      "rawFile": "runtime/voice-cast/river-peralez/scenes/coach-default/raw/base/base/open_world/vendors/watson/little_china/wat_lch_melee_01/wat_lch_melee_01.scene",
+      "rawSha256": "a3f48049fb07477476084ff078e75cb3c13ae2ec151a6938c4558d519c3985a2",
+      "jsonFile": "runtime/voice-cast/river-peralez/scenes/coach-default/raw/base/base/open_world/vendors/watson/little_china/wat_lch_melee_01/wat_lch_melee_01.scene.json",
+      "jsonSha256": "b8527c1c970d1f79351b902df04c3d3ac4183cc516772f76703dff889c86a845",
+      "inventoryFile": "runtime/voice-cast/river-peralez/scenes/coach-default/inventory.json",
+      "inventorySha256": "95bec27f5d4e01717d9434de962b5d1985f15b18bdf1f304a81c7361a43fe440",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "journal",
+      "depotPath": "base\\journal\\cooked_journal.journal",
+      "archivePath": "archive/pc/ep1/ep1_2_gamedata.archive",
+      "pathHash64": "17440916468644548477",
+      "archiveEntrySha1": "be95e34f16d4d1044e5e0104174a1038c02e57e0",
+      "rawFile": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+      "rawSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+      "jsonFile": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+      "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+      "inventoryFile": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/inventory.json",
+      "inventorySha256": "d5b80cdd030038f2389d9eb9aab7006d6bd95df80787db21d179345acaa21356",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "shipped-mercs-4",
+      "depotPath": "base\\localization\\en-us\\subtitles\\open_world\\vendors\\wat_lch_melee_01.json",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "16897252718359401295",
+      "archiveEntrySha1": "c1ba0f51e0cdf0ba8c514d30cef21d85276d544c",
+      "rawFile": "runtime/voice-cast/minor-named/knowledge-wave3-mercs-promoter/raw/base/localization/en-us/subtitles/open_world/vendors/wat_lch_melee_01.json",
+      "rawSha256": "f31fe0ad97d8a0f345ed1f853e080d967e1e154066e115d912199258ccc64f33",
+      "jsonFile": "runtime/voice-cast/minor-named/knowledge-wave3-mercs-promoter/raw/base/localization/en-us/subtitles/open_world/vendors/wat_lch_melee_01.json.json",
+      "jsonSha256": "01cb82acd951ce50582eb60a0a43445d34fbdd608964d434467f1db8cca10d73",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true,
+      "sourceReceipt": {
+        "archive": "archive/pc/content/lang_en_text.archive",
+        "depotPath": "base\\localization\\en-us\\subtitles\\open_world\\vendors\\wat_lch_melee_01.json",
+        "pathHash": "16897252718359401295",
+        "segmentOffset": "4761755",
+        "storedBytes": 1831,
+        "decodedBytes": 3306,
+        "archiveEntrySha1": "c1ba0f51e0cdf0ba8c514d30cef21d85276d544c",
+        "sha1Verified": true,
+        "sha256": "f31fe0ad97d8a0f345ed1f853e080d967e1e154066e115d912199258ccc64f33",
+        "shadowedEntryCount": 0
+      }
+    },
+    {
+      "id": "shipped-mercs-3",
+      "depotPath": "base\\localization\\en-us\\subtitles\\quest\\q001\\q001_02a_fistfight_tutorial.json",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "14194277134542642740",
+      "archiveEntrySha1": "9f57bbc6f40f2541bf47263a9d629256a89a073f",
+      "rawFile": "runtime/voice-cast/minor-named/knowledge-wave3-mercs-promoter/raw/base/localization/en-us/subtitles/quest/q001/q001_02a_fistfight_tutorial.json",
+      "rawSha256": "6079783b3df7a3e3419dd801bc4794e1e9b927ce1351beb28ccf3321cb21a62f",
+      "jsonFile": "runtime/voice-cast/minor-named/knowledge-wave3-mercs-promoter/raw/base/localization/en-us/subtitles/quest/q001/q001_02a_fistfight_tutorial.json.json",
+      "jsonSha256": "08a9eeb9ac8a7dd1d75f0d4f790209bae8d51417d12b91f27e88669fb249f483",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true,
+      "sourceReceipt": {
+        "archive": "archive/pc/content/lang_en_text.archive",
+        "depotPath": "base\\localization\\en-us\\subtitles\\quest\\q001\\q001_02a_fistfight_tutorial.json",
+        "pathHash": "14194277134542642740",
+        "segmentOffset": "5977586",
+        "storedBytes": 1324,
+        "decodedBytes": 2157,
+        "archiveEntrySha1": "9f57bbc6f40f2541bf47263a9d629256a89a073f",
+        "sha1Verified": true,
+        "sha256": "6079783b3df7a3e3419dd801bc4794e1e9b927ce1351beb28ccf3321cb21a62f",
+        "shadowedEntryCount": 0
+      }
+    }
+  ],
+  "claims": [
+    {
+      "id": "coach-fred.history.retired-fighter",
+      "text": "Fred says he no longer fights because accumulated blows to his head and slower reflexes have caught up with him.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/5/Data/$type",
+          "expected": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/5/Data/id",
+          "expected": "trainer_fred"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/5/Data/name/value",
+          "expected": "LocKey#10923"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/5/Data/avatarID/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/5/Data/avatarID/$value",
+          "expected": "PhoneAvatars.Avatar_Unknown"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7205/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7205/primaryKey",
+          "expected": "10923"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7205/femaleVariant",
+          "expected": "Coach Fred"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "wat_lch_melee_01"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1624173162010259556"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams",
+          "expected": {
+            "$type": "scnSpawnSetParams",
+            "entryName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "wat_lch_melee_01"
+            },
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "string",
+              "$value": "#wat_lch_melee_01"
+            }
+          }
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnerParams",
+          "expected": {
+            "$type": "scnSpawnerParams",
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "uint64",
+              "$value": "0"
+            }
+          }
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/3/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/3/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/3/locstringId/ruid",
+          "expected": "1827117419486015500"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/3/itemId/id",
+          "expected": 769
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/82/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/82/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/82/locstringId/ruid",
+          "expected": "1827117419486015500"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/82/variantId/ruid",
+          "expected": "2778032523309670400"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/82/vpeIndex",
+          "expected": 11
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/11/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/11/variantId/ruid",
+          "expected": "2778032523309670400"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/11/content",
+          "valueSha256": "71c19ccffa108e3e4371048056e498d8a790b03c3d09767af801deb54d183c93",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/3/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/3/Data/screenplayLineId/id",
+          "expected": 769
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/3/Data/id/id",
+          "expected": "2060642926775799808"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/3/Data/duration",
+          "expected": 6272
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/3/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/3/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/3/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/3/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/5/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/5/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/5/locstringId/ruid",
+          "expected": "1905370387295031296"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/5/itemId/id",
+          "expected": 1281
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/97/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/97/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/97/locstringId/ruid",
+          "expected": "1905370387295031296"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/97/variantId/ruid",
+          "expected": "2778032523309670408"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/97/vpeIndex",
+          "expected": 17
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/17/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/17/variantId/ruid",
+          "expected": "2778032523309670408"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/17/content",
+          "valueSha256": "4c4a591fa94065e1aca4f5968bb189be08349244febe4eab42199cc15cfa66c3",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/8/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/8/Data/screenplayLineId/id",
+          "expected": 1281
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/8/Data/id/id",
+          "expected": "2060642926775799816"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/8/Data/duration",
+          "expected": 5424
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/8/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/8/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/8/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/8/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "shipped-mercs-4",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-mercs-4",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5/stringId",
+          "expected": "1827117419486015500"
+        },
+        {
+          "sourceId": "shipped-mercs-4",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5/femaleVariant",
+          "valueSha256": "71c19ccffa108e3e4371048056e498d8a790b03c3d09767af801deb54d183c93",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "shipped-mercs-4",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/19/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-mercs-4",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/19/stringId",
+          "expected": "1905370387295031296"
+        },
+        {
+          "sourceId": "shipped-mercs-4",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/19/femaleVariant",
+          "valueSha256": "4c4a591fa94065e1aca4f5968bb189be08349244febe4eab42199cc15cfa66c3",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "specific-self-speech-and-bounded-editorial-reading",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "Self-explanation only; no medical diagnosis, exact age, professional title or complete fight record.",
+          "Adoption held: the current generic spawn-set actor lacks authenticated world ownership. The named journal contact does not repair that missing edge."
+        ]
+      },
+      "attribution": {
+        "characterKey": "coach-fred",
+        "mode": "self-report",
+        "subjectRef": {
+          "kind": "journal-contact",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/5/Data/id",
+          "expected": "trainer_fred",
+          "containerType": "gameJournalContact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/5/Data/name/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7205/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7205/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "fred-vendor",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/3",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/3/Data",
+            "expectedVoicetag": "1624173162010259556",
+            "expectedSubjectVoicetag": "1624173162010259556",
+            "speakerRole": "subject-self-report"
+          },
+          {
+            "sourceId": "fred-vendor",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/5",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/8/Data",
+            "expectedVoicetag": "1624173162010259556",
+            "expectedSubjectVoicetag": "1624173162010259556",
+            "speakerRole": "subject-self-report"
+          }
+        ],
+        "perspective": "Exact subject speech; editorial delivery readings retain their source-era scope.",
+        "identityProof": {
+          "kind": "reviewed-narrative-identity",
+          "reviewId": "held-identity-oct01-coach-fred"
+        }
+      }
+    },
+    {
+      "id": "coach-fred.work.promoter",
+      "text": "He offers to arrange fights and describes them as illegal but lucrative.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/5/Data/$type",
+          "expected": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/5/Data/id",
+          "expected": "trainer_fred"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/5/Data/name/value",
+          "expected": "LocKey#10923"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/5/Data/avatarID/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/5/Data/avatarID/$value",
+          "expected": "PhoneAvatars.Avatar_Unknown"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7205/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7205/primaryKey",
+          "expected": "10923"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7205/femaleVariant",
+          "expected": "Coach Fred"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "wat_lch_melee_01"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1624173162010259556"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams",
+          "expected": {
+            "$type": "scnSpawnSetParams",
+            "entryName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "wat_lch_melee_01"
+            },
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "string",
+              "$value": "#wat_lch_melee_01"
+            }
+          }
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnerParams",
+          "expected": {
+            "$type": "scnSpawnerParams",
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "uint64",
+              "$value": "0"
+            }
+          }
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/7/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/7/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/7/locstringId/ruid",
+          "expected": "1857605234280198156"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/7/itemId/id",
+          "expected": 1793
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/84/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/84/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/84/locstringId/ruid",
+          "expected": "1857605234280198156"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/84/variantId/ruid",
+          "expected": "2778032523309670416"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/84/vpeIndex",
+          "expected": 24
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/24/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/24/variantId/ruid",
+          "expected": "2778032523309670416"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/24/content",
+          "valueSha256": "4190aee1391432ae7d1b15382119626064510572a305556440e243384a8a6149",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/4/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/4/Data/screenplayLineId/id",
+          "expected": 1793
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/4/Data/id/id",
+          "expected": "2060642926775799824"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/4/Data/duration",
+          "expected": 4624
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/4/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/4/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/4/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/4/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/10/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/10/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/10/locstringId/ruid",
+          "expected": "1857605234498301964"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/10/itemId/id",
+          "expected": 2561
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/87/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/87/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/87/locstringId/ruid",
+          "expected": "1857605234498301964"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/87/variantId/ruid",
+          "expected": "2778032523309670428"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/87/vpeIndex",
+          "expected": 33
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/33/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/33/variantId/ruid",
+          "expected": "2778032523309670428"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/33/content",
+          "valueSha256": "d14eb08ff0014416a293155ca44a5761ee11bfe39ff9e66aa51c660374b23962",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/7/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/7/Data/screenplayLineId/id",
+          "expected": 2561
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/7/Data/id/id",
+          "expected": "2060642926775799836"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/7/Data/duration",
+          "expected": 6097
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/7/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/7/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/7/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/7/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "shipped-mercs-4",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-mercs-4",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7/stringId",
+          "expected": "1857605234280198156"
+        },
+        {
+          "sourceId": "shipped-mercs-4",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7/femaleVariant",
+          "valueSha256": "4190aee1391432ae7d1b15382119626064510572a305556440e243384a8a6149",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "shipped-mercs-4",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/10/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-mercs-4",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/10/stringId",
+          "expected": "1857605234498301964"
+        },
+        {
+          "sourceId": "shipped-mercs-4",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/10/femaleVariant",
+          "valueSha256": "d14eb08ff0014416a293155ca44a5761ee11bfe39ff9e66aa51c660374b23962",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "specific-self-speech-and-bounded-editorial-reading",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "General professional role, not a current agreement, completed bout, payment or particular opponent for this V.",
+          "Adoption held: the current generic spawn-set actor lacks authenticated world ownership. The named journal contact does not repair that missing edge."
+        ]
+      },
+      "attribution": {
+        "characterKey": "coach-fred",
+        "mode": "self-report",
+        "subjectRef": {
+          "kind": "journal-contact",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/5/Data/id",
+          "expected": "trainer_fred",
+          "containerType": "gameJournalContact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/5/Data/name/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7205/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7205/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "fred-vendor",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/7",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/4/Data",
+            "expectedVoicetag": "1624173162010259556",
+            "expectedSubjectVoicetag": "1624173162010259556",
+            "speakerRole": "subject-self-report"
+          },
+          {
+            "sourceId": "fred-vendor",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/10",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/7/Data",
+            "expectedVoicetag": "1624173162010259556",
+            "expectedSubjectVoicetag": "1624173162010259556",
+            "speakerRole": "subject-self-report"
+          }
+        ],
+        "perspective": "Exact subject speech; editorial delivery readings retain their source-era scope.",
+        "identityProof": {
+          "kind": "reviewed-narrative-identity",
+          "reviewId": "held-identity-oct01-coach-fred"
+        }
+      }
+    },
+    {
+      "id": "coach-fred.business.commission",
+      "text": "Fred explains that his role as an agent takes a small percentage of a fighter’s winnings.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/5/Data/$type",
+          "expected": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/5/Data/id",
+          "expected": "trainer_fred"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/5/Data/name/value",
+          "expected": "LocKey#10923"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/5/Data/avatarID/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/5/Data/avatarID/$value",
+          "expected": "PhoneAvatars.Avatar_Unknown"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7205/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7205/primaryKey",
+          "expected": "10923"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7205/femaleVariant",
+          "expected": "Coach Fred"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "wat_lch_melee_01"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1624173162010259556"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams",
+          "expected": {
+            "$type": "scnSpawnSetParams",
+            "entryName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "wat_lch_melee_01"
+            },
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "string",
+              "$value": "#wat_lch_melee_01"
+            }
+          }
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnerParams",
+          "expected": {
+            "$type": "scnSpawnerParams",
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "uint64",
+              "$value": "0"
+            }
+          }
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/12/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/12/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/12/locstringId/ruid",
+          "expected": "1857605234515079168"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/12/itemId/id",
+          "expected": 3073
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/90/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/90/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/90/locstringId/ruid",
+          "expected": "1857605234515079168"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/90/variantId/ruid",
+          "expected": "2778032523309670440"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/90/vpeIndex",
+          "expected": 41
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/41/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/41/variantId/ruid",
+          "expected": "2778032523309670440"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/41/content",
+          "valueSha256": "937adda0fb23e74d7d1e4ef21a997f69b7bffef788340834a1b5ed5f12b50b37",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/12/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/12/Data/screenplayLineId/id",
+          "expected": 3073
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/12/Data/id/id",
+          "expected": "2060642926775799844"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/12/Data/duration",
+          "expected": 6635
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/12/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/12/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/12/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/12/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "shipped-mercs-4",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/12/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-mercs-4",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/12/stringId",
+          "expected": "1857605234515079168"
+        },
+        {
+          "sourceId": "shipped-mercs-4",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/12/femaleVariant",
+          "valueSha256": "937adda0fb23e74d7d1e4ef21a997f69b7bffef788340834a1b5ed5f12b50b37",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "specific-self-speech-and-bounded-editorial-reading",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "Business model only; no specific amount or claim that the current player accepted his representation.",
+          "Adoption held: the current generic spawn-set actor lacks authenticated world ownership. The named journal contact does not repair that missing edge."
+        ]
+      },
+      "attribution": {
+        "characterKey": "coach-fred",
+        "mode": "self-report",
+        "subjectRef": {
+          "kind": "journal-contact",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/5/Data/id",
+          "expected": "trainer_fred",
+          "containerType": "gameJournalContact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/5/Data/name/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7205/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7205/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "fred-vendor",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/12",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/12/Data",
+            "expectedVoicetag": "1624173162010259556",
+            "expectedSubjectVoicetag": "1624173162010259556",
+            "speakerRole": "subject-self-report"
+          }
+        ],
+        "perspective": "Exact subject speech; editorial delivery readings retain their source-era scope.",
+        "identityProof": {
+          "kind": "reviewed-narrative-identity",
+          "reviewId": "held-identity-oct01-coach-fred"
+        }
+      }
+    },
+    {
+      "id": "coach-fred.equipment.training-bot",
+      "text": "He trains with a military robot called Punchin’ Bag, obtained cheaply and upgraded by a friend.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/5/Data/$type",
+          "expected": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/5/Data/id",
+          "expected": "trainer_fred"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/5/Data/name/value",
+          "expected": "LocKey#10923"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/5/Data/avatarID/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/5/Data/avatarID/$value",
+          "expected": "PhoneAvatars.Avatar_Unknown"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7205/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7205/primaryKey",
+          "expected": "10923"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7205/femaleVariant",
+          "expected": "Coach Fred"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/actors/1/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorName",
+          "expected": "fistfight_human"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorId/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/actors/1/voicetagId/id",
+          "expected": "1624173162010259556"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/actors/1/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnSetParams",
+          "expected": {
+            "$type": "scnSpawnSetParams",
+            "entryName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "wat_lch_melee_01"
+            },
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "string",
+              "$value": "#wat_lch_melee_01"
+            }
+          }
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnerParams",
+          "expected": {
+            "$type": "scnSpawnerParams",
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "uint64",
+              "$value": "0"
+            }
+          }
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/13/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/13/speaker/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/13/locstringId/ruid",
+          "expected": "2231918421115682816"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/13/itemId/id",
+          "expected": 3329
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/67/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/67/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/67/locstringId/ruid",
+          "expected": "2231918421115682816"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/67/variantId/ruid",
+          "expected": "2779520542124818448"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/67/vpeIndex",
+          "expected": 32
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/32/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/32/variantId/ruid",
+          "expected": "2779520542124818448"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/32/content",
+          "valueSha256": "251b000a24837b8ec4245e96a379e39880e8fbd24a6f004b538b34858a3f3dec",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/68/Data/events/0/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/68/Data/events/0/Data/screenplayLineId/id",
+          "expected": 3329
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/68/Data/events/0/Data/id/id",
+          "expected": "2231918733641662464"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/68/Data/events/0/Data/duration",
+          "expected": 6146
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/68/Data/events/0/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/68/Data/events/0/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/68/Data/events/0/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/68/Data/events/0/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/17/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/17/speaker/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/17/locstringId/ruid",
+          "expected": "2231923994724941824"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/17/itemId/id",
+          "expected": 4353
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/72/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/72/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/72/locstringId/ruid",
+          "expected": "2231923994724941824"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/72/variantId/ruid",
+          "expected": "2779520542124818464"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/72/vpeIndex",
+          "expected": 44
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/44/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/44/variantId/ruid",
+          "expected": "2779520542124818464"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/44/content",
+          "valueSha256": "a48528b3d84c0b93026372264e8ca0a6bdc43e7583fd84136561fa34b1182f77",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/69/Data/events/6/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/69/Data/events/6/Data/screenplayLineId/id",
+          "expected": 4353
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/69/Data/events/6/Data/id/id",
+          "expected": "2231923994724941832"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/69/Data/events/6/Data/duration",
+          "expected": 12544
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/69/Data/events/6/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/69/Data/events/6/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/69/Data/events/6/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/69/Data/events/6/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "shipped-mercs-3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/11/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-mercs-3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/11/stringId",
+          "expected": "2231918421115682816"
+        },
+        {
+          "sourceId": "shipped-mercs-3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/11/femaleVariant",
+          "valueSha256": "251b000a24837b8ec4245e96a379e39880e8fbd24a6f004b538b34858a3f3dec",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "shipped-mercs-3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/16/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-mercs-3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/16/stringId",
+          "expected": "2231923994724941824"
+        },
+        {
+          "sourceId": "shipped-mercs-3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/16/femaleVariant",
+          "valueSha256": "a48528b3d84c0b93026372264e8ca0a6bdc43e7583fd84136561fa34b1182f77",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "specific-self-speech-and-bounded-editorial-reading",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "His training equipment story only; no identity for the friend, military origin record or evidence V trained successfully.",
+          "Adoption held: the current generic spawn-set actor lacks authenticated world ownership. The named journal contact does not repair that missing edge."
+        ]
+      },
+      "attribution": {
+        "characterKey": "coach-fred",
+        "mode": "self-report",
+        "subjectRef": {
+          "kind": "journal-contact",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/5/Data/id",
+          "expected": "trainer_fred",
+          "containerType": "gameJournalContact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/5/Data/name/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7205/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7205/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "fred-tutorial",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/13",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/68/Data/events/0/Data",
+            "expectedVoicetag": "1624173162010259556",
+            "expectedSubjectVoicetag": "1624173162010259556",
+            "speakerRole": "subject-self-report"
+          },
+          {
+            "sourceId": "fred-tutorial",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/17",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/69/Data/events/6/Data",
+            "expectedVoicetag": "1624173162010259556",
+            "expectedSubjectVoicetag": "1624173162010259556",
+            "speakerRole": "subject-self-report"
+          }
+        ],
+        "perspective": "Exact subject speech; editorial delivery readings retain their source-era scope.",
+        "identityProof": {
+          "kind": "reviewed-narrative-identity",
+          "reviewId": "held-identity-oct01-coach-fred"
+        }
+      }
+    },
+    {
+      "id": "coach-fred.craft.movement-and-technique",
+      "text": "Fred emphasizes footwork, keeping the head moving and finding time to work on technique.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/5/Data/$type",
+          "expected": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/5/Data/id",
+          "expected": "trainer_fred"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/5/Data/name/value",
+          "expected": "LocKey#10923"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/5/Data/avatarID/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/5/Data/avatarID/$value",
+          "expected": "PhoneAvatars.Avatar_Unknown"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7205/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7205/primaryKey",
+          "expected": "10923"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7205/femaleVariant",
+          "expected": "Coach Fred"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/actors/1/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorName",
+          "expected": "fistfight_human"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorId/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/actors/1/voicetagId/id",
+          "expected": "1624173162010259556"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/actors/1/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnSetParams",
+          "expected": {
+            "$type": "scnSpawnSetParams",
+            "entryName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "wat_lch_melee_01"
+            },
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "string",
+              "$value": "#wat_lch_melee_01"
+            }
+          }
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnerParams",
+          "expected": {
+            "$type": "scnSpawnerParams",
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "uint64",
+              "$value": "0"
+            }
+          }
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/1/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/1/speaker/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/1/locstringId/ruid",
+          "expected": "1618407937986486272"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/1/itemId/id",
+          "expected": 257
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/59/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/59/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/59/locstringId/ruid",
+          "expected": "1618407937986486272"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/59/variantId/ruid",
+          "expected": "2779520542108041220"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/59/vpeIndex",
+          "expected": 5
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/5/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/5/variantId/ruid",
+          "expected": "2779520542108041220"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/5/content",
+          "valueSha256": "4d6f64141a7ba8a981f9f18659fd44fe4b464811eee7c6792eaa107574a249c5",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/1/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/1/Data/screenplayLineId/id",
+          "expected": 257
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/1/Data/id/id",
+          "expected": "1983410497082355736"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/1/Data/duration",
+          "expected": 2658
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/1/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/1/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/1/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/1/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/4/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/4/speaker/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/4/locstringId/ruid",
+          "expected": "1904088097010905088"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/4/itemId/id",
+          "expected": 1025
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/63/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/63/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/63/locstringId/ruid",
+          "expected": "1904088097010905088"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/63/variantId/ruid",
+          "expected": "2779520542124818432"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/63/vpeIndex",
+          "expected": 14
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/14/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/14/variantId/ruid",
+          "expected": "2779520542124818432"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/14/content",
+          "valueSha256": "90018059b903eac09a83d2b2cf1fa4786bfa56a3729351581e01665223ca69c1",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/0/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/0/Data/screenplayLineId/id",
+          "expected": 1025
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/0/Data/id/id",
+          "expected": "1983410497082355792"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/0/Data/duration",
+          "expected": 3997
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/0/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/0/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/0/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/0/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/5/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/5/speaker/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/5/locstringId/ruid",
+          "expected": "1904142671314841600"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/5/itemId/id",
+          "expected": 1281
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/65/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/65/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/65/locstringId/ruid",
+          "expected": "1904142671314841600"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/65/variantId/ruid",
+          "expected": "2779520542124818436"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/65/vpeIndex",
+          "expected": 18
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/18/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/18/variantId/ruid",
+          "expected": "2779520542124818436"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/18/content",
+          "valueSha256": "95575aa9fe72e5a44eb93206b1a19a2589ad637df8ba72baf63e720575ca49c3",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/16/Data/events/0/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/16/Data/events/0/Data/screenplayLineId/id",
+          "expected": 1281
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/16/Data/events/0/Data/id/id",
+          "expected": "1983410497082355796"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/16/Data/events/0/Data/duration",
+          "expected": 3468
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/16/Data/events/0/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/16/Data/events/0/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/16/Data/events/0/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "fred-tutorial",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/16/Data/events/0/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "shipped-mercs-3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/3/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-mercs-3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/3/stringId",
+          "expected": "1618407937986486272"
+        },
+        {
+          "sourceId": "shipped-mercs-3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/3/femaleVariant",
+          "valueSha256": "4d6f64141a7ba8a981f9f18659fd44fe4b464811eee7c6792eaa107574a249c5",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "shipped-mercs-3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-mercs-3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7/stringId",
+          "expected": "1904088097010905088"
+        },
+        {
+          "sourceId": "shipped-mercs-3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7/femaleVariant",
+          "valueSha256": "90018059b903eac09a83d2b2cf1fa4786bfa56a3729351581e01665223ca69c1",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "shipped-mercs-3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/9/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-mercs-3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/9/stringId",
+          "expected": "1904142671314841600"
+        },
+        {
+          "sourceId": "shipped-mercs-3",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/9/femaleVariant",
+          "valueSha256": "95575aa9fe72e5a44eb93206b1a19a2589ad637df8ba72baf63e720575ca49c3",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "specific-self-speech-and-bounded-editorial-reading",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "General coaching stance, not automatic praise for V, a medical prescription or a completed training session.",
+          "Adoption held: the current generic spawn-set actor lacks authenticated world ownership. The named journal contact does not repair that missing edge."
+        ]
+      },
+      "attribution": {
+        "characterKey": "coach-fred",
+        "mode": "self-report",
+        "subjectRef": {
+          "kind": "journal-contact",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/5/Data/id",
+          "expected": "trainer_fred",
+          "containerType": "gameJournalContact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/5/Data/name/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7205/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7205/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "fred-tutorial",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/1",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/1/Data",
+            "expectedVoicetag": "1624173162010259556",
+            "expectedSubjectVoicetag": "1624173162010259556",
+            "speakerRole": "subject-self-report"
+          },
+          {
+            "sourceId": "fred-tutorial",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/4",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/0/Data",
+            "expectedVoicetag": "1624173162010259556",
+            "expectedSubjectVoicetag": "1624173162010259556",
+            "speakerRole": "subject-self-report"
+          },
+          {
+            "sourceId": "fred-tutorial",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/5",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/16/Data/events/0/Data",
+            "expectedVoicetag": "1624173162010259556",
+            "expectedSubjectVoicetag": "1624173162010259556",
+            "speakerRole": "subject-self-report"
+          }
+        ],
+        "perspective": "Exact subject speech; editorial delivery readings retain their source-era scope.",
+        "identityProof": {
+          "kind": "reviewed-narrative-identity",
+          "reviewId": "held-identity-oct01-coach-fred"
+        }
+      }
+    },
+    {
+      "id": "coach-fred.temperament.direct-dealmaking",
+      "text": "He can defend earning a living while being straightforward about the money involved.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/5/Data/$type",
+          "expected": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/5/Data/id",
+          "expected": "trainer_fred"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/5/Data/name/value",
+          "expected": "LocKey#10923"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/5/Data/avatarID/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/5/Data/avatarID/$value",
+          "expected": "PhoneAvatars.Avatar_Unknown"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7205/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7205/primaryKey",
+          "expected": "10923"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7205/femaleVariant",
+          "expected": "Coach Fred"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "wat_lch_melee_01"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1624173162010259556"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams",
+          "expected": {
+            "$type": "scnSpawnSetParams",
+            "entryName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "wat_lch_melee_01"
+            },
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "string",
+              "$value": "#wat_lch_melee_01"
+            }
+          }
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnerParams",
+          "expected": {
+            "$type": "scnSpawnerParams",
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "uint64",
+              "$value": "0"
+            }
+          }
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/20/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/20/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/20/locstringId/ruid",
+          "expected": "1905382030162841600"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/20/itemId/id",
+          "expected": 5121
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/104/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/104/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/104/locstringId/ruid",
+          "expected": "1905382030162841600"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/104/variantId/ruid",
+          "expected": "2778032523326447616"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/104/vpeIndex",
+          "expected": 66
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/66/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/66/variantId/ruid",
+          "expected": "2778032523326447616"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/66/content",
+          "valueSha256": "a8cfa64709130afff452cdc3002610cacaef64485fc32d21452a96c2fdcdd89e",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/3/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/3/Data/screenplayLineId/id",
+          "expected": 5121
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/3/Data/id/id",
+          "expected": "2060642926775799876"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/3/Data/duration",
+          "expected": 4754
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/3/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/3/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/3/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "fred-vendor",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/3/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "shipped-mercs-4",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/25/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-mercs-4",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/25/stringId",
+          "expected": "1905382030162841600"
+        },
+        {
+          "sourceId": "shipped-mercs-4",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/25/femaleVariant",
+          "valueSha256": "a8cfa64709130afff452cdc3002610cacaef64485fc32d21452a96c2fdcdd89e",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "specific-self-speech-and-bounded-editorial-reading",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "His own business justification, not proof that every deal is fair or an assumed fixed-fight agreement.",
+          "Adoption held: the current generic spawn-set actor lacks authenticated world ownership. The named journal contact does not repair that missing edge."
+        ]
+      },
+      "attribution": {
+        "characterKey": "coach-fred",
+        "mode": "self-report",
+        "subjectRef": {
+          "kind": "journal-contact",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/5/Data/id",
+          "expected": "trainer_fred",
+          "containerType": "gameJournalContact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/5/Data/name/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7205/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7205/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "fred-vendor",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/20",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/3/Data",
+            "expectedVoicetag": "1624173162010259556",
+            "expectedSubjectVoicetag": "1624173162010259556",
+            "speakerRole": "subject-self-report"
+          }
+        ],
+        "perspective": "Exact subject speech; editorial delivery readings retain their source-era scope.",
+        "identityProof": {
+          "kind": "reviewed-narrative-identity",
+          "reviewId": "held-identity-oct01-coach-fred"
+        }
+      }
+    }
+  ],
+  "cadenceExamples": [
+    {
+      "id": "retired",
+      "text": "Still know what a clean punch looks like. Just do not ask my skull to take another demonstration.",
+      "claimIds": [
+        "coach-fred.history.retired-fighter"
+      ],
+      "context": "Asked why he coaches rather than fights.",
+      "purpose": "Original brief plain speech, no speaker prefix or fabricated player exchange."
+    },
+    {
+      "id": "training",
+      "text": "Keep those feet working. The target will not stand still just because your first punch was good.",
+      "claimIds": [
+        "coach-fred.craft.movement-and-technique"
+      ],
+      "context": "General training advice.",
+      "purpose": "Original brief plain speech, no speaker prefix or fabricated player exchange."
+    },
+    {
+      "id": "bot",
+      "text": "Military bot. Good deal, couple of upgrades. Now it keeps me honest.",
+      "claimIds": [
+        "coach-fred.equipment.training-bot"
+      ],
+      "context": "Asked about his training robot.",
+      "purpose": "Original brief plain speech, no speaker prefix or fabricated player exchange."
+    },
+    {
+      "id": "deal",
+      "text": "I arrange the bout, take my cut, you get the rest. Better you hear the terms before the bell.",
+      "claimIds": [
+        "coach-fred.business.commission"
+      ],
+      "context": "Discussing his business model without agreeing to a bout.",
+      "purpose": "Original brief plain speech, no speaker prefix or fabricated player exchange."
+    },
+    {
+      "id": "circuit",
+      "text": "There is money in the circuit. You still have to decide whether the risk suits you.",
+      "claimIds": [
+        "coach-fred.work.promoter"
+      ],
+      "context": "A general question about paid boxing.",
+      "purpose": "Original brief plain speech, no speaker prefix or fabricated player exchange."
+    },
+    {
+      "id": "business",
+      "text": "Nothing wrong with making a buck. There is something wrong with pretending the cut does not exist.",
+      "claimIds": [
+        "coach-fred.temperament.direct-dealmaking"
+      ],
+      "context": "Money and transparency are the subject.",
+      "purpose": "Original brief plain speech, no speaker prefix or fabricated player exchange."
+    }
+  ],
+  "exclusions": [
+    "No V quest, fight, transport, gratitude, current survival, clinic recovery, payment or friendship is universal memory.",
+    "No external-franchise biography, invented boxing title, profession, family chronology, diagnosis or implant expertise.",
+    "Scene-era delivery is evidence for restrained authoring, not a command to repeat source-specific distress or jokes.",
+    "The roster display name is not evidence of a legal name. Jesse’s independently verified native contact title is Flaming Crotch Man."
+  ],
+  "integrationRequirements": {
+    "status": "narrative-identity-qualified-world-record-unverified",
+    "nativeContactId": "trainer_fred",
+    "titleLocKey": "10923",
+    "exactEnglishTitle": "Coach Fred",
+    "missingEdge": "Native spawnSet #wat_lch_melee_01 resolves to the canonical Fred entity, not merely a neighboring record, filename or matching voice.",
+    "canonicalRosterRecord": "Character.wat_lch_melee_01",
+    "observedVoice": "1624173162010259556",
+    "observedAliases": [
+      "wat_lch_melee_01",
+      "fistfight_human"
+    ]
+  },
+  "attributionRevision": "wave3-typed-subject-actual-event-shipped-english-v1",
+  "identityReview": {
+    "reviewedAt": "2026-10-01",
+    "evidenceKind": "reviewed-narrative-identity",
+    "worldRegistryEdgesVerified": 0,
+    "limits": "Player addresses Fred; tutorial actor answers in the same emitted section. Vendor and tutorial actors use the identical active spawn-set reference and entry. This identifies authored speaker continuity but does not resolve the world registry to a Character record."
+  }
+}

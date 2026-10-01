@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "builtAt": "2026-10-01T12:07:06.522Z",
+  "builtAt": "2026-10-01T17:35:35.501Z",
   "profilesExpected": 79,
   "profilesAuthored": 79,
   "profilesMissing": [],
@@ -15,6 +15,87 @@
   "errors": [],
   "warnings": [],
   "nativeIntrinsic": [
+    {
+      "key": "8ug8ear",
+      "claimIds": [
+        "outlook.imagined-old-net",
+        "outlook.bartmoss-cost",
+        "outlook.netwatch-control",
+        "delivery.irreverent-analogy"
+      ],
+      "sampleIds": [
+        "original.01",
+        "original.02",
+        "original.03",
+        "original.04",
+        "original.05",
+        "original.06"
+      ],
+      "sourceContentSha256": "506938b5404050ece4bb39b7d4407ce9cfbecd63c2768ff294e15720de30b47f",
+      "referencesVerified": 120,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "aaron",
+      "claimIds": [
+        "aaron.identity.boxer",
+        "aaron.history.dogtown-roots",
+        "aaron.history.former-animals",
+        "aaron.temperament.no-nonsense",
+        "aaron.history.gang-support",
+        "aaron.values.chose-boxing",
+        "aaron.experience.razor-training",
+        "aaron.craft.distance-and-matchups",
+        "aaron.history.family-construction",
+        "aaron.history.moved-outside-wall",
+        "aaron.history.fathers-expo-ambition"
+      ],
+      "sampleIds": [
+        "career",
+        "technique",
+        "dogtown",
+        "father",
+        "razor",
+        "broad-history"
+      ],
+      "sourceContentSha256": "8793dc5468d16a4cf181616d616969b6cb4da120eceb501db2362542fdb9f8ed",
+      "referencesVerified": 480,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "adam-smasher",
+      "claimIds": [
+        "adam-smasher.body.full-conversion",
+        "adam-smasher.work.arasaka-enforcer",
+        "adam-smasher.history.silverhand-2023",
+        "adam-smasher.viewpoint.organic-contempt"
+      ],
+      "sampleIds": [
+        "chrome",
+        "terms",
+        "history",
+        "fear"
+      ],
+      "sourceContentSha256": "4e6d3183183995c15d1326f26680d4ab1ed1fb54d0fd8f66c6e5af2cb6f7c722",
+      "referencesVerified": 103,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "alan-noel",
+      "claimIds": [
+        "alan-noel.outlook.professional-order",
+        "alan-noel.knowledge.military-hardware-market",
+        "alan-noel.approach.trace-command-chain"
+      ],
+      "sampleIds": [
+        "professional",
+        "market",
+        "method"
+      ],
+      "sourceContentSha256": "d074afda8d6fb1d95a79fa20c1ed49d710f0715f09bca2654c9e8166e043e860",
+      "referencesVerified": 257,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
     {
       "key": "alex",
       "claimIds": [
@@ -51,6 +132,409 @@
       "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
     },
     {
+      "key": "ana-friedman",
+      "claimIds": [
+        "ana-friedman.role.brazilian-intelligence-analyst",
+        "ana-friedman.work.corporate-movement-analysis",
+        "ana-friedman.taste.work-adrenaline-and-news",
+        "ana-friedman.limits.no-fieldwork-experience"
+      ],
+      "sampleIds": [
+        "analysis",
+        "field",
+        "work",
+        "boundary"
+      ],
+      "sourceContentSha256": "94f22e25512d95ba9812a6452c8444cb07d934560128a81a7b79ba406662b13a",
+      "referencesVerified": 91,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "arthur-jenkins",
+      "claimIds": [
+        "identity.counterintelligence",
+        "cadence.commanding",
+        "craft.procedural-thinking",
+        "opinion.practical-gains",
+        "craft.known-operators"
+      ],
+      "sampleIds": [
+        "sample.point",
+        "sample.procedure",
+        "sample.gain",
+        "sample.operator"
+      ],
+      "sourceContentSha256": "f5a45373cf713f5cd291a7715e966cd31d743b7dee38fef148b97de034995da4",
+      "referencesVerified": 243,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "babs-okoye",
+      "claimIds": [
+        "babs-okoye.identity.barbara-okoye",
+        "babs-okoye.history.experienced-soldier",
+        "babs-okoye.relationship.pacos-choom",
+        "babs-okoye.relationship.protective-friend",
+        "babs-okoye.temperament.pragmatic",
+        "babs-okoye.taste.quiet-life",
+        "babs-okoye.judgment.vague-advice",
+        "babs-okoye.judgment.discretion"
+      ],
+      "sampleIds": [
+        "plan",
+        "paco",
+        "quiet",
+        "experience",
+        "discretion",
+        "agency"
+      ],
+      "sourceContentSha256": "f2d042e21996728547c7e3568ec8ad34b3fa561adb388013bbe6cdcfb6ce120f",
+      "referencesVerified": 198,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "bill-mitchell",
+      "claimIds": [
+        "bill-mitchell.history.ncpd-employment",
+        "bill-mitchell.history.friend-encouraged-ncpd",
+        "bill-mitchell.character.modest-dreams"
+      ],
+      "sampleIds": [
+        "modest",
+        "hesitation",
+        "work"
+      ],
+      "sourceContentSha256": "bad621e8ff89d34bd51d1df827e852861925a17f4509f54c666c9186532d0df9",
+      "referencesVerified": 48,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "blue-moon",
+      "claimIds": [
+        "blue-moon.music.us-cracks-work",
+        "blue-moon.music.admiration",
+        "blue-moon.work.artist-agency",
+        "blue-moon.conversation.de-escalation",
+        "blue-moon.craft.work-in-progress",
+        "blue-moon.taste.azaleas"
+      ],
+      "sampleIds": [
+        "creative-work",
+        "label",
+        "calm",
+        "admiration",
+        "flowers",
+        "agency"
+      ],
+      "sourceContentSha256": "121008b187f0d4de9693bd43ab3aeb3d42a80549183579871db2a04abc06e15d",
+      "referencesVerified": 510,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "bob-sagan",
+      "claimIds": [
+        "bob.knowledge.panzer-hazards",
+        "bob.craft.equipment-troubleshooting",
+        "bob.humor.hardware-irony",
+        "bob.values.check-promises",
+        "bob.temperament.caution-not-defeatism",
+        "bob.values.family-cooperation",
+        "bob.delivery.concrete-obstacles"
+      ],
+      "sampleIds": [
+        "repair-first",
+        "war-cost",
+        "promises",
+        "not-defeatist",
+        "family-friction",
+        "obstacle"
+      ],
+      "sourceContentSha256": "c4d9b829e17a100196fff5ee980820a38e70f3ef77378fca2d8854f31c0f0a79",
+      "referencesVerified": 492,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "briana-dolson",
+      "claimIds": [
+        "briana.community.stacks",
+        "briana.care.practical-needs",
+        "briana.generosity.own-community",
+        "briana.trust.outsiders",
+        "briana.trust.knowing-people"
+      ],
+      "sampleIds": [
+        "practical-care",
+        "earned-trust",
+        "community"
+      ],
+      "sourceContentSha256": "e76ab4ad8a3b91f7044f7f7f6c82a25a83d437aa261f62850d92759ecde7a364",
+      "referencesVerified": 106,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "carol-emeka",
+      "claimIds": [
+        "carol.identity.chosen-family",
+        "carol.values.corporate-offers",
+        "carol.values.being-needed",
+        "carol.craft.army-training",
+        "carol.history.leaving-army",
+        "carol.history.road-perspective",
+        "carol.craft.old-data",
+        "carol.delivery.technical-aftercare",
+        "carol.delivery.familiar-teasing",
+        "carol.delivery.task-focus",
+        "carol.history.panzer-discomfort"
+      ],
+      "sampleIds": [
+        "cards-explanation",
+        "choice-home",
+        "technical-check",
+        "dry-tease",
+        "useful-work",
+        "panzer-comfort"
+      ],
+      "sourceContentSha256": "6a14717e9cfde571a2b871b357eb36a1cd4bd6f11c3ba4658466070644c3f48a",
+      "referencesVerified": 591,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "cassidy-righter",
+      "claimIds": [
+        "cassidy.values.legacy-tech",
+        "cassidy.history.shooting-quiet",
+        "cassidy.craft.focus-and-practice",
+        "cassidy.temperament.respects-skill",
+        "cassidy.values.self-respect-discipline",
+        "cassidy.pastimes.long-earthy-stories",
+        "cassidy.humor.undercuts-grand-advice",
+        "cassidy.humor.earthy-mischief",
+        "cassidy.values.leadership-work"
+      ],
+      "sampleIds": [
+        "old-machine",
+        "steady-shot",
+        "earned-respect",
+        "book",
+        "discipline",
+        "leadership"
+      ],
+      "sourceContentSha256": "49003ec2a6032a64587818f7ea2c8024820e15c690e79f54aaef7bb2d037e8eb",
+      "referencesVerified": 637,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "chang-hoon-nam",
+      "claimIds": [
+        "nam.craft.analysis",
+        "nam.craft.controlled-code",
+        "nam.relationship.wakako",
+        "nam.values.competing-needs",
+        "nam.values.deliberate-risk",
+        "nam.values.learning-with-help",
+        "nam.delivery.patient-teacher"
+      ],
+      "sampleIds": [
+        "symptoms",
+        "limits",
+        "risk",
+        "expectations",
+        "cooperation",
+        "small-step"
+      ],
+      "sourceContentSha256": "2362db82972a3e7c2305968c1535bfb8e6cc5348131e09e23209643d4d40ecc9",
+      "referencesVerified": 147,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "claire-russell",
+      "claimIds": [
+        "identity.afterlife-bartender",
+        "tradition.legend-drinks",
+        "history.militech-engineer",
+        "craft.autoshop",
+        "interest.street-racing",
+        "identity.transwoman",
+        "opinion.machines-and-body",
+        "disposition.finishes-what-she-starts"
+      ],
+      "sampleIds": [
+        "sample.bar",
+        "sample.machine",
+        "sample.garage",
+        "sample.work",
+        "sample.memorial"
+      ],
+      "sourceContentSha256": "a07b788a81b5fb6a0d3156da59ed373d15636ef15d3507130e935c8a1ce5f456",
+      "referencesVerified": 167,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "coach-fred",
+      "claimIds": [
+        "coach-fred.history.retired-fighter",
+        "coach-fred.work.promoter",
+        "coach-fred.business.commission",
+        "coach-fred.equipment.training-bot",
+        "coach-fred.craft.movement-and-technique",
+        "coach-fred.temperament.direct-dealmaking"
+      ],
+      "sampleIds": [
+        "retired",
+        "training",
+        "bot",
+        "deal",
+        "circuit",
+        "business"
+      ],
+      "sourceContentSha256": "7a8478d4494be7ba0e873ac510898597aec22fcbed90a3d7f8d8141d63f1346d",
+      "referencesVerified": 604,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "cynthia-najarro",
+      "claimIds": [
+        "values.personal-boundaries",
+        "values.direct-questions",
+        "delivery.explanation-after-listening"
+      ],
+      "sampleIds": [
+        "boundary",
+        "ask-directly",
+        "hear-out"
+      ],
+      "sourceContentSha256": "24ad0424451cd707fcdb4b248e75653ef8863b5cc7868f2090e876b107ccedb5",
+      "referencesVerified": 270,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "dakota-smith",
+      "claimIds": [
+        "dakota.identity.pomo-fixer",
+        "dakota.craft.perceptive-business",
+        "dakota.identity.aldecaldo-static",
+        "dakota.work.badlands-contracts",
+        "dakota.values.interdependent-desert",
+        "dakota.values.care-for-travellers",
+        "dakota.boundaries.mutual-privacy",
+        "dakota.craft.technical-awareness",
+        "dakota.history.magpie-recollection",
+        "dakota.delivery.measured-caution"
+      ],
+      "sampleIds": [
+        "desert",
+        "fixed-base",
+        "terms",
+        "privacy",
+        "equipment",
+        "caution"
+      ],
+      "sourceContentSha256": "03f4de1eac1f40f29f5dc68ec406ef5b53a4e00d7bf2471c41202f2a811c53ac",
+      "referencesVerified": 574,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "dennis-cranmer",
+      "claimIds": [
+        "work.direct-contracts",
+        "work.transport-over-consulting",
+        "work.staged-disclosure",
+        "work.compensation",
+        "style.businesslike"
+      ],
+      "sampleIds": [
+        "original.01",
+        "original.02",
+        "original.03",
+        "original.04"
+      ],
+      "sourceContentSha256": "5c1d9641d0ad162479910c7c3298e53716f2e274b76d515771c5ae94e87e88ba",
+      "referencesVerified": 603,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "dexter-deshawn",
+      "claimIds": [
+        "craft.people-first",
+        "public.major-fixer",
+        "public.last-job-rumor",
+        "values.meet-in-person",
+        "history.jackie-and-tbug",
+        "values.quiet-or-glory",
+        "craft.risk-reward",
+        "values.discretion",
+        "temperament.chill-with-limits",
+        "craft.experience-with-amateurs",
+        "craft.bargaining",
+        "values.professed-trust",
+        "public.return-and-brand",
+        "cadence.relaxed-showmanship"
+      ],
+      "sampleIds": [
+        "sample.eyes",
+        "sample.risk",
+        "sample.middleman",
+        "sample.calm",
+        "sample.privacy",
+        "sample.brand"
+      ],
+      "sourceContentSha256": "83f1dc52d340875afb2675b7bf0e0e6a162a99ede62d43e83a0c19e8cdc9968d",
+      "referencesVerified": 786,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "dino-dinovic",
+      "claimIds": [
+        "dino-dinovic.work.city-center",
+        "dino-dinovic.music.gloryhole-bassist",
+        "dino-dinovic.work.varied-requests",
+        "dino-dinovic.social.mixed-company",
+        "dino-dinovic.place.bar",
+        "dino-dinovic.memory.silverhand-gig",
+        "dino-dinovic.memory.backstage-hearsay",
+        "dino-dinovic.music.business-and-playing",
+        "dino-dinovic.social.nightlife-access"
+      ],
+      "sampleIds": [
+        "band",
+        "gig",
+        "hearsay",
+        "contacts",
+        "district"
+      ],
+      "sourceContentSha256": "2947ab8a75229240f0670fa1e8a48b0b1e5687922830ada3fa4f85312e65482e",
+      "referencesVerified": 332,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "elizabeth-peralez",
+      "claimIds": [
+        "history.berkeley-law",
+        "history.met-jefferson",
+        "craft.practicing-law",
+        "family.xochi",
+        "temperament.poised",
+        "public.sincere-manner",
+        "craft.political-pragmatism",
+        "craft.organizes-time",
+        "values.discretion",
+        "values.independence",
+        "craft.media-awareness",
+        "cadence.calm-precision"
+      ],
+      "sampleIds": [
+        "sample.precision",
+        "sample.idealism",
+        "sample.privacy",
+        "sample.time",
+        "sample.publicity",
+        "sample.family"
+      ],
+      "sourceContentSha256": "98c8f8672bfb0d2103895752818a50864500bdeb941a204065005ec37ed857f1",
+      "referencesVerified": 369,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
       "key": "evelyn-parker",
       "claimIds": [
         "identity.curated-appearance",
@@ -80,6 +564,28 @@
       "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
     },
     {
+      "key": "frank-nostra",
+      "claimIds": [
+        "identity.frank-nostra",
+        "history.cape-town-cargo",
+        "history.rifle-crate-recovery",
+        "outlook.operational-pragmatism",
+        "history.abernathy-supervision",
+        "manner.cordial-work-colleague"
+      ],
+      "sampleIds": [
+        "original.01",
+        "original.02",
+        "original.03",
+        "original.04",
+        "original.05",
+        "original.06"
+      ],
+      "sourceContentSha256": "1f79ba36c7f7f3c75ddb0a227a8deee2826150248c3115e811aa9d7d3535badc",
+      "referencesVerified": 288,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
       "key": "hanako-arasaka",
       "claimIds": [
         "identity.family",
@@ -106,6 +612,27 @@
       ],
       "sourceContentSha256": "b76e0bbfb7b2dbc3d3f803e592568d44c0758cb040f0db85bceeeaed3d34507a",
       "referencesVerified": 478,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "iris-tanner",
+      "claimIds": [
+        "identity.techie",
+        "craft.challenge-before-money",
+        "craft.tough-negotiator",
+        "cadence.terse-and-proud",
+        "principle.independent-work",
+        "opinion.no-forced-family",
+        "cadence.clear-terms"
+      ],
+      "sampleIds": [
+        "sample.challenge",
+        "sample.price",
+        "sample.terms",
+        "sample.independent"
+      ],
+      "sourceContentSha256": "fb70e485ea6365c9304d22071c9fdd2c4653da30346ce741d121498522d43c4c",
+      "referencesVerified": 168,
       "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
     },
     {
@@ -147,6 +674,70 @@
       "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
     },
     {
+      "key": "jefferson-peralez",
+      "claimIds": [
+        "history.poor-childhood",
+        "history.scholarship-and-law",
+        "craft.legal-public-service",
+        "values.education-opportunity",
+        "craft.social-adaptability",
+        "family.respects-elizabeth",
+        "values.platform-conviction",
+        "craft.clear-questions",
+        "values.discretion",
+        "craft.tried-contacts",
+        "cadence.personable-business",
+        "cadence.polite-opening"
+      ],
+      "sampleIds": [
+        "sample.education",
+        "sample.evidence",
+        "sample.partner",
+        "sample.conviction",
+        "sample.discretion",
+        "sample.direct"
+      ],
+      "sourceContentSha256": "87ed3585aa9cf7ee9f93592675391d79604ce392e96e73115ed5f6f5108b0486",
+      "referencesVerified": 465,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "jesse",
+      "claimIds": [
+        "jesse.boundaries.medical-privacy",
+        "jesse.delivery.practical-help",
+        "jesse.temperament.embarrassed-humor"
+      ],
+      "sampleIds": [
+        "privacy",
+        "help",
+        "joke",
+        "ordinary"
+      ],
+      "sourceContentSha256": "59c804e7387e7ad8e899ccddbc957e53295b34b2690721e99e987a62f7f659f7",
+      "referencesVerified": 187,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "jim-jarry",
+      "claimIds": [
+        "delivery.firearms-and-vehicles",
+        "cadence.audience-and-showmanship",
+        "craft.benefits-and-catches",
+        "opinion.speed-and-control",
+        "opinion.reliability-over-gimmicks"
+      ],
+      "sampleIds": [
+        "sample.catch",
+        "sample.speed",
+        "sample.pitch",
+        "sample.reliable"
+      ],
+      "sourceContentSha256": "0e28245777ffaf3a088b5baaf3739cbb34bc17e8464b5a1a30e64a0d4ef0ce8c",
+      "referencesVerified": 391,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
       "key": "johnny-silverhand",
       "claimIds": [
         "johnny.identity.personality-construct",
@@ -172,6 +763,29 @@
       ],
       "sourceContentSha256": "5595590d7a6eb007db5056fe3a31dcdfd6f75eb67d60a39700a09c306d651de4",
       "referencesVerified": 330,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "joss-kutcher",
+      "claimIds": [
+        "values.children-first",
+        "values.family-anchor",
+        "temperament.self-deprecation",
+        "cadence.welcoming",
+        "family.encourages-play",
+        "family.randy-food",
+        "cadence.everyday-hospitality"
+      ],
+      "sampleIds": [
+        "sample.children",
+        "sample.perfect",
+        "sample.welcome",
+        "sample.food",
+        "sample.play",
+        "sample.table"
+      ],
+      "sourceContentSha256": "549d3add93d0a52fb8fdb8ef4ac778e95e6e99a13bea39b6e406eee58091e7a8",
+      "referencesVerified": 343,
       "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
     },
     {
@@ -242,6 +856,88 @@
       "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
     },
     {
+      "key": "liam-northom",
+      "claimIds": [
+        "work.lizzys-manager",
+        "values.professional-privacy",
+        "style.defensive-business-speech"
+      ],
+      "sampleIds": [
+        "original.01",
+        "original.02",
+        "original.03"
+      ],
+      "sourceContentSha256": "a92ae1d64c3d4114ee68466c0ccd65a9e1fa2cd6aa4674343ba0bfa5c9a59beb",
+      "referencesVerified": 310,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "life-coach",
+      "claimIds": [
+        "work.quantified-satori",
+        "method.neuromotor-exercises",
+        "delivery.reassuring-professional"
+      ],
+      "sampleIds": [
+        "original.01",
+        "original.02",
+        "original.03"
+      ],
+      "sourceContentSha256": "f859c096a76a9ab6c396071e0a60d694d5c35ffba8ce53f8b793ca4ffcf0d1ee",
+      "referencesVerified": 152,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "lina-malina",
+      "claimIds": [
+        "lina-malina.career.performer",
+        "lina-malina.career.ambition",
+        "lina-malina.persona.brand",
+        "lina-malina.business.advance",
+        "lina-malina.history.wary-after-cons",
+        "lina-malina.craft.presentation",
+        "lina-malina.delivery.crew-impatience"
+      ],
+      "sampleIds": [
+        "ambition",
+        "job-budget",
+        "credentials",
+        "whole-look",
+        "crew-ready",
+        "pitch"
+      ],
+      "sourceContentSha256": "b2da6c47534dcdf9c6e6760746d00c15686bba5da1948e503c07f55c7d6c2be1",
+      "referencesVerified": 230,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "lizzy-wizzy",
+      "claimIds": [
+        "lizzy-wizzy.identity.artist",
+        "lizzy-wizzy.history.full-conversion",
+        "lizzy-wizzy.history.staged-return",
+        "lizzy-wizzy.art.audience-and-identity",
+        "lizzy-wizzy.reputation.contested",
+        "lizzy-wizzy.privacy.boundaries",
+        "lizzy-wizzy.emotion.chrome-heart",
+        "lizzy-wizzy.publicity.constant-scrutiny",
+        "lizzy-wizzy.attention.ambivalence",
+        "lizzy-wizzy.values.deliberation",
+        "lizzy-wizzy.craft.focus"
+      ],
+      "sampleIds": [
+        "work",
+        "privacy",
+        "scrutiny",
+        "emotion",
+        "deliberation",
+        "focus"
+      ],
+      "sourceContentSha256": "c4ffed730d82caa8a6348219d392afa198c97dfab7cb506f4ec5833c65cf0131",
+      "referencesVerified": 498,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
       "key": "mama-welles",
       "claimIds": [
         "identity.guadalupe",
@@ -266,6 +962,47 @@
       ],
       "sourceContentSha256": "a8da578ffe49e2837ce04fadd81a8b4a615d7d79c4435053a25de81ed10d54b4",
       "referencesVerified": 268,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "mark-bana",
+      "claimIds": [
+        "mark.employment.brazilian-intelligence",
+        "mark.career.twelve-years",
+        "mark.age.thirty-seven",
+        "mark.training.combat"
+      ],
+      "sampleIds": [
+        "service-length",
+        "training",
+        "age"
+      ],
+      "sourceContentSha256": "a00a66117804e977d51ab9fd6ca0cc97c28208f935e28c08ae18c3cb58cd43a6",
+      "referencesVerified": 223,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "meredith-stout",
+      "claimIds": [
+        "identity.name",
+        "craft.militech-internal-affairs",
+        "cadence.direct-questions",
+        "craft.wants-a-plan",
+        "cadence.impatient-offers",
+        "temperament.skeptical",
+        "craft.security-direction",
+        "temperament.hard-boundary"
+      ],
+      "sampleIds": [
+        "sample.answer",
+        "sample.plan",
+        "sample.source",
+        "sample.boundary",
+        "sample.concise",
+        "sample.work"
+      ],
+      "sourceContentSha256": "fb895dc6bee158ea0bfde2e4a7ae99d789cb69d0986f051964cf690be974c99a",
+      "referencesVerified": 512,
       "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
     },
     {
@@ -296,6 +1033,32 @@
       ],
       "sourceContentSha256": "67cfa7bc854c707b2d33c440c99e6fd61c6990cc1c8d721514dfe8a4b4449e41",
       "referencesVerified": 632,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "mitch-anderson",
+      "claimIds": [
+        "mitch.identity.family",
+        "mitch.history.free-states",
+        "mitch.craft.panzerboys",
+        "mitch.history.smuggling",
+        "mitch.relationship.panam",
+        "mitch.temperament.respected",
+        "mitch.delivery.war-understatement",
+        "mitch.craft.patient-testing",
+        "mitch.delivery.warm-practical",
+        "mitch.values.independent-jobs"
+      ],
+      "sampleIds": [
+        "war-boundary",
+        "repair-first",
+        "life-after-front",
+        "ordinary-welcome",
+        "work-reputation",
+        "loyalty"
+      ],
+      "sourceContentSha256": "3f2eb322a37e20bce38f504e4a8f14fdbfff319c05929445d75979d866b61734",
+      "referencesVerified": 380,
       "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
     },
     {
@@ -357,6 +1120,149 @@
       "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
     },
     {
+      "key": "nancy-hartley",
+      "claimIds": [
+        "nancy-hartley.identity.media-byline",
+        "nancy-hartley.music.samurai-membership",
+        "nancy-hartley.history.keyboard-to-journalism",
+        "nancy-hartley.music.silverhand-role",
+        "nancy-hartley.reporting.footage-and-editing",
+        "nancy-hartley.reporting.subject-questions",
+        "nancy-hartley.reporting.larger-story",
+        "nancy-hartley.reporting.investigation-method",
+        "nancy-hartley.reporting.uncertainty",
+        "nancy-hartley.social.industry-access",
+        "nancy-hartley.craft.improvisation",
+        "nancy-hartley.music.detail-conscious",
+        "nancy-hartley.privacy.confidential-files"
+      ],
+      "sampleIds": [
+        "byline",
+        "band-perspective",
+        "reporting",
+        "editing",
+        "contacts",
+        "file-boundary"
+      ],
+      "sourceContentSha256": "ba0351a7d218f33d18141712c36ae0494fae11a7ee431887d8e39747e87286ab",
+      "referencesVerified": 1088,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "nele-springer",
+      "claimIds": [
+        "nele-springer.history.farm-family",
+        "nele-springer.history.biotechnica-sale",
+        "nele-springer.education.chemistry",
+        "nele-springer.delivery.boundaries",
+        "nele-springer.delivery.one-at-a-time"
+      ],
+      "sampleIds": [
+        "farm-limits",
+        "chemistry-question",
+        "boundary",
+        "concrete-step"
+      ],
+      "sourceContentSha256": "7df6b7bc6bd3501ab02de9d8330882b37f0c6e72ee4738d9ff84b4bb599aeca6",
+      "referencesVerified": 152,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "nix",
+      "claimIds": [
+        "nix.work.specialist",
+        "nix.craft.bartmoss-study",
+        "nix.work.rogue-trust",
+        "nix.taste.old-technology",
+        "nix.craft.risk-warning",
+        "nix.craft.curiosity",
+        "nix.craft.historical-care",
+        "nix.work.paid-services",
+        "nix.work.negotiation",
+        "nix.social.professional-boundaries"
+      ],
+      "sampleIds": [
+        "old-tech",
+        "risk",
+        "bartmoss",
+        "curiosity",
+        "professional",
+        "rogue"
+      ],
+      "sourceContentSha256": "a923cb6e93f8f312e5cfc1ed68f5b5a3b2798d97f28596018d727242f86cbc3b",
+      "referencesVerified": 581,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "ozob-bozo",
+      "claimIds": [
+        "ozob-bozo.origin.brazil",
+        "ozob-bozo.appearance.grenade",
+        "ozob-bozo.history.nose-injury",
+        "ozob-bozo.identity.unconventional-choice",
+        "ozob-bozo.taste.spicy-food",
+        "ozob-bozo.temperament.entertainer",
+        "ozob-bozo.work.flexibility",
+        "ozob-bozo.boundaries.introductions"
+      ],
+      "sampleIds": [
+        "origin",
+        "nose",
+        "brother",
+        "food",
+        "show",
+        "privacy"
+      ],
+      "sourceContentSha256": "df118ef51fd073897b4095ab75c0064b364f62823b5915644e53bd3198c4db11",
+      "referencesVerified": 445,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "paco-torres",
+      "claimIds": [
+        "paco-torres.identity.barghest-rookie",
+        "paco-torres.temperament.opportunities",
+        "paco-torres.temperament.confidence",
+        "paco-torres.temperament.acts-first",
+        "paco-torres.taste.casual-conversation",
+        "paco-torres.taste.immersive-storytelling"
+      ],
+      "sampleIds": [
+        "rookie",
+        "idea",
+        "story",
+        "chance",
+        "gab",
+        "confidence"
+      ],
+      "sourceContentSha256": "2dd27234cf6751f2cab41370e2471f9ddf6b86b65bda26b54024ed92fce39f49",
+      "referencesVerified": 206,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "padre-ibarra",
+      "claimIds": [
+        "padre-ibarra.identity.name",
+        "padre-ibarra.history.priest-and-fixer",
+        "padre-ibarra.work.heywood-roots",
+        "padre-ibarra.ethics.balance",
+        "padre-ibarra.faith.lived-belief",
+        "padre-ibarra.privacy.may-decline",
+        "padre-ibarra.work.respect-and-danger",
+        "padre-ibarra.social.religious-cadence"
+      ],
+      "sampleIds": [
+        "faith",
+        "privacy",
+        "control",
+        "balance",
+        "business"
+      ],
+      "sourceContentSha256": "5972ef3b99d50dff7f46815c70291852cc308f75450fcb30d94a6589c5259f48",
+      "referencesVerified": 330,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
       "key": "panam-palmer",
       "claimIds": [
         "panam.identity.nomad-background",
@@ -387,6 +1293,84 @@
       ],
       "sourceContentSha256": "0278d2affc7ad4f1ee32aee54196b515ab2420579609823e618dc4139e56ef04",
       "referencesVerified": 535,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "pepe-najarro",
+      "claimIds": [
+        "family.cynthia",
+        "family.child",
+        "values.work-boundary",
+        "delivery.toasts-and-colloquial-warmth"
+      ],
+      "sampleIds": [
+        "family",
+        "on-clock",
+        "toast"
+      ],
+      "sourceContentSha256": "1b514a7bc4d16700b22e52eaed976581fa8834444fd313f22bbcf3a6f6cc878d",
+      "referencesVerified": 446,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "placide",
+      "claimIds": [
+        "identity.voodoo-boys",
+        "disposition.guarded-outsiders",
+        "craft.discretion",
+        "craft.ability-before-promises",
+        "craft.subnet-monitoring",
+        "cadence.task-focus",
+        "opinion.not-corporate-career"
+      ],
+      "sampleIds": [
+        "sample.private",
+        "sample.promises",
+        "sample.focus",
+        "sample.career",
+        "sample.network"
+      ],
+      "sourceContentSha256": "9b33d108378fc5cb297afd6fba359a995aa3e82ef9b5f510a01fe1e4772aacf0",
+      "referencesVerified": 294,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "r3n0",
+      "claimIds": [
+        "work.book-sale",
+        "values.firm-terms",
+        "values.private-meeting"
+      ],
+      "sampleIds": [
+        "original.01",
+        "original.02",
+        "original.03"
+      ],
+      "sourceContentSha256": "cb6c6dc029989050e88f3afb0d454bc2523f5f7526e2841b2ac21d71bd1a427c",
+      "referencesVerified": 96,
+      "policy": "recorded-native-and-reviewed-live-property-public-only"
+    },
+    {
+      "key": "rachel-casich",
+      "claimIds": [
+        "rachel-casich.career.producer",
+        "rachel-casich.career.public-credits",
+        "rachel-casich.work.corporate-studio",
+        "rachel-casich.craft.technology-optimism",
+        "rachel-casich.routine.meditation",
+        "rachel-casich.outlook.personal-spirituality",
+        "rachel-casich.delivery.direct-control"
+      ],
+      "sampleIds": [
+        "experience",
+        "credits",
+        "tech",
+        "breath",
+        "personal",
+        "work"
+      ],
+      "sourceContentSha256": "801fd1ba0a937c2bc05c05b14c6c25536124b8ad9d2a2445df0d6bf2dac8c734",
+      "referencesVerified": 568,
       "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
     },
     {
@@ -446,6 +1430,24 @@
       "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
     },
     {
+      "key": "robert-wilson",
+      "claimIds": [
+        "values.firearm-respect",
+        "values.holster-discipline",
+        "taste.powder-and-lead",
+        "delivery.grumbling-humor"
+      ],
+      "sampleIds": [
+        "care",
+        "holster",
+        "bad-day",
+        "powder"
+      ],
+      "sourceContentSha256": "39bdfc7a5761ceaafe59a1d2a7db4620a6f9c9d1fb5be7475e8ff2847ea9481c",
+      "referencesVerified": 120,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
       "key": "rogue-amendiares",
       "claimIds": [
         "rogue-amendiares.identity.mercenary-past",
@@ -472,6 +1474,113 @@
       ],
       "sourceContentSha256": "03de8f8fd21e3cceb46925f08e4bae744d93a6175270b62add7b93136af08f97",
       "referencesVerified": 768,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "sandra-dorsett",
+      "claimIds": [
+        "work.professional-corporate",
+        "temperament.cautious-prudent",
+        "privacy.personal-boundaries",
+        "temperament.evidence-before-reassurance",
+        "values.professional-discretion"
+      ],
+      "sampleIds": [
+        "original.01",
+        "original.02",
+        "original.03",
+        "original.04",
+        "original.05",
+        "original.06"
+      ],
+      "sourceContentSha256": "b7f6b8978e0b302153a4dc74532257c3cdcefa1c7d455c9c09e899d3fc6f4a13",
+      "referencesVerified": 116,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "santiago",
+      "claimIds": [
+        "santiago.background.clan-travel",
+        "santiago.work.plain-terms",
+        "santiago.work.up-front-payment",
+        "santiago.work.partner-trust",
+        "santiago.work.personal-terms",
+        "santiago.work.pay-and-risk"
+      ],
+      "sampleIds": [
+        "job-and-terms",
+        "up-front",
+        "partner",
+        "risk",
+        "free",
+        "outside-city"
+      ],
+      "sourceContentSha256": "939bd49e340cf067679150a8eae906734c74dc40eaf4a4a3de9aa69eb7db8914",
+      "referencesVerified": 438,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "saul-bright",
+      "claimIds": [
+        "saul.identity.family",
+        "saul.history.difficult-succession",
+        "saul.policy.corporate-connections",
+        "saul.values.accountability",
+        "saul.temperament.principle",
+        "saul.delivery.clarifying",
+        "saul.delivery.triage-metaphor",
+        "saul.values.family-first",
+        "saul.delivery.stern-wry",
+        "saul.care.plain-concern"
+      ],
+      "sampleIds": [
+        "practical-plan",
+        "responsibility",
+        "concrete-question",
+        "family-cost",
+        "modest-joke",
+        "check-in"
+      ],
+      "sourceContentSha256": "513a0d8b6ee118ee6ac09b4ba939d2f5aaa85f85d2f873b2686eaa8459f88bc5",
+      "referencesVerified": 545,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "sergei-karasinsky",
+      "claimIds": [
+        "identity.short-name",
+        "identity.russian-self-description",
+        "delivery.euphemism-and-deflection",
+        "delivery.forced-cheer"
+      ],
+      "sampleIds": [
+        "original.01",
+        "original.02",
+        "original.03",
+        "original.04"
+      ],
+      "sourceContentSha256": "964df0a3707163a24ac67f3837f9fa6ea51aeb1fb3a4ac37a790f26ad925ae1b",
+      "referencesVerified": 140,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "shank",
+      "claimIds": [
+        "shank.profession.bd-business",
+        "shank.business.pressures",
+        "shank.relationship.tool",
+        "shank.business.opportunity",
+        "shank.delivery.ethical-pushback"
+      ],
+      "sampleIds": [
+        "doors-open",
+        "rent",
+        "partner",
+        "paid-idea",
+        "lecture"
+      ],
+      "sourceContentSha256": "810bcf99618fe945b7648a35d24dff7b63c741957ad63ad371417198368e8c55",
+      "referencesVerified": 311,
       "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
     },
     {
@@ -536,6 +1645,68 @@
       "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
     },
     {
+      "key": "spider-murphy",
+      "claimIds": [
+        "spider-murphy.work.protocol-details",
+        "spider-murphy.delivery.playful-metaphor",
+        "spider-murphy.work.completion-and-exit",
+        "spider-murphy.work.security-and-route",
+        "spider-murphy.delivery.urgent-encouragement"
+      ],
+      "sampleIds": [
+        "protocol",
+        "web",
+        "complete",
+        "barrier",
+        "encouragement"
+      ],
+      "sourceContentSha256": "1f70f83cdf71899d23ca844183e58da1932186660893590e37dcc3103be48de2",
+      "referencesVerified": 311,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "steven-santos",
+      "claimIds": [
+        "steven.role.risk-assessment",
+        "steven.loyalty.country",
+        "steven.professional.discretion",
+        "steven.decisions.reluctance",
+        "steven.conscience.limited-repair",
+        "steven.work.screening-contractors"
+      ],
+      "sampleIds": [
+        "risk-first",
+        "unpleasant-service",
+        "clean-answer"
+      ],
+      "sourceContentSha256": "f600335a3f483d6af3e037631b35ecc3c75fef774afd292745e54fe876465114",
+      "referencesVerified": 122,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "t-bug",
+      "claimIds": [
+        "identity.contract-netrunner",
+        "craft.selective-specialist",
+        "aspiration.retirement",
+        "aspiration.crete-clean-break",
+        "craft.quiet-operations",
+        "craft.technical-sequencing",
+        "cadence.dry-modern-wit",
+        "cadence.philosophical-distance"
+      ],
+      "sampleIds": [
+        "sample.risk",
+        "sample.plan",
+        "sample.retirement",
+        "sample.quiet",
+        "sample.certainty"
+      ],
+      "sourceContentSha256": "5763c10bf29738e4d705f4d96e055ae501feef4b78fac783837121771dbb8b1a",
+      "referencesVerified": 309,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
       "key": "takemura",
       "claimIds": [
         "history.chiba-childhood",
@@ -568,6 +1739,26 @@
       "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
     },
     {
+      "key": "thompson",
+      "claimIds": [
+        "thompson.work.concrete-threat",
+        "thompson.work.investigation-focus",
+        "thompson.work.counterargument",
+        "thompson.work.field-story",
+        "thompson.work.limited-wait"
+      ],
+      "sampleIds": [
+        "threat",
+        "motive",
+        "alternative",
+        "lead",
+        "waiting"
+      ],
+      "sourceContentSha256": "2bfa7dcc619ad621233e5095daebf04bb8bcf7a4ffa825682b5dacfa4e41ec85",
+      "referencesVerified": 319,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
       "key": "viktor-vektor",
       "claimIds": [
         "work.no-nonsense-clinic",
@@ -595,6 +1786,51 @@
       ],
       "sourceContentSha256": "2dbef920f7548b0b704e36c1793ff7c3a522daee3535c2d14c83f1b9e6cf1bf9",
       "referencesVerified": 530,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "wakako-okada",
+      "claimIds": [
+        "wakako-okada.work.westbrook-parlor",
+        "wakako-okada.work.polite-pressure",
+        "wakako-okada.work.expected-competence",
+        "wakako-okada.family.tyger-claw-ties",
+        "wakako-okada.family.sons",
+        "wakako-okada.judgment.cheap-is-not-good"
+      ],
+      "sampleIds": [
+        "terms",
+        "competence",
+        "cheap",
+        "parlor",
+        "family"
+      ],
+      "sourceContentSha256": "599ce0f57402e4d3522afea201972c97ba58b8bf321b1a80f5472ec714815580",
+      "referencesVerified": 241,
+      "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
+    },
+    {
+      "key": "yorinobu-arasaka",
+      "claimIds": [
+        "identity.arasaka-son",
+        "public.rebellious-youth",
+        "public.controversial-persona",
+        "public.demands-change",
+        "public.wealth-and-role",
+        "cadence.measured-hospitality",
+        "temperament.rejects-imposition",
+        "values.critical-of-stagnation"
+      ],
+      "sampleIds": [
+        "sample.family",
+        "sample.change",
+        "sample.public",
+        "sample.business",
+        "sample.imposition",
+        "sample.wealth"
+      ],
+      "sourceContentSha256": "a962cb4e9c12613c3a6fe6940c7e4393540618fc0b345be0fd4df312f4f5579b",
+      "referencesVerified": 275,
       "policy": "recorded-binary-and-json-hash-typed-pointer-public-only"
     }
   ]

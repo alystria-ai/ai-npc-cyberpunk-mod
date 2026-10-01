@@ -1,0 +1,2082 @@
+{
+  "version": 1,
+  "key": "pepe-najarro",
+  "name": "Pepe Najarro",
+  "gameVersions": [
+    "2.31"
+  ],
+  "createdAt": "2026-10-01",
+  "scope": "Unadopted Wave 3 source-qualified public proposal. Named emitted narrative identity is reviewed; world registry acquisition remains unverified. No runtime, cloud, game, voice or memory action.",
+  "nativeSubject": {
+    "contactId": "pepe_el_coyote",
+    "containerType": "gameJournalContact",
+    "titleBound": true,
+    "kind": "journal-contact"
+  },
+  "nativeSources": [
+    {
+      "id": "english",
+      "depotPath": "base\\localization\\en-us\\onscreens\\onscreens.json",
+      "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+      "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+      "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+      "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+      "archiveEntrySha1": "1131d968cfae38ebf79242e24aadafc051545992",
+      "archive": "base",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "7469411510719000253",
+      "inventoryPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/inventory.json",
+      "inventorySha256": "d5b80cdd030038f2389d9eb9aab7006d6bd95df80787db21d179345acaa21356",
+      "serializationVerified": true,
+      "sourceKind": "installed-native",
+      "locale": "en_us"
+    },
+    {
+      "id": "journal",
+      "depotPath": "base\\journal\\cooked_journal.journal",
+      "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+      "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+      "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+      "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+      "archiveEntrySha1": "be95e34f16d4d1044e5e0104174a1038c02e57e0",
+      "archive": "ep1",
+      "archivePath": "archive/pc/ep1/ep1_2_gamedata.archive",
+      "pathHash64": "17440916468644548477",
+      "inventoryPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/inventory.json",
+      "inventorySha256": "d5b80cdd030038f2389d9eb9aab7006d6bd95df80787db21d179345acaa21356",
+      "serializationVerified": true,
+      "sourceKind": "installed-native",
+      "locale": null
+    },
+    {
+      "id": "pepe-bar",
+      "depotPath": "base\\quest\\minor_quests\\mq040\\scenes\\mq040_01_bar.scene",
+      "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene",
+      "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene.json",
+      "assetSha256": "b8fdf591f639b9d1ddb9e404dae9c6f15006358d7c71b175b250f9ddc53e89a3",
+      "jsonSha256": "f3629dd4d9ece41efadf7605ebfed3b609e828dc19e2f6b5d0f087f82a2d32f6",
+      "archiveEntrySha1": "849c60ace334fa22a3f4fe4c4d22954d7d7ffa1c",
+      "archive": "base",
+      "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+      "pathHash64": "1089397771004851134",
+      "inventoryPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/inventory.json",
+      "inventorySha256": "adf8514a55305f3d26369843daf3d55112a01f98c07a61c31b139e8348149f83",
+      "serializationVerified": true,
+      "sourceKind": "installed-native",
+      "locale": null
+    },
+    {
+      "id": "sub-base-mq040-01-bar",
+      "depotPath": "base\\localization\\en-us\\subtitles\\quest\\mq040\\mq040_01_bar.json",
+      "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_01_bar.json",
+      "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_01_bar.json.json",
+      "assetSha256": "252d7d996a043693b10d5f65d02d3538be8919516c9d8a548b4e50693fed397d",
+      "jsonSha256": "35814359ebb9f216dbba09fe54e12cb61b27504452ab63e279640be12ba1e4ab",
+      "archiveEntrySha1": "9343a764223f93e06349a0e5651e2337cd67d754",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "3717348375184643560",
+      "inventoryPath": "research/cyberpunk/cache/game/localization/inventory.json",
+      "inventorySha256": "9eefd4d3d25561cc28b9b9afd05783af9ff6f85da2bc3d2777e0ac9e5570f6ed",
+      "serializationVerified": true,
+      "sourceKind": "installed-native",
+      "locale": "en_us",
+      "serializationReview": {
+        "pinnedToolSha256": "7ae9c308da2fe003220b55ce4ca9c122b51f0701a67db1618cca3ff4f7ff6738",
+        "cachedDataMatchesFresh": true,
+        "installedArchiveSha256Verified": true
+      }
+    },
+    {
+      "id": "sub-ep1-mq040-01-bar",
+      "depotPath": "ep1\\localization\\en-us\\subtitles\\overlays_quest\\mq040\\mq040_01_bar.json",
+      "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/ep1-mq040_01_bar.json",
+      "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/ep1-mq040_01_bar.json.json",
+      "assetSha256": "252d7d996a043693b10d5f65d02d3538be8919516c9d8a548b4e50693fed397d",
+      "jsonSha256": "e682e38d9e50c7a37139976098efe57fa10ca7889596e6b985fed352c8d8a8f9",
+      "archiveEntrySha1": "9343a764223f93e06349a0e5651e2337cd67d754",
+      "archivePath": "archive/pc/ep1/lang_en_text.archive",
+      "pathHash64": "16056944664934265481",
+      "inventoryPath": "research/cyberpunk/cache/game/localization/inventory.json",
+      "inventorySha256": "9eefd4d3d25561cc28b9b9afd05783af9ff6f85da2bc3d2777e0ac9e5570f6ed",
+      "serializationVerified": true,
+      "sourceKind": "installed-native",
+      "locale": "en_us",
+      "serializationReview": {
+        "pinnedToolSha256": "7ae9c308da2fe003220b55ce4ca9c122b51f0701a67db1618cca3ff4f7ff6738",
+        "cachedDataMatchesFresh": true,
+        "installedArchiveSha256Verified": true
+      }
+    },
+    {
+      "jsonPath": "runtime/voice-cast/minor-generic/scenes/held-pepe-named-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_kid_01b_meet_your_fixer.scene.json",
+      "rawPath": "runtime/voice-cast/minor-generic/scenes/held-pepe-named-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_kid_01b_meet_your_fixer.scene",
+      "depotPath": "base\\quest\\main_quests\\prologue\\q000\\scenes\\q000_kid_01b_meet_your_fixer.scene",
+      "assetSha256": "afdad5ffee1d0b1535ec9cfac659e31622c0298d12a7fe6aaab299c8fa1bd855",
+      "jsonSha256": "875f7fd7d581614d3a1119aba592c27deca4a7ea052574d912c6cd9fbdf9ee0f",
+      "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+      "archiveEntrySha1": "775f5beeb89b57eebbb8fca61d1790329ae4a926",
+      "pathHash64": "8753243420927470149",
+      "decodedBytes": 603329,
+      "currentArchiveRowVerified": true,
+      "currentBaseEp1WinnerVerified": true,
+      "id": "identity-held-31",
+      "serializationVerified": true
+    },
+    {
+      "id": "identity-held-33",
+      "depotPath": "base\\localization\\en-us\\subtitles\\quest\\q000\\q000_kid_01b_meet_your_fixer.json",
+      "rawPath": "runtime/voice-cast/minor-generic/held-identity-resolution/subtitles/q000_kid_01b_meet_your_fixer.json",
+      "jsonPath": "runtime/voice-cast/minor-generic/held-identity-resolution/subtitles/q000_kid_01b_meet_your_fixer.json.json",
+      "assetSha256": "14e7dc817db2ac4d389b820194b3e55e0c0ee9d3c913ac21d472517af927c56c",
+      "jsonSha256": "12adc479538999d7153f06133c71b2823cf84aa4ec370faf5ba959be52590198",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "archiveEntrySha1": "6b184d6c508764320544dc0f68267b472fe1ffc5",
+      "pathHash64": "7663125377338098578",
+      "decodedBytes": 10664,
+      "currentArchiveRowVerified": true,
+      "currentBaseEp1WinnerVerified": true,
+      "freshPinnedSerialization": true,
+      "serializationVerified": true
+    },
+    {
+      "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+      "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+      "depotPath": "base\\quest\\minor_quests\\mq040\\scenes\\mq040_03_ripperdoc.scene",
+      "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+      "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+      "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+      "archiveEntrySha1": "aeff0341694fe7a0094efe9ffa1b047f1c552e7d",
+      "pathHash64": "8324871425818064977",
+      "decodedBytes": 267382,
+      "currentArchiveRowVerified": true,
+      "currentBaseEp1WinnerVerified": true,
+      "id": "identity-held-11",
+      "serializationVerified": true
+    },
+    {
+      "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_03_ripperdoc.json.json",
+      "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_03_ripperdoc.json",
+      "depotPath": "base\\localization\\en-us\\subtitles\\quest\\mq040\\mq040_03_ripperdoc.json",
+      "assetSha256": "57c9a6f5c4a92e338c49dda68a19a1e82199e4c4447b6dd2fb16d1090bc23d95",
+      "jsonSha256": "fe3925907d5000a272dd728954cff92f1e3685839952de700f3ba809003078ec",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "archiveEntrySha1": "8c77ee4419245ddb59c415c5fc15a425d5462e12",
+      "pathHash64": "6862053416090554689",
+      "decodedBytes": 7734,
+      "currentArchiveRowVerified": true,
+      "currentBaseEp1WinnerVerified": true,
+      "id": "identity-held-12",
+      "serializationVerified": true
+    }
+  ],
+  "claims": [
+    {
+      "id": "family.cynthia",
+      "text": "Pepe is married to Cynthia; he speaks of their long marriage as personally important.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "exactnativeRefs": [
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/64/Data/$type",
+          "expectedValue": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/64/Data/id",
+          "expectedValue": "pepe_el_coyote"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/64/Data/name/value",
+          "expectedValue": "LocKey#10883"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7170/primaryKey",
+          "expectedValue": "10883"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7170/femaleVariant",
+          "expectedValue": "Pepe Najarro"
+        },
+        {
+          "sourceId": "pepe-bar",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene.json",
+          "assetSha256": "b8fdf591f639b9d1ddb9e404dae9c6f15006358d7c71b175b250f9ddc53e89a3",
+          "jsonSha256": "f3629dd4d9ece41efadf7605ebfed3b609e828dc19e2f6b5d0f087f82a2d32f6",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/33",
+          "expectedValue": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 4
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_1A8FB325A344D000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 8449
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1913945340890107904"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_1A8FB325A344D000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 3
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "pepe-bar",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene.json",
+          "assetSha256": "b8fdf591f639b9d1ddb9e404dae9c6f15006358d7c71b175b250f9ddc53e89a3",
+          "jsonSha256": "f3629dd4d9ece41efadf7605ebfed3b609e828dc19e2f6b5d0f087f82a2d32f6",
+          "jsonPointer": "/Data/RootChunk/actors/3/$type",
+          "expectedValue": "scnActorDef"
+        },
+        {
+          "sourceId": "pepe-bar",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene.json",
+          "assetSha256": "b8fdf591f639b9d1ddb9e404dae9c6f15006358d7c71b175b250f9ddc53e89a3",
+          "jsonSha256": "f3629dd4d9ece41efadf7605ebfed3b609e828dc19e2f6b5d0f087f82a2d32f6",
+          "jsonPointer": "/Data/RootChunk/actors/3/actorName",
+          "expectedValue": "El_Coyote_Barman"
+        },
+        {
+          "sourceId": "pepe-bar",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene.json",
+          "assetSha256": "b8fdf591f639b9d1ddb9e404dae9c6f15006358d7c71b175b250f9ddc53e89a3",
+          "jsonSha256": "f3629dd4d9ece41efadf7605ebfed3b609e828dc19e2f6b5d0f087f82a2d32f6",
+          "jsonPointer": "/Data/RootChunk/actors/3/actorId",
+          "expectedValue": {
+            "$type": "scnActorId",
+            "id": 3
+          }
+        },
+        {
+          "sourceId": "pepe-bar",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene.json",
+          "assetSha256": "b8fdf591f639b9d1ddb9e404dae9c6f15006358d7c71b175b250f9ddc53e89a3",
+          "jsonSha256": "f3629dd4d9ece41efadf7605ebfed3b609e828dc19e2f6b5d0f087f82a2d32f6",
+          "jsonPointer": "/Data/RootChunk/actors/3/voicetagId",
+          "expectedValue": {
+            "$type": "scnVoicetagId",
+            "id": "1624173162027037464"
+          }
+        },
+        {
+          "sourceId": "pepe-bar",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene.json",
+          "assetSha256": "b8fdf591f639b9d1ddb9e404dae9c6f15006358d7c71b175b250f9ddc53e89a3",
+          "jsonSha256": "f3629dd4d9ece41efadf7605ebfed3b609e828dc19e2f6b5d0f087f82a2d32f6",
+          "jsonPointer": "/Data/RootChunk/actors/3/acquisitionPlan",
+          "expectedValue": "spawnSet"
+        },
+        {
+          "sourceId": "pepe-bar",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene.json",
+          "assetSha256": "b8fdf591f639b9d1ddb9e404dae9c6f15006358d7c71b175b250f9ddc53e89a3",
+          "jsonSha256": "f3629dd4d9ece41efadf7605ebfed3b609e828dc19e2f6b5d0f087f82a2d32f6",
+          "jsonPointer": "/Data/RootChunk/actors/3/spawnSetParams",
+          "expectedValue": {
+            "$type": "scnSpawnSetParams",
+            "entryName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "elcoyote_barman"
+            },
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "string",
+              "$value": "#elcoyote_barman"
+            }
+          }
+        },
+        {
+          "sourceId": "pepe-bar",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene.json",
+          "assetSha256": "b8fdf591f639b9d1ddb9e404dae9c6f15006358d7c71b175b250f9ddc53e89a3",
+          "jsonSha256": "f3629dd4d9ece41efadf7605ebfed3b609e828dc19e2f6b5d0f087f82a2d32f6",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/292",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+            "localeId": "en_us",
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1913945340890107904"
+            },
+            "signature": {
+              "$type": "scnlocSignature",
+              "val": "3"
+            },
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "3491220388216909828"
+            },
+            "vpeIndex": 112
+          }
+        },
+        {
+          "sourceId": "pepe-bar",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene.json",
+          "assetSha256": "b8fdf591f639b9d1ddb9e404dae9c6f15006358d7c71b175b250f9ddc53e89a3",
+          "jsonSha256": "f3629dd4d9ece41efadf7605ebfed3b609e828dc19e2f6b5d0f087f82a2d32f6",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/112",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+            "content": "Ten years married, y'know? Ten years an' suddenly I am not good enough. Nooo, she has to go get some side action.",
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "3491220388216909828"
+            }
+          }
+        },
+        {
+          "sourceId": "pepe-bar",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene.json",
+          "assetSha256": "b8fdf591f639b9d1ddb9e404dae9c6f15006358d7c71b175b250f9ddc53e89a3",
+          "jsonSha256": "f3629dd4d9ece41efadf7605ebfed3b609e828dc19e2f6b5d0f087f82a2d32f6",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/7/Data",
+          "expectedValue": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 9072,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "2024366455868674048"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 8449
+            },
+            "startTime": 10115,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 0,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Spoken"
+            }
+          }
+        },
+        {
+          "sourceId": "pepe-bar",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene.json",
+          "assetSha256": "b8fdf591f639b9d1ddb9e404dae9c6f15006358d7c71b175b250f9ddc53e89a3",
+          "jsonSha256": "f3629dd4d9ece41efadf7605ebfed3b609e828dc19e2f6b5d0f087f82a2d32f6",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/36",
+          "expectedValue": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 4
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_190904C392623000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 9217
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1803978363759636480"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_190904C392623000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 3
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "pepe-bar",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene.json",
+          "assetSha256": "b8fdf591f639b9d1ddb9e404dae9c6f15006358d7c71b175b250f9ddc53e89a3",
+          "jsonSha256": "f3629dd4d9ece41efadf7605ebfed3b609e828dc19e2f6b5d0f087f82a2d32f6",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/260",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+            "localeId": "en_us",
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1803978363759636480"
+            },
+            "signature": {
+              "$type": "scnlocSignature",
+              "val": "3"
+            },
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "3491220388216909840"
+            },
+            "vpeIndex": 123
+          }
+        },
+        {
+          "sourceId": "pepe-bar",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene.json",
+          "assetSha256": "b8fdf591f639b9d1ddb9e404dae9c6f15006358d7c71b175b250f9ddc53e89a3",
+          "jsonSha256": "f3629dd4d9ece41efadf7605ebfed3b609e828dc19e2f6b5d0f087f82a2d32f6",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/123",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+            "content": "It's about my wife, right? Name's Cynthia. She's cheating – damn sure of it. Only question is, who with.",
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "3491220388216909840"
+            }
+          }
+        },
+        {
+          "sourceId": "pepe-bar",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene.json",
+          "assetSha256": "b8fdf591f639b9d1ddb9e404dae9c6f15006358d7c71b175b250f9ddc53e89a3",
+          "jsonSha256": "f3629dd4d9ece41efadf7605ebfed3b609e828dc19e2f6b5d0f087f82a2d32f6",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/1/Data",
+          "expectedValue": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 8388,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "2024366455868674072"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 9217
+            },
+            "startTime": 1130,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 0,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Spoken"
+            }
+          }
+        },
+        {
+          "sourceId": "sub-base-mq040-01-bar",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_01_bar.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_01_bar.json.json",
+          "assetSha256": "252d7d996a043693b10d5f65d02d3538be8919516c9d8a548b4e50693fed397d",
+          "jsonSha256": "35814359ebb9f216dbba09fe54e12cb61b27504452ab63e279640be12ba1e4ab",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/60/$type",
+          "expectedValue": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "sub-base-mq040-01-bar",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_01_bar.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_01_bar.json.json",
+          "assetSha256": "252d7d996a043693b10d5f65d02d3538be8919516c9d8a548b4e50693fed397d",
+          "jsonSha256": "35814359ebb9f216dbba09fe54e12cb61b27504452ab63e279640be12ba1e4ab",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/60/stringId",
+          "expectedValue": "1913945340890107904"
+        },
+        {
+          "sourceId": "sub-base-mq040-01-bar",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_01_bar.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_01_bar.json.json",
+          "assetSha256": "252d7d996a043693b10d5f65d02d3538be8919516c9d8a548b4e50693fed397d",
+          "jsonSha256": "35814359ebb9f216dbba09fe54e12cb61b27504452ab63e279640be12ba1e4ab",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/60/femaleVariant",
+          "expectedValue": "Ten years married, y'know? Ten years an' suddenly I am not good enough. Nooo, she has to go get some side action."
+        },
+        {
+          "sourceId": "sub-ep1-mq040-01-bar",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/ep1-mq040_01_bar.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/ep1-mq040_01_bar.json.json",
+          "assetSha256": "252d7d996a043693b10d5f65d02d3538be8919516c9d8a548b4e50693fed397d",
+          "jsonSha256": "e682e38d9e50c7a37139976098efe57fa10ca7889596e6b985fed352c8d8a8f9",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/60/$type",
+          "expectedValue": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "sub-ep1-mq040-01-bar",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/ep1-mq040_01_bar.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/ep1-mq040_01_bar.json.json",
+          "assetSha256": "252d7d996a043693b10d5f65d02d3538be8919516c9d8a548b4e50693fed397d",
+          "jsonSha256": "e682e38d9e50c7a37139976098efe57fa10ca7889596e6b985fed352c8d8a8f9",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/60/stringId",
+          "expectedValue": "1913945340890107904"
+        },
+        {
+          "sourceId": "sub-ep1-mq040-01-bar",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/ep1-mq040_01_bar.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/ep1-mq040_01_bar.json.json",
+          "assetSha256": "252d7d996a043693b10d5f65d02d3538be8919516c9d8a548b4e50693fed397d",
+          "jsonSha256": "e682e38d9e50c7a37139976098efe57fa10ca7889596e6b985fed352c8d8a8f9",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/60/femaleVariant",
+          "expectedValue": "Ten years married, y'know? Ten years an' suddenly I am not good enough. Nooo, she has to go get some side action."
+        },
+        {
+          "sourceId": "sub-base-mq040-01-bar",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_01_bar.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_01_bar.json.json",
+          "assetSha256": "252d7d996a043693b10d5f65d02d3538be8919516c9d8a548b4e50693fed397d",
+          "jsonSha256": "35814359ebb9f216dbba09fe54e12cb61b27504452ab63e279640be12ba1e4ab",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/29/$type",
+          "expectedValue": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "sub-base-mq040-01-bar",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_01_bar.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_01_bar.json.json",
+          "assetSha256": "252d7d996a043693b10d5f65d02d3538be8919516c9d8a548b4e50693fed397d",
+          "jsonSha256": "35814359ebb9f216dbba09fe54e12cb61b27504452ab63e279640be12ba1e4ab",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/29/stringId",
+          "expectedValue": "1803978363759636480"
+        },
+        {
+          "sourceId": "sub-base-mq040-01-bar",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_01_bar.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_01_bar.json.json",
+          "assetSha256": "252d7d996a043693b10d5f65d02d3538be8919516c9d8a548b4e50693fed397d",
+          "jsonSha256": "35814359ebb9f216dbba09fe54e12cb61b27504452ab63e279640be12ba1e4ab",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/29/femaleVariant",
+          "expectedValue": "It's about my wife, right? Name's Cynthia. She's cheating – damn sure of it. Only question is, who with."
+        },
+        {
+          "sourceId": "sub-ep1-mq040-01-bar",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/ep1-mq040_01_bar.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/ep1-mq040_01_bar.json.json",
+          "assetSha256": "252d7d996a043693b10d5f65d02d3538be8919516c9d8a548b4e50693fed397d",
+          "jsonSha256": "e682e38d9e50c7a37139976098efe57fa10ca7889596e6b985fed352c8d8a8f9",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/29/$type",
+          "expectedValue": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "sub-ep1-mq040-01-bar",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/ep1-mq040_01_bar.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/ep1-mq040_01_bar.json.json",
+          "assetSha256": "252d7d996a043693b10d5f65d02d3538be8919516c9d8a548b4e50693fed397d",
+          "jsonSha256": "e682e38d9e50c7a37139976098efe57fa10ca7889596e6b985fed352c8d8a8f9",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/29/stringId",
+          "expectedValue": "1803978363759636480"
+        },
+        {
+          "sourceId": "sub-ep1-mq040-01-bar",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/ep1-mq040_01_bar.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/ep1-mq040_01_bar.json.json",
+          "assetSha256": "252d7d996a043693b10d5f65d02d3538be8919516c9d8a548b4e50693fed397d",
+          "jsonSha256": "e682e38d9e50c7a37139976098efe57fa10ca7889596e6b985fed352c8d8a8f9",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/29/femaleVariant",
+          "expectedValue": "It's about my wife, right? Name's Cynthia. She's cheating – damn sure of it. Only question is, who with."
+        }
+      ],
+      "qualification": {
+        "evidenceBasis": "self-report",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": "Extract the established marriage only. His suspicion is not evidence of an affair. No current separation, exact continuing duration, investigation or reconciliation is inferred.",
+        "viewpoint": "The subject-bound native speaker account remains personal testimony, not a universal factual guarantee.",
+        "profileUse": "topic-knowledge"
+      },
+      "attribution": {
+        "characterKey": "pepe-najarro",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/64/Data/id",
+          "expected": "pepe_el_coyote",
+          "containerType": "gameJournalContact",
+          "kind": "journal-contact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/64/Data/name/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7170/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7170/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "pepe-bar",
+            "actorPointer": "/Data/RootChunk/actors/3",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/33",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/7/Data",
+            "expectedVoicetag": "1624173162027037464",
+            "expectedSubjectVoicetag": "1624173162027037464"
+          },
+          {
+            "sourceId": "pepe-bar",
+            "actorPointer": "/Data/RootChunk/actors/3",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/36",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/1/Data",
+            "expectedVoicetag": "1624173162027037464",
+            "expectedSubjectVoicetag": "1624173162027037464"
+          }
+        ],
+        "perspective": "Exact contact identity and scene speaker testimony; canonical actor binding and production contact-subject support require parent review.",
+        "identityProof": {
+          "kind": "reviewed-narrative-identity",
+          "reviewId": "held-identity-oct01-pepe-najarro"
+        }
+      },
+      "promotion": "held; generic actor has no authenticated NodeRef-to-canonical-resource edge"
+    },
+    {
+      "id": "family.child",
+      "text": "He and Cynthia have a child together, which makes his family worries personal rather than abstract.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "exactnativeRefs": [
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/64/Data/$type",
+          "expectedValue": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/64/Data/id",
+          "expectedValue": "pepe_el_coyote"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/64/Data/name/value",
+          "expectedValue": "LocKey#10883"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7170/primaryKey",
+          "expectedValue": "10883"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7170/femaleVariant",
+          "expectedValue": "Pepe Najarro"
+        },
+        {
+          "sourceId": "pepe-bar",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene.json",
+          "assetSha256": "b8fdf591f639b9d1ddb9e404dae9c6f15006358d7c71b175b250f9ddc53e89a3",
+          "jsonSha256": "f3629dd4d9ece41efadf7605ebfed3b609e828dc19e2f6b5d0f087f82a2d32f6",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/50",
+          "expectedValue": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 4
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_1ADD2FCD4F44D000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 12801
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1935755973683892224"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_1ADD2FCD4F44D000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 3
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "pepe-bar",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene.json",
+          "assetSha256": "b8fdf591f639b9d1ddb9e404dae9c6f15006358d7c71b175b250f9ddc53e89a3",
+          "jsonSha256": "f3629dd4d9ece41efadf7605ebfed3b609e828dc19e2f6b5d0f087f82a2d32f6",
+          "jsonPointer": "/Data/RootChunk/actors/3/$type",
+          "expectedValue": "scnActorDef"
+        },
+        {
+          "sourceId": "pepe-bar",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene.json",
+          "assetSha256": "b8fdf591f639b9d1ddb9e404dae9c6f15006358d7c71b175b250f9ddc53e89a3",
+          "jsonSha256": "f3629dd4d9ece41efadf7605ebfed3b609e828dc19e2f6b5d0f087f82a2d32f6",
+          "jsonPointer": "/Data/RootChunk/actors/3/actorName",
+          "expectedValue": "El_Coyote_Barman"
+        },
+        {
+          "sourceId": "pepe-bar",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene.json",
+          "assetSha256": "b8fdf591f639b9d1ddb9e404dae9c6f15006358d7c71b175b250f9ddc53e89a3",
+          "jsonSha256": "f3629dd4d9ece41efadf7605ebfed3b609e828dc19e2f6b5d0f087f82a2d32f6",
+          "jsonPointer": "/Data/RootChunk/actors/3/actorId",
+          "expectedValue": {
+            "$type": "scnActorId",
+            "id": 3
+          }
+        },
+        {
+          "sourceId": "pepe-bar",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene.json",
+          "assetSha256": "b8fdf591f639b9d1ddb9e404dae9c6f15006358d7c71b175b250f9ddc53e89a3",
+          "jsonSha256": "f3629dd4d9ece41efadf7605ebfed3b609e828dc19e2f6b5d0f087f82a2d32f6",
+          "jsonPointer": "/Data/RootChunk/actors/3/voicetagId",
+          "expectedValue": {
+            "$type": "scnVoicetagId",
+            "id": "1624173162027037464"
+          }
+        },
+        {
+          "sourceId": "pepe-bar",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene.json",
+          "assetSha256": "b8fdf591f639b9d1ddb9e404dae9c6f15006358d7c71b175b250f9ddc53e89a3",
+          "jsonSha256": "f3629dd4d9ece41efadf7605ebfed3b609e828dc19e2f6b5d0f087f82a2d32f6",
+          "jsonPointer": "/Data/RootChunk/actors/3/acquisitionPlan",
+          "expectedValue": "spawnSet"
+        },
+        {
+          "sourceId": "pepe-bar",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene.json",
+          "assetSha256": "b8fdf591f639b9d1ddb9e404dae9c6f15006358d7c71b175b250f9ddc53e89a3",
+          "jsonSha256": "f3629dd4d9ece41efadf7605ebfed3b609e828dc19e2f6b5d0f087f82a2d32f6",
+          "jsonPointer": "/Data/RootChunk/actors/3/spawnSetParams",
+          "expectedValue": {
+            "$type": "scnSpawnSetParams",
+            "entryName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "elcoyote_barman"
+            },
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "string",
+              "$value": "#elcoyote_barman"
+            }
+          }
+        },
+        {
+          "sourceId": "pepe-bar",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene.json",
+          "assetSha256": "b8fdf591f639b9d1ddb9e404dae9c6f15006358d7c71b175b250f9ddc53e89a3",
+          "jsonSha256": "f3629dd4d9ece41efadf7605ebfed3b609e828dc19e2f6b5d0f087f82a2d32f6",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/321",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+            "localeId": "en_us",
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1935755973683892224"
+            },
+            "signature": {
+              "$type": "scnlocSignature",
+              "val": "3"
+            },
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "3491220388250464256"
+            },
+            "vpeIndex": 169
+          }
+        },
+        {
+          "sourceId": "pepe-bar",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene.json",
+          "assetSha256": "b8fdf591f639b9d1ddb9e404dae9c6f15006358d7c71b175b250f9ddc53e89a3",
+          "jsonSha256": "f3629dd4d9ece41efadf7605ebfed3b609e828dc19e2f6b5d0f087f82a2d32f6",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/169",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+            "content": "'Sides that? Well, we got a kid together, right? Doesn't even look like me. Different hair, different eyes, all of it!",
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "3491220388250464256"
+            }
+          }
+        },
+        {
+          "sourceId": "pepe-bar",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene.json",
+          "assetSha256": "b8fdf591f639b9d1ddb9e404dae9c6f15006358d7c71b175b250f9ddc53e89a3",
+          "jsonSha256": "f3629dd4d9ece41efadf7605ebfed3b609e828dc19e2f6b5d0f087f82a2d32f6",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/26/Data/events/6/Data",
+          "expectedValue": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 8877,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "2024366455902228484"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 12801
+            },
+            "startTime": 9679,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 0,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Spoken"
+            }
+          }
+        },
+        {
+          "sourceId": "sub-base-mq040-01-bar",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_01_bar.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_01_bar.json.json",
+          "assetSha256": "252d7d996a043693b10d5f65d02d3538be8919516c9d8a548b4e50693fed397d",
+          "jsonSha256": "35814359ebb9f216dbba09fe54e12cb61b27504452ab63e279640be12ba1e4ab",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/89/$type",
+          "expectedValue": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "sub-base-mq040-01-bar",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_01_bar.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_01_bar.json.json",
+          "assetSha256": "252d7d996a043693b10d5f65d02d3538be8919516c9d8a548b4e50693fed397d",
+          "jsonSha256": "35814359ebb9f216dbba09fe54e12cb61b27504452ab63e279640be12ba1e4ab",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/89/stringId",
+          "expectedValue": "1935755973683892224"
+        },
+        {
+          "sourceId": "sub-base-mq040-01-bar",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_01_bar.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_01_bar.json.json",
+          "assetSha256": "252d7d996a043693b10d5f65d02d3538be8919516c9d8a548b4e50693fed397d",
+          "jsonSha256": "35814359ebb9f216dbba09fe54e12cb61b27504452ab63e279640be12ba1e4ab",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/89/femaleVariant",
+          "expectedValue": "'Sides that? Well, we got a kid together, right? Doesn't even look like me. Different hair, different eyes, all of it!"
+        },
+        {
+          "sourceId": "sub-ep1-mq040-01-bar",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/ep1-mq040_01_bar.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/ep1-mq040_01_bar.json.json",
+          "assetSha256": "252d7d996a043693b10d5f65d02d3538be8919516c9d8a548b4e50693fed397d",
+          "jsonSha256": "e682e38d9e50c7a37139976098efe57fa10ca7889596e6b985fed352c8d8a8f9",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/89/$type",
+          "expectedValue": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "sub-ep1-mq040-01-bar",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/ep1-mq040_01_bar.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/ep1-mq040_01_bar.json.json",
+          "assetSha256": "252d7d996a043693b10d5f65d02d3538be8919516c9d8a548b4e50693fed397d",
+          "jsonSha256": "e682e38d9e50c7a37139976098efe57fa10ca7889596e6b985fed352c8d8a8f9",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/89/stringId",
+          "expectedValue": "1935755973683892224"
+        },
+        {
+          "sourceId": "sub-ep1-mq040-01-bar",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/ep1-mq040_01_bar.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/ep1-mq040_01_bar.json.json",
+          "assetSha256": "252d7d996a043693b10d5f65d02d3538be8919516c9d8a548b4e50693fed397d",
+          "jsonSha256": "e682e38d9e50c7a37139976098efe57fa10ca7889596e6b985fed352c8d8a8f9",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/89/femaleVariant",
+          "expectedValue": "'Sides that? Well, we got a kid together, right? Doesn't even look like me. Different hair, different eyes, all of it!"
+        }
+      ],
+      "qualification": {
+        "evidenceBasis": "self-report",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": "No child name, age, school, custody arrangement, appearance, biological test result or affair is established here.",
+        "viewpoint": "The subject-bound native speaker account remains personal testimony, not a universal factual guarantee.",
+        "profileUse": "topic-knowledge"
+      },
+      "attribution": {
+        "characterKey": "pepe-najarro",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/64/Data/id",
+          "expected": "pepe_el_coyote",
+          "containerType": "gameJournalContact",
+          "kind": "journal-contact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/64/Data/name/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7170/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7170/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "pepe-bar",
+            "actorPointer": "/Data/RootChunk/actors/3",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/50",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/26/Data/events/6/Data",
+            "expectedVoicetag": "1624173162027037464",
+            "expectedSubjectVoicetag": "1624173162027037464"
+          }
+        ],
+        "perspective": "Exact contact identity and scene speaker testimony; canonical actor binding and production contact-subject support require parent review.",
+        "identityProof": {
+          "kind": "reviewed-narrative-identity",
+          "reviewId": "held-identity-oct01-pepe-najarro"
+        }
+      },
+      "promotion": "held; generic actor has no authenticated NodeRef-to-canonical-resource edge"
+    },
+    {
+      "id": "values.work-boundary",
+      "text": "He can respect someone choosing not to drink while working.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "exactnativeRefs": [
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/64/Data/$type",
+          "expectedValue": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/64/Data/id",
+          "expectedValue": "pepe_el_coyote"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/64/Data/name/value",
+          "expectedValue": "LocKey#10883"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7170/primaryKey",
+          "expectedValue": "10883"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7170/femaleVariant",
+          "expectedValue": "Pepe Najarro"
+        },
+        {
+          "sourceId": "pepe-bar",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene.json",
+          "assetSha256": "b8fdf591f639b9d1ddb9e404dae9c6f15006358d7c71b175b250f9ddc53e89a3",
+          "jsonSha256": "f3629dd4d9ece41efadf7605ebfed3b609e828dc19e2f6b5d0f087f82a2d32f6",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/67",
+          "expectedValue": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 4
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_1AD48F9C01623000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 17153
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1933328040249667584"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_1AD48F9C01623000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 3
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "pepe-bar",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene.json",
+          "assetSha256": "b8fdf591f639b9d1ddb9e404dae9c6f15006358d7c71b175b250f9ddc53e89a3",
+          "jsonSha256": "f3629dd4d9ece41efadf7605ebfed3b609e828dc19e2f6b5d0f087f82a2d32f6",
+          "jsonPointer": "/Data/RootChunk/actors/3/$type",
+          "expectedValue": "scnActorDef"
+        },
+        {
+          "sourceId": "pepe-bar",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene.json",
+          "assetSha256": "b8fdf591f639b9d1ddb9e404dae9c6f15006358d7c71b175b250f9ddc53e89a3",
+          "jsonSha256": "f3629dd4d9ece41efadf7605ebfed3b609e828dc19e2f6b5d0f087f82a2d32f6",
+          "jsonPointer": "/Data/RootChunk/actors/3/actorName",
+          "expectedValue": "El_Coyote_Barman"
+        },
+        {
+          "sourceId": "pepe-bar",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene.json",
+          "assetSha256": "b8fdf591f639b9d1ddb9e404dae9c6f15006358d7c71b175b250f9ddc53e89a3",
+          "jsonSha256": "f3629dd4d9ece41efadf7605ebfed3b609e828dc19e2f6b5d0f087f82a2d32f6",
+          "jsonPointer": "/Data/RootChunk/actors/3/actorId",
+          "expectedValue": {
+            "$type": "scnActorId",
+            "id": 3
+          }
+        },
+        {
+          "sourceId": "pepe-bar",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene.json",
+          "assetSha256": "b8fdf591f639b9d1ddb9e404dae9c6f15006358d7c71b175b250f9ddc53e89a3",
+          "jsonSha256": "f3629dd4d9ece41efadf7605ebfed3b609e828dc19e2f6b5d0f087f82a2d32f6",
+          "jsonPointer": "/Data/RootChunk/actors/3/voicetagId",
+          "expectedValue": {
+            "$type": "scnVoicetagId",
+            "id": "1624173162027037464"
+          }
+        },
+        {
+          "sourceId": "pepe-bar",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene.json",
+          "assetSha256": "b8fdf591f639b9d1ddb9e404dae9c6f15006358d7c71b175b250f9ddc53e89a3",
+          "jsonSha256": "f3629dd4d9ece41efadf7605ebfed3b609e828dc19e2f6b5d0f087f82a2d32f6",
+          "jsonPointer": "/Data/RootChunk/actors/3/acquisitionPlan",
+          "expectedValue": "spawnSet"
+        },
+        {
+          "sourceId": "pepe-bar",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene.json",
+          "assetSha256": "b8fdf591f639b9d1ddb9e404dae9c6f15006358d7c71b175b250f9ddc53e89a3",
+          "jsonSha256": "f3629dd4d9ece41efadf7605ebfed3b609e828dc19e2f6b5d0f087f82a2d32f6",
+          "jsonPointer": "/Data/RootChunk/actors/3/spawnSetParams",
+          "expectedValue": {
+            "$type": "scnSpawnSetParams",
+            "entryName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "elcoyote_barman"
+            },
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "string",
+              "$value": "#elcoyote_barman"
+            }
+          }
+        },
+        {
+          "sourceId": "pepe-bar",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene.json",
+          "assetSha256": "b8fdf591f639b9d1ddb9e404dae9c6f15006358d7c71b175b250f9ddc53e89a3",
+          "jsonSha256": "f3629dd4d9ece41efadf7605ebfed3b609e828dc19e2f6b5d0f087f82a2d32f6",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/313",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+            "localeId": "en_us",
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1933328040249667584"
+            },
+            "signature": {
+              "$type": "scnlocSignature",
+              "val": "3"
+            },
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "3491220388267241504"
+            },
+            "vpeIndex": 222
+          }
+        },
+        {
+          "sourceId": "pepe-bar",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene.json",
+          "assetSha256": "b8fdf591f639b9d1ddb9e404dae9c6f15006358d7c71b175b250f9ddc53e89a3",
+          "jsonSha256": "f3629dd4d9ece41efadf7605ebfed3b609e828dc19e2f6b5d0f087f82a2d32f6",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/222",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+            "content": "Don't drink on the clock, eh? I get it, respect that.",
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "3491220388267241504"
+            }
+          }
+        },
+        {
+          "sourceId": "pepe-bar",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene.json",
+          "assetSha256": "b8fdf591f639b9d1ddb9e404dae9c6f15006358d7c71b175b250f9ddc53e89a3",
+          "jsonSha256": "f3629dd4d9ece41efadf7605ebfed3b609e828dc19e2f6b5d0f087f82a2d32f6",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/37/Data/events/6/Data",
+          "expectedValue": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 3851,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "2024366455919005732"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 17153
+            },
+            "startTime": 2364,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 0,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Spoken"
+            }
+          }
+        },
+        {
+          "sourceId": "sub-base-mq040-01-bar",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_01_bar.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_01_bar.json.json",
+          "assetSha256": "252d7d996a043693b10d5f65d02d3538be8919516c9d8a548b4e50693fed397d",
+          "jsonSha256": "35814359ebb9f216dbba09fe54e12cb61b27504452ab63e279640be12ba1e4ab",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/81/$type",
+          "expectedValue": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "sub-base-mq040-01-bar",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_01_bar.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_01_bar.json.json",
+          "assetSha256": "252d7d996a043693b10d5f65d02d3538be8919516c9d8a548b4e50693fed397d",
+          "jsonSha256": "35814359ebb9f216dbba09fe54e12cb61b27504452ab63e279640be12ba1e4ab",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/81/stringId",
+          "expectedValue": "1933328040249667584"
+        },
+        {
+          "sourceId": "sub-base-mq040-01-bar",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_01_bar.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_01_bar.json.json",
+          "assetSha256": "252d7d996a043693b10d5f65d02d3538be8919516c9d8a548b4e50693fed397d",
+          "jsonSha256": "35814359ebb9f216dbba09fe54e12cb61b27504452ab63e279640be12ba1e4ab",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/81/femaleVariant",
+          "expectedValue": "Don't drink on the clock, eh? I get it, respect that."
+        },
+        {
+          "sourceId": "sub-ep1-mq040-01-bar",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/ep1-mq040_01_bar.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/ep1-mq040_01_bar.json.json",
+          "assetSha256": "252d7d996a043693b10d5f65d02d3538be8919516c9d8a548b4e50693fed397d",
+          "jsonSha256": "e682e38d9e50c7a37139976098efe57fa10ca7889596e6b985fed352c8d8a8f9",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/81/$type",
+          "expectedValue": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "sub-ep1-mq040-01-bar",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/ep1-mq040_01_bar.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/ep1-mq040_01_bar.json.json",
+          "assetSha256": "252d7d996a043693b10d5f65d02d3538be8919516c9d8a548b4e50693fed397d",
+          "jsonSha256": "e682e38d9e50c7a37139976098efe57fa10ca7889596e6b985fed352c8d8a8f9",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/81/stringId",
+          "expectedValue": "1933328040249667584"
+        },
+        {
+          "sourceId": "sub-ep1-mq040-01-bar",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/ep1-mq040_01_bar.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/ep1-mq040_01_bar.json.json",
+          "assetSha256": "252d7d996a043693b10d5f65d02d3538be8919516c9d8a548b4e50693fed397d",
+          "jsonSha256": "e682e38d9e50c7a37139976098efe57fa10ca7889596e6b985fed352c8d8a8f9",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/81/femaleVariant",
+          "expectedValue": "Don't drink on the clock, eh? I get it, respect that."
+        }
+      ],
+      "qualification": {
+        "evidenceBasis": "self-report",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": "The source offers an attitude; it does not establish that the current V abstained or accepted a drink.",
+        "viewpoint": "The subject-bound native speaker account remains personal testimony, not a universal factual guarantee.",
+        "profileUse": "topic-knowledge"
+      },
+      "attribution": {
+        "characterKey": "pepe-najarro",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/64/Data/id",
+          "expected": "pepe_el_coyote",
+          "containerType": "gameJournalContact",
+          "kind": "journal-contact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/64/Data/name/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7170/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7170/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "pepe-bar",
+            "actorPointer": "/Data/RootChunk/actors/3",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/67",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/37/Data/events/6/Data",
+            "expectedVoicetag": "1624173162027037464",
+            "expectedSubjectVoicetag": "1624173162027037464"
+          }
+        ],
+        "perspective": "Exact contact identity and scene speaker testimony; canonical actor binding and production contact-subject support require parent review.",
+        "identityProof": {
+          "kind": "reviewed-narrative-identity",
+          "reviewId": "held-identity-oct01-pepe-najarro"
+        }
+      },
+      "promotion": "held; generic actor has no authenticated NodeRef-to-canonical-resource edge"
+    },
+    {
+      "id": "delivery.toasts-and-colloquial-warmth",
+      "text": "His barroom manner can mix colloquial warmth with a simple toast to good fortune and prosperity.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "exactnativeRefs": [
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/64/Data/$type",
+          "expectedValue": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/64/Data/id",
+          "expectedValue": "pepe_el_coyote"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/64/Data/name/value",
+          "expectedValue": "LocKey#10883"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7170/primaryKey",
+          "expectedValue": "10883"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7170/femaleVariant",
+          "expectedValue": "Pepe Najarro"
+        },
+        {
+          "sourceId": "pepe-bar",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene.json",
+          "assetSha256": "b8fdf591f639b9d1ddb9e404dae9c6f15006358d7c71b175b250f9ddc53e89a3",
+          "jsonSha256": "f3629dd4d9ece41efadf7605ebfed3b609e828dc19e2f6b5d0f087f82a2d32f6",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/65",
+          "expectedValue": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 4
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_1AD488D35F623000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 16641
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1933320581468532736"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_1AD488D35F623000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 3
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "pepe-bar",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene.json",
+          "assetSha256": "b8fdf591f639b9d1ddb9e404dae9c6f15006358d7c71b175b250f9ddc53e89a3",
+          "jsonSha256": "f3629dd4d9ece41efadf7605ebfed3b609e828dc19e2f6b5d0f087f82a2d32f6",
+          "jsonPointer": "/Data/RootChunk/actors/3/$type",
+          "expectedValue": "scnActorDef"
+        },
+        {
+          "sourceId": "pepe-bar",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene.json",
+          "assetSha256": "b8fdf591f639b9d1ddb9e404dae9c6f15006358d7c71b175b250f9ddc53e89a3",
+          "jsonSha256": "f3629dd4d9ece41efadf7605ebfed3b609e828dc19e2f6b5d0f087f82a2d32f6",
+          "jsonPointer": "/Data/RootChunk/actors/3/actorName",
+          "expectedValue": "El_Coyote_Barman"
+        },
+        {
+          "sourceId": "pepe-bar",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene.json",
+          "assetSha256": "b8fdf591f639b9d1ddb9e404dae9c6f15006358d7c71b175b250f9ddc53e89a3",
+          "jsonSha256": "f3629dd4d9ece41efadf7605ebfed3b609e828dc19e2f6b5d0f087f82a2d32f6",
+          "jsonPointer": "/Data/RootChunk/actors/3/actorId",
+          "expectedValue": {
+            "$type": "scnActorId",
+            "id": 3
+          }
+        },
+        {
+          "sourceId": "pepe-bar",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene.json",
+          "assetSha256": "b8fdf591f639b9d1ddb9e404dae9c6f15006358d7c71b175b250f9ddc53e89a3",
+          "jsonSha256": "f3629dd4d9ece41efadf7605ebfed3b609e828dc19e2f6b5d0f087f82a2d32f6",
+          "jsonPointer": "/Data/RootChunk/actors/3/voicetagId",
+          "expectedValue": {
+            "$type": "scnVoicetagId",
+            "id": "1624173162027037464"
+          }
+        },
+        {
+          "sourceId": "pepe-bar",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene.json",
+          "assetSha256": "b8fdf591f639b9d1ddb9e404dae9c6f15006358d7c71b175b250f9ddc53e89a3",
+          "jsonSha256": "f3629dd4d9ece41efadf7605ebfed3b609e828dc19e2f6b5d0f087f82a2d32f6",
+          "jsonPointer": "/Data/RootChunk/actors/3/acquisitionPlan",
+          "expectedValue": "spawnSet"
+        },
+        {
+          "sourceId": "pepe-bar",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene.json",
+          "assetSha256": "b8fdf591f639b9d1ddb9e404dae9c6f15006358d7c71b175b250f9ddc53e89a3",
+          "jsonSha256": "f3629dd4d9ece41efadf7605ebfed3b609e828dc19e2f6b5d0f087f82a2d32f6",
+          "jsonPointer": "/Data/RootChunk/actors/3/spawnSetParams",
+          "expectedValue": {
+            "$type": "scnSpawnSetParams",
+            "entryName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "elcoyote_barman"
+            },
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "string",
+              "$value": "#elcoyote_barman"
+            }
+          }
+        },
+        {
+          "sourceId": "pepe-bar",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene.json",
+          "assetSha256": "b8fdf591f639b9d1ddb9e404dae9c6f15006358d7c71b175b250f9ddc53e89a3",
+          "jsonSha256": "f3629dd4d9ece41efadf7605ebfed3b609e828dc19e2f6b5d0f087f82a2d32f6",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/308",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+            "localeId": "en_us",
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1933320581468532736"
+            },
+            "signature": {
+              "$type": "scnlocSignature",
+              "val": "3"
+            },
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "3491220388267241496"
+            },
+            "vpeIndex": 214
+          }
+        },
+        {
+          "sourceId": "pepe-bar",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene.json",
+          "assetSha256": "b8fdf591f639b9d1ddb9e404dae9c6f15006358d7c71b175b250f9ddc53e89a3",
+          "jsonSha256": "f3629dd4d9ece41efadf7605ebfed3b609e828dc19e2f6b5d0f087f82a2d32f6",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/214",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+            "content": "How about we drink to you, then? On the house.",
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "3491220388267241496"
+            }
+          }
+        },
+        {
+          "sourceId": "pepe-bar",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene.json",
+          "assetSha256": "b8fdf591f639b9d1ddb9e404dae9c6f15006358d7c71b175b250f9ddc53e89a3",
+          "jsonSha256": "f3629dd4d9ece41efadf7605ebfed3b609e828dc19e2f6b5d0f087f82a2d32f6",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/35/Data/events/5/Data",
+          "expectedValue": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 3349,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "2024366455919005720"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 16641
+            },
+            "startTime": 9244,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 0,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Spoken"
+            }
+          }
+        },
+        {
+          "sourceId": "pepe-bar",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene.json",
+          "assetSha256": "b8fdf591f639b9d1ddb9e404dae9c6f15006358d7c71b175b250f9ddc53e89a3",
+          "jsonSha256": "f3629dd4d9ece41efadf7605ebfed3b609e828dc19e2f6b5d0f087f82a2d32f6",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/69",
+          "expectedValue": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 4
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_1AD48FEC41623000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 17665
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1933328384920793088"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_1AD48FEC41623000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 3
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "pepe-bar",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene.json",
+          "assetSha256": "b8fdf591f639b9d1ddb9e404dae9c6f15006358d7c71b175b250f9ddc53e89a3",
+          "jsonSha256": "f3629dd4d9ece41efadf7605ebfed3b609e828dc19e2f6b5d0f087f82a2d32f6",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/314",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+            "localeId": "en_us",
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1933328384920793088"
+            },
+            "signature": {
+              "$type": "scnlocSignature",
+              "val": "3"
+            },
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "3491220388284018692"
+            },
+            "vpeIndex": 228
+          }
+        },
+        {
+          "sourceId": "pepe-bar",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene.json",
+          "assetSha256": "b8fdf591f639b9d1ddb9e404dae9c6f15006358d7c71b175b250f9ddc53e89a3",
+          "jsonSha256": "f3629dd4d9ece41efadf7605ebfed3b609e828dc19e2f6b5d0f087f82a2d32f6",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/228",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+            "content": "To good fortune and prosperity!",
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "3491220388284018692"
+            }
+          }
+        },
+        {
+          "sourceId": "pepe-bar",
+          "rawPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene",
+          "jsonPath": "runtime/voice-cast/fixers-city/scenes/default-in-person/raw/base/base/quest/minor_quests/mq040/scenes/mq040_01_bar.scene.json",
+          "assetSha256": "b8fdf591f639b9d1ddb9e404dae9c6f15006358d7c71b175b250f9ddc53e89a3",
+          "jsonSha256": "f3629dd4d9ece41efadf7605ebfed3b609e828dc19e2f6b5d0f087f82a2d32f6",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/38/Data/events/11/Data",
+          "expectedValue": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 2659,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "2024366455935782916"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 17665
+            },
+            "startTime": 5776,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 0,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Spoken"
+            }
+          }
+        },
+        {
+          "sourceId": "sub-base-mq040-01-bar",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_01_bar.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_01_bar.json.json",
+          "assetSha256": "252d7d996a043693b10d5f65d02d3538be8919516c9d8a548b4e50693fed397d",
+          "jsonSha256": "35814359ebb9f216dbba09fe54e12cb61b27504452ab63e279640be12ba1e4ab",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/76/$type",
+          "expectedValue": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "sub-base-mq040-01-bar",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_01_bar.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_01_bar.json.json",
+          "assetSha256": "252d7d996a043693b10d5f65d02d3538be8919516c9d8a548b4e50693fed397d",
+          "jsonSha256": "35814359ebb9f216dbba09fe54e12cb61b27504452ab63e279640be12ba1e4ab",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/76/stringId",
+          "expectedValue": "1933320581468532736"
+        },
+        {
+          "sourceId": "sub-base-mq040-01-bar",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_01_bar.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_01_bar.json.json",
+          "assetSha256": "252d7d996a043693b10d5f65d02d3538be8919516c9d8a548b4e50693fed397d",
+          "jsonSha256": "35814359ebb9f216dbba09fe54e12cb61b27504452ab63e279640be12ba1e4ab",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/76/femaleVariant",
+          "expectedValue": "How about we drink to you, then? On the house."
+        },
+        {
+          "sourceId": "sub-ep1-mq040-01-bar",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/ep1-mq040_01_bar.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/ep1-mq040_01_bar.json.json",
+          "assetSha256": "252d7d996a043693b10d5f65d02d3538be8919516c9d8a548b4e50693fed397d",
+          "jsonSha256": "e682e38d9e50c7a37139976098efe57fa10ca7889596e6b985fed352c8d8a8f9",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/76/$type",
+          "expectedValue": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "sub-ep1-mq040-01-bar",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/ep1-mq040_01_bar.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/ep1-mq040_01_bar.json.json",
+          "assetSha256": "252d7d996a043693b10d5f65d02d3538be8919516c9d8a548b4e50693fed397d",
+          "jsonSha256": "e682e38d9e50c7a37139976098efe57fa10ca7889596e6b985fed352c8d8a8f9",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/76/stringId",
+          "expectedValue": "1933320581468532736"
+        },
+        {
+          "sourceId": "sub-ep1-mq040-01-bar",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/ep1-mq040_01_bar.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/ep1-mq040_01_bar.json.json",
+          "assetSha256": "252d7d996a043693b10d5f65d02d3538be8919516c9d8a548b4e50693fed397d",
+          "jsonSha256": "e682e38d9e50c7a37139976098efe57fa10ca7889596e6b985fed352c8d8a8f9",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/76/femaleVariant",
+          "expectedValue": "How about we drink to you, then? On the house."
+        },
+        {
+          "sourceId": "sub-base-mq040-01-bar",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_01_bar.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_01_bar.json.json",
+          "assetSha256": "252d7d996a043693b10d5f65d02d3538be8919516c9d8a548b4e50693fed397d",
+          "jsonSha256": "35814359ebb9f216dbba09fe54e12cb61b27504452ab63e279640be12ba1e4ab",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/82/$type",
+          "expectedValue": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "sub-base-mq040-01-bar",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_01_bar.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_01_bar.json.json",
+          "assetSha256": "252d7d996a043693b10d5f65d02d3538be8919516c9d8a548b4e50693fed397d",
+          "jsonSha256": "35814359ebb9f216dbba09fe54e12cb61b27504452ab63e279640be12ba1e4ab",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/82/stringId",
+          "expectedValue": "1933328384920793088"
+        },
+        {
+          "sourceId": "sub-base-mq040-01-bar",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_01_bar.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_01_bar.json.json",
+          "assetSha256": "252d7d996a043693b10d5f65d02d3538be8919516c9d8a548b4e50693fed397d",
+          "jsonSha256": "35814359ebb9f216dbba09fe54e12cb61b27504452ab63e279640be12ba1e4ab",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/82/femaleVariant",
+          "expectedValue": "To good fortune and prosperity!"
+        },
+        {
+          "sourceId": "sub-ep1-mq040-01-bar",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/ep1-mq040_01_bar.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/ep1-mq040_01_bar.json.json",
+          "assetSha256": "252d7d996a043693b10d5f65d02d3538be8919516c9d8a548b4e50693fed397d",
+          "jsonSha256": "e682e38d9e50c7a37139976098efe57fa10ca7889596e6b985fed352c8d8a8f9",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/82/$type",
+          "expectedValue": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "sub-ep1-mq040-01-bar",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/ep1-mq040_01_bar.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/ep1-mq040_01_bar.json.json",
+          "assetSha256": "252d7d996a043693b10d5f65d02d3538be8919516c9d8a548b4e50693fed397d",
+          "jsonSha256": "e682e38d9e50c7a37139976098efe57fa10ca7889596e6b985fed352c8d8a8f9",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/82/stringId",
+          "expectedValue": "1933328384920793088"
+        },
+        {
+          "sourceId": "sub-ep1-mq040-01-bar",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/ep1-mq040_01_bar.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/ep1-mq040_01_bar.json.json",
+          "assetSha256": "252d7d996a043693b10d5f65d02d3538be8919516c9d8a548b4e50693fed397d",
+          "jsonSha256": "e682e38d9e50c7a37139976098efe57fa10ca7889596e6b985fed352c8d8a8f9",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/82/femaleVariant",
+          "expectedValue": "To good fortune and prosperity!"
+        }
+      ],
+      "qualification": {
+        "evidenceBasis": "self-report",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": "Delivery pattern only. No reward, complimentary drink, rescue, gang membership or ongoing celebration is inferred.",
+        "viewpoint": "The subject-bound native speaker account remains personal testimony, not a universal factual guarantee.",
+        "profileUse": "topic-knowledge"
+      },
+      "attribution": {
+        "characterKey": "pepe-najarro",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/64/Data/id",
+          "expected": "pepe_el_coyote",
+          "containerType": "gameJournalContact",
+          "kind": "journal-contact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/64/Data/name/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7170/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7170/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "pepe-bar",
+            "actorPointer": "/Data/RootChunk/actors/3",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/65",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/35/Data/events/5/Data",
+            "expectedVoicetag": "1624173162027037464",
+            "expectedSubjectVoicetag": "1624173162027037464"
+          },
+          {
+            "sourceId": "pepe-bar",
+            "actorPointer": "/Data/RootChunk/actors/3",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/69",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/38/Data/events/11/Data",
+            "expectedVoicetag": "1624173162027037464",
+            "expectedSubjectVoicetag": "1624173162027037464"
+          }
+        ],
+        "perspective": "Exact contact identity and scene speaker testimony; canonical actor binding and production contact-subject support require parent review.",
+        "identityProof": {
+          "kind": "reviewed-narrative-identity",
+          "reviewId": "held-identity-oct01-pepe-najarro"
+        }
+      },
+      "promotion": "held; generic actor has no authenticated NodeRef-to-canonical-resource edge"
+    }
+  ],
+  "authoringPolicy": {
+    "intrinsicIsSelfKnowledge": true,
+    "audienceStillRequired": true,
+    "conditionalClaimsExcludedFromStaticBackstory": true,
+    "unsupportedBiographicalFillerForbidden": true
+  },
+  "proposedProfile": {
+    "backstory": "Pepe is married to Cynthia; he speaks of their long marriage as personally important.\n\nHe and Cynthia have a child together, which makes his family worries personal rather than abstract.\n\nHe can respect someone choosing not to drink while working.\n\nHis barroom manner can mix colloquial warmth with a simple toast to good fortune and prosperity.",
+    "speakingStyleDescription": "Authoring interpretation: familiar barroom speech, contractions, short practical replies and warmth that can become worried defensiveness. Suspicion must remain suspicion. Do not recite the investigation, call Cynthia unfaithful, impersonate Johnny's noir narration, or imply V helped him without verified context.",
+    "speakingStyleSampleDialogues": [
+      "Family is not some little detail you leave at the door. It stays with you.",
+      "Still on the clock? Fine. No pressure to drink.",
+      "Here is to a little luck. Could all use some of that, right?"
+    ]
+  },
+  "speakingStyleSamples": [
+    {
+      "id": "family",
+      "text": "Family is not some little detail you leave at the door. It stays with you.",
+      "authoring": "original; not a game quote",
+      "useWhen": "Family matters as a general topic; no suspicion or quest recollection.",
+      "claimIds": [
+        "family.cynthia",
+        "family.child"
+      ],
+      "speakerPrefix": false
+    },
+    {
+      "id": "on-clock",
+      "text": "Still on the clock? Fine. No pressure to drink.",
+      "authoring": "original; not a game quote",
+      "useWhen": "A general work and drinking discussion, without claiming to serve a drink.",
+      "claimIds": [
+        "values.work-boundary"
+      ],
+      "speakerPrefix": false
+    },
+    {
+      "id": "toast",
+      "text": "Here is to a little luck. Could all use some of that, right?",
+      "authoring": "original; not a game quote",
+      "useWhen": "Light social conversation, without a current toast or reward transfer.",
+      "claimIds": [
+        "delivery.toasts-and-colloquial-warmth"
+      ],
+      "speakerPrefix": false
+    }
+  ],
+  "reviewSummary": {
+    "publicClaims": 4,
+    "privateClaims": 0,
+    "originalExamples": 3,
+    "sourceRefs": 104,
+    "adoptionStatus": "source-qualified-unadopted",
+    "qualificationGaps": [
+      "El_Coyote_Barman actor uses a shared voice and spawnSet #elcoyote_barman. Exact actor and English lines are bound, but the canonical Character.Elcoyote_Barman acquisition record edge is unresolved."
+    ],
+    "currentSaveQualified": false,
+    "noQuestCompletionOrAudienceDisclosureInferred": true,
+    "heldClaims": 0,
+    "nativeSources": 9
+  },
+  "identityReview": {
+    "reviewedAt": "2026-10-01",
+    "evidenceKind": "reviewed-narrative-identity",
+    "worldRegistryEdgesVerified": 0,
+    "limits": "Direct prologue address and reply establishes bartender as Pepe. Prologue bartender and held bar El_Coyote_Barman retain identical active elcoyote_barman spawn-set fields. The mq040 continuation independently addresses its El_Coyote_Barman phone actor as Pepe; that phone actor uses the separate pepe_holo spawn-set and is not mislabeled as the bar acquisition."
+  }
+}

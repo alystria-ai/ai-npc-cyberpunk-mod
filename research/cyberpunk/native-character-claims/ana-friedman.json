@@ -1,0 +1,2108 @@
+{
+  "schemaVersion": 1,
+  "characterKey": "ana-friedman",
+  "name": "Ana Friedman",
+  "gameVersion": "2.31",
+  "locale": "en_us",
+  "reviewedAt": "2026-10-01",
+  "status": "proposal-awaiting-independent-review",
+  "purpose": "Wave3 intrinsic topic authoring proposal. Does not establish a meeting with V, a save outcome, or shared conversational memory.",
+  "nativeTool": {
+    "name": "WolvenKit.CLI",
+    "version": "9.0.1",
+    "sha256": "7ae9c308da2fe003220b55ce4ca9c122b51f0701a67db1618cca3ff4f7ff6738"
+  },
+  "sourcePolicy": {
+    "primary": "Current installed native resources, fresh pinned serialization and hashes. Typed codex subject/title, actor-to-screenplay speaker, dialog events, exact en_us descriptor/payload and same-ID shipped English variants.",
+    "nativeNarrative": "Codex narrator judgments are attributed descriptions; self-reports retain their viewpoint. Branch-specific dialogue establishes available authored speech only, not the loaded save outcome.",
+    "privacy": "Operational secrets, relationship details and crime allegations remain private. Conditional endings are excluded from universal public topic authoring.",
+    "examples": "Original editorial delivery examples, not game quotations. No speaker-name prefixes, fabricated V encounters or synthetic memory seeding.",
+    "promotion": "Proposal only; compiler owner independently qualifies native subject aliases and reviews semantics before adoption."
+  },
+  "nativeSubjectAlternatives": [
+    {
+      "kind": "genuine-native-codex",
+      "nativeId": "ana_friedman",
+      "containerType": "gameJournalCodexEntry",
+      "refs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/13/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/13/Data/id",
+          "expected": "ana_friedman"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/13/Data/title/value",
+          "expected": "LocKey#86350"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4511/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4511/primaryKey",
+          "expected": "86350"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4511/femaleVariant",
+          "valueSha256": "20a8d3a40871b3f9a61fd90ec0a56e3d04e3dae548e4282fc160bfd86253f9c3",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4511/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "use": "Primary typed subject/title binding; native spelling and encoding retained."
+    }
+  ],
+  "claims": [
+    {
+      "id": "ana-friedman.role.brazilian-intelligence-analyst",
+      "text": "Ana is an analyst who has worked for the Federative Republic of Brazil's intelligence agency for several years.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/13/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/13/Data/id",
+          "expected": "ana_friedman"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/13/Data/title/value",
+          "expected": "LocKey#86350"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4511/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4511/primaryKey",
+          "expected": "86350"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4511/femaleVariant",
+          "valueSha256": "20a8d3a40871b3f9a61fd90ec0a56e3d04e3dae548e4282fc160bfd86253f9c3",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4511/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/13/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#86351"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4512/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4512/primaryKey",
+          "expected": "86351"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4512/femaleVariant",
+          "valueSha256": "f69a17723f465383c62581c90cfe4c07ea58b141e7263ab3c0135f1f50ace792",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4512/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "typed-native-codex-description",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "Professional role and broad tenure; no fabricated start year, rank, citizenship or combat training."
+        ],
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false
+      },
+      "attribution": {
+        "characterKey": "ana-friedman",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/13/Data/id",
+          "expected": "ana_friedman",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "ep1-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/13/Data/title/value",
+            "expected": "LocKey#86350"
+          },
+          {
+            "sourceId": "ep1-final-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4511/primaryKey",
+            "expected": "86350"
+          },
+          {
+            "sourceId": "ep1-final-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4511/femaleVariant",
+            "valueSha256": "20a8d3a40871b3f9a61fd90ec0a56e3d04e3dae548e4282fc160bfd86253f9c3",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [],
+        "perspective": "typed-native-codex-description"
+      }
+    },
+    {
+      "id": "ana-friedman.work.corporate-movement-analysis",
+      "text": "Her work includes analyzing movements of hostile corporations in the NUSA.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/13/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/13/Data/id",
+          "expected": "ana_friedman"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/13/Data/title/value",
+          "expected": "LocKey#86350"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4511/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4511/primaryKey",
+          "expected": "86350"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4511/femaleVariant",
+          "valueSha256": "20a8d3a40871b3f9a61fd90ec0a56e3d04e3dae548e4282fc160bfd86253f9c3",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4511/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/13/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#86351"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4512/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4512/primaryKey",
+          "expected": "86351"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4512/femaleVariant",
+          "valueSha256": "f69a17723f465383c62581c90cfe4c07ea58b141e7263ab3c0135f1f50ace792",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4512/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "typed-native-codex-description",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "Analyst knowledge, not field experience, hacking certification, weapons expertise or omniscient access to every corporation."
+        ],
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false
+      },
+      "attribution": {
+        "characterKey": "ana-friedman",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/13/Data/id",
+          "expected": "ana_friedman",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "ep1-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/13/Data/title/value",
+            "expected": "LocKey#86350"
+          },
+          {
+            "sourceId": "ep1-final-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4511/primaryKey",
+            "expected": "86350"
+          },
+          {
+            "sourceId": "ep1-final-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4511/femaleVariant",
+            "valueSha256": "20a8d3a40871b3f9a61fd90ec0a56e3d04e3dae548e4282fc160bfd86253f9c3",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [],
+        "perspective": "typed-native-codex-description"
+      }
+    },
+    {
+      "id": "ana-friedman.taste.work-adrenaline-and-news",
+      "text": "The journal says Ana values the adrenaline of her work and seeing its consequences in the next day's news.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/13/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/13/Data/id",
+          "expected": "ana_friedman"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/13/Data/title/value",
+          "expected": "LocKey#86350"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4511/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4511/primaryKey",
+          "expected": "86350"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4511/femaleVariant",
+          "valueSha256": "20a8d3a40871b3f9a61fd90ec0a56e3d04e3dae548e4282fc160bfd86253f9c3",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4511/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/13/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#86351"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4512/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4512/primaryKey",
+          "expected": "86351"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4512/femaleVariant",
+          "valueSha256": "f69a17723f465383c62581c90cfe4c07ea58b141e7263ab3c0135f1f50ace792",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4512/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "typed-native-codex-description",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "Narrator-supported preference; do not claim every operation succeeds or that a specific news report appeared in this save."
+        ],
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false
+      },
+      "attribution": {
+        "characterKey": "ana-friedman",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/13/Data/id",
+          "expected": "ana_friedman",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "ep1-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/13/Data/title/value",
+            "expected": "LocKey#86350"
+          },
+          {
+            "sourceId": "ep1-final-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4511/primaryKey",
+            "expected": "86350"
+          },
+          {
+            "sourceId": "ep1-final-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4511/femaleVariant",
+            "valueSha256": "20a8d3a40871b3f9a61fd90ec0a56e3d04e3dae548e4282fc160bfd86253f9c3",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [],
+        "perspective": "typed-native-codex-description"
+      }
+    },
+    {
+      "id": "ana-friedman.limits.no-fieldwork-experience",
+      "text": "Ana describes herself as an analyst without fieldwork clearance or experience.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/13/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/13/Data/id",
+          "expected": "ana_friedman"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/13/Data/title/value",
+          "expected": "LocKey#86350"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4511/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4511/primaryKey",
+          "expected": "86350"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4511/femaleVariant",
+          "valueSha256": "20a8d3a40871b3f9a61fd90ec0a56e3d04e3dae548e4282fc160bfd86253f9c3",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4511/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/actors/1/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorName",
+          "expected": "Ana"
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorId/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/actors/1/voicetagId/id",
+          "expected": "3262211889930989568"
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/actors/1/acquisitionPlan",
+          "expected": "community"
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/58/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/58/itemId/id",
+          "expected": 14849
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/58/speaker/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/58/locstringId/ruid",
+          "expected": "3246835609097310208"
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/72/Data/events/3/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/72/Data/events/3/Data/screenplayLineId/id",
+          "expected": 14849
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/72/Data/events/3/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/72/Data/events/3/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/72/Data/events/3/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/72/Data/events/3/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/72/Data/events/3/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/393/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/393/locstringId/ruid",
+          "expected": "3246835609097310208"
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/393/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/393/variantId/ruid",
+          "expected": "4096919057646465152"
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/393/vpeIndex",
+          "expected": 230
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/393/signature/val",
+          "expected": "3"
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/230/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/230/variantId/ruid",
+          "expected": "4096919057646465152"
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/230/content",
+          "valueSha256": "aa6cce5790f2a95646f7abb6baff9835a600753848985763db459048e52f9b71",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ana-meeting-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/62/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "ana-meeting-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/62/stringId",
+          "expected": "3246835609097310208"
+        },
+        {
+          "sourceId": "ana-meeting-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/62/femaleVariant",
+          "valueSha256": "aa6cce5790f2a95646f7abb6baff9835a600753848985763db459048e52f9b71",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ana-meeting-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/62/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "ana-friedman-self-report",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "Her own stated professional limitation. Knowing another agent's cyberware specifications is not proof of her own combat training or implant-engineering expertise."
+        ],
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false
+      },
+      "attribution": {
+        "characterKey": "ana-friedman",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/13/Data/id",
+          "expected": "ana_friedman",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "ep1-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/13/Data/title/value",
+            "expected": "LocKey#86350"
+          },
+          {
+            "sourceId": "ep1-final-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4511/primaryKey",
+            "expected": "86350"
+          },
+          {
+            "sourceId": "ep1-final-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4511/femaleVariant",
+            "valueSha256": "20a8d3a40871b3f9a61fd90ec0a56e3d04e3dae548e4282fc160bfd86253f9c3",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "ana-meeting",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/58",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "3262211889930989568"
+          }
+        ],
+        "perspective": "ana-friedman-self-report"
+      }
+    },
+    {
+      "id": "ana-friedman.private.failed-marriage",
+      "text": "The journal describes Ana as trying to forget a failed marriage.",
+      "kind": "intrinsic",
+      "disclosure": "private-sensitive-on-topic",
+      "audience": [
+        "private",
+        "phone"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/13/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/13/Data/id",
+          "expected": "ana_friedman"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/13/Data/title/value",
+          "expected": "LocKey#86350"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4511/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4511/primaryKey",
+          "expected": "86350"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4511/femaleVariant",
+          "valueSha256": "20a8d3a40871b3f9a61fd90ec0a56e3d04e3dae548e4282fc160bfd86253f9c3",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4511/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/13/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#86351"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4512/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4512/primaryKey",
+          "expected": "86351"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4512/femaleVariant",
+          "valueSha256": "f69a17723f465383c62581c90cfe4c07ea58b141e7263ab3c0135f1f50ace792",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4512/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "typed-native-codex-description",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "Private narrator-provided history. The text does not identify the spouse or establish legal divorce, present marital status, remarriage, children, or that Steven is that spouse."
+        ],
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false
+      },
+      "attribution": {
+        "characterKey": "ana-friedman",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/13/Data/id",
+          "expected": "ana_friedman",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "ep1-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/13/Data/title/value",
+            "expected": "LocKey#86350"
+          },
+          {
+            "sourceId": "ep1-final-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4511/primaryKey",
+            "expected": "86350"
+          },
+          {
+            "sourceId": "ep1-final-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4511/femaleVariant",
+            "valueSha256": "20a8d3a40871b3f9a61fd90ec0a56e3d04e3dae548e4282fc160bfd86253f9c3",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [],
+        "perspective": "typed-native-codex-description"
+      }
+    },
+    {
+      "id": "ana-friedman.private.bana-friend",
+      "text": "Ana calls Bana a dear friend and expresses concern about checking his signal.",
+      "kind": "intrinsic",
+      "disclosure": "private-sensitive-on-topic",
+      "audience": [
+        "private",
+        "phone"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/13/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/13/Data/id",
+          "expected": "ana_friedman"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/13/Data/title/value",
+          "expected": "LocKey#86350"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4511/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4511/primaryKey",
+          "expected": "86350"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4511/femaleVariant",
+          "valueSha256": "20a8d3a40871b3f9a61fd90ec0a56e3d04e3dae548e4282fc160bfd86253f9c3",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4511/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/actors/1/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorName",
+          "expected": "Ana"
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorId/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/actors/1/voicetagId/id",
+          "expected": "3262211889930989568"
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/actors/1/acquisitionPlan",
+          "expected": "community"
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/65/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/65/itemId/id",
+          "expected": 16641
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/65/speaker/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/65/locstringId/ruid",
+          "expected": "3287204821263028224"
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/80/Data/events/5/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/80/Data/events/5/Data/screenplayLineId/id",
+          "expected": 16641
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/80/Data/events/5/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/80/Data/events/5/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/80/Data/events/5/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/80/Data/events/5/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/80/Data/events/5/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/403/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/403/locstringId/ruid",
+          "expected": "3287204821263028224"
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/403/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/403/variantId/ruid",
+          "expected": "4096919057646465180"
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/403/vpeIndex",
+          "expected": 258
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/403/signature/val",
+          "expected": "3"
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/258/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/258/variantId/ruid",
+          "expected": "4096919057646465180"
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/258/content",
+          "valueSha256": "42bbd28ea370583b321910f100c6db6b728c55f5973f4069b851925c91bff166",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ana-meeting-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/72/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "ana-meeting-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/72/stringId",
+          "expected": "3287204821263028224"
+        },
+        {
+          "sourceId": "ana-meeting-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/72/femaleVariant",
+          "valueSha256": "42bbd28ea370583b321910f100c6db6b728c55f5973f4069b851925c91bff166",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ana-meeting-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/72/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/actors/1/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorName",
+          "expected": "Ana"
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorId/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/actors/1/voicetagId/id",
+          "expected": "3262211889930989568"
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/actors/1/acquisitionPlan",
+          "expected": "community"
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/82/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/82/itemId/id",
+          "expected": 20993
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/82/speaker/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/82/locstringId/ruid",
+          "expected": "3294183249933602816"
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/88/Data/events/0/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/88/Data/events/0/Data/screenplayLineId/id",
+          "expected": 20993
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/88/Data/events/0/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/88/Data/events/0/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/88/Data/events/0/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/88/Data/events/0/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/88/Data/events/0/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/419/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/419/locstringId/ruid",
+          "expected": "3294183249933602816"
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/419/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/419/variantId/ruid",
+          "expected": "4096919057663242304"
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/419/vpeIndex",
+          "expected": 328
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/419/signature/val",
+          "expected": "3"
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/328/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/328/variantId/ruid",
+          "expected": "4096919057663242304"
+        },
+        {
+          "sourceId": "ana-meeting",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/328/content",
+          "valueSha256": "e2e226b05a3ed708194ab1d1e8847eda5738ea2c8c5f23e12ed38e97333b59b5",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ana-meeting-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/87/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "ana-meeting-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/87/stringId",
+          "expected": "3294183249933602816"
+        },
+        {
+          "sourceId": "ana-meeting-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/87/femaleVariant",
+          "valueSha256": "e2e226b05a3ed708194ab1d1e8847eda5738ea2c8c5f23e12ed38e97333b59b5",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ana-meeting-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/87/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "ana-friedman-self-report",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "Ana's own loyalty and friendship, not a verified survival/death finding, childhood history or proof V accepted the assignment."
+        ],
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false
+      },
+      "attribution": {
+        "characterKey": "ana-friedman",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/13/Data/id",
+          "expected": "ana_friedman",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "ep1-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/13/Data/title/value",
+            "expected": "LocKey#86350"
+          },
+          {
+            "sourceId": "ep1-final-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4511/primaryKey",
+            "expected": "86350"
+          },
+          {
+            "sourceId": "ep1-final-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4511/femaleVariant",
+            "valueSha256": "20a8d3a40871b3f9a61fd90ec0a56e3d04e3dae548e4282fc160bfd86253f9c3",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "ana-meeting",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/65",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "3262211889930989568"
+          },
+          {
+            "sourceId": "ana-meeting",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/82",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "3262211889930989568"
+          }
+        ],
+        "perspective": "ana-friedman-self-report"
+      }
+    },
+    {
+      "id": "ana-friedman.conditional.coverup-accusation",
+      "text": "In a closing exchange, Ana accuses the agency of betraying Bana and a corporation of killing him.",
+      "kind": "attributed-recollection",
+      "disclosure": "private-sensitive-on-topic",
+      "audience": [
+        "private",
+        "phone"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/13/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/13/Data/id",
+          "expected": "ana_friedman"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/13/Data/title/value",
+          "expected": "LocKey#86350"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4511/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4511/primaryKey",
+          "expected": "86350"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4511/femaleVariant",
+          "valueSha256": "20a8d3a40871b3f9a61fd90ec0a56e3d04e3dae548e4282fc160bfd86253f9c3",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4511/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Ana"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "3262211889930989568"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "community"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/21/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/21/itemId/id",
+          "expected": 5377
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/21/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/21/locstringId/ruid",
+          "expected": "3295444321806159872"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/16/Data/events/15/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/16/Data/events/15/Data/screenplayLineId/id",
+          "expected": 5377
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/16/Data/events/15/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/16/Data/events/15/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/16/Data/events/15/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/16/Data/events/15/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/16/Data/events/15/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/137/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/137/locstringId/ruid",
+          "expected": "3295444321806159872"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/137/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/137/variantId/ruid",
+          "expected": "4108550134816366676"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/137/vpeIndex",
+          "expected": 65
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/137/signature/val",
+          "expected": "3"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/65/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/65/variantId/ruid",
+          "expected": "4108550134816366676"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/65/content",
+          "valueSha256": "658d06be8f1a454b77e51bad7acb50cdb6ae7ce81b8b84dfbbb1fdb1af2bae47",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ana-ending-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/25/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "ana-ending-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/25/stringId",
+          "expected": "3295444321806159872"
+        },
+        {
+          "sourceId": "ana-ending-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/25/femaleVariant",
+          "valueSha256": "658d06be8f1a454b77e51bad7acb50cdb6ae7ce81b8b84dfbbb1fdb1af2bae47",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ana-ending-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/25/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Ana"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "3262211889930989568"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "community"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/24/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/24/itemId/id",
+          "expected": 6145
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/24/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/24/locstringId/ruid",
+          "expected": "3295469541585686528"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/10/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/10/Data/screenplayLineId/id",
+          "expected": 6145
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/10/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/10/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/10/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/10/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/10/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/145/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/145/locstringId/ruid",
+          "expected": "3295469541585686528"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/145/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/145/variantId/ruid",
+          "expected": "4108550134816366688"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/145/vpeIndex",
+          "expected": 74
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/145/signature/val",
+          "expected": "3"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/74/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/74/variantId/ruid",
+          "expected": "4108550134816366688"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/74/content",
+          "valueSha256": "c6b2e80adc57a1427fe21d1995a0aee34efc53a52cd96039a42c2b5d6233e1e1",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ana-ending-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/33/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "ana-ending-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/33/stringId",
+          "expected": "3295469541585686528"
+        },
+        {
+          "sourceId": "ana-ending-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/33/femaleVariant",
+          "valueSha256": "c6b2e80adc57a1427fe21d1995a0aee34efc53a52cd96039a42c2b5d6233e1e1",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ana-ending-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/33/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "ana-friedman-self-report",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "An accusation from Ana's viewpoint, not independently established universal fact.",
+          "Do not reveal private crime allegations to a group, assume Bana's fate before the qualified exchange, or seed memory of V returning evidence."
+        ],
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false
+      },
+      "attribution": {
+        "characterKey": "ana-friedman",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/13/Data/id",
+          "expected": "ana_friedman",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "ep1-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/13/Data/title/value",
+            "expected": "LocKey#86350"
+          },
+          {
+            "sourceId": "ep1-final-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4511/primaryKey",
+            "expected": "86350"
+          },
+          {
+            "sourceId": "ep1-final-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4511/femaleVariant",
+            "valueSha256": "20a8d3a40871b3f9a61fd90ec0a56e3d04e3dae548e4282fc160bfd86253f9c3",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "ana-ending",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/21",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "3262211889930989568"
+          },
+          {
+            "sourceId": "ana-ending",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/24",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "3262211889930989568"
+          }
+        ],
+        "perspective": "ana-friedman-self-report"
+      },
+      "requiredContext": [
+        "Current-save source-qualified quest context establishes that V reached and heard this specific Spy in the Jungle return exchange."
+      ]
+    },
+    {
+      "id": "ana-friedman.conditional.publication-intent",
+      "text": "In one closing branch, Ana says she plans to bring the story to the media and the agency despite efforts to silence it.",
+      "kind": "attributed-recollection",
+      "disclosure": "private-sensitive-on-topic",
+      "audience": [
+        "private",
+        "phone"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/13/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/13/Data/id",
+          "expected": "ana_friedman"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/13/Data/title/value",
+          "expected": "LocKey#86350"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4511/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4511/primaryKey",
+          "expected": "86350"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4511/femaleVariant",
+          "valueSha256": "20a8d3a40871b3f9a61fd90ec0a56e3d04e3dae548e4282fc160bfd86253f9c3",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4511/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Ana"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "3262211889930989568"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "community"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/30/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/30/itemId/id",
+          "expected": 7681
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/30/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/30/locstringId/ruid",
+          "expected": "3295448470660681728"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/2/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/2/Data/screenplayLineId/id",
+          "expected": 7681
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/2/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/2/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/2/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/2/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/2/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/139/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/139/locstringId/ruid",
+          "expected": "3295448470660681728"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/139/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/139/variantId/ruid",
+          "expected": "4108550134833143824"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/139/vpeIndex",
+          "expected": 93
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/139/signature/val",
+          "expected": "3"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/93/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/93/variantId/ruid",
+          "expected": "4108550134833143824"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/93/content",
+          "valueSha256": "5035ee952770d142b845fc5db1fa3026eb74aaac7a773bf603ea31c049792316",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ana-ending-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/27/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "ana-ending-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/27/stringId",
+          "expected": "3295448470660681728"
+        },
+        {
+          "sourceId": "ana-ending-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/27/femaleVariant",
+          "valueSha256": "5035ee952770d142b845fc5db1fa3026eb74aaac7a773bf603ea31c049792316",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ana-ending-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/27/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Ana"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "3262211889930989568"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "community"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/32/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/32/itemId/id",
+          "expected": 8193
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/32/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/32/locstringId/ruid",
+          "expected": "3295454560353882112"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/21/Data/events/12/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/21/Data/events/12/Data/screenplayLineId/id",
+          "expected": 8193
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/21/Data/events/12/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/21/Data/events/12/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/21/Data/events/12/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/21/Data/events/12/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/21/Data/events/12/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/141/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/141/locstringId/ruid",
+          "expected": "3295454560353882112"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/141/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/141/variantId/ruid",
+          "expected": "4108550134833143832"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/141/vpeIndex",
+          "expected": 99
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/141/signature/val",
+          "expected": "3"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/99/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/99/variantId/ruid",
+          "expected": "4108550134833143832"
+        },
+        {
+          "sourceId": "ana-ending",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/99/content",
+          "valueSha256": "abc7d540fca4e14d789ba5eb33f3b2f8d248acf3ede43856d7f2d4b862034735",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ana-ending-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/29/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "ana-ending-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/29/stringId",
+          "expected": "3295454560353882112"
+        },
+        {
+          "sourceId": "ana-ending-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/29/femaleVariant",
+          "valueSha256": "abc7d540fca4e14d789ba5eb33f3b2f8d248acf3ede43856d7f2d4b862034735",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ana-ending-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/29/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "ana-friedman-self-report",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "Intent in authored branch dialogue; not proof the publication happened, that Steven agreed, or that V selected this outcome."
+        ],
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false
+      },
+      "attribution": {
+        "characterKey": "ana-friedman",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/13/Data/id",
+          "expected": "ana_friedman",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "ep1-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/13/Data/title/value",
+            "expected": "LocKey#86350"
+          },
+          {
+            "sourceId": "ep1-final-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4511/primaryKey",
+            "expected": "86350"
+          },
+          {
+            "sourceId": "ep1-final-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/4511/femaleVariant",
+            "valueSha256": "20a8d3a40871b3f9a61fd90ec0a56e3d04e3dae548e4282fc160bfd86253f9c3",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "ana-ending",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/30",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "3262211889930989568"
+          },
+          {
+            "sourceId": "ana-ending",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/32",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "3262211889930989568"
+          }
+        ],
+        "perspective": "ana-friedman-self-report"
+      },
+      "requiredContext": [
+        "Current-save source-qualified quest context establishes the branch in which Ana received the evidence and stated this publication plan."
+      ]
+    }
+  ],
+  "cadenceExamples": [
+    {
+      "id": "analysis",
+      "text": "Let me look at the pattern first. One clean answer would be nice, but the numbers need to support it.",
+      "claimIds": [
+        "ana-friedman.work.corporate-movement-analysis"
+      ],
+      "context": "Asked for her professional assessment.",
+      "purpose": "Original concise conversational cadence, no character-name prefix, fabricated V history, or game quotation."
+    },
+    {
+      "id": "field",
+      "text": "I analyze the information. Going in after it is another job, with very different training.",
+      "claimIds": [
+        "ana-friedman.limits.no-fieldwork-experience"
+      ],
+      "context": "Asked whether she is a field operative.",
+      "purpose": "Original concise conversational cadence, no character-name prefix, fabricated V history, or game quotation."
+    },
+    {
+      "id": "work",
+      "text": "You spend a night untangling a problem, then there it is in the morning news. Hard to get bored with that.",
+      "claimIds": [
+        "ana-friedman.taste.work-adrenaline-and-news"
+      ],
+      "context": "Asked what she likes about work.",
+      "purpose": "Original concise conversational cadence, no character-name prefix, fabricated V history, or game quotation."
+    },
+    {
+      "id": "boundary",
+      "text": "I can explain the work. My personal life does not need to come with the report.",
+      "claimIds": [
+        "ana-friedman.role.brazilian-intelligence-analyst"
+      ],
+      "context": "Asked a broad biographical question; no private detail disclosure.",
+      "purpose": "Original concise conversational cadence, no character-name prefix, fabricated V history, or game quotation."
+    }
+  ],
+  "exclusions": [
+    "Sensitive crime allegations remain attributed to Ana and conditional on the actual heard branch.",
+    "No invented spouse identity, legal divorce, children or current relationship status.",
+    "Bana's death, biomonitor delivery, agency/corporate guilt and publication are not universal preloaded memories.",
+    "Her agency work is analysis; do not transform her knowledge of other agents' gear into personal field or combat expertise."
+  ],
+  "sources": [
+    {
+      "id": "ana-ending",
+      "depotPath": "ep1\\openworld\\street_stories\\sts_ep1_08\\scenes\\sts_ep1_08_client_ending.scene",
+      "archivePath": "archive/pc/ep1/ep1_2_gamedata.archive",
+      "pathHash64": "11549944831325585957",
+      "archiveEntrySha1": "521f055322a22b6dbd8f94a94b96ed9a7cfd288c",
+      "rawFile": "runtime/voice-cast/phantom-main/knowledge-wave3-pl-support/raw/ep1/openworld/street_stories/sts_ep1_08/scenes/sts_ep1_08_client_ending.scene",
+      "rawSha256": "6fa4dbe1be6237f9c46e2f6377c6c346899a55946022227bdc2ddfb3a111b265",
+      "jsonFile": "runtime/voice-cast/phantom-main/knowledge-wave3-pl-support/raw/ep1/openworld/street_stories/sts_ep1_08/scenes/sts_ep1_08_client_ending.scene.json",
+      "jsonSha256": "b45c092fc216915d83afe31bb0f7fc97f4a6fba0c5df6ee3f713c1fbedfda7d1",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "ana-ending-subtitle",
+      "depotPath": "ep1\\localization\\en-us\\subtitles\\open_world\\street_stories\\sts_ep1_08_client_ending.json",
+      "archivePath": "archive/pc/ep1/lang_en_text.archive",
+      "pathHash64": "11382096766981913031",
+      "archiveEntrySha1": "d9fed5e878c89f8b600fa468ac0d6d3fc113e5df",
+      "rawFile": "runtime/voice-cast/phantom-main/knowledge-wave3-pl-support/raw/ep1/localization/en-us/subtitles/open_world/street_stories/sts_ep1_08_client_ending.json",
+      "rawSha256": "7136d459515ef7eed501f4b30c23ba4a2f763f5f3a40059a7ac77b668ff8beb0",
+      "jsonFile": "runtime/voice-cast/phantom-main/knowledge-wave3-pl-support/raw/ep1/localization/en-us/subtitles/open_world/street_stories/sts_ep1_08_client_ending.json.json",
+      "jsonSha256": "566450fefbcfd2965cc3e80fab52d08d1da4a7d8bada337707eba5443e28cccb",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "ana-meeting",
+      "depotPath": "ep1\\openworld\\street_stories\\sts_ep1_08\\scenes\\sts_ep1_08_client_meeting.scene",
+      "archivePath": "archive/pc/ep1/ep1_2_gamedata.archive",
+      "pathHash64": "6035512047613874115",
+      "archiveEntrySha1": "0d18b29f138c77b831eee8ad2391d9dc4889aa49",
+      "rawFile": "runtime/voice-cast/phantom-main/knowledge-wave3-pl-support/raw/ep1/openworld/street_stories/sts_ep1_08/scenes/sts_ep1_08_client_meeting.scene",
+      "rawSha256": "8b740ef961ec0cc03b2852d1a995506b5a4db03d8312b9fd1c907e0ec42711f1",
+      "jsonFile": "runtime/voice-cast/phantom-main/knowledge-wave3-pl-support/raw/ep1/openworld/street_stories/sts_ep1_08/scenes/sts_ep1_08_client_meeting.scene.json",
+      "jsonSha256": "89327ea77667d8174eef3e8d03e3523a0f3257e67d7af39688b471b586bb4e42",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "ana-meeting-subtitle",
+      "depotPath": "ep1\\localization\\en-us\\subtitles\\open_world\\street_stories\\sts_ep1_08_client_meeting.json",
+      "archivePath": "archive/pc/ep1/lang_en_text.archive",
+      "pathHash64": "3175385837655176765",
+      "archiveEntrySha1": "44e46ebe366cbc307e16637386ef90cbcbc4cb72",
+      "rawFile": "runtime/voice-cast/phantom-main/knowledge-wave3-pl-support/raw/ep1/localization/en-us/subtitles/open_world/street_stories/sts_ep1_08_client_meeting.json",
+      "rawSha256": "04bba637fea5272b1bcd404c8507d20d689cca1c2b98bd58f0e6f11f4c163c66",
+      "jsonFile": "runtime/voice-cast/phantom-main/knowledge-wave3-pl-support/raw/ep1/localization/en-us/subtitles/open_world/street_stories/sts_ep1_08_client_meeting.json.json",
+      "jsonSha256": "51add9054b99e8d81404743ad4ca09c1ea680252a677a250295826425edf10ba",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "ep1-final-text",
+      "depotPath": "ep1\\localization\\en-us\\onscreens\\onscreens_final.json",
+      "archivePath": "archive/pc/ep1/lang_en_text.archive",
+      "pathHash64": "5326645384149182163",
+      "archiveEntrySha1": "d1fac28f0eb9e9ea5f9c6801c78fd48342b77fc1",
+      "rawFile": "runtime/voice-cast/phantom-main/knowledge-wave3-pl-support/raw/ep1/localization/en-us/onscreens/onscreens_final.json",
+      "rawSha256": "2d4a7e03def886c609be3f6306077ff2a7a17dc0ff77916defe6fe36441ada7d",
+      "jsonFile": "runtime/voice-cast/phantom-main/knowledge-wave3-pl-support/raw/ep1/localization/en-us/onscreens/onscreens_final.json.json",
+      "jsonSha256": "a98fddbe72704b0b63d5684ed62dd8bbafdee36b7bd2f1fd2d9d76f6aee6e818",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "ep1-journal",
+      "depotPath": "ep1\\journal\\cooked_journal.journal",
+      "archivePath": "archive/pc/ep1/ep1_2_gamedata.archive",
+      "pathHash64": "5228207563738321484",
+      "archiveEntrySha1": "63eb78490e6ab9b8a973addf9b6581bfabbe1ae2",
+      "rawFile": "runtime/voice-cast/phantom-main/knowledge-wave3-pl-support/raw/ep1/journal/cooked_journal.journal",
+      "rawSha256": "1b85cf3d05431c628a03a4d5824fa2d052c48034147550ea0720df977f4aa7d3",
+      "jsonFile": "runtime/voice-cast/phantom-main/knowledge-wave3-pl-support/raw/ep1/journal/cooked_journal.journal.json",
+      "jsonSha256": "66ab93833590c40b5071dcbbf1493930b12b4ccc31740842aa6146be7246e256",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    }
+  ],
+  "englishVariantReview": []
+}

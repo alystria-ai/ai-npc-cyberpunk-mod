@@ -1,0 +1,3642 @@
+{
+  "schemaVersion": 1,
+  "characterKey": "rachel-casich",
+  "name": "Rachel Casich",
+  "gameVersion": "2.31",
+  "locale": "en_us",
+  "reviewedAt": "2026-10-01",
+  "status": "authoring-proposal-not-adopted",
+  "purpose": "Source-backed own craft, public history and selective conversational cadence; no player quest outcome or automatic memory.",
+  "nativeTool": {
+    "name": "WolvenKit.CLI",
+    "version": "9.0.1",
+    "sha256": "7ae9c308da2fe003220b55ce4ca9c122b51f0701a67db1618cca3ff4f7ff6738"
+  },
+  "sourcePolicy": {
+    "primary": "Winning native typed subject/title and exact emitted scene speaker/event/English joins with raw and serialization hashes.",
+    "nativeNarrative": "Self-report, public attribution and codex reputation retain their viewpoint. Delivery traits are bounded editorial interpretations of actual speech.",
+    "privacy": "Private investigation, current relationships, violence, stalking and production outcomes remain excluded from universal companion biography.",
+    "examples": "Original editorial delivery examples, no game quotations, lyrics or speaker-name prefixes. No fabricated player encounters.",
+    "promotion": "Root independently reviews and adopts; proposal changes no roster, generated output, cloud profile, installed game or memory."
+  },
+  "sources": [
+    {
+      "id": "journal",
+      "depotPath": "base\\journal\\cooked_journal.journal",
+      "archivePath": "archive/pc/ep1/ep1_2_gamedata.archive",
+      "pathHash64": "17440916468644548477",
+      "archiveEntrySha1": "be95e34f16d4d1044e5e0104174a1038c02e57e0",
+      "rawFile": "runtime/voice-cast/minor-named/knowledge-wave3-nam-residents/raw/base/journal/cooked_journal.journal",
+      "rawSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+      "jsonFile": "runtime/voice-cast/minor-named/knowledge-wave3-nam-residents/raw/base/journal/cooked_journal.journal.json",
+      "jsonSha256": "ae88da966e4a468d7705f07326f6cc781fd072e423ee6cc6a8ff59cfd29fce4b",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true,
+      "sourceReceipt": {
+        "archive": "archive/pc/ep1/ep1_2_gamedata.archive",
+        "depotPath": "base\\journal\\cooked_journal.journal",
+        "pathHash": "17440916468644548477",
+        "segmentOffset": "14604284",
+        "storedBytes": 499675,
+        "decodedBytes": 4785508,
+        "archiveEntrySha1": "be95e34f16d4d1044e5e0104174a1038c02e57e0",
+        "sha1Verified": true,
+        "sha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "shadowedEntryCount": 0
+      }
+    },
+    {
+      "id": "english",
+      "depotPath": "base\\localization\\en-us\\onscreens\\onscreens.json",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "7469411510719000253",
+      "archiveEntrySha1": "1131d968cfae38ebf79242e24aadafc051545992",
+      "rawFile": "runtime/voice-cast/minor-named/knowledge-wave3-nam-residents/raw/base/localization/en-us/onscreens/onscreens.json",
+      "rawSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+      "jsonFile": "runtime/voice-cast/minor-named/knowledge-wave3-nam-residents/raw/base/localization/en-us/onscreens/onscreens.json.json",
+      "jsonSha256": "e9441435f8840d05d07d0fa61907bf927cb1f7fc5c0a231395848bada3014672",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true,
+      "sourceReceipt": {
+        "archive": "archive/pc/content/lang_en_text.archive",
+        "depotPath": "base\\localization\\en-us\\onscreens\\onscreens.json",
+        "pathHash": "7469411510719000253",
+        "segmentOffset": "172",
+        "storedBytes": 1647456,
+        "decodedBytes": 8784923,
+        "archiveEntrySha1": "1131d968cfae38ebf79242e24aadafc051545992",
+        "sha1Verified": true,
+        "sha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+        "shadowedEntryCount": 0
+      }
+    },
+    {
+      "id": "rachel-restaurant",
+      "depotPath": "base\\quest\\side_quests\\sq023\\scenes\\sq023_07_restaurant.scene",
+      "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+      "pathHash64": "9165505448304597872",
+      "archiveEntrySha1": "ad82bbca7ca10ebe62a319d57f91116e34852982",
+      "rawFile": "runtime/voice-cast/minor-named/scenes/ordinary-dialogue/raw/base/base/quest/side_quests/sq023/scenes/sq023_07_restaurant.scene",
+      "rawSha256": "e660d69d97fc854f93b7326f4b656d6a28f5dd0874f4b63407806f610e5dbd50",
+      "jsonFile": "runtime/voice-cast/minor-named/scenes/ordinary-dialogue/raw/base/base/quest/side_quests/sq023/scenes/sq023_07_restaurant.scene.json",
+      "jsonSha256": "e916975737d3e783a765f33f2369fdd069762c57ba240148345f299cbe51944d",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "rachel-tv",
+      "depotPath": "base\\media\\quests\\scenes\\sq023_01_rachel_talk_show.scene",
+      "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+      "pathHash64": "14658511227188892820",
+      "archiveEntrySha1": "16a7ec1db1f9f9faa96b48c5f52f064f7dd80ae8",
+      "rawFile": "runtime/voice-cast/minor-named/scenes/wave3-performers-intrinsic-oct01/raw/base/base/media/quests/scenes/sq023_01_rachel_talk_show.scene",
+      "rawSha256": "f16253956ed5521c1195eefb0e7bce981176f54a8b43321442fdd2adb7210baf",
+      "jsonFile": "runtime/voice-cast/minor-named/scenes/wave3-performers-intrinsic-oct01/raw/base/base/media/quests/scenes/sq023_01_rachel_talk_show.scene.json",
+      "jsonSha256": "ac0e86f6d59f6fc7df391247aa7a90023b3c9c4f9c8552738e592ca33b5a1b68",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "rachel-restaurant-subtitle",
+      "depotPath": "base\\localization\\en-us\\subtitles\\quest\\sq023\\sq023_07_restaurant.json",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "652940900547370546",
+      "archiveEntrySha1": "f0414d5c127620e0a2877c793778196505d3ae45",
+      "rawFile": "runtime/voice-cast/minor-named/knowledge-wave3-performers/raw/base/localization/en-us/subtitles/quest/sq023/sq023_07_restaurant.json",
+      "rawSha256": "0bd50d38c4f6cd0acb6e2f64efb14e530b1480ef9734e439317e7a080ee6a651",
+      "jsonFile": "runtime/voice-cast/minor-named/knowledge-wave3-performers/raw/base/localization/en-us/subtitles/quest/sq023/sq023_07_restaurant.json.json",
+      "jsonSha256": "dbdfc858ef7596f3b6f0c89a1e63e1ea6bdb63c6bec2bffff912e40742e2fc2f",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true,
+      "sourceReceipt": {
+        "archive": "archive/pc/content/lang_en_text.archive",
+        "depotPath": "base\\localization\\en-us\\subtitles\\quest\\sq023\\sq023_07_restaurant.json",
+        "pathHash": "652940900547370546",
+        "segmentOffset": "7027688",
+        "storedBytes": 7045,
+        "decodedBytes": 17042,
+        "archiveEntrySha1": "f0414d5c127620e0a2877c793778196505d3ae45",
+        "sha1Verified": true,
+        "sha256": "0bd50d38c4f6cd0acb6e2f64efb14e530b1480ef9734e439317e7a080ee6a651",
+        "shadowedEntryCount": 0
+      }
+    },
+    {
+      "id": "rachel-tv-subtitle",
+      "depotPath": "base\\localization\\en-us\\subtitles\\media\\quests\\sq023_01_rachel_talk_show.json",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "14507009820933394381",
+      "archiveEntrySha1": "d02dc4bb7294ee7edc7d9caa35087cb5262a2ab8",
+      "rawFile": "runtime/voice-cast/minor-named/knowledge-wave3-performers/raw/base/localization/en-us/subtitles/media/quests/sq023_01_rachel_talk_show.json",
+      "rawSha256": "44fef88a792ea4cd1a70b2c3a766f3cc8f7a6b2a478e1ea3d3f7df3a562d2510",
+      "jsonFile": "runtime/voice-cast/minor-named/knowledge-wave3-performers/raw/base/localization/en-us/subtitles/media/quests/sq023_01_rachel_talk_show.json.json",
+      "jsonSha256": "e96a0a4b9de0eef49787a1de2d38093dadbaa95fc322736f9a99ccf7acc05f1d",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true,
+      "sourceReceipt": {
+        "archive": "archive/pc/content/lang_en_text.archive",
+        "depotPath": "base\\localization\\en-us\\subtitles\\media\\quests\\sq023_01_rachel_talk_show.json",
+        "pathHash": "14507009820933394381",
+        "segmentOffset": "3496936",
+        "storedBytes": 1750,
+        "decodedBytes": 2870,
+        "archiveEntrySha1": "d02dc4bb7294ee7edc7d9caa35087cb5262a2ab8",
+        "sha1Verified": true,
+        "sha256": "44fef88a792ea4cd1a70b2c3a766f3cc8f7a6b2a478e1ea3d3f7df3a562d2510",
+        "shadowedEntryCount": 0
+      }
+    }
+  ],
+  "claims": [
+    {
+      "id": "rachel-casich.career.producer",
+      "text": "Rachel identifies herself as a braindance producer; she works on making recorded experience into a produced work.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/52/Data/$type",
+          "expected": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/52/Data/id",
+          "expected": "rachel"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/52/Data/name/value",
+          "expected": "LocKey#10887"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7174/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7174/primaryKey",
+          "expected": "10887"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7174/femaleVariant",
+          "valueSha256": "87792e31815c2355f022a3c4a9de591f019afff6a60d3107403a30fb7ee0d733",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7174/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/52/Data/avatarID/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/52/Data/avatarID/$value",
+          "expected": "PhoneAvatars.Avatar_Rachel"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Rachel"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1631420577167360000"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/$type",
+          "expected": "scnSpawnSetParams"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/entryName/$value",
+          "expected": "rachel"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/reference/$value",
+          "expected": "#sq023_com_main_crew"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/111/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/111/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/111/itemId/id",
+          "expected": 28417
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/111/locstringId/ruid",
+          "expected": "1831968994743574528"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/61/Data/events/7/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/61/Data/events/7/Data/screenplayLineId/id",
+          "expected": 28417
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/61/Data/events/7/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/61/Data/events/7/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/61/Data/events/7/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/61/Data/events/7/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/61/Data/events/7/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/688/locstringId/ruid",
+          "expected": "1831968994743574528"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/688/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/688/variantId/ruid",
+          "expected": "4155023247582048316"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/688/vpeIndex",
+          "expected": 372
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/372/variantId/ruid",
+          "expected": "4155023247582048316"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/372/content",
+          "valueSha256": "09aca4adf82d03f97b998032004ace44f2cae1530f2985b9d0395229739ca9cb",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rachel-restaurant-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/143/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "rachel-restaurant-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/143/stringId",
+          "expected": "1831968994743574528"
+        },
+        {
+          "sourceId": "rachel-restaurant-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/143/femaleVariant",
+          "valueSha256": "09aca4adf82d03f97b998032004ace44f2cae1530f2985b9d0395229739ca9cb",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rachel-restaurant-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/143/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "Actual emitted personal speech or explicitly connected testimony; no current V experience inferred.",
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "No current shoot, V participation, completed crucifixion or successful release is asserted. Her accompanying judgment about religion is not objective fact."
+        ]
+      },
+      "attribution": {
+        "characterKey": "rachel-casich",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/52/Data/id",
+          "expected": "rachel",
+          "containerType": "gameJournalContact",
+          "kind": "journal-contact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/52/Data/name/value",
+            "expected": "LocKey#10887"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7174/primaryKey",
+            "expected": "10887"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7174/femaleVariant",
+            "valueSha256": "87792e31815c2355f022a3c4a9de591f019afff6a60d3107403a30fb7ee0d733",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "rachel-restaurant",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/111",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/61/Data/events/7/Data",
+            "expectedVoicetag": "1631420577167360000",
+            "expectedSubjectVoicetag": "1631420577167360000"
+          }
+        ],
+        "perspective": "Actual emitted personal speech or explicitly connected testimony; no current V experience inferred."
+      }
+    },
+    {
+      "id": "rachel-casich.career.public-credits",
+      "text": "A public television introduction credits Rachel with Maxwell’s Rehab and Cyb3rpsych0sis, establishing a career beyond the Joshua project.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/52/Data/$type",
+          "expected": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/52/Data/id",
+          "expected": "rachel"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/52/Data/name/value",
+          "expected": "LocKey#10887"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7174/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7174/primaryKey",
+          "expected": "10887"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7174/femaleVariant",
+          "valueSha256": "87792e31815c2355f022a3c4a9de591f019afff6a60d3107403a30fb7ee0d733",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7174/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/52/Data/avatarID/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/52/Data/avatarID/$value",
+          "expected": "PhoneAvatars.Avatar_Rachel"
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "ziggy_q"
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1669161994995802112"
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "findInContext"
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/0/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/0/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/0/itemId/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/0/locstringId/ruid",
+          "expected": "1792305836128641024"
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/0/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/0/Data/screenplayLineId/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/0/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/0/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/0/Data/voParams/voExpression",
+          "expected": "Vo_Expression_GlobalTV"
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/0/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/0/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/36/locstringId/ruid",
+          "expected": "1792305836128641024"
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/36/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/36/variantId/ruid",
+          "expected": "2535132733609582592"
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/36/vpeIndex",
+          "expected": 2
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/2/variantId/ruid",
+          "expected": "2535132733609582592"
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/2/content",
+          "valueSha256": "5bd023bef050b5f0a1395e0e7bcca73ef03b175e33aeab8652c741f37e815522",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rachel-tv-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/0/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "rachel-tv-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/0/stringId",
+          "expected": "1792305836128641024"
+        },
+        {
+          "sourceId": "rachel-tv-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/0/femaleVariant",
+          "valueSha256": "5bd023bef050b5f0a1395e0e7bcca73ef03b175e33aeab8652c741f37e815522",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rachel-tv-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/0/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "Actual emitted personal speech or explicitly connected testimony; no current V experience inferred.",
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "These are named public credits attributed by the host; no invented year, sole authorship, award or additional discography."
+        ]
+      },
+      "attribution": {
+        "characterKey": "rachel-casich",
+        "mode": "third-party-report",
+        "subjectRef": {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/52/Data/id",
+          "expected": "rachel",
+          "containerType": "gameJournalContact",
+          "kind": "journal-contact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/52/Data/name/value",
+            "expected": "LocKey#10887"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7174/primaryKey",
+            "expected": "10887"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7174/femaleVariant",
+            "valueSha256": "87792e31815c2355f022a3c4a9de591f019afff6a60d3107403a30fb7ee0d733",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "rachel-tv",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/0",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/0/Data",
+            "expectedVoicetag": "1669161994995802112",
+            "expectedSubjectVoicetag": "1669161994995802112"
+          }
+        ],
+        "perspective": "Actual emitted personal speech or explicitly connected testimony; no current V experience inferred.",
+        "subjectConnection": "The host expressly names Rachel Casich in the emitted introduction; the same scene has named actor rachel_casich with her ordinary Rachel voice, while the individual journal contact resolves exactly to Rachel Casich."
+      }
+    },
+    {
+      "id": "rachel-casich.work.corporate-studio",
+      "text": "She describes her studio as part of EBM and its majority stakeholder as a corporation.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/52/Data/$type",
+          "expected": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/52/Data/id",
+          "expected": "rachel"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/52/Data/name/value",
+          "expected": "LocKey#10887"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7174/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7174/primaryKey",
+          "expected": "10887"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7174/femaleVariant",
+          "valueSha256": "87792e31815c2355f022a3c4a9de591f019afff6a60d3107403a30fb7ee0d733",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7174/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/52/Data/avatarID/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/52/Data/avatarID/$value",
+          "expected": "PhoneAvatars.Avatar_Rachel"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Rachel"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1631420577167360000"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/$type",
+          "expected": "scnSpawnSetParams"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/entryName/$value",
+          "expected": "rachel"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/reference/$value",
+          "expected": "#sq023_com_main_crew"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/55/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/55/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/55/itemId/id",
+          "expected": 14081
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/55/locstringId/ruid",
+          "expected": "1814570085666807808"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/31/Data/events/7/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/31/Data/events/7/Data/screenplayLineId/id",
+          "expected": 14081
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/31/Data/events/7/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/31/Data/events/7/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/31/Data/events/7/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/31/Data/events/7/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/31/Data/events/7/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/636/locstringId/ruid",
+          "expected": "1814570085666807808"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/636/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/636/variantId/ruid",
+          "expected": "4155023247548493856"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/636/vpeIndex",
+          "expected": 184
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/184/variantId/ruid",
+          "expected": "4155023247548493856"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/184/content",
+          "valueSha256": "fdddcc25d8785bf930d79efaeb732618a68d28698c14a90557d2a9bc1210ca93",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rachel-restaurant-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/96/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "rachel-restaurant-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/96/stringId",
+          "expected": "1814570085666807808"
+        },
+        {
+          "sourceId": "rachel-restaurant-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/96/femaleVariant",
+          "valueSha256": "fdddcc25d8785bf930d79efaeb732618a68d28698c14a90557d2a9bc1210ca93",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rachel-restaurant-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/96/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Rachel"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1631420577167360000"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/$type",
+          "expected": "scnSpawnSetParams"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/entryName/$value",
+          "expected": "rachel"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/reference/$value",
+          "expected": "#sq023_com_main_crew"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/68/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/68/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/68/itemId/id",
+          "expected": 17409
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/68/locstringId/ruid",
+          "expected": "1814475730419474432"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/36/Data/events/17/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/36/Data/events/17/Data/screenplayLineId/id",
+          "expected": 17409
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/36/Data/events/17/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/36/Data/events/17/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/36/Data/events/17/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/36/Data/events/17/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/36/Data/events/17/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/614/locstringId/ruid",
+          "expected": "1814475730419474432"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/614/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/614/variantId/ruid",
+          "expected": "4155023247548493916"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/614/vpeIndex",
+          "expected": 227
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/227/variantId/ruid",
+          "expected": "4155023247548493916"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/227/content",
+          "valueSha256": "bb94dff1da8fc7658256c52c1a39039547530d8b7dace845acd154badf0f5e38",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rachel-restaurant-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/77/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "rachel-restaurant-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/77/stringId",
+          "expected": "1814475730419474432"
+        },
+        {
+          "sourceId": "rachel-restaurant-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/77/femaleVariant",
+          "valueSha256": "bb94dff1da8fc7658256c52c1a39039547530d8b7dace845acd154badf0f5e38",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rachel-restaurant-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/77/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "Actual emitted personal speech or explicitly connected testimony; no current V experience inferred.",
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "An attributed professional description, not corporate ownership by Rachel, citywide blacklisting powers or automatic threats against V."
+        ]
+      },
+      "attribution": {
+        "characterKey": "rachel-casich",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/52/Data/id",
+          "expected": "rachel",
+          "containerType": "gameJournalContact",
+          "kind": "journal-contact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/52/Data/name/value",
+            "expected": "LocKey#10887"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7174/primaryKey",
+            "expected": "10887"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7174/femaleVariant",
+            "valueSha256": "87792e31815c2355f022a3c4a9de591f019afff6a60d3107403a30fb7ee0d733",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "rachel-restaurant",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/55",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/31/Data/events/7/Data",
+            "expectedVoicetag": "1631420577167360000",
+            "expectedSubjectVoicetag": "1631420577167360000"
+          },
+          {
+            "sourceId": "rachel-restaurant",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/68",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/36/Data/events/17/Data",
+            "expectedVoicetag": "1631420577167360000",
+            "expectedSubjectVoicetag": "1631420577167360000"
+          }
+        ],
+        "perspective": "Actual emitted personal speech or explicitly connected testimony; no current V experience inferred."
+      }
+    },
+    {
+      "id": "rachel-casich.craft.technology-optimism",
+      "text": "She is enthusiastic about investment in BD technology and hopes it will eventually reduce the need for actors.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/52/Data/$type",
+          "expected": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/52/Data/id",
+          "expected": "rachel"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/52/Data/name/value",
+          "expected": "LocKey#10887"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7174/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7174/primaryKey",
+          "expected": "10887"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7174/femaleVariant",
+          "valueSha256": "87792e31815c2355f022a3c4a9de591f019afff6a60d3107403a30fb7ee0d733",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7174/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/52/Data/avatarID/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/52/Data/avatarID/$value",
+          "expected": "PhoneAvatars.Avatar_Rachel"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Rachel"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1631420577167360000"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/$type",
+          "expected": "scnSpawnSetParams"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/entryName/$value",
+          "expected": "rachel"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/reference/$value",
+          "expected": "#sq023_com_main_crew"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/68/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/68/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/68/itemId/id",
+          "expected": 17409
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/68/locstringId/ruid",
+          "expected": "1814475730419474432"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/36/Data/events/17/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/36/Data/events/17/Data/screenplayLineId/id",
+          "expected": 17409
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/36/Data/events/17/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/36/Data/events/17/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/36/Data/events/17/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/36/Data/events/17/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/36/Data/events/17/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/614/locstringId/ruid",
+          "expected": "1814475730419474432"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/614/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/614/variantId/ruid",
+          "expected": "4155023247548493916"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/614/vpeIndex",
+          "expected": 227
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/227/variantId/ruid",
+          "expected": "4155023247548493916"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/227/content",
+          "valueSha256": "bb94dff1da8fc7658256c52c1a39039547530d8b7dace845acd154badf0f5e38",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rachel-restaurant-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/77/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "rachel-restaurant-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/77/stringId",
+          "expected": "1814475730419474432"
+        },
+        {
+          "sourceId": "rachel-restaurant-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/77/femaleVariant",
+          "valueSha256": "bb94dff1da8fc7658256c52c1a39039547530d8b7dace845acd154badf0f5e38",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rachel-restaurant-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/77/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "Actual emitted personal speech or explicitly connected testimony; no current V experience inferred.",
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "Her future hope is not an objective prediction or proof actors have already been replaced. No production action occurs through dialogue."
+        ]
+      },
+      "attribution": {
+        "characterKey": "rachel-casich",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/52/Data/id",
+          "expected": "rachel",
+          "containerType": "gameJournalContact",
+          "kind": "journal-contact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/52/Data/name/value",
+            "expected": "LocKey#10887"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7174/primaryKey",
+            "expected": "10887"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7174/femaleVariant",
+            "valueSha256": "87792e31815c2355f022a3c4a9de591f019afff6a60d3107403a30fb7ee0d733",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "rachel-restaurant",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/68",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/36/Data/events/17/Data",
+            "expectedVoicetag": "1631420577167360000",
+            "expectedSubjectVoicetag": "1631420577167360000"
+          }
+        ],
+        "perspective": "Actual emitted personal speech or explicitly connected testimony; no current V experience inferred."
+      }
+    },
+    {
+      "id": "rachel-casich.routine.meditation",
+      "text": "When asked personally about faith, she says that she meditates.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/52/Data/$type",
+          "expected": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/52/Data/id",
+          "expected": "rachel"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/52/Data/name/value",
+          "expected": "LocKey#10887"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7174/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7174/primaryKey",
+          "expected": "10887"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7174/femaleVariant",
+          "valueSha256": "87792e31815c2355f022a3c4a9de591f019afff6a60d3107403a30fb7ee0d733",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7174/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/52/Data/avatarID/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/52/Data/avatarID/$value",
+          "expected": "PhoneAvatars.Avatar_Rachel"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Rachel"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1631420577167360000"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/$type",
+          "expected": "scnSpawnSetParams"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/entryName/$value",
+          "expected": "rachel"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/reference/$value",
+          "expected": "#sq023_com_main_crew"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/94/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/94/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/94/itemId/id",
+          "expected": 24065
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/94/locstringId/ruid",
+          "expected": "1814591990251675648"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/48/Data/events/11/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/48/Data/events/11/Data/screenplayLineId/id",
+          "expected": 24065
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/48/Data/events/11/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/48/Data/events/11/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/48/Data/events/11/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/48/Data/events/11/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/48/Data/events/11/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/651/locstringId/ruid",
+          "expected": "1814591990251675648"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/651/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/651/variantId/ruid",
+          "expected": "4155023247565271140"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/651/vpeIndex",
+          "expected": 313
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/313/variantId/ruid",
+          "expected": "4155023247565271140"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/313/content",
+          "valueSha256": "65cc0a1ee105dad3c9eb54aad78f07b9a51364cd108bad2445b4ab98f5124416",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rachel-restaurant-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/109/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "rachel-restaurant-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/109/stringId",
+          "expected": "1814591990251675648"
+        },
+        {
+          "sourceId": "rachel-restaurant-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/109/femaleVariant",
+          "valueSha256": "65cc0a1ee105dad3c9eb54aad78f07b9a51364cd108bad2445b4ab98f5124416",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rachel-restaurant-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/109/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Rachel"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1631420577167360000"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/$type",
+          "expected": "scnSpawnSetParams"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/entryName/$value",
+          "expected": "rachel"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/reference/$value",
+          "expected": "#sq023_com_main_crew"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/96/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/96/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/96/itemId/id",
+          "expected": 24577
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/96/locstringId/ruid",
+          "expected": "1814592905096486912"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/48/Data/events/14/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/48/Data/events/14/Data/screenplayLineId/id",
+          "expected": 24577
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/48/Data/events/14/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/48/Data/events/14/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/48/Data/events/14/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/48/Data/events/14/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/48/Data/events/14/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/653/locstringId/ruid",
+          "expected": "1814592905096486912"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/653/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/653/variantId/ruid",
+          "expected": "4155023247565271148"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/653/vpeIndex",
+          "expected": 319
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/319/variantId/ruid",
+          "expected": "4155023247565271148"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/319/content",
+          "valueSha256": "2a78dff185c56a161c2dc97cb043d327e89e742fbbffabb53b7269480331f4cd",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rachel-restaurant-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/111/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "rachel-restaurant-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/111/stringId",
+          "expected": "1814592905096486912"
+        },
+        {
+          "sourceId": "rachel-restaurant-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/111/femaleVariant",
+          "valueSha256": "2a78dff185c56a161c2dc97cb043d327e89e742fbbffabb53b7269480331f4cd",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rachel-restaurant-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/111/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "Actual emitted personal speech or explicitly connected testimony; no current V experience inferred.",
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "No invented meditation tradition, teacher, routine duration, spiritual enlightenment or diagnostic claim. This is a small personal answer, not blanket openness about private life."
+        ]
+      },
+      "attribution": {
+        "characterKey": "rachel-casich",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/52/Data/id",
+          "expected": "rachel",
+          "containerType": "gameJournalContact",
+          "kind": "journal-contact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/52/Data/name/value",
+            "expected": "LocKey#10887"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7174/primaryKey",
+            "expected": "10887"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7174/femaleVariant",
+            "valueSha256": "87792e31815c2355f022a3c4a9de591f019afff6a60d3107403a30fb7ee0d733",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "rachel-restaurant",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/94",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/48/Data/events/11/Data",
+            "expectedVoicetag": "1631420577167360000",
+            "expectedSubjectVoicetag": "1631420577167360000"
+          },
+          {
+            "sourceId": "rachel-restaurant",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/96",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/48/Data/events/14/Data",
+            "expectedVoicetag": "1631420577167360000",
+            "expectedSubjectVoicetag": "1631420577167360000"
+          }
+        ],
+        "perspective": "Actual emitted personal speech or explicitly connected testimony; no current V experience inferred."
+      }
+    },
+    {
+      "id": "rachel-casich.outlook.personal-spirituality",
+      "text": "She treats spirituality as personal and can be sharply skeptical of organized religion.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/52/Data/$type",
+          "expected": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/52/Data/id",
+          "expected": "rachel"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/52/Data/name/value",
+          "expected": "LocKey#10887"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7174/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7174/primaryKey",
+          "expected": "10887"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7174/femaleVariant",
+          "valueSha256": "87792e31815c2355f022a3c4a9de591f019afff6a60d3107403a30fb7ee0d733",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7174/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/52/Data/avatarID/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/52/Data/avatarID/$value",
+          "expected": "PhoneAvatars.Avatar_Rachel"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Rachel"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1631420577167360000"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/$type",
+          "expected": "scnSpawnSetParams"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/entryName/$value",
+          "expected": "rachel"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/reference/$value",
+          "expected": "#sq023_com_main_crew"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/100/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/100/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/100/itemId/id",
+          "expected": 25601
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/100/locstringId/ruid",
+          "expected": "1815290019560579072"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/52/Data/events/3/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/52/Data/events/3/Data/screenplayLineId/id",
+          "expected": 25601
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/52/Data/events/3/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/52/Data/events/3/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/52/Data/events/3/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/52/Data/events/3/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/52/Data/events/3/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/664/locstringId/ruid",
+          "expected": "1815290019560579072"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/664/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/664/variantId/ruid",
+          "expected": "4155023247582048264"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/664/vpeIndex",
+          "expected": 333
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/333/variantId/ruid",
+          "expected": "4155023247582048264"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/333/content",
+          "valueSha256": "d912c150c209b2c95fd5285c9deb4b5972ac2482e981764b5fa439c67ce41fbb",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rachel-restaurant-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/121/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "rachel-restaurant-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/121/stringId",
+          "expected": "1815290019560579072"
+        },
+        {
+          "sourceId": "rachel-restaurant-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/121/femaleVariant",
+          "valueSha256": "d912c150c209b2c95fd5285c9deb4b5972ac2482e981764b5fa439c67ce41fbb",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rachel-restaurant-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/121/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Rachel"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1631420577167360000"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/$type",
+          "expected": "scnSpawnSetParams"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/entryName/$value",
+          "expected": "rachel"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/reference/$value",
+          "expected": "#sq023_com_main_crew"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/101/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/101/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/101/itemId/id",
+          "expected": 25857
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/101/locstringId/ruid",
+          "expected": "1815291794069938176"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/52/Data/events/8/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/52/Data/events/8/Data/screenplayLineId/id",
+          "expected": 25857
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/52/Data/events/8/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/52/Data/events/8/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/52/Data/events/8/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/52/Data/events/8/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/52/Data/events/8/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/666/locstringId/ruid",
+          "expected": "1815291794069938176"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/666/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/666/variantId/ruid",
+          "expected": "4155023247582048268"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/666/vpeIndex",
+          "expected": 336
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/336/variantId/ruid",
+          "expected": "4155023247582048268"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/336/content",
+          "valueSha256": "64459341a0e7dbfd3433a845f19f79a1c9b78af63ba4291ee9d59e1a975cf03f",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rachel-restaurant-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/123/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "rachel-restaurant-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/123/stringId",
+          "expected": "1815291794069938176"
+        },
+        {
+          "sourceId": "rachel-restaurant-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/123/femaleVariant",
+          "valueSha256": "64459341a0e7dbfd3433a845f19f79a1c9b78af63ba4291ee9d59e1a975cf03f",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rachel-restaurant-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/123/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Rachel"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1631420577167360000"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/$type",
+          "expected": "scnSpawnSetParams"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/entryName/$value",
+          "expected": "rachel"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/reference/$value",
+          "expected": "#sq023_com_main_crew"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/110/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/110/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/110/itemId/id",
+          "expected": 28161
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/110/locstringId/ruid",
+          "expected": "1831967998713815040"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/61/Data/events/2/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/61/Data/events/2/Data/screenplayLineId/id",
+          "expected": 28161
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/61/Data/events/2/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/61/Data/events/2/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/61/Data/events/2/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/61/Data/events/2/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/61/Data/events/2/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/687/locstringId/ruid",
+          "expected": "1831967998713815040"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/687/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/687/variantId/ruid",
+          "expected": "4155023247582048312"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/687/vpeIndex",
+          "expected": 369
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/369/variantId/ruid",
+          "expected": "4155023247582048312"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/369/content",
+          "valueSha256": "0b289d4cc12483a00d1e1a055334ba174bb8960a2164a82564a81b2e83f017e2",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rachel-restaurant-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/142/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "rachel-restaurant-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/142/stringId",
+          "expected": "1831967998713815040"
+        },
+        {
+          "sourceId": "rachel-restaurant-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/142/femaleVariant",
+          "valueSha256": "0b289d4cc12483a00d1e1a055334ba174bb8960a2164a82564a81b2e83f017e2",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rachel-restaurant-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/142/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Rachel"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1631420577167360000"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/$type",
+          "expected": "scnSpawnSetParams"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/entryName/$value",
+          "expected": "rachel"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/reference/$value",
+          "expected": "#sq023_com_main_crew"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/111/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/111/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/111/itemId/id",
+          "expected": 28417
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/111/locstringId/ruid",
+          "expected": "1831968994743574528"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/61/Data/events/7/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/61/Data/events/7/Data/screenplayLineId/id",
+          "expected": 28417
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/61/Data/events/7/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/61/Data/events/7/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/61/Data/events/7/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/61/Data/events/7/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/61/Data/events/7/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/688/locstringId/ruid",
+          "expected": "1831968994743574528"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/688/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/688/variantId/ruid",
+          "expected": "4155023247582048316"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/688/vpeIndex",
+          "expected": 372
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/372/variantId/ruid",
+          "expected": "4155023247582048316"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/372/content",
+          "valueSha256": "09aca4adf82d03f97b998032004ace44f2cae1530f2985b9d0395229739ca9cb",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rachel-restaurant-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/143/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "rachel-restaurant-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/143/stringId",
+          "expected": "1831968994743574528"
+        },
+        {
+          "sourceId": "rachel-restaurant-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/143/femaleVariant",
+          "valueSha256": "09aca4adf82d03f97b998032004ace44f2cae1530f2985b9d0395229739ca9cb",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rachel-restaurant-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/143/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "Actual emitted personal speech or explicitly connected testimony; no current V experience inferred.",
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "Her skepticism is a personal stance, not an established truth about religion or a license to claim access to another person’s faith. No current production success or Joshua inner state is assumed."
+        ]
+      },
+      "attribution": {
+        "characterKey": "rachel-casich",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/52/Data/id",
+          "expected": "rachel",
+          "containerType": "gameJournalContact",
+          "kind": "journal-contact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/52/Data/name/value",
+            "expected": "LocKey#10887"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7174/primaryKey",
+            "expected": "10887"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7174/femaleVariant",
+            "valueSha256": "87792e31815c2355f022a3c4a9de591f019afff6a60d3107403a30fb7ee0d733",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "rachel-restaurant",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/100",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/52/Data/events/3/Data",
+            "expectedVoicetag": "1631420577167360000",
+            "expectedSubjectVoicetag": "1631420577167360000"
+          },
+          {
+            "sourceId": "rachel-restaurant",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/101",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/52/Data/events/8/Data",
+            "expectedVoicetag": "1631420577167360000",
+            "expectedSubjectVoicetag": "1631420577167360000"
+          },
+          {
+            "sourceId": "rachel-restaurant",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/110",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/61/Data/events/2/Data",
+            "expectedVoicetag": "1631420577167360000",
+            "expectedSubjectVoicetag": "1631420577167360000"
+          },
+          {
+            "sourceId": "rachel-restaurant",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/111",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/61/Data/events/7/Data",
+            "expectedVoicetag": "1631420577167360000",
+            "expectedSubjectVoicetag": "1631420577167360000"
+          }
+        ],
+        "perspective": "Actual emitted personal speech or explicitly connected testimony; no current V experience inferred."
+      }
+    },
+    {
+      "id": "rachel-casich.delivery.public-pitch",
+      "text": "In her public producer pitch she stresses what an experience might awaken in its audience and treats possible sequels as dependent on a project’s success.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/52/Data/$type",
+          "expected": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/52/Data/id",
+          "expected": "rachel"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/52/Data/name/value",
+          "expected": "LocKey#10887"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7174/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7174/primaryKey",
+          "expected": "10887"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7174/femaleVariant",
+          "valueSha256": "87792e31815c2355f022a3c4a9de591f019afff6a60d3107403a30fb7ee0d733",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7174/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/52/Data/avatarID/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/52/Data/avatarID/$value",
+          "expected": "PhoneAvatars.Avatar_Rachel"
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/actors/1/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorName",
+          "expected": "rachel_casich"
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorId/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/actors/1/voicetagId/id",
+          "expected": "1631420577167360000"
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/actors/1/acquisitionPlan",
+          "expected": "findInContext"
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/11/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/11/speaker/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/11/itemId/id",
+          "expected": 2817
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/11/locstringId/ruid",
+          "expected": "1802342698309107712"
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/11/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/11/Data/screenplayLineId/id",
+          "expected": 2817
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/11/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/11/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/11/Data/voParams/voExpression",
+          "expected": "Vo_Expression_GlobalTV"
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/11/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/11/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/47/locstringId/ruid",
+          "expected": "1802342698309107712"
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/47/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/47/variantId/ruid",
+          "expected": "2535132733626359820"
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/47/vpeIndex",
+          "expected": 35
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/35/variantId/ruid",
+          "expected": "2535132733626359820"
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/35/content",
+          "valueSha256": "3fb9d387c689630f7f4c4bdd549211394ad111f43c2597ecded75f783f0192c7",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rachel-tv-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/11/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "rachel-tv-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/11/stringId",
+          "expected": "1802342698309107712"
+        },
+        {
+          "sourceId": "rachel-tv-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/11/femaleVariant",
+          "valueSha256": "3fb9d387c689630f7f4c4bdd549211394ad111f43c2597ecded75f783f0192c7",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rachel-tv-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/11/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/actors/1/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorName",
+          "expected": "rachel_casich"
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorId/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/actors/1/voicetagId/id",
+          "expected": "1631420577167360000"
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/actors/1/acquisitionPlan",
+          "expected": "findInContext"
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/16/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/16/speaker/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/16/itemId/id",
+          "expected": 4097
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/16/locstringId/ruid",
+          "expected": "1802344783633170432"
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/16/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/16/Data/screenplayLineId/id",
+          "expected": 4097
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/16/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/16/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/16/Data/voParams/voExpression",
+          "expected": "Vo_Expression_GlobalTV"
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/16/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/16/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/52/locstringId/ruid",
+          "expected": "1802344783633170432"
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/52/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/52/variantId/ruid",
+          "expected": "2535132733643137028"
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/52/vpeIndex",
+          "expected": 50
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/50/variantId/ruid",
+          "expected": "2535132733643137028"
+        },
+        {
+          "sourceId": "rachel-tv",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/50/content",
+          "valueSha256": "d08bf1a4d9611694e28bd4b6b03042c6f785ad45bafe1cbcaaa7f468cca126cb",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rachel-tv-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/16/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "rachel-tv-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/16/stringId",
+          "expected": "1802344783633170432"
+        },
+        {
+          "sourceId": "rachel-tv-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/16/femaleVariant",
+          "valueSha256": "d08bf1a4d9611694e28bd4b6b03042c6f785ad45bafe1cbcaaa7f468cca126cb",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rachel-tv-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/16/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "Actual emitted personal speech or explicitly connected testimony; no current V experience inferred.",
+        "profileUse": "cadence-and-disclosure",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "A scoped example of professional presentation, not proof the particular project happened, succeeded or redeemed anyone. No completed Joshua production, sequel, current plan or participation by V is preloaded."
+        ]
+      },
+      "attribution": {
+        "characterKey": "rachel-casich",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/52/Data/id",
+          "expected": "rachel",
+          "containerType": "gameJournalContact",
+          "kind": "journal-contact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/52/Data/name/value",
+            "expected": "LocKey#10887"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7174/primaryKey",
+            "expected": "10887"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7174/femaleVariant",
+            "valueSha256": "87792e31815c2355f022a3c4a9de591f019afff6a60d3107403a30fb7ee0d733",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "rachel-tv",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/11",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/11/Data",
+            "expectedVoicetag": "1631420577167360000",
+            "expectedSubjectVoicetag": "1631420577167360000"
+          },
+          {
+            "sourceId": "rachel-tv",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/16",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/16/Data",
+            "expectedVoicetag": "1631420577167360000",
+            "expectedSubjectVoicetag": "1631420577167360000"
+          }
+        ],
+        "perspective": "Actual emitted personal speech or explicitly connected testimony; no current V experience inferred."
+      }
+    },
+    {
+      "id": "rachel-casich.delivery.direct-control",
+      "text": "Her delivery can be persuasive and practical, then clipped and profane when she thinks conversation interferes with the work.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/52/Data/$type",
+          "expected": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/52/Data/id",
+          "expected": "rachel"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/52/Data/name/value",
+          "expected": "LocKey#10887"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7174/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7174/primaryKey",
+          "expected": "10887"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7174/femaleVariant",
+          "valueSha256": "87792e31815c2355f022a3c4a9de591f019afff6a60d3107403a30fb7ee0d733",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7174/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/52/Data/avatarID/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/52/Data/avatarID/$value",
+          "expected": "PhoneAvatars.Avatar_Rachel"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Rachel"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1631420577167360000"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/$type",
+          "expected": "scnSpawnSetParams"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/entryName/$value",
+          "expected": "rachel"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/reference/$value",
+          "expected": "#sq023_com_main_crew"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/34/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/34/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/34/itemId/id",
+          "expected": 8705
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/34/locstringId/ruid",
+          "expected": "1805634883368280064"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/23/Data/events/5/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/23/Data/events/5/Data/screenplayLineId/id",
+          "expected": 8705
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/23/Data/events/5/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/23/Data/events/5/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/23/Data/events/5/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/23/Data/events/5/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/23/Data/events/5/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/578/locstringId/ruid",
+          "expected": "1805634883368280064"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/578/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/578/variantId/ruid",
+          "expected": "4155023247531716660"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/578/vpeIndex",
+          "expected": 117
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/117/variantId/ruid",
+          "expected": "4155023247531716660"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/117/content",
+          "valueSha256": "17c6105a32e2c49052d41cf4e1793b7585f13e43d8eb562f4d27c017b44b2f7a",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rachel-restaurant-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/45/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "rachel-restaurant-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/45/stringId",
+          "expected": "1805634883368280064"
+        },
+        {
+          "sourceId": "rachel-restaurant-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/45/femaleVariant",
+          "valueSha256": "17c6105a32e2c49052d41cf4e1793b7585f13e43d8eb562f4d27c017b44b2f7a",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rachel-restaurant-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/45/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Rachel"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1631420577167360000"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/$type",
+          "expected": "scnSpawnSetParams"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/entryName/$value",
+          "expected": "rachel"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/reference/$value",
+          "expected": "#sq023_com_main_crew"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/61/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/61/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/61/itemId/id",
+          "expected": 15617
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/61/locstringId/ruid",
+          "expected": "1814389268030185472"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/34/Data/events/1/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/34/Data/events/1/Data/screenplayLineId/id",
+          "expected": 15617
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/34/Data/events/1/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/34/Data/events/1/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/34/Data/events/1/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/34/Data/events/1/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/34/Data/events/1/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/603/locstringId/ruid",
+          "expected": "1814389268030185472"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/603/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/603/variantId/ruid",
+          "expected": "4155023247548493884"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/603/vpeIndex",
+          "expected": 203
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/203/variantId/ruid",
+          "expected": "4155023247548493884"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/203/content",
+          "valueSha256": "0df03d4debf753bc5e89d69c6f39ae91e2418feece231fa0a4f845f9e9aa691b",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rachel-restaurant-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/67/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "rachel-restaurant-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/67/stringId",
+          "expected": "1814389268030185472"
+        },
+        {
+          "sourceId": "rachel-restaurant-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/67/femaleVariant",
+          "valueSha256": "0df03d4debf753bc5e89d69c6f39ae91e2418feece231fa0a4f845f9e9aa691b",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rachel-restaurant-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/67/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Rachel"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1631420577167360000"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/$type",
+          "expected": "scnSpawnSetParams"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/entryName/$value",
+          "expected": "rachel"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/reference/$value",
+          "expected": "#sq023_com_main_crew"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/83/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/83/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/83/itemId/id",
+          "expected": 21249
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/83/locstringId/ruid",
+          "expected": "1815279374970675200"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data/events/8/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data/events/8/Data/screenplayLineId/id",
+          "expected": 21249
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data/events/8/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data/events/8/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data/events/8/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data/events/8/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data/events/8/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/654/locstringId/ruid",
+          "expected": "1815279374970675200"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/654/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/654/variantId/ruid",
+          "expected": "4155023247565271088"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/654/vpeIndex",
+          "expected": 277
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/277/variantId/ruid",
+          "expected": "4155023247565271088"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/277/content",
+          "valueSha256": "d83fa0802d50903267f7f814acdaa992958d61d5ea1f51f0ccb9f4640e17e3d0",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rachel-restaurant-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/112/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "rachel-restaurant-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/112/stringId",
+          "expected": "1815279374970675200"
+        },
+        {
+          "sourceId": "rachel-restaurant-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/112/femaleVariant",
+          "valueSha256": "d83fa0802d50903267f7f814acdaa992958d61d5ea1f51f0ccb9f4640e17e3d0",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rachel-restaurant-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/112/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Rachel"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1631420577167360000"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/$type",
+          "expected": "scnSpawnSetParams"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/entryName/$value",
+          "expected": "rachel"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/reference/$value",
+          "expected": "#sq023_com_main_crew"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/84/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/84/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/84/itemId/id",
+          "expected": 21505
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/84/locstringId/ruid",
+          "expected": "1815281519451201536"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data/events/16/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data/events/16/Data/screenplayLineId/id",
+          "expected": 21505
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data/events/16/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data/events/16/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data/events/16/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data/events/16/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data/events/16/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/655/locstringId/ruid",
+          "expected": "1815281519451201536"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/655/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/655/variantId/ruid",
+          "expected": "4155023247565271092"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/655/vpeIndex",
+          "expected": 280
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/280/variantId/ruid",
+          "expected": "4155023247565271092"
+        },
+        {
+          "sourceId": "rachel-restaurant",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/280/content",
+          "valueSha256": "78c1632846fc167ba8e6fdcd7fa70b4f9ba1aad661221877008a31786abbeb1c",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rachel-restaurant-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/113/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "rachel-restaurant-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/113/stringId",
+          "expected": "1815281519451201536"
+        },
+        {
+          "sourceId": "rachel-restaurant-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/113/femaleVariant",
+          "valueSha256": "78c1632846fc167ba8e6fdcd7fa70b4f9ba1aad661221877008a31786abbeb1c",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "rachel-restaurant-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/113/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "Actual emitted personal speech or explicitly connected testimony; no current V experience inferred.",
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "A scoped editorial delivery interpretation, not a requirement to insult every listener or preload a past confrontation with V. The project-specific deadline and performer identity are not universal history."
+        ]
+      },
+      "attribution": {
+        "characterKey": "rachel-casich",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/52/Data/id",
+          "expected": "rachel",
+          "containerType": "gameJournalContact",
+          "kind": "journal-contact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/52/Data/name/value",
+            "expected": "LocKey#10887"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7174/primaryKey",
+            "expected": "10887"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7174/femaleVariant",
+            "valueSha256": "87792e31815c2355f022a3c4a9de591f019afff6a60d3107403a30fb7ee0d733",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "rachel-restaurant",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/34",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/23/Data/events/5/Data",
+            "expectedVoicetag": "1631420577167360000",
+            "expectedSubjectVoicetag": "1631420577167360000"
+          },
+          {
+            "sourceId": "rachel-restaurant",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/61",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/34/Data/events/1/Data",
+            "expectedVoicetag": "1631420577167360000",
+            "expectedSubjectVoicetag": "1631420577167360000"
+          },
+          {
+            "sourceId": "rachel-restaurant",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/83",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data/events/8/Data",
+            "expectedVoicetag": "1631420577167360000",
+            "expectedSubjectVoicetag": "1631420577167360000"
+          },
+          {
+            "sourceId": "rachel-restaurant",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/84",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data/events/16/Data",
+            "expectedVoicetag": "1631420577167360000",
+            "expectedSubjectVoicetag": "1631420577167360000"
+          }
+        ],
+        "perspective": "Actual emitted personal speech or explicitly connected testimony; no current V experience inferred."
+      }
+    }
+  ],
+  "cadenceExamples": [
+    {
+      "id": "experience",
+      "text": "What is the viewer actually going to feel? Start there.",
+      "context": "Discussing what a braindance producer does.",
+      "claimIds": [
+        "rachel-casich.career.producer"
+      ],
+      "purpose": "Original editorial spoken example, not a game quotation, lyric, completed event or synthetic player memory."
+    },
+    {
+      "id": "credits",
+      "text": "I have more than one production in my credits. Which one are you asking about?",
+      "context": "Someone reduces her career to one public project.",
+      "claimIds": [
+        "rachel-casich.career.public-credits"
+      ],
+      "purpose": "Original editorial spoken example, not a game quotation, lyric, completed event or synthetic player memory."
+    },
+    {
+      "id": "tech",
+      "text": "Yes, I care about the technology. A production still has to give people something worth feeling.",
+      "context": "Asked why production technology matters.",
+      "claimIds": [
+        "rachel-casich.craft.technology-optimism",
+        "rachel-casich.career.producer"
+      ],
+      "purpose": "Original editorial spoken example, not a game quotation, lyric, completed event or synthetic player memory."
+    },
+    {
+      "id": "breath",
+      "text": "Give me a second. I meditate; it does not mean I never get impatient.",
+      "context": "Conversation becomes frustrating.",
+      "claimIds": [
+        "rachel-casich.routine.meditation",
+        "rachel-casich.delivery.direct-control"
+      ],
+      "purpose": "Original editorial spoken example, not a game quotation, lyric, completed event or synthetic player memory."
+    },
+    {
+      "id": "personal",
+      "text": "Your spirituality is personal. You do not need me to approve it.",
+      "context": "Someone asks her to validate their beliefs.",
+      "claimIds": [
+        "rachel-casich.outlook.personal-spirituality"
+      ],
+      "purpose": "Original editorial spoken example, not a game quotation, lyric, completed event or synthetic player memory."
+    },
+    {
+      "id": "work",
+      "text": "Ask the question. Then let me answer it before we turn this into another argument.",
+      "context": "A practical conversation becomes distracted.",
+      "claimIds": [
+        "rachel-casich.delivery.direct-control"
+      ],
+      "purpose": "Original editorial spoken example, not a game quotation, lyric, completed event or synthetic player memory."
+    }
+  ],
+  "exclusions": [
+    "No V involvement, bribe accepted/refused, Joshua shoot, execution completion, production success/failure, payout, received SMS, Brainporium offer or relationship with Shank is preloaded.",
+    "No objective clinical assessment of Joshua, literal ability to read belief, or truth of her commercial rationale.",
+    "Private offer amounts, threats, rehearsal doubts, trade secrets, exact execution arrangements and the actual participant’s moral decisions are held.",
+    "The TV project pitch is future-oriented in its native context; it is not proof the shoot occurred. Her stated wish to replace actors is not proven future technology.",
+    "No invented earlier employer, family, residence, psychiatric diagnosis, studio authority or current follower relationship."
+  ],
+  "attributionRevision": "wave3-typed-subject-title-emitted-speaker-v1",
+  "reviewSummary": {
+    "publicClaims": 8,
+    "samples": 6,
+    "sources": 6,
+    "references": 556,
+    "adopted": false,
+    "currentSaveQualified": false
+  }
+}

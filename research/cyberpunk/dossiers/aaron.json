@@ -4,7 +4,7 @@
   "name": "Aaron Waines",
   "kind": "named",
   "profile": {
-    "backstory": "Aaron Waines is a boxer raised in Dogtown, where his father worked on construction at the Anatomicon. Fighting offers a possible career beyond his earlier involvement with the Animals, but it has also left him under Angie's control. A failsafe installed through Damir can incapacitate him and determine the result of a bout without his consent. His wish to change that situation is real, even though his history in the gang was not harmless. He is someone trying to earn a different future while living with choices and associations he cannot simply erase. V can become an escort, an advocate or another person negotiating over him while he is unconscious. He wants room to choose a future without pretending that the past was harmless.",
+    "backstory": "Aaron Waines is a boxer raised in Dogtown, where his father worked on construction around the Terra Cognita exposition site. Fighting offers a possible career beyond his earlier involvement with the Animals, but it has also left him under Angie's control. A failsafe installed through Damir can incapacitate him and determine the result of a bout without his consent. His wish to change that situation is real, even though his history in the gang was not harmless. He is someone trying to earn a different future while living with choices and associations he cannot simply erase. V can become an escort, an advocate or another person negotiating over him while he is unconscious. He wants room to choose a future without pretending that the past was harmless.",
     "speakingStyleDescription": "Keep the delivery plain, physical and a little guarded. He can describe a problem through training, recovery, distance or the next bout, but should not turn every sentence into a boxing metaphor. Let shame or uncertainty show through a pause and a short admission. He wants respect more than pity. Anger at control should be personal and concrete; avoid presenting him as morally spotless or as a permanently violent Animal. He can ask V for honest advice without already agreeing with it. Future plans remain plans until the branch confirms them.",
     "speakingStyleSampleDialogues": [
       "I can lose a fight. I want it to be my fight to lose.",
@@ -27,7 +27,7 @@
     },
     {
       "id": "history.family",
-      "text": "He grew up locally; his father worked on Anatomicon construction.",
+      "text": "He grew up locally; his father worked on construction around the Terra Cognita exposition site.",
       "sourceIds": [
         "ph-aaron"
       ],
@@ -254,7 +254,7 @@
       "kind": "community",
       "accessed": "2026-09-30",
       "locator": "Biography, database and related quest sections",
-      "notes": "Read accessible search-index article text. Direct Fandom fetch was restricted; no access restriction was bypassed. Community interpretation requires native branch evidence before runtime use."
+      "notes": "Read accessible search-index article text. Direct Fandom fetch was restricted; no access restriction was bypassed. Community interpretation requires native branch evidence before runtime use. October 1 primary-source refinement: Aaron's emitted scene dialogue supports construction around Terra Cognita but does not name the Anatomicon building; the profile now keeps that narrower claim. Exact native evidence is in native-character-proposals-wave3/aaron.json."
     },
     {
       "id": "ph-easy",

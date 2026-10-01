@@ -1,0 +1,1966 @@
+{
+  "schemaVersion": 1,
+  "characterKey": "spider-murphy",
+  "name": "Spider Murphy",
+  "gameVersion": "2.31",
+  "locale": "en_us",
+  "reviewedAt": "2026-10-01",
+  "status": "authoring-proposal-not-adopted",
+  "purpose": "Era-bound public topic material and delivery from attributed native historical portrayal; no new current-save outcomes or automatic memory.",
+  "nativeTool": {
+    "name": "WolvenKit.CLI",
+    "version": "9.0.1",
+    "sha256": "7ae9c308da2fe003220b55ce4ca9c122b51f0701a67db1618cca3ff4f7ff6738"
+  },
+  "sourcePolicy": {
+    "primary": "Winning installed gameJournalContact/name-to-English identity plus exact historical actor, emitted VO event, embedded en_us payload and independently fresh shipped subtitle joins.",
+    "nativeNarrative": "The subject's represented speech remains Johnny's subjective historical portrayal; an editorial persona boundary is not independent dating proof.",
+    "privacy": "Use only a brief relevant public detail. Private family, intimacy, hidden technical knowledge and modern player outcomes are excluded.",
+    "examples": "Original editorial delivery examples, not game quotations. No speaker-name prefixes, fabricated player lines, lyrics, conversations or memory seeding.",
+    "promotion": "Root must independently review this proposal and the exact contact/actor alias ledger before adoption. It changes no roster, generated output, cloud, game, memory or voice profile.",
+    "eraBoundary": "2023-era historical reconstruction"
+  },
+  "sources": [
+    {
+      "id": "journal",
+      "depotPath": "base\\journal\\cooked_journal.journal",
+      "archivePath": "archive/pc/ep1/ep1_2_gamedata.archive",
+      "pathHash64": "17440916468644548477",
+      "archiveEntrySha1": "be95e34f16d4d1044e5e0104174a1038c02e57e0",
+      "rawFile": "runtime/johnny-intrinsic-evidence/localization/raw/ep1/base/journal/cooked_journal.journal",
+      "rawSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+      "jsonFile": "runtime/johnny-intrinsic-evidence/localization/raw/ep1/base/journal/cooked_journal.journal.json",
+      "jsonSha256": "0d6e12fd9503f68c4cc405f19b49b6b708bb24a15f66c8ce92b01235d6b5240b",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "english",
+      "depotPath": "base\\localization\\en-us\\onscreens\\onscreens_final.json",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "8698305399991417048",
+      "archiveEntrySha1": "1131d968cfae38ebf79242e24aadafc051545992",
+      "rawFile": "runtime/johnny-intrinsic-evidence/localization/raw/base/base/localization/en-us/onscreens/onscreens_final.json",
+      "rawSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+      "jsonFile": "runtime/johnny-intrinsic-evidence/localization/raw/base/base/localization/en-us/onscreens/onscreens_final.json.json",
+      "jsonSha256": "acf260ca5575b8628dc5161dad9b7b46004a1b1afcf3e71facb532eb31f77a92",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "q101_06c_memories_p2",
+      "depotPath": "base\\quest\\main_quests\\part1\\q101\\scenes\\q101_06c_memories_p2.scene",
+      "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+      "pathHash64": "16126220819294833001",
+      "archiveEntrySha1": "8dee66b4ef47fe677ef0dc89df83ad7399ed0a36",
+      "rawFile": "runtime/voice-cast/silverhand-cast/scenes/flashback-actors/raw/base/base/quest/main_quests/part1/q101/scenes/q101_06c_memories_p2.scene",
+      "rawSha256": "ba27ef78c443d8a1928db510b8d606d2e9d05b862af09117e50301e74cda2b27",
+      "jsonFile": "runtime/voice-cast/silverhand-cast/scenes/flashback-actors/raw/base/base/quest/main_quests/part1/q101/scenes/q101_06c_memories_p2.scene.json",
+      "jsonSha256": "cff00723ec09e314bb434ab29040ea3ca03dc2d61db8c294414d3a822a1c751e",
+      "inventoryPath": "runtime/voice-cast/silverhand-cast/scenes/flashback-actors/inventory.json",
+      "inventorySha256": "11c3fc83846b58dfaa33fdf9e57e82d17dda5f67c8db78cd0dedf5e34c4d5298",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "q101_06c_memories_p2-subtitle",
+      "depotPath": "base\\localization\\en-us\\subtitles\\quest\\q101\\q101_06c_memories_p2.json",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "5830746719142850081",
+      "archiveEntrySha1": "3ecd616525b15b3c3a48435be28c13f1552ed73b",
+      "rawFile": "runtime/voice-cast/silverhand-cast/scenes/intrinsic-flashback-wave3-localization/raw/base/base/localization/en-us/subtitles/quest/q101/q101_06c_memories_p2.json",
+      "rawSha256": "498b279a3d172af9b4eea5533a2263a7f7140b1c76ebfbc29bed3fc4bde0be21",
+      "jsonFile": "runtime/voice-cast/silverhand-cast/scenes/intrinsic-flashback-wave3-localization/raw/base/base/localization/en-us/subtitles/quest/q101/q101_06c_memories_p2.json.json",
+      "jsonSha256": "c4b6cb8c267981b8435f8e657a5f28e64055dd29f822e8d16d617754a23b2f74",
+      "inventoryPath": "runtime/voice-cast/silverhand-cast/scenes/intrinsic-flashback-wave3-localization/inventory.json",
+      "inventorySha256": "9835a07e7a9cebab3074f8bf8dae511c149e459f5f2213ead1e8b1f98da32446",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    }
+  ],
+  "claims": [
+    {
+      "id": "spider-murphy.work.protocol-details",
+      "text": "Johnny's tower recollection portrays Spider Murphy paying attention to an ICEbreaker's origin and the subnet protocol needed to make an intrusion work.",
+      "kind": "intrinsic",
+      "disclosure": "only-with-explicit-memory-perspective",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/11/Data/$type",
+          "expected": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/11/Data/id",
+          "expected": "spider_murphy"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/11/Data/name/value",
+          "expected": "LocKey#22060"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/11/Data/avatarID/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/11/Data/avatarID/$value",
+          "expected": "PhoneAvatars.Avatar_Spider"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/16275/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/16275/primaryKey",
+          "expected": "22060"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/16275/femaleVariant",
+          "valueSha256": "eca9f635fdbd26358e4a5b551930ab507c81ab171c2de3a424d374f7a52fc21b",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/16275/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/actors/7/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/actors/7/actorId/id",
+          "expected": 7
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/actors/7/actorName",
+          "expected": "netrunner_phone"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/actors/7/voicetagId/id",
+          "expected": "1624173162010259956"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/actors/7/acquisitionPlan",
+          "expected": "findInContext"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/actors/7/findActorInContextParams/$type",
+          "expected": "scnFindEntityInContextParams"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/actors/7/findActorInContextParams/contextualName",
+          "expected": "Voice"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/actors/7/findActorInContextParams/contextActorName/$value",
+          "expected": "LocKey#32275"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/actors/7/findActorInContextParams/specRecordId/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/actors/7/findActorInContextParams/specRecordId/$value",
+          "expected": "Character.q101_spider_murphy"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/actors/7/findActorInContextParams/voiceVagId/id",
+          "expected": "1624173162010259956"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/4/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/4/speaker/id",
+          "expected": 7
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/4/itemId/id",
+          "expected": 1025
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/4/locstringId/ruid",
+          "expected": "1770789571952926720"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/0/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/0/Data/screenplayLineId/id",
+          "expected": 1025
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/0/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/0/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/0/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Phone"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/0/Data/voParams/isHolocallSpeaker",
+          "expected": 1
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/368/locstringId/ruid",
+          "expected": "1770789571952926720"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/368/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/368/variantId/ruid",
+          "expected": "4054964538860953616"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/368/vpeIndex",
+          "expected": 19
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/19/variantId/ruid",
+          "expected": "4054964538860953616"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/19/content",
+          "valueSha256": "279b427a6e6d0d453da6ecd2f9646e9b85cac88bba2a6273b1831119f47a457c",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/63/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/63/stringId",
+          "expected": "1770789571952926720"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/63/femaleVariant",
+          "valueSha256": "279b427a6e6d0d453da6ecd2f9646e9b85cac88bba2a6273b1831119f47a457c",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/63/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/$type",
+          "expected": "scnPlayerActorDef"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/actorId/id",
+          "expected": 17
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/playerName",
+          "expected": "Johnny"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$value",
+          "expected": "Character.johnny_replacer"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/voicetagId/id",
+          "expected": "1103967280742240508"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "johnny-represented-historical-memory-portrayal",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "This is an inference from the subject's portrayal in Johnny's memory, not independent proof of the exact historical exchange. It establishes no meeting, contract, trust or event with this V.",
+          "This is portrayed technical attention in the 2023-era frame. Do not grant automatic access to modern networks, current Arasaka secrets or every kind of ICE."
+        ]
+      },
+      "attribution": {
+        "characterKey": "spider-murphy",
+        "mode": "third-party-report",
+        "subjectRef": {
+          "kind": "journal-contact",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/11/Data/id",
+          "expected": "spider_murphy",
+          "containerType": "gameJournalContact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/11/Data/name/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/16275/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/16275/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "q101_06c_memories_p2",
+            "actorPointer": "/Data/RootChunk/actors/7",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/4",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/0/Data",
+            "expectedVoicetag": "1624173162010259956",
+            "expectedSubjectVoicetag": "1624173162010259956",
+            "speakerRole": "subject-portrayed-within-johnny-recollection",
+            "expectedSubjectRecord": "Character.q101_spider_murphy"
+          }
+        ],
+        "perspective": "The actual subject's portrayed speech within Johnny's represented historical memory, not independent historical footage.",
+        "subjectConnection": "The exact named or active canonical-record actor speaks these emitted lines inside the native Johnny player frame; the real typed phone contact supplies individual identity, not present-day survival.",
+        "sourceFrameRefs": [
+          {
+            "sourceId": "q101_06c_memories_p2",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/$type"
+          },
+          {
+            "sourceId": "q101_06c_memories_p2",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/actorId/id"
+          },
+          {
+            "sourceId": "q101_06c_memories_p2",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/playerName"
+          },
+          {
+            "sourceId": "q101_06c_memories_p2",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$type"
+          },
+          {
+            "sourceId": "q101_06c_memories_p2",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$value"
+          },
+          {
+            "sourceId": "q101_06c_memories_p2",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/voicetagId/id"
+          }
+        ]
+      }
+    },
+    {
+      "id": "spider-murphy.delivery.playful-metaphor",
+      "text": "Johnny's tower recollection portrays Spider Murphy answering technical work with playful spider-and-prey imagery rather than a dry lecture.",
+      "kind": "intrinsic",
+      "disclosure": "only-with-explicit-memory-perspective",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/11/Data/$type",
+          "expected": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/11/Data/id",
+          "expected": "spider_murphy"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/11/Data/name/value",
+          "expected": "LocKey#22060"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/11/Data/avatarID/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/11/Data/avatarID/$value",
+          "expected": "PhoneAvatars.Avatar_Spider"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/16275/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/16275/primaryKey",
+          "expected": "22060"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/16275/femaleVariant",
+          "valueSha256": "eca9f635fdbd26358e4a5b551930ab507c81ab171c2de3a424d374f7a52fc21b",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/16275/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/actors/7/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/actors/7/actorId/id",
+          "expected": 7
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/actors/7/actorName",
+          "expected": "netrunner_phone"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/actors/7/voicetagId/id",
+          "expected": "1624173162010259956"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/actors/7/acquisitionPlan",
+          "expected": "findInContext"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/actors/7/findActorInContextParams/$type",
+          "expected": "scnFindEntityInContextParams"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/actors/7/findActorInContextParams/contextualName",
+          "expected": "Voice"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/actors/7/findActorInContextParams/contextActorName/$value",
+          "expected": "LocKey#32275"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/actors/7/findActorInContextParams/specRecordId/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/actors/7/findActorInContextParams/specRecordId/$value",
+          "expected": "Character.q101_spider_murphy"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/actors/7/findActorInContextParams/voiceVagId/id",
+          "expected": "1624173162010259956"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/6/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/6/speaker/id",
+          "expected": 7
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/6/itemId/id",
+          "expected": 1537
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/6/locstringId/ruid",
+          "expected": "1770791197581271040"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/2/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/2/Data/screenplayLineId/id",
+          "expected": 1537
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/2/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/2/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/2/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Phone"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/2/Data/voParams/isHolocallSpeaker",
+          "expected": 1
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/370/locstringId/ruid",
+          "expected": "1770791197581271040"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/370/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/370/variantId/ruid",
+          "expected": "4054964538860953624"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/370/vpeIndex",
+          "expected": 27
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/27/variantId/ruid",
+          "expected": "4054964538860953624"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/27/content",
+          "valueSha256": "b7f97cfe903c7882f335f3d2c1e891ea9521a6c7b3522b9f6f14952c4a22419a",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/65/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/65/stringId",
+          "expected": "1770791197581271040"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/65/femaleVariant",
+          "valueSha256": "b7f97cfe903c7882f335f3d2c1e891ea9521a6c7b3522b9f6f14952c4a22419a",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/65/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/$type",
+          "expected": "scnPlayerActorDef"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/actorId/id",
+          "expected": 17
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/playerName",
+          "expected": "Johnny"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$value",
+          "expected": "Character.johnny_replacer"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/voicetagId/id",
+          "expected": "1103967280742240508"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "johnny-represented-historical-memory-portrayal",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "This is an inference from the subject's portrayal in Johnny's memory, not independent proof of the exact historical exchange. It establishes no meeting, contract, trust or event with this V.",
+          "The delivery example supports occasional playful imagery, not constant catchphrases, song lyrics, or proof that all operations are games to her."
+        ]
+      },
+      "attribution": {
+        "characterKey": "spider-murphy",
+        "mode": "third-party-report",
+        "subjectRef": {
+          "kind": "journal-contact",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/11/Data/id",
+          "expected": "spider_murphy",
+          "containerType": "gameJournalContact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/11/Data/name/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/16275/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/16275/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "q101_06c_memories_p2",
+            "actorPointer": "/Data/RootChunk/actors/7",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/6",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/2/Data",
+            "expectedVoicetag": "1624173162010259956",
+            "expectedSubjectVoicetag": "1624173162010259956",
+            "speakerRole": "subject-portrayed-within-johnny-recollection",
+            "expectedSubjectRecord": "Character.q101_spider_murphy"
+          }
+        ],
+        "perspective": "The actual subject's portrayed speech within Johnny's represented historical memory, not independent historical footage.",
+        "subjectConnection": "The exact named or active canonical-record actor speaks these emitted lines inside the native Johnny player frame; the real typed phone contact supplies individual identity, not present-day survival.",
+        "sourceFrameRefs": [
+          {
+            "sourceId": "q101_06c_memories_p2",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/$type"
+          },
+          {
+            "sourceId": "q101_06c_memories_p2",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/actorId/id"
+          },
+          {
+            "sourceId": "q101_06c_memories_p2",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/playerName"
+          },
+          {
+            "sourceId": "q101_06c_memories_p2",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$type"
+          },
+          {
+            "sourceId": "q101_06c_memories_p2",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$value"
+          },
+          {
+            "sourceId": "q101_06c_memories_p2",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/voicetagId/id"
+          }
+        ]
+      }
+    },
+    {
+      "id": "spider-murphy.work.completion-and-exit",
+      "text": "Johnny's tower recollection portrays Spider Murphy giving a clear completion update and directing the person on site to leave once her task is done.",
+      "kind": "intrinsic",
+      "disclosure": "only-with-explicit-memory-perspective",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/11/Data/$type",
+          "expected": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/11/Data/id",
+          "expected": "spider_murphy"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/11/Data/name/value",
+          "expected": "LocKey#22060"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/11/Data/avatarID/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/11/Data/avatarID/$value",
+          "expected": "PhoneAvatars.Avatar_Spider"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/16275/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/16275/primaryKey",
+          "expected": "22060"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/16275/femaleVariant",
+          "valueSha256": "eca9f635fdbd26358e4a5b551930ab507c81ab171c2de3a424d374f7a52fc21b",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/16275/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/actors/7/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/actors/7/actorId/id",
+          "expected": 7
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/actors/7/actorName",
+          "expected": "netrunner_phone"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/actors/7/voicetagId/id",
+          "expected": "1624173162010259956"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/actors/7/acquisitionPlan",
+          "expected": "findInContext"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/actors/7/findActorInContextParams/$type",
+          "expected": "scnFindEntityInContextParams"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/actors/7/findActorInContextParams/contextualName",
+          "expected": "Voice"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/actors/7/findActorInContextParams/contextActorName/$value",
+          "expected": "LocKey#32275"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/actors/7/findActorInContextParams/specRecordId/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/actors/7/findActorInContextParams/specRecordId/$value",
+          "expected": "Character.q101_spider_murphy"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/actors/7/findActorInContextParams/voiceVagId/id",
+          "expected": "1624173162010259956"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/14/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/14/speaker/id",
+          "expected": 7
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/14/itemId/id",
+          "expected": 3585
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/14/locstringId/ruid",
+          "expected": "1770754317166862336"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/13/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/13/Data/screenplayLineId/id",
+          "expected": 3585
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/13/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/13/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/13/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Phone"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/13/Data/voParams/isHolocallSpeaker",
+          "expected": 1
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/367/locstringId/ruid",
+          "expected": "1770754317166862336"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/367/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/367/variantId/ruid",
+          "expected": "4054964538860953656"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/367/vpeIndex",
+          "expected": 59
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/59/variantId/ruid",
+          "expected": "4054964538860953656"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/59/content",
+          "valueSha256": "4a1be079ff258c2519ebbe28f73aaf58dcc6e0e366fdc34ab570cb7b7a7c07a7",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/62/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/62/stringId",
+          "expected": "1770754317166862336"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/62/femaleVariant",
+          "valueSha256": "4a1be079ff258c2519ebbe28f73aaf58dcc6e0e366fdc34ab570cb7b7a7c07a7",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/62/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/$type",
+          "expected": "scnPlayerActorDef"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/actorId/id",
+          "expected": 17
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/playerName",
+          "expected": "Johnny"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$value",
+          "expected": "Character.johnny_replacer"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/voicetagId/id",
+          "expected": "1103967280742240508"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "johnny-represented-historical-memory-portrayal",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "This is an inference from the subject's portrayal in Johnny's memory, not independent proof of the exact historical exchange. It establishes no meeting, contract, trust or event with this V.",
+          "A line of operational instruction does not independently establish the task's historical success, the tower's final outcome or current V participation."
+        ]
+      },
+      "attribution": {
+        "characterKey": "spider-murphy",
+        "mode": "third-party-report",
+        "subjectRef": {
+          "kind": "journal-contact",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/11/Data/id",
+          "expected": "spider_murphy",
+          "containerType": "gameJournalContact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/11/Data/name/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/16275/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/16275/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "q101_06c_memories_p2",
+            "actorPointer": "/Data/RootChunk/actors/7",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/14",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/13/Data",
+            "expectedVoicetag": "1624173162010259956",
+            "expectedSubjectVoicetag": "1624173162010259956",
+            "speakerRole": "subject-portrayed-within-johnny-recollection",
+            "expectedSubjectRecord": "Character.q101_spider_murphy"
+          }
+        ],
+        "perspective": "The actual subject's portrayed speech within Johnny's represented historical memory, not independent historical footage.",
+        "subjectConnection": "The exact named or active canonical-record actor speaks these emitted lines inside the native Johnny player frame; the real typed phone contact supplies individual identity, not present-day survival.",
+        "sourceFrameRefs": [
+          {
+            "sourceId": "q101_06c_memories_p2",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/$type"
+          },
+          {
+            "sourceId": "q101_06c_memories_p2",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/actorId/id"
+          },
+          {
+            "sourceId": "q101_06c_memories_p2",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/playerName"
+          },
+          {
+            "sourceId": "q101_06c_memories_p2",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$type"
+          },
+          {
+            "sourceId": "q101_06c_memories_p2",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$value"
+          },
+          {
+            "sourceId": "q101_06c_memories_p2",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/voicetagId/id"
+          }
+        ]
+      }
+    },
+    {
+      "id": "spider-murphy.work.security-and-route",
+      "text": "Johnny's tower recollection portrays Spider Murphy monitoring a failing door barrier and changing escape instructions as hostile control shifts through the building.",
+      "kind": "intrinsic",
+      "disclosure": "only-with-explicit-memory-perspective",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/11/Data/$type",
+          "expected": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/11/Data/id",
+          "expected": "spider_murphy"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/11/Data/name/value",
+          "expected": "LocKey#22060"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/11/Data/avatarID/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/11/Data/avatarID/$value",
+          "expected": "PhoneAvatars.Avatar_Spider"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/16275/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/16275/primaryKey",
+          "expected": "22060"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/16275/femaleVariant",
+          "valueSha256": "eca9f635fdbd26358e4a5b551930ab507c81ab171c2de3a424d374f7a52fc21b",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/16275/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/actors/7/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/actors/7/actorId/id",
+          "expected": 7
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/actors/7/actorName",
+          "expected": "netrunner_phone"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/actors/7/voicetagId/id",
+          "expected": "1624173162010259956"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/actors/7/acquisitionPlan",
+          "expected": "findInContext"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/actors/7/findActorInContextParams/$type",
+          "expected": "scnFindEntityInContextParams"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/actors/7/findActorInContextParams/contextualName",
+          "expected": "Voice"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/actors/7/findActorInContextParams/contextActorName/$value",
+          "expected": "LocKey#32275"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/actors/7/findActorInContextParams/specRecordId/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/actors/7/findActorInContextParams/specRecordId/$value",
+          "expected": "Character.q101_spider_murphy"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/actors/7/findActorInContextParams/voiceVagId/id",
+          "expected": "1624173162010259956"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/71/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/71/speaker/id",
+          "expected": 7
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/71/itemId/id",
+          "expected": 18177
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/71/locstringId/ruid",
+          "expected": "1786609673804345344"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/91/Data/events/0/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/91/Data/events/0/Data/screenplayLineId/id",
+          "expected": 18177
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/91/Data/events/0/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/91/Data/events/0/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/91/Data/events/0/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Phone"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/91/Data/events/0/Data/voParams/isHolocallSpeaker",
+          "expected": 1
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/377/locstringId/ruid",
+          "expected": "1786609673804345344"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/377/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/377/variantId/ruid",
+          "expected": "4054964538894508060"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/377/vpeIndex",
+          "expected": 278
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/278/variantId/ruid",
+          "expected": "4054964538894508060"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/278/content",
+          "valueSha256": "9bec46c5e1d4c291a417c6cb5c779733fedc36e1637b0380767175c6ba8ba9c4",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/72/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/72/stringId",
+          "expected": "1786609673804345344"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/72/femaleVariant",
+          "valueSha256": "9bec46c5e1d4c291a417c6cb5c779733fedc36e1637b0380767175c6ba8ba9c4",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/72/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/$type",
+          "expected": "scnPlayerActorDef"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/actorId/id",
+          "expected": 17
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/playerName",
+          "expected": "Johnny"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$value",
+          "expected": "Character.johnny_replacer"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/voicetagId/id",
+          "expected": "1103967280742240508"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/73/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/73/speaker/id",
+          "expected": 7
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/73/itemId/id",
+          "expected": 18689
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/73/locstringId/ruid",
+          "expected": "1831217882242117632"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/115/Data/events/0/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/115/Data/events/0/Data/screenplayLineId/id",
+          "expected": 18689
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/115/Data/events/0/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/115/Data/events/0/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/115/Data/events/0/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Phone"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/115/Data/events/0/Data/voParams/isHolocallSpeaker",
+          "expected": 1
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/380/locstringId/ruid",
+          "expected": "1831217882242117632"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/380/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/380/variantId/ruid",
+          "expected": "4054964538894508068"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/380/vpeIndex",
+          "expected": 286
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/286/variantId/ruid",
+          "expected": "4054964538894508068"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/286/content",
+          "valueSha256": "f63ab2d2a906357cd7b9e293da0d580c84028c22374d8542a9bd26266e8ff63f",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/75/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/75/stringId",
+          "expected": "1831217882242117632"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/75/femaleVariant",
+          "valueSha256": "f63ab2d2a906357cd7b9e293da0d580c84028c22374d8542a9bd26266e8ff63f",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/75/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/80/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/80/speaker/id",
+          "expected": 7
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/80/itemId/id",
+          "expected": 20481
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/80/locstringId/ruid",
+          "expected": "1947464762246631428"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/162/Data/events/0/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/162/Data/events/0/Data/screenplayLineId/id",
+          "expected": 20481
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/162/Data/events/0/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/162/Data/events/0/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/162/Data/events/0/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Phone"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/162/Data/events/0/Data/voParams/isHolocallSpeaker",
+          "expected": 1
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/386/locstringId/ruid",
+          "expected": "1947464762246631428"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/386/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/386/variantId/ruid",
+          "expected": "4054964538894508092"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/386/vpeIndex",
+          "expected": 311
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/311/variantId/ruid",
+          "expected": "4054964538894508092"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/311/content",
+          "valueSha256": "307065e9f186f157b5141a37b0b0bc83ead95bc2f004fe5068fb8ed3352a9c62",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/81/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/81/stringId",
+          "expected": "1947464762246631428"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/81/femaleVariant",
+          "valueSha256": "307065e9f186f157b5141a37b0b0bc83ead95bc2f004fe5068fb8ed3352a9c62",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/81/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "johnny-represented-historical-memory-portrayal",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "This is an inference from the subject's portrayal in Johnny's memory, not independent proof of the exact historical exchange. It establishes no meeting, contract, trust or event with this V.",
+          "Use the habit of reporting changing conditions. The specific tower layout, enemy movements and barrier state are historical portrayed observations, not a live map or verified neutral chronology."
+        ]
+      },
+      "attribution": {
+        "characterKey": "spider-murphy",
+        "mode": "third-party-report",
+        "subjectRef": {
+          "kind": "journal-contact",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/11/Data/id",
+          "expected": "spider_murphy",
+          "containerType": "gameJournalContact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/11/Data/name/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/16275/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/16275/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "q101_06c_memories_p2",
+            "actorPointer": "/Data/RootChunk/actors/7",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/71",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/91/Data/events/0/Data",
+            "expectedVoicetag": "1624173162010259956",
+            "expectedSubjectVoicetag": "1624173162010259956",
+            "speakerRole": "subject-portrayed-within-johnny-recollection",
+            "expectedSubjectRecord": "Character.q101_spider_murphy"
+          },
+          {
+            "sourceId": "q101_06c_memories_p2",
+            "actorPointer": "/Data/RootChunk/actors/7",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/73",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/115/Data/events/0/Data",
+            "expectedVoicetag": "1624173162010259956",
+            "expectedSubjectVoicetag": "1624173162010259956",
+            "speakerRole": "subject-portrayed-within-johnny-recollection",
+            "expectedSubjectRecord": "Character.q101_spider_murphy"
+          },
+          {
+            "sourceId": "q101_06c_memories_p2",
+            "actorPointer": "/Data/RootChunk/actors/7",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/80",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/162/Data/events/0/Data",
+            "expectedVoicetag": "1624173162010259956",
+            "expectedSubjectVoicetag": "1624173162010259956",
+            "speakerRole": "subject-portrayed-within-johnny-recollection",
+            "expectedSubjectRecord": "Character.q101_spider_murphy"
+          }
+        ],
+        "perspective": "The actual subject's portrayed speech within Johnny's represented historical memory, not independent historical footage.",
+        "subjectConnection": "The exact named or active canonical-record actor speaks these emitted lines inside the native Johnny player frame; the real typed phone contact supplies individual identity, not present-day survival.",
+        "sourceFrameRefs": [
+          {
+            "sourceId": "q101_06c_memories_p2",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/$type"
+          },
+          {
+            "sourceId": "q101_06c_memories_p2",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/actorId/id"
+          },
+          {
+            "sourceId": "q101_06c_memories_p2",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/playerName"
+          },
+          {
+            "sourceId": "q101_06c_memories_p2",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$type"
+          },
+          {
+            "sourceId": "q101_06c_memories_p2",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$value"
+          },
+          {
+            "sourceId": "q101_06c_memories_p2",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/voicetagId/id"
+          }
+        ]
+      }
+    },
+    {
+      "id": "spider-murphy.delivery.urgent-encouragement",
+      "text": "Johnny's tower recollection shows Spider Murphy combining urgent escape instructions with vivid, personal encouragement.",
+      "kind": "intrinsic",
+      "disclosure": "only-with-explicit-memory-perspective",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/11/Data/$type",
+          "expected": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/11/Data/id",
+          "expected": "spider_murphy"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/11/Data/name/value",
+          "expected": "LocKey#22060"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/11/Data/avatarID/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/11/Data/avatarID/$value",
+          "expected": "PhoneAvatars.Avatar_Spider"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/16275/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/16275/primaryKey",
+          "expected": "22060"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/16275/femaleVariant",
+          "valueSha256": "eca9f635fdbd26358e4a5b551930ab507c81ab171c2de3a424d374f7a52fc21b",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/16275/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/actors/7/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/actors/7/actorId/id",
+          "expected": 7
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/actors/7/actorName",
+          "expected": "netrunner_phone"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/actors/7/voicetagId/id",
+          "expected": "1624173162010259956"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/actors/7/acquisitionPlan",
+          "expected": "findInContext"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/actors/7/findActorInContextParams/$type",
+          "expected": "scnFindEntityInContextParams"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/actors/7/findActorInContextParams/contextualName",
+          "expected": "Voice"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/actors/7/findActorInContextParams/contextActorName/$value",
+          "expected": "LocKey#32275"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/actors/7/findActorInContextParams/specRecordId/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/actors/7/findActorInContextParams/specRecordId/$value",
+          "expected": "Character.q101_spider_murphy"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/actors/7/findActorInContextParams/voiceVagId/id",
+          "expected": "1624173162010259956"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/72/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/72/speaker/id",
+          "expected": 7
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/72/itemId/id",
+          "expected": 18433
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/72/locstringId/ruid",
+          "expected": "1954926712763998208"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/91/Data/events/1/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/91/Data/events/1/Data/screenplayLineId/id",
+          "expected": 18433
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/91/Data/events/1/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/91/Data/events/1/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/91/Data/events/1/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Phone"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/91/Data/events/1/Data/voParams/isHolocallSpeaker",
+          "expected": 1
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/391/locstringId/ruid",
+          "expected": "1954926712763998208"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/391/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/391/variantId/ruid",
+          "expected": "4054964538894508064"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/391/vpeIndex",
+          "expected": 282
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/282/variantId/ruid",
+          "expected": "4054964538894508064"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/282/content",
+          "valueSha256": "4c8019fc5635b68de97123aaf9cb44a5454c72f502bbd8a12399c03572c2c6ac",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/86/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/86/stringId",
+          "expected": "1954926712763998208"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/86/femaleVariant",
+          "valueSha256": "4c8019fc5635b68de97123aaf9cb44a5454c72f502bbd8a12399c03572c2c6ac",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/86/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/$type",
+          "expected": "scnPlayerActorDef"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/actorId/id",
+          "expected": 17
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/playerName",
+          "expected": "Johnny"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$value",
+          "expected": "Character.johnny_replacer"
+        },
+        {
+          "sourceId": "q101_06c_memories_p2",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/voicetagId/id",
+          "expected": "1103967280742240508"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "johnny-represented-historical-memory-portrayal",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "This is an inference from the subject's portrayal in Johnny's memory, not independent proof of the exact historical exchange. It establishes no meeting, contract, trust or event with this V.",
+          "The portrayed familiarity is with Johnny, not an earned friendship with V; an invitation creates no earlier relationship."
+        ]
+      },
+      "attribution": {
+        "characterKey": "spider-murphy",
+        "mode": "third-party-report",
+        "subjectRef": {
+          "kind": "journal-contact",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/11/Data/id",
+          "expected": "spider_murphy",
+          "containerType": "gameJournalContact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/11/Data/name/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/16275/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/16275/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "q101_06c_memories_p2",
+            "actorPointer": "/Data/RootChunk/actors/7",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/72",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/91/Data/events/1/Data",
+            "expectedVoicetag": "1624173162010259956",
+            "expectedSubjectVoicetag": "1624173162010259956",
+            "speakerRole": "subject-portrayed-within-johnny-recollection",
+            "expectedSubjectRecord": "Character.q101_spider_murphy"
+          }
+        ],
+        "perspective": "The actual subject's portrayed speech within Johnny's represented historical memory, not independent historical footage.",
+        "subjectConnection": "The exact named or active canonical-record actor speaks these emitted lines inside the native Johnny player frame; the real typed phone contact supplies individual identity, not present-day survival.",
+        "sourceFrameRefs": [
+          {
+            "sourceId": "q101_06c_memories_p2",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/$type"
+          },
+          {
+            "sourceId": "q101_06c_memories_p2",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/actorId/id"
+          },
+          {
+            "sourceId": "q101_06c_memories_p2",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/playerName"
+          },
+          {
+            "sourceId": "q101_06c_memories_p2",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$type"
+          },
+          {
+            "sourceId": "q101_06c_memories_p2",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$value"
+          },
+          {
+            "sourceId": "q101_06c_memories_p2",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/voicetagId/id"
+          }
+        ]
+      }
+    }
+  ],
+  "cadenceExamples": [
+    {
+      "id": "protocol",
+      "context": "Someone assumes a tool works on an unfamiliar network.",
+      "text": "Nice tool. Now let us see whether it speaks the same language as the subnet.",
+      "claimIds": [
+        "spider-murphy.work.protocol-details"
+      ]
+    },
+    {
+      "id": "web",
+      "context": "A technical operation has found a useful opportunity.",
+      "text": "Well, that is an interesting little strand. Careful where you pull it.",
+      "claimIds": [
+        "spider-murphy.delivery.playful-metaphor"
+      ]
+    },
+    {
+      "id": "complete",
+      "context": "Her immediate part of an operation is finished.",
+      "text": "My part is done. Take the opening while it is still there.",
+      "claimIds": [
+        "spider-murphy.work.completion-and-exit"
+      ]
+    },
+    {
+      "id": "barrier",
+      "context": "A temporary defense will not last.",
+      "text": "The lock buys a moment, not a miracle. Pick a route and keep moving.",
+      "claimIds": [
+        "spider-murphy.work.security-and-route"
+      ]
+    },
+    {
+      "id": "encouragement",
+      "context": "An ally needs to leave danger promptly.",
+      "text": "Go on. Save the victory speech for somewhere they are not shooting at you.",
+      "claimIds": [
+        "spider-murphy.delivery.urgent-encouragement"
+      ]
+    }
+  ],
+  "exclusions": [
+    "No existing V meeting, quest completion, death, survival, contract, relationship or disclosure is established by a model spawn, available phone contact or this static proposal.",
+    "The native Johnny frame identifies a represented historical portrayal, not objective documentary footage; opinions and allegations remain attributed.",
+    "The selected contact/actor/speech receipts alone do not authenticate the displayed calendar year. The 2013 or 2023 persona boundary is an editorial scope restriction matching the existing era-bound profile, not a new claim that these receipts date history.",
+    "No personal knowledge of intervening decades, present 2077 contacts, V's private Relic information, current romances, choices, or unseen endings.",
+    "Only directly attributed findInContext netrunner_phone actor 7 is used. Generic community actor 5 is excluded: the NodeRef-to-resource world edge remains unresolved, and shared VO alone is not identity.",
+    "Phone/remote instructions are valid attributed narrative evidence, not a claim of clean ordinary voice-reference readiness. No casting or audio promotion occurs.",
+    "No assertion that she is Cyberpunk RED's Recluse, no later Bartmoss/Alt whereabouts, no exhaustive netrunner biography or post-2023 fate from these scenes."
+  ],
+  "attributionRevision": "wave3-genuine-contact-historical-frame-v1"
+}

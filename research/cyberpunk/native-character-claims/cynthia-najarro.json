@@ -1,0 +1,2331 @@
+{
+  "version": 1,
+  "key": "cynthia-najarro",
+  "name": "Cynthia Najarro",
+  "gameVersions": [
+    "2.31"
+  ],
+  "createdAt": "2026-10-01",
+  "scope": "Unadopted Wave 3 source-qualified public proposal. Named emitted narrative identity is reviewed; world registry acquisition remains unverified. No runtime, cloud, game, voice or memory action.",
+  "nativeSubject": {
+    "contactId": "rachel_joestar_mq040",
+    "containerType": "gameJournalContact",
+    "titleBound": true,
+    "kind": "journal-contact"
+  },
+  "nativeSources": [
+    {
+      "id": "cynthia-ripper",
+      "depotPath": "base\\quest\\minor_quests\\mq040\\scenes\\mq040_03_ripperdoc.scene",
+      "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+      "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+      "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+      "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+      "archiveEntrySha1": "aeff0341694fe7a0094efe9ffa1b047f1c552e7d",
+      "archive": "base",
+      "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+      "pathHash64": "8324871425818064977",
+      "inventoryPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/inventory.json",
+      "inventorySha256": "3bdf9b0be0794db1f4f4a8455ec00dd90a27212522603c5a5c6da09be3ea2618",
+      "serializationVerified": true,
+      "sourceKind": "installed-native",
+      "locale": null
+    },
+    {
+      "id": "english",
+      "depotPath": "base\\localization\\en-us\\onscreens\\onscreens.json",
+      "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+      "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+      "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+      "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+      "archiveEntrySha1": "1131d968cfae38ebf79242e24aadafc051545992",
+      "archive": "base",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "7469411510719000253",
+      "inventoryPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/inventory.json",
+      "inventorySha256": "d5b80cdd030038f2389d9eb9aab7006d6bd95df80787db21d179345acaa21356",
+      "serializationVerified": true,
+      "sourceKind": "installed-native",
+      "locale": "en_us"
+    },
+    {
+      "id": "journal",
+      "depotPath": "base\\journal\\cooked_journal.journal",
+      "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+      "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+      "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+      "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+      "archiveEntrySha1": "be95e34f16d4d1044e5e0104174a1038c02e57e0",
+      "archive": "ep1",
+      "archivePath": "archive/pc/ep1/ep1_2_gamedata.archive",
+      "pathHash64": "17440916468644548477",
+      "inventoryPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/inventory.json",
+      "inventorySha256": "d5b80cdd030038f2389d9eb9aab7006d6bd95df80787db21d179345acaa21356",
+      "serializationVerified": true,
+      "sourceKind": "installed-native",
+      "locale": null
+    },
+    {
+      "id": "sub-base-mq040-03-ripperdoc",
+      "depotPath": "base\\localization\\en-us\\subtitles\\quest\\mq040\\mq040_03_ripperdoc.json",
+      "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_03_ripperdoc.json",
+      "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_03_ripperdoc.json.json",
+      "assetSha256": "57c9a6f5c4a92e338c49dda68a19a1e82199e4c4447b6dd2fb16d1090bc23d95",
+      "jsonSha256": "fe3925907d5000a272dd728954cff92f1e3685839952de700f3ba809003078ec",
+      "archiveEntrySha1": "8c77ee4419245ddb59c415c5fc15a425d5462e12",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "6862053416090554689",
+      "inventoryPath": "research/cyberpunk/cache/game/localization/inventory.json",
+      "inventorySha256": "9eefd4d3d25561cc28b9b9afd05783af9ff6f85da2bc3d2777e0ac9e5570f6ed",
+      "serializationVerified": true,
+      "sourceKind": "installed-native",
+      "locale": "en_us",
+      "serializationReview": {
+        "pinnedToolSha256": "7ae9c308da2fe003220b55ce4ca9c122b51f0701a67db1618cca3ff4f7ff6738",
+        "cachedDataMatchesFresh": true,
+        "installedArchiveSha256Verified": true
+      }
+    }
+  ],
+  "claims": [
+    {
+      "id": "values.personal-boundaries",
+      "text": "Cynthia regards some parts of a person's past as private, even inside a marriage.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "exactnativeRefs": [
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/46/Data/$type",
+          "expectedValue": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/46/Data/id",
+          "expectedValue": "rachel_joestar_mq040"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/46/Data/name/value",
+          "expectedValue": "LocKey#10888"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7175/primaryKey",
+          "expectedValue": "10888"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7175/femaleVariant",
+          "expectedValue": "Cynthia Najarro"
+        },
+        {
+          "sourceId": "cynthia-ripper",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+          "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+          "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/56",
+          "expectedValue": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 7
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_1A9071C8C344D000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 14337
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1914154948715925504"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_1A9071C8C344D000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 1
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "cynthia-ripper",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+          "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+          "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+          "jsonPointer": "/Data/RootChunk/actors/1/$type",
+          "expectedValue": "scnActorDef"
+        },
+        {
+          "sourceId": "cynthia-ripper",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+          "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+          "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorName",
+          "expectedValue": "Wife"
+        },
+        {
+          "sourceId": "cynthia-ripper",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+          "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+          "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorId",
+          "expectedValue": {
+            "$type": "scnActorId",
+            "id": 1
+          }
+        },
+        {
+          "sourceId": "cynthia-ripper",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+          "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+          "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+          "jsonPointer": "/Data/RootChunk/actors/1/voicetagId",
+          "expectedValue": {
+            "$type": "scnVoicetagId",
+            "id": "1630226362467385344"
+          }
+        },
+        {
+          "sourceId": "cynthia-ripper",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+          "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+          "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+          "jsonPointer": "/Data/RootChunk/actors/1/acquisitionPlan",
+          "expectedValue": "community"
+        },
+        {
+          "sourceId": "cynthia-ripper",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+          "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+          "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+          "jsonPointer": "/Data/RootChunk/actors/1/communityParams",
+          "expectedValue": {
+            "$type": "scnCommunityParams",
+            "entryName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "wife"
+            },
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "string",
+              "$value": "#mq040_com_apartment"
+            }
+          }
+        },
+        {
+          "sourceId": "cynthia-ripper",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+          "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+          "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/235",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+            "localeId": "en_us",
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1914154948715925504"
+            },
+            "signature": {
+              "$type": "scnlocSignature",
+              "val": "3"
+            },
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "4024716731835944964"
+            },
+            "vpeIndex": 176
+          }
+        },
+        {
+          "sourceId": "cynthia-ripper",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+          "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+          "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/176",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+            "content": "Everyone's got their own secret. Something they wanna forget, or leave behind them.",
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "4024716731835944964"
+            }
+          }
+        },
+        {
+          "sourceId": "cynthia-ripper",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+          "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+          "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/29/Data/events/6/Data",
+          "expectedValue": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 5734,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "2037214344502194212"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 14337
+            },
+            "startTime": 8938,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 0,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Spoken"
+            }
+          }
+        },
+        {
+          "sourceId": "cynthia-ripper",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+          "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+          "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/57",
+          "expectedValue": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 7
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_1ADD501BC544D000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 14593
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1935791495043141632"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_1ADD501BC544D000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 1
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "cynthia-ripper",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+          "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+          "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/267",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+            "localeId": "en_us",
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1935791495043141632"
+            },
+            "signature": {
+              "$type": "scnlocSignature",
+              "val": "3"
+            },
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "4024716731835944968"
+            },
+            "vpeIndex": 179
+          }
+        },
+        {
+          "sourceId": "cynthia-ripper",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+          "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+          "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/179",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+            "content": "I... I had a lot of 'em. And I can't share them with anyone. Not even my own husband.",
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "4024716731835944968"
+            }
+          }
+        },
+        {
+          "sourceId": "cynthia-ripper",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+          "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+          "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/29/Data/events/8/Data",
+          "expectedValue": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 7619,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "2037214344502194220"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 14593
+            },
+            "startTime": 14752,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 0,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Spoken"
+            }
+          }
+        },
+        {
+          "sourceId": "sub-base-mq040-03-ripperdoc",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_03_ripperdoc.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_03_ripperdoc.json.json",
+          "assetSha256": "57c9a6f5c4a92e338c49dda68a19a1e82199e4c4447b6dd2fb16d1090bc23d95",
+          "jsonSha256": "fe3925907d5000a272dd728954cff92f1e3685839952de700f3ba809003078ec",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/46/$type",
+          "expectedValue": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "sub-base-mq040-03-ripperdoc",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_03_ripperdoc.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_03_ripperdoc.json.json",
+          "assetSha256": "57c9a6f5c4a92e338c49dda68a19a1e82199e4c4447b6dd2fb16d1090bc23d95",
+          "jsonSha256": "fe3925907d5000a272dd728954cff92f1e3685839952de700f3ba809003078ec",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/46/stringId",
+          "expectedValue": "1914154948715925504"
+        },
+        {
+          "sourceId": "sub-base-mq040-03-ripperdoc",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_03_ripperdoc.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_03_ripperdoc.json.json",
+          "assetSha256": "57c9a6f5c4a92e338c49dda68a19a1e82199e4c4447b6dd2fb16d1090bc23d95",
+          "jsonSha256": "fe3925907d5000a272dd728954cff92f1e3685839952de700f3ba809003078ec",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/46/femaleVariant",
+          "expectedValue": "Everyone's got their own secret. Something they wanna forget, or leave behind them."
+        },
+        {
+          "sourceId": "sub-base-mq040-03-ripperdoc",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_03_ripperdoc.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_03_ripperdoc.json.json",
+          "assetSha256": "57c9a6f5c4a92e338c49dda68a19a1e82199e4c4447b6dd2fb16d1090bc23d95",
+          "jsonSha256": "fe3925907d5000a272dd728954cff92f1e3685839952de700f3ba809003078ec",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/76/$type",
+          "expectedValue": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "sub-base-mq040-03-ripperdoc",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_03_ripperdoc.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_03_ripperdoc.json.json",
+          "assetSha256": "57c9a6f5c4a92e338c49dda68a19a1e82199e4c4447b6dd2fb16d1090bc23d95",
+          "jsonSha256": "fe3925907d5000a272dd728954cff92f1e3685839952de700f3ba809003078ec",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/76/stringId",
+          "expectedValue": "1935791495043141632"
+        },
+        {
+          "sourceId": "sub-base-mq040-03-ripperdoc",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_03_ripperdoc.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_03_ripperdoc.json.json",
+          "assetSha256": "57c9a6f5c4a92e338c49dda68a19a1e82199e4c4447b6dd2fb16d1090bc23d95",
+          "jsonSha256": "fe3925907d5000a272dd728954cff92f1e3685839952de700f3ba809003078ec",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/76/femaleVariant",
+          "expectedValue": "I... I had a lot of 'em. And I can't share them with anyone. Not even my own husband."
+        }
+      ],
+      "qualification": {
+        "evidenceBasis": "self-report",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": "A privacy value, not permission to volunteer medical history, fabricate secrets, or infer what Pepe or V knows.",
+        "viewpoint": "The subject-bound native speaker account remains personal testimony, not a universal factual guarantee.",
+        "profileUse": "topic-knowledge"
+      },
+      "attribution": {
+        "characterKey": "cynthia-najarro",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/46/Data/id",
+          "expected": "rachel_joestar_mq040",
+          "containerType": "gameJournalContact",
+          "kind": "journal-contact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/46/Data/name/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7175/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7175/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "cynthia-ripper",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/56",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/29/Data/events/6/Data",
+            "expectedVoicetag": "1630226362467385344",
+            "expectedSubjectVoicetag": "1630226362467385344"
+          },
+          {
+            "sourceId": "cynthia-ripper",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/57",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/29/Data/events/8/Data",
+            "expectedVoicetag": "1630226362467385344",
+            "expectedSubjectVoicetag": "1630226362467385344"
+          }
+        ],
+        "perspective": "Exact contact identity and scene speaker testimony; canonical actor binding and production contact-subject support require parent review.",
+        "identityProof": {
+          "kind": "reviewed-narrative-identity",
+          "reviewId": "held-identity-oct01-cynthia-najarro"
+        }
+      },
+      "promotion": "held; generic actor has no authenticated NodeRef-to-canonical-resource edge"
+    },
+    {
+      "id": "values.direct-questions",
+      "text": "An intrusive approach can draw a direct challenge; she does not treat a stranger's demand as automatic permission to investigate her.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "exactnativeRefs": [
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/46/Data/$type",
+          "expectedValue": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/46/Data/id",
+          "expectedValue": "rachel_joestar_mq040"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/46/Data/name/value",
+          "expectedValue": "LocKey#10888"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7175/primaryKey",
+          "expectedValue": "10888"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7175/femaleVariant",
+          "expectedValue": "Cynthia Najarro"
+        },
+        {
+          "sourceId": "cynthia-ripper",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+          "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+          "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/4",
+          "expectedValue": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 7
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_190F28EEF6623000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 1025
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1805706982399815680"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_190F28EEF6623000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 1
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "cynthia-ripper",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+          "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+          "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+          "jsonPointer": "/Data/RootChunk/actors/1/$type",
+          "expectedValue": "scnActorDef"
+        },
+        {
+          "sourceId": "cynthia-ripper",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+          "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+          "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorName",
+          "expectedValue": "Wife"
+        },
+        {
+          "sourceId": "cynthia-ripper",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+          "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+          "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorId",
+          "expectedValue": {
+            "$type": "scnActorId",
+            "id": 1
+          }
+        },
+        {
+          "sourceId": "cynthia-ripper",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+          "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+          "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+          "jsonPointer": "/Data/RootChunk/actors/1/voicetagId",
+          "expectedValue": {
+            "$type": "scnVoicetagId",
+            "id": "1630226362467385344"
+          }
+        },
+        {
+          "sourceId": "cynthia-ripper",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+          "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+          "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+          "jsonPointer": "/Data/RootChunk/actors/1/acquisitionPlan",
+          "expectedValue": "community"
+        },
+        {
+          "sourceId": "cynthia-ripper",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+          "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+          "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+          "jsonPointer": "/Data/RootChunk/actors/1/communityParams",
+          "expectedValue": {
+            "$type": "scnCommunityParams",
+            "entryName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "wife"
+            },
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "string",
+              "$value": "#mq040_com_apartment"
+            }
+          }
+        },
+        {
+          "sourceId": "cynthia-ripper",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+          "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+          "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/190",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+            "localeId": "en_us",
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1805706982399815680"
+            },
+            "signature": {
+              "$type": "scnlocSignature",
+              "val": "3"
+            },
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "4024716731802390540"
+            },
+            "vpeIndex": 14
+          }
+        },
+        {
+          "sourceId": "cynthia-ripper",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+          "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+          "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/14",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+            "content": "Hey, you! What're you doing here?!",
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "4024716731802390540"
+            }
+          }
+        },
+        {
+          "sourceId": "cynthia-ripper",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+          "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+          "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/3/Data",
+          "expectedValue": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 2508,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "2037214344451862544"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 1025
+            },
+            "startTime": 0,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 0,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Spoken"
+            }
+          }
+        },
+        {
+          "sourceId": "cynthia-ripper",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+          "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+          "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/69",
+          "expectedValue": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 7
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_190F2CE193623000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 17665
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1805711322950807552"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_190F2CE193623000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 1
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "cynthia-ripper",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+          "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+          "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/192",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+            "localeId": "en_us",
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1805711322950807552"
+            },
+            "signature": {
+              "$type": "scnlocSignature",
+              "val": "3"
+            },
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "4024716731835945020"
+            },
+            "vpeIndex": 222
+          }
+        },
+        {
+          "sourceId": "cynthia-ripper",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+          "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+          "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/222",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+            "content": "I asked what you're doing! Who the hell are you?!",
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "4024716731835945020"
+            }
+          }
+        },
+        {
+          "sourceId": "cynthia-ripper",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+          "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+          "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/38/Data/events/1/Data",
+          "expectedValue": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 2764,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "2098068862479249416"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 17665
+            },
+            "startTime": 0,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 0,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Spoken"
+            }
+          }
+        },
+        {
+          "sourceId": "sub-base-mq040-03-ripperdoc",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_03_ripperdoc.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_03_ripperdoc.json.json",
+          "assetSha256": "57c9a6f5c4a92e338c49dda68a19a1e82199e4c4447b6dd2fb16d1090bc23d95",
+          "jsonSha256": "fe3925907d5000a272dd728954cff92f1e3685839952de700f3ba809003078ec",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/3/$type",
+          "expectedValue": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "sub-base-mq040-03-ripperdoc",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_03_ripperdoc.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_03_ripperdoc.json.json",
+          "assetSha256": "57c9a6f5c4a92e338c49dda68a19a1e82199e4c4447b6dd2fb16d1090bc23d95",
+          "jsonSha256": "fe3925907d5000a272dd728954cff92f1e3685839952de700f3ba809003078ec",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/3/stringId",
+          "expectedValue": "1805706982399815680"
+        },
+        {
+          "sourceId": "sub-base-mq040-03-ripperdoc",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_03_ripperdoc.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_03_ripperdoc.json.json",
+          "assetSha256": "57c9a6f5c4a92e338c49dda68a19a1e82199e4c4447b6dd2fb16d1090bc23d95",
+          "jsonSha256": "fe3925907d5000a272dd728954cff92f1e3685839952de700f3ba809003078ec",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/3/femaleVariant",
+          "expectedValue": "Hey, you! What're you doing here?!"
+        },
+        {
+          "sourceId": "sub-base-mq040-03-ripperdoc",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_03_ripperdoc.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_03_ripperdoc.json.json",
+          "assetSha256": "57c9a6f5c4a92e338c49dda68a19a1e82199e4c4447b6dd2fb16d1090bc23d95",
+          "jsonSha256": "fe3925907d5000a272dd728954cff92f1e3685839952de700f3ba809003078ec",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5/$type",
+          "expectedValue": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "sub-base-mq040-03-ripperdoc",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_03_ripperdoc.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_03_ripperdoc.json.json",
+          "assetSha256": "57c9a6f5c4a92e338c49dda68a19a1e82199e4c4447b6dd2fb16d1090bc23d95",
+          "jsonSha256": "fe3925907d5000a272dd728954cff92f1e3685839952de700f3ba809003078ec",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5/stringId",
+          "expectedValue": "1805711322950807552"
+        },
+        {
+          "sourceId": "sub-base-mq040-03-ripperdoc",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_03_ripperdoc.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_03_ripperdoc.json.json",
+          "assetSha256": "57c9a6f5c4a92e338c49dda68a19a1e82199e4c4447b6dd2fb16d1090bc23d95",
+          "jsonSha256": "fe3925907d5000a272dd728954cff92f1e3685839952de700f3ba809003078ec",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5/femaleVariant",
+          "expectedValue": "I asked what you're doing! Who the hell are you?!"
+        }
+      ],
+      "qualification": {
+        "evidenceBasis": "self-report",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": "Editorial delivery inference only. Do not assert that the current V followed, grabbed or accused her.",
+        "viewpoint": "The subject-bound native speaker account remains personal testimony, not a universal factual guarantee.",
+        "profileUse": "topic-knowledge"
+      },
+      "attribution": {
+        "characterKey": "cynthia-najarro",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/46/Data/id",
+          "expected": "rachel_joestar_mq040",
+          "containerType": "gameJournalContact",
+          "kind": "journal-contact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/46/Data/name/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7175/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7175/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "cynthia-ripper",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/4",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data/events/3/Data",
+            "expectedVoicetag": "1630226362467385344",
+            "expectedSubjectVoicetag": "1630226362467385344"
+          },
+          {
+            "sourceId": "cynthia-ripper",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/69",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/38/Data/events/1/Data",
+            "expectedVoicetag": "1630226362467385344",
+            "expectedSubjectVoicetag": "1630226362467385344"
+          }
+        ],
+        "perspective": "Exact contact identity and scene speaker testimony; canonical actor binding and production contact-subject support require parent review.",
+        "identityProof": {
+          "kind": "reviewed-narrative-identity",
+          "reviewId": "held-identity-oct01-cynthia-najarro"
+        }
+      },
+      "promotion": "held; generic actor has no authenticated NodeRef-to-canonical-resource edge"
+    },
+    {
+      "id": "delivery.explanation-after-listening",
+      "text": "When a conversation becomes threatening she can ask to be heard, with hesitant but insistent speech rather than a polished monologue.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "exactnativeRefs": [
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/46/Data/$type",
+          "expectedValue": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/46/Data/id",
+          "expectedValue": "rachel_joestar_mq040"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/46/Data/name/value",
+          "expectedValue": "LocKey#10888"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7175/primaryKey",
+          "expectedValue": "10888"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7175/femaleVariant",
+          "expectedValue": "Cynthia Najarro"
+        },
+        {
+          "sourceId": "cynthia-ripper",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+          "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+          "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/16",
+          "expectedValue": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 7
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_191255EB90623000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 4097
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1806600870757019648"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_191255EB90623000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 1
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "cynthia-ripper",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+          "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+          "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+          "jsonPointer": "/Data/RootChunk/actors/1/$type",
+          "expectedValue": "scnActorDef"
+        },
+        {
+          "sourceId": "cynthia-ripper",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+          "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+          "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorName",
+          "expectedValue": "Wife"
+        },
+        {
+          "sourceId": "cynthia-ripper",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+          "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+          "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorId",
+          "expectedValue": {
+            "$type": "scnActorId",
+            "id": 1
+          }
+        },
+        {
+          "sourceId": "cynthia-ripper",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+          "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+          "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+          "jsonPointer": "/Data/RootChunk/actors/1/voicetagId",
+          "expectedValue": {
+            "$type": "scnVoicetagId",
+            "id": "1630226362467385344"
+          }
+        },
+        {
+          "sourceId": "cynthia-ripper",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+          "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+          "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+          "jsonPointer": "/Data/RootChunk/actors/1/acquisitionPlan",
+          "expectedValue": "community"
+        },
+        {
+          "sourceId": "cynthia-ripper",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+          "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+          "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+          "jsonPointer": "/Data/RootChunk/actors/1/communityParams",
+          "expectedValue": {
+            "$type": "scnCommunityParams",
+            "entryName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "wife"
+            },
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "string",
+              "$value": "#mq040_com_apartment"
+            }
+          }
+        },
+        {
+          "sourceId": "cynthia-ripper",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+          "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+          "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/197",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+            "localeId": "en_us",
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1806600870757019648"
+            },
+            "signature": {
+              "$type": "scnlocSignature",
+              "val": "3"
+            },
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "4024716731802390588"
+            },
+            "vpeIndex": 51
+          }
+        },
+        {
+          "sourceId": "cynthia-ripper",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+          "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+          "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/51",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+            "content": "No, no, no, no, wait! Please, please just hear me out!",
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "4024716731802390588"
+            }
+          }
+        },
+        {
+          "sourceId": "cynthia-ripper",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+          "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+          "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/9/Data/events/2/Data",
+          "expectedValue": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 3752,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "2037214344468639772"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 4097
+            },
+            "startTime": 2628,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 0,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Spoken"
+            }
+          }
+        },
+        {
+          "sourceId": "cynthia-ripper",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+          "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+          "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/40",
+          "expectedValue": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 7
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_1A907B51BA44D000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 10241
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1914165432580100096"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_1A907B51BA44D000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 1
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "cynthia-ripper",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+          "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+          "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/239",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+            "localeId": "en_us",
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1914165432580100096"
+            },
+            "signature": {
+              "$type": "scnlocSignature",
+              "val": "3"
+            },
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "4024716731819167800"
+            },
+            "vpeIndex": 127
+          }
+        },
+        {
+          "sourceId": "cynthia-ripper",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+          "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+          "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/127",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+            "content": "I don't know. I don't know what to tell him myself. That-- that I'm really sorry. That life's an absurdist drama, OK? Just... just go.",
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "4024716731819167800"
+            }
+          }
+        },
+        {
+          "sourceId": "cynthia-ripper",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+          "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+          "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/10/Data",
+          "expectedValue": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 10994,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "2037214344485416996"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 10241
+            },
+            "startTime": 17456,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 0,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Spoken"
+            }
+          }
+        },
+        {
+          "sourceId": "sub-base-mq040-03-ripperdoc",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_03_ripperdoc.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_03_ripperdoc.json.json",
+          "assetSha256": "57c9a6f5c4a92e338c49dda68a19a1e82199e4c4447b6dd2fb16d1090bc23d95",
+          "jsonSha256": "fe3925907d5000a272dd728954cff92f1e3685839952de700f3ba809003078ec",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/10/$type",
+          "expectedValue": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "sub-base-mq040-03-ripperdoc",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_03_ripperdoc.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_03_ripperdoc.json.json",
+          "assetSha256": "57c9a6f5c4a92e338c49dda68a19a1e82199e4c4447b6dd2fb16d1090bc23d95",
+          "jsonSha256": "fe3925907d5000a272dd728954cff92f1e3685839952de700f3ba809003078ec",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/10/stringId",
+          "expectedValue": "1806600870757019648"
+        },
+        {
+          "sourceId": "sub-base-mq040-03-ripperdoc",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_03_ripperdoc.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_03_ripperdoc.json.json",
+          "assetSha256": "57c9a6f5c4a92e338c49dda68a19a1e82199e4c4447b6dd2fb16d1090bc23d95",
+          "jsonSha256": "fe3925907d5000a272dd728954cff92f1e3685839952de700f3ba809003078ec",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/10/femaleVariant",
+          "expectedValue": "No, no, no, no, wait! Please, please just hear me out!"
+        },
+        {
+          "sourceId": "sub-base-mq040-03-ripperdoc",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_03_ripperdoc.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_03_ripperdoc.json.json",
+          "assetSha256": "57c9a6f5c4a92e338c49dda68a19a1e82199e4c4447b6dd2fb16d1090bc23d95",
+          "jsonSha256": "fe3925907d5000a272dd728954cff92f1e3685839952de700f3ba809003078ec",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/50/$type",
+          "expectedValue": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "sub-base-mq040-03-ripperdoc",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_03_ripperdoc.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_03_ripperdoc.json.json",
+          "assetSha256": "57c9a6f5c4a92e338c49dda68a19a1e82199e4c4447b6dd2fb16d1090bc23d95",
+          "jsonSha256": "fe3925907d5000a272dd728954cff92f1e3685839952de700f3ba809003078ec",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/50/stringId",
+          "expectedValue": "1914165432580100096"
+        },
+        {
+          "sourceId": "sub-base-mq040-03-ripperdoc",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_03_ripperdoc.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_03_ripperdoc.json.json",
+          "assetSha256": "57c9a6f5c4a92e338c49dda68a19a1e82199e4c4447b6dd2fb16d1090bc23d95",
+          "jsonSha256": "fe3925907d5000a272dd728954cff92f1e3685839952de700f3ba809003078ec",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/50/femaleVariant",
+          "expectedValue": "I don't know. I don't know what to tell him myself. That-- that I'm really sorry. That life's an absurdist drama, OK? Just... just go."
+        }
+      ],
+      "qualification": {
+        "evidenceBasis": "self-report",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": "Delivery pattern only; the apology and plea belong to a conditional quest encounter, not a standing apology to V.",
+        "viewpoint": "The subject-bound native speaker account remains personal testimony, not a universal factual guarantee.",
+        "profileUse": "topic-knowledge"
+      },
+      "attribution": {
+        "characterKey": "cynthia-najarro",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/46/Data/id",
+          "expected": "rachel_joestar_mq040",
+          "containerType": "gameJournalContact",
+          "kind": "journal-contact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/46/Data/name/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7175/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7175/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "cynthia-ripper",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/16",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/9/Data/events/2/Data",
+            "expectedVoicetag": "1630226362467385344",
+            "expectedSubjectVoicetag": "1630226362467385344"
+          },
+          {
+            "sourceId": "cynthia-ripper",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/40",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/10/Data",
+            "expectedVoicetag": "1630226362467385344",
+            "expectedSubjectVoicetag": "1630226362467385344"
+          }
+        ],
+        "perspective": "Exact contact identity and scene speaker testimony; canonical actor binding and production contact-subject support require parent review.",
+        "identityProof": {
+          "kind": "reviewed-narrative-identity",
+          "reviewId": "held-identity-oct01-cynthia-najarro"
+        }
+      },
+      "promotion": "held; generic actor has no authenticated NodeRef-to-canonical-resource edge"
+    },
+    {
+      "id": "private.appearance-history",
+      "text": "In the medical-visit disclosure she explains that she underwent extensive bodysculpting and describes the doctor as her plastic-surgery specialist, not an affair partner.",
+      "kind": "private-intrinsic",
+      "disclosure": "only-in-trusted-private-context",
+      "audience": [
+        "private",
+        "phone"
+      ],
+      "exactnativeRefs": [
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/46/Data/$type",
+          "expectedValue": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/46/Data/id",
+          "expectedValue": "rachel_joestar_mq040"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/46/Data/name/value",
+          "expectedValue": "LocKey#10888"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7175/primaryKey",
+          "expectedValue": "10888"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7175/femaleVariant",
+          "expectedValue": "Cynthia Najarro"
+        },
+        {
+          "sourceId": "cynthia-ripper",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+          "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+          "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/9",
+          "expectedValue": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 7
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_1A90685C2444D000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 2305
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1914144586587230208"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_1A90685C2444D000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 1
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "cynthia-ripper",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+          "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+          "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+          "jsonPointer": "/Data/RootChunk/actors/1/$type",
+          "expectedValue": "scnActorDef"
+        },
+        {
+          "sourceId": "cynthia-ripper",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+          "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+          "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorName",
+          "expectedValue": "Wife"
+        },
+        {
+          "sourceId": "cynthia-ripper",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+          "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+          "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorId",
+          "expectedValue": {
+            "$type": "scnActorId",
+            "id": 1
+          }
+        },
+        {
+          "sourceId": "cynthia-ripper",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+          "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+          "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+          "jsonPointer": "/Data/RootChunk/actors/1/voicetagId",
+          "expectedValue": {
+            "$type": "scnVoicetagId",
+            "id": "1630226362467385344"
+          }
+        },
+        {
+          "sourceId": "cynthia-ripper",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+          "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+          "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+          "jsonPointer": "/Data/RootChunk/actors/1/acquisitionPlan",
+          "expectedValue": "community"
+        },
+        {
+          "sourceId": "cynthia-ripper",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+          "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+          "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+          "jsonPointer": "/Data/RootChunk/actors/1/communityParams",
+          "expectedValue": {
+            "$type": "scnCommunityParams",
+            "entryName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "wife"
+            },
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "string",
+              "$value": "#mq040_com_apartment"
+            }
+          }
+        },
+        {
+          "sourceId": "cynthia-ripper",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+          "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+          "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/226",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+            "localeId": "en_us",
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1914144586587230208"
+            },
+            "signature": {
+              "$type": "scnlocSignature",
+              "val": "3"
+            },
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "4024716731802390560"
+            },
+            "vpeIndex": 30
+          }
+        },
+        {
+          "sourceId": "cynthia-ripper",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+          "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+          "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/30",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+            "content": "OK, for-- for one thing... He's not my input – he's my ripper, a specialist in plastic surgery.",
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "4024716731802390560"
+            }
+          }
+        },
+        {
+          "sourceId": "cynthia-ripper",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+          "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+          "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/1/Data",
+          "expectedValue": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 6875,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "2037214344468639744"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 2305
+            },
+            "startTime": 2026,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 0,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Spoken"
+            }
+          }
+        },
+        {
+          "sourceId": "cynthia-ripper",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+          "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+          "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/13",
+          "expectedValue": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 7
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_1A906ACF4B44D000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 3329
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1914147280186036224"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_1A906ACF4B44D000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 1
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "cynthia-ripper",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+          "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+          "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/230",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+            "localeId": "en_us",
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1914147280186036224"
+            },
+            "signature": {
+              "$type": "scnlocSignature",
+              "val": "3"
+            },
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "4024716731802390576"
+            },
+            "vpeIndex": 42
+          }
+        },
+        {
+          "sourceId": "cynthia-ripper",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+          "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+          "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/42",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+            "content": "Here's the thing... I... Ugh. I didn't used to look like this. I had a total bodysculpt – skin, hair, eyes, everything... except, well, you can't fool your genes.",
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "4024716731802390576"
+            }
+          }
+        },
+        {
+          "sourceId": "cynthia-ripper",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+          "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+          "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/24/Data",
+          "expectedValue": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 14127,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "2037214344468639760"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 3329
+            },
+            "startTime": 24500,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 0,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Spoken"
+            }
+          }
+        },
+        {
+          "sourceId": "cynthia-ripper",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+          "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+          "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/14",
+          "expectedValue": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 1
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_1ADD47205E44D000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 3585
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1935781619185274880"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_1ADD47205E44D000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 1
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "cynthia-ripper",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+          "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+          "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/266",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+            "localeId": "en_us",
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1935781619185274880"
+            },
+            "signature": {
+              "$type": "scnlocSignature",
+              "val": "3"
+            },
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "4024716731802390580"
+            },
+            "vpeIndex": 45
+          }
+        },
+        {
+          "sourceId": "cynthia-ripper",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+          "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+          "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/45",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+            "content": "That's why our son looks different than Pepe imagined. It's not because he's not the father, just that I... I don't look anything like the old me.",
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "4024716731802390580"
+            }
+          }
+        },
+        {
+          "sourceId": "cynthia-ripper",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/heywood-authenticated-oct01/raw/base/base/quest/minor_quests/mq040/scenes/mq040_03_ripperdoc.scene.json",
+          "assetSha256": "4500ac580c486baadd8d627eb83afe7d4e98e1b4fa8c6490ceadd42c36870432",
+          "jsonSha256": "348944c771140cf5b382d4e3ea00c09c1ce88cf6200b93d8ab8a4e1cd957a17f",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/40/Data",
+          "expectedValue": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 11218,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "2037214344468639764"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 3585
+            },
+            "startTime": 38675,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 0,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Spoken"
+            }
+          }
+        },
+        {
+          "sourceId": "sub-base-mq040-03-ripperdoc",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_03_ripperdoc.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_03_ripperdoc.json.json",
+          "assetSha256": "57c9a6f5c4a92e338c49dda68a19a1e82199e4c4447b6dd2fb16d1090bc23d95",
+          "jsonSha256": "fe3925907d5000a272dd728954cff92f1e3685839952de700f3ba809003078ec",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/37/$type",
+          "expectedValue": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "sub-base-mq040-03-ripperdoc",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_03_ripperdoc.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_03_ripperdoc.json.json",
+          "assetSha256": "57c9a6f5c4a92e338c49dda68a19a1e82199e4c4447b6dd2fb16d1090bc23d95",
+          "jsonSha256": "fe3925907d5000a272dd728954cff92f1e3685839952de700f3ba809003078ec",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/37/stringId",
+          "expectedValue": "1914144586587230208"
+        },
+        {
+          "sourceId": "sub-base-mq040-03-ripperdoc",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_03_ripperdoc.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_03_ripperdoc.json.json",
+          "assetSha256": "57c9a6f5c4a92e338c49dda68a19a1e82199e4c4447b6dd2fb16d1090bc23d95",
+          "jsonSha256": "fe3925907d5000a272dd728954cff92f1e3685839952de700f3ba809003078ec",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/37/femaleVariant",
+          "expectedValue": "OK, for-- for one thing... He's not my input – he's my ripper, a specialist in plastic surgery."
+        },
+        {
+          "sourceId": "sub-base-mq040-03-ripperdoc",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_03_ripperdoc.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_03_ripperdoc.json.json",
+          "assetSha256": "57c9a6f5c4a92e338c49dda68a19a1e82199e4c4447b6dd2fb16d1090bc23d95",
+          "jsonSha256": "fe3925907d5000a272dd728954cff92f1e3685839952de700f3ba809003078ec",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/41/$type",
+          "expectedValue": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "sub-base-mq040-03-ripperdoc",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_03_ripperdoc.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_03_ripperdoc.json.json",
+          "assetSha256": "57c9a6f5c4a92e338c49dda68a19a1e82199e4c4447b6dd2fb16d1090bc23d95",
+          "jsonSha256": "fe3925907d5000a272dd728954cff92f1e3685839952de700f3ba809003078ec",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/41/stringId",
+          "expectedValue": "1914147280186036224"
+        },
+        {
+          "sourceId": "sub-base-mq040-03-ripperdoc",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_03_ripperdoc.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_03_ripperdoc.json.json",
+          "assetSha256": "57c9a6f5c4a92e338c49dda68a19a1e82199e4c4447b6dd2fb16d1090bc23d95",
+          "jsonSha256": "fe3925907d5000a272dd728954cff92f1e3685839952de700f3ba809003078ec",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/41/femaleVariant",
+          "expectedValue": "Here's the thing... I... Ugh. I didn't used to look like this. I had a total bodysculpt – skin, hair, eyes, everything... except, well, you can't fool your genes."
+        },
+        {
+          "sourceId": "sub-base-mq040-03-ripperdoc",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_03_ripperdoc.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_03_ripperdoc.json.json",
+          "assetSha256": "57c9a6f5c4a92e338c49dda68a19a1e82199e4c4447b6dd2fb16d1090bc23d95",
+          "jsonSha256": "fe3925907d5000a272dd728954cff92f1e3685839952de700f3ba809003078ec",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/75/$type",
+          "expectedValue": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "sub-base-mq040-03-ripperdoc",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_03_ripperdoc.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_03_ripperdoc.json.json",
+          "assetSha256": "57c9a6f5c4a92e338c49dda68a19a1e82199e4c4447b6dd2fb16d1090bc23d95",
+          "jsonSha256": "fe3925907d5000a272dd728954cff92f1e3685839952de700f3ba809003078ec",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/75/stringId",
+          "expectedValue": "1935781619185274880"
+        },
+        {
+          "sourceId": "sub-base-mq040-03-ripperdoc",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_03_ripperdoc.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-mq040_03_ripperdoc.json.json",
+          "assetSha256": "57c9a6f5c4a92e338c49dda68a19a1e82199e4c4447b6dd2fb16d1090bc23d95",
+          "jsonSha256": "fe3925907d5000a272dd728954cff92f1e3685839952de700f3ba809003078ec",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/75/femaleVariant",
+          "expectedValue": "That's why our son looks different than Pepe imagined. It's not because he's not the father, just that I... I don't look anything like the old me."
+        }
+      ],
+      "qualification": {
+        "evidenceBasis": "self-report",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": "Private source material excluded from public biography and examples. Neither spawning nor asking a question establishes disclosure to the audience. No universal affair, pregnancy, forgiveness or completed investigation.",
+        "viewpoint": "The subject-bound native speaker account remains personal testimony, not a universal factual guarantee.",
+        "profileUse": "topic-knowledge"
+      },
+      "attribution": {
+        "characterKey": "cynthia-najarro",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/46/Data/id",
+          "expected": "rachel_joestar_mq040",
+          "containerType": "gameJournalContact",
+          "kind": "journal-contact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/46/Data/name/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7175/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7175/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "cynthia-ripper",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/9",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/1/Data",
+            "expectedVoicetag": "1630226362467385344",
+            "expectedSubjectVoicetag": "1630226362467385344"
+          },
+          {
+            "sourceId": "cynthia-ripper",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/13",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/24/Data",
+            "expectedVoicetag": "1630226362467385344",
+            "expectedSubjectVoicetag": "1630226362467385344"
+          },
+          {
+            "sourceId": "cynthia-ripper",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/14",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/40/Data",
+            "expectedVoicetag": "1630226362467385344",
+            "expectedSubjectVoicetag": "1630226362467385344"
+          }
+        ],
+        "perspective": "Exact contact identity and scene speaker testimony; canonical actor binding and production contact-subject support require parent review.",
+        "identityProof": {
+          "kind": "reviewed-narrative-identity",
+          "reviewId": "held-identity-oct01-cynthia-najarro"
+        }
+      },
+      "promotion": "held; generic actor has no authenticated NodeRef-to-canonical-resource edge"
+    }
+  ],
+  "authoringPolicy": {
+    "intrinsicIsSelfKnowledge": true,
+    "audienceStillRequired": true,
+    "conditionalClaimsExcludedFromStaticBackstory": true,
+    "unsupportedBiographicalFillerForbidden": true
+  },
+  "proposedProfile": {
+    "backstory": "Cynthia regards some parts of a person's past as private, even inside a marriage.\n\nAn intrusive approach can draw a direct challenge; she does not treat a stranger's demand as automatic permission to investigate her.\n\nWhen a conversation becomes threatening she can ask to be heard, with hesitant but insistent speech rather than a polished monologue.",
+    "speakingStyleDescription": "Authoring interpretation: direct when challenged, protective of privacy, then hesitating and insistent when trying to explain. Never reduce her to an affair suspect or volunteer private body history in casual/group chat. Sympathy is not proof of trust or of a favorable outcome.",
+    "speakingStyleSampleDialogues": [
+      "That is personal. We can still have a conversation without opening every door.",
+      "Ask me directly. Guessing about someone is not the same as knowing them.",
+      "Wait. Let me finish what I mean before you decide for me."
+    ]
+  },
+  "speakingStyleSamples": [
+    {
+      "id": "boundary",
+      "text": "That is personal. We can still have a conversation without opening every door.",
+      "authoring": "original; not a game quote",
+      "useWhen": "A general privacy boundary, no medical disclosure.",
+      "claimIds": [
+        "values.personal-boundaries"
+      ],
+      "speakerPrefix": false
+    },
+    {
+      "id": "ask-directly",
+      "text": "Ask me directly. Guessing about someone is not the same as knowing them.",
+      "authoring": "original; not a game quote",
+      "useWhen": "Responding to speculation without asserting V stalked her.",
+      "claimIds": [
+        "values.direct-questions"
+      ],
+      "speakerPrefix": false
+    },
+    {
+      "id": "hear-out",
+      "text": "Wait. Let me finish what I mean before you decide for me.",
+      "authoring": "original; not a game quote",
+      "useWhen": "A disagreement requiring room to explain, no quest-specific apology.",
+      "claimIds": [
+        "delivery.explanation-after-listening"
+      ],
+      "speakerPrefix": false
+    }
+  ],
+  "reviewSummary": {
+    "publicClaims": 3,
+    "privateClaims": 1,
+    "originalExamples": 3,
+    "sourceRefs": 107,
+    "adoptionStatus": "source-qualified-unadopted",
+    "qualificationGaps": [
+      "Wife actor is source-bound to communityParams wife/#mq040_com_apartment. The community has typed wife entry and canonical Character.mq040_wife, but the exact NodeRef-to-this-resource edge remains unresolved."
+    ],
+    "currentSaveQualified": false,
+    "noQuestCompletionOrAudienceDisclosureInferred": true,
+    "heldClaims": 0,
+    "nativeSources": 4
+  },
+  "identityReview": {
+    "reviewedAt": "2026-10-01",
+    "evidenceKind": "reviewed-narrative-identity",
+    "worldRegistryEdgesVerified": 0,
+    "limits": "Identity use only. Private body history and conditional marital outcomes remain excluded."
+  }
+}

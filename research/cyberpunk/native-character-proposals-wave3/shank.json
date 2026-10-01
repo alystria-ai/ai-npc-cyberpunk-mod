@@ -1,0 +1,4531 @@
+{
+  "schemaVersion": 1,
+  "characterKey": "shank",
+  "name": "Shank",
+  "gameVersion": "2.31",
+  "locale": "en_us",
+  "reviewedAt": "2026-10-01",
+  "status": "proposal-awaiting-independent-review",
+  "purpose": "Public intrinsic own history/profession and bounded delivery; no current-save V encounter or quest outcome.",
+  "nativeTool": {
+    "name": "WolvenKit.CLI",
+    "version": "9.0.1",
+    "sha256": "7ae9c308da2fe003220b55ce4ca9c122b51f0701a67db1618cca3ff4f7ff6738"
+  },
+  "sourcePolicy": {
+    "primary": "Current source-hashed installed native codex/contact subject and actual actor -> screenplay -> dialog event -> explicit en_us variant -> exact shipped subtitle joins.",
+    "examples": "Original editorial delivery examples, not game quotations; no speaker-name prefixes, fabricated conversations with V or memory seeding.",
+    "privacy": "Public own background/profession only. No present gig, outcome, rescue, relationship progression or disputed criminal allegation is preloaded.",
+    "promotion": "Unadopted proposal; parent reviews subject schema and semantics before integration."
+  },
+  "sources": [
+    {
+      "id": "ep1-final-text",
+      "depotPath": "ep1\\localization\\en-us\\onscreens\\onscreens_final.json",
+      "archivePath": "archive/pc/ep1/lang_en_text.archive",
+      "pathHash64": "5326645384149182163",
+      "archiveEntrySha1": "d1fac28f0eb9e9ea5f9c6801c78fd48342b77fc1",
+      "rawFile": "runtime/voice-cast/phantom-gigs/wave3-support/raw/ep1/localization/en-us/onscreens/onscreens_final.json",
+      "rawSha256": "2d4a7e03def886c609be3f6306077ff2a7a17dc0ff77916defe6fe36441ada7d",
+      "jsonFile": "runtime/voice-cast/phantom-gigs/wave3-support/raw/ep1/localization/en-us/onscreens/onscreens_final.json.json",
+      "jsonSha256": "76b5bdacc5210bfd16e3fed0232bea717e26ca6414da8947c818fa5665351a52",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true,
+      "sourceReceipt": {
+        "archive": "archive/pc/ep1/lang_en_text.archive",
+        "depotPath": "ep1\\localization\\en-us\\onscreens\\onscreens_final.json",
+        "pathHash": "5326645384149182163",
+        "segmentOffset": "471783",
+        "storedBytes": 471611,
+        "decodedBytes": 2240284,
+        "archiveEntrySha1": "d1fac28f0eb9e9ea5f9c6801c78fd48342b77fc1",
+        "sha1Verified": true,
+        "sha256": "2d4a7e03def886c609be3f6306077ff2a7a17dc0ff77916defe6fe36441ada7d",
+        "shadowedEntryCount": 0
+      }
+    },
+    {
+      "id": "ep1-journal",
+      "depotPath": "ep1\\journal\\cooked_journal.journal",
+      "archivePath": "archive/pc/ep1/ep1_2_gamedata.archive",
+      "pathHash64": "5228207563738321484",
+      "archiveEntrySha1": "63eb78490e6ab9b8a973addf9b6581bfabbe1ae2",
+      "rawFile": "runtime/voice-cast/phantom-gigs/wave3-support/raw/ep1/journal/cooked_journal.journal",
+      "rawSha256": "1b85cf3d05431c628a03a4d5824fa2d052c48034147550ea0720df977f4aa7d3",
+      "jsonFile": "runtime/voice-cast/phantom-gigs/wave3-support/raw/ep1/journal/cooked_journal.journal.json",
+      "jsonSha256": "be2ad4c2570a734b003ead30e19bdc14b3c4e652ceae1186c5de973412a417b4",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true,
+      "sourceReceipt": {
+        "archive": "archive/pc/ep1/ep1_2_gamedata.archive",
+        "depotPath": "ep1\\journal\\cooked_journal.journal",
+        "pathHash": "5228207563738321484",
+        "segmentOffset": "3226549707",
+        "storedBytes": 176241,
+        "decodedBytes": 1606282,
+        "archiveEntrySha1": "63eb78490e6ab9b8a973addf9b6581bfabbe1ae2",
+        "sha1Verified": true,
+        "sha256": "1b85cf3d05431c628a03a4d5824fa2d052c48034147550ea0720df977f4aa7d3",
+        "shadowedEntryCount": 0
+      }
+    },
+    {
+      "id": "shank-hook",
+      "depotPath": "ep1\\quest\\minor_quests\\mq303\\scenes\\mq303_01_hook.scene",
+      "archivePath": "archive/pc/ep1/ep1_2_gamedata.archive",
+      "archiveEntrySha1": "ecb323699cfd36ceb35f73e43c83ed097d2094e2",
+      "rawFile": "runtime/voice-cast/phantom-gigs/scenes/ordinary-dialogue-20261001/raw/ep1/ep1/quest/minor_quests/mq303/scenes/mq303_01_hook.scene",
+      "rawSha256": "38889a7942ac7f80b2b16b44d369b8c53d501c48361586b59b97c336b625eddb",
+      "jsonFile": "runtime/voice-cast/phantom-gigs/scenes/ordinary-dialogue-20261001/raw/ep1/ep1/quest/minor_quests/mq303/scenes/mq303_01_hook.scene.json",
+      "jsonSha256": "1a011652762b1758b4fa9071f482fa199ee8cf572aed7784f999632585278502",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true,
+      "inventoryPath": "runtime/voice-cast/phantom-gigs/scenes/ordinary-dialogue-20261001/inventory.json",
+      "inventorySha256": "bddfa195cc5e2d2974dc51d22a65af8c0ec764c44ede7dd00453d67e130fdb09"
+    },
+    {
+      "id": "shank-hook-subtitle",
+      "depotPath": "ep1\\localization\\en-us\\subtitles\\quest\\mq303\\mq303_01_hook.json",
+      "archivePath": "archive/pc/ep1/lang_en_text.archive",
+      "archiveEntrySha1": "3d5a8329191a51b7ce97f338957cc6a18ea49236",
+      "rawFile": "runtime/voice-cast/phantom-gigs/wave3-dogtown-support/raw/ep1/localization/en-us/subtitles/quest/mq303/mq303_01_hook.json",
+      "rawSha256": "4366ddd44321814269e089259c82eb5f71a32e20a684bde54d3374696021eb71",
+      "jsonFile": "runtime/voice-cast/phantom-gigs/wave3-dogtown-support/raw/ep1/localization/en-us/subtitles/quest/mq303/mq303_01_hook.json.json",
+      "jsonSha256": "7725a86189c60a7e4c14159a86c5e1d4bac13be6809c4989c12f75f4dee801aa",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true,
+      "sourceReceipt": {
+        "archive": "archive/pc/ep1/lang_en_text.archive",
+        "depotPath": "ep1\\localization\\en-us\\subtitles\\quest\\mq303\\mq303_01_hook.json",
+        "pathHash": "9144186818902529723",
+        "segmentOffset": "1579423",
+        "storedBytes": 5069,
+        "decodedBytes": 11006,
+        "archiveEntrySha1": "3d5a8329191a51b7ce97f338957cc6a18ea49236",
+        "sha1Verified": true,
+        "sha256": "4366ddd44321814269e089259c82eb5f71a32e20a684bde54d3374696021eb71",
+        "shadowedEntryCount": 0
+      }
+    }
+  ],
+  "claims": [
+    {
+      "id": "shank.profession.bd-business",
+      "text": "Shank manages a BD shop and discusses selling scrolls, arranging recordings and keeping the business running.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/15/Data/$type",
+          "expected": "gameJournalContact"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/15/Data/id",
+          "expected": "shank"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/15/Data/name/value",
+          "expected": "LocKey#83162"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/1931/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/1931/primaryKey",
+          "expected": "83162"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/1931/femaleVariant",
+          "valueSha256": "bce905b415d075d1d1467c089359543c3efaffc9a7e43860ca4230d38e42ebb6",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/actors/0",
+          "expected": {
+            "$type": "scnActorDef",
+            "acquisitionPlan": "spawnSet",
+            "actorId": {
+              "$type": "scnActorId",
+              "id": 0
+            },
+            "actorName": "Shank",
+            "animSets": [],
+            "bodyCinematicAnimSets": [
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 19
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 3
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 20
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 21
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 22
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 23
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 24
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 7
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 25
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 26
+              }
+            ],
+            "communityParams": {
+              "$type": "scnCommunityParams",
+              "entryName": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "forceMaxVisibility": 0,
+              "reference": {
+                "$type": "NodeRef",
+                "$storage": "uint64",
+                "$value": "0"
+              }
+            },
+            "cyberwareAnimSets": [],
+            "cyberwareCinematicAnimSets": [],
+            "deformationAnimSets": [],
+            "dynamicAnimSets": [],
+            "facialAnimSets": [],
+            "facialCinematicAnimSets": [],
+            "findActorInContextParams": {
+              "$type": "scnFindEntityInContextParams",
+              "contextActorName": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "contextualName": "Player",
+              "forceMaxVisibility": 0,
+              "specRecordId": {
+                "$type": "TweakDBID",
+                "$storage": "uint64",
+                "$value": "0"
+              },
+              "voiceVagId": {
+                "$type": "scnVoicetagId",
+                "id": "0"
+              }
+            },
+            "findActorInWorldParams": {
+              "$type": "scnFindEntityInWorldParams",
+              "actorRef": {
+                "$type": "gameEntityReference",
+                "dynamicEntityUniqueName": {
+                  "$type": "CName",
+                  "$storage": "string",
+                  "$value": "None"
+                },
+                "names": [],
+                "reference": {
+                  "$type": "NodeRef",
+                  "$storage": "uint64",
+                  "$value": "0"
+                },
+                "sceneActorContextName": {
+                  "$type": "CName",
+                  "$storage": "string",
+                  "$value": "None"
+                },
+                "slotName": {
+                  "$type": "CName",
+                  "$storage": "string",
+                  "$value": "None"
+                },
+                "type": "EntityRef"
+              },
+              "forceMaxVisibility": 0
+            },
+            "holocallInitScn": {
+              "DepotPath": {
+                "$type": "ResourcePath",
+                "$storage": "uint64",
+                "$value": "0"
+              },
+              "Flags": "Soft"
+            },
+            "lipsyncAnimSet": {
+              "$type": "scnLipsyncAnimSetSRRefId",
+              "id": 0
+            },
+            "spawnDespawnParams": {
+              "$type": "scnSpawnDespawnEntityParams",
+              "alwaysSpawned": 0,
+              "appearance": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "dynamicEntityUniqueName": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "findInWorld": 0,
+              "forceMaxVisibility": 0,
+              "isEnabled": 1,
+              "itemOwnerId": {
+                "$type": "scnPerformerId",
+                "id": 4294967040
+              },
+              "keepAlive": 0,
+              "prefetchAppearance": 0,
+              "spawnMarker": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "spawnMarkerNodeRef": {
+                "$type": "NodeRef",
+                "$storage": "uint64",
+                "$value": "0"
+              },
+              "spawnMarkerType": "Local",
+              "spawnOffset": {
+                "$type": "Transform",
+                "orientation": {
+                  "$type": "Quaternion",
+                  "i": 0,
+                  "j": 0,
+                  "k": 0,
+                  "r": 1
+                },
+                "position": {
+                  "$type": "Vector4",
+                  "W": 0,
+                  "X": 0,
+                  "Y": 0,
+                  "Z": 0
+                }
+              },
+              "spawnOnStart": 1,
+              "specRecordId": {
+                "$type": "TweakDBID",
+                "$storage": "uint64",
+                "$value": "0"
+              },
+              "validateSpawnPostion": 1
+            },
+            "spawnerParams": {
+              "$type": "scnSpawnerParams",
+              "forceMaxVisibility": 0,
+              "reference": {
+                "$type": "NodeRef",
+                "$storage": "uint64",
+                "$value": "0"
+              }
+            },
+            "spawnSetParams": {
+              "$type": "scnSpawnSetParams",
+              "entryName": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "shank"
+              },
+              "forceMaxVisibility": 0,
+              "reference": {
+                "$type": "NodeRef",
+                "$storage": "string",
+                "$value": "#mq303_main_characters"
+              }
+            },
+            "specAppearance": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "default"
+            },
+            "specCharacterRecordId": {
+              "$type": "TweakDBID",
+              "$storage": "uint64",
+              "$value": "0"
+            },
+            "voicetagId": {
+              "$type": "scnVoicetagId",
+              "id": "3342233105796358144"
+            }
+          }
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/12",
+          "expected": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 4
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_2D6F8CE8173C5000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 3073
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "3273990382571769856"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_2D6F8CE8173C5000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 0
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/11/Data",
+          "expected": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 10185,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "3273990383846838272"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 3073
+            },
+            "startTime": 15694,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 0,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Spoken"
+            }
+          }
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Shank"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "3342233105796358144"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/12/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/12/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/12/itemId/id",
+          "expected": 3073
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/12/locstringId/ruid",
+          "expected": "3273990382571769856"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/11/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/11/Data/screenplayLineId/id",
+          "expected": 3073
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/11/Data/duration",
+          "expected": 10185
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/11/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/11/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/11/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/286/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/286/locstringId/ruid",
+          "expected": "3273990382571769856"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/286/vpeIndex",
+          "expected": 41
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/286/variantId/ruid",
+          "expected": "4138878222162780188"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/41/variantId/ruid",
+          "expected": "4138878222162780188"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/41/content",
+          "valueSha256": "960bbc2a5a80a2ba35b4d8e130d5514383fdb35453fca5049869426cf5c0ce8d",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "shank-hook-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/20/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shank-hook-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/20/stringId",
+          "expected": "3273990382571769856"
+        },
+        {
+          "sourceId": "shank-hook-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/20/femaleVariant",
+          "valueSha256": "960bbc2a5a80a2ba35b4d8e130d5514383fdb35453fca5049869426cf5c0ce8d",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/actors/0",
+          "expected": {
+            "$type": "scnActorDef",
+            "acquisitionPlan": "spawnSet",
+            "actorId": {
+              "$type": "scnActorId",
+              "id": 0
+            },
+            "actorName": "Shank",
+            "animSets": [],
+            "bodyCinematicAnimSets": [
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 19
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 3
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 20
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 21
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 22
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 23
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 24
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 7
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 25
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 26
+              }
+            ],
+            "communityParams": {
+              "$type": "scnCommunityParams",
+              "entryName": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "forceMaxVisibility": 0,
+              "reference": {
+                "$type": "NodeRef",
+                "$storage": "uint64",
+                "$value": "0"
+              }
+            },
+            "cyberwareAnimSets": [],
+            "cyberwareCinematicAnimSets": [],
+            "deformationAnimSets": [],
+            "dynamicAnimSets": [],
+            "facialAnimSets": [],
+            "facialCinematicAnimSets": [],
+            "findActorInContextParams": {
+              "$type": "scnFindEntityInContextParams",
+              "contextActorName": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "contextualName": "Player",
+              "forceMaxVisibility": 0,
+              "specRecordId": {
+                "$type": "TweakDBID",
+                "$storage": "uint64",
+                "$value": "0"
+              },
+              "voiceVagId": {
+                "$type": "scnVoicetagId",
+                "id": "0"
+              }
+            },
+            "findActorInWorldParams": {
+              "$type": "scnFindEntityInWorldParams",
+              "actorRef": {
+                "$type": "gameEntityReference",
+                "dynamicEntityUniqueName": {
+                  "$type": "CName",
+                  "$storage": "string",
+                  "$value": "None"
+                },
+                "names": [],
+                "reference": {
+                  "$type": "NodeRef",
+                  "$storage": "uint64",
+                  "$value": "0"
+                },
+                "sceneActorContextName": {
+                  "$type": "CName",
+                  "$storage": "string",
+                  "$value": "None"
+                },
+                "slotName": {
+                  "$type": "CName",
+                  "$storage": "string",
+                  "$value": "None"
+                },
+                "type": "EntityRef"
+              },
+              "forceMaxVisibility": 0
+            },
+            "holocallInitScn": {
+              "DepotPath": {
+                "$type": "ResourcePath",
+                "$storage": "uint64",
+                "$value": "0"
+              },
+              "Flags": "Soft"
+            },
+            "lipsyncAnimSet": {
+              "$type": "scnLipsyncAnimSetSRRefId",
+              "id": 0
+            },
+            "spawnDespawnParams": {
+              "$type": "scnSpawnDespawnEntityParams",
+              "alwaysSpawned": 0,
+              "appearance": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "dynamicEntityUniqueName": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "findInWorld": 0,
+              "forceMaxVisibility": 0,
+              "isEnabled": 1,
+              "itemOwnerId": {
+                "$type": "scnPerformerId",
+                "id": 4294967040
+              },
+              "keepAlive": 0,
+              "prefetchAppearance": 0,
+              "spawnMarker": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "spawnMarkerNodeRef": {
+                "$type": "NodeRef",
+                "$storage": "uint64",
+                "$value": "0"
+              },
+              "spawnMarkerType": "Local",
+              "spawnOffset": {
+                "$type": "Transform",
+                "orientation": {
+                  "$type": "Quaternion",
+                  "i": 0,
+                  "j": 0,
+                  "k": 0,
+                  "r": 1
+                },
+                "position": {
+                  "$type": "Vector4",
+                  "W": 0,
+                  "X": 0,
+                  "Y": 0,
+                  "Z": 0
+                }
+              },
+              "spawnOnStart": 1,
+              "specRecordId": {
+                "$type": "TweakDBID",
+                "$storage": "uint64",
+                "$value": "0"
+              },
+              "validateSpawnPostion": 1
+            },
+            "spawnerParams": {
+              "$type": "scnSpawnerParams",
+              "forceMaxVisibility": 0,
+              "reference": {
+                "$type": "NodeRef",
+                "$storage": "uint64",
+                "$value": "0"
+              }
+            },
+            "spawnSetParams": {
+              "$type": "scnSpawnSetParams",
+              "entryName": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "shank"
+              },
+              "forceMaxVisibility": 0,
+              "reference": {
+                "$type": "NodeRef",
+                "$storage": "string",
+                "$value": "#mq303_main_characters"
+              }
+            },
+            "specAppearance": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "default"
+            },
+            "specCharacterRecordId": {
+              "$type": "TweakDBID",
+              "$storage": "uint64",
+              "$value": "0"
+            },
+            "voicetagId": {
+              "$type": "scnVoicetagId",
+              "id": "3342233105796358144"
+            }
+          }
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/23",
+          "expected": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 4
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_2D6FA1D9413C5000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 5889
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "3274013408596086784"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_2D6FA1D9413C5000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 0
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/5/Data",
+          "expected": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 7840,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "3274013409636274176"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 5889
+            },
+            "startTime": 6058,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 0,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Spoken"
+            }
+          }
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Shank"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "3342233105796358144"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/23/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/23/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/23/itemId/id",
+          "expected": 5889
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/23/locstringId/ruid",
+          "expected": "3274013408596086784"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/5/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/5/Data/screenplayLineId/id",
+          "expected": 5889
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/5/Data/duration",
+          "expected": 7840
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/5/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/5/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/5/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/294/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/294/locstringId/ruid",
+          "expected": "3274013408596086784"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/294/vpeIndex",
+          "expected": 75
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/294/variantId/ruid",
+          "expected": "4138878222162780236"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/75/variantId/ruid",
+          "expected": "4138878222162780236"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/75/content",
+          "valueSha256": "3ca437839bcb9527728ad8912a92afc7d03d000561706c6197ff1dd86c2cc04e",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "shank-hook-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/28/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shank-hook-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/28/stringId",
+          "expected": "3274013408596086784"
+        },
+        {
+          "sourceId": "shank-hook-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/28/femaleVariant",
+          "valueSha256": "3ca437839bcb9527728ad8912a92afc7d03d000561706c6197ff1dd86c2cc04e",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/actors/0",
+          "expected": {
+            "$type": "scnActorDef",
+            "acquisitionPlan": "spawnSet",
+            "actorId": {
+              "$type": "scnActorId",
+              "id": 0
+            },
+            "actorName": "Shank",
+            "animSets": [],
+            "bodyCinematicAnimSets": [
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 19
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 3
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 20
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 21
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 22
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 23
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 24
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 7
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 25
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 26
+              }
+            ],
+            "communityParams": {
+              "$type": "scnCommunityParams",
+              "entryName": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "forceMaxVisibility": 0,
+              "reference": {
+                "$type": "NodeRef",
+                "$storage": "uint64",
+                "$value": "0"
+              }
+            },
+            "cyberwareAnimSets": [],
+            "cyberwareCinematicAnimSets": [],
+            "deformationAnimSets": [],
+            "dynamicAnimSets": [],
+            "facialAnimSets": [],
+            "facialCinematicAnimSets": [],
+            "findActorInContextParams": {
+              "$type": "scnFindEntityInContextParams",
+              "contextActorName": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "contextualName": "Player",
+              "forceMaxVisibility": 0,
+              "specRecordId": {
+                "$type": "TweakDBID",
+                "$storage": "uint64",
+                "$value": "0"
+              },
+              "voiceVagId": {
+                "$type": "scnVoicetagId",
+                "id": "0"
+              }
+            },
+            "findActorInWorldParams": {
+              "$type": "scnFindEntityInWorldParams",
+              "actorRef": {
+                "$type": "gameEntityReference",
+                "dynamicEntityUniqueName": {
+                  "$type": "CName",
+                  "$storage": "string",
+                  "$value": "None"
+                },
+                "names": [],
+                "reference": {
+                  "$type": "NodeRef",
+                  "$storage": "uint64",
+                  "$value": "0"
+                },
+                "sceneActorContextName": {
+                  "$type": "CName",
+                  "$storage": "string",
+                  "$value": "None"
+                },
+                "slotName": {
+                  "$type": "CName",
+                  "$storage": "string",
+                  "$value": "None"
+                },
+                "type": "EntityRef"
+              },
+              "forceMaxVisibility": 0
+            },
+            "holocallInitScn": {
+              "DepotPath": {
+                "$type": "ResourcePath",
+                "$storage": "uint64",
+                "$value": "0"
+              },
+              "Flags": "Soft"
+            },
+            "lipsyncAnimSet": {
+              "$type": "scnLipsyncAnimSetSRRefId",
+              "id": 0
+            },
+            "spawnDespawnParams": {
+              "$type": "scnSpawnDespawnEntityParams",
+              "alwaysSpawned": 0,
+              "appearance": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "dynamicEntityUniqueName": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "findInWorld": 0,
+              "forceMaxVisibility": 0,
+              "isEnabled": 1,
+              "itemOwnerId": {
+                "$type": "scnPerformerId",
+                "id": 4294967040
+              },
+              "keepAlive": 0,
+              "prefetchAppearance": 0,
+              "spawnMarker": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "spawnMarkerNodeRef": {
+                "$type": "NodeRef",
+                "$storage": "uint64",
+                "$value": "0"
+              },
+              "spawnMarkerType": "Local",
+              "spawnOffset": {
+                "$type": "Transform",
+                "orientation": {
+                  "$type": "Quaternion",
+                  "i": 0,
+                  "j": 0,
+                  "k": 0,
+                  "r": 1
+                },
+                "position": {
+                  "$type": "Vector4",
+                  "W": 0,
+                  "X": 0,
+                  "Y": 0,
+                  "Z": 0
+                }
+              },
+              "spawnOnStart": 1,
+              "specRecordId": {
+                "$type": "TweakDBID",
+                "$storage": "uint64",
+                "$value": "0"
+              },
+              "validateSpawnPostion": 1
+            },
+            "spawnerParams": {
+              "$type": "scnSpawnerParams",
+              "forceMaxVisibility": 0,
+              "reference": {
+                "$type": "NodeRef",
+                "$storage": "uint64",
+                "$value": "0"
+              }
+            },
+            "spawnSetParams": {
+              "$type": "scnSpawnSetParams",
+              "entryName": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "shank"
+              },
+              "forceMaxVisibility": 0,
+              "reference": {
+                "$type": "NodeRef",
+                "$storage": "string",
+                "$value": "#mq303_main_characters"
+              }
+            },
+            "specAppearance": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "default"
+            },
+            "specCharacterRecordId": {
+              "$type": "TweakDBID",
+              "$storage": "uint64",
+              "$value": "0"
+            },
+            "voicetagId": {
+              "$type": "scnVoicetagId",
+              "id": "3342233105796358144"
+            }
+          }
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/24",
+          "expected": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 4
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_2D6FA2E88E3C5000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 6145
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "3274014573824069632"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_2D6FA2E88E3C5000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 0
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/12/Data",
+          "expected": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 6711,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "3274014575921221632"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 6145
+            },
+            "startTime": 16219,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 0,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Spoken"
+            }
+          }
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Shank"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "3342233105796358144"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/24/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/24/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/24/itemId/id",
+          "expected": 6145
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/24/locstringId/ruid",
+          "expected": "3274014573824069632"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/12/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/12/Data/screenplayLineId/id",
+          "expected": 6145
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/12/Data/duration",
+          "expected": 6711
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/12/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/12/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/12/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/295/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/295/locstringId/ruid",
+          "expected": "3274014573824069632"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/295/vpeIndex",
+          "expected": 78
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/295/variantId/ruid",
+          "expected": "4138878222162780240"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/78/variantId/ruid",
+          "expected": "4138878222162780240"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/78/content",
+          "valueSha256": "4a1288e2f64de9d2643fde87e811d8ccdff61d437a0b80a863ee35833cf59eae",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "shank-hook-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/29/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shank-hook-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/29/stringId",
+          "expected": "3274014573824069632"
+        },
+        {
+          "sourceId": "shank-hook-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/29/femaleVariant",
+          "valueSha256": "4a1288e2f64de9d2643fde87e811d8ccdff61d437a0b80a863ee35833cf59eae",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "attributed-own-speech",
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "Operational role is supported; do not invent a legal ownership percentage, medical credential or broader career history."
+        ]
+      },
+      "attribution": {
+        "characterKey": "shank",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/15/Data/id",
+          "expected": "shank",
+          "containerType": "gameJournalContact",
+          "kind": "journal-contact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "ep1-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/15/Data/name/value",
+            "expected": "LocKey#83162"
+          },
+          {
+            "sourceId": "ep1-final-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/1931/primaryKey",
+            "expected": "83162"
+          },
+          {
+            "sourceId": "ep1-final-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/1931/femaleVariant",
+            "valueSha256": "bce905b415d075d1d1467c089359543c3efaffc9a7e43860ca4230d38e42ebb6",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "shank-hook",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/12",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/11/Data",
+            "expectedVoicetag": "3342233105796358144",
+            "expectedSubjectVoicetag": "3342233105796358144"
+          },
+          {
+            "sourceId": "shank-hook",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/23",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/5/Data",
+            "expectedVoicetag": "3342233105796358144",
+            "expectedSubjectVoicetag": "3342233105796358144"
+          },
+          {
+            "sourceId": "shank-hook",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/24",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/12/Data",
+            "expectedVoicetag": "3342233105796358144",
+            "expectedSubjectVoicetag": "3342233105796358144"
+          }
+        ],
+        "perspective": "The actual character speaks about their own work, experiences, preferences or delivery; no player history inferred."
+      }
+    },
+    {
+      "id": "shank.business.pressures",
+      "text": "Shank describes rent, low sales and his customers' limited spending money as business pressures.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/15/Data/$type",
+          "expected": "gameJournalContact"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/15/Data/id",
+          "expected": "shank"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/15/Data/name/value",
+          "expected": "LocKey#83162"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/1931/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/1931/primaryKey",
+          "expected": "83162"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/1931/femaleVariant",
+          "valueSha256": "bce905b415d075d1d1467c089359543c3efaffc9a7e43860ca4230d38e42ebb6",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/actors/0",
+          "expected": {
+            "$type": "scnActorDef",
+            "acquisitionPlan": "spawnSet",
+            "actorId": {
+              "$type": "scnActorId",
+              "id": 0
+            },
+            "actorName": "Shank",
+            "animSets": [],
+            "bodyCinematicAnimSets": [
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 19
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 3
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 20
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 21
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 22
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 23
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 24
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 7
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 25
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 26
+              }
+            ],
+            "communityParams": {
+              "$type": "scnCommunityParams",
+              "entryName": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "forceMaxVisibility": 0,
+              "reference": {
+                "$type": "NodeRef",
+                "$storage": "uint64",
+                "$value": "0"
+              }
+            },
+            "cyberwareAnimSets": [],
+            "cyberwareCinematicAnimSets": [],
+            "deformationAnimSets": [],
+            "dynamicAnimSets": [],
+            "facialAnimSets": [],
+            "facialCinematicAnimSets": [],
+            "findActorInContextParams": {
+              "$type": "scnFindEntityInContextParams",
+              "contextActorName": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "contextualName": "Player",
+              "forceMaxVisibility": 0,
+              "specRecordId": {
+                "$type": "TweakDBID",
+                "$storage": "uint64",
+                "$value": "0"
+              },
+              "voiceVagId": {
+                "$type": "scnVoicetagId",
+                "id": "0"
+              }
+            },
+            "findActorInWorldParams": {
+              "$type": "scnFindEntityInWorldParams",
+              "actorRef": {
+                "$type": "gameEntityReference",
+                "dynamicEntityUniqueName": {
+                  "$type": "CName",
+                  "$storage": "string",
+                  "$value": "None"
+                },
+                "names": [],
+                "reference": {
+                  "$type": "NodeRef",
+                  "$storage": "uint64",
+                  "$value": "0"
+                },
+                "sceneActorContextName": {
+                  "$type": "CName",
+                  "$storage": "string",
+                  "$value": "None"
+                },
+                "slotName": {
+                  "$type": "CName",
+                  "$storage": "string",
+                  "$value": "None"
+                },
+                "type": "EntityRef"
+              },
+              "forceMaxVisibility": 0
+            },
+            "holocallInitScn": {
+              "DepotPath": {
+                "$type": "ResourcePath",
+                "$storage": "uint64",
+                "$value": "0"
+              },
+              "Flags": "Soft"
+            },
+            "lipsyncAnimSet": {
+              "$type": "scnLipsyncAnimSetSRRefId",
+              "id": 0
+            },
+            "spawnDespawnParams": {
+              "$type": "scnSpawnDespawnEntityParams",
+              "alwaysSpawned": 0,
+              "appearance": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "dynamicEntityUniqueName": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "findInWorld": 0,
+              "forceMaxVisibility": 0,
+              "isEnabled": 1,
+              "itemOwnerId": {
+                "$type": "scnPerformerId",
+                "id": 4294967040
+              },
+              "keepAlive": 0,
+              "prefetchAppearance": 0,
+              "spawnMarker": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "spawnMarkerNodeRef": {
+                "$type": "NodeRef",
+                "$storage": "uint64",
+                "$value": "0"
+              },
+              "spawnMarkerType": "Local",
+              "spawnOffset": {
+                "$type": "Transform",
+                "orientation": {
+                  "$type": "Quaternion",
+                  "i": 0,
+                  "j": 0,
+                  "k": 0,
+                  "r": 1
+                },
+                "position": {
+                  "$type": "Vector4",
+                  "W": 0,
+                  "X": 0,
+                  "Y": 0,
+                  "Z": 0
+                }
+              },
+              "spawnOnStart": 1,
+              "specRecordId": {
+                "$type": "TweakDBID",
+                "$storage": "uint64",
+                "$value": "0"
+              },
+              "validateSpawnPostion": 1
+            },
+            "spawnerParams": {
+              "$type": "scnSpawnerParams",
+              "forceMaxVisibility": 0,
+              "reference": {
+                "$type": "NodeRef",
+                "$storage": "uint64",
+                "$value": "0"
+              }
+            },
+            "spawnSetParams": {
+              "$type": "scnSpawnSetParams",
+              "entryName": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "shank"
+              },
+              "forceMaxVisibility": 0,
+              "reference": {
+                "$type": "NodeRef",
+                "$storage": "string",
+                "$value": "#mq303_main_characters"
+              }
+            },
+            "specAppearance": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "default"
+            },
+            "specCharacterRecordId": {
+              "$type": "TweakDBID",
+              "$storage": "uint64",
+              "$value": "0"
+            },
+            "voicetagId": {
+              "$type": "scnVoicetagId",
+              "id": "3342233105796358144"
+            }
+          }
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/12",
+          "expected": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 4
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_2D6F8CE8173C5000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 3073
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "3273990382571769856"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_2D6F8CE8173C5000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 0
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/11/Data",
+          "expected": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 10185,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "3273990383846838272"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 3073
+            },
+            "startTime": 15694,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 0,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Spoken"
+            }
+          }
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Shank"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "3342233105796358144"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/12/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/12/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/12/itemId/id",
+          "expected": 3073
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/12/locstringId/ruid",
+          "expected": "3273990382571769856"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/11/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/11/Data/screenplayLineId/id",
+          "expected": 3073
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/11/Data/duration",
+          "expected": 10185
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/11/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/11/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/11/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/286/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/286/locstringId/ruid",
+          "expected": "3273990382571769856"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/286/vpeIndex",
+          "expected": 41
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/286/variantId/ruid",
+          "expected": "4138878222162780188"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/41/variantId/ruid",
+          "expected": "4138878222162780188"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/41/content",
+          "valueSha256": "960bbc2a5a80a2ba35b4d8e130d5514383fdb35453fca5049869426cf5c0ce8d",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "shank-hook-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/20/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shank-hook-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/20/stringId",
+          "expected": "3273990382571769856"
+        },
+        {
+          "sourceId": "shank-hook-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/20/femaleVariant",
+          "valueSha256": "960bbc2a5a80a2ba35b4d8e130d5514383fdb35453fca5049869426cf5c0ce8d",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/actors/0",
+          "expected": {
+            "$type": "scnActorDef",
+            "acquisitionPlan": "spawnSet",
+            "actorId": {
+              "$type": "scnActorId",
+              "id": 0
+            },
+            "actorName": "Shank",
+            "animSets": [],
+            "bodyCinematicAnimSets": [
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 19
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 3
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 20
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 21
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 22
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 23
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 24
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 7
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 25
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 26
+              }
+            ],
+            "communityParams": {
+              "$type": "scnCommunityParams",
+              "entryName": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "forceMaxVisibility": 0,
+              "reference": {
+                "$type": "NodeRef",
+                "$storage": "uint64",
+                "$value": "0"
+              }
+            },
+            "cyberwareAnimSets": [],
+            "cyberwareCinematicAnimSets": [],
+            "deformationAnimSets": [],
+            "dynamicAnimSets": [],
+            "facialAnimSets": [],
+            "facialCinematicAnimSets": [],
+            "findActorInContextParams": {
+              "$type": "scnFindEntityInContextParams",
+              "contextActorName": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "contextualName": "Player",
+              "forceMaxVisibility": 0,
+              "specRecordId": {
+                "$type": "TweakDBID",
+                "$storage": "uint64",
+                "$value": "0"
+              },
+              "voiceVagId": {
+                "$type": "scnVoicetagId",
+                "id": "0"
+              }
+            },
+            "findActorInWorldParams": {
+              "$type": "scnFindEntityInWorldParams",
+              "actorRef": {
+                "$type": "gameEntityReference",
+                "dynamicEntityUniqueName": {
+                  "$type": "CName",
+                  "$storage": "string",
+                  "$value": "None"
+                },
+                "names": [],
+                "reference": {
+                  "$type": "NodeRef",
+                  "$storage": "uint64",
+                  "$value": "0"
+                },
+                "sceneActorContextName": {
+                  "$type": "CName",
+                  "$storage": "string",
+                  "$value": "None"
+                },
+                "slotName": {
+                  "$type": "CName",
+                  "$storage": "string",
+                  "$value": "None"
+                },
+                "type": "EntityRef"
+              },
+              "forceMaxVisibility": 0
+            },
+            "holocallInitScn": {
+              "DepotPath": {
+                "$type": "ResourcePath",
+                "$storage": "uint64",
+                "$value": "0"
+              },
+              "Flags": "Soft"
+            },
+            "lipsyncAnimSet": {
+              "$type": "scnLipsyncAnimSetSRRefId",
+              "id": 0
+            },
+            "spawnDespawnParams": {
+              "$type": "scnSpawnDespawnEntityParams",
+              "alwaysSpawned": 0,
+              "appearance": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "dynamicEntityUniqueName": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "findInWorld": 0,
+              "forceMaxVisibility": 0,
+              "isEnabled": 1,
+              "itemOwnerId": {
+                "$type": "scnPerformerId",
+                "id": 4294967040
+              },
+              "keepAlive": 0,
+              "prefetchAppearance": 0,
+              "spawnMarker": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "spawnMarkerNodeRef": {
+                "$type": "NodeRef",
+                "$storage": "uint64",
+                "$value": "0"
+              },
+              "spawnMarkerType": "Local",
+              "spawnOffset": {
+                "$type": "Transform",
+                "orientation": {
+                  "$type": "Quaternion",
+                  "i": 0,
+                  "j": 0,
+                  "k": 0,
+                  "r": 1
+                },
+                "position": {
+                  "$type": "Vector4",
+                  "W": 0,
+                  "X": 0,
+                  "Y": 0,
+                  "Z": 0
+                }
+              },
+              "spawnOnStart": 1,
+              "specRecordId": {
+                "$type": "TweakDBID",
+                "$storage": "uint64",
+                "$value": "0"
+              },
+              "validateSpawnPostion": 1
+            },
+            "spawnerParams": {
+              "$type": "scnSpawnerParams",
+              "forceMaxVisibility": 0,
+              "reference": {
+                "$type": "NodeRef",
+                "$storage": "uint64",
+                "$value": "0"
+              }
+            },
+            "spawnSetParams": {
+              "$type": "scnSpawnSetParams",
+              "entryName": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "shank"
+              },
+              "forceMaxVisibility": 0,
+              "reference": {
+                "$type": "NodeRef",
+                "$storage": "string",
+                "$value": "#mq303_main_characters"
+              }
+            },
+            "specAppearance": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "default"
+            },
+            "specCharacterRecordId": {
+              "$type": "TweakDBID",
+              "$storage": "uint64",
+              "$value": "0"
+            },
+            "voicetagId": {
+              "$type": "scnVoicetagId",
+              "id": "3342233105796358144"
+            }
+          }
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/13",
+          "expected": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 4
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_2D6F8E98433C5000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 3329
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "3273992238735839232"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_2D6F8E98433C5000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 0
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/19/Data",
+          "expected": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 7898,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "3273992240698773504"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 3329
+            },
+            "startTime": 25879,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 0,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Spoken"
+            }
+          }
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Shank"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "3342233105796358144"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/13/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/13/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/13/itemId/id",
+          "expected": 3329
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/13/locstringId/ruid",
+          "expected": "3273992238735839232"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/19/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/19/Data/screenplayLineId/id",
+          "expected": 3329
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/19/Data/duration",
+          "expected": 7898
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/19/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/19/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/19/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/287/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/287/locstringId/ruid",
+          "expected": "3273992238735839232"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/287/vpeIndex",
+          "expected": 44
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/287/variantId/ruid",
+          "expected": "4138878222162780192"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/44/variantId/ruid",
+          "expected": "4138878222162780192"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/44/content",
+          "valueSha256": "e581144f6d1c5bb2315366b23995f12101cf153cb52d0d0bc52a38966afb2962",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "shank-hook-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/21/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shank-hook-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/21/stringId",
+          "expected": "3273992238735839232"
+        },
+        {
+          "sourceId": "shank-hook-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/21/femaleVariant",
+          "valueSha256": "e581144f6d1c5bb2315366b23995f12101cf153cb52d0d0bc52a38966afb2962",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "attributed-own-speech",
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "This is his sampled business account, not a permanent present-day balance sheet or proof that V changed the shop's fortunes."
+        ]
+      },
+      "attribution": {
+        "characterKey": "shank",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/15/Data/id",
+          "expected": "shank",
+          "containerType": "gameJournalContact",
+          "kind": "journal-contact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "ep1-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/15/Data/name/value",
+            "expected": "LocKey#83162"
+          },
+          {
+            "sourceId": "ep1-final-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/1931/primaryKey",
+            "expected": "83162"
+          },
+          {
+            "sourceId": "ep1-final-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/1931/femaleVariant",
+            "valueSha256": "bce905b415d075d1d1467c089359543c3efaffc9a7e43860ca4230d38e42ebb6",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "shank-hook",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/12",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/11/Data",
+            "expectedVoicetag": "3342233105796358144",
+            "expectedSubjectVoicetag": "3342233105796358144"
+          },
+          {
+            "sourceId": "shank-hook",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/13",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/19/Data",
+            "expectedVoicetag": "3342233105796358144",
+            "expectedSubjectVoicetag": "3342233105796358144"
+          }
+        ],
+        "perspective": "The actual character speaks about their own work, experiences, preferences or delivery; no player history inferred."
+      }
+    },
+    {
+      "id": "shank.relationship.tool",
+      "text": "Shank refers to Tool as his friend and partner.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/15/Data/$type",
+          "expected": "gameJournalContact"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/15/Data/id",
+          "expected": "shank"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/15/Data/name/value",
+          "expected": "LocKey#83162"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/1931/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/1931/primaryKey",
+          "expected": "83162"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/1931/femaleVariant",
+          "valueSha256": "bce905b415d075d1d1467c089359543c3efaffc9a7e43860ca4230d38e42ebb6",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/actors/0",
+          "expected": {
+            "$type": "scnActorDef",
+            "acquisitionPlan": "spawnSet",
+            "actorId": {
+              "$type": "scnActorId",
+              "id": 0
+            },
+            "actorName": "Shank",
+            "animSets": [],
+            "bodyCinematicAnimSets": [
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 19
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 3
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 20
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 21
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 22
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 23
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 24
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 7
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 25
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 26
+              }
+            ],
+            "communityParams": {
+              "$type": "scnCommunityParams",
+              "entryName": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "forceMaxVisibility": 0,
+              "reference": {
+                "$type": "NodeRef",
+                "$storage": "uint64",
+                "$value": "0"
+              }
+            },
+            "cyberwareAnimSets": [],
+            "cyberwareCinematicAnimSets": [],
+            "deformationAnimSets": [],
+            "dynamicAnimSets": [],
+            "facialAnimSets": [],
+            "facialCinematicAnimSets": [],
+            "findActorInContextParams": {
+              "$type": "scnFindEntityInContextParams",
+              "contextActorName": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "contextualName": "Player",
+              "forceMaxVisibility": 0,
+              "specRecordId": {
+                "$type": "TweakDBID",
+                "$storage": "uint64",
+                "$value": "0"
+              },
+              "voiceVagId": {
+                "$type": "scnVoicetagId",
+                "id": "0"
+              }
+            },
+            "findActorInWorldParams": {
+              "$type": "scnFindEntityInWorldParams",
+              "actorRef": {
+                "$type": "gameEntityReference",
+                "dynamicEntityUniqueName": {
+                  "$type": "CName",
+                  "$storage": "string",
+                  "$value": "None"
+                },
+                "names": [],
+                "reference": {
+                  "$type": "NodeRef",
+                  "$storage": "uint64",
+                  "$value": "0"
+                },
+                "sceneActorContextName": {
+                  "$type": "CName",
+                  "$storage": "string",
+                  "$value": "None"
+                },
+                "slotName": {
+                  "$type": "CName",
+                  "$storage": "string",
+                  "$value": "None"
+                },
+                "type": "EntityRef"
+              },
+              "forceMaxVisibility": 0
+            },
+            "holocallInitScn": {
+              "DepotPath": {
+                "$type": "ResourcePath",
+                "$storage": "uint64",
+                "$value": "0"
+              },
+              "Flags": "Soft"
+            },
+            "lipsyncAnimSet": {
+              "$type": "scnLipsyncAnimSetSRRefId",
+              "id": 0
+            },
+            "spawnDespawnParams": {
+              "$type": "scnSpawnDespawnEntityParams",
+              "alwaysSpawned": 0,
+              "appearance": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "dynamicEntityUniqueName": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "findInWorld": 0,
+              "forceMaxVisibility": 0,
+              "isEnabled": 1,
+              "itemOwnerId": {
+                "$type": "scnPerformerId",
+                "id": 4294967040
+              },
+              "keepAlive": 0,
+              "prefetchAppearance": 0,
+              "spawnMarker": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "spawnMarkerNodeRef": {
+                "$type": "NodeRef",
+                "$storage": "uint64",
+                "$value": "0"
+              },
+              "spawnMarkerType": "Local",
+              "spawnOffset": {
+                "$type": "Transform",
+                "orientation": {
+                  "$type": "Quaternion",
+                  "i": 0,
+                  "j": 0,
+                  "k": 0,
+                  "r": 1
+                },
+                "position": {
+                  "$type": "Vector4",
+                  "W": 0,
+                  "X": 0,
+                  "Y": 0,
+                  "Z": 0
+                }
+              },
+              "spawnOnStart": 1,
+              "specRecordId": {
+                "$type": "TweakDBID",
+                "$storage": "uint64",
+                "$value": "0"
+              },
+              "validateSpawnPostion": 1
+            },
+            "spawnerParams": {
+              "$type": "scnSpawnerParams",
+              "forceMaxVisibility": 0,
+              "reference": {
+                "$type": "NodeRef",
+                "$storage": "uint64",
+                "$value": "0"
+              }
+            },
+            "spawnSetParams": {
+              "$type": "scnSpawnSetParams",
+              "entryName": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "shank"
+              },
+              "forceMaxVisibility": 0,
+              "reference": {
+                "$type": "NodeRef",
+                "$storage": "string",
+                "$value": "#mq303_main_characters"
+              }
+            },
+            "specAppearance": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "default"
+            },
+            "specCharacterRecordId": {
+              "$type": "TweakDBID",
+              "$storage": "uint64",
+              "$value": "0"
+            },
+            "voicetagId": {
+              "$type": "scnVoicetagId",
+              "id": "3342233105796358144"
+            }
+          }
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/39",
+          "expected": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 4
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_2DB49C1DA43C5000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 9985
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "3293428878638075904"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_2DB49C1DA43C5000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 0
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/33/Data/events/4/Data",
+          "expected": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 6895,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "3293428879476936704"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 9985
+            },
+            "startTime": 3404,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 0,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Spoken"
+            }
+          }
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Shank"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "3342233105796358144"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/39/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/39/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/39/itemId/id",
+          "expected": 9985
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/39/locstringId/ruid",
+          "expected": "3293428878638075904"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/33/Data/events/4/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/33/Data/events/4/Data/screenplayLineId/id",
+          "expected": 9985
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/33/Data/events/4/Data/duration",
+          "expected": 6895
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/33/Data/events/4/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/33/Data/events/4/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/33/Data/events/4/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/312/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/312/locstringId/ruid",
+          "expected": "3293428878638075904"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/312/vpeIndex",
+          "expected": 123
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/312/variantId/ruid",
+          "expected": "4138878222179557404"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/123/variantId/ruid",
+          "expected": "4138878222179557404"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/123/content",
+          "valueSha256": "ff00e6815e00aa6b908dbfdecb0e0429592a61ebbc88a785811d50af934b2e19",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "shank-hook-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/46/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shank-hook-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/46/stringId",
+          "expected": "3293428878638075904"
+        },
+        {
+          "sourceId": "shank-hook-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/46/femaleVariant",
+          "valueSha256": "ff00e6815e00aa6b908dbfdecb0e0429592a61ebbc88a785811d50af934b2e19",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "attributed-own-speech",
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "Do not preload Tool's altered identity, captivity, medical condition, rescue, recording outcome or current fate."
+        ]
+      },
+      "attribution": {
+        "characterKey": "shank",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/15/Data/id",
+          "expected": "shank",
+          "containerType": "gameJournalContact",
+          "kind": "journal-contact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "ep1-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/15/Data/name/value",
+            "expected": "LocKey#83162"
+          },
+          {
+            "sourceId": "ep1-final-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/1931/primaryKey",
+            "expected": "83162"
+          },
+          {
+            "sourceId": "ep1-final-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/1931/femaleVariant",
+            "valueSha256": "bce905b415d075d1d1467c089359543c3efaffc9a7e43860ca4230d38e42ebb6",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "shank-hook",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/39",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/33/Data/events/4/Data",
+            "expectedVoicetag": "3342233105796358144",
+            "expectedSubjectVoicetag": "3342233105796358144"
+          }
+        ],
+        "perspective": "The actual character speaks about their own work, experiences, preferences or delivery; no player history inferred."
+      }
+    },
+    {
+      "id": "shank.business.opportunity",
+      "text": "He is quick to look for paid work and a recording that could improve the shop's reputation.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/15/Data/$type",
+          "expected": "gameJournalContact"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/15/Data/id",
+          "expected": "shank"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/15/Data/name/value",
+          "expected": "LocKey#83162"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/1931/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/1931/primaryKey",
+          "expected": "83162"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/1931/femaleVariant",
+          "valueSha256": "bce905b415d075d1d1467c089359543c3efaffc9a7e43860ca4230d38e42ebb6",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/actors/0",
+          "expected": {
+            "$type": "scnActorDef",
+            "acquisitionPlan": "spawnSet",
+            "actorId": {
+              "$type": "scnActorId",
+              "id": 0
+            },
+            "actorName": "Shank",
+            "animSets": [],
+            "bodyCinematicAnimSets": [
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 19
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 3
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 20
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 21
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 22
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 23
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 24
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 7
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 25
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 26
+              }
+            ],
+            "communityParams": {
+              "$type": "scnCommunityParams",
+              "entryName": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "forceMaxVisibility": 0,
+              "reference": {
+                "$type": "NodeRef",
+                "$storage": "uint64",
+                "$value": "0"
+              }
+            },
+            "cyberwareAnimSets": [],
+            "cyberwareCinematicAnimSets": [],
+            "deformationAnimSets": [],
+            "dynamicAnimSets": [],
+            "facialAnimSets": [],
+            "facialCinematicAnimSets": [],
+            "findActorInContextParams": {
+              "$type": "scnFindEntityInContextParams",
+              "contextActorName": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "contextualName": "Player",
+              "forceMaxVisibility": 0,
+              "specRecordId": {
+                "$type": "TweakDBID",
+                "$storage": "uint64",
+                "$value": "0"
+              },
+              "voiceVagId": {
+                "$type": "scnVoicetagId",
+                "id": "0"
+              }
+            },
+            "findActorInWorldParams": {
+              "$type": "scnFindEntityInWorldParams",
+              "actorRef": {
+                "$type": "gameEntityReference",
+                "dynamicEntityUniqueName": {
+                  "$type": "CName",
+                  "$storage": "string",
+                  "$value": "None"
+                },
+                "names": [],
+                "reference": {
+                  "$type": "NodeRef",
+                  "$storage": "uint64",
+                  "$value": "0"
+                },
+                "sceneActorContextName": {
+                  "$type": "CName",
+                  "$storage": "string",
+                  "$value": "None"
+                },
+                "slotName": {
+                  "$type": "CName",
+                  "$storage": "string",
+                  "$value": "None"
+                },
+                "type": "EntityRef"
+              },
+              "forceMaxVisibility": 0
+            },
+            "holocallInitScn": {
+              "DepotPath": {
+                "$type": "ResourcePath",
+                "$storage": "uint64",
+                "$value": "0"
+              },
+              "Flags": "Soft"
+            },
+            "lipsyncAnimSet": {
+              "$type": "scnLipsyncAnimSetSRRefId",
+              "id": 0
+            },
+            "spawnDespawnParams": {
+              "$type": "scnSpawnDespawnEntityParams",
+              "alwaysSpawned": 0,
+              "appearance": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "dynamicEntityUniqueName": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "findInWorld": 0,
+              "forceMaxVisibility": 0,
+              "isEnabled": 1,
+              "itemOwnerId": {
+                "$type": "scnPerformerId",
+                "id": 4294967040
+              },
+              "keepAlive": 0,
+              "prefetchAppearance": 0,
+              "spawnMarker": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "spawnMarkerNodeRef": {
+                "$type": "NodeRef",
+                "$storage": "uint64",
+                "$value": "0"
+              },
+              "spawnMarkerType": "Local",
+              "spawnOffset": {
+                "$type": "Transform",
+                "orientation": {
+                  "$type": "Quaternion",
+                  "i": 0,
+                  "j": 0,
+                  "k": 0,
+                  "r": 1
+                },
+                "position": {
+                  "$type": "Vector4",
+                  "W": 0,
+                  "X": 0,
+                  "Y": 0,
+                  "Z": 0
+                }
+              },
+              "spawnOnStart": 1,
+              "specRecordId": {
+                "$type": "TweakDBID",
+                "$storage": "uint64",
+                "$value": "0"
+              },
+              "validateSpawnPostion": 1
+            },
+            "spawnerParams": {
+              "$type": "scnSpawnerParams",
+              "forceMaxVisibility": 0,
+              "reference": {
+                "$type": "NodeRef",
+                "$storage": "uint64",
+                "$value": "0"
+              }
+            },
+            "spawnSetParams": {
+              "$type": "scnSpawnSetParams",
+              "entryName": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "shank"
+              },
+              "forceMaxVisibility": 0,
+              "reference": {
+                "$type": "NodeRef",
+                "$storage": "string",
+                "$value": "#mq303_main_characters"
+              }
+            },
+            "specAppearance": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "default"
+            },
+            "specCharacterRecordId": {
+              "$type": "TweakDBID",
+              "$storage": "uint64",
+              "$value": "0"
+            },
+            "voicetagId": {
+              "$type": "scnVoicetagId",
+              "id": "3342233105796358144"
+            }
+          }
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/9",
+          "expected": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 4
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_2DB4B985783C5000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 2305
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "3293461210413682688"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_2DB4B985783C5000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 0
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/1/Data",
+          "expected": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 5948,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "3293461214205333504"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 2305
+            },
+            "startTime": 0,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 0,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Spoken"
+            }
+          }
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Shank"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "3342233105796358144"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/9/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/9/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/9/itemId/id",
+          "expected": 2305
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/9/locstringId/ruid",
+          "expected": "3293461210413682688"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/1/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/1/Data/screenplayLineId/id",
+          "expected": 2305
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/1/Data/duration",
+          "expected": 5948
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/1/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/1/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/1/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/323/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/323/locstringId/ruid",
+          "expected": "3293461210413682688"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/323/vpeIndex",
+          "expected": 31
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/323/variantId/ruid",
+          "expected": "4138878222162780176"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/31/variantId/ruid",
+          "expected": "4138878222162780176"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/31/content",
+          "valueSha256": "682780dc871bd7481f6b2a0a2e80ecad6f5b4bc819a0e2bf3c44d4faa7022aa8",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "shank-hook-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/57/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shank-hook-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/57/stringId",
+          "expected": "3293461210413682688"
+        },
+        {
+          "sourceId": "shank-hook-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/57/femaleVariant",
+          "valueSha256": "682780dc871bd7481f6b2a0a2e80ecad6f5b4bc819a0e2bf3c44d4faa7022aa8",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/actors/0",
+          "expected": {
+            "$type": "scnActorDef",
+            "acquisitionPlan": "spawnSet",
+            "actorId": {
+              "$type": "scnActorId",
+              "id": 0
+            },
+            "actorName": "Shank",
+            "animSets": [],
+            "bodyCinematicAnimSets": [
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 19
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 3
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 20
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 21
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 22
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 23
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 24
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 7
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 25
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 26
+              }
+            ],
+            "communityParams": {
+              "$type": "scnCommunityParams",
+              "entryName": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "forceMaxVisibility": 0,
+              "reference": {
+                "$type": "NodeRef",
+                "$storage": "uint64",
+                "$value": "0"
+              }
+            },
+            "cyberwareAnimSets": [],
+            "cyberwareCinematicAnimSets": [],
+            "deformationAnimSets": [],
+            "dynamicAnimSets": [],
+            "facialAnimSets": [],
+            "facialCinematicAnimSets": [],
+            "findActorInContextParams": {
+              "$type": "scnFindEntityInContextParams",
+              "contextActorName": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "contextualName": "Player",
+              "forceMaxVisibility": 0,
+              "specRecordId": {
+                "$type": "TweakDBID",
+                "$storage": "uint64",
+                "$value": "0"
+              },
+              "voiceVagId": {
+                "$type": "scnVoicetagId",
+                "id": "0"
+              }
+            },
+            "findActorInWorldParams": {
+              "$type": "scnFindEntityInWorldParams",
+              "actorRef": {
+                "$type": "gameEntityReference",
+                "dynamicEntityUniqueName": {
+                  "$type": "CName",
+                  "$storage": "string",
+                  "$value": "None"
+                },
+                "names": [],
+                "reference": {
+                  "$type": "NodeRef",
+                  "$storage": "uint64",
+                  "$value": "0"
+                },
+                "sceneActorContextName": {
+                  "$type": "CName",
+                  "$storage": "string",
+                  "$value": "None"
+                },
+                "slotName": {
+                  "$type": "CName",
+                  "$storage": "string",
+                  "$value": "None"
+                },
+                "type": "EntityRef"
+              },
+              "forceMaxVisibility": 0
+            },
+            "holocallInitScn": {
+              "DepotPath": {
+                "$type": "ResourcePath",
+                "$storage": "uint64",
+                "$value": "0"
+              },
+              "Flags": "Soft"
+            },
+            "lipsyncAnimSet": {
+              "$type": "scnLipsyncAnimSetSRRefId",
+              "id": 0
+            },
+            "spawnDespawnParams": {
+              "$type": "scnSpawnDespawnEntityParams",
+              "alwaysSpawned": 0,
+              "appearance": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "dynamicEntityUniqueName": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "findInWorld": 0,
+              "forceMaxVisibility": 0,
+              "isEnabled": 1,
+              "itemOwnerId": {
+                "$type": "scnPerformerId",
+                "id": 4294967040
+              },
+              "keepAlive": 0,
+              "prefetchAppearance": 0,
+              "spawnMarker": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "spawnMarkerNodeRef": {
+                "$type": "NodeRef",
+                "$storage": "uint64",
+                "$value": "0"
+              },
+              "spawnMarkerType": "Local",
+              "spawnOffset": {
+                "$type": "Transform",
+                "orientation": {
+                  "$type": "Quaternion",
+                  "i": 0,
+                  "j": 0,
+                  "k": 0,
+                  "r": 1
+                },
+                "position": {
+                  "$type": "Vector4",
+                  "W": 0,
+                  "X": 0,
+                  "Y": 0,
+                  "Z": 0
+                }
+              },
+              "spawnOnStart": 1,
+              "specRecordId": {
+                "$type": "TweakDBID",
+                "$storage": "uint64",
+                "$value": "0"
+              },
+              "validateSpawnPostion": 1
+            },
+            "spawnerParams": {
+              "$type": "scnSpawnerParams",
+              "forceMaxVisibility": 0,
+              "reference": {
+                "$type": "NodeRef",
+                "$storage": "uint64",
+                "$value": "0"
+              }
+            },
+            "spawnSetParams": {
+              "$type": "scnSpawnSetParams",
+              "entryName": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "shank"
+              },
+              "forceMaxVisibility": 0,
+              "reference": {
+                "$type": "NodeRef",
+                "$storage": "string",
+                "$value": "#mq303_main_characters"
+              }
+            },
+            "specAppearance": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "default"
+            },
+            "specCharacterRecordId": {
+              "$type": "TweakDBID",
+              "$storage": "uint64",
+              "$value": "0"
+            },
+            "voicetagId": {
+              "$type": "scnVoicetagId",
+              "id": "3342233105796358144"
+            }
+          }
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/24",
+          "expected": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 4
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_2D6FA2E88E3C5000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 6145
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "3274014573824069632"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_2D6FA2E88E3C5000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 0
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/12/Data",
+          "expected": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 6711,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "3274014575921221632"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 6145
+            },
+            "startTime": 16219,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 0,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Spoken"
+            }
+          }
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Shank"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "3342233105796358144"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/24/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/24/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/24/itemId/id",
+          "expected": 6145
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/24/locstringId/ruid",
+          "expected": "3274014573824069632"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/12/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/12/Data/screenplayLineId/id",
+          "expected": 6145
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/12/Data/duration",
+          "expected": 6711
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/12/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/12/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/12/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/295/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/295/locstringId/ruid",
+          "expected": "3274014573824069632"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/295/vpeIndex",
+          "expected": 78
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/295/variantId/ruid",
+          "expected": "4138878222162780240"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/78/variantId/ruid",
+          "expected": "4138878222162780240"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/78/content",
+          "valueSha256": "4a1288e2f64de9d2643fde87e811d8ccdff61d437a0b80a863ee35833cf59eae",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "shank-hook-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/29/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shank-hook-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/29/stringId",
+          "expected": "3274014573824069632"
+        },
+        {
+          "sourceId": "shank-hook-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/29/femaleVariant",
+          "valueSha256": "4a1288e2f64de9d2643fde87e811d8ccdff61d437a0b80a863ee35833cf59eae",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "attributed-own-speech",
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "A tendency to seek opportunity does not establish any completed collaboration or success."
+        ]
+      },
+      "attribution": {
+        "characterKey": "shank",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/15/Data/id",
+          "expected": "shank",
+          "containerType": "gameJournalContact",
+          "kind": "journal-contact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "ep1-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/15/Data/name/value",
+            "expected": "LocKey#83162"
+          },
+          {
+            "sourceId": "ep1-final-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/1931/primaryKey",
+            "expected": "83162"
+          },
+          {
+            "sourceId": "ep1-final-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/1931/femaleVariant",
+            "valueSha256": "bce905b415d075d1d1467c089359543c3efaffc9a7e43860ca4230d38e42ebb6",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "shank-hook",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/9",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/1/Data",
+            "expectedVoicetag": "3342233105796358144",
+            "expectedSubjectVoicetag": "3342233105796358144"
+          },
+          {
+            "sourceId": "shank-hook",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/24",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/12/Data",
+            "expectedVoicetag": "3342233105796358144",
+            "expectedSubjectVoicetag": "3342233105796358144"
+          }
+        ],
+        "perspective": "The actual character speaks about their own work, experiences, preferences or delivery; no player history inferred."
+      }
+    },
+    {
+      "id": "shank.delivery.ethical-pushback",
+      "text": "Shank can react defensively when his business choices are criticized on ethical grounds.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/15/Data/$type",
+          "expected": "gameJournalContact"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/15/Data/id",
+          "expected": "shank"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/15/Data/name/value",
+          "expected": "LocKey#83162"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/1931/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/1931/primaryKey",
+          "expected": "83162"
+        },
+        {
+          "sourceId": "ep1-final-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/1931/femaleVariant",
+          "valueSha256": "bce905b415d075d1d1467c089359543c3efaffc9a7e43860ca4230d38e42ebb6",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/actors/0",
+          "expected": {
+            "$type": "scnActorDef",
+            "acquisitionPlan": "spawnSet",
+            "actorId": {
+              "$type": "scnActorId",
+              "id": 0
+            },
+            "actorName": "Shank",
+            "animSets": [],
+            "bodyCinematicAnimSets": [
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 19
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 3
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 20
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 21
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 22
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 23
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 24
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 7
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 25
+              },
+              {
+                "$type": "scnCinematicAnimSetSRRefId",
+                "id": 26
+              }
+            ],
+            "communityParams": {
+              "$type": "scnCommunityParams",
+              "entryName": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "forceMaxVisibility": 0,
+              "reference": {
+                "$type": "NodeRef",
+                "$storage": "uint64",
+                "$value": "0"
+              }
+            },
+            "cyberwareAnimSets": [],
+            "cyberwareCinematicAnimSets": [],
+            "deformationAnimSets": [],
+            "dynamicAnimSets": [],
+            "facialAnimSets": [],
+            "facialCinematicAnimSets": [],
+            "findActorInContextParams": {
+              "$type": "scnFindEntityInContextParams",
+              "contextActorName": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "contextualName": "Player",
+              "forceMaxVisibility": 0,
+              "specRecordId": {
+                "$type": "TweakDBID",
+                "$storage": "uint64",
+                "$value": "0"
+              },
+              "voiceVagId": {
+                "$type": "scnVoicetagId",
+                "id": "0"
+              }
+            },
+            "findActorInWorldParams": {
+              "$type": "scnFindEntityInWorldParams",
+              "actorRef": {
+                "$type": "gameEntityReference",
+                "dynamicEntityUniqueName": {
+                  "$type": "CName",
+                  "$storage": "string",
+                  "$value": "None"
+                },
+                "names": [],
+                "reference": {
+                  "$type": "NodeRef",
+                  "$storage": "uint64",
+                  "$value": "0"
+                },
+                "sceneActorContextName": {
+                  "$type": "CName",
+                  "$storage": "string",
+                  "$value": "None"
+                },
+                "slotName": {
+                  "$type": "CName",
+                  "$storage": "string",
+                  "$value": "None"
+                },
+                "type": "EntityRef"
+              },
+              "forceMaxVisibility": 0
+            },
+            "holocallInitScn": {
+              "DepotPath": {
+                "$type": "ResourcePath",
+                "$storage": "uint64",
+                "$value": "0"
+              },
+              "Flags": "Soft"
+            },
+            "lipsyncAnimSet": {
+              "$type": "scnLipsyncAnimSetSRRefId",
+              "id": 0
+            },
+            "spawnDespawnParams": {
+              "$type": "scnSpawnDespawnEntityParams",
+              "alwaysSpawned": 0,
+              "appearance": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "dynamicEntityUniqueName": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "findInWorld": 0,
+              "forceMaxVisibility": 0,
+              "isEnabled": 1,
+              "itemOwnerId": {
+                "$type": "scnPerformerId",
+                "id": 4294967040
+              },
+              "keepAlive": 0,
+              "prefetchAppearance": 0,
+              "spawnMarker": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "spawnMarkerNodeRef": {
+                "$type": "NodeRef",
+                "$storage": "uint64",
+                "$value": "0"
+              },
+              "spawnMarkerType": "Local",
+              "spawnOffset": {
+                "$type": "Transform",
+                "orientation": {
+                  "$type": "Quaternion",
+                  "i": 0,
+                  "j": 0,
+                  "k": 0,
+                  "r": 1
+                },
+                "position": {
+                  "$type": "Vector4",
+                  "W": 0,
+                  "X": 0,
+                  "Y": 0,
+                  "Z": 0
+                }
+              },
+              "spawnOnStart": 1,
+              "specRecordId": {
+                "$type": "TweakDBID",
+                "$storage": "uint64",
+                "$value": "0"
+              },
+              "validateSpawnPostion": 1
+            },
+            "spawnerParams": {
+              "$type": "scnSpawnerParams",
+              "forceMaxVisibility": 0,
+              "reference": {
+                "$type": "NodeRef",
+                "$storage": "uint64",
+                "$value": "0"
+              }
+            },
+            "spawnSetParams": {
+              "$type": "scnSpawnSetParams",
+              "entryName": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "shank"
+              },
+              "forceMaxVisibility": 0,
+              "reference": {
+                "$type": "NodeRef",
+                "$storage": "string",
+                "$value": "#mq303_main_characters"
+              }
+            },
+            "specAppearance": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "default"
+            },
+            "specCharacterRecordId": {
+              "$type": "TweakDBID",
+              "$storage": "uint64",
+              "$value": "0"
+            },
+            "voicetagId": {
+              "$type": "scnVoicetagId",
+              "id": "3342233105796358144"
+            }
+          }
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/20",
+          "expected": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 4
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_2D6F94F2283C5000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 5121
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "3273999221899677696"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_2D6F94F2283C5000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 0
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/16/Data/events/5/Data",
+          "expected": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 5403,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "3273999222923087872"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 5121
+            },
+            "startTime": 4411,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 0,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Spoken"
+            }
+          }
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Shank"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "3342233105796358144"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/20/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/20/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/20/itemId/id",
+          "expected": 5121
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/20/locstringId/ruid",
+          "expected": "3273999221899677696"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/16/Data/events/5/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/16/Data/events/5/Data/screenplayLineId/id",
+          "expected": 5121
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/16/Data/events/5/Data/duration",
+          "expected": 5403
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/16/Data/events/5/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/16/Data/events/5/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/16/Data/events/5/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/291/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/291/locstringId/ruid",
+          "expected": "3273999221899677696"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/291/vpeIndex",
+          "expected": 66
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/291/variantId/ruid",
+          "expected": "4138878222162780224"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/66/variantId/ruid",
+          "expected": "4138878222162780224"
+        },
+        {
+          "sourceId": "shank-hook",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/66/content",
+          "valueSha256": "416790bbc3158f2ba6cdd4a4acfdd252108ffc4b5a6311911687d6816927c293",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "shank-hook-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/25/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shank-hook-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/25/stringId",
+          "expected": "3273999221899677696"
+        },
+        {
+          "sourceId": "shank-hook-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/25/femaleVariant",
+          "valueSha256": "416790bbc3158f2ba6cdd4a4acfdd252108ffc4b5a6311911687d6816927c293",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "attributed-own-speech",
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "Preserve the possibility of care and contradiction; do not turn one defensive reply into a fixed diagnosis or justify every choice."
+        ]
+      },
+      "attribution": {
+        "characterKey": "shank",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/15/Data/id",
+          "expected": "shank",
+          "containerType": "gameJournalContact",
+          "kind": "journal-contact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "ep1-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/15/Data/name/value",
+            "expected": "LocKey#83162"
+          },
+          {
+            "sourceId": "ep1-final-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/1931/primaryKey",
+            "expected": "83162"
+          },
+          {
+            "sourceId": "ep1-final-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/1931/femaleVariant",
+            "valueSha256": "bce905b415d075d1d1467c089359543c3efaffc9a7e43860ca4230d38e42ebb6",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "shank-hook",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/20",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/16/Data/events/5/Data",
+            "expectedVoicetag": "3342233105796358144",
+            "expectedSubjectVoicetag": "3342233105796358144"
+          }
+        ],
+        "perspective": "The actual character speaks about their own work, experiences, preferences or delivery; no player history inferred."
+      }
+    }
+  ],
+  "cadenceExamples": [
+    {
+      "id": "doors-open",
+      "text": "Keeping the doors open is the glamorous part nobody scrolls.",
+      "claimIds": [
+        "shank.profession.bd-business"
+      ],
+      "context": "Asked about working in the BD business.",
+      "purpose": "Original editorial delivery example; not a game quotation or fabricated exchange with V."
+    },
+    {
+      "id": "rent",
+      "text": "People want a cheap thrill. The rent does not get cheaper with it.",
+      "claimIds": [
+        "shank.business.pressures"
+      ],
+      "context": "Talking generally about business pressure.",
+      "purpose": "Original editorial delivery example; not a game quotation or fabricated exchange with V."
+    },
+    {
+      "id": "partner",
+      "text": "Tool is my friend and my partner. Those are two reasons to listen before you judge.",
+      "claimIds": [
+        "shank.relationship.tool"
+      ],
+      "context": "Asked who Tool is; no quest incident is disclosed.",
+      "purpose": "Original editorial delivery example; not a game quotation or fabricated exchange with V."
+    },
+    {
+      "id": "paid-idea",
+      "text": "Before we call it a great idea, can we call it something that pays?",
+      "claimIds": [
+        "shank.business.opportunity"
+      ],
+      "context": "Considering a hypothetical recording idea.",
+      "purpose": "Original editorial delivery example; not a game quotation or fabricated exchange with V."
+    },
+    {
+      "id": "lecture",
+      "text": "All right, I heard you. Could we handle one problem before I get the whole lecture?",
+      "claimIds": [
+        "shank.delivery.ethical-pushback"
+      ],
+      "context": "Responding to ethical criticism.",
+      "purpose": "Original editorial delivery example; not a game quotation or fabricated exchange with V."
+    }
+  ],
+  "exclusions": [
+    "No V meetings, gig histories, hostage escape, current mission facts or fates.",
+    "No Tool identity or medical diagnosis preload.",
+    "No invented criminal diagnosis, celebrity fame or ownership history."
+  ],
+  "reviewSummary": {
+    "publicClaims": 5,
+    "samples": 5,
+    "sources": 4,
+    "references": 264,
+    "adopted": false,
+    "currentSaveQualified": false
+  }
+}

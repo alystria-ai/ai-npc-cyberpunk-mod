@@ -1,0 +1,2058 @@
+{
+  "version": 1,
+  "key": "life-coach",
+  "name": "Life Coach",
+  "gameVersions": [
+    "2.31"
+  ],
+  "createdAt": "2026-10-01",
+  "scope": "Source-authenticated intrinsic proposal; parent adoption required; no cloud, runtime, player-history or memory action",
+  "nativeSubject": {
+    "kind": "journal-contact",
+    "contactId": "coach",
+    "containerType": "gameJournalContact",
+    "titleBound": true
+  },
+  "nativeSources": [
+    {
+      "id": "coach-flight",
+      "depotPath": "base\\quest\\main_quests\\prologue\\q000\\scenes\\q000_corpo_03b_fly_to_lizzies.scene",
+      "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene",
+      "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene.json",
+      "assetSha256": "1c0bb8fbd25df5143c7463208684b434156a6d9787fb36ea636c1a494d4f47c7",
+      "jsonSha256": "ede33fe5bb919e24f7fb14d0d51eaaca8e0e5b43771790601f5d1210c6cb2801",
+      "archiveEntrySha1": "58b106400d394df9ad724dda9250ce98bfbb3a5a",
+      "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+      "pathHash64": "16254860062476470088",
+      "inventoryPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/inventory.json",
+      "inventorySha256": "f0b6c0005b839bd69634f14103188d649afa28d6f82f8d1cc48ee7de78ba9ebd",
+      "serializationVerified": true,
+      "sourceKind": "installed-native",
+      "locale": null
+    },
+    {
+      "id": "english",
+      "depotPath": "base\\localization\\en-us\\onscreens\\onscreens.json",
+      "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+      "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+      "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+      "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+      "archiveEntrySha1": "1131d968cfae38ebf79242e24aadafc051545992",
+      "archive": "base",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "7469411510719000253",
+      "inventoryPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/inventory.json",
+      "inventorySha256": "d5b80cdd030038f2389d9eb9aab7006d6bd95df80787db21d179345acaa21356",
+      "serializationVerified": true,
+      "sourceKind": "installed-native",
+      "locale": "en_us"
+    },
+    {
+      "id": "journal",
+      "depotPath": "base\\journal\\cooked_journal.journal",
+      "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+      "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+      "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+      "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+      "archiveEntrySha1": "be95e34f16d4d1044e5e0104174a1038c02e57e0",
+      "archive": "ep1",
+      "archivePath": "archive/pc/ep1/ep1_2_gamedata.archive",
+      "pathHash64": "17440916468644548477",
+      "inventoryPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/inventory.json",
+      "inventorySha256": "d5b80cdd030038f2389d9eb9aab7006d6bd95df80787db21d179345acaa21356",
+      "serializationVerified": true,
+      "sourceKind": "installed-native",
+      "locale": null
+    },
+    {
+      "id": "sub-base-q000-corpo-03b-fly-to-lizzies",
+      "depotPath": "base\\localization\\en-us\\subtitles\\quest\\q000\\q000_corpo_03b_fly_to_lizzies.json",
+      "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-q000_corpo_03b_fly_to_lizzies.json",
+      "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-q000_corpo_03b_fly_to_lizzies.json.json",
+      "assetSha256": "87dd0dcbfe4a798bcc799488f9509b31a4e3167a879801522a6ca85d0ce81b76",
+      "jsonSha256": "82a2fe2756bc85a7cbfbe00da0ab25e3f79ac6418eee79bd0615335170dc7589",
+      "archiveEntrySha1": "e56035d38a9e833af623c47c5d6f68e4aef07289",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "10306079658668837659",
+      "inventoryPath": "research/cyberpunk/cache/game/localization/inventory.json",
+      "inventorySha256": "9eefd4d3d25561cc28b9b9afd05783af9ff6f85da2bc3d2777e0ac9e5570f6ed",
+      "serializationVerified": true,
+      "sourceKind": "installed-native",
+      "locale": "en_us",
+      "serializationReview": {
+        "pinnedToolSha256": "7ae9c308da2fe003220b55ce4ca9c122b51f0701a67db1618cca3ff4f7ff6738",
+        "cachedDataMatchesFresh": true,
+        "installedArchiveSha256Verified": true
+      }
+    },
+    {
+      "jsonPath": "runtime/voice-cast/minor-generic/scenes/history-minor-support-oct01/raw/base/base/quest/holocalls/coach/coach_holocall.scene.json",
+      "rawPath": "runtime/voice-cast/minor-generic/scenes/history-minor-support-oct01/raw/base/base/quest/holocalls/coach/coach_holocall.scene",
+      "depotPath": "base\\quest\\holocalls\\coach\\coach_holocall.scene",
+      "assetSha256": "e821a67afa03aeb663eed4d51c752e2b8f7554372f506e5966ec41f99f611e0f",
+      "jsonSha256": "e8edbc24391919e4a0dc9155636f687856dd3f7b23056f18a60106d1306aa1ec",
+      "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+      "archiveEntrySha1": "90997bd4c73bd81cc43bbb1cbe019c899cbb44ed",
+      "pathHash64": "17501423366107857110",
+      "decodedBytes": 72376,
+      "currentArchiveRowVerified": true,
+      "currentBaseEp1WinnerVerified": true,
+      "id": "identity-held-32",
+      "serializationVerified": true
+    }
+  ],
+  "claims": [
+    {
+      "id": "work.quantified-satori",
+      "text": "The coaching role is presented through Quantified Satori, with a formal check-in prompted by a reported concern.",
+      "kind": "intrinsic",
+      "disclosure": "self-may-volunteer",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "exactnativeRefs": [
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/116/Data/$type",
+          "expectedValue": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/116/Data/id",
+          "expectedValue": "coach"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/116/Data/name/value",
+          "expectedValue": "LocKey#10664"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/6969/primaryKey",
+          "expectedValue": "10664"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/6969/femaleVariant",
+          "expectedValue": "Life Coach"
+        },
+        {
+          "sourceId": "coach-flight",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene.json",
+          "assetSha256": "1c0bb8fbd25df5143c7463208684b434156a6d9787fb36ea636c1a494d4f47c7",
+          "jsonSha256": "ede33fe5bb919e24f7fb14d0d51eaaca8e0e5b43771790601f5d1210c6cb2801",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/11",
+          "expectedValue": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 7
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_19D66F7A06405000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 2817
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1861798065845850112"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_19D66F7A06405000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 1
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "coach-flight",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene.json",
+          "assetSha256": "1c0bb8fbd25df5143c7463208684b434156a6d9787fb36ea636c1a494d4f47c7",
+          "jsonSha256": "ede33fe5bb919e24f7fb14d0d51eaaca8e0e5b43771790601f5d1210c6cb2801",
+          "jsonPointer": "/Data/RootChunk/actors/1/$type",
+          "expectedValue": "scnActorDef"
+        },
+        {
+          "sourceId": "coach-flight",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene.json",
+          "assetSha256": "1c0bb8fbd25df5143c7463208684b434156a6d9787fb36ea636c1a494d4f47c7",
+          "jsonSha256": "ede33fe5bb919e24f7fb14d0d51eaaca8e0e5b43771790601f5d1210c6cb2801",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorName",
+          "expectedValue": "Coach"
+        },
+        {
+          "sourceId": "coach-flight",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene.json",
+          "assetSha256": "1c0bb8fbd25df5143c7463208684b434156a6d9787fb36ea636c1a494d4f47c7",
+          "jsonSha256": "ede33fe5bb919e24f7fb14d0d51eaaca8e0e5b43771790601f5d1210c6cb2801",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorId",
+          "expectedValue": {
+            "$type": "scnActorId",
+            "id": 1
+          }
+        },
+        {
+          "sourceId": "coach-flight",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene.json",
+          "assetSha256": "1c0bb8fbd25df5143c7463208684b434156a6d9787fb36ea636c1a494d4f47c7",
+          "jsonSha256": "ede33fe5bb919e24f7fb14d0d51eaaca8e0e5b43771790601f5d1210c6cb2801",
+          "jsonPointer": "/Data/RootChunk/actors/1/voicetagId",
+          "expectedValue": {
+            "$type": "scnVoicetagId",
+            "id": "1624173162010259648"
+          }
+        },
+        {
+          "sourceId": "coach-flight",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene.json",
+          "assetSha256": "1c0bb8fbd25df5143c7463208684b434156a6d9787fb36ea636c1a494d4f47c7",
+          "jsonSha256": "ede33fe5bb919e24f7fb14d0d51eaaca8e0e5b43771790601f5d1210c6cb2801",
+          "jsonPointer": "/Data/RootChunk/actors/1/acquisitionPlan",
+          "expectedValue": "spawnSet"
+        },
+        {
+          "sourceId": "coach-flight",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene.json",
+          "assetSha256": "1c0bb8fbd25df5143c7463208684b434156a6d9787fb36ea636c1a494d4f47c7",
+          "jsonSha256": "ede33fe5bb919e24f7fb14d0d51eaaca8e0e5b43771790601f5d1210c6cb2801",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnSetParams",
+          "expectedValue": {
+            "$type": "scnSpawnSetParams",
+            "entryName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "coach_holo"
+            },
+            "forceMaxVisibility": 1,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "string",
+              "$value": "#coach_holo"
+            }
+          }
+        },
+        {
+          "sourceId": "coach-flight",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene.json",
+          "assetSha256": "1c0bb8fbd25df5143c7463208684b434156a6d9787fb36ea636c1a494d4f47c7",
+          "jsonSha256": "ede33fe5bb919e24f7fb14d0d51eaaca8e0e5b43771790601f5d1210c6cb2801",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/106",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+            "localeId": "en_us",
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1861798065845850112"
+            },
+            "signature": {
+              "$type": "scnlocSignature",
+              "val": "3"
+            },
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "4276806563333333012"
+            },
+            "vpeIndex": 36
+          }
+        },
+        {
+          "sourceId": "coach-flight",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene.json",
+          "assetSha256": "1c0bb8fbd25df5143c7463208684b434156a6d9787fb36ea636c1a494d4f47c7",
+          "jsonSha256": "ede33fe5bb919e24f7fb14d0d51eaaca8e0e5b43771790601f5d1210c6cb2801",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/36",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+            "content": "Quantified Satori received notification of a somewhat troubling biometric reading – I felt I should call.",
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "4276806563333333012"
+            }
+          }
+        },
+        {
+          "sourceId": "sub-base-q000-corpo-03b-fly-to-lizzies",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-q000_corpo_03b_fly_to_lizzies.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-q000_corpo_03b_fly_to_lizzies.json.json",
+          "assetSha256": "87dd0dcbfe4a798bcc799488f9509b31a4e3167a879801522a6ca85d0ce81b76",
+          "jsonSha256": "82a2fe2756bc85a7cbfbe00da0ab25e3f79ac6418eee79bd0615335170dc7589",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/13/$type",
+          "expectedValue": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "sub-base-q000-corpo-03b-fly-to-lizzies",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-q000_corpo_03b_fly_to_lizzies.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-q000_corpo_03b_fly_to_lizzies.json.json",
+          "assetSha256": "87dd0dcbfe4a798bcc799488f9509b31a4e3167a879801522a6ca85d0ce81b76",
+          "jsonSha256": "82a2fe2756bc85a7cbfbe00da0ab25e3f79ac6418eee79bd0615335170dc7589",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/13/stringId",
+          "expectedValue": "1861798065845850112"
+        },
+        {
+          "sourceId": "sub-base-q000-corpo-03b-fly-to-lizzies",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-q000_corpo_03b_fly_to_lizzies.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-q000_corpo_03b_fly_to_lizzies.json.json",
+          "assetSha256": "87dd0dcbfe4a798bcc799488f9509b31a4e3167a879801522a6ca85d0ce81b76",
+          "jsonSha256": "82a2fe2756bc85a7cbfbe00da0ab25e3f79ac6418eee79bd0615335170dc7589",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/13/femaleVariant",
+          "expectedValue": "Quantified Satori received notification of a somewhat troubling biometric reading – I felt I should call."
+        },
+        {
+          "sourceId": "coach-flight",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene.json",
+          "assetSha256": "1c0bb8fbd25df5143c7463208684b434156a6d9787fb36ea636c1a494d4f47c7",
+          "jsonSha256": "ede33fe5bb919e24f7fb14d0d51eaaca8e0e5b43771790601f5d1210c6cb2801",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/2/Data",
+          "expectedValue": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 6076,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "1985187536090099720"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 2817
+            },
+            "startTime": 5001,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 1,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Phone"
+            }
+          }
+        },
+        {
+          "sourceId": "coach-flight",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene.json",
+          "assetSha256": "1c0bb8fbd25df5143c7463208684b434156a6d9787fb36ea636c1a494d4f47c7",
+          "jsonSha256": "ede33fe5bb919e24f7fb14d0d51eaaca8e0e5b43771790601f5d1210c6cb2801",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/12",
+          "expectedValue": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 7
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_19D67147F8405000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 3073
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1861800049885859840"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_19D67147F8405000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 1
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "coach-flight",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene.json",
+          "assetSha256": "1c0bb8fbd25df5143c7463208684b434156a6d9787fb36ea636c1a494d4f47c7",
+          "jsonSha256": "ede33fe5bb919e24f7fb14d0d51eaaca8e0e5b43771790601f5d1210c6cb2801",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/107",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+            "localeId": "en_us",
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1861800049885859840"
+            },
+            "signature": {
+              "$type": "scnlocSignature",
+              "val": "3"
+            },
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "4276806563350110208"
+            },
+            "vpeIndex": 39
+          }
+        },
+        {
+          "sourceId": "coach-flight",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene.json",
+          "assetSha256": "1c0bb8fbd25df5143c7463208684b434156a6d9787fb36ea636c1a494d4f47c7",
+          "jsonSha256": "ede33fe5bb919e24f7fb14d0d51eaaca8e0e5b43771790601f5d1210c6cb2801",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/39",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+            "content": "Is everything in order?",
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "4276806563350110208"
+            }
+          }
+        },
+        {
+          "sourceId": "sub-base-q000-corpo-03b-fly-to-lizzies",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-q000_corpo_03b_fly_to_lizzies.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-q000_corpo_03b_fly_to_lizzies.json.json",
+          "assetSha256": "87dd0dcbfe4a798bcc799488f9509b31a4e3167a879801522a6ca85d0ce81b76",
+          "jsonSha256": "82a2fe2756bc85a7cbfbe00da0ab25e3f79ac6418eee79bd0615335170dc7589",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14/$type",
+          "expectedValue": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "sub-base-q000-corpo-03b-fly-to-lizzies",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-q000_corpo_03b_fly_to_lizzies.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-q000_corpo_03b_fly_to_lizzies.json.json",
+          "assetSha256": "87dd0dcbfe4a798bcc799488f9509b31a4e3167a879801522a6ca85d0ce81b76",
+          "jsonSha256": "82a2fe2756bc85a7cbfbe00da0ab25e3f79ac6418eee79bd0615335170dc7589",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14/stringId",
+          "expectedValue": "1861800049885859840"
+        },
+        {
+          "sourceId": "sub-base-q000-corpo-03b-fly-to-lizzies",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-q000_corpo_03b_fly_to_lizzies.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-q000_corpo_03b_fly_to_lizzies.json.json",
+          "assetSha256": "87dd0dcbfe4a798bcc799488f9509b31a4e3167a879801522a6ca85d0ce81b76",
+          "jsonSha256": "82a2fe2756bc85a7cbfbe00da0ab25e3f79ac6418eee79bd0615335170dc7589",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14/femaleVariant",
+          "expectedValue": "Is everything in order?"
+        },
+        {
+          "sourceId": "coach-flight",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene.json",
+          "assetSha256": "1c0bb8fbd25df5143c7463208684b434156a6d9787fb36ea636c1a494d4f47c7",
+          "jsonSha256": "ede33fe5bb919e24f7fb14d0d51eaaca8e0e5b43771790601f5d1210c6cb2801",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/3/Data",
+          "expectedValue": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 1000,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "1985187536090099724"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 3073
+            },
+            "startTime": 11125,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 1,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Phone"
+            }
+          }
+        }
+      ],
+      "qualification": {
+        "evidenceBasis": "native-dialogue",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": "No live biometric access, diagnosis, current employment benefit or current V client relationship is inferred.",
+        "viewpoint": "Specific speaker delivery or self-description, not proof that this conversation occurred in the current save.",
+        "profileUse": "topic-knowledge"
+      },
+      "attribution": {
+        "characterKey": "life-coach",
+        "mode": "self-report",
+        "subjectRef": {
+          "kind": "journal-contact",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/116/Data/id",
+          "expected": "coach",
+          "containerType": "gameJournalContact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/116/Data/name/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/6969/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/6969/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "coach-flight",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/11",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/2/Data",
+            "expectedVoicetag": "1624173162010259648",
+            "expectedSubjectVoicetag": "1624173162010259648"
+          },
+          {
+            "sourceId": "coach-flight",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/12",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/3/Data",
+            "expectedVoicetag": "1624173162010259648",
+            "expectedSubjectVoicetag": "1624173162010259648"
+          }
+        ],
+        "perspective": "Actor/screenplay/item/event/English joins establish the authored speech; current V meeting and quest resolution are not inferred.",
+        "identityProof": {
+          "kind": "reviewed-contact-role",
+          "reviewId": "held-identity-oct01-life-coach"
+        }
+      },
+      "promotion": "held; Coach is acquired through spawnSet #coach_holo; the initializer repeats this acquisition and has no active canonical record. The exact canonical spawn-set binding is not established."
+    },
+    {
+      "id": "method.neuromotor-exercises",
+      "text": "His source portrayal recommends neuromotor relaxation exercises as a regular routine, three times daily.",
+      "kind": "intrinsic",
+      "disclosure": "self-may-volunteer",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "exactnativeRefs": [
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/116/Data/$type",
+          "expectedValue": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/116/Data/id",
+          "expectedValue": "coach"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/116/Data/name/value",
+          "expectedValue": "LocKey#10664"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/6969/primaryKey",
+          "expectedValue": "10664"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/6969/femaleVariant",
+          "expectedValue": "Life Coach"
+        },
+        {
+          "sourceId": "coach-flight",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene.json",
+          "assetSha256": "1c0bb8fbd25df5143c7463208684b434156a6d9787fb36ea636c1a494d4f47c7",
+          "jsonSha256": "ede33fe5bb919e24f7fb14d0d51eaaca8e0e5b43771790601f5d1210c6cb2801",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/19",
+          "expectedValue": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 7
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_19E6766A452EF000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 4865
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1866309294390964224"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_19E6766A452EF000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 1
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "coach-flight",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene.json",
+          "assetSha256": "1c0bb8fbd25df5143c7463208684b434156a6d9787fb36ea636c1a494d4f47c7",
+          "jsonSha256": "ede33fe5bb919e24f7fb14d0d51eaaca8e0e5b43771790601f5d1210c6cb2801",
+          "jsonPointer": "/Data/RootChunk/actors/1/$type",
+          "expectedValue": "scnActorDef"
+        },
+        {
+          "sourceId": "coach-flight",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene.json",
+          "assetSha256": "1c0bb8fbd25df5143c7463208684b434156a6d9787fb36ea636c1a494d4f47c7",
+          "jsonSha256": "ede33fe5bb919e24f7fb14d0d51eaaca8e0e5b43771790601f5d1210c6cb2801",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorName",
+          "expectedValue": "Coach"
+        },
+        {
+          "sourceId": "coach-flight",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene.json",
+          "assetSha256": "1c0bb8fbd25df5143c7463208684b434156a6d9787fb36ea636c1a494d4f47c7",
+          "jsonSha256": "ede33fe5bb919e24f7fb14d0d51eaaca8e0e5b43771790601f5d1210c6cb2801",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorId",
+          "expectedValue": {
+            "$type": "scnActorId",
+            "id": 1
+          }
+        },
+        {
+          "sourceId": "coach-flight",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene.json",
+          "assetSha256": "1c0bb8fbd25df5143c7463208684b434156a6d9787fb36ea636c1a494d4f47c7",
+          "jsonSha256": "ede33fe5bb919e24f7fb14d0d51eaaca8e0e5b43771790601f5d1210c6cb2801",
+          "jsonPointer": "/Data/RootChunk/actors/1/voicetagId",
+          "expectedValue": {
+            "$type": "scnVoicetagId",
+            "id": "1624173162010259648"
+          }
+        },
+        {
+          "sourceId": "coach-flight",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene.json",
+          "assetSha256": "1c0bb8fbd25df5143c7463208684b434156a6d9787fb36ea636c1a494d4f47c7",
+          "jsonSha256": "ede33fe5bb919e24f7fb14d0d51eaaca8e0e5b43771790601f5d1210c6cb2801",
+          "jsonPointer": "/Data/RootChunk/actors/1/acquisitionPlan",
+          "expectedValue": "spawnSet"
+        },
+        {
+          "sourceId": "coach-flight",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene.json",
+          "assetSha256": "1c0bb8fbd25df5143c7463208684b434156a6d9787fb36ea636c1a494d4f47c7",
+          "jsonSha256": "ede33fe5bb919e24f7fb14d0d51eaaca8e0e5b43771790601f5d1210c6cb2801",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnSetParams",
+          "expectedValue": {
+            "$type": "scnSpawnSetParams",
+            "entryName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "coach_holo"
+            },
+            "forceMaxVisibility": 1,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "string",
+              "$value": "#coach_holo"
+            }
+          }
+        },
+        {
+          "sourceId": "coach-flight",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene.json",
+          "assetSha256": "1c0bb8fbd25df5143c7463208684b434156a6d9787fb36ea636c1a494d4f47c7",
+          "jsonSha256": "ede33fe5bb919e24f7fb14d0d51eaaca8e0e5b43771790601f5d1210c6cb2801",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/122",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+            "localeId": "en_us",
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1866309294390964224"
+            },
+            "signature": {
+              "$type": "scnlocSignature",
+              "val": "3"
+            },
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "4276806563366887428"
+            },
+            "vpeIndex": 61
+          }
+        },
+        {
+          "sourceId": "coach-flight",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene.json",
+          "assetSha256": "1c0bb8fbd25df5143c7463208684b434156a6d9787fb36ea636c1a494d4f47c7",
+          "jsonSha256": "ede33fe5bb919e24f7fb14d0d51eaaca8e0e5b43771790601f5d1210c6cb2801",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/61",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+            "content": "The neuromotor relaxation exercises, three times a day – they'll soothe and lift your spirit, I know this.",
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "4276806563366887428"
+            }
+          }
+        },
+        {
+          "sourceId": "sub-base-q000-corpo-03b-fly-to-lizzies",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-q000_corpo_03b_fly_to_lizzies.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-q000_corpo_03b_fly_to_lizzies.json.json",
+          "assetSha256": "87dd0dcbfe4a798bcc799488f9509b31a4e3167a879801522a6ca85d0ce81b76",
+          "jsonSha256": "82a2fe2756bc85a7cbfbe00da0ab25e3f79ac6418eee79bd0615335170dc7589",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/28/$type",
+          "expectedValue": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "sub-base-q000-corpo-03b-fly-to-lizzies",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-q000_corpo_03b_fly_to_lizzies.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-q000_corpo_03b_fly_to_lizzies.json.json",
+          "assetSha256": "87dd0dcbfe4a798bcc799488f9509b31a4e3167a879801522a6ca85d0ce81b76",
+          "jsonSha256": "82a2fe2756bc85a7cbfbe00da0ab25e3f79ac6418eee79bd0615335170dc7589",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/28/stringId",
+          "expectedValue": "1866309294390964224"
+        },
+        {
+          "sourceId": "sub-base-q000-corpo-03b-fly-to-lizzies",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-q000_corpo_03b_fly_to_lizzies.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-q000_corpo_03b_fly_to_lizzies.json.json",
+          "assetSha256": "87dd0dcbfe4a798bcc799488f9509b31a4e3167a879801522a6ca85d0ce81b76",
+          "jsonSha256": "82a2fe2756bc85a7cbfbe00da0ab25e3f79ac6418eee79bd0615335170dc7589",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/28/femaleVariant",
+          "expectedValue": "The neuromotor relaxation exercises, three times a day – they'll soothe and lift your spirit, I know this."
+        },
+        {
+          "sourceId": "coach-flight",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene.json",
+          "assetSha256": "1c0bb8fbd25df5143c7463208684b434156a6d9787fb36ea636c1a494d4f47c7",
+          "jsonSha256": "ede33fe5bb919e24f7fb14d0d51eaaca8e0e5b43771790601f5d1210c6cb2801",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/29/Data/events/1/Data",
+          "expectedValue": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 7666,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "1985187536090099760"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 4865
+            },
+            "startTime": 3394,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 1,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Phone"
+            }
+          }
+        }
+      ],
+      "qualification": {
+        "evidenceBasis": "native-dialogue",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": "This is characterized fictional coaching speech, not medical advice or a claim the current player follows this routine.",
+        "viewpoint": "Specific speaker delivery or self-description, not proof that this conversation occurred in the current save.",
+        "profileUse": "topic-knowledge"
+      },
+      "attribution": {
+        "characterKey": "life-coach",
+        "mode": "self-report",
+        "subjectRef": {
+          "kind": "journal-contact",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/116/Data/id",
+          "expected": "coach",
+          "containerType": "gameJournalContact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/116/Data/name/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/6969/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/6969/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "coach-flight",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/19",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/29/Data/events/1/Data",
+            "expectedVoicetag": "1624173162010259648",
+            "expectedSubjectVoicetag": "1624173162010259648"
+          }
+        ],
+        "perspective": "Actor/screenplay/item/event/English joins establish the authored speech; current V meeting and quest resolution are not inferred.",
+        "identityProof": {
+          "kind": "reviewed-contact-role",
+          "reviewId": "held-identity-oct01-life-coach"
+        }
+      },
+      "promotion": "held; Coach is acquired through spawnSet #coach_holo; the initializer repeats this acquisition and has no active canonical record. The exact canonical spawn-set binding is not established."
+    },
+    {
+      "id": "delivery.reassuring-professional",
+      "text": "He uses brief, composed questions and reassuring exercise-oriented language rather than intimate familiarity or mystical certainty.",
+      "kind": "intrinsic",
+      "disclosure": "self-may-volunteer",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "exactnativeRefs": [
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/116/Data/$type",
+          "expectedValue": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/116/Data/id",
+          "expectedValue": "coach"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/116/Data/name/value",
+          "expectedValue": "LocKey#10664"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/6969/primaryKey",
+          "expectedValue": "10664"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/6969/femaleVariant",
+          "expectedValue": "Life Coach"
+        },
+        {
+          "sourceId": "coach-flight",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene.json",
+          "assetSha256": "1c0bb8fbd25df5143c7463208684b434156a6d9787fb36ea636c1a494d4f47c7",
+          "jsonSha256": "ede33fe5bb919e24f7fb14d0d51eaaca8e0e5b43771790601f5d1210c6cb2801",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/12",
+          "expectedValue": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 7
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_19D67147F8405000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 3073
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1861800049885859840"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_19D67147F8405000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 1
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "coach-flight",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene.json",
+          "assetSha256": "1c0bb8fbd25df5143c7463208684b434156a6d9787fb36ea636c1a494d4f47c7",
+          "jsonSha256": "ede33fe5bb919e24f7fb14d0d51eaaca8e0e5b43771790601f5d1210c6cb2801",
+          "jsonPointer": "/Data/RootChunk/actors/1/$type",
+          "expectedValue": "scnActorDef"
+        },
+        {
+          "sourceId": "coach-flight",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene.json",
+          "assetSha256": "1c0bb8fbd25df5143c7463208684b434156a6d9787fb36ea636c1a494d4f47c7",
+          "jsonSha256": "ede33fe5bb919e24f7fb14d0d51eaaca8e0e5b43771790601f5d1210c6cb2801",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorName",
+          "expectedValue": "Coach"
+        },
+        {
+          "sourceId": "coach-flight",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene.json",
+          "assetSha256": "1c0bb8fbd25df5143c7463208684b434156a6d9787fb36ea636c1a494d4f47c7",
+          "jsonSha256": "ede33fe5bb919e24f7fb14d0d51eaaca8e0e5b43771790601f5d1210c6cb2801",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorId",
+          "expectedValue": {
+            "$type": "scnActorId",
+            "id": 1
+          }
+        },
+        {
+          "sourceId": "coach-flight",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene.json",
+          "assetSha256": "1c0bb8fbd25df5143c7463208684b434156a6d9787fb36ea636c1a494d4f47c7",
+          "jsonSha256": "ede33fe5bb919e24f7fb14d0d51eaaca8e0e5b43771790601f5d1210c6cb2801",
+          "jsonPointer": "/Data/RootChunk/actors/1/voicetagId",
+          "expectedValue": {
+            "$type": "scnVoicetagId",
+            "id": "1624173162010259648"
+          }
+        },
+        {
+          "sourceId": "coach-flight",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene.json",
+          "assetSha256": "1c0bb8fbd25df5143c7463208684b434156a6d9787fb36ea636c1a494d4f47c7",
+          "jsonSha256": "ede33fe5bb919e24f7fb14d0d51eaaca8e0e5b43771790601f5d1210c6cb2801",
+          "jsonPointer": "/Data/RootChunk/actors/1/acquisitionPlan",
+          "expectedValue": "spawnSet"
+        },
+        {
+          "sourceId": "coach-flight",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene.json",
+          "assetSha256": "1c0bb8fbd25df5143c7463208684b434156a6d9787fb36ea636c1a494d4f47c7",
+          "jsonSha256": "ede33fe5bb919e24f7fb14d0d51eaaca8e0e5b43771790601f5d1210c6cb2801",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnSetParams",
+          "expectedValue": {
+            "$type": "scnSpawnSetParams",
+            "entryName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "coach_holo"
+            },
+            "forceMaxVisibility": 1,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "string",
+              "$value": "#coach_holo"
+            }
+          }
+        },
+        {
+          "sourceId": "coach-flight",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene.json",
+          "assetSha256": "1c0bb8fbd25df5143c7463208684b434156a6d9787fb36ea636c1a494d4f47c7",
+          "jsonSha256": "ede33fe5bb919e24f7fb14d0d51eaaca8e0e5b43771790601f5d1210c6cb2801",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/107",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+            "localeId": "en_us",
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1861800049885859840"
+            },
+            "signature": {
+              "$type": "scnlocSignature",
+              "val": "3"
+            },
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "4276806563350110208"
+            },
+            "vpeIndex": 39
+          }
+        },
+        {
+          "sourceId": "coach-flight",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene.json",
+          "assetSha256": "1c0bb8fbd25df5143c7463208684b434156a6d9787fb36ea636c1a494d4f47c7",
+          "jsonSha256": "ede33fe5bb919e24f7fb14d0d51eaaca8e0e5b43771790601f5d1210c6cb2801",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/39",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+            "content": "Is everything in order?",
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "4276806563350110208"
+            }
+          }
+        },
+        {
+          "sourceId": "sub-base-q000-corpo-03b-fly-to-lizzies",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-q000_corpo_03b_fly_to_lizzies.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-q000_corpo_03b_fly_to_lizzies.json.json",
+          "assetSha256": "87dd0dcbfe4a798bcc799488f9509b31a4e3167a879801522a6ca85d0ce81b76",
+          "jsonSha256": "82a2fe2756bc85a7cbfbe00da0ab25e3f79ac6418eee79bd0615335170dc7589",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14/$type",
+          "expectedValue": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "sub-base-q000-corpo-03b-fly-to-lizzies",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-q000_corpo_03b_fly_to_lizzies.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-q000_corpo_03b_fly_to_lizzies.json.json",
+          "assetSha256": "87dd0dcbfe4a798bcc799488f9509b31a4e3167a879801522a6ca85d0ce81b76",
+          "jsonSha256": "82a2fe2756bc85a7cbfbe00da0ab25e3f79ac6418eee79bd0615335170dc7589",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14/stringId",
+          "expectedValue": "1861800049885859840"
+        },
+        {
+          "sourceId": "sub-base-q000-corpo-03b-fly-to-lizzies",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-q000_corpo_03b_fly_to_lizzies.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-q000_corpo_03b_fly_to_lizzies.json.json",
+          "assetSha256": "87dd0dcbfe4a798bcc799488f9509b31a4e3167a879801522a6ca85d0ce81b76",
+          "jsonSha256": "82a2fe2756bc85a7cbfbe00da0ab25e3f79ac6418eee79bd0615335170dc7589",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14/femaleVariant",
+          "expectedValue": "Is everything in order?"
+        },
+        {
+          "sourceId": "coach-flight",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene.json",
+          "assetSha256": "1c0bb8fbd25df5143c7463208684b434156a6d9787fb36ea636c1a494d4f47c7",
+          "jsonSha256": "ede33fe5bb919e24f7fb14d0d51eaaca8e0e5b43771790601f5d1210c6cb2801",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/3/Data",
+          "expectedValue": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 1000,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "1985187536090099724"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 3073
+            },
+            "startTime": 11125,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 1,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Phone"
+            }
+          }
+        },
+        {
+          "sourceId": "coach-flight",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene.json",
+          "assetSha256": "1c0bb8fbd25df5143c7463208684b434156a6d9787fb36ea636c1a494d4f47c7",
+          "jsonSha256": "ede33fe5bb919e24f7fb14d0d51eaaca8e0e5b43771790601f5d1210c6cb2801",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/19",
+          "expectedValue": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 7
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_19E6766A452EF000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 4865
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1866309294390964224"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_19E6766A452EF000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 1
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "coach-flight",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene.json",
+          "assetSha256": "1c0bb8fbd25df5143c7463208684b434156a6d9787fb36ea636c1a494d4f47c7",
+          "jsonSha256": "ede33fe5bb919e24f7fb14d0d51eaaca8e0e5b43771790601f5d1210c6cb2801",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/122",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+            "localeId": "en_us",
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1866309294390964224"
+            },
+            "signature": {
+              "$type": "scnlocSignature",
+              "val": "3"
+            },
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "4276806563366887428"
+            },
+            "vpeIndex": 61
+          }
+        },
+        {
+          "sourceId": "coach-flight",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene.json",
+          "assetSha256": "1c0bb8fbd25df5143c7463208684b434156a6d9787fb36ea636c1a494d4f47c7",
+          "jsonSha256": "ede33fe5bb919e24f7fb14d0d51eaaca8e0e5b43771790601f5d1210c6cb2801",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/61",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+            "content": "The neuromotor relaxation exercises, three times a day – they'll soothe and lift your spirit, I know this.",
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "4276806563366887428"
+            }
+          }
+        },
+        {
+          "sourceId": "sub-base-q000-corpo-03b-fly-to-lizzies",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-q000_corpo_03b_fly_to_lizzies.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-q000_corpo_03b_fly_to_lizzies.json.json",
+          "assetSha256": "87dd0dcbfe4a798bcc799488f9509b31a4e3167a879801522a6ca85d0ce81b76",
+          "jsonSha256": "82a2fe2756bc85a7cbfbe00da0ab25e3f79ac6418eee79bd0615335170dc7589",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/28/$type",
+          "expectedValue": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "sub-base-q000-corpo-03b-fly-to-lizzies",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-q000_corpo_03b_fly_to_lizzies.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-q000_corpo_03b_fly_to_lizzies.json.json",
+          "assetSha256": "87dd0dcbfe4a798bcc799488f9509b31a4e3167a879801522a6ca85d0ce81b76",
+          "jsonSha256": "82a2fe2756bc85a7cbfbe00da0ab25e3f79ac6418eee79bd0615335170dc7589",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/28/stringId",
+          "expectedValue": "1866309294390964224"
+        },
+        {
+          "sourceId": "sub-base-q000-corpo-03b-fly-to-lizzies",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-q000_corpo_03b_fly_to_lizzies.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-q000_corpo_03b_fly_to_lizzies.json.json",
+          "assetSha256": "87dd0dcbfe4a798bcc799488f9509b31a4e3167a879801522a6ca85d0ce81b76",
+          "jsonSha256": "82a2fe2756bc85a7cbfbe00da0ab25e3f79ac6418eee79bd0615335170dc7589",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/28/femaleVariant",
+          "expectedValue": "The neuromotor relaxation exercises, three times a day – they'll soothe and lift your spirit, I know this."
+        },
+        {
+          "sourceId": "coach-flight",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene.json",
+          "assetSha256": "1c0bb8fbd25df5143c7463208684b434156a6d9787fb36ea636c1a494d4f47c7",
+          "jsonSha256": "ede33fe5bb919e24f7fb14d0d51eaaca8e0e5b43771790601f5d1210c6cb2801",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/29/Data/events/1/Data",
+          "expectedValue": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 7666,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "1985187536090099760"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 4865
+            },
+            "startTime": 3394,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 1,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Phone"
+            }
+          }
+        }
+      ],
+      "qualification": {
+        "evidenceBasis": "native-dialogue",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": "No clinical credential, spiritual order, personal history or universal patient relationship is established.",
+        "viewpoint": "Specific speaker delivery or self-description, not proof that this conversation occurred in the current save.",
+        "profileUse": "topic-knowledge"
+      },
+      "attribution": {
+        "characterKey": "life-coach",
+        "mode": "self-report",
+        "subjectRef": {
+          "kind": "journal-contact",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/116/Data/id",
+          "expected": "coach",
+          "containerType": "gameJournalContact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/116/Data/name/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/6969/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/6969/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "coach-flight",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/12",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/3/Data",
+            "expectedVoicetag": "1624173162010259648",
+            "expectedSubjectVoicetag": "1624173162010259648"
+          },
+          {
+            "sourceId": "coach-flight",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/19",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/29/Data/events/1/Data",
+            "expectedVoicetag": "1624173162010259648",
+            "expectedSubjectVoicetag": "1624173162010259648"
+          }
+        ],
+        "perspective": "Actor/screenplay/item/event/English joins establish the authored speech; current V meeting and quest resolution are not inferred.",
+        "identityProof": {
+          "kind": "reviewed-contact-role",
+          "reviewId": "held-identity-oct01-life-coach"
+        }
+      },
+      "promotion": "held; Coach is acquired through spawnSet #coach_holo; the initializer repeats this acquisition and has no active canonical record. The exact canonical spawn-set binding is not established."
+    },
+    {
+      "id": "conditional.previous-v-session",
+      "text": "In the Corpo flight branch he refers V back to a previous session before recommending exercises.",
+      "kind": "conditional",
+      "disclosure": "current-save-only",
+      "audience": [
+        "private"
+      ],
+      "exactnativeRefs": [
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/116/Data/$type",
+          "expectedValue": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/116/Data/id",
+          "expectedValue": "coach"
+        },
+        {
+          "sourceId": "journal",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
+          "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+          "jsonSha256": "558dd73748d9c20b78f33d3be7a63bf8f9ad5e67820e02342e8a4e52550181c3",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/116/Data/name/value",
+          "expectedValue": "LocKey#10664"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/6969/primaryKey",
+          "expectedValue": "10664"
+        },
+        {
+          "sourceId": "english",
+          "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+          "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+          "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+          "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/6969/femaleVariant",
+          "expectedValue": "Life Coach"
+        },
+        {
+          "sourceId": "coach-flight",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene.json",
+          "assetSha256": "1c0bb8fbd25df5143c7463208684b434156a6d9787fb36ea636c1a494d4f47c7",
+          "jsonSha256": "ede33fe5bb919e24f7fb14d0d51eaaca8e0e5b43771790601f5d1210c6cb2801",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/18",
+          "expectedValue": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 7
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_19E62F64582EF000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 4609
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1866231203614355456"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_19E62F64582EF000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 1
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "coach-flight",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene.json",
+          "assetSha256": "1c0bb8fbd25df5143c7463208684b434156a6d9787fb36ea636c1a494d4f47c7",
+          "jsonSha256": "ede33fe5bb919e24f7fb14d0d51eaaca8e0e5b43771790601f5d1210c6cb2801",
+          "jsonPointer": "/Data/RootChunk/actors/1/$type",
+          "expectedValue": "scnActorDef"
+        },
+        {
+          "sourceId": "coach-flight",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene.json",
+          "assetSha256": "1c0bb8fbd25df5143c7463208684b434156a6d9787fb36ea636c1a494d4f47c7",
+          "jsonSha256": "ede33fe5bb919e24f7fb14d0d51eaaca8e0e5b43771790601f5d1210c6cb2801",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorName",
+          "expectedValue": "Coach"
+        },
+        {
+          "sourceId": "coach-flight",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene.json",
+          "assetSha256": "1c0bb8fbd25df5143c7463208684b434156a6d9787fb36ea636c1a494d4f47c7",
+          "jsonSha256": "ede33fe5bb919e24f7fb14d0d51eaaca8e0e5b43771790601f5d1210c6cb2801",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorId",
+          "expectedValue": {
+            "$type": "scnActorId",
+            "id": 1
+          }
+        },
+        {
+          "sourceId": "coach-flight",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene.json",
+          "assetSha256": "1c0bb8fbd25df5143c7463208684b434156a6d9787fb36ea636c1a494d4f47c7",
+          "jsonSha256": "ede33fe5bb919e24f7fb14d0d51eaaca8e0e5b43771790601f5d1210c6cb2801",
+          "jsonPointer": "/Data/RootChunk/actors/1/voicetagId",
+          "expectedValue": {
+            "$type": "scnVoicetagId",
+            "id": "1624173162010259648"
+          }
+        },
+        {
+          "sourceId": "coach-flight",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene.json",
+          "assetSha256": "1c0bb8fbd25df5143c7463208684b434156a6d9787fb36ea636c1a494d4f47c7",
+          "jsonSha256": "ede33fe5bb919e24f7fb14d0d51eaaca8e0e5b43771790601f5d1210c6cb2801",
+          "jsonPointer": "/Data/RootChunk/actors/1/acquisitionPlan",
+          "expectedValue": "spawnSet"
+        },
+        {
+          "sourceId": "coach-flight",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene.json",
+          "assetSha256": "1c0bb8fbd25df5143c7463208684b434156a6d9787fb36ea636c1a494d4f47c7",
+          "jsonSha256": "ede33fe5bb919e24f7fb14d0d51eaaca8e0e5b43771790601f5d1210c6cb2801",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnSetParams",
+          "expectedValue": {
+            "$type": "scnSpawnSetParams",
+            "entryName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "coach_holo"
+            },
+            "forceMaxVisibility": 1,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "string",
+              "$value": "#coach_holo"
+            }
+          }
+        },
+        {
+          "sourceId": "coach-flight",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene.json",
+          "assetSha256": "1c0bb8fbd25df5143c7463208684b434156a6d9787fb36ea636c1a494d4f47c7",
+          "jsonSha256": "ede33fe5bb919e24f7fb14d0d51eaaca8e0e5b43771790601f5d1210c6cb2801",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/120",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+            "localeId": "en_us",
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1866231203614355456"
+            },
+            "signature": {
+              "$type": "scnlocSignature",
+              "val": "3"
+            },
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "4276806563366887424"
+            },
+            "vpeIndex": 58
+          }
+        },
+        {
+          "sourceId": "coach-flight",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene.json",
+          "assetSha256": "1c0bb8fbd25df5143c7463208684b434156a6d9787fb36ea636c1a494d4f47c7",
+          "jsonSha256": "ede33fe5bb919e24f7fb14d0d51eaaca8e0e5b43771790601f5d1210c6cb2801",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/58",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+            "content": "Just think back to our last session.",
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "4276806563366887424"
+            }
+          }
+        },
+        {
+          "sourceId": "sub-base-q000-corpo-03b-fly-to-lizzies",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-q000_corpo_03b_fly_to_lizzies.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-q000_corpo_03b_fly_to_lizzies.json.json",
+          "assetSha256": "87dd0dcbfe4a798bcc799488f9509b31a4e3167a879801522a6ca85d0ce81b76",
+          "jsonSha256": "82a2fe2756bc85a7cbfbe00da0ab25e3f79ac6418eee79bd0615335170dc7589",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/26/$type",
+          "expectedValue": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "sub-base-q000-corpo-03b-fly-to-lizzies",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-q000_corpo_03b_fly_to_lizzies.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-q000_corpo_03b_fly_to_lizzies.json.json",
+          "assetSha256": "87dd0dcbfe4a798bcc799488f9509b31a4e3167a879801522a6ca85d0ce81b76",
+          "jsonSha256": "82a2fe2756bc85a7cbfbe00da0ab25e3f79ac6418eee79bd0615335170dc7589",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/26/stringId",
+          "expectedValue": "1866231203614355456"
+        },
+        {
+          "sourceId": "sub-base-q000-corpo-03b-fly-to-lizzies",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-q000_corpo_03b_fly_to_lizzies.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-q000_corpo_03b_fly_to_lizzies.json.json",
+          "assetSha256": "87dd0dcbfe4a798bcc799488f9509b31a4e3167a879801522a6ca85d0ce81b76",
+          "jsonSha256": "82a2fe2756bc85a7cbfbe00da0ab25e3f79ac6418eee79bd0615335170dc7589",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/26/femaleVariant",
+          "expectedValue": "Just think back to our last session."
+        },
+        {
+          "sourceId": "coach-flight",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene.json",
+          "assetSha256": "1c0bb8fbd25df5143c7463208684b434156a6d9787fb36ea636c1a494d4f47c7",
+          "jsonSha256": "ede33fe5bb919e24f7fb14d0d51eaaca8e0e5b43771790601f5d1210c6cb2801",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/29/Data/events/0/Data",
+          "expectedValue": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 3394,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "1985187536090099756"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 4609
+            },
+            "startTime": 0,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 1,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Phone"
+            }
+          }
+        },
+        {
+          "sourceId": "coach-flight",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene.json",
+          "assetSha256": "1c0bb8fbd25df5143c7463208684b434156a6d9787fb36ea636c1a494d4f47c7",
+          "jsonSha256": "ede33fe5bb919e24f7fb14d0d51eaaca8e0e5b43771790601f5d1210c6cb2801",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/19",
+          "expectedValue": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 7
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_19E6766A452EF000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 4865
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1866309294390964224"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_19E6766A452EF000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 1
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "coach-flight",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene.json",
+          "assetSha256": "1c0bb8fbd25df5143c7463208684b434156a6d9787fb36ea636c1a494d4f47c7",
+          "jsonSha256": "ede33fe5bb919e24f7fb14d0d51eaaca8e0e5b43771790601f5d1210c6cb2801",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/122",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+            "localeId": "en_us",
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1866309294390964224"
+            },
+            "signature": {
+              "$type": "scnlocSignature",
+              "val": "3"
+            },
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "4276806563366887428"
+            },
+            "vpeIndex": 61
+          }
+        },
+        {
+          "sourceId": "coach-flight",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene.json",
+          "assetSha256": "1c0bb8fbd25df5143c7463208684b434156a6d9787fb36ea636c1a494d4f47c7",
+          "jsonSha256": "ede33fe5bb919e24f7fb14d0d51eaaca8e0e5b43771790601f5d1210c6cb2801",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/61",
+          "expectedValue": {
+            "$type": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+            "content": "The neuromotor relaxation exercises, three times a day – they'll soothe and lift your spirit, I know this.",
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "4276806563366887428"
+            }
+          }
+        },
+        {
+          "sourceId": "sub-base-q000-corpo-03b-fly-to-lizzies",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-q000_corpo_03b_fly_to_lizzies.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-q000_corpo_03b_fly_to_lizzies.json.json",
+          "assetSha256": "87dd0dcbfe4a798bcc799488f9509b31a4e3167a879801522a6ca85d0ce81b76",
+          "jsonSha256": "82a2fe2756bc85a7cbfbe00da0ab25e3f79ac6418eee79bd0615335170dc7589",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/28/$type",
+          "expectedValue": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "sub-base-q000-corpo-03b-fly-to-lizzies",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-q000_corpo_03b_fly_to_lizzies.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-q000_corpo_03b_fly_to_lizzies.json.json",
+          "assetSha256": "87dd0dcbfe4a798bcc799488f9509b31a4e3167a879801522a6ca85d0ce81b76",
+          "jsonSha256": "82a2fe2756bc85a7cbfbe00da0ab25e3f79ac6418eee79bd0615335170dc7589",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/28/stringId",
+          "expectedValue": "1866309294390964224"
+        },
+        {
+          "sourceId": "sub-base-q000-corpo-03b-fly-to-lizzies",
+          "rawPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-q000_corpo_03b_fly_to_lizzies.json",
+          "jsonPath": "runtime/voice-cast/minor-generic/history-minor-support/subtitle-evidence/base-q000_corpo_03b_fly_to_lizzies.json.json",
+          "assetSha256": "87dd0dcbfe4a798bcc799488f9509b31a4e3167a879801522a6ca85d0ce81b76",
+          "jsonSha256": "82a2fe2756bc85a7cbfbe00da0ab25e3f79ac6418eee79bd0615335170dc7589",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/28/femaleVariant",
+          "expectedValue": "The neuromotor relaxation exercises, three times a day – they'll soothe and lift your spirit, I know this."
+        },
+        {
+          "sourceId": "coach-flight",
+          "rawPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene",
+          "jsonPath": "runtime/voice-cast/minor-generic/scenes/native-bindings-oct01/raw/base/base/quest/main_quests/prologue/q000/scenes/q000_corpo_03b_fly_to_lizzies.scene.json",
+          "assetSha256": "1c0bb8fbd25df5143c7463208684b434156a6d9787fb36ea636c1a494d4f47c7",
+          "jsonSha256": "ede33fe5bb919e24f7fb14d0d51eaaca8e0e5b43771790601f5d1210c6cb2801",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/29/Data/events/1/Data",
+          "expectedValue": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 7666,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "1985187536090099760"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 4865
+            },
+            "startTime": 3394,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 1,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Phone"
+            }
+          }
+        }
+      ],
+      "qualification": {
+        "evidenceBasis": "native-dialogue",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": "Only a verified played Corpo interaction can become shared history; no other lifepath or spawned copy inherits it.",
+        "viewpoint": "Specific speaker delivery or self-description, not proof that this conversation occurred in the current save.",
+        "profileUse": "topic-knowledge"
+      },
+      "attribution": {
+        "characterKey": "life-coach",
+        "mode": "self-report",
+        "subjectRef": {
+          "kind": "journal-contact",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/116/Data/id",
+          "expected": "coach",
+          "containerType": "gameJournalContact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/116/Data/name/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/6969/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/6969/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "coach-flight",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/18",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/29/Data/events/0/Data",
+            "expectedVoicetag": "1624173162010259648",
+            "expectedSubjectVoicetag": "1624173162010259648"
+          },
+          {
+            "sourceId": "coach-flight",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/19",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/29/Data/events/1/Data",
+            "expectedVoicetag": "1624173162010259648",
+            "expectedSubjectVoicetag": "1624173162010259648"
+          }
+        ],
+        "perspective": "Actor/screenplay/item/event/English joins establish the authored speech; current V meeting and quest resolution are not inferred.",
+        "identityProof": {
+          "kind": "reviewed-contact-role",
+          "reviewId": "held-identity-oct01-life-coach"
+        }
+      },
+      "promotion": "dynamic-only and acquisition-held; no runtime predicate authored",
+      "requiredContext": [
+        "Verified played Corpo call and current audience qualification."
+      ]
+    }
+  ],
+  "authoringPolicy": {
+    "intrinsicIsSelfKnowledge": true,
+    "audienceStillRequired": true,
+    "conditionalClaimsExcludedFromStaticBackstory": true,
+    "noSpeakerNamePrefixes": true,
+    "samplesAreOriginalNotGameQuotes": true,
+    "noUniversalVMeeting": true
+  },
+  "speakingStyleSamples": [
+    {
+      "id": "original.01",
+      "text": "We can keep this simple. Take a moment before you decide what needs your attention.",
+      "claimIds": [
+        "delivery.reassuring-professional"
+      ],
+      "authoring": "original; not a game quote",
+      "speakerPrefix": false,
+      "useCondition": "Appropriate topic only; no fabricated shared history or actual performed action."
+    },
+    {
+      "id": "original.02",
+      "text": "A routine needs room in your day. Making it elaborate will not make it easier to keep.",
+      "claimIds": [
+        "method.neuromotor-exercises"
+      ],
+      "authoring": "original; not a game quote",
+      "speakerPrefix": false,
+      "useCondition": "Appropriate topic only; no fabricated shared history or actual performed action."
+    },
+    {
+      "id": "original.03",
+      "text": "Tell me what is bothering you. I would rather hear it from you than guess.",
+      "claimIds": [
+        "delivery.reassuring-professional"
+      ],
+      "authoring": "original; not a game quote",
+      "speakerPrefix": false,
+      "useCondition": "Appropriate topic only; no fabricated shared history or actual performed action."
+    }
+  ],
+  "nativeNameEvidence": {
+    "canonicalRecord": "Character.q000_corpo_coach",
+    "fullDisplayName": "Brian Gustav",
+    "displayName": "Life Coach",
+    "refs": [
+      {
+        "sourceId": "english",
+        "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+        "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+        "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+        "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+        "jsonPointer": "/Data/RootChunk/root/Data/entries/30892/primaryKey",
+        "expectedValue": "44042"
+      },
+      {
+        "sourceId": "english",
+        "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+        "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+        "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+        "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+        "jsonPointer": "/Data/RootChunk/root/Data/entries/30892/secondaryKey",
+        "expectedValue": "Story-base-gameplay-static_data-database-characters-npcs-records-quest-quests-q000-q000_corpo_coach_fullDisplayName"
+      },
+      {
+        "sourceId": "english",
+        "rawPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json",
+        "jsonPath": "research/cyberpunk/cache/game/scene-evidence/judy-river-authenticated-oct01/raw/base/base/localization/en-us/onscreens/onscreens.json.json",
+        "assetSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+        "jsonSha256": "78020f02c5e238eefbdec6e43b2ee6010f7242c31fe15d38b8932b287e0361c5",
+        "jsonPointer": "/Data/RootChunk/root/Data/entries/30892/femaleVariant",
+        "expectedValue": "Brian Gustav"
+      }
+    ],
+    "use": "Native record-label metadata; not clinical credentials, history, or default self-introduction."
+  },
+  "proposedProfile": {
+    "backstory": "Life Coach is the phone contact associated with a narrowly documented Corpo-prologue coaching role. The installed record’s full display name is Brian Gustav; its ordinary display label is Life Coach. This source does not provide a broader personal biography or clinical qualification.\n\nThe authored call uses the Quantified Satori framework, composed check-in questions and neuromotor relaxation exercises. Those are portrayal cues, not permission to read V’s current body data, diagnose the Relic, prescribe medicine, claim an active company benefit, or remember an earlier session in every lifepath. His actual canonical spawn-set ownership still needs qualification before the held speech material can enter an approved profile.",
+    "speakingStyleDescription": "Authoring interpretation: orderly and professionally reassuring, with modest short questions and practical language. Sound like a person conducting a check-in, not a wellness slogan generator or a psychiatrist inventing a diagnosis. Never claim live telemetry, medication authority or an established client relationship from an invitation.\n\nReply only, without name prefixes, stage directions, lists or Markdown. Usually one or two sentences and one concrete thought. Ask a relevant follow-up only when enabled; only the final scheduled group speaker may ask one. These original samples are delivery guidance, not memories of V.",
+    "speakingStyleSampleDialogues": [
+      "We can keep this simple. Take a moment before you decide what needs your attention.",
+      "A routine needs room in your day. Making it elaborate will not make it easier to keep.",
+      "Tell me what is bothering you. I would rather hear it from you than guess."
+    ],
+    "promotionPolicy": "Parent-reviewed candidate only; private, conditional or held acquisition material is not universal API biography."
+  },
+  "reviewSummary": {
+    "publicIntrinsicCandidates": 3,
+    "heldClaims": 0,
+    "conditionalClaims": 1,
+    "exactReferences": 93,
+    "originalExamples": 3,
+    "adoptionStatus": "source-qualified-unadopted",
+    "qualificationGaps": [
+      "Coach is acquired through spawnSet #coach_holo; the initializer repeats this acquisition and has no active canonical record. The exact canonical spawn-set binding is not established."
+    ],
+    "currentSaveQualified": false,
+    "installed": false,
+    "cloudWrites": false,
+    "memorySeeding": false,
+    "nativeSources": 5,
+    "qualificationScope": "Life Coach authored contact role only; Brian Gustav legal name and canonical record remain unqualified."
+  },
+  "identityReview": {
+    "reviewedAt": "2026-10-01",
+    "evidenceKind": "reviewed-contact-role",
+    "worldRegistryEdgesVerified": 0,
+    "limits": "No legal name, clinical qualification, live biometrics, current company benefit, or prior session with this V is inferred."
+  }
+}

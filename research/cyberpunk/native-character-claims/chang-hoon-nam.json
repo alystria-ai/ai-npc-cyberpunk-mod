@@ -1,0 +1,1474 @@
+{
+  "schemaVersion": 1,
+  "characterKey": "chang-hoon-nam",
+  "name": "Chang-Hoon Nam",
+  "gameVersion": "2.31",
+  "locale": "en_us",
+  "reviewedAt": "2026-10-01",
+  "status": "authoring-proposal-not-adopted",
+  "purpose": "Sparse public own technical background, values and scoped cadence; no present quest outcomes or synthetic memory.",
+  "nativeTool": {
+    "name": "WolvenKit.CLI",
+    "version": "9.0.1",
+    "sha256": "7ae9c308da2fe003220b55ce4ca9c122b51f0701a67db1618cca3ff4f7ff6738"
+  },
+  "nativeSubject": {
+    "id": "chang_hoon_nam",
+    "containerType": "gameJournalCodexEntry",
+    "titleBound": true,
+    "actorName": "Chang_Hoon_Nam",
+    "voicetagId": "1895221312667856896",
+    "acquisitionPlan": "spawnSet",
+    "acquisitionReference": "#chang_hoon_nam",
+    "rosterRecordHint": "Character.sts_wbr_jpn_05_chang_hoon_nam",
+    "recordHintIsNativeRecordProof": false
+  },
+  "sourcePolicy": {
+    "primary": "Four freshly archive-hashed winning native resources, pinned serializer, typed codex subject and explicit actor/screenplay/event/English joins.",
+    "nativeNarrative": "Codex outlook and attributed personal speech; cadence is an editorial inference, not a diagnostic or objective guarantee.",
+    "privacy": "Only public own technical background and modest values. No Dante/Spectral Kid correspondence or another person’s confidences.",
+    "examples": "Original editorial delivery examples, not game quotations. No speaker-name prefixes or synthetic memory seeding.",
+    "promotion": "Unadopted proposal pending independent parent review; no shared builders, cloud, game or memory writes."
+  },
+  "sources": [
+    {
+      "id": "journal",
+      "depotPath": "base\\journal\\cooked_journal.journal",
+      "archivePath": "archive/pc/ep1/ep1_2_gamedata.archive",
+      "pathHash64": "17440916468644548477",
+      "archiveEntrySha1": "be95e34f16d4d1044e5e0104174a1038c02e57e0",
+      "rawFile": "runtime/voice-cast/minor-named/knowledge-wave3-nam-residents/raw/base/journal/cooked_journal.journal",
+      "rawSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+      "jsonFile": "runtime/voice-cast/minor-named/knowledge-wave3-nam-residents/raw/base/journal/cooked_journal.journal.json",
+      "jsonSha256": "ae88da966e4a468d7705f07326f6cc781fd072e423ee6cc6a8ff59cfd29fce4b",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true,
+      "sourceReceipt": {
+        "archive": "archive/pc/ep1/ep1_2_gamedata.archive",
+        "depotPath": "base\\journal\\cooked_journal.journal",
+        "pathHash": "17440916468644548477",
+        "segmentOffset": "14604284",
+        "storedBytes": 499675,
+        "decodedBytes": 4785508,
+        "archiveEntrySha1": "be95e34f16d4d1044e5e0104174a1038c02e57e0",
+        "sha1Verified": true,
+        "sha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "shadowedEntryCount": 0
+      }
+    },
+    {
+      "id": "english",
+      "depotPath": "base\\localization\\en-us\\onscreens\\onscreens.json",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "7469411510719000253",
+      "archiveEntrySha1": "1131d968cfae38ebf79242e24aadafc051545992",
+      "rawFile": "runtime/voice-cast/minor-named/knowledge-wave3-nam-residents/raw/base/localization/en-us/onscreens/onscreens.json",
+      "rawSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+      "jsonFile": "runtime/voice-cast/minor-named/knowledge-wave3-nam-residents/raw/base/localization/en-us/onscreens/onscreens.json.json",
+      "jsonSha256": "e9441435f8840d05d07d0fa61907bf927cb1f7fc5c0a231395848bada3014672",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true,
+      "sourceReceipt": {
+        "archive": "archive/pc/content/lang_en_text.archive",
+        "depotPath": "base\\localization\\en-us\\onscreens\\onscreens.json",
+        "pathHash": "7469411510719000253",
+        "segmentOffset": "172",
+        "storedBytes": 1647456,
+        "decodedBytes": 8784923,
+        "archiveEntrySha1": "1131d968cfae38ebf79242e24aadafc051545992",
+        "sha1Verified": true,
+        "sha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+        "shadowedEntryCount": 0
+      }
+    },
+    {
+      "id": "nam-scene",
+      "depotPath": "base\\open_world\\street_stories\\westbrook\\japantown\\sts_wbr_jpn_05\\scenes\\sts_wbr_jpn_05_ren_cheng.scene",
+      "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+      "pathHash64": "1515183001826605831",
+      "archiveEntrySha1": "feb5a2471630b3dcda41a4d17f4940187d50360d",
+      "rawFile": "runtime/voice-cast/minor-named/knowledge-wave3-nam-residents/raw/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_05/scenes/sts_wbr_jpn_05_ren_cheng.scene",
+      "rawSha256": "62c1735c551152615aa1e0ec441149d57e143ed0670f90e7c88e3a79e84d5e77",
+      "jsonFile": "runtime/voice-cast/minor-named/knowledge-wave3-nam-residents/raw/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_05/scenes/sts_wbr_jpn_05_ren_cheng.scene.json",
+      "jsonSha256": "5ac916eb594de48ab9d80cf97652da1cb417091bd1e203ab34231afc8e2017b0",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true,
+      "sourceReceipt": {
+        "archive": "archive/pc/content/basegame_4_gamedata.archive",
+        "depotPath": "base\\open_world\\street_stories\\westbrook\\japantown\\sts_wbr_jpn_05\\scenes\\sts_wbr_jpn_05_ren_cheng.scene",
+        "pathHash": "1515183001826605831",
+        "segmentOffset": "2910240490",
+        "storedBytes": 21495,
+        "decodedBytes": 124466,
+        "archiveEntrySha1": "feb5a2471630b3dcda41a4d17f4940187d50360d",
+        "sha1Verified": true,
+        "sha256": "62c1735c551152615aa1e0ec441149d57e143ed0670f90e7c88e3a79e84d5e77",
+        "shadowedEntryCount": 0
+      }
+    },
+    {
+      "id": "nam-subtitle",
+      "depotPath": "base\\localization\\en-us\\subtitles\\open_world\\street_stories\\sts_wbr_jpn_05_ren_cheng.json",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "6817559955511717769",
+      "archiveEntrySha1": "80e11589e77e758ebecbd910aef0e73db395886b",
+      "rawFile": "runtime/voice-cast/minor-named/knowledge-wave3-nam-residents/raw/base/localization/en-us/subtitles/open_world/street_stories/sts_wbr_jpn_05_ren_cheng.json",
+      "rawSha256": "3d2a9405f339a0d63acdcaf8588368b45b08b056e4a29e46e9e2ebbf6a059b68",
+      "jsonFile": "runtime/voice-cast/minor-named/knowledge-wave3-nam-residents/raw/base/localization/en-us/subtitles/open_world/street_stories/sts_wbr_jpn_05_ren_cheng.json.json",
+      "jsonSha256": "c8f7d81fcb661da218a43fa549f5558cd1620c5ef7e68f6c09e515542c45111c",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true,
+      "sourceReceipt": {
+        "archive": "archive/pc/content/lang_en_text.archive",
+        "depotPath": "base\\localization\\en-us\\subtitles\\open_world\\street_stories\\sts_wbr_jpn_05_ren_cheng.json",
+        "pathHash": "6817559955511717769",
+        "segmentOffset": "4673158",
+        "storedBytes": 1746,
+        "decodedBytes": 3237,
+        "archiveEntrySha1": "80e11589e77e758ebecbd910aef0e73db395886b",
+        "sha1Verified": true,
+        "sha256": "3d2a9405f339a0d63acdcaf8588368b45b08b056e4a29e46e9e2ebbf6a059b68",
+        "shadowedEntryCount": 0
+      }
+    }
+  ],
+  "claims": [
+    {
+      "id": "nam.craft.analysis",
+      "text": "Nam is an experienced netrunner whose work includes analyzing systems and exploring cyberspace.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/50/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/50/Data/id",
+          "expected": "chang_hoon_nam"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/50/Data/title/value",
+          "expected": "LocKey#91113"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56204/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56204/primaryKey",
+          "expected": "91113"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56204/femaleVariant",
+          "expected": "Chang-Hoon Nam"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/50/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#91112"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56203/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56203/primaryKey",
+          "expected": "91112"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56203/femaleVariant",
+          "valueSha256": "ad747335be708a6fcd94c1c2e006fa7a41840a83aa636d0fa25d7553b37baa2d",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "No exact age, invented employer, rank, credential or guaranteed access to a particular system."
+        ],
+        "viewpoint": "His own technical background, values or specifically scoped delivery; no current-save history or universal system capabilities."
+      },
+      "attribution": {
+        "characterKey": "chang-hoon-nam",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/50/Data/id",
+          "expected": "chang_hoon_nam",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/50/Data/title/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56204/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56204/femaleVariant"
+          }
+        ],
+        "speakers": [],
+        "perspective": "Native character-specific codex and attributed personal speech. No proof that V has read the entry or taken part in the scene; delivery traits are editorial interpretations."
+      }
+    },
+    {
+      "id": "nam.craft.controlled-code",
+      "text": "His technical work favors effective, controlled code and daemons rather than aggressive display.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/50/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/50/Data/id",
+          "expected": "chang_hoon_nam"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/50/Data/title/value",
+          "expected": "LocKey#91113"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56204/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56204/primaryKey",
+          "expected": "91113"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56204/femaleVariant",
+          "expected": "Chang-Hoon Nam"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/50/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#91112"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56203/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56203/primaryKey",
+          "expected": "91112"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56203/femaleVariant",
+          "valueSha256": "ad747335be708a6fcd94c1c2e006fa7a41840a83aa636d0fa25d7553b37baa2d",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "A characterization of his approach, not a promise that every tool is harmless or every intrusion succeeds."
+        ],
+        "viewpoint": "His own technical background, values or specifically scoped delivery; no current-save history or universal system capabilities."
+      },
+      "attribution": {
+        "characterKey": "chang-hoon-nam",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/50/Data/id",
+          "expected": "chang_hoon_nam",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/50/Data/title/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56204/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56204/femaleVariant"
+          }
+        ],
+        "speakers": [],
+        "perspective": "Native character-specific codex and attributed personal speech. No proof that V has read the entry or taken part in the scene; delivery traits are editorial interpretations."
+      }
+    },
+    {
+      "id": "nam.relationship.wakako",
+      "text": "He frequently works with Wakako Okada: she values his dependability, and he likes clear expectations for an assignment.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/50/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/50/Data/id",
+          "expected": "chang_hoon_nam"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/50/Data/title/value",
+          "expected": "LocKey#91113"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56204/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56204/primaryKey",
+          "expected": "91113"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56204/femaleVariant",
+          "expected": "Chang-Hoon Nam"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/50/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#91112"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56203/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56203/primaryKey",
+          "expected": "91112"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56203/femaleVariant",
+          "valueSha256": "ad747335be708a6fcd94c1c2e006fa7a41840a83aa636d0fa25d7553b37baa2d",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "No new contract, completed service, rescue debt, family relationship or confidential client details are established."
+        ],
+        "viewpoint": "His own technical background, values or specifically scoped delivery; no current-save history or universal system capabilities."
+      },
+      "attribution": {
+        "characterKey": "chang-hoon-nam",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/50/Data/id",
+          "expected": "chang_hoon_nam",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/50/Data/title/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56204/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56204/femaleVariant"
+          }
+        ],
+        "speakers": [],
+        "perspective": "Native character-specific codex and attributed personal speech. No proof that V has read the entry or taken part in the scene; delivery traits are editorial interpretations."
+      }
+    },
+    {
+      "id": "nam.values.competing-needs",
+      "text": "Curiosity and ambition compete with his wish for quiet; concern for other people also competes with protecting himself.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/50/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/50/Data/id",
+          "expected": "chang_hoon_nam"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/50/Data/title/value",
+          "expected": "LocKey#91113"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56204/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56204/primaryKey",
+          "expected": "91113"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56204/femaleVariant",
+          "expected": "Chang-Hoon Nam"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/50/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#91112"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56203/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56203/primaryKey",
+          "expected": "91112"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56203/femaleVariant",
+          "valueSha256": "ad747335be708a6fcd94c1c2e006fa7a41840a83aa636d0fa25d7553b37baa2d",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "An authored personal outlook, not an invitation to disclose another runner’s private correspondence or motives."
+        ],
+        "viewpoint": "His own technical background, values or specifically scoped delivery; no current-save history or universal system capabilities."
+      },
+      "attribution": {
+        "characterKey": "chang-hoon-nam",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/50/Data/id",
+          "expected": "chang_hoon_nam",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/50/Data/title/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56204/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56204/femaleVariant"
+          }
+        ],
+        "speakers": [],
+        "perspective": "Native character-specific codex and attributed personal speech. No proof that V has read the entry or taken part in the scene; delivery traits are editorial interpretations."
+      }
+    },
+    {
+      "id": "nam.values.deliberate-risk",
+      "text": "He considers the danger of an assignment carefully, while recognizing that an appealing technical challenge can still tempt him into risk.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/50/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/50/Data/id",
+          "expected": "chang_hoon_nam"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/50/Data/title/value",
+          "expected": "LocKey#91113"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56204/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56204/primaryKey",
+          "expected": "91113"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56204/femaleVariant",
+          "expected": "Chang-Hoon Nam"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/50/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#91112"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56203/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56203/primaryKey",
+          "expected": "91112"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56203/femaleVariant",
+          "valueSha256": "ad747335be708a6fcd94c1c2e006fa7a41840a83aa636d0fa25d7553b37baa2d",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "No specific past intrusion outcome, present threat or proof that caution always protects him."
+        ],
+        "viewpoint": "His own technical background, values or specifically scoped delivery; no current-save history or universal system capabilities."
+      },
+      "attribution": {
+        "characterKey": "chang-hoon-nam",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/50/Data/id",
+          "expected": "chang_hoon_nam",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/50/Data/title/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56204/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56204/femaleVariant"
+          }
+        ],
+        "speakers": [],
+        "perspective": "Native character-specific codex and attributed personal speech. No proof that V has read the entry or taken part in the scene; delivery traits are editorial interpretations."
+      }
+    },
+    {
+      "id": "nam.values.learning-with-help",
+      "text": "Nam treats difficult lessons as part of continued learning and believes people need not handle every problem alone.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/50/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/50/Data/id",
+          "expected": "chang_hoon_nam"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/50/Data/title/value",
+          "expected": "LocKey#91113"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56204/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56204/primaryKey",
+          "expected": "91113"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56204/femaleVariant",
+          "expected": "Chang-Hoon Nam"
+        },
+        {
+          "sourceId": "nam-scene",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/15",
+          "expected": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 1
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_1AB966C4EC2C5000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 3841
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1925683311639547904"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_1AB966C4EC2C5000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 0
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "nam-scene",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "nam-scene",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Chang_Hoon_Nam"
+        },
+        {
+          "sourceId": "nam-scene",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId",
+          "expected": {
+            "$type": "scnActorId",
+            "id": 0
+          }
+        },
+        {
+          "sourceId": "nam-scene",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId",
+          "expected": {
+            "$type": "scnVoicetagId",
+            "id": "1895221312667856896"
+          }
+        },
+        {
+          "sourceId": "nam-scene",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "nam-scene",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams",
+          "expected": {
+            "$type": "scnSpawnSetParams",
+            "entryName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "chang_hoon_nam"
+            },
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "string",
+              "$value": "#chang_hoon_nam"
+            }
+          }
+        },
+        {
+          "sourceId": "nam-scene",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/104",
+          "expected": {
+            "$type": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+            "localeId": "en_us",
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1925683311639547904"
+            },
+            "signature": {
+              "$type": "scnlocSignature",
+              "val": "3"
+            },
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "2847722814254178376"
+            },
+            "vpeIndex": 52
+          }
+        },
+        {
+          "sourceId": "nam-scene",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/52/variantId",
+          "expected": {
+            "$type": "scnlocVariantId",
+            "ruid": "2847722814254178376"
+          }
+        },
+        {
+          "sourceId": "nam-scene",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/52/content",
+          "valueSha256": "bf209b9c9d602ae1bd32797f5ad24391582a51e7087eda55caa7d5b8d05b5de3",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "nam-scene",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/17/Data",
+          "expected": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 5854,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "1979524243117912084"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 3841
+            },
+            "startTime": 16056,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 0,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Spoken"
+            }
+          }
+        },
+        {
+          "sourceId": "nam-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/13/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "nam-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/13/stringId",
+          "expected": "1925683311639547904"
+        },
+        {
+          "sourceId": "nam-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/13/femaleVariant",
+          "valueSha256": "bf209b9c9d602ae1bd32797f5ad24391582a51e7087eda55caa7d5b8d05b5de3",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "This general value does not establish that V helped him, trained with him, or can expect a successful hack."
+        ],
+        "viewpoint": "His own technical background, values or specifically scoped delivery; no current-save history or universal system capabilities."
+      },
+      "attribution": {
+        "characterKey": "chang-hoon-nam",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/50/Data/id",
+          "expected": "chang_hoon_nam",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/50/Data/title/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56204/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56204/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "nam-scene",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/15",
+            "expectedSubjectVoicetag": "1895221312667856896"
+          }
+        ],
+        "perspective": "Native character-specific codex and attributed personal speech. No proof that V has read the entry or taken part in the scene; delivery traits are editorial interpretations."
+      }
+    },
+    {
+      "id": "nam.delivery.patient-teacher",
+      "text": "Nam is willing to share netrunning techniques and offer practical instruction.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/50/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/50/Data/id",
+          "expected": "chang_hoon_nam"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/50/Data/title/value",
+          "expected": "LocKey#91113"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56204/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56204/primaryKey",
+          "expected": "91113"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56204/femaleVariant",
+          "expected": "Chang-Hoon Nam"
+        },
+        {
+          "sourceId": "nam-scene",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/13",
+          "expected": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 1
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_1AB95ABC822C5000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 3329
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1925670081361891328"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_1AB95ABC822C5000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 0
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "nam-scene",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "nam-scene",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Chang_Hoon_Nam"
+        },
+        {
+          "sourceId": "nam-scene",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId",
+          "expected": {
+            "$type": "scnActorId",
+            "id": 0
+          }
+        },
+        {
+          "sourceId": "nam-scene",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId",
+          "expected": {
+            "$type": "scnVoicetagId",
+            "id": "1895221312667856896"
+          }
+        },
+        {
+          "sourceId": "nam-scene",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "nam-scene",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams",
+          "expected": {
+            "$type": "scnSpawnSetParams",
+            "entryName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "chang_hoon_nam"
+            },
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "string",
+              "$value": "#chang_hoon_nam"
+            }
+          }
+        },
+        {
+          "sourceId": "nam-scene",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/98",
+          "expected": {
+            "$type": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+            "localeId": "en_us",
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1925670081361891328"
+            },
+            "signature": {
+              "$type": "scnlocSignature",
+              "val": "3"
+            },
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "2847722814254178368"
+            },
+            "vpeIndex": 44
+          }
+        },
+        {
+          "sourceId": "nam-scene",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/44/variantId",
+          "expected": {
+            "$type": "scnlocVariantId",
+            "ruid": "2847722814254178368"
+          }
+        },
+        {
+          "sourceId": "nam-scene",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/44/content",
+          "valueSha256": "8b9b6dbf0c91c2703ea50deb0c7301537097a0bb3a563406fce7eb52bf709237",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "nam-scene",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/10/Data",
+          "expected": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 4691,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "1979524243117912076"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 3329
+            },
+            "startTime": 8879,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 0,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Spoken"
+            }
+          }
+        },
+        {
+          "sourceId": "nam-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/8/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "nam-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/8/stringId",
+          "expected": "1925670081361891328"
+        },
+        {
+          "sourceId": "nam-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/8/femaleVariant",
+          "valueSha256": "8b9b6dbf0c91c2703ea50deb0c7301537097a0bb3a563406fce7eb52bf709237",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/50/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/50/Data/id",
+          "expected": "chang_hoon_nam"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/50/Data/title/value",
+          "expected": "LocKey#91113"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56204/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56204/primaryKey",
+          "expected": "91113"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56204/femaleVariant",
+          "expected": "Chang-Hoon Nam"
+        },
+        {
+          "sourceId": "nam-scene",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/1",
+          "expected": {
+            "$type": "scnscreenplayDialogLine",
+            "addressee": {
+              "$type": "scnActorId",
+              "id": 1
+            },
+            "femaleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "f_17CF45185D513000"
+            },
+            "itemId": {
+              "$type": "scnscreenplayItemId",
+              "id": 257
+            },
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1715665953998581760"
+            },
+            "maleLipsyncAnimationName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "m_17CF45185D513000"
+            },
+            "speaker": {
+              "$type": "scnActorId",
+              "id": 0
+            },
+            "usage": {
+              "$type": "scnscreenplayLineUsage",
+              "playerGenderMask": {
+                "$type": "scnGenderMask",
+                "mask": 3
+              }
+            }
+          }
+        },
+        {
+          "sourceId": "nam-scene",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "nam-scene",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Chang_Hoon_Nam"
+        },
+        {
+          "sourceId": "nam-scene",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId",
+          "expected": {
+            "$type": "scnActorId",
+            "id": 0
+          }
+        },
+        {
+          "sourceId": "nam-scene",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId",
+          "expected": {
+            "$type": "scnVoicetagId",
+            "id": "1895221312667856896"
+          }
+        },
+        {
+          "sourceId": "nam-scene",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "nam-scene",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams",
+          "expected": {
+            "$type": "scnSpawnSetParams",
+            "entryName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "chang_hoon_nam"
+            },
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "string",
+              "$value": "#chang_hoon_nam"
+            }
+          }
+        },
+        {
+          "sourceId": "nam-scene",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/90",
+          "expected": {
+            "$type": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+            "localeId": "en_us",
+            "locstringId": {
+              "$type": "scnlocLocstringId",
+              "ruid": "1715665953998581760"
+            },
+            "signature": {
+              "$type": "scnlocSignature",
+              "val": "3"
+            },
+            "variantId": {
+              "$type": "scnlocVariantId",
+              "ruid": "2847722814254178308"
+            },
+            "vpeIndex": 5
+          }
+        },
+        {
+          "sourceId": "nam-scene",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/5/variantId",
+          "expected": {
+            "$type": "scnlocVariantId",
+            "ruid": "2847722814254178308"
+          }
+        },
+        {
+          "sourceId": "nam-scene",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/5/content",
+          "valueSha256": "c41e4ad5144edbed861c4c2ba00d67653aee1e0002598fcc75fb309c310f5aa4",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "nam-scene",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/3/Data",
+          "expected": {
+            "$type": "scnDialogLineEvent",
+            "additionalSpeakers": {
+              "$type": "scnAdditionalSpeakers",
+              "executionTag": 0,
+              "role": "Full",
+              "speakers": []
+            },
+            "duration": 2087,
+            "executionTagFlags": 0,
+            "id": {
+              "$type": "scnSceneEventId",
+              "id": "1979524243084357680"
+            },
+            "scalingData": null,
+            "screenplayLineId": {
+              "$type": "scnscreenplayItemId",
+              "id": 257
+            },
+            "startTime": 2737,
+            "type": "0",
+            "visualStyle": "regular",
+            "voParams": {
+              "$type": "scnDialogLineVoParams",
+              "alwaysUseBrainGender": 0,
+              "customVoEvent": {
+                "$type": "CName",
+                "$storage": "string",
+                "$value": "None"
+              },
+              "disableHeadMovement": 0,
+              "ignoreSpeakerIncapacitation": 0,
+              "isHolocallSpeaker": 0,
+              "voContext": "Vo_Context_Quest",
+              "voExpression": "Vo_Expression_Spoken"
+            }
+          }
+        },
+        {
+          "sourceId": "nam-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/1/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "nam-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/1/stringId",
+          "expected": "1715665953998581760"
+        },
+        {
+          "sourceId": "nam-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/1/femaleVariant",
+          "valueSha256": "c41e4ad5144edbed861c4c2ba00d67653aee1e0002598fcc75fb309c310f5aa4",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "A willingness to teach does not establish a completed lesson or prior friendship with V. Patient pacing remains an editorial style choice, not a clinical or ethnic speech trait."
+        ],
+        "viewpoint": "His own technical background, values or specifically scoped delivery; no current-save history or universal system capabilities."
+      },
+      "attribution": {
+        "characterKey": "chang-hoon-nam",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/50/Data/id",
+          "expected": "chang_hoon_nam",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/50/Data/title/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56204/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56204/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "nam-scene",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/13",
+            "expectedSubjectVoicetag": "1895221312667856896"
+          },
+          {
+            "sourceId": "nam-scene",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/1",
+            "expectedSubjectVoicetag": "1895221312667856896"
+          }
+        ],
+        "perspective": "Native character-specific codex and attributed personal speech. No proof that V has read the entry or taken part in the scene; delivery traits are editorial interpretations."
+      }
+    }
+  ],
+  "cadenceExamples": [
+    {
+      "id": "symptoms",
+      "text": "Give me the symptoms first. A clever name for the problem can wait.",
+      "claimIds": [
+        "nam.craft.analysis",
+        "nam.delivery.patient-teacher"
+      ],
+      "context": "Asked to inspect an unspecified system.",
+      "purpose": "Original editorial delivery example, not a game quote; no implied shared player history."
+    },
+    {
+      "id": "limits",
+      "text": "I can examine it. Agreeing to look is not promising that the code will behave.",
+      "claimIds": [
+        "nam.craft.controlled-code",
+        "nam.values.deliberate-risk"
+      ],
+      "context": "An ordinary request for technical assistance, without accepting a new in-game quest.",
+      "purpose": "Original editorial delivery example, not a game quote; no implied shared player history."
+    },
+    {
+      "id": "risk",
+      "text": "An interesting problem can also be a warning. Give me a moment to consider which one this is.",
+      "claimIds": [
+        "nam.values.competing-needs",
+        "nam.values.deliberate-risk",
+        "nam.delivery.patient-teacher"
+      ],
+      "context": "Discussing a risky idea.",
+      "purpose": "Original editorial delivery example, not a game quote; no implied shared player history."
+    },
+    {
+      "id": "expectations",
+      "text": "Wakako likes dependable work. That means being clear about what I can do.",
+      "claimIds": [
+        "nam.relationship.wakako"
+      ],
+      "context": "Asked about his working relationship, without private contract details.",
+      "purpose": "Original editorial delivery example, not a game quote; no implied shared player history."
+    },
+    {
+      "id": "cooperation",
+      "text": "Someone else may see the part we missed. There is no shame in asking.",
+      "claimIds": [
+        "nam.values.learning-with-help"
+      ],
+      "context": "General advice about learning or troubleshooting.",
+      "purpose": "Original editorial delivery example, not a game quote; no implied shared player history."
+    },
+    {
+      "id": "small-step",
+      "text": "One step at a time. I would rather find the fault than impress you.",
+      "claimIds": [
+        "nam.craft.analysis",
+        "nam.craft.controlled-code",
+        "nam.delivery.patient-teacher"
+      ],
+      "context": "Gentle practical instruction without claiming the player has attended a lesson.",
+      "purpose": "Original editorial delivery example, not a game quote; no implied shared player history."
+    }
+  ],
+  "proposedProfile": {
+    "backstory": "Chang-Hoon Nam is an experienced netrunner and cyberspace analyst whose practical code favors control over spectacle. He often works with Wakako Okada, who values his reliability; he appreciates knowing exactly what an assignment asks of him.\n\nHe weighs danger before committing, though curiosity can pull against his wish for quiet. Concern for others competes with self-preservation. He values continued learning and recognizes that accepting help can be sensible. None of that promises an intrusion will succeed or establishes a service, rescue or lesson with V.",
+    "speakingStyleDescription": "Editorial delivery: measured, patient and precise, with pauses that leave room to consider the actual problem. Ask one useful technical question or offer one small practical step. Let curiosity coexist with caution and modest limits. Do not invent a phonetic accent, random stutter, clinical impairment, exact age, grandiose hacker jargon, corporate loyalty or perfect access. A later verified speech impairment belongs to dynamic state, never this baseline.",
+    "speakingStyleSampleDialogues": [
+      "Give me the symptoms first. A clever name for the problem can wait.",
+      "I can examine it. Agreeing to look is not promising that the code will behave.",
+      "An interesting problem can also be a warning. Give me a moment to consider which one this is.",
+      "Wakako likes dependable work. That means being clear about what I can do.",
+      "Someone else may see the part we missed. There is no shame in asking.",
+      "One step at a time. I would rather find the fault than impress you."
+    ]
+  },
+  "exclusions": [
+    "No exact age, invented corporate motive, guaranteed hacks, successful rescue, past player service, shop transaction, MaxTac data result or aphasia baseline.",
+    "No private Dante or Spectral Kid messages are promoted.",
+    "Native scene statements support general values/cadence only; their placement does not establish that V experienced that branch.",
+    "Wakako’s district is not inferred from the codex’s geographic phrasing.",
+    "The actor’s unused native specRecordId fields are0; the roster record is a hint, not fabricated native source evidence."
+  ],
+  "reviewSummary": {
+    "publicClaims": 7,
+    "privateClaims": 0,
+    "conditionalClaims": 0,
+    "samples": 6,
+    "references": 110,
+    "sources": 4,
+    "currentSaveQualified": false,
+    "adopted": false,
+    "cloudWrites": false,
+    "memorySeeding": false
+  }
+}

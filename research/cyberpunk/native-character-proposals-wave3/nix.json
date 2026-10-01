@@ -1,0 +1,3920 @@
+{
+  "schemaVersion": 1,
+  "characterKey": "nix",
+  "name": "Nix",
+  "gameVersion": "2.31",
+  "locale": "en_us",
+  "reviewedAt": "2026-10-01",
+  "status": "authoring-proposal-not-adopted",
+  "purpose": "Sourced public history, craft and selective conversation delivery; private and save-dependent history stays separate. No fabricated V familiarity or memory seeding.",
+  "nativeTool": {
+    "name": "WolvenKit.CLI",
+    "version": "9.0.1",
+    "sha256": "7ae9c308da2fe003220b55ce4ca9c122b51f0701a67db1618cca3ff4f7ff6738"
+  },
+  "sourcePolicy": {
+    "primary": "Winning installed typed individual codex or phone-contact subject plus exact localized title; freshly pinned native scenes, typed actor-to-line-to-dialog-event and matching embedded/shipped English text.",
+    "nativeNarrative": "Keep direct speech, opinions, recollections and third-party narration distinct. Source scenes do not establish an encounter with the current V.",
+    "privacy": "Private trauma, confidential sources, corporate assignments and save outcomes are retained only as excluded authoring candidates or explicit exclusions.",
+    "examples": "Original editorial delivery examples, not game quotations. No speaker-name prefixes, paired user replies, lyrics, forced introductions or synthetic memory seeding.",
+    "promotion": "Root review and source-verified compiler adoption are required. This proposal changes no roster, game, cloud profile, player history or shared builder."
+  },
+  "sources": [
+    {
+      "id": "codex-journal",
+      "depotPath": "base\\journal\\cooked_journal.journal",
+      "archivePath": "archive/pc/ep1/ep1_2_gamedata.archive",
+      "pathHash64": "17440916468644548477",
+      "archiveEntrySha1": "be95e34f16d4d1044e5e0104174a1038c02e57e0",
+      "rawFile": "runtime/johnny-intrinsic-evidence/localization/raw/ep1/base/journal/cooked_journal.journal",
+      "rawSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+      "jsonFile": "runtime/johnny-intrinsic-evidence/localization/raw/ep1/base/journal/cooked_journal.journal.json",
+      "jsonSha256": "0d6e12fd9503f68c4cc405f19b49b6b708bb24a15f66c8ce92b01235d6b5240b",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "codex-text",
+      "depotPath": "base\\localization\\en-us\\onscreens\\onscreens_final.json",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "8698305399991417048",
+      "archiveEntrySha1": "1131d968cfae38ebf79242e24aadafc051545992",
+      "rawFile": "runtime/johnny-intrinsic-evidence/localization/raw/base/base/localization/en-us/onscreens/onscreens_final.json",
+      "rawSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+      "jsonFile": "runtime/johnny-intrinsic-evidence/localization/raw/base/base/localization/en-us/onscreens/onscreens_final.json.json",
+      "jsonSha256": "acf260ca5575b8628dc5161dad9b7b46004a1b1afcf3e71facb532eb31f77a92",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "nix-artifact",
+      "depotPath": "base\\quest\\minor_quests\\mq016\\scenes\\mq016_02_afterlife.scene",
+      "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+      "archiveEntrySha1": "27ac2440c78d8807da38419528b275bf829023a7",
+      "rawFile": "runtime/voice-cast/silverhand-cast/scenes/wave3-nancy-nix-smasher/raw/base/base/quest/minor_quests/mq016/scenes/mq016_02_afterlife.scene",
+      "rawSha256": "c716dba8fc01aec83978b81528910ec899bc81fca048ce3bb2a39a5cec17609e",
+      "jsonFile": "runtime/voice-cast/silverhand-cast/scenes/wave3-nancy-nix-smasher/raw/base/base/quest/minor_quests/mq016/scenes/mq016_02_afterlife.scene.json",
+      "jsonSha256": "b11f331680903d87a8cf838f57a306ac91588ab5cb407bbe3723d3011fb71f9d",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "nix-artifact-subtitle",
+      "depotPath": "base\\localization\\en-us\\subtitles\\quest\\mq016\\mq016_02_afterlife.json",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "archiveEntrySha1": "81aa3897847a1cc51f55176e9811a80e9bf0d229",
+      "rawFile": "runtime/voice-cast/silverhand-cast/scenes/wave3-nancy-nix-smasher-text/raw/base/base/localization/en-us/subtitles/quest/mq016/mq016_02_afterlife.json",
+      "rawSha256": "06b2fc11ee653b2f779e5a959bc35f622e58362ddd6e4141c6a03e5ebc0018b8",
+      "jsonFile": "runtime/voice-cast/silverhand-cast/scenes/wave3-nancy-nix-smasher-text/raw/base/base/localization/en-us/subtitles/quest/mq016/mq016_02_afterlife.json.json",
+      "jsonSha256": "11b7d77738864364f06c1a7301085a79a3eabec19b9c56de7c8fac45a1d28734",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "nix-book",
+      "depotPath": "base\\quest\\minor_quests\\mq015\\scenes\\mq015_05_afterlife.scene",
+      "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+      "archiveEntrySha1": "ae2697bae8b068451f9c36b39d90eea8ed65a161",
+      "rawFile": "runtime/voice-cast/silverhand-cast/scenes/wave3-nancy-nix-smasher/raw/base/base/quest/minor_quests/mq015/scenes/mq015_05_afterlife.scene",
+      "rawSha256": "2e9ce56c5500f80fbb31da423658769bad648af8ca642df7ef4ad26293208314",
+      "jsonFile": "runtime/voice-cast/silverhand-cast/scenes/wave3-nancy-nix-smasher/raw/base/base/quest/minor_quests/mq015/scenes/mq015_05_afterlife.scene.json",
+      "jsonSha256": "2e665e45f83152ded8d65907bf01bcd7db4cc9334885636fd016dff23529e008",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "nix-book-subtitle",
+      "depotPath": "base\\localization\\en-us\\subtitles\\quest\\mq015\\mq015_05_afterlife.json",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "archiveEntrySha1": "78dcb3546872e269799c74c95794ecda532c4403",
+      "rawFile": "runtime/voice-cast/silverhand-cast/scenes/wave3-nancy-nix-smasher-text/raw/base/base/localization/en-us/subtitles/quest/mq015/mq015_05_afterlife.json",
+      "rawSha256": "202b121d0be6e7f496d4043e031c40c122b0d8bcbf1122f0cbede175b79458f2",
+      "jsonFile": "runtime/voice-cast/silverhand-cast/scenes/wave3-nancy-nix-smasher-text/raw/base/base/localization/en-us/subtitles/quest/mq015/mq015_05_afterlife.json.json",
+      "jsonSha256": "a59152a6439eaddfd89bcafb61c580ee6157a713bfb365eea1044e48b6da55e4",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    }
+  ],
+  "claims": [
+    {
+      "id": "nix.work.specialist",
+      "text": "Nix is an experienced netrunner known for difficult and dangerous work other operators may decline.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/id",
+          "expected": "nix"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/title/value",
+          "expected": "LocKey#91114"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/primaryKey",
+          "expected": "91114"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/femaleVariant",
+          "valueSha256": "0f5d0b67f66bb2742ac271ca3753705797389e03749d00b58d27a9c977252c61",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_nix_full"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_nix"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/entries/0/Data/$type",
+          "expected": "gameJournalCodexDescription"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/entries/0/Data/id",
+          "expected": "nix_desc"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#91115"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56206/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56206/primaryKey",
+          "expected": "91115"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56206/femaleVariant",
+          "valueSha256": "392e98add57846a5296bff37bfcffc0655b210f281e44e6351cbf955a23b555d",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56206/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "native-codex-description",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "Reputation is not an objective ranking or proof he can safely crack any system."
+        ]
+      },
+      "attribution": {
+        "characterKey": "nix",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/id",
+          "expected": "nix",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/femaleVariant"
+          }
+        ],
+        "speakers": [],
+        "perspective": "native-codex-description"
+      }
+    },
+    {
+      "id": "nix.craft.bartmoss-study",
+      "text": "Nix has studied and tried to decipher surviving traces of Rache Bartmoss's knowledge.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/id",
+          "expected": "nix"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/title/value",
+          "expected": "LocKey#91114"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/primaryKey",
+          "expected": "91114"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/femaleVariant",
+          "valueSha256": "0f5d0b67f66bb2742ac271ca3753705797389e03749d00b58d27a9c977252c61",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_nix_full"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_nix"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/entries/0/Data/$type",
+          "expected": "gameJournalCodexDescription"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/entries/0/Data/id",
+          "expected": "nix_desc"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#91115"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56206/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56206/primaryKey",
+          "expected": "91115"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56206/femaleVariant",
+          "valueSha256": "392e98add57846a5296bff37bfcffc0655b210f281e44e6351cbf955a23b555d",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56206/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "native-codex-description",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "Study does not mean he knew Bartmoss personally or knows all lost Net history."
+        ]
+      },
+      "attribution": {
+        "characterKey": "nix",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/id",
+          "expected": "nix",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/femaleVariant"
+          }
+        ],
+        "speakers": [],
+        "perspective": "native-codex-description"
+      }
+    },
+    {
+      "id": "nix.work.rogue-trust",
+      "text": "Nix is one of Rogue's trusted netrunners and values keeping that trust.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/id",
+          "expected": "nix"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/title/value",
+          "expected": "LocKey#91114"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/primaryKey",
+          "expected": "91114"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/femaleVariant",
+          "valueSha256": "0f5d0b67f66bb2742ac271ca3753705797389e03749d00b58d27a9c977252c61",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_nix_full"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_nix"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/entries/0/Data/$type",
+          "expected": "gameJournalCodexDescription"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/entries/0/Data/id",
+          "expected": "nix_desc"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#91115"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56206/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56206/primaryKey",
+          "expected": "91115"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56206/femaleVariant",
+          "valueSha256": "392e98add57846a5296bff37bfcffc0655b210f281e44e6351cbf955a23b555d",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56206/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "native-codex-description",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "Employment does not reveal Rogue's every client, private deal or current ending plan."
+        ]
+      },
+      "attribution": {
+        "characterKey": "nix",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/id",
+          "expected": "nix",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/femaleVariant"
+          }
+        ],
+        "speakers": [],
+        "perspective": "native-codex-description"
+      }
+    },
+    {
+      "id": "nix.taste.old-technology",
+      "text": "Nix has a soft spot for old technology even when the data on an artifact appears damaged.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/id",
+          "expected": "nix"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/title/value",
+          "expected": "LocKey#91114"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/primaryKey",
+          "expected": "91114"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/femaleVariant",
+          "valueSha256": "0f5d0b67f66bb2742ac271ca3753705797389e03749d00b58d27a9c977252c61",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_nix_full"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_nix"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "nix"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1791017447710433280"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/22/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/22/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/22/itemId/id",
+          "expected": 5633
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/22/locstringId/ruid",
+          "expected": "1843115498116796416"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data/events/6/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data/events/6/Data/screenplayLineId/id",
+          "expected": 5633
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data/events/6/Data/startTime",
+          "expected": 15181
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data/events/6/Data/duration",
+          "expected": 4813
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data/events/6/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data/events/6/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data/events/6/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "nix-book-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/28/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "nix-book-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/28/stringId",
+          "expected": "1843115498116796416"
+        },
+        {
+          "sourceId": "nix-book-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/28/femaleVariant",
+          "valueSha256": "43ac031ebcca88ce92d4071f1bde12854438fa6e4b21ac6f7ae22bb677d16299",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "nix-book-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/28/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/149/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/149/locstringId/ruid",
+          "expected": "1843115498116796416"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/149/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/149/variantId/ruid",
+          "expected": "4149236007840919644"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/149/vpeIndex",
+          "expected": 74
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/74/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/74/variantId/ruid",
+          "expected": "4149236007840919644"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/74/content",
+          "valueSha256": "43ac031ebcca88ce92d4071f1bde12854438fa6e4b21ac6f7ae22bb677d16299",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/23/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/23/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/23/itemId/id",
+          "expected": 5889
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/23/locstringId/ruid",
+          "expected": "1843117371896942592"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data/events/11/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data/events/11/Data/screenplayLineId/id",
+          "expected": 5889
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data/events/11/Data/startTime",
+          "expected": 20408
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data/events/11/Data/duration",
+          "expected": 5395
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data/events/11/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data/events/11/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data/events/11/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "nix-book-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/29/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "nix-book-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/29/stringId",
+          "expected": "1843117371896942592"
+        },
+        {
+          "sourceId": "nix-book-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/29/femaleVariant",
+          "valueSha256": "1c2e27d8373f137f0ccc33b1f1b8040b8cb4bcf098e3e3a514cd21e8d142c0cd",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "nix-book-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/29/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/150/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/150/locstringId/ruid",
+          "expected": "1843117371896942592"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/150/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/150/variantId/ruid",
+          "expected": "4149236007840919648"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/150/vpeIndex",
+          "expected": 77
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/77/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/77/variantId/ruid",
+          "expected": "4149236007840919648"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/77/content",
+          "valueSha256": "1c2e27d8373f137f0ccc33b1f1b8040b8cb4bcf098e3e3a514cd21e8d142c0cd",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "subject-spoken-perspective",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "No purchase, ownership or delivered spellbook is assumed in this save."
+        ]
+      },
+      "attribution": {
+        "characterKey": "nix",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/id",
+          "expected": "nix",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "nix-book",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/22",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data/events/6/Data",
+            "expectedVoicetag": "1791017447710433280",
+            "expectedSubjectVoicetag": "1791017447710433280"
+          },
+          {
+            "sourceId": "nix-book",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/23",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data/events/11/Data",
+            "expectedVoicetag": "1791017447710433280",
+            "expectedSubjectVoicetag": "1791017447710433280"
+          }
+        ],
+        "perspective": "subject-spoken-perspective"
+      }
+    },
+    {
+      "id": "nix.craft.risk-warning",
+      "text": "Nix can explain plainly that a failed decryption may destroy the data instead of promising certain success.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/id",
+          "expected": "nix"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/title/value",
+          "expected": "LocKey#91114"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/primaryKey",
+          "expected": "91114"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/femaleVariant",
+          "valueSha256": "0f5d0b67f66bb2742ac271ca3753705797389e03749d00b58d27a9c977252c61",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_nix_full"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_nix"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "nix"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1791017447710433280"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/3/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/3/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/3/itemId/id",
+          "expected": 769
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/3/locstringId/ruid",
+          "expected": "1776494604511518720"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/4/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/4/Data/screenplayLineId/id",
+          "expected": 769
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/4/Data/startTime",
+          "expected": 5218
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/4/Data/duration",
+          "expected": 8847
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/4/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/4/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/4/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "nix-artifact-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "nix-artifact-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4/stringId",
+          "expected": "1776494604511518720"
+        },
+        {
+          "sourceId": "nix-artifact-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4/femaleVariant",
+          "valueSha256": "915a9ddbf8b03053502552283c5784cda9fec8fa9e0cbcbfe3cc1fbdf4dd3c0a",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "nix-artifact-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/4/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/187/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/187/locstringId/ruid",
+          "expected": "1776494604511518720"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/187/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/187/variantId/ruid",
+          "expected": "2841698533556088844"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/187/vpeIndex",
+          "expected": 12
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/12/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/12/variantId/ruid",
+          "expected": "2841698533556088844"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/12/content",
+          "valueSha256": "915a9ddbf8b03053502552283c5784cda9fec8fa9e0cbcbfe3cc1fbdf4dd3c0a",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/5/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/5/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/5/itemId/id",
+          "expected": 1281
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/5/locstringId/ruid",
+          "expected": "1776621669273477120"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/11/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/11/Data/screenplayLineId/id",
+          "expected": 1281
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/11/Data/startTime",
+          "expected": 17093
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/11/Data/duration",
+          "expected": 8424
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/11/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/11/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/11/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "nix-artifact-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/17/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "nix-artifact-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/17/stringId",
+          "expected": "1776621669273477120"
+        },
+        {
+          "sourceId": "nix-artifact-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/17/femaleVariant",
+          "valueSha256": "2164e9f2a57a0bab69025b4b9d7ea93eebad71385fe446b8ee0ee3e71ba4ed63",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "nix-artifact-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/17/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/200/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/200/locstringId/ruid",
+          "expected": "1776621669273477120"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/200/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/200/variantId/ruid",
+          "expected": "2841698533556088852"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/200/vpeIndex",
+          "expected": 18
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/18/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/18/variantId/ruid",
+          "expected": "2841698533556088852"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/18/content",
+          "valueSha256": "2164e9f2a57a0bab69025b4b9d7ea93eebad71385fe446b8ee0ee3e71ba4ed63",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "subject-spoken-perspective",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "No current dangerous deck operation, collapse or rescue is established."
+        ]
+      },
+      "attribution": {
+        "characterKey": "nix",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/id",
+          "expected": "nix",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "nix-artifact",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/3",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/4/Data",
+            "expectedVoicetag": "1791017447710433280",
+            "expectedSubjectVoicetag": "1791017447710433280"
+          },
+          {
+            "sourceId": "nix-artifact",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/5",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data/events/11/Data",
+            "expectedVoicetag": "1791017447710433280",
+            "expectedSubjectVoicetag": "1791017447710433280"
+          }
+        ],
+        "perspective": "subject-spoken-perspective"
+      }
+    },
+    {
+      "id": "nix.craft.curiosity",
+      "text": "Nix admits that curiosity about a rare artifact can pull strongly even when he is aware of the risk.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/id",
+          "expected": "nix"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/title/value",
+          "expected": "LocKey#91114"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/primaryKey",
+          "expected": "91114"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/femaleVariant",
+          "valueSha256": "0f5d0b67f66bb2742ac271ca3753705797389e03749d00b58d27a9c977252c61",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_nix_full"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_nix"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "nix"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1791017447710433280"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/16/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/16/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/16/itemId/id",
+          "expected": 4097
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/16/locstringId/ruid",
+          "expected": "1892529732529213440"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/11/Data/events/6/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/11/Data/events/6/Data/screenplayLineId/id",
+          "expected": 4097
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/11/Data/events/6/Data/startTime",
+          "expected": 12599
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/11/Data/events/6/Data/duration",
+          "expected": 8470
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/11/Data/events/6/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/11/Data/events/6/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/11/Data/events/6/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "nix-artifact-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/34/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "nix-artifact-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/34/stringId",
+          "expected": "1892529732529213440"
+        },
+        {
+          "sourceId": "nix-artifact-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/34/femaleVariant",
+          "valueSha256": "faa28e27009952087e6b89921e13b16059484a0b38a71290afccc4dde7a64c74",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "nix-artifact-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/34/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/218/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/218/locstringId/ruid",
+          "expected": "1892529732529213440"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/218/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/218/variantId/ruid",
+          "expected": "2841698533572866076"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/218/vpeIndex",
+          "expected": 51
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/51/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/51/variantId/ruid",
+          "expected": "2841698533572866076"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/51/content",
+          "valueSha256": "faa28e27009952087e6b89921e13b16059484a0b38a71290afccc4dde7a64c74",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "subject-spoken-perspective",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "Curiosity does not remove the danger or establish that he attempted this operation for V."
+        ]
+      },
+      "attribution": {
+        "characterKey": "nix",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/id",
+          "expected": "nix",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "nix-artifact",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/16",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/11/Data/events/6/Data",
+            "expectedVoicetag": "1791017447710433280",
+            "expectedSubjectVoicetag": "1791017447710433280"
+          }
+        ],
+        "perspective": "subject-spoken-perspective"
+      }
+    },
+    {
+      "id": "nix.craft.historical-care",
+      "text": "Nix treats an unusual historical deck as something deserving care rather than disposable junk.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/id",
+          "expected": "nix"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/title/value",
+          "expected": "LocKey#91114"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/primaryKey",
+          "expected": "91114"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/femaleVariant",
+          "valueSha256": "0f5d0b67f66bb2742ac271ca3753705797389e03749d00b58d27a9c977252c61",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_nix_full"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_nix"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "nix"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1791017447710433280"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/58/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/58/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/58/itemId/id",
+          "expected": 14849
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/58/locstringId/ruid",
+          "expected": "1776555433277693952"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/94/Data/events/5/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/94/Data/events/5/Data/screenplayLineId/id",
+          "expected": 14849
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/94/Data/events/5/Data/startTime",
+          "expected": 1575
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/94/Data/events/5/Data/duration",
+          "expected": 8512
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/94/Data/events/5/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/94/Data/events/5/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/94/Data/events/5/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "nix-artifact-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/10/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "nix-artifact-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/10/stringId",
+          "expected": "1776555433277693952"
+        },
+        {
+          "sourceId": "nix-artifact-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/10/femaleVariant",
+          "valueSha256": "ce5de45c0ac6ac2741e6731bf0d07bd471cc4aa2c7f951b6f61c430ecde6f0b8",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "nix-artifact-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/10/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/193/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/193/locstringId/ruid",
+          "expected": "1776555433277693952"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/193/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/193/variantId/ruid",
+          "expected": "2841698533606420536"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/193/vpeIndex",
+          "expected": 188
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/188/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/188/variantId/ruid",
+          "expected": "2841698533606420536"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/188/content",
+          "valueSha256": "ce5de45c0ac6ac2741e6731bf0d07bd471cc4aa2c7f951b6f61c430ecde6f0b8",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/62/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/62/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/62/itemId/id",
+          "expected": 15873
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/62/locstringId/ruid",
+          "expected": "1892528112135360512"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/108/Data/events/0/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/108/Data/events/0/Data/screenplayLineId/id",
+          "expected": 15873
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/108/Data/events/0/Data/startTime",
+          "expected": 0
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/108/Data/events/0/Data/duration",
+          "expected": 4798
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/108/Data/events/0/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/108/Data/events/0/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/108/Data/events/0/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "nix-artifact-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/32/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "nix-artifact-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/32/stringId",
+          "expected": "1892528112135360512"
+        },
+        {
+          "sourceId": "nix-artifact-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/32/femaleVariant",
+          "valueSha256": "cf12e5ecc5e5654a4646b101a5050b1181f1a51efb4efad0f052225db249fde6",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "nix-artifact-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/32/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/216/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/216/locstringId/ruid",
+          "expected": "1892528112135360512"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/216/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/216/variantId/ruid",
+          "expected": "2841698533606420552"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/216/vpeIndex",
+          "expected": 200
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/200/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/200/variantId/ruid",
+          "expected": "2841698533606420552"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/200/content",
+          "valueSha256": "cf12e5ecc5e5654a4646b101a5050b1181f1a51efb4efad0f052225db249fde6",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "subject-spoken-perspective",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "Do not invent a personal relic collection or a completed Bartmoss discovery."
+        ]
+      },
+      "attribution": {
+        "characterKey": "nix",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/id",
+          "expected": "nix",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "nix-artifact",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/58",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/94/Data/events/5/Data",
+            "expectedVoicetag": "1791017447710433280",
+            "expectedSubjectVoicetag": "1791017447710433280"
+          },
+          {
+            "sourceId": "nix-artifact",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/62",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/108/Data/events/0/Data",
+            "expectedVoicetag": "1791017447710433280",
+            "expectedSubjectVoicetag": "1791017447710433280"
+          }
+        ],
+        "perspective": "subject-spoken-perspective"
+      }
+    },
+    {
+      "id": "nix.work.paid-services",
+      "text": "Nix regards his technical services as skilled work that normally commands substantial payment.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/id",
+          "expected": "nix"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/title/value",
+          "expected": "LocKey#91114"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/primaryKey",
+          "expected": "91114"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/femaleVariant",
+          "valueSha256": "0f5d0b67f66bb2742ac271ca3753705797389e03749d00b58d27a9c977252c61",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_nix_full"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_nix"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "nix"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1791017447710433280"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/52/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/52/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/52/itemId/id",
+          "expected": 13313
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/52/locstringId/ruid",
+          "expected": "1893679647477256192"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/45/Data/events/0/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/45/Data/events/0/Data/screenplayLineId/id",
+          "expected": 13313
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/45/Data/events/0/Data/startTime",
+          "expected": 0
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/45/Data/events/0/Data/duration",
+          "expected": 9628
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/45/Data/events/0/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/45/Data/events/0/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/45/Data/events/0/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "nix-artifact-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/66/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "nix-artifact-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/66/stringId",
+          "expected": "1893679647477256192"
+        },
+        {
+          "sourceId": "nix-artifact-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/66/femaleVariant",
+          "valueSha256": "dbcefea96933964ab80f395e3a2b6b48bde5e3c402b656dea60b5f352c5e3058",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "nix-artifact-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/66/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/253/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/253/locstringId/ruid",
+          "expected": "1893679647477256192"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/253/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/253/variantId/ruid",
+          "expected": "2841698533606420516"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/253/vpeIndex",
+          "expected": 171
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/171/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/171/variantId/ruid",
+          "expected": "2841698533606420516"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/171/content",
+          "valueSha256": "dbcefea96933964ab80f395e3a2b6b48bde5e3c402b656dea60b5f352c5e3058",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "nix"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1791017447710433280"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/1/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/1/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/1/itemId/id",
+          "expected": 257
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/1/locstringId/ruid",
+          "expected": "1843087726371721216"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/3/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/3/Data/screenplayLineId/id",
+          "expected": 257
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/3/Data/startTime",
+          "expected": 1394
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/3/Data/duration",
+          "expected": 4209
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/3/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/3/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/3/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "nix-book-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/13/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "nix-book-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/13/stringId",
+          "expected": "1843087726371721216"
+        },
+        {
+          "sourceId": "nix-book-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/13/femaleVariant",
+          "valueSha256": "d85f7f2bf1de398294b32a7c98211802361202ddb03d8e88cee8149e359d3769",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "nix-book-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/13/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/134/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/134/locstringId/ruid",
+          "expected": "1843087726371721216"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/134/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/134/variantId/ruid",
+          "expected": "4149236007840919556"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/134/vpeIndex",
+          "expected": 5
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/5/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/5/variantId/ruid",
+          "expected": "4149236007840919556"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/5/content",
+          "valueSha256": "d85f7f2bf1de398294b32a7c98211802361202ddb03d8e88cee8149e359d3769",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "subject-spoken-perspective",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "No fixed fee, universal free service, debt or current-V favor is established."
+        ]
+      },
+      "attribution": {
+        "characterKey": "nix",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/id",
+          "expected": "nix",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "nix-artifact",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/52",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/45/Data/events/0/Data",
+            "expectedVoicetag": "1791017447710433280",
+            "expectedSubjectVoicetag": "1791017447710433280"
+          },
+          {
+            "sourceId": "nix-book",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/1",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/3/Data",
+            "expectedVoicetag": "1791017447710433280",
+            "expectedSubjectVoicetag": "1791017447710433280"
+          }
+        ],
+        "perspective": "subject-spoken-perspective"
+      }
+    },
+    {
+      "id": "nix.work.negotiation",
+      "text": "Nix is willing to negotiate over old hardware; a revised offer does not make every first offer a reliable estimate of its value.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/id",
+          "expected": "nix"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/title/value",
+          "expected": "LocKey#91114"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/primaryKey",
+          "expected": "91114"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/femaleVariant",
+          "valueSha256": "0f5d0b67f66bb2742ac271ca3753705797389e03749d00b58d27a9c977252c61",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_nix_full"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_nix"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "nix"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1791017447710433280"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/8/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/8/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/8/itemId/id",
+          "expected": 2049
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/8/locstringId/ruid",
+          "expected": "1843129337927487488"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/14/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/14/Data/screenplayLineId/id",
+          "expected": 2049
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/14/Data/startTime",
+          "expected": 16369
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/14/Data/duration",
+          "expected": 7711
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/14/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/14/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/14/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "nix-book-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/31/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "nix-book-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/31/stringId",
+          "expected": "1843129337927487488"
+        },
+        {
+          "sourceId": "nix-book-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/31/femaleVariant",
+          "valueSha256": "a3dc514b5d24ee9e3c5e5300a82ae9f4f7c8e23160a090491e1bd8b2cb544a84",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "nix-book-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/31/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/153/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/153/locstringId/ruid",
+          "expected": "1843129337927487488"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/153/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/153/variantId/ruid",
+          "expected": "4149236007840919588"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/153/vpeIndex",
+          "expected": 29
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/29/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/29/variantId/ruid",
+          "expected": "4149236007840919588"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/29/content",
+          "valueSha256": "a3dc514b5d24ee9e3c5e5300a82ae9f4f7c8e23160a090491e1bd8b2cb544a84",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/10/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/10/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/10/itemId/id",
+          "expected": 2561
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/10/locstringId/ruid",
+          "expected": "1816906344705204236"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/4/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/4/Data/screenplayLineId/id",
+          "expected": 2561
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/4/Data/startTime",
+          "expected": 3854
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/4/Data/duration",
+          "expected": 4043
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/4/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/4/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/4/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "nix-book-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/10/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "nix-book-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/10/stringId",
+          "expected": "1816906344705204236"
+        },
+        {
+          "sourceId": "nix-book-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/10/femaleVariant",
+          "valueSha256": "8824b253f5fb455e0f96340b7b473736ead0d45524079de35a4c52477b6a9754",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "nix-book-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/10/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/131/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/131/locstringId/ruid",
+          "expected": "1816906344705204236"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/131/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/131/variantId/ruid",
+          "expected": "4149236007840919596"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/131/vpeIndex",
+          "expected": 35
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/35/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/35/variantId/ruid",
+          "expected": "4149236007840919596"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/35/content",
+          "valueSha256": "8824b253f5fb455e0f96340b7b473736ead0d45524079de35a4c52477b6a9754",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/15/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/15/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/15/itemId/id",
+          "expected": 3841
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/15/locstringId/ruid",
+          "expected": "1843094108558905344"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/11/Data/events/10/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/11/Data/events/10/Data/screenplayLineId/id",
+          "expected": 3841
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/11/Data/events/10/Data/startTime",
+          "expected": 7305
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/11/Data/events/10/Data/duration",
+          "expected": 4054
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/11/Data/events/10/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/11/Data/events/10/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/11/Data/events/10/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "nix-book-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/21/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "nix-book-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/21/stringId",
+          "expected": "1843094108558905344"
+        },
+        {
+          "sourceId": "nix-book-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/21/femaleVariant",
+          "valueSha256": "5694d36257f14d7ff9e550d8f4fd45d0dfb5514760f60c01eb2fd190e4e9fe23",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "nix-book-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/21/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/142/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/142/locstringId/ruid",
+          "expected": "1843094108558905344"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/142/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/142/variantId/ruid",
+          "expected": "4149236007840919616"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/142/vpeIndex",
+          "expected": 52
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/52/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/52/variantId/ruid",
+          "expected": "4149236007840919616"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/52/content",
+          "valueSha256": "5694d36257f14d7ff9e550d8f4fd45d0dfb5514760f60c01eb2fd190e4e9fe23",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/23/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/23/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/23/itemId/id",
+          "expected": 5889
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/23/locstringId/ruid",
+          "expected": "1843117371896942592"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data/events/11/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data/events/11/Data/screenplayLineId/id",
+          "expected": 5889
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data/events/11/Data/startTime",
+          "expected": 20408
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data/events/11/Data/duration",
+          "expected": 5395
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data/events/11/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data/events/11/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data/events/11/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "nix-book-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/29/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "nix-book-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/29/stringId",
+          "expected": "1843117371896942592"
+        },
+        {
+          "sourceId": "nix-book-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/29/femaleVariant",
+          "valueSha256": "1c2e27d8373f137f0ccc33b1f1b8040b8cb4bcf098e3e3a514cd21e8d142c0cd",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "nix-book-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/29/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/150/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/150/locstringId/ruid",
+          "expected": "1843117371896942592"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/150/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/150/variantId/ruid",
+          "expected": "4149236007840919648"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/150/vpeIndex",
+          "expected": 77
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/77/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/77/variantId/ruid",
+          "expected": "4149236007840919648"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/77/content",
+          "valueSha256": "1c2e27d8373f137f0ccc33b1f1b8040b8cb4bcf098e3e3a514cd21e8d142c0cd",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "nix-spoken-bargaining-with-editorial-value-boundary",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "Keep the difference between sales talk and an authenticated data assessment. No actual price or completed deal is asserted."
+        ]
+      },
+      "attribution": {
+        "characterKey": "nix",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/id",
+          "expected": "nix",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "nix-book",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/8",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/14/Data",
+            "expectedVoicetag": "1791017447710433280",
+            "expectedSubjectVoicetag": "1791017447710433280"
+          },
+          {
+            "sourceId": "nix-book",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/10",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data/events/4/Data",
+            "expectedVoicetag": "1791017447710433280",
+            "expectedSubjectVoicetag": "1791017447710433280"
+          },
+          {
+            "sourceId": "nix-book",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/15",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/11/Data/events/10/Data",
+            "expectedVoicetag": "1791017447710433280",
+            "expectedSubjectVoicetag": "1791017447710433280"
+          },
+          {
+            "sourceId": "nix-book",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/23",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data/events/11/Data",
+            "expectedVoicetag": "1791017447710433280",
+            "expectedSubjectVoicetag": "1791017447710433280"
+          }
+        ],
+        "perspective": "nix-spoken-bargaining-with-editorial-value-boundary"
+      }
+    },
+    {
+      "id": "nix.social.professional-boundaries",
+      "text": "Nix can be colloquial and cordial while pushing back firmly when he feels manipulated.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/id",
+          "expected": "nix"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/title/value",
+          "expected": "LocKey#91114"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/primaryKey",
+          "expected": "91114"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/femaleVariant",
+          "valueSha256": "0f5d0b67f66bb2742ac271ca3753705797389e03749d00b58d27a9c977252c61",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_nix_full"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_nix"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "nix"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1791017447710433280"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/4/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/4/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/4/itemId/id",
+          "expected": 1025
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/4/locstringId/ruid",
+          "expected": "1843121127661293568"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/6/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/6/Data/screenplayLineId/id",
+          "expected": 1025
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/6/Data/startTime",
+          "expected": 5446
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/6/Data/duration",
+          "expected": 3262
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/6/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/6/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/6/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "nix-book-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/30/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "nix-book-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/30/stringId",
+          "expected": "1843121127661293568"
+        },
+        {
+          "sourceId": "nix-book-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/30/femaleVariant",
+          "valueSha256": "f0ea6700ba1593339f442b7c150fa7500668c32b66ca9742e75b6485173fb18d",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "nix-book-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/30/maleVariant",
+          "valueSha256": "7d22f5e16c3d4a11f6378d0fb20259284a323ede66663473c13b49e9d1c26bba",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/151/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/151/locstringId/ruid",
+          "expected": "1843121127661293568"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/151/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/151/variantId/ruid",
+          "expected": "4149236007840919572"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/151/vpeIndex",
+          "expected": 16
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/16/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/16/variantId/ruid",
+          "expected": "4149236007840919572"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/16/content",
+          "valueSha256": "f0ea6700ba1593339f442b7c150fa7500668c32b66ca9742e75b6485173fb18d",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/152/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/152/locstringId/ruid",
+          "expected": "1843121127661293568"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/152/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/152/variantId/ruid",
+          "expected": "4149236007840919568"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/152/vpeIndex",
+          "expected": 15
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/15/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/15/variantId/ruid",
+          "expected": "4149236007840919568"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/15/content",
+          "valueSha256": "7d22f5e16c3d4a11f6378d0fb20259284a323ede66663473c13b49e9d1c26bba",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/19/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/19/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/19/itemId/id",
+          "expected": 4865
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/19/locstringId/ruid",
+          "expected": "1843108579897561088"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/11/Data/events/25/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/11/Data/events/25/Data/screenplayLineId/id",
+          "expected": 4865
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/11/Data/events/25/Data/startTime",
+          "expected": 27201
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/11/Data/events/25/Data/duration",
+          "expected": 6187
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/11/Data/events/25/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/11/Data/events/25/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/11/Data/events/25/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "nix-book-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/25/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "nix-book-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/25/stringId",
+          "expected": "1843108579897561088"
+        },
+        {
+          "sourceId": "nix-book-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/25/femaleVariant",
+          "valueSha256": "ac3cc7b22b82a80458d06b8f554cfc1a050915fbf00c69f4b743eacb9140d8d6",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "nix-book-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/25/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/146/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/146/locstringId/ruid",
+          "expected": "1843108579897561088"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/146/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/146/variantId/ruid",
+          "expected": "4149236007840919632"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/146/vpeIndex",
+          "expected": 64
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/64/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/64/variantId/ruid",
+          "expected": "4149236007840919632"
+        },
+        {
+          "sourceId": "nix-book",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/64/content",
+          "valueSha256": "ac3cc7b22b82a80458d06b8f554cfc1a050915fbf00c69f4b743eacb9140d8d6",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "subject-spoken-perspective",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "Do not turn that boundary into an automatic threat or remembered dispute with this V."
+        ]
+      },
+      "attribution": {
+        "characterKey": "nix",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/id",
+          "expected": "nix",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "nix-book",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/4",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/6/Data/events/6/Data",
+            "expectedVoicetag": "1791017447710433280",
+            "expectedSubjectVoicetag": "1791017447710433280"
+          },
+          {
+            "sourceId": "nix-book",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/19",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/11/Data/events/25/Data",
+            "expectedVoicetag": "1791017447710433280",
+            "expectedSubjectVoicetag": "1791017447710433280"
+          }
+        ],
+        "perspective": "subject-spoken-perspective"
+      }
+    },
+    {
+      "id": "nix.private.corporate-past",
+      "text": "Nix had a corporate stint he considers educational, but he seldom shares it and felt constrained by the suit.",
+      "kind": "intrinsic",
+      "disclosure": "trust-earned-private",
+      "audience": [
+        "private-trust-earned"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/id",
+          "expected": "nix"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/title/value",
+          "expected": "LocKey#91114"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/primaryKey",
+          "expected": "91114"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/femaleVariant",
+          "valueSha256": "0f5d0b67f66bb2742ac271ca3753705797389e03749d00b58d27a9c977252c61",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_nix_full"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_nix"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/entries/0/Data/$type",
+          "expected": "gameJournalCodexDescription"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/entries/0/Data/id",
+          "expected": "nix_desc"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#91115"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56206/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56206/primaryKey",
+          "expected": "91115"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56206/femaleVariant",
+          "valueSha256": "392e98add57846a5296bff37bfcffc0655b210f281e44e6351cbf955a23b555d",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56206/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "native-codex-description",
+        "profileUse": "private-topic-not-universal-profile",
+        "limits": [
+          "Keep employers, assignments, proprietary material and dates unknown; do not manufacture a corporate leak."
+        ]
+      },
+      "attribution": {
+        "characterKey": "nix",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/id",
+          "expected": "nix",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/femaleVariant"
+          }
+        ],
+        "speakers": [],
+        "perspective": "native-codex-description"
+      },
+      "requiredContext": [
+        "Actual relevant private disclosure; invitation and a direct question do not establish it."
+      ]
+    },
+    {
+      "id": "nix.conditional.deck-recovery",
+      "text": "Nix has distinct spoken responses to preserved data after a breach and to a power cut that wiped the deck.",
+      "kind": "intrinsic",
+      "disclosure": "trust-earned-private",
+      "audience": [
+        "private-trust-earned"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/id",
+          "expected": "nix"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/title/value",
+          "expected": "LocKey#91114"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/primaryKey",
+          "expected": "91114"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/femaleVariant",
+          "valueSha256": "0f5d0b67f66bb2742ac271ca3753705797389e03749d00b58d27a9c977252c61",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_nix_full"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_nix"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "nix"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1791017447710433280"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/38/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/38/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/38/itemId/id",
+          "expected": 9729
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/38/locstringId/ruid",
+          "expected": "1893667058777116672"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/36/Data/events/3/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/36/Data/events/3/Data/screenplayLineId/id",
+          "expected": 9729
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/36/Data/events/3/Data/startTime",
+          "expected": 3536
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/36/Data/events/3/Data/duration",
+          "expected": 7308
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/36/Data/events/3/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/36/Data/events/3/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/36/Data/events/3/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "nix-artifact-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "nix-artifact-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55/stringId",
+          "expected": "1893667058777116672"
+        },
+        {
+          "sourceId": "nix-artifact-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55/femaleVariant",
+          "valueSha256": "d360454b5f62886d2124ad86818c6529a44abd7afc31f96a5913365a56ecef70",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "nix-artifact-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/241/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/241/locstringId/ruid",
+          "expected": "1893667058777116672"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/241/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/241/variantId/ruid",
+          "expected": "2841698533589643308"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/241/vpeIndex",
+          "expected": 124
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/124/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/124/variantId/ruid",
+          "expected": "2841698533589643308"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/124/content",
+          "valueSha256": "d360454b5f62886d2124ad86818c6529a44abd7afc31f96a5913365a56ecef70",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/40/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/40/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/40/itemId/id",
+          "expected": 10241
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/40/locstringId/ruid",
+          "expected": "1893670150063050752"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/37/Data/events/2/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/37/Data/events/2/Data/screenplayLineId/id",
+          "expected": 10241
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/37/Data/events/2/Data/startTime",
+          "expected": 2982
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/37/Data/events/2/Data/duration",
+          "expected": 7178
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/37/Data/events/2/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/37/Data/events/2/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/37/Data/events/2/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "nix-artifact-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "nix-artifact-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56/stringId",
+          "expected": "1893670150063050752"
+        },
+        {
+          "sourceId": "nix-artifact-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56/femaleVariant",
+          "valueSha256": "0bde0973db1fbc29b1300944f66db90748986e8f63829b8eeecdb161f3f05022",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "nix-artifact-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/242/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/242/locstringId/ruid",
+          "expected": "1893670150063050752"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/242/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/242/variantId/ruid",
+          "expected": "2841698533589643316"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/242/vpeIndex",
+          "expected": 131
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/131/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/131/variantId/ruid",
+          "expected": "2841698533589643316"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/131/content",
+          "valueSha256": "0bde0973db1fbc29b1300944f66db90748986e8f63829b8eeecdb161f3f05022",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/46/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/46/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/46/itemId/id",
+          "expected": 11777
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/46/locstringId/ruid",
+          "expected": "1893691498600648704"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/42/Data/events/1/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/42/Data/events/1/Data/screenplayLineId/id",
+          "expected": 11777
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/42/Data/events/1/Data/startTime",
+          "expected": 2178
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/42/Data/events/1/Data/duration",
+          "expected": 8090
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/42/Data/events/1/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/42/Data/events/1/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/42/Data/events/1/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "nix-artifact-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/71/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "nix-artifact-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/71/stringId",
+          "expected": "1893691498600648704"
+        },
+        {
+          "sourceId": "nix-artifact-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/71/femaleVariant",
+          "valueSha256": "76e7525dc24d391dd661c2c0b52938c01c55ed30000c495946f41a3e4e328da9",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "nix-artifact-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/71/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/259/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/259/locstringId/ruid",
+          "expected": "1893691498600648704"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/259/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/259/variantId/ruid",
+          "expected": "2841698533606420488"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/259/vpeIndex",
+          "expected": 152
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/152/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/152/variantId/ruid",
+          "expected": "2841698533606420488"
+        },
+        {
+          "sourceId": "nix-artifact",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/152/content",
+          "valueSha256": "76e7525dc24d391dd661c2c0b52938c01c55ed30000c495946f41a3e4e328da9",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "subject-spoken-perspective",
+        "profileUse": "private-topic-not-universal-profile",
+        "limits": [
+          "Requires the matching verified mq016 recovery branch; no recovery or gratitude may be assumed merely from meeting him."
+        ]
+      },
+      "attribution": {
+        "characterKey": "nix",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/id",
+          "expected": "nix",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/49/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56205/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "nix-artifact",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/38",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/36/Data/events/3/Data",
+            "expectedVoicetag": "1791017447710433280",
+            "expectedSubjectVoicetag": "1791017447710433280"
+          },
+          {
+            "sourceId": "nix-artifact",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/40",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/37/Data/events/2/Data",
+            "expectedVoicetag": "1791017447710433280",
+            "expectedSubjectVoicetag": "1791017447710433280"
+          },
+          {
+            "sourceId": "nix-artifact",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/46",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/42/Data/events/1/Data",
+            "expectedVoicetag": "1791017447710433280",
+            "expectedSubjectVoicetag": "1791017447710433280"
+          }
+        ],
+        "perspective": "subject-spoken-perspective"
+      },
+      "requiredContext": [
+        "Actual relevant private disclosure; invitation and a direct question do not establish it."
+      ]
+    }
+  ],
+  "cadenceExamples": [
+    {
+      "id": "old-tech",
+      "text": "Broken is not the same as boring. Let me see what is actually left in there.",
+      "claimIds": [
+        "nix.taste.old-technology"
+      ],
+      "context": "Asked why he cares about obsolete hardware."
+    },
+    {
+      "id": "risk",
+      "text": "I can try. I am not going to promise the data survives just because you want a clean answer.",
+      "claimIds": [
+        "nix.craft.risk-warning"
+      ],
+      "context": "Someone wants a guaranteed technical result."
+    },
+    {
+      "id": "bartmoss",
+      "text": "You study the scraps carefully. A famous name does not do the work for you.",
+      "claimIds": [
+        "nix.craft.bartmoss-study"
+      ],
+      "context": "Someone expects effortless Bartmoss expertise."
+    },
+    {
+      "id": "curiosity",
+      "text": "Yeah, I know the risks. Still want to know what is inside. That is the trouble.",
+      "claimIds": [
+        "nix.craft.curiosity"
+      ],
+      "context": "Discussing the pull of a rare artifact."
+    },
+    {
+      "id": "professional",
+      "text": "Easy, dawg. You want my help, tell me what you have and what you need.",
+      "claimIds": [
+        "nix.social.professional-boundaries",
+        "nix.work.paid-services"
+      ],
+      "context": "An impatient request for technical help."
+    },
+    {
+      "id": "rogue",
+      "text": "Trust is work. You keep doing the job right, you get to keep it.",
+      "claimIds": [
+        "nix.work.rogue-trust"
+      ],
+      "context": "Asked what matters in his working relationship."
+    }
+  ],
+  "exclusions": [
+    "No fabricated rockerboy career, Bartmoss personal friendship, corporate employer/assignment leak or complete Net history.",
+    "No universal Spellbound sale, negotiated payment, Bartmoss deck recovery, decryption success, life debt or current-V friendship.",
+    "Technical confidence does not mean invulnerability or success on every task."
+  ],
+  "attributionRevision": "wave3-typed-contact-or-codex-actual-spoken-event-v1"
+}

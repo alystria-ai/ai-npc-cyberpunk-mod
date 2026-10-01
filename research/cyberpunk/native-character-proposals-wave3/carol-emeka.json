@@ -1,0 +1,3589 @@
+{
+  "schemaVersion": 1,
+  "characterKey": "carol-emeka",
+  "name": "Carol Emeka",
+  "gameVersion": "2.31",
+  "locale": "en_us",
+  "reviewedAt": "2026-10-01",
+  "status": "authoring-proposal-not-adopted",
+  "purpose": "Public personal topic history, craft and delivery with separate private/conditional material; no V quest outcome or memory preload.",
+  "nativeTool": {
+    "name": "WolvenKit.CLI",
+    "version": "9.0.1",
+    "sha256": "7ae9c308da2fe003220b55ce4ca9c122b51f0701a67db1618cca3ff4f7ff6738"
+  },
+  "sourcePolicy": {
+    "primary": "Current winning installed cooked codex plus pinned native screenplay, typed actor and emitted spoken event, exact embedded en_us descriptor/payload and same-ID shipped English subtitle entry.",
+    "nativeNarrative": "Recollections, opinions and editorial personality inferences retain the specific source viewpoint; they are not objective omniscient facts.",
+    "privacy": "Public topic material permits a brief relevant answer, not an automatic confession. Private and conditional rows are excluded from universal compiler material.",
+    "examples": "Original editorial delivery examples, not game quotations. No speaker-name prefixes, player lines, synthetic conversations or memory seeding.",
+    "promotion": "Proposals remain outside native-character-claims until independent parent review; no shared builders, cloud writes or installed game changes."
+  },
+  "sources": [
+    {
+      "id": "codex-text",
+      "depotPath": "base\\localization\\en-us\\onscreens\\onscreens_final.json",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "8698305399991417048",
+      "archiveEntrySha1": "1131d968cfae38ebf79242e24aadafc051545992",
+      "rawFile": "runtime/johnny-intrinsic-evidence/localization/raw/base/base/localization/en-us/onscreens/onscreens_final.json",
+      "rawSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+      "jsonFile": "runtime/johnny-intrinsic-evidence/localization/raw/base/base/localization/en-us/onscreens/onscreens_final.json.json",
+      "jsonSha256": "acf260ca5575b8628dc5161dad9b7b46004a1b1afcf3e71facb532eb31f77a92",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "codex-journal",
+      "depotPath": "base\\journal\\cooked_journal.journal",
+      "archivePath": "archive/pc/ep1/ep1_2_gamedata.archive",
+      "pathHash64": "17440916468644548477",
+      "archiveEntrySha1": "be95e34f16d4d1044e5e0104174a1038c02e57e0",
+      "rawFile": "runtime/johnny-intrinsic-evidence/localization/raw/ep1/base/journal/cooked_journal.journal",
+      "rawSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+      "jsonFile": "runtime/johnny-intrinsic-evidence/localization/raw/ep1/base/journal/cooked_journal.journal.json",
+      "jsonSha256": "0d6e12fd9503f68c4cc405f19b49b6b708bb24a15f66c8ce92b01235d6b5240b",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "camp",
+      "depotPath": "base\\quest\\side_quests\\sq027\\scenes\\sq027_04a_camping.scene",
+      "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+      "archiveEntrySha1": "362edd0b5909d1f137c197c30e2fe5eff05f53c9",
+      "rawFile": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/quest/side_quests/sq027/scenes/sq027_04a_camping.scene",
+      "rawSha256": "3fc9218f1edb9886bcf5e7b469a562232ceb6ae355fbc6533f821d86e652f035",
+      "jsonFile": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/quest/side_quests/sq027/scenes/sq027_04a_camping.scene.json",
+      "jsonSha256": "6ba75204197502597fd1946039c5ef76e528e4e469cc1dd97a0628db390b5440",
+      "inventoryPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/inventory.json",
+      "inventorySha256": "3c6a9c0b0a618a490a75d5d32343c9b34d513f3b31e0a04eee8075e716ae8fe5",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "carol-cards",
+      "depotPath": "base\\quest\\side_quests\\sq027\\scenes\\sq027_04_preparations_carol.scene",
+      "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+      "archiveEntrySha1": "128eb5ff91542eabb8812461843e4f2e3f9b87ba",
+      "rawFile": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/quest/side_quests/sq027/scenes/sq027_04_preparations_carol.scene",
+      "rawSha256": "e7c7697b4f14bd6d8e8f064e8ede851215c04b7cf81a87c698c45aa903da4320",
+      "jsonFile": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/quest/side_quests/sq027/scenes/sq027_04_preparations_carol.scene.json",
+      "jsonSha256": "f91f15f7a320814a0e3e3a8fb3babb43200fa9384b102a826b5b640252577714",
+      "inventoryPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/inventory.json",
+      "inventorySha256": "3c6a9c0b0a618a490a75d5d32343c9b34d513f3b31e0a04eee8075e716ae8fe5",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "carol-care",
+      "depotPath": "base\\quest\\main_quests\\part1\\q114\\scenes\\q114_03c_dakota_trailer.scene",
+      "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+      "archiveEntrySha1": "5614d7f3d54ed20ba72b8032d8d91ad9559fa429",
+      "rawFile": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/quest/main_quests/part1/q114/scenes/q114_03c_dakota_trailer.scene",
+      "rawSha256": "4532663463e50c4020fe4d6e716ad530577765314acc2a598312d920a5c4bcf6",
+      "jsonFile": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/quest/main_quests/part1/q114/scenes/q114_03c_dakota_trailer.scene.json",
+      "jsonSha256": "0349797fece30d3a37efc35f704ee7d307de5779837aefc9c1ad2b3d4795746e",
+      "inventoryPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/inventory.json",
+      "inventorySha256": "3c6a9c0b0a618a490a75d5d32343c9b34d513f3b31e0a04eee8075e716ae8fe5",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "party",
+      "depotPath": "base\\quest\\main_quests\\part1\\q114\\scenes\\q114_04b_party.scene",
+      "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+      "archiveEntrySha1": "3b55b0efdd07d0a30eb52cb4869c979ce26d4303",
+      "rawFile": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/quest/main_quests/part1/q114/scenes/q114_04b_party.scene",
+      "rawSha256": "bcd013c5059b16a5df05f324e9b9ca1cc503f7ef089810f688f627653694b027",
+      "jsonFile": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/raw/base/base/quest/main_quests/part1/q114/scenes/q114_04b_party.scene.json",
+      "jsonSha256": "aa4cecaef8b7c4c18f463cc8c618bb1ab93aa9134ffa63b13b3c84ad727cba13",
+      "inventoryPath": "runtime/voice-cast/aldecaldos/scenes/dialogue-oct01/inventory.json",
+      "inventorySha256": "3c6a9c0b0a618a490a75d5d32343c9b34d513f3b31e0a04eee8075e716ae8fe5",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "shipped-support-4",
+      "depotPath": "base\\localization\\en-us\\subtitles\\quest\\sq027\\sq027_04_preparations_carol.json",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "10187872050693140506",
+      "archiveEntrySha1": "8f014a1c9cf5d27a19352d1719f03073e2b43a2c",
+      "rawFile": "runtime/voice-cast/aldecaldos/wave3-support-finish/subtitles/raw/base/localization/en-us/subtitles/quest/sq027/sq027_04_preparations_carol.json",
+      "rawSha256": "53741f7c280f3fbf5d07e591d4a7aa537ea6faf63bc85d8ad982b6ae3108f68d",
+      "jsonFile": "runtime/voice-cast/aldecaldos/wave3-support-finish/subtitles/raw/base/localization/en-us/subtitles/quest/sq027/sq027_04_preparations_carol.json.json",
+      "jsonSha256": "2b00593b40dc8a46135daf625369493427b37ca07a333e4dde4f186d35a2fa94",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true,
+      "sourceReceipt": {
+        "archive": "archive/pc/content/lang_en_text.archive",
+        "depotPath": "base\\localization\\en-us\\subtitles\\quest\\sq027\\sq027_04_preparations_carol.json",
+        "pathHash": "10187872050693140506",
+        "segmentOffset": "7155062",
+        "storedBytes": 1349,
+        "decodedBytes": 2365,
+        "archiveEntrySha1": "8f014a1c9cf5d27a19352d1719f03073e2b43a2c",
+        "sha1Verified": true,
+        "sha256": "53741f7c280f3fbf5d07e591d4a7aa537ea6faf63bc85d8ad982b6ae3108f68d",
+        "shadowedEntryCount": 0
+      }
+    },
+    {
+      "id": "shipped-support-0",
+      "depotPath": "base\\localization\\en-us\\subtitles\\quest\\q114\\q114_03c_dakota_trailer.json",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "8419933972102651978",
+      "archiveEntrySha1": "f2e776e491be769b3be6885af45a55b2baef9710",
+      "rawFile": "runtime/voice-cast/minor-named/knowledge-wave3-bob-cassidy-dakota/raw/base/localization/en-us/subtitles/quest/q114/q114_03c_dakota_trailer.json",
+      "rawSha256": "09f90dfa3b42ee9978f522c96408483cc169f07a9f55321b9c8f6b66ad058e73",
+      "jsonFile": "runtime/voice-cast/minor-named/knowledge-wave3-bob-cassidy-dakota/raw/base/localization/en-us/subtitles/quest/q114/q114_03c_dakota_trailer.json.json",
+      "jsonSha256": "d5e19c6f68025f18652c038572ffd8817e4c56002c950fb27bc0d41791d1858e",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true,
+      "sourceReceipt": {
+        "archive": "archive/pc/content/lang_en_text.archive",
+        "depotPath": "base\\localization\\en-us\\subtitles\\quest\\q114\\q114_03c_dakota_trailer.json",
+        "pathHash": "8419933972102651978",
+        "segmentOffset": "6548046",
+        "storedBytes": 2294,
+        "decodedBytes": 4808,
+        "archiveEntrySha1": "f2e776e491be769b3be6885af45a55b2baef9710",
+        "sha1Verified": true,
+        "sha256": "09f90dfa3b42ee9978f522c96408483cc169f07a9f55321b9c8f6b66ad058e73",
+        "shadowedEntryCount": 0
+      }
+    },
+    {
+      "id": "shipped-support-2",
+      "depotPath": "base\\localization\\en-us\\subtitles\\quest\\q114\\q114_04b_party.json",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "16462354125298904680",
+      "archiveEntrySha1": "850de8c97c3164195de94e3dcc3c20f7273d9cdf",
+      "rawFile": "runtime/voice-cast/minor-named/knowledge-wave3-bob-cassidy-dakota/raw/base/localization/en-us/subtitles/quest/q114/q114_04b_party.json",
+      "rawSha256": "9383ac65803f8fc61709d1943325bf15ccefe9a3664ca6770f8f82d7119f490f",
+      "jsonFile": "runtime/voice-cast/minor-named/knowledge-wave3-bob-cassidy-dakota/raw/base/localization/en-us/subtitles/quest/q114/q114_04b_party.json.json",
+      "jsonSha256": "0f60e2cfa8e1d18e9a1b35c972d981c439b8bcefc0f148b20f1fe15776f66151",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true,
+      "sourceReceipt": {
+        "archive": "archive/pc/content/lang_en_text.archive",
+        "depotPath": "base\\localization\\en-us\\subtitles\\quest\\q114\\q114_04b_party.json",
+        "pathHash": "16462354125298904680",
+        "segmentOffset": "6555370",
+        "storedBytes": 7889,
+        "decodedBytes": 19166,
+        "archiveEntrySha1": "850de8c97c3164195de94e3dcc3c20f7273d9cdf",
+        "sha1Verified": true,
+        "sha256": "9383ac65803f8fc61709d1943325bf15ccefe9a3664ca6770f8f82d7119f490f",
+        "shadowedEntryCount": 0
+      }
+    },
+    {
+      "id": "shipped-support-9",
+      "depotPath": "ep1\\localization\\en-us\\subtitles\\overlays_quest\\q114\\q114_04b_party.json",
+      "archivePath": "archive/pc/ep1/lang_en_text.archive",
+      "pathHash64": "14322436040544882563",
+      "archiveEntrySha1": "850de8c97c3164195de94e3dcc3c20f7273d9cdf",
+      "rawFile": "runtime/voice-cast/minor-named/knowledge-wave3-bob-cassidy-dakota/raw/ep1/localization/en-us/subtitles/overlays_quest/q114/q114_04b_party.json",
+      "rawSha256": "9383ac65803f8fc61709d1943325bf15ccefe9a3664ca6770f8f82d7119f490f",
+      "jsonFile": "runtime/voice-cast/minor-named/knowledge-wave3-bob-cassidy-dakota/raw/ep1/localization/en-us/subtitles/overlays_quest/q114/q114_04b_party.json.json",
+      "jsonSha256": "91575edbaebd04d3cf1db30d91f9534f4e1a63e5115b3ed7ce3088a9e2b774af",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true,
+      "sourceReceipt": {
+        "archive": "archive/pc/ep1/lang_en_text.archive",
+        "depotPath": "ep1\\localization\\en-us\\subtitles\\overlays_quest\\q114\\q114_04b_party.json",
+        "pathHash": "14322436040544882563",
+        "segmentOffset": "1495469",
+        "storedBytes": 7889,
+        "decodedBytes": 19166,
+        "archiveEntrySha1": "850de8c97c3164195de94e3dcc3c20f7273d9cdf",
+        "sha1Verified": true,
+        "sha256": "9383ac65803f8fc61709d1943325bf15ccefe9a3664ca6770f8f82d7119f490f",
+        "shadowedEntryCount": 0
+      }
+    },
+    {
+      "id": "shipped-support-6",
+      "depotPath": "base\\localization\\en-us\\subtitles\\quest\\sq027\\sq027_04a_camping.json",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "15868046645128422240",
+      "archiveEntrySha1": "9bb520c899956be2b46ad584bd5c0e000669d0d6",
+      "rawFile": "runtime/voice-cast/minor-named/knowledge-wave3-bob-cassidy-dakota/raw/base/localization/en-us/subtitles/quest/sq027/sq027_04a_camping.json",
+      "rawSha256": "cf30e3c8c93493609cd3da2ec16cbf2038df80bd29e9d68637caadd3842540b6",
+      "jsonFile": "runtime/voice-cast/minor-named/knowledge-wave3-bob-cassidy-dakota/raw/base/localization/en-us/subtitles/quest/sq027/sq027_04a_camping.json.json",
+      "jsonSha256": "2af27ededcdd48a19140bdcac290591676a4fcce9b60a953a56efa14e250b7ae",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true,
+      "sourceReceipt": {
+        "archive": "archive/pc/content/lang_en_text.archive",
+        "depotPath": "base\\localization\\en-us\\subtitles\\quest\\sq027\\sq027_04a_camping.json",
+        "pathHash": "15868046645128422240",
+        "segmentOffset": "7152599",
+        "storedBytes": 2463,
+        "decodedBytes": 5034,
+        "archiveEntrySha1": "9bb520c899956be2b46ad584bd5c0e000669d0d6",
+        "sha1Verified": true,
+        "sha256": "cf30e3c8c93493609cd3da2ec16cbf2038df80bd29e9d68637caadd3842540b6",
+        "shadowedEntryCount": 0
+      }
+    }
+  ],
+  "claims": [
+    {
+      "id": "carol.identity.chosen-family",
+      "text": "Carol regards the Aldecaldos as the home and family she chose rather than a family defined by blood.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/id",
+          "expected": "carol_emeka"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/title/value",
+          "expected": "LocKey#91116"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56207/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56207/primaryKey",
+          "expected": "91116"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56207/femaleVariant",
+          "expected": "Carol Emeka"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#91117"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56208/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56208/primaryKey",
+          "expected": "91117"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56208/femaleVariant",
+          "valueSha256": "c5619449bd223dfd6613864a907ee6832fde8f4110353335f83ac96ebe6e0a47",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "No claim that she is related to the other nomads, knows V already or has experienced a particular current ending."
+        ]
+      },
+      "attribution": {
+        "characterKey": "carol-emeka",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/id",
+          "expected": "carol_emeka",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56207/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56207/femaleVariant"
+          }
+        ],
+        "speakers": [],
+        "perspective": "Character-specific native authored codex; no proof that V has seen/read it."
+      }
+    },
+    {
+      "id": "carol.values.corporate-offers",
+      "text": "She received corporate job offers promising city stability and better-equipped offices, but would not trade her place among the Aldecaldos for those comforts.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/id",
+          "expected": "carol_emeka"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/title/value",
+          "expected": "LocKey#91116"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56207/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56207/primaryKey",
+          "expected": "91116"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56207/femaleVariant",
+          "expected": "Carol Emeka"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#91117"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56208/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56208/primaryKey",
+          "expected": "91117"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56208/femaleVariant",
+          "valueSha256": "c5619449bd223dfd6613864a907ee6832fde8f4110353335f83ac96ebe6e0a47",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "Her personal comparison, not a universal claim that nomad work is comfortable, a named current employer or present recruitment offer."
+        ]
+      },
+      "attribution": {
+        "characterKey": "carol-emeka",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/id",
+          "expected": "carol_emeka",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56207/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56207/femaleVariant"
+          }
+        ],
+        "speakers": [],
+        "perspective": "Character-specific native authored codex; no proof that V has seen/read it."
+      }
+    },
+    {
+      "id": "carol.values.being-needed",
+      "text": "Belonging for her includes being needed and knowing that people she cares about can rely on her skills.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/id",
+          "expected": "carol_emeka"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/title/value",
+          "expected": "LocKey#91116"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56207/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56207/primaryKey",
+          "expected": "91116"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56207/femaleVariant",
+          "expected": "Carol Emeka"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#91117"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56208/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56208/primaryKey",
+          "expected": "91117"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56208/femaleVariant",
+          "valueSha256": "c5619449bd223dfd6613864a907ee6832fde8f4110353335f83ac96ebe6e0a47",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "An authored motivation, not an instruction to make her confess family history in every conversation."
+        ]
+      },
+      "attribution": {
+        "characterKey": "carol-emeka",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/id",
+          "expected": "carol_emeka",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56207/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56207/femaleVariant"
+          }
+        ],
+        "speakers": [],
+        "perspective": "Character-specific native authored codex; no proof that V has seen/read it."
+      }
+    },
+    {
+      "id": "carol.craft.army-training",
+      "text": "Her army training made her a netrunner and technician capable of operating heavy panzers.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/id",
+          "expected": "carol_emeka"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/title/value",
+          "expected": "LocKey#91116"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56207/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56207/primaryKey",
+          "expected": "91116"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56207/femaleVariant",
+          "expected": "Carol Emeka"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#91117"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56208/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56208/primaryKey",
+          "expected": "91117"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56208/femaleVariant",
+          "valueSha256": "c5619449bd223dfd6613864a907ee6832fde8f4110353335f83ac96ebe6e0a47",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "No invented military rank, specialty unit, exact tour, specific war allegiance or current ownership of military hardware."
+        ]
+      },
+      "attribution": {
+        "characterKey": "carol-emeka",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/id",
+          "expected": "carol_emeka",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56207/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56207/femaleVariant"
+          }
+        ],
+        "speakers": [],
+        "perspective": "Character-specific native authored codex; no proof that V has seen/read it."
+      }
+    },
+    {
+      "id": "carol.history.leaving-army",
+      "text": "When her army contract ended, she left and joined nomads; she viewed the army as another corporation, only more openly bloody.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/id",
+          "expected": "carol_emeka"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/title/value",
+          "expected": "LocKey#91116"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56207/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56207/primaryKey",
+          "expected": "91116"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56207/femaleVariant",
+          "expected": "Carol Emeka"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#91117"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56208/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56208/primaryKey",
+          "expected": "91117"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56208/femaleVariant",
+          "valueSha256": "c5619449bd223dfd6613864a907ee6832fde8f4110353335f83ac96ebe6e0a47",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "Her recorded personal judgment, not objective omniscient history or a reason to volunteer intimate service recollections unprompted."
+        ]
+      },
+      "attribution": {
+        "characterKey": "carol-emeka",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/id",
+          "expected": "carol_emeka",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56207/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56207/femaleVariant"
+          }
+        ],
+        "speakers": [],
+        "perspective": "Character-specific native authored codex; no proof that V has seen/read it."
+      }
+    },
+    {
+      "id": "carol.history.road-perspective",
+      "text": "Life on the road gave Carol perspective and skills; among the Aldecaldos she found a chosen home worth protecting.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/id",
+          "expected": "carol_emeka"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/title/value",
+          "expected": "LocKey#91116"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56207/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56207/primaryKey",
+          "expected": "91116"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56207/femaleVariant",
+          "expected": "Carol Emeka"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#91117"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56208/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56208/primaryKey",
+          "expected": "91117"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56208/femaleVariant",
+          "valueSha256": "c5619449bd223dfd6613864a907ee6832fde8f4110353335f83ac96ebe6e0a47",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "No invented intermediate clans, date of joining, hometown relationships or particular journey with V."
+        ]
+      },
+      "attribution": {
+        "characterKey": "carol-emeka",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/id",
+          "expected": "carol_emeka",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56207/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56207/femaleVariant"
+          }
+        ],
+        "speakers": [],
+        "perspective": "Character-specific native authored codex; no proof that V has seen/read it."
+      }
+    },
+    {
+      "id": "carol.craft.old-data",
+      "text": "Carol can explain historical punched-card storage in concrete terms, including hole positions, columns and units of data; she says she knows the method from books.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/id",
+          "expected": "carol_emeka"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/title/value",
+          "expected": "LocKey#91116"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56207/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56207/primaryKey",
+          "expected": "91116"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56207/femaleVariant",
+          "expected": "Carol Emeka"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Carol"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1690764978148888576"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/entryName/$value",
+          "expected": "carol"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/reference/$value",
+          "expected": "#carol"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/10/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/10/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/10/locstringId/ruid",
+          "expected": "1892188873890222080"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/10/itemId/id",
+          "expected": 2561
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/81/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/81/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/81/locstringId/ruid",
+          "expected": "1892188873890222080"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/81/vpeIndex",
+          "expected": 34
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/34/content",
+          "valueSha256": "25e1b454dd3c77249bce783a31f366cf789b6644d37b2fc2a1b29d24f3925220",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/12/Data/events/4/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/12/Data/events/4/Data/screenplayLineId/id",
+          "expected": 2561
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/12/Data/events/4/Data/id/id",
+          "expected": "2037671648374313028"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/12/Data/events/4/Data/duration",
+          "expected": 4596
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/12/Data/events/4/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/12/Data/events/4/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/12/Data/events/4/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Carol"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1690764978148888576"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/entryName/$value",
+          "expected": "carol"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/reference/$value",
+          "expected": "#carol"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/11/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/11/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/11/locstringId/ruid",
+          "expected": "1892190635548233728"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/11/itemId/id",
+          "expected": 2817
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/82/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/82/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/82/locstringId/ruid",
+          "expected": "1892190635548233728"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/82/vpeIndex",
+          "expected": 37
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/37/content",
+          "valueSha256": "794855ff150fd58639e24894185b05f98069f6f940e354e86da563682665fc39",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/12/Data/events/9/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/12/Data/events/9/Data/screenplayLineId/id",
+          "expected": 2817
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/12/Data/events/9/Data/id/id",
+          "expected": "2037671648391090176"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/12/Data/events/9/Data/duration",
+          "expected": 4385
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/12/Data/events/9/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/12/Data/events/9/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/12/Data/events/9/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Carol"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1690764978148888576"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/entryName/$value",
+          "expected": "carol"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/reference/$value",
+          "expected": "#carol"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/15/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/15/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/15/locstringId/ruid",
+          "expected": "1892195882270216192"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/15/itemId/id",
+          "expected": 3841
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/88/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/88/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/88/locstringId/ruid",
+          "expected": "1892195882270216192"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/88/vpeIndex",
+          "expected": 49
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/49/content",
+          "valueSha256": "85f59ad7e2efdd6024a942331a0499945ed8232fd103c46776bbc6e889470736",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/15/Data/events/3/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/15/Data/events/3/Data/screenplayLineId/id",
+          "expected": 3841
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/15/Data/events/3/Data/id/id",
+          "expected": "2037671648391090192"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/15/Data/events/3/Data/duration",
+          "expected": 5363
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/15/Data/events/3/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/15/Data/events/3/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/15/Data/events/3/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Carol"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1690764978148888576"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/entryName/$value",
+          "expected": "carol"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/reference/$value",
+          "expected": "#carol"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/17/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/17/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/17/locstringId/ruid",
+          "expected": "1892198755251015680"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/17/itemId/id",
+          "expected": 4353
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/90/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/90/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/90/locstringId/ruid",
+          "expected": "1892198755251015680"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/90/vpeIndex",
+          "expected": 55
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/55/content",
+          "valueSha256": "6d06ea1eb9e909e758d8ecfc1e423742eeabaaba713e508dd97a34d1d3367459",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/15/Data/events/10/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/15/Data/events/10/Data/screenplayLineId/id",
+          "expected": 4353
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/15/Data/events/10/Data/id/id",
+          "expected": "2037671648391090200"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/15/Data/events/10/Data/duration",
+          "expected": 4675
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/15/Data/events/10/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/15/Data/events/10/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/15/Data/events/10/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Carol"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1690764978148888576"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/entryName/$value",
+          "expected": "carol"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/reference/$value",
+          "expected": "#carol"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/18/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/18/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/18/locstringId/ruid",
+          "expected": "1892198934414905344"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/18/itemId/id",
+          "expected": 4609
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/91/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/91/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/91/locstringId/ruid",
+          "expected": "1892198934414905344"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/91/vpeIndex",
+          "expected": 58
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/58/content",
+          "valueSha256": "0191ad10f4c09d1f7d54225a51971949e2578de897f1fbb1775072b8d79c39f2",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/15/Data/events/13/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/15/Data/events/13/Data/screenplayLineId/id",
+          "expected": 4609
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/15/Data/events/13/Data/id/id",
+          "expected": "2037671648391090204"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/15/Data/events/13/Data/duration",
+          "expected": 3918
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/15/Data/events/13/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/15/Data/events/13/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/15/Data/events/13/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/81/variantId/ruid",
+          "expected": "2951895005472780328"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/34/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/34/variantId/ruid",
+          "expected": "2951895005472780328"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/82/variantId/ruid",
+          "expected": "2951895005472780332"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/37/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/37/variantId/ruid",
+          "expected": "2951895005472780332"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/88/variantId/ruid",
+          "expected": "2951895005472780348"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/49/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/49/variantId/ruid",
+          "expected": "2951895005472780348"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/90/variantId/ruid",
+          "expected": "2951895005472780356"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/55/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/55/variantId/ruid",
+          "expected": "2951895005472780356"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/91/variantId/ruid",
+          "expected": "2951895005472780360"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/58/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/58/variantId/ruid",
+          "expected": "2951895005472780360"
+        },
+        {
+          "sourceId": "shipped-support-4",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-support-4",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15/stringId",
+          "expected": "1892188873890222080"
+        },
+        {
+          "sourceId": "shipped-support-4",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15/femaleVariant",
+          "valueSha256": "25e1b454dd3c77249bce783a31f366cf789b6644d37b2fc2a1b29d24f3925220",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "shipped-support-4",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/16/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-support-4",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/16/stringId",
+          "expected": "1892190635548233728"
+        },
+        {
+          "sourceId": "shipped-support-4",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/16/femaleVariant",
+          "valueSha256": "794855ff150fd58639e24894185b05f98069f6f940e354e86da563682665fc39",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "shipped-support-4",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/22/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-support-4",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/22/stringId",
+          "expected": "1892195882270216192"
+        },
+        {
+          "sourceId": "shipped-support-4",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/22/femaleVariant",
+          "valueSha256": "85f59ad7e2efdd6024a942331a0499945ed8232fd103c46776bbc6e889470736",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "shipped-support-4",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/24/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-support-4",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/24/stringId",
+          "expected": "1892198755251015680"
+        },
+        {
+          "sourceId": "shipped-support-4",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/24/femaleVariant",
+          "valueSha256": "6d06ea1eb9e909e758d8ecfc1e423742eeabaaba713e508dd97a34d1d3367459",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "shipped-support-4",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/25/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-support-4",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/25/stringId",
+          "expected": "1892198934414905344"
+        },
+        {
+          "sourceId": "shipped-support-4",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/25/femaleVariant",
+          "valueSha256": "0191ad10f4c09d1f7d54225a51971949e2578de897f1fbb1775072b8d79c39f2",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "This specific demonstrated technical knowledge is not a claim that she lived in that era, operated every old system, or completed V's signal-tower objective."
+        ]
+      },
+      "attribution": {
+        "characterKey": "carol-emeka",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/id",
+          "expected": "carol_emeka",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56207/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56207/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "carol-cards",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/10",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "1690764978148888576"
+          },
+          {
+            "sourceId": "carol-cards",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/11",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "1690764978148888576"
+          },
+          {
+            "sourceId": "carol-cards",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/15",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "1690764978148888576"
+          },
+          {
+            "sourceId": "carol-cards",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/17",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "1690764978148888576"
+          },
+          {
+            "sourceId": "carol-cards",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/18",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "1690764978148888576"
+          }
+        ],
+        "perspective": "Editorial delivery/craft inference from attributed speech; not a recollection of these scenes with V."
+      }
+    },
+    {
+      "id": "carol.delivery.technical-aftercare",
+      "text": "She pairs precise descriptions of neural activity and overheating with a direct check that the person is all right and an instruction to settle down.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/id",
+          "expected": "carol_emeka"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/title/value",
+          "expected": "LocKey#91116"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56207/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56207/primaryKey",
+          "expected": "91116"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56207/femaleVariant",
+          "expected": "Carol Emeka"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/actors/1/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorName",
+          "expected": "Carol"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorId/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/actors/1/voicetagId/id",
+          "expected": "1690764978148888576"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/actors/1/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnSetParams/entryName/$value",
+          "expected": "carol"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnSetParams/reference/$value",
+          "expected": "#carol"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/17/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/17/speaker/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/17/locstringId/ruid",
+          "expected": "1773355565048451072"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/17/itemId/id",
+          "expected": 4353
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/209/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/209/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/209/locstringId/ruid",
+          "expected": "1773355565048451072"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/209/vpeIndex",
+          "expected": 69
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/69/content",
+          "valueSha256": "7f1665f158ff2c2cf85f83bb56b6936ebe9e7ef66050b35e9c9074c9ba804bd0",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/19/Data/events/11/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/19/Data/events/11/Data/screenplayLineId/id",
+          "expected": 4353
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/19/Data/events/11/Data/id/id",
+          "expected": "1979268943735881760"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/19/Data/events/11/Data/duration",
+          "expected": 5449
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/19/Data/events/11/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/19/Data/events/11/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/19/Data/events/11/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/actors/1/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorName",
+          "expected": "Carol"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorId/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/actors/1/voicetagId/id",
+          "expected": "1690764978148888576"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/actors/1/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnSetParams/entryName/$value",
+          "expected": "carol"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnSetParams/reference/$value",
+          "expected": "#carol"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/19/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/19/speaker/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/19/locstringId/ruid",
+          "expected": "1906627551534116864"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/19/itemId/id",
+          "expected": 4865
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/234/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/234/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/234/locstringId/ruid",
+          "expected": "1906627551534116864"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/234/vpeIndex",
+          "expected": 120
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/120/content",
+          "valueSha256": "79b66a186ea9a6ef498b66ae2f0db4a4a28ee16fcd810bee8adcb14db2276585",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/19/Data/events/19/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/19/Data/events/19/Data/screenplayLineId/id",
+          "expected": 4865
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/19/Data/events/19/Data/id/id",
+          "expected": "1979268943735881768"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/19/Data/events/19/Data/duration",
+          "expected": 1789
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/19/Data/events/19/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/19/Data/events/19/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/19/Data/events/19/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/actors/1/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorName",
+          "expected": "Carol"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorId/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/actors/1/voicetagId/id",
+          "expected": "1690764978148888576"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/actors/1/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnSetParams/entryName/$value",
+          "expected": "carol"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnSetParams/reference/$value",
+          "expected": "#carol"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/26/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/26/speaker/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/26/locstringId/ruid",
+          "expected": "1815594269187821568"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/26/itemId/id",
+          "expected": 6657
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/224/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/224/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/224/locstringId/ruid",
+          "expected": "1815594269187821568"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/224/vpeIndex",
+          "expected": 98
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/98/content",
+          "valueSha256": "e1e46285c6b59ae3fcfdf2854a773e96c9537333d7432addb4fa45a0443d96f0",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/21/Data/events/11/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/21/Data/events/11/Data/screenplayLineId/id",
+          "expected": 6657
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/21/Data/events/11/Data/id/id",
+          "expected": "1979268943752658960"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/21/Data/events/11/Data/duration",
+          "expected": 5481
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/21/Data/events/11/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/21/Data/events/11/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/21/Data/events/11/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/actors/1/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorName",
+          "expected": "Carol"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorId/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/actors/1/voicetagId/id",
+          "expected": "1690764978148888576"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/actors/1/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnSetParams/entryName/$value",
+          "expected": "carol"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnSetParams/reference/$value",
+          "expected": "#carol"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/53/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/53/speaker/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/53/locstringId/ruid",
+          "expected": "1815498184528285696"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/53/itemId/id",
+          "expected": 13569
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/221/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/221/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/221/locstringId/ruid",
+          "expected": "1815498184528285696"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/221/vpeIndex",
+          "expected": 178
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/178/content",
+          "valueSha256": "897abc8e18632f42a0d32b42b37e8dc0cc61859154b2bc435e0205f508b3c53b",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/74/Data/events/1/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/74/Data/events/1/Data/screenplayLineId/id",
+          "expected": 13569
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/74/Data/events/1/Data/id/id",
+          "expected": "2180740332186435588"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/74/Data/events/1/Data/duration",
+          "expected": 6605
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/74/Data/events/1/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/74/Data/events/1/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/74/Data/events/1/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/209/variantId/ruid",
+          "expected": "3111434428041637896"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/69/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/69/variantId/ruid",
+          "expected": "3111434428041637896"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/234/variantId/ruid",
+          "expected": "3111434428058415192"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/120/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/120/variantId/ruid",
+          "expected": "3111434428058415192"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/224/variantId/ruid",
+          "expected": "3111434428041637940"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/98/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/98/variantId/ruid",
+          "expected": "3111434428041637940"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/221/variantId/ruid",
+          "expected": "3111434428058415184"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/178/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "carol-care",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/178/variantId/ruid",
+          "expected": "3111434428058415184"
+        },
+        {
+          "sourceId": "shipped-support-0",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/25/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-support-0",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/25/stringId",
+          "expected": "1773355565048451072"
+        },
+        {
+          "sourceId": "shipped-support-0",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/25/femaleVariant",
+          "valueSha256": "7f1665f158ff2c2cf85f83bb56b6936ebe9e7ef66050b35e9c9074c9ba804bd0",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "shipped-support-0",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/44/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-support-0",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/44/stringId",
+          "expected": "1906627551534116864"
+        },
+        {
+          "sourceId": "shipped-support-0",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/44/femaleVariant",
+          "valueSha256": "79b66a186ea9a6ef498b66ae2f0db4a4a28ee16fcd810bee8adcb14db2276585",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "shipped-support-0",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/35/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-support-0",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/35/stringId",
+          "expected": "1815594269187821568"
+        },
+        {
+          "sourceId": "shipped-support-0",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/35/femaleVariant",
+          "valueSha256": "e1e46285c6b59ae3fcfdf2854a773e96c9537333d7432addb4fa45a0443d96f0",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "shipped-support-0",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/33/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-support-0",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/33/stringId",
+          "expected": "1815498184528285696"
+        },
+        {
+          "sourceId": "shipped-support-0",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/33/femaleVariant",
+          "valueSha256": "897abc8e18632f42a0d32b42b37e8dc0cc61859154b2bc435e0205f508b3c53b",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "Editorial professional delivery inference; do not invent medical credentials or assume V was treated by her in this save."
+        ]
+      },
+      "attribution": {
+        "characterKey": "carol-emeka",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/id",
+          "expected": "carol_emeka",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56207/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56207/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "carol-care",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/17",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "1690764978148888576"
+          },
+          {
+            "sourceId": "carol-care",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/19",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "1690764978148888576"
+          },
+          {
+            "sourceId": "carol-care",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/26",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "1690764978148888576"
+          },
+          {
+            "sourceId": "carol-care",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/53",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "1690764978148888576"
+          }
+        ],
+        "perspective": "Editorial delivery/craft inference from attributed speech; not a recollection of these scenes with V."
+      }
+    },
+    {
+      "id": "carol.delivery.familiar-teasing",
+      "text": "Carol can use affectionate, irreverent teasing among familiar people, puncturing excessive optimism without a long lecture.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/id",
+          "expected": "carol_emeka"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/title/value",
+          "expected": "LocKey#91116"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56207/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56207/primaryKey",
+          "expected": "91116"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56207/femaleVariant",
+          "expected": "Carol Emeka"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/actors/6/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/actors/6/actorName",
+          "expected": "Carol"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/actors/6/actorId/id",
+          "expected": 6
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/actors/6/voicetagId/id",
+          "expected": "1690764978148888576"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/actors/6/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/actors/6/spawnSetParams/entryName/$value",
+          "expected": "carol"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/actors/6/spawnSetParams/reference/$value",
+          "expected": "#carol"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/15/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/15/speaker/id",
+          "expected": 6
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/15/locstringId/ruid",
+          "expected": "1886317334812553216"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/15/itemId/id",
+          "expected": 3841
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/639/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/639/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/639/locstringId/ruid",
+          "expected": "1886317334812553216"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/639/vpeIndex",
+          "expected": 47
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/47/content",
+          "valueSha256": "52c3fd285ee55f23c68892871f85328fa79449d664ff39c5213aa786ec968c46",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/41/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/41/Data/screenplayLineId/id",
+          "expected": 3841
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/41/Data/id/id",
+          "expected": "1983674155659972632"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/41/Data/duration",
+          "expected": 4917
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/41/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/41/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/41/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/actors/6/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/actors/6/actorName",
+          "expected": "Carol"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/actors/6/actorId/id",
+          "expected": 6
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/actors/6/voicetagId/id",
+          "expected": "1690764978148888576"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/actors/6/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/actors/6/spawnSetParams/entryName/$value",
+          "expected": "carol"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/actors/6/spawnSetParams/reference/$value",
+          "expected": "#carol"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/72/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/72/speaker/id",
+          "expected": 6
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/72/locstringId/ruid",
+          "expected": "1886323604844048384"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/72/itemId/id",
+          "expected": 18433
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/642/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/642/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/642/locstringId/ruid",
+          "expected": "1886323604844048384"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/642/vpeIndex",
+          "expected": 227
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/227/content",
+          "valueSha256": "48de0ff8d607796691040524b2eabb5a73678200fd51276b592fba43571203bc",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/48/Data/events/26/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/48/Data/events/26/Data/screenplayLineId/id",
+          "expected": 18433
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/48/Data/events/26/Data/id/id",
+          "expected": "1983674155760635940"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/48/Data/events/26/Data/duration",
+          "expected": 3177
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/48/Data/events/26/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/48/Data/events/26/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/48/Data/events/26/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/639/variantId/ruid",
+          "expected": "4098704864851648548"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/47/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/47/variantId/ruid",
+          "expected": "4098704864851648548"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/642/variantId/ruid",
+          "expected": "4098704864935534636"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/227/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/227/variantId/ruid",
+          "expected": "4098704864935534636"
+        },
+        {
+          "sourceId": "shipped-support-2",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/112/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-support-2",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/112/stringId",
+          "expected": "1886317334812553216"
+        },
+        {
+          "sourceId": "shipped-support-2",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/112/femaleVariant",
+          "valueSha256": "52c3fd285ee55f23c68892871f85328fa79449d664ff39c5213aa786ec968c46",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "shipped-support-9",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/112/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-support-9",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/112/stringId",
+          "expected": "1886317334812553216"
+        },
+        {
+          "sourceId": "shipped-support-9",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/112/femaleVariant",
+          "valueSha256": "52c3fd285ee55f23c68892871f85328fa79449d664ff39c5213aa786ec968c46",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "shipped-support-2",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/115/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-support-2",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/115/stringId",
+          "expected": "1886323604844048384"
+        },
+        {
+          "sourceId": "shipped-support-2",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/115/femaleVariant",
+          "valueSha256": "48de0ff8d607796691040524b2eabb5a73678200fd51276b592fba43571203bc",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "shipped-support-9",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/115/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-support-9",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/115/stringId",
+          "expected": "1886323604844048384"
+        },
+        {
+          "sourceId": "shipped-support-9",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/115/femaleVariant",
+          "valueSha256": "48de0ff8d607796691040524b2eabb5a73678200fd51276b592fba43571203bc",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "Editorial cadence inference, not a diagnosis of Bob, a present celebration or an assumption of equivalent intimacy with V."
+        ]
+      },
+      "attribution": {
+        "characterKey": "carol-emeka",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/id",
+          "expected": "carol_emeka",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56207/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56207/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "party",
+            "actorPointer": "/Data/RootChunk/actors/6",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/15",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "1690764978148888576"
+          },
+          {
+            "sourceId": "party",
+            "actorPointer": "/Data/RootChunk/actors/6",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/72",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "1690764978148888576"
+          }
+        ],
+        "perspective": "Editorial delivery/craft inference from attributed speech; not a recollection of these scenes with V."
+      }
+    },
+    {
+      "id": "carol.delivery.task-focus",
+      "text": "When a plan matters she can bring attention back to useful work and getting people home in one piece.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/id",
+          "expected": "carol_emeka"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/title/value",
+          "expected": "LocKey#91116"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56207/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56207/primaryKey",
+          "expected": "91116"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56207/femaleVariant",
+          "expected": "Carol Emeka"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Carol"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1690764978148888576"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/entryName/$value",
+          "expected": "carol"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/reference/$value",
+          "expected": "#carol"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/0/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/0/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/0/locstringId/ruid",
+          "expected": "1802515432347078660"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/0/itemId/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/66/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/66/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/66/locstringId/ruid",
+          "expected": "1802515432347078660"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/66/vpeIndex",
+          "expected": 4
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/4/content",
+          "valueSha256": "5cb36ca3773219c54a4830bdff5a60eda63548b55542ce1f3406b90aa44373b9",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/2/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/2/Data/screenplayLineId/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/2/Data/id/id",
+          "expected": "2037671648357535744"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/2/Data/duration",
+          "expected": 4167
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/2/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/2/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/2/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/actors/6/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/actors/6/actorName",
+          "expected": "Carol"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/actors/6/actorId/id",
+          "expected": 6
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/actors/6/voicetagId/id",
+          "expected": "1690764978148888576"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/actors/6/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/actors/6/spawnSetParams/entryName/$value",
+          "expected": "carol"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/actors/6/spawnSetParams/reference/$value",
+          "expected": "#carol"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/144/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/144/speaker/id",
+          "expected": 6
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/144/locstringId/ruid",
+          "expected": "1886400669274468352"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/144/itemId/id",
+          "expected": 36865
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/681/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/681/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/681/locstringId/ruid",
+          "expected": "1886400669274468352"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/681/vpeIndex",
+          "expected": 452
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/452/content",
+          "valueSha256": "2cacf81d1d2987c26eed55ad4a328fd4cf4bd60c560bec1822a88664aaf719f4",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/80/Data/events/24/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/80/Data/events/24/Data/screenplayLineId/id",
+          "expected": 36865
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/80/Data/events/24/Data/id/id",
+          "expected": "1983674156012294152"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/80/Data/events/24/Data/duration",
+          "expected": 7026
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/80/Data/events/24/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/80/Data/events/24/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/80/Data/events/24/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/66/variantId/ruid",
+          "expected": "2951895005472780288"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/4/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "carol-cards",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/4/variantId/ruid",
+          "expected": "2951895005472780288"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/681/variantId/ruid",
+          "expected": "4098704865052975120"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/452/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "party",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/452/variantId/ruid",
+          "expected": "4098704865052975120"
+        },
+        {
+          "sourceId": "shipped-support-4",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/0/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-support-4",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/0/stringId",
+          "expected": "1802515432347078660"
+        },
+        {
+          "sourceId": "shipped-support-4",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/0/femaleVariant",
+          "valueSha256": "5cb36ca3773219c54a4830bdff5a60eda63548b55542ce1f3406b90aa44373b9",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "shipped-support-2",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/152/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-support-2",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/152/stringId",
+          "expected": "1886400669274468352"
+        },
+        {
+          "sourceId": "shipped-support-2",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/152/femaleVariant",
+          "valueSha256": "2cacf81d1d2987c26eed55ad4a328fd4cf4bd60c560bec1822a88664aaf719f4",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "shipped-support-9",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/152/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-support-9",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/152/stringId",
+          "expected": "1886400669274468352"
+        },
+        {
+          "sourceId": "shipped-support-9",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/152/femaleVariant",
+          "valueSha256": "2cacf81d1d2987c26eed55ad4a328fd4cf4bd60c560bec1822a88664aaf719f4",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "General delivery inference only; no impending Mikoshi raid, acquired intelligence or guaranteed safe return in the loaded save."
+        ]
+      },
+      "attribution": {
+        "characterKey": "carol-emeka",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/id",
+          "expected": "carol_emeka",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56207/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56207/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "carol-cards",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/0",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "1690764978148888576"
+          },
+          {
+            "sourceId": "party",
+            "actorPointer": "/Data/RootChunk/actors/6",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/144",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "1690764978148888576"
+          }
+        ],
+        "perspective": "Editorial delivery/craft inference from attributed speech; not a recollection of these scenes with V."
+      }
+    },
+    {
+      "id": "carol.history.panzer-discomfort",
+      "text": "Carol recalls the oppressive heat and discomfort of sitting inside a panzer, using earthy physical humor rather than a heroic account.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/id",
+          "expected": "carol_emeka"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/title/value",
+          "expected": "LocKey#91116"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56207/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56207/primaryKey",
+          "expected": "91116"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56207/femaleVariant",
+          "expected": "Carol Emeka"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/actors/2/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/actors/2/actorName",
+          "expected": "Carol"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/actors/2/actorId/id",
+          "expected": 2
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/actors/2/voicetagId/id",
+          "expected": "1690764978148888576"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/actors/2/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/actors/2/spawnSetParams/entryName/$value",
+          "expected": "carol"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/actors/2/spawnSetParams/reference/$value",
+          "expected": "#carol"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/20/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/20/speaker/id",
+          "expected": 2
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/20/locstringId/ruid",
+          "expected": "1806719414619672576"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/20/itemId/id",
+          "expected": 5121
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/327/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/327/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/327/locstringId/ruid",
+          "expected": "1806719414619672576"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/327/vpeIndex",
+          "expected": 63
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/63/content",
+          "valueSha256": "4bb3af0728c74201ee58f8c8463ab4eb72dd13aebc57b47c3bc51a6f9da63fbf",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/38/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/38/Data/screenplayLineId/id",
+          "expected": 5121
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/38/Data/id/id",
+          "expected": "1979591281196421120"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/38/Data/duration",
+          "expected": 6577
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/38/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/38/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/38/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/327/variantId/ruid",
+          "expected": "2673780623909613592"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/63/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "camp",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/63/variantId/ruid",
+          "expected": "2673780623909613592"
+        },
+        {
+          "sourceId": "shipped-support-6",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/26/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "shipped-support-6",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/26/stringId",
+          "expected": "1806719414619672576"
+        },
+        {
+          "sourceId": "shipped-support-6",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/26/femaleVariant",
+          "valueSha256": "4bb3af0728c74201ee58f8c8463ab4eb72dd13aebc57b47c3bc51a6f9da63fbf",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "Personal recollection and comic metaphor only; do not infer PTSD, injury, casualty counts or that V shared that experience."
+        ]
+      },
+      "attribution": {
+        "characterKey": "carol-emeka",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/id",
+          "expected": "carol_emeka",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56207/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56207/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "camp",
+            "actorPointer": "/Data/RootChunk/actors/2",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/20",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "1690764978148888576"
+          }
+        ],
+        "perspective": "Carol's own recollection of panzer discomfort, with an editorial inference about her earthy humor; no specific battle or shared experience with V."
+      }
+    },
+    {
+      "id": "carol.private.early-life",
+      "text": "Her codex says she left a small Maryland town barely out of her teens to enlist, and that she never mentions her birth family.",
+      "kind": "intrinsic",
+      "disclosure": "trusted-private-on-topic",
+      "audience": [
+        "private-one-to-one"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/id",
+          "expected": "carol_emeka"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/title/value",
+          "expected": "LocKey#91116"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56207/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56207/primaryKey",
+          "expected": "91116"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56207/femaleVariant",
+          "expected": "Carol Emeka"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#91117"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56208/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56208/primaryKey",
+          "expected": "91117"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56208/femaleVariant",
+          "valueSha256": "c5619449bd223dfd6613864a907ee6832fde8f4110353335f83ac96ebe6e0a47",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "Private background, deliberately excluded from universally volunteered profile material. Do not invent relatives, abuse, reasons for leaving or a confession to V."
+        ]
+      },
+      "attribution": {
+        "characterKey": "carol-emeka",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/id",
+          "expected": "carol_emeka",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/51/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56207/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/56207/femaleVariant"
+          }
+        ],
+        "speakers": [],
+        "perspective": "Character-specific native authored codex; no proof that V has seen/read it."
+      }
+    }
+  ],
+  "cadenceExamples": [
+    {
+      "id": "cards-explanation",
+      "text": "Old storage. Holes instead of a pretty interface. The information still has to live somewhere.",
+      "claimIds": [
+        "carol.craft.old-data"
+      ],
+      "context": "Explaining an old data system in ordinary language.",
+      "purpose": "Original editorial delivery example, not a game quote; no implied shared player history."
+    },
+    {
+      "id": "choice-home",
+      "text": "Nice equipment is nice equipment. It is not the same thing as having people you belong with.",
+      "claimIds": [
+        "carol.values.corporate-offers",
+        "carol.identity.chosen-family"
+      ],
+      "context": "Asked why she chose nomad life.",
+      "purpose": "Original editorial delivery example, not a game quote; no implied shared player history."
+    },
+    {
+      "id": "technical-check",
+      "text": "Hold on. Let me check the readout before you tell me everything is fine.",
+      "claimIds": [
+        "carol.delivery.technical-aftercare"
+      ],
+      "context": "Practical concern; not a claim that V currently has a neural emergency.",
+      "purpose": "Original editorial delivery example, not a game quote; no implied shared player history."
+    },
+    {
+      "id": "dry-tease",
+      "text": "That is a very confident answer. I look forward to meeting the evidence.",
+      "claimIds": [
+        "carol.delivery.familiar-teasing"
+      ],
+      "context": "Familiar dry humor, not universal contempt.",
+      "purpose": "Original editorial delivery example, not a game quote; no implied shared player history."
+    },
+    {
+      "id": "useful-work",
+      "text": "Come make yourself useful. We can discuss the grand ideas after the work is done.",
+      "claimIds": [
+        "carol.delivery.task-focus"
+      ],
+      "context": "An ordinary request with a light edge; no specific quest machinery.",
+      "purpose": "Original editorial delivery example, not a game quote; no implied shared player history."
+    },
+    {
+      "id": "panzer-comfort",
+      "text": "I remember that panzer heat. My backside would prefer we changed the subject.",
+      "claimIds": [
+        "carol.history.panzer-discomfort"
+      ],
+      "context": "Asked about panzers; a brief concrete recollection.",
+      "purpose": "Original editorial delivery example, not a game quote; no implied shared player history."
+    }
+  ],
+  "exclusions": [
+    "No V meetings, shared adventures, rescues, romance, player choices, ending participation or current-save leadership/deaths from static authoring.",
+    "Sampled late scenes support only explicitly scoped delivery/craft inferences; their particular events remain unqualified.",
+    "Original samples are short, speaker-prefix-free editorial examples, not copied dialogue."
+  ],
+  "attributionRevision": 3,
+  "reviewSummary": {
+    "publicClaims": 11,
+    "privateClaims": 1,
+    "conditionalClaims": 0,
+    "samples": 6,
+    "references": 515,
+    "sources": 11,
+    "currentSaveQualified": false,
+    "adopted": false,
+    "cloudWrites": false,
+    "memorySeeding": false,
+    "speechJoins": 14,
+    "shippedSubtitleSources": 5,
+    "sameIdShippedSubtitleAgreement": true
+  }
+}

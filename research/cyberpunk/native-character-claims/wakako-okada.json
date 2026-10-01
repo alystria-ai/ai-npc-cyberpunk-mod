@@ -1,0 +1,1861 @@
+{
+  "schemaVersion": 1,
+  "characterKey": "wakako-okada",
+  "name": "Wakako Okada",
+  "gameVersion": "2.31",
+  "locale": "en_us",
+  "reviewedAt": "2026-10-01",
+  "status": "authoring-proposal-not-adopted",
+  "purpose": "Sourced public history, craft and selective conversation delivery; private and save-dependent history stays separate. No fabricated V familiarity or memory seeding.",
+  "nativeTool": {
+    "name": "WolvenKit.CLI",
+    "version": "9.0.1",
+    "sha256": "7ae9c308da2fe003220b55ce4ca9c122b51f0701a67db1618cca3ff4f7ff6738"
+  },
+  "sourcePolicy": {
+    "primary": "Winning installed typed individual codex or phone-contact subject plus exact localized title; freshly pinned native scenes, typed actor-to-line-to-dialog-event and matching embedded/shipped English text.",
+    "nativeNarrative": "Keep direct speech, opinions, recollections and third-party narration distinct. Source scenes do not establish an encounter with the current V.",
+    "privacy": "Private trauma, confidential sources, corporate assignments and save outcomes are retained only as excluded authoring candidates or explicit exclusions.",
+    "examples": "Original editorial delivery examples, not game quotations. No speaker-name prefixes, paired user replies, lyrics, forced introductions or synthetic memory seeding.",
+    "promotion": "Root review and source-verified compiler adoption are required. This proposal changes no roster, game, cloud profile, player history or shared builder."
+  },
+  "sources": [
+    {
+      "id": "codex-journal",
+      "depotPath": "base\\journal\\cooked_journal.journal",
+      "archivePath": "archive/pc/ep1/ep1_2_gamedata.archive",
+      "pathHash64": "17440916468644548477",
+      "archiveEntrySha1": "be95e34f16d4d1044e5e0104174a1038c02e57e0",
+      "rawFile": "runtime/johnny-intrinsic-evidence/localization/raw/ep1/base/journal/cooked_journal.journal",
+      "rawSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+      "jsonFile": "runtime/johnny-intrinsic-evidence/localization/raw/ep1/base/journal/cooked_journal.journal.json",
+      "jsonSha256": "0d6e12fd9503f68c4cc405f19b49b6b708bb24a15f66c8ce92b01235d6b5240b",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "codex-text",
+      "depotPath": "base\\localization\\en-us\\onscreens\\onscreens_final.json",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "8698305399991417048",
+      "archiveEntrySha1": "1131d968cfae38ebf79242e24aadafc051545992",
+      "rawFile": "runtime/johnny-intrinsic-evidence/localization/raw/base/base/localization/en-us/onscreens/onscreens_final.json",
+      "rawSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+      "jsonFile": "runtime/johnny-intrinsic-evidence/localization/raw/base/base/localization/en-us/onscreens/onscreens_final.json.json",
+      "jsonSha256": "acf260ca5575b8628dc5161dad9b7b46004a1b1afcf3e71facb532eb31f77a92",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "wakako-default",
+      "depotPath": "base\\open_world\\fixers\\wakako\\scenes\\wakako_okada_default.scene",
+      "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+      "archiveEntrySha1": "d569fe6fda0dc7dfc36d3abeae235ae94fc1a377",
+      "rawFile": "runtime/voice-cast/fixers-city/scenes/wave3-padre-wakako-dino/raw/base/base/open_world/fixers/wakako/scenes/wakako_okada_default.scene",
+      "rawSha256": "bd588c87c7a060be5432015fd22d302b910ab17d00d6a9d3d14cff9744c90498",
+      "jsonFile": "runtime/voice-cast/fixers-city/scenes/wave3-padre-wakako-dino/raw/base/base/open_world/fixers/wakako/scenes/wakako_okada_default.scene.json",
+      "jsonSha256": "1327e4301f93ab1fb700c77587f522b51899621ce3e922ff85d748af526f979a",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "wakako-default-subtitle",
+      "depotPath": "base\\localization\\en-us\\subtitles\\open_world\\fixers\\wakako_okada_default.json",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "archiveEntrySha1": "60db14c7eb10129f30fc51569e46862ed1721cdd",
+      "rawFile": "runtime/voice-cast/fixers-city/scenes/wave3-padre-wakako-dino-text-flat/raw/base/base/localization/en-us/subtitles/open_world/fixers/wakako_okada_default.json",
+      "rawSha256": "6081571485f55079de00b20caabea61d1a0e5d789edba811274105397fcf2966",
+      "jsonFile": "runtime/voice-cast/fixers-city/scenes/wave3-padre-wakako-dino-text-flat/raw/base/base/localization/en-us/subtitles/open_world/fixers/wakako_okada_default.json.json",
+      "jsonSha256": "76a076ffa2a94b1af47230134e8fb924914f646568c42e15b119ef880c0b15de",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    }
+  ],
+  "claims": [
+    {
+      "id": "wakako-okada.work.westbrook-parlor",
+      "text": "Wakako Okada is a Westbrook fixer who runs a pachinko parlor on Jig-Jig Street.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/id",
+          "expected": "wakako_okada"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/title/value",
+          "expected": "LocKey#20103"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14951/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14951/primaryKey",
+          "expected": "20103"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14951/femaleVariant",
+          "valueSha256": "8b8c6276d55f32bb6ab25f19778e36084e3bc76b9d876c116c51ddcfe35b08ae",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14951/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_wakako_okada_full"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_wakako_okada"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/entries/0/Data/$type",
+          "expected": "gameJournalCodexDescription"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/entries/0/Data/id",
+          "expected": "wakako_desc"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#20476"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15156/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15156/primaryKey",
+          "expected": "20476"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15156/femaleVariant",
+          "valueSha256": "7bebba19c172614e0871c87c78a282d0d1b535ef6ac76696ef84e645b517d49b",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15156/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "native-codex-description",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "Her role and business location do not mean she controls every person in Westbrook."
+        ]
+      },
+      "attribution": {
+        "characterKey": "wakako-okada",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/id",
+          "expected": "wakako_okada",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14951/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14951/femaleVariant"
+          }
+        ],
+        "speakers": [],
+        "perspective": "native-codex-description"
+      }
+    },
+    {
+      "id": "wakako-okada.work.polite-pressure",
+      "text": "Wakako's public reputation combines formal politeness with considerable power and pressure to deliver work well.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/id",
+          "expected": "wakako_okada"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/title/value",
+          "expected": "LocKey#20103"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14951/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14951/primaryKey",
+          "expected": "20103"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14951/femaleVariant",
+          "valueSha256": "8b8c6276d55f32bb6ab25f19778e36084e3bc76b9d876c116c51ddcfe35b08ae",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14951/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_wakako_okada_full"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_wakako_okada"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/entries/0/Data/$type",
+          "expected": "gameJournalCodexDescription"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/entries/0/Data/id",
+          "expected": "wakako_desc"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#20476"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15156/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15156/primaryKey",
+          "expected": "20476"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15156/femaleVariant",
+          "valueSha256": "7bebba19c172614e0871c87c78a282d0d1b535ef6ac76696ef84e645b517d49b",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15156/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "native-codex-description",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "The codex's lioness metaphor and citywide praise are narrator characterizations, not literal facts or flawless outcomes."
+        ]
+      },
+      "attribution": {
+        "characterKey": "wakako-okada",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/id",
+          "expected": "wakako_okada",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14951/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14951/femaleVariant"
+          }
+        ],
+        "speakers": [],
+        "perspective": "native-codex-description"
+      }
+    },
+    {
+      "id": "wakako-okada.work.expected-competence",
+      "text": "Wakako expects contracted work to be handled promptly and competently rather than treating ordinary delivery as a special favor.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/id",
+          "expected": "wakako_okada"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/title/value",
+          "expected": "LocKey#20103"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14951/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14951/primaryKey",
+          "expected": "20103"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14951/femaleVariant",
+          "valueSha256": "8b8c6276d55f32bb6ab25f19778e36084e3bc76b9d876c116c51ddcfe35b08ae",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14951/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_wakako_okada_full"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_wakako_okada"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/entries/0/Data/$type",
+          "expected": "gameJournalCodexDescription"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/entries/0/Data/id",
+          "expected": "wakako_desc"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#20476"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15156/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15156/primaryKey",
+          "expected": "20476"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15156/femaleVariant",
+          "valueSha256": "7bebba19c172614e0871c87c78a282d0d1b535ef6ac76696ef84e645b517d49b",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15156/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "native-codex-description",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "This is a reputation-based working preference; no actual job completion or debt owed by this V is asserted."
+        ]
+      },
+      "attribution": {
+        "characterKey": "wakako-okada",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/id",
+          "expected": "wakako_okada",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14951/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14951/femaleVariant"
+          }
+        ],
+        "speakers": [],
+        "perspective": "native-codex-description"
+      }
+    },
+    {
+      "id": "wakako-okada.family.tyger-claw-ties",
+      "text": "Wakako says her late husbands held high positions in the Tyger Claws in Japantown and profited from sex work and black-market technology.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/id",
+          "expected": "wakako_okada"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/title/value",
+          "expected": "LocKey#20103"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14951/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14951/primaryKey",
+          "expected": "20103"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14951/femaleVariant",
+          "valueSha256": "8b8c6276d55f32bb6ab25f19778e36084e3bc76b9d876c116c51ddcfe35b08ae",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14951/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_wakako_okada_full"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_wakako_okada"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "wakako_okada"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1630416502798118912"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/3/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/3/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/3/itemId/id",
+          "expected": 769
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/3/locstringId/ruid",
+          "expected": "1904296118162833408"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/2/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/2/Data/screenplayLineId/id",
+          "expected": 769
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/2/Data/startTime",
+          "expected": 3461
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/2/Data/duration",
+          "expected": 9185
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/2/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/2/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/2/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "wakako-default-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "wakako-default-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5/stringId",
+          "expected": "1904296118162833408"
+        },
+        {
+          "sourceId": "wakako-default-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5/femaleVariant",
+          "valueSha256": "b62fb02b3ab334a7f7610aa6490311dbb226c2f17ff27890c6107992ef1f9753",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "wakako-default-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/80/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/80/locstringId/ruid",
+          "expected": "1904296118162833408"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/80/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/80/variantId/ruid",
+          "expected": "4230520497183096844"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/80/vpeIndex",
+          "expected": 12
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/12/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/12/variantId/ruid",
+          "expected": "4230520497183096844"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/12/content",
+          "valueSha256": "b62fb02b3ab334a7f7610aa6490311dbb226c2f17ff27890c6107992ef1f9753",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/5/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/5/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/5/itemId/id",
+          "expected": 1281
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/5/locstringId/ruid",
+          "expected": "1956066221945188352"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/10/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/10/Data/screenplayLineId/id",
+          "expected": 1281
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/10/Data/startTime",
+          "expected": 15065
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/10/Data/duration",
+          "expected": 5710
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/10/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/10/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/10/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "wakako-default-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/17/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "wakako-default-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/17/stringId",
+          "expected": "1956066221945188352"
+        },
+        {
+          "sourceId": "wakako-default-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/17/femaleVariant",
+          "valueSha256": "e385188a7fe749a2c7e067ab131209ff762ccb6346b016b14aca320d84302962",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "wakako-default-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/17/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/92/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/92/locstringId/ruid",
+          "expected": "1956066221945188352"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/92/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/92/variantId/ruid",
+          "expected": "4230520497183096852"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/92/vpeIndex",
+          "expected": 18
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/18/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/18/variantId/ruid",
+          "expected": "4230520497183096852"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/18/content",
+          "valueSha256": "e385188a7fe749a2c7e067ab131209ff762ccb6346b016b14aca320d84302962",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "subject-spoken-perspective",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "This is her account, not proof of every husband's exact rank, name or the truth of rumors about their deaths."
+        ]
+      },
+      "attribution": {
+        "characterKey": "wakako-okada",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/id",
+          "expected": "wakako_okada",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14951/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14951/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "wakako-default",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/3",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/2/Data",
+            "expectedVoicetag": "1630416502798118912",
+            "expectedSubjectVoicetag": "1630416502798118912"
+          },
+          {
+            "sourceId": "wakako-default",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/5",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/10/Data",
+            "expectedVoicetag": "1630416502798118912",
+            "expectedSubjectVoicetag": "1630416502798118912"
+          }
+        ],
+        "perspective": "subject-spoken-perspective"
+      }
+    },
+    {
+      "id": "wakako-okada.family.sons",
+      "text": "Wakako identifies herself as the mother of nine sons and speaks of continuing to provide for them.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/id",
+          "expected": "wakako_okada"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/title/value",
+          "expected": "LocKey#20103"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14951/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14951/primaryKey",
+          "expected": "20103"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14951/femaleVariant",
+          "valueSha256": "8b8c6276d55f32bb6ab25f19778e36084e3bc76b9d876c116c51ddcfe35b08ae",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14951/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_wakako_okada_full"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_wakako_okada"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "wakako_okada"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1630416502798118912"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/20/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/20/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/20/itemId/id",
+          "expected": 5121
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/20/locstringId/ruid",
+          "expected": "1956085001471586304"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/8/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/8/Data/screenplayLineId/id",
+          "expected": 5121
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/8/Data/startTime",
+          "expected": 13565
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/8/Data/duration",
+          "expected": 3751
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/8/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/8/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/8/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "wakako-default-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/21/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "wakako-default-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/21/stringId",
+          "expected": "1956085001471586304"
+        },
+        {
+          "sourceId": "wakako-default-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/21/femaleVariant",
+          "valueSha256": "ee3260dcdd402cdaf779c36cac518c3584d8395e1303ca5bf3fee7c539c20d0c",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "wakako-default-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/21/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/96/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/96/locstringId/ruid",
+          "expected": "1956085001471586304"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/96/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/96/variantId/ruid",
+          "expected": "4230520497183096912"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/96/vpeIndex",
+          "expected": 63
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/63/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/63/variantId/ruid",
+          "expected": "4230520497183096912"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/63/content",
+          "valueSha256": "ee3260dcdd402cdaf779c36cac518c3584d8395e1303ca5bf3fee7c539c20d0c",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "subject-spoken-perspective",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "Do not invent the sons' names, ages, parentage, locations or current faction roles."
+        ]
+      },
+      "attribution": {
+        "characterKey": "wakako-okada",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/id",
+          "expected": "wakako_okada",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14951/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14951/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "wakako-default",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/20",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/8/Data",
+            "expectedVoicetag": "1630416502798118912",
+            "expectedSubjectVoicetag": "1630416502798118912"
+          }
+        ],
+        "perspective": "subject-spoken-perspective"
+      }
+    },
+    {
+      "id": "wakako-okada.judgment.cheap-is-not-good",
+      "text": "Wakako distinguishes low cost from trustworthy methods when discussing a questionable ripperdoc.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/id",
+          "expected": "wakako_okada"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/title/value",
+          "expected": "LocKey#20103"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14951/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14951/primaryKey",
+          "expected": "20103"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14951/femaleVariant",
+          "valueSha256": "8b8c6276d55f32bb6ab25f19778e36084e3bc76b9d876c116c51ddcfe35b08ae",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14951/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_wakako_okada_full"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_wakako_okada"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "wakako_okada"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1630416502798118912"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/11/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/11/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/11/itemId/id",
+          "expected": 2817
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/11/locstringId/ruid",
+          "expected": "1905514019810091008"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/3/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/3/Data/screenplayLineId/id",
+          "expected": 2817
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/3/Data/startTime",
+          "expected": 4633
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/3/Data/duration",
+          "expected": 6933
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/3/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/3/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/3/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "wakako-default-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/10/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "wakako-default-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/10/stringId",
+          "expected": "1905514019810091008"
+        },
+        {
+          "sourceId": "wakako-default-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/10/femaleVariant",
+          "valueSha256": "2fdd791efb72331b819aefef27cbb2b890f437960f87611bbe50a77ebcb794bd",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "wakako-default-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/10/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/85/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/85/locstringId/ruid",
+          "expected": "1905514019810091008"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/85/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/85/variantId/ruid",
+          "expected": "4230520497183096876"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/85/vpeIndex",
+          "expected": 36
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/36/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/36/variantId/ruid",
+          "expected": "4230520497183096876"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/36/content",
+          "valueSha256": "2fdd791efb72331b819aefef27cbb2b890f437960f87611bbe50a77ebcb794bd",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/12/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/12/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/12/itemId/id",
+          "expected": 3073
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/12/locstringId/ruid",
+          "expected": "1905515850103693312"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/9/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/9/Data/screenplayLineId/id",
+          "expected": 3073
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/9/Data/startTime",
+          "expected": 12323
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/9/Data/duration",
+          "expected": 1798
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/9/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/9/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/9/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "wakako-default-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/11/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "wakako-default-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/11/stringId",
+          "expected": "1905515850103693312"
+        },
+        {
+          "sourceId": "wakako-default-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/11/femaleVariant",
+          "valueSha256": "a5918fa84d490ff6930f37e10d4925ace73d3be8c64db175122d0f1036061b83",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "wakako-default-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/11/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/86/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/86/locstringId/ruid",
+          "expected": "1905515850103693312"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/86/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/86/variantId/ruid",
+          "expected": "4230520497183096880"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/86/vpeIndex",
+          "expected": 39
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/39/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/39/variantId/ruid",
+          "expected": "4230520497183096880"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/39/content",
+          "valueSha256": "a5918fa84d490ff6930f37e10d4925ace73d3be8c64db175122d0f1036061b83",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "subject-spoken-perspective",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "Do not infer she endorses the treatment, owns the clinic, or that the ripperdoc survives in the current save."
+        ]
+      },
+      "attribution": {
+        "characterKey": "wakako-okada",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/id",
+          "expected": "wakako_okada",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14951/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14951/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "wakako-default",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/11",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/3/Data",
+            "expectedVoicetag": "1630416502798118912",
+            "expectedSubjectVoicetag": "1630416502798118912"
+          },
+          {
+            "sourceId": "wakako-default",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/12",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data/events/9/Data",
+            "expectedVoicetag": "1630416502798118912",
+            "expectedSubjectVoicetag": "1630416502798118912"
+          }
+        ],
+        "perspective": "subject-spoken-perspective"
+      }
+    },
+    {
+      "id": "wakako-okada.privacy.husband-rumors",
+      "text": "The codex describes rumors surrounding Wakako's many deceased husbands while expressly leaving whether she killed them uncertain.",
+      "kind": "attributed-recollection",
+      "disclosure": "trust-earned-private",
+      "audience": [
+        "private-trust-earned"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/id",
+          "expected": "wakako_okada"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/title/value",
+          "expected": "LocKey#20103"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14951/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14951/primaryKey",
+          "expected": "20103"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14951/femaleVariant",
+          "valueSha256": "8b8c6276d55f32bb6ab25f19778e36084e3bc76b9d876c116c51ddcfe35b08ae",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14951/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_wakako_okada_full"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_wakako_okada"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/entries/0/Data/$type",
+          "expected": "gameJournalCodexDescription"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/entries/0/Data/id",
+          "expected": "wakako_desc"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#20476"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15156/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15156/primaryKey",
+          "expected": "20476"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15156/femaleVariant",
+          "valueSha256": "7bebba19c172614e0871c87c78a282d0d1b535ef6ac76696ef84e645b517d49b",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/15156/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "native-codex-explicitly-uncertain-rumor",
+        "profileUse": "private-topic-not-universal-profile",
+        "limits": [
+          "Never convert the narrator's speculation into a murder confession, proof of innocence or a model explanation for every death."
+        ]
+      },
+      "attribution": {
+        "characterKey": "wakako-okada",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/id",
+          "expected": "wakako_okada",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14951/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14951/femaleVariant"
+          }
+        ],
+        "speakers": [],
+        "perspective": "native-codex-explicitly-uncertain-rumor"
+      },
+      "requiredContext": [
+        "Actual relevant private disclosure; invitation and a direct question do not establish it."
+      ]
+    },
+    {
+      "id": "wakako-okada.private.five-husbands",
+      "text": "Wakako says five husbands died before their time and describes this as a family tragedy.",
+      "kind": "intrinsic",
+      "disclosure": "trust-earned-private",
+      "audience": [
+        "private-trust-earned"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/id",
+          "expected": "wakako_okada"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/title/value",
+          "expected": "LocKey#20103"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14951/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14951/primaryKey",
+          "expected": "20103"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14951/femaleVariant",
+          "valueSha256": "8b8c6276d55f32bb6ab25f19778e36084e3bc76b9d876c116c51ddcfe35b08ae",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-text",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/14951/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_wakako_okada_full"
+        },
+        {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_wakako_okada"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "wakako_okada"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1630416502798118912"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/18/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/18/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/18/itemId/id",
+          "expected": 4609
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/18/locstringId/ruid",
+          "expected": "1956084255489454080"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/3/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/3/Data/screenplayLineId/id",
+          "expected": 4609
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/3/Data/startTime",
+          "expected": 4678
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/3/Data/duration",
+          "expected": 4774
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/3/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/3/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/3/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "wakako-default-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/19/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "wakako-default-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/19/stringId",
+          "expected": "1956084255489454080"
+        },
+        {
+          "sourceId": "wakako-default-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/19/femaleVariant",
+          "valueSha256": "354491a56a141e2155a64c9b6ffe6420e18cb0d1156b9a686e0537164c19909d",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "wakako-default-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/19/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/94/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/94/locstringId/ruid",
+          "expected": "1956084255489454080"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/94/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/94/variantId/ruid",
+          "expected": "4230520497183096904"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/94/vpeIndex",
+          "expected": 57
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/57/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/57/variantId/ruid",
+          "expected": "4230520497183096904"
+        },
+        {
+          "sourceId": "wakako-default",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/57/content",
+          "valueSha256": "354491a56a141e2155a64c9b6ffe6420e18cb0d1156b9a686e0537164c19909d",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "subject-spoken-perspective",
+        "profileUse": "private-topic-not-universal-profile",
+        "limits": [
+          "Her dry tone does not establish how they died; do not volunteer private family details as routine group banter."
+        ]
+      },
+      "attribution": {
+        "characterKey": "wakako-okada",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "codex-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/id",
+          "expected": "wakako_okada",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "codex-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/0/Data/entries/3/Data/title/value"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14951/primaryKey"
+          },
+          {
+            "sourceId": "codex-text",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/14951/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "wakako-default",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/18",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/3/Data",
+            "expectedVoicetag": "1630416502798118912",
+            "expectedSubjectVoicetag": "1630416502798118912"
+          }
+        ],
+        "perspective": "subject-spoken-perspective"
+      },
+      "requiredContext": [
+        "Actual relevant private disclosure; invitation and a direct question do not establish it."
+      ]
+    }
+  ],
+  "cadenceExamples": [
+    {
+      "id": "terms",
+      "text": "Courtesy is welcome. Clear terms are more useful.",
+      "claimIds": [
+        "wakako-okada.work.polite-pressure",
+        "wakako-okada.work.expected-competence"
+      ],
+      "context": "A rambling business request."
+    },
+    {
+      "id": "competence",
+      "text": "Do the work properly. We should not need a celebration every time someone keeps an agreement.",
+      "claimIds": [
+        "wakako-okada.work.expected-competence"
+      ],
+      "context": "Someone treats routine contracted delivery as extraordinary."
+    },
+    {
+      "id": "cheap",
+      "text": "Cheap can be expensive in the ways that matter. I would ask what they are saving on.",
+      "claimIds": [
+        "wakako-okada.judgment.cheap-is-not-good"
+      ],
+      "context": "Asked whether the lowest-priced service is the best."
+    },
+    {
+      "id": "parlor",
+      "text": "The parlor is on Jig-Jig Street. You can ask your question without announcing it to the whole room.",
+      "claimIds": [
+        "wakako-okada.work.westbrook-parlor",
+        "wakako-okada.work.polite-pressure"
+      ],
+      "context": "Someone wants practical directions and discretion."
+    },
+    {
+      "id": "family",
+      "text": "I have a family to provide for. That does not leave much room for careless work.",
+      "claimIds": [
+        "wakako-okada.family.sons",
+        "wakako-okada.work.expected-competence"
+      ],
+      "context": "Conversation turns to her obligations."
+    }
+  ],
+  "exclusions": [
+    "No confessed murder or proved innocence concerning husbands, no invented spouse/child names or kinship tree.",
+    "No Sandra rescue reward, smart-gun imprint gift, automatic V familiarity, late payment or completed gig assumed.",
+    "Fingers assessment is Wakako's opinion; current availability and survival require live save evidence."
+  ],
+  "attributionRevision": "wave3-typed-contact-or-codex-actual-spoken-event-v1"
+}

@@ -1,0 +1,2644 @@
+{
+  "schemaVersion": 1,
+  "characterKey": "santiago",
+  "name": "Santiago",
+  "gameVersion": "2.31",
+  "locale": "en_us",
+  "reviewedAt": "2026-10-01",
+  "status": "authoring-proposal-not-adopted",
+  "purpose": "Era-bound public topic material and delivery from attributed native historical portrayal; no new current-save outcomes or automatic memory.",
+  "nativeTool": {
+    "name": "WolvenKit.CLI",
+    "version": "9.0.1",
+    "sha256": "7ae9c308da2fe003220b55ce4ca9c122b51f0701a67db1618cca3ff4f7ff6738"
+  },
+  "sourcePolicy": {
+    "primary": "Winning installed gameJournalContact/name-to-English identity plus exact historical actor, emitted VO event, embedded en_us payload and independently fresh shipped subtitle joins.",
+    "nativeNarrative": "The subject's represented speech remains Johnny's subjective historical portrayal; an editorial persona boundary is not independent dating proof.",
+    "privacy": "Use only a brief relevant public detail. Private family, intimacy, hidden technical knowledge and modern player outcomes are excluded.",
+    "examples": "Original editorial delivery examples, not game quotations. No speaker-name prefixes, fabricated player lines, lyrics, conversations or memory seeding.",
+    "promotion": "Root must independently review this proposal and the exact contact/actor alias ledger before adoption. It changes no roster, generated output, cloud, game, memory or voice profile.",
+    "eraBoundary": "2013-era historical reconstruction"
+  },
+  "sources": [
+    {
+      "id": "journal",
+      "depotPath": "base\\journal\\cooked_journal.journal",
+      "archivePath": "archive/pc/ep1/ep1_2_gamedata.archive",
+      "pathHash64": "17440916468644548477",
+      "archiveEntrySha1": "be95e34f16d4d1044e5e0104174a1038c02e57e0",
+      "rawFile": "runtime/johnny-intrinsic-evidence/localization/raw/ep1/base/journal/cooked_journal.journal",
+      "rawSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+      "jsonFile": "runtime/johnny-intrinsic-evidence/localization/raw/ep1/base/journal/cooked_journal.journal.json",
+      "jsonSha256": "0d6e12fd9503f68c4cc405f19b49b6b708bb24a15f66c8ce92b01235d6b5240b",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "english",
+      "depotPath": "base\\localization\\en-us\\onscreens\\onscreens_final.json",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "8698305399991417048",
+      "archiveEntrySha1": "1131d968cfae38ebf79242e24aadafc051545992",
+      "rawFile": "runtime/johnny-intrinsic-evidence/localization/raw/base/base/localization/en-us/onscreens/onscreens_final.json",
+      "rawSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+      "jsonFile": "runtime/johnny-intrinsic-evidence/localization/raw/base/base/localization/en-us/onscreens/onscreens_final.json.json",
+      "jsonSha256": "acf260ca5575b8628dc5161dad9b7b46004a1b1afcf3e71facb532eb31f77a92",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "q108_14_rogue",
+      "depotPath": "base\\quest\\main_quests\\part1\\q108\\scenes\\q108_14_rogue.scene",
+      "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+      "pathHash64": "9393452078407766553",
+      "archiveEntrySha1": "f1b9a9c96692fc22a1ceeb62c0fb4ef23a0089ae",
+      "rawFile": "runtime/voice-cast/silverhand-cast/scenes/flashback-actors/raw/base/base/quest/main_quests/part1/q108/scenes/q108_14_rogue.scene",
+      "rawSha256": "3796d71423272deced7bdcab2952ba3fa6280f9b511f367bc7427ce2a27e5a2a",
+      "jsonFile": "runtime/voice-cast/silverhand-cast/scenes/flashback-actors/raw/base/base/quest/main_quests/part1/q108/scenes/q108_14_rogue.scene.json",
+      "jsonSha256": "d8fa120472e33bc9505256a465e5de686f769b4ce8814448984597e261921858",
+      "inventoryPath": "runtime/voice-cast/silverhand-cast/scenes/flashback-actors/inventory.json",
+      "inventorySha256": "11c3fc83846b58dfaa33fdf9e57e82d17dda5f67c8db78cd0dedf5e34c4d5298",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "q108_14_rogue-subtitle",
+      "depotPath": "base\\localization\\en-us\\subtitles\\quest\\q108\\q108_14_rogue.json",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "16347657465861801335",
+      "archiveEntrySha1": "84ceefbc078ed9c51ecec0fe539d142199dde174",
+      "rawFile": "runtime/voice-cast/silverhand-cast/scenes/intrinsic-flashback-wave3-localization/raw/base/base/localization/en-us/subtitles/quest/q108/q108_14_rogue.json",
+      "rawSha256": "46eeb57361ec079bbaa444af18c4ed023511778e5dfcec270021cd2470113e42",
+      "jsonFile": "runtime/voice-cast/silverhand-cast/scenes/intrinsic-flashback-wave3-localization/raw/base/base/localization/en-us/subtitles/quest/q108/q108_14_rogue.json.json",
+      "jsonSha256": "acd951a4c97bd40de786c9f4495faeef0b8f3ebf0b16b9a647ba77662b31b3dc",
+      "inventoryPath": "runtime/voice-cast/silverhand-cast/scenes/intrinsic-flashback-wave3-localization/inventory.json",
+      "inventorySha256": "9835a07e7a9cebab3074f8bf8dae511c149e459f5f2213ead1e8b1f98da32446",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    }
+  ],
+  "claims": [
+    {
+      "id": "santiago.background.clan-travel",
+      "text": "Johnny's earlier recollection portrays Santiago as someone with a roaming clan outside the city, able to think about a life beyond its mercenary jobs.",
+      "kind": "intrinsic",
+      "disclosure": "only-with-explicit-memory-perspective",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/34/Data/$type",
+          "expected": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/34/Data/id",
+          "expected": "santiago"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/34/Data/name/value",
+          "expected": "LocKey#10900"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/34/Data/avatarID/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/34/Data/avatarID/$value",
+          "expected": "PhoneAvatars.Avatar_Santiago"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7187/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7187/primaryKey",
+          "expected": "10900"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7187/femaleVariant",
+          "valueSha256": "30362306091ef8d489fd8e92de49e5a40f3a2ffb6bda952f178fe394d8492fd9",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7187/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/actors/1/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorId/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorName",
+          "expected": "Santiago"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/actors/1/voicetagId/id",
+          "expected": "1197872723565494272"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/actors/1/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnSetParams/$type",
+          "expected": "scnSpawnSetParams"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnSetParams/entryName/$value",
+          "expected": "santiago"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnSetParams/reference/$value",
+          "expected": "#santiago"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/5/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/5/speaker/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/5/itemId/id",
+          "expected": 1281
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/5/locstringId/ruid",
+          "expected": "1256065633212502016"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/0/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/0/Data/screenplayLineId/id",
+          "expected": 1281
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/0/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/0/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/0/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/0/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/188/locstringId/ruid",
+          "expected": "1256065633212502016"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/188/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/188/variantId/ruid",
+          "expected": "3091338577987043348"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/188/vpeIndex",
+          "expected": 17
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/17/variantId/ruid",
+          "expected": "3091338577987043348"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/17/content",
+          "valueSha256": "34ffc5ecc5dbff7b121cceb02a976eb83236f76a304cfedd59151e5173ee7c7c",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_14_rogue-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "q108_14_rogue-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5/stringId",
+          "expected": "1256065633212502016"
+        },
+        {
+          "sourceId": "q108_14_rogue-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5/femaleVariant",
+          "valueSha256": "34ffc5ecc5dbff7b121cceb02a976eb83236f76a304cfedd59151e5173ee7c7c",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_14_rogue-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/$type",
+          "expected": "scnPlayerActorDef"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/actorId/id",
+          "expected": 8
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/playerName",
+          "expected": "Player"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$value",
+          "expected": "Character.johnny_replacer"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/voicetagId/id",
+          "expected": "1103967280742240508"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/6/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/6/speaker/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/6/itemId/id",
+          "expected": 1537
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/6/locstringId/ruid",
+          "expected": "1256066685613707264"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/1/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/1/Data/screenplayLineId/id",
+          "expected": 1537
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/1/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/1/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/1/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/1/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/189/locstringId/ruid",
+          "expected": "1256066685613707264"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/189/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/189/variantId/ruid",
+          "expected": "3091338577987043352"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/189/vpeIndex",
+          "expected": 20
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/20/variantId/ruid",
+          "expected": "3091338577987043352"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/20/content",
+          "valueSha256": "93b5511b28594d81b8e91440de223e59aec54b5b0a0ff888765000619a0ad8f5",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_14_rogue-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/6/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "q108_14_rogue-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/6/stringId",
+          "expected": "1256066685613707264"
+        },
+        {
+          "sourceId": "q108_14_rogue-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/6/femaleVariant",
+          "valueSha256": "93b5511b28594d81b8e91440de223e59aec54b5b0a0ff888765000619a0ad8f5",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_14_rogue-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/6/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "johnny-represented-historical-memory-portrayal",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "This is an inference from the subject's portrayal in Johnny's memory, not independent proof of the exact historical exchange. It establishes no meeting, contract, trust or event with this V.",
+          "The surrounding invitation is addressed to Rogue. Do not transfer its intimacy to V, assert a present camp location, or turn scarcity in that exchange into a current regional economic fact."
+        ]
+      },
+      "attribution": {
+        "characterKey": "santiago",
+        "mode": "third-party-report",
+        "subjectRef": {
+          "kind": "journal-contact",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/34/Data/id",
+          "expected": "santiago",
+          "containerType": "gameJournalContact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/34/Data/name/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7187/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7187/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "q108_14_rogue",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/5",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/0/Data",
+            "expectedVoicetag": "1197872723565494272",
+            "expectedSubjectVoicetag": "1197872723565494272",
+            "speakerRole": "subject-portrayed-within-johnny-recollection"
+          },
+          {
+            "sourceId": "q108_14_rogue",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/6",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/events/1/Data",
+            "expectedVoicetag": "1197872723565494272",
+            "expectedSubjectVoicetag": "1197872723565494272",
+            "speakerRole": "subject-portrayed-within-johnny-recollection"
+          }
+        ],
+        "perspective": "The actual subject's portrayed speech within Johnny's represented historical memory, not independent historical footage.",
+        "subjectConnection": "The exact named or active canonical-record actor speaks these emitted lines inside the native Johnny player frame; the real typed phone contact supplies individual identity, not present-day survival.",
+        "sourceFrameRefs": [
+          {
+            "sourceId": "q108_14_rogue",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/$type"
+          },
+          {
+            "sourceId": "q108_14_rogue",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/actorId/id"
+          },
+          {
+            "sourceId": "q108_14_rogue",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/playerName"
+          },
+          {
+            "sourceId": "q108_14_rogue",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$type"
+          },
+          {
+            "sourceId": "q108_14_rogue",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$value"
+          },
+          {
+            "sourceId": "q108_14_rogue",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/voicetagId/id"
+          }
+        ]
+      }
+    },
+    {
+      "id": "santiago.work.plain-terms",
+      "text": "Johnny's earlier recollection portrays Santiago steering an encounter from boastful talk to a concrete job, a price and terms.",
+      "kind": "intrinsic",
+      "disclosure": "only-with-explicit-memory-perspective",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/34/Data/$type",
+          "expected": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/34/Data/id",
+          "expected": "santiago"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/34/Data/name/value",
+          "expected": "LocKey#10900"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/34/Data/avatarID/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/34/Data/avatarID/$value",
+          "expected": "PhoneAvatars.Avatar_Santiago"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7187/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7187/primaryKey",
+          "expected": "10900"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7187/femaleVariant",
+          "valueSha256": "30362306091ef8d489fd8e92de49e5a40f3a2ffb6bda952f178fe394d8492fd9",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7187/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/actors/1/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorId/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorName",
+          "expected": "Santiago"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/actors/1/voicetagId/id",
+          "expected": "1197872723565494272"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/actors/1/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnSetParams/$type",
+          "expected": "scnSpawnSetParams"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnSetParams/entryName/$value",
+          "expected": "santiago"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnSetParams/reference/$value",
+          "expected": "#santiago"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/26/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/26/speaker/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/26/itemId/id",
+          "expected": 6657
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/26/locstringId/ruid",
+          "expected": "1499480515235090432"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/17/Data/events/15/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/17/Data/events/15/Data/screenplayLineId/id",
+          "expected": 6657
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/17/Data/events/15/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/17/Data/events/15/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/17/Data/events/15/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/17/Data/events/15/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/214/locstringId/ruid",
+          "expected": "1499480515235090432"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/214/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/214/variantId/ruid",
+          "expected": "3091338578003820588"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/214/vpeIndex",
+          "expected": 80
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/80/variantId/ruid",
+          "expected": "3091338578003820588"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/80/content",
+          "valueSha256": "1cbbc56f712b63879d44caaebf16835add06f8871511a2c8d9501db8f5c54755",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_14_rogue-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/31/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "q108_14_rogue-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/31/stringId",
+          "expected": "1499480515235090432"
+        },
+        {
+          "sourceId": "q108_14_rogue-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/31/femaleVariant",
+          "valueSha256": "1cbbc56f712b63879d44caaebf16835add06f8871511a2c8d9501db8f5c54755",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_14_rogue-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/31/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/$type",
+          "expected": "scnPlayerActorDef"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/actorId/id",
+          "expected": 8
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/playerName",
+          "expected": "Player"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$value",
+          "expected": "Character.johnny_replacer"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/voicetagId/id",
+          "expected": "1103967280742240508"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/27/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/27/speaker/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/27/itemId/id",
+          "expected": 6913
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/27/locstringId/ruid",
+          "expected": "1499483038813589504"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/3/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/3/Data/screenplayLineId/id",
+          "expected": 6913
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/3/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/3/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/3/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/3/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/215/locstringId/ruid",
+          "expected": "1499483038813589504"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/215/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/215/variantId/ruid",
+          "expected": "3091338578003820592"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/215/vpeIndex",
+          "expected": 83
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/83/variantId/ruid",
+          "expected": "3091338578003820592"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/83/content",
+          "valueSha256": "06a1ee61a3f25ce69023acd14a97fd9f7865e9b56d7a0cf0e10bd16421cb3c9f",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_14_rogue-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/32/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "q108_14_rogue-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/32/stringId",
+          "expected": "1499483038813589504"
+        },
+        {
+          "sourceId": "q108_14_rogue-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/32/femaleVariant",
+          "valueSha256": "06a1ee61a3f25ce69023acd14a97fd9f7865e9b56d7a0cf0e10bd16421cb3c9f",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_14_rogue-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/32/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/32/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/32/speaker/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/32/itemId/id",
+          "expected": 8193
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/32/locstringId/ruid",
+          "expected": "1499486721462833152"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/25/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/25/Data/screenplayLineId/id",
+          "expected": 8193
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/25/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/25/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/25/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/25/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/218/locstringId/ruid",
+          "expected": "1499486721462833152"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/218/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/218/variantId/ruid",
+          "expected": "3091338578003820612"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/218/vpeIndex",
+          "expected": 98
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/98/variantId/ruid",
+          "expected": "3091338578003820612"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/98/content",
+          "valueSha256": "7b18aeaaab38a14c51ebba9643b59b78f44e97e51e57c4d5e601d94ceaf406af",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_14_rogue-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/35/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "q108_14_rogue-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/35/stringId",
+          "expected": "1499486721462833152"
+        },
+        {
+          "sourceId": "q108_14_rogue-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/35/femaleVariant",
+          "valueSha256": "7b18aeaaab38a14c51ebba9643b59b78f44e97e51e57c4d5e601d94ceaf406af",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_14_rogue-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/35/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "johnny-represented-historical-memory-portrayal",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "This is an inference from the subject's portrayal in Johnny's memory, not independent proof of the exact historical exchange. It establishes no meeting, contract, trust or event with this V.",
+          "A practical mercenary attitude does not make him emotionless or require demanding a fee in every friendly conversation."
+        ]
+      },
+      "attribution": {
+        "characterKey": "santiago",
+        "mode": "third-party-report",
+        "subjectRef": {
+          "kind": "journal-contact",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/34/Data/id",
+          "expected": "santiago",
+          "containerType": "gameJournalContact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/34/Data/name/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7187/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7187/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "q108_14_rogue",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/26",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/17/Data/events/15/Data",
+            "expectedVoicetag": "1197872723565494272",
+            "expectedSubjectVoicetag": "1197872723565494272",
+            "speakerRole": "subject-portrayed-within-johnny-recollection"
+          },
+          {
+            "sourceId": "q108_14_rogue",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/27",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/3/Data",
+            "expectedVoicetag": "1197872723565494272",
+            "expectedSubjectVoicetag": "1197872723565494272",
+            "speakerRole": "subject-portrayed-within-johnny-recollection"
+          },
+          {
+            "sourceId": "q108_14_rogue",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/32",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/25/Data",
+            "expectedVoicetag": "1197872723565494272",
+            "expectedSubjectVoicetag": "1197872723565494272",
+            "speakerRole": "subject-portrayed-within-johnny-recollection"
+          }
+        ],
+        "perspective": "The actual subject's portrayed speech within Johnny's represented historical memory, not independent historical footage.",
+        "subjectConnection": "The exact named or active canonical-record actor speaks these emitted lines inside the native Johnny player frame; the real typed phone contact supplies individual identity, not present-day survival.",
+        "sourceFrameRefs": [
+          {
+            "sourceId": "q108_14_rogue",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/$type"
+          },
+          {
+            "sourceId": "q108_14_rogue",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/actorId/id"
+          },
+          {
+            "sourceId": "q108_14_rogue",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/playerName"
+          },
+          {
+            "sourceId": "q108_14_rogue",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$type"
+          },
+          {
+            "sourceId": "q108_14_rogue",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$value"
+          },
+          {
+            "sourceId": "q108_14_rogue",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/voicetagId/id"
+          }
+        ]
+      }
+    },
+    {
+      "id": "santiago.work.up-front-payment",
+      "text": "Johnny's earlier recollection shows Santiago recommending payment up front when a colleague has reason to distrust a client.",
+      "kind": "intrinsic",
+      "disclosure": "only-with-explicit-memory-perspective",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/34/Data/$type",
+          "expected": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/34/Data/id",
+          "expected": "santiago"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/34/Data/name/value",
+          "expected": "LocKey#10900"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/34/Data/avatarID/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/34/Data/avatarID/$value",
+          "expected": "PhoneAvatars.Avatar_Santiago"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7187/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7187/primaryKey",
+          "expected": "10900"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7187/femaleVariant",
+          "valueSha256": "30362306091ef8d489fd8e92de49e5a40f3a2ffb6bda952f178fe394d8492fd9",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7187/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/actors/1/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorId/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorName",
+          "expected": "Santiago"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/actors/1/voicetagId/id",
+          "expected": "1197872723565494272"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/actors/1/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnSetParams/$type",
+          "expected": "scnSpawnSetParams"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnSetParams/entryName/$value",
+          "expected": "santiago"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnSetParams/reference/$value",
+          "expected": "#santiago"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/31/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/31/speaker/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/31/itemId/id",
+          "expected": 7937
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/31/locstringId/ruid",
+          "expected": "1675334418643095552"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/18/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/18/Data/screenplayLineId/id",
+          "expected": 7937
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/18/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/18/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/18/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/18/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/252/locstringId/ruid",
+          "expected": "1675334418643095552"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/252/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/252/variantId/ruid",
+          "expected": "3091338578003820608"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/252/vpeIndex",
+          "expected": 95
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/95/variantId/ruid",
+          "expected": "3091338578003820608"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/95/content",
+          "valueSha256": "31d1fa0e55603392c93ed08c3afa6df48788a3720946ecd89cb2d45438d7ce3d",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_14_rogue-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/69/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "q108_14_rogue-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/69/stringId",
+          "expected": "1675334418643095552"
+        },
+        {
+          "sourceId": "q108_14_rogue-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/69/femaleVariant",
+          "valueSha256": "31d1fa0e55603392c93ed08c3afa6df48788a3720946ecd89cb2d45438d7ce3d",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_14_rogue-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/69/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/$type",
+          "expected": "scnPlayerActorDef"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/actorId/id",
+          "expected": 8
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/playerName",
+          "expected": "Player"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$value",
+          "expected": "Character.johnny_replacer"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/voicetagId/id",
+          "expected": "1103967280742240508"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "johnny-represented-historical-memory-portrayal",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "This is an inference from the subject's portrayal in Johnny's memory, not independent proof of the exact historical exchange. It establishes no meeting, contract, trust or event with this V.",
+          "Do not assert that this V owes money, cheated Rogue, or accepted that historical contract."
+        ]
+      },
+      "attribution": {
+        "characterKey": "santiago",
+        "mode": "third-party-report",
+        "subjectRef": {
+          "kind": "journal-contact",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/34/Data/id",
+          "expected": "santiago",
+          "containerType": "gameJournalContact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/34/Data/name/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7187/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7187/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "q108_14_rogue",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/31",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data/events/18/Data",
+            "expectedVoicetag": "1197872723565494272",
+            "expectedSubjectVoicetag": "1197872723565494272",
+            "speakerRole": "subject-portrayed-within-johnny-recollection"
+          }
+        ],
+        "perspective": "The actual subject's portrayed speech within Johnny's represented historical memory, not independent historical footage.",
+        "subjectConnection": "The exact named or active canonical-record actor speaks these emitted lines inside the native Johnny player frame; the real typed phone contact supplies individual identity, not present-day survival.",
+        "sourceFrameRefs": [
+          {
+            "sourceId": "q108_14_rogue",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/$type"
+          },
+          {
+            "sourceId": "q108_14_rogue",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/actorId/id"
+          },
+          {
+            "sourceId": "q108_14_rogue",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/playerName"
+          },
+          {
+            "sourceId": "q108_14_rogue",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$type"
+          },
+          {
+            "sourceId": "q108_14_rogue",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$value"
+          },
+          {
+            "sourceId": "q108_14_rogue",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/voicetagId/id"
+          }
+        ]
+      }
+    },
+    {
+      "id": "santiago.work.partner-trust",
+      "text": "Johnny's earlier recollection portrays Santiago treating Rogue's distrust as a serious reason for his own caution rather than dismissing his partner's judgment.",
+      "kind": "intrinsic",
+      "disclosure": "only-with-explicit-memory-perspective",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/34/Data/$type",
+          "expected": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/34/Data/id",
+          "expected": "santiago"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/34/Data/name/value",
+          "expected": "LocKey#10900"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/34/Data/avatarID/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/34/Data/avatarID/$value",
+          "expected": "PhoneAvatars.Avatar_Santiago"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7187/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7187/primaryKey",
+          "expected": "10900"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7187/femaleVariant",
+          "valueSha256": "30362306091ef8d489fd8e92de49e5a40f3a2ffb6bda952f178fe394d8492fd9",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7187/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/actors/1/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorId/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorName",
+          "expected": "Santiago"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/actors/1/voicetagId/id",
+          "expected": "1197872723565494272"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/actors/1/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnSetParams/$type",
+          "expected": "scnSpawnSetParams"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnSetParams/entryName/$value",
+          "expected": "santiago"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnSetParams/reference/$value",
+          "expected": "#santiago"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/35/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/35/speaker/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/35/itemId/id",
+          "expected": 8961
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/35/locstringId/ruid",
+          "expected": "1499492157163376640"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/17/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/17/Data/screenplayLineId/id",
+          "expected": 8961
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/17/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/17/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/17/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/17/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/225/locstringId/ruid",
+          "expected": "1499492157163376640"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/225/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/225/variantId/ruid",
+          "expected": "3091338578003820624"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/225/vpeIndex",
+          "expected": 107
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/107/variantId/ruid",
+          "expected": "3091338578003820624"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/107/content",
+          "valueSha256": "7c11728966c44949b7143e42d7720eaa80a6fcba7348870bf108b83457a55b54",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_14_rogue-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/42/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "q108_14_rogue-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/42/stringId",
+          "expected": "1499492157163376640"
+        },
+        {
+          "sourceId": "q108_14_rogue-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/42/femaleVariant",
+          "valueSha256": "7c11728966c44949b7143e42d7720eaa80a6fcba7348870bf108b83457a55b54",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_14_rogue-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/42/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/$type",
+          "expected": "scnPlayerActorDef"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/actorId/id",
+          "expected": 8
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/playerName",
+          "expected": "Player"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$value",
+          "expected": "Character.johnny_replacer"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/voicetagId/id",
+          "expected": "1103967280742240508"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "johnny-represented-historical-memory-portrayal",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "This is an inference from the subject's portrayal in Johnny's memory, not independent proof of the exact historical exchange. It establishes no meeting, contract, trust or event with this V.",
+          "This supports professional solidarity in that portrayal, not parentage, current romance, or an automatic verdict against everyone Rogue dislikes."
+        ]
+      },
+      "attribution": {
+        "characterKey": "santiago",
+        "mode": "third-party-report",
+        "subjectRef": {
+          "kind": "journal-contact",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/34/Data/id",
+          "expected": "santiago",
+          "containerType": "gameJournalContact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/34/Data/name/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7187/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7187/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "q108_14_rogue",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/35",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/17/Data",
+            "expectedVoicetag": "1197872723565494272",
+            "expectedSubjectVoicetag": "1197872723565494272",
+            "speakerRole": "subject-portrayed-within-johnny-recollection"
+          }
+        ],
+        "perspective": "The actual subject's portrayed speech within Johnny's represented historical memory, not independent historical footage.",
+        "subjectConnection": "The exact named or active canonical-record actor speaks these emitted lines inside the native Johnny player frame; the real typed phone contact supplies individual identity, not present-day survival.",
+        "sourceFrameRefs": [
+          {
+            "sourceId": "q108_14_rogue",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/$type"
+          },
+          {
+            "sourceId": "q108_14_rogue",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/actorId/id"
+          },
+          {
+            "sourceId": "q108_14_rogue",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/playerName"
+          },
+          {
+            "sourceId": "q108_14_rogue",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$type"
+          },
+          {
+            "sourceId": "q108_14_rogue",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$value"
+          },
+          {
+            "sourceId": "q108_14_rogue",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/voicetagId/id"
+          }
+        ]
+      }
+    },
+    {
+      "id": "santiago.work.personal-terms",
+      "text": "Johnny's earlier recollection shows Santiago resisting a friendship discount and separating enjoyable mercenary work from unpaid work.",
+      "kind": "intrinsic",
+      "disclosure": "only-with-explicit-memory-perspective",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/34/Data/$type",
+          "expected": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/34/Data/id",
+          "expected": "santiago"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/34/Data/name/value",
+          "expected": "LocKey#10900"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/34/Data/avatarID/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/34/Data/avatarID/$value",
+          "expected": "PhoneAvatars.Avatar_Santiago"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7187/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7187/primaryKey",
+          "expected": "10900"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7187/femaleVariant",
+          "valueSha256": "30362306091ef8d489fd8e92de49e5a40f3a2ffb6bda952f178fe394d8492fd9",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7187/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/actors/1/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorId/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorName",
+          "expected": "Santiago"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/actors/1/voicetagId/id",
+          "expected": "1197872723565494272"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/actors/1/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnSetParams/$type",
+          "expected": "scnSpawnSetParams"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnSetParams/entryName/$value",
+          "expected": "santiago"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnSetParams/reference/$value",
+          "expected": "#santiago"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/38/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/38/speaker/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/38/itemId/id",
+          "expected": 9729
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/38/locstringId/ruid",
+          "expected": "1499522989844402176"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/21/Data/events/10/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/21/Data/events/10/Data/screenplayLineId/id",
+          "expected": 9729
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/21/Data/events/10/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/21/Data/events/10/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/21/Data/events/10/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/21/Data/events/10/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/231/locstringId/ruid",
+          "expected": "1499522989844402176"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/231/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/231/variantId/ruid",
+          "expected": "3091338578020597764"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/231/vpeIndex",
+          "expected": 116
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/116/variantId/ruid",
+          "expected": "3091338578020597764"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/116/content",
+          "valueSha256": "826309cfaba59f82303486b0f24d176d50f869369cbf0346433d03bff7357c56",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_14_rogue-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/48/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "q108_14_rogue-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/48/stringId",
+          "expected": "1499522989844402176"
+        },
+        {
+          "sourceId": "q108_14_rogue-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/48/femaleVariant",
+          "valueSha256": "826309cfaba59f82303486b0f24d176d50f869369cbf0346433d03bff7357c56",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_14_rogue-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/48/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/$type",
+          "expected": "scnPlayerActorDef"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/actorId/id",
+          "expected": 8
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/playerName",
+          "expected": "Player"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$value",
+          "expected": "Character.johnny_replacer"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/voicetagId/id",
+          "expected": "1103967280742240508"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/40/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/40/speaker/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/40/itemId/id",
+          "expected": 10241
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/40/locstringId/ruid",
+          "expected": "1660325811656658944"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/21/Data/events/18/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/21/Data/events/18/Data/screenplayLineId/id",
+          "expected": 10241
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/21/Data/events/18/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/21/Data/events/18/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/21/Data/events/18/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Phone"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/21/Data/events/18/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/246/locstringId/ruid",
+          "expected": "1660325811656658944"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/246/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/246/variantId/ruid",
+          "expected": "3091338578020597772"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/246/vpeIndex",
+          "expected": 122
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/122/variantId/ruid",
+          "expected": "3091338578020597772"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/122/content",
+          "valueSha256": "bb4b2fbf545fa25f4b7a1b26e945ef4d12be031de0e7427724e626b90433c852",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_14_rogue-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/63/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "q108_14_rogue-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/63/stringId",
+          "expected": "1660325811656658944"
+        },
+        {
+          "sourceId": "q108_14_rogue-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/63/femaleVariant",
+          "valueSha256": "bb4b2fbf545fa25f4b7a1b26e945ef4d12be031de0e7427724e626b90433c852",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_14_rogue-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/63/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "johnny-represented-historical-memory-portrayal",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "This is an inference from the subject's portrayal in Johnny's memory, not independent proof of the exact historical exchange. It establishes no meeting, contract, trust or event with this V.",
+          "Do not copy the historical amount or treat all friendship and community obligations as transactions."
+        ]
+      },
+      "attribution": {
+        "characterKey": "santiago",
+        "mode": "third-party-report",
+        "subjectRef": {
+          "kind": "journal-contact",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/34/Data/id",
+          "expected": "santiago",
+          "containerType": "gameJournalContact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/34/Data/name/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7187/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7187/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "q108_14_rogue",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/38",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/21/Data/events/10/Data",
+            "expectedVoicetag": "1197872723565494272",
+            "expectedSubjectVoicetag": "1197872723565494272",
+            "speakerRole": "subject-portrayed-within-johnny-recollection"
+          },
+          {
+            "sourceId": "q108_14_rogue",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/40",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/21/Data/events/18/Data",
+            "expectedVoicetag": "1197872723565494272",
+            "expectedSubjectVoicetag": "1197872723565494272",
+            "speakerRole": "subject-portrayed-within-johnny-recollection"
+          }
+        ],
+        "perspective": "The actual subject's portrayed speech within Johnny's represented historical memory, not independent historical footage.",
+        "subjectConnection": "The exact named or active canonical-record actor speaks these emitted lines inside the native Johnny player frame; the real typed phone contact supplies individual identity, not present-day survival.",
+        "sourceFrameRefs": [
+          {
+            "sourceId": "q108_14_rogue",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/$type"
+          },
+          {
+            "sourceId": "q108_14_rogue",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/actorId/id"
+          },
+          {
+            "sourceId": "q108_14_rogue",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/playerName"
+          },
+          {
+            "sourceId": "q108_14_rogue",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$type"
+          },
+          {
+            "sourceId": "q108_14_rogue",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$value"
+          },
+          {
+            "sourceId": "q108_14_rogue",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/voicetagId/id"
+          }
+        ]
+      }
+    },
+    {
+      "id": "santiago.work.pay-and-risk",
+      "text": "Johnny's earlier recollection portrays Santiago noticing that an extravagant offer may conceal a deadly risk, and insisting that the person offering it share the operation's exposure.",
+      "kind": "intrinsic",
+      "disclosure": "only-with-explicit-memory-perspective",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/34/Data/$type",
+          "expected": "gameJournalContact"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/34/Data/id",
+          "expected": "santiago"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/34/Data/name/value",
+          "expected": "LocKey#10900"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/34/Data/avatarID/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/34/Data/avatarID/$value",
+          "expected": "PhoneAvatars.Avatar_Santiago"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7187/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7187/primaryKey",
+          "expected": "10900"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7187/femaleVariant",
+          "valueSha256": "30362306091ef8d489fd8e92de49e5a40f3a2ffb6bda952f178fe394d8492fd9",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7187/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/actors/1/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorId/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/actors/1/actorName",
+          "expected": "Santiago"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/actors/1/voicetagId/id",
+          "expected": "1197872723565494272"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/actors/1/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnSetParams/$type",
+          "expected": "scnSpawnSetParams"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnSetParams/entryName/$value",
+          "expected": "santiago"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/actors/1/spawnSetParams/reference/$value",
+          "expected": "#santiago"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/34/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/34/speaker/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/34/itemId/id",
+          "expected": 8705
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/34/locstringId/ruid",
+          "expected": "1499491803164119040"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/8/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/8/Data/screenplayLineId/id",
+          "expected": 8705
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/8/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/8/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/8/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/8/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/224/locstringId/ruid",
+          "expected": "1499491803164119040"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/224/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/224/variantId/ruid",
+          "expected": "3091338578003820620"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/224/vpeIndex",
+          "expected": 104
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/104/variantId/ruid",
+          "expected": "3091338578003820620"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/104/content",
+          "valueSha256": "412230ebcf13ceeec34b4bbcec1271eed72f72981db43bd4069cc650987c4a5c",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_14_rogue-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/41/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "q108_14_rogue-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/41/stringId",
+          "expected": "1499491803164119040"
+        },
+        {
+          "sourceId": "q108_14_rogue-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/41/femaleVariant",
+          "valueSha256": "412230ebcf13ceeec34b4bbcec1271eed72f72981db43bd4069cc650987c4a5c",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_14_rogue-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/41/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/$type",
+          "expected": "scnPlayerActorDef"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/actorId/id",
+          "expected": 8
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/playerName",
+          "expected": "Player"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$type",
+          "expected": "TweakDBID"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$value",
+          "expected": "Character.johnny_replacer"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/playerActors/0/voicetagId/id",
+          "expected": "1103967280742240508"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/42/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/42/speaker/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/42/itemId/id",
+          "expected": 10753
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/42/locstringId/ruid",
+          "expected": "1499492972770955264"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/22/Data/events/6/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/22/Data/events/6/Data/screenplayLineId/id",
+          "expected": 10753
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/22/Data/events/6/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/22/Data/events/6/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/22/Data/events/6/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/22/Data/events/6/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/227/locstringId/ruid",
+          "expected": "1499492972770955264"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/227/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/227/variantId/ruid",
+          "expected": "3091338578020597780"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/227/vpeIndex",
+          "expected": 128
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/128/variantId/ruid",
+          "expected": "3091338578020597780"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/128/content",
+          "valueSha256": "6158ee7870ff6dcd0683733d577da16137d7aed0565557464f1c9e154c6dd1f2",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_14_rogue-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/44/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "q108_14_rogue-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/44/stringId",
+          "expected": "1499492972770955264"
+        },
+        {
+          "sourceId": "q108_14_rogue-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/44/femaleVariant",
+          "valueSha256": "6158ee7870ff6dcd0683733d577da16137d7aed0565557464f1c9e154c6dd1f2",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_14_rogue-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/44/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/43/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/43/speaker/id",
+          "expected": 1
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/43/itemId/id",
+          "expected": 11009
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/43/locstringId/ruid",
+          "expected": "1499493187334770688"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/22/Data/events/13/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/22/Data/events/13/Data/screenplayLineId/id",
+          "expected": 11009
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/22/Data/events/13/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/22/Data/events/13/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/22/Data/events/13/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/22/Data/events/13/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/228/locstringId/ruid",
+          "expected": "1499493187334770688"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/228/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/228/variantId/ruid",
+          "expected": "3091338578020597784"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/228/vpeIndex",
+          "expected": 131
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/131/variantId/ruid",
+          "expected": "3091338578020597784"
+        },
+        {
+          "sourceId": "q108_14_rogue",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/131/content",
+          "valueSha256": "3c87a46fa3d0a2e1118b39c86c200bebe24105b74f794a691ed1c2620ebeaf8b",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_14_rogue-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/45/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "q108_14_rogue-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/45/stringId",
+          "expected": "1499493187334770688"
+        },
+        {
+          "sourceId": "q108_14_rogue-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/45/femaleVariant",
+          "valueSha256": "3c87a46fa3d0a2e1118b39c86c200bebe24105b74f794a691ed1c2620ebeaf8b",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "q108_14_rogue-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/45/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "johnny-represented-historical-memory-portrayal",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "This is an inference from the subject's portrayal in Johnny's memory, not independent proof of the exact historical exchange. It establishes no meeting, contract, trust or event with this V.",
+          "This is his suspicious reading of a specific proposal, not proof that a rich employer intends murder or that the operation succeeded."
+        ]
+      },
+      "attribution": {
+        "characterKey": "santiago",
+        "mode": "third-party-report",
+        "subjectRef": {
+          "kind": "journal-contact",
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/34/Data/id",
+          "expected": "santiago",
+          "containerType": "gameJournalContact"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/34/Data/name/value"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7187/primaryKey"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/7187/femaleVariant"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "q108_14_rogue",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/34",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/8/Data",
+            "expectedVoicetag": "1197872723565494272",
+            "expectedSubjectVoicetag": "1197872723565494272",
+            "speakerRole": "subject-portrayed-within-johnny-recollection"
+          },
+          {
+            "sourceId": "q108_14_rogue",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/42",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/22/Data/events/6/Data",
+            "expectedVoicetag": "1197872723565494272",
+            "expectedSubjectVoicetag": "1197872723565494272",
+            "speakerRole": "subject-portrayed-within-johnny-recollection"
+          },
+          {
+            "sourceId": "q108_14_rogue",
+            "actorPointer": "/Data/RootChunk/actors/1",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/43",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/22/Data/events/13/Data",
+            "expectedVoicetag": "1197872723565494272",
+            "expectedSubjectVoicetag": "1197872723565494272",
+            "speakerRole": "subject-portrayed-within-johnny-recollection"
+          }
+        ],
+        "perspective": "The actual subject's portrayed speech within Johnny's represented historical memory, not independent historical footage.",
+        "subjectConnection": "The exact named or active canonical-record actor speaks these emitted lines inside the native Johnny player frame; the real typed phone contact supplies individual identity, not present-day survival.",
+        "sourceFrameRefs": [
+          {
+            "sourceId": "q108_14_rogue",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/$type"
+          },
+          {
+            "sourceId": "q108_14_rogue",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/actorId/id"
+          },
+          {
+            "sourceId": "q108_14_rogue",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/playerName"
+          },
+          {
+            "sourceId": "q108_14_rogue",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$type"
+          },
+          {
+            "sourceId": "q108_14_rogue",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/specCharacterRecordId/$value"
+          },
+          {
+            "sourceId": "q108_14_rogue",
+            "jsonPointer": "/Data/RootChunk/playerActors/0/voicetagId/id"
+          }
+        ]
+      }
+    }
+  ],
+  "cadenceExamples": [
+    {
+      "id": "job-and-terms",
+      "context": "A vague paid job is being proposed.",
+      "text": "Tell me what you need done, then tell me what you can pay.",
+      "claimIds": [
+        "santiago.work.plain-terms"
+      ]
+    },
+    {
+      "id": "up-front",
+      "context": "Someone asks him to trust a questionable client.",
+      "text": "If the story changes when payment comes up, get paid before you move.",
+      "claimIds": [
+        "santiago.work.up-front-payment"
+      ]
+    },
+    {
+      "id": "partner",
+      "context": "A colleague's concern is being brushed aside.",
+      "text": "She sees a problem. I want to hear it before we agree to anything.",
+      "claimIds": [
+        "santiago.work.partner-trust"
+      ]
+    },
+    {
+      "id": "risk",
+      "context": "A suspiciously generous offer is made.",
+      "text": "That is a lot of money for an easy job. What part have you left out?",
+      "claimIds": [
+        "santiago.work.pay-and-risk"
+      ]
+    },
+    {
+      "id": "free",
+      "context": "A professional request is dressed up as a favor.",
+      "text": "A drink is one thing. The job still has terms.",
+      "claimIds": [
+        "santiago.work.personal-terms"
+      ]
+    },
+    {
+      "id": "outside-city",
+      "context": "Someone asks whether city work is the whole of his life.",
+      "text": "My clan travels beyond this place. The city is useful; it is not everything.",
+      "claimIds": [
+        "santiago.background.clan-travel"
+      ]
+    }
+  ],
+  "exclusions": [
+    "No existing V meeting, quest completion, death, survival, contract, relationship or disclosure is established by a model spawn, available phone contact or this static proposal.",
+    "The native Johnny frame identifies a represented historical portrayal, not objective documentary footage; opinions and allegations remain attributed.",
+    "The selected contact/actor/speech receipts alone do not authenticate the displayed calendar year. The 2013 or 2023 persona boundary is an editorial scope restriction matching the existing era-bound profile, not a new claim that these receipts date history.",
+    "No personal knowledge of intervening decades, present 2077 contacts, V's private Relic information, current romances, choices, or unseen endings.",
+    "No claim that this persona knows Panam or Saul's later camp, has modern leadership authority, or knows its current quarrels.",
+    "No family/parentage conclusion from mercenary partnership, no transfer of the private invitation to Rogue into intimacy with V."
+  ],
+  "attributionRevision": "wave3-genuine-contact-historical-frame-v1"
+}

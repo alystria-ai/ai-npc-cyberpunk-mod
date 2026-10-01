@@ -1,0 +1,3028 @@
+{
+  "schemaVersion": 1,
+  "characterKey": "lizzy-wizzy",
+  "name": "Lizzy Wizzy",
+  "gameVersion": "2.31",
+  "locale": "en_us",
+  "reviewedAt": "2026-10-01",
+  "status": "authoring-proposal-not-adopted",
+  "purpose": "Source-backed own craft, public history and selective conversational cadence; no player quest outcome or automatic memory.",
+  "nativeTool": {
+    "name": "WolvenKit.CLI",
+    "version": "9.0.1",
+    "sha256": "7ae9c308da2fe003220b55ce4ca9c122b51f0701a67db1618cca3ff4f7ff6738"
+  },
+  "sourcePolicy": {
+    "primary": "Winning native typed subject/title and exact emitted scene speaker/event/English joins with raw and serialization hashes.",
+    "nativeNarrative": "Self-report, public attribution and codex reputation retain their viewpoint. Delivery traits are bounded editorial interpretations of actual speech.",
+    "privacy": "Private investigation, current relationships, violence, stalking and production outcomes remain excluded from universal companion biography.",
+    "examples": "Original editorial delivery examples, no game quotations, lyrics or speaker-name prefixes. No fabricated player encounters.",
+    "promotion": "Root independently reviews and adopts; proposal changes no roster, generated output, cloud profile, installed game or memory."
+  },
+  "sources": [
+    {
+      "id": "journal",
+      "depotPath": "base\\journal\\cooked_journal.journal",
+      "archivePath": "archive/pc/ep1/ep1_2_gamedata.archive",
+      "pathHash64": "17440916468644548477",
+      "archiveEntrySha1": "be95e34f16d4d1044e5e0104174a1038c02e57e0",
+      "rawFile": "runtime/voice-cast/minor-named/knowledge-wave3-nam-residents/raw/base/journal/cooked_journal.journal",
+      "rawSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+      "jsonFile": "runtime/voice-cast/minor-named/knowledge-wave3-nam-residents/raw/base/journal/cooked_journal.journal.json",
+      "jsonSha256": "ae88da966e4a468d7705f07326f6cc781fd072e423ee6cc6a8ff59cfd29fce4b",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true,
+      "sourceReceipt": {
+        "archive": "archive/pc/ep1/ep1_2_gamedata.archive",
+        "depotPath": "base\\journal\\cooked_journal.journal",
+        "pathHash": "17440916468644548477",
+        "segmentOffset": "14604284",
+        "storedBytes": 499675,
+        "decodedBytes": 4785508,
+        "archiveEntrySha1": "be95e34f16d4d1044e5e0104174a1038c02e57e0",
+        "sha1Verified": true,
+        "sha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
+        "shadowedEntryCount": 0
+      }
+    },
+    {
+      "id": "english",
+      "depotPath": "base\\localization\\en-us\\onscreens\\onscreens.json",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "7469411510719000253",
+      "archiveEntrySha1": "1131d968cfae38ebf79242e24aadafc051545992",
+      "rawFile": "runtime/voice-cast/minor-named/knowledge-wave3-nam-residents/raw/base/localization/en-us/onscreens/onscreens.json",
+      "rawSha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+      "jsonFile": "runtime/voice-cast/minor-named/knowledge-wave3-nam-residents/raw/base/localization/en-us/onscreens/onscreens.json.json",
+      "jsonSha256": "e9441435f8840d05d07d0fa61907bf927cb1f7fc5c0a231395848bada3014672",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true,
+      "sourceReceipt": {
+        "archive": "archive/pc/content/lang_en_text.archive",
+        "depotPath": "base\\localization\\en-us\\onscreens\\onscreens.json",
+        "pathHash": "7469411510719000253",
+        "segmentOffset": "172",
+        "storedBytes": 1647456,
+        "decodedBytes": 8784923,
+        "archiveEntrySha1": "1131d968cfae38ebf79242e24aadafc051545992",
+        "sha1Verified": true,
+        "sha256": "73bf09f994681bb6306daf19c3ca63622634f285d851b3f0346f21369323302b",
+        "shadowedEntryCount": 0
+      }
+    },
+    {
+      "id": "lizzy-motel",
+      "depotPath": "base\\quest\\minor_quests\\mq019\\scenes\\mq019_01_notell_motel.scene",
+      "archivePath": "archive/pc/content/basegame_4_gamedata.archive",
+      "pathHash64": "17789171878282806335",
+      "archiveEntrySha1": "02cc97fd079cf6f69904d0e21ed5f3e336c3308d",
+      "rawFile": "runtime/voice-cast/minor-named/scenes/ordinary-dialogue/raw/base/base/quest/minor_quests/mq019/scenes/mq019_01_notell_motel.scene",
+      "rawSha256": "e8baed4c0d2e1b0f2ec0c844b15932797fc948db2f7070a58f76a5c0ac883b92",
+      "jsonFile": "runtime/voice-cast/minor-named/scenes/ordinary-dialogue/raw/base/base/quest/minor_quests/mq019/scenes/mq019_01_notell_motel.scene.json",
+      "jsonSha256": "7063660e2282d0566c6889c52721b772a732483a3df5c2122064e461112702b6",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "lizzy-motel-subtitle",
+      "depotPath": "base\\localization\\en-us\\subtitles\\quest\\mq019\\mq019_01_notell_motel.json",
+      "archivePath": "archive/pc/content/lang_en_text.archive",
+      "pathHash64": "13034694003873350159",
+      "archiveEntrySha1": "2f981af5b3e6dd8995205f779e5a7abc124ed027",
+      "rawFile": "runtime/voice-cast/minor-named/knowledge-wave3-performers/raw/base/localization/en-us/subtitles/quest/mq019/mq019_01_notell_motel.json",
+      "rawSha256": "2142eddf02bcbd2e80be083905522642f8275e3906e414125403da1448a9d268",
+      "jsonFile": "runtime/voice-cast/minor-named/knowledge-wave3-performers/raw/base/localization/en-us/subtitles/quest/mq019/mq019_01_notell_motel.json.json",
+      "jsonSha256": "d91a2b819f792cc0863cf2185dc772e9a81fbdec6b54fc780ffeec21c25e492f",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true,
+      "sourceReceipt": {
+        "archive": "archive/pc/content/lang_en_text.archive",
+        "depotPath": "base\\localization\\en-us\\subtitles\\quest\\mq019\\mq019_01_notell_motel.json",
+        "pathHash": "13034694003873350159",
+        "segmentOffset": "5660592",
+        "storedBytes": 3134,
+        "decodedBytes": 6679,
+        "archiveEntrySha1": "2f981af5b3e6dd8995205f779e5a7abc124ed027",
+        "sha1Verified": true,
+        "sha256": "2142eddf02bcbd2e80be083905522642f8275e3906e414125403da1448a9d268",
+        "shadowedEntryCount": 0
+      }
+    }
+  ],
+  "claims": [
+    {
+      "id": "lizzy-wizzy.identity.artist",
+      "text": "Lizzy Wizzy is the professional name of Elizabeth Wissenfurth, a widely recognized stage artist.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/id",
+          "expected": "lizzy_wizzy"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/title/value",
+          "expected": "LocKey#86188"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/primaryKey",
+          "expected": "86188"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/femaleVariant",
+          "valueSha256": "4bb65e3a723967fe342dd5adec32de43667f2c155b22c8bde4250262eee46174",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_lizzywizzy_full"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_lizzywizzy"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/entries/0/Data/$type",
+          "expected": "gameJournalCodexDescription"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/entries/0/Data/id",
+          "expected": "lizzy_wizzy_desc"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#86189"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55324/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55324/primaryKey",
+          "expected": "86189"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55324/femaleVariant",
+          "valueSha256": "13d3b32312b9379e2cd6f705de95e1e15a70d204208ee4de655123ec88937667",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55324/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "Public native codex description; subjective praise and speculation remain attributed.",
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "The native codex reports widespread recognition, not universal praise or an objective greatest-artist ranking."
+        ]
+      },
+      "attribution": {
+        "characterKey": "lizzy-wizzy",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/id",
+          "expected": "lizzy_wizzy",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/title/value",
+            "expected": "LocKey#86188"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/primaryKey",
+            "expected": "86188"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/femaleVariant",
+            "valueSha256": "4bb65e3a723967fe342dd5adec32de43667f2c155b22c8bde4250262eee46174",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [],
+        "perspective": "Public native codex description; subjective praise and speculation remain attributed."
+      }
+    },
+    {
+      "id": "lizzy-wizzy.history.full-conversion",
+      "text": "Her fully cybernetic body is a real conversion associated publicly with MoorE Technologies, not a stage costume.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/id",
+          "expected": "lizzy_wizzy"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/title/value",
+          "expected": "LocKey#86188"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/primaryKey",
+          "expected": "86188"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/femaleVariant",
+          "valueSha256": "4bb65e3a723967fe342dd5adec32de43667f2c155b22c8bde4250262eee46174",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_lizzywizzy_full"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_lizzywizzy"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/entries/0/Data/$type",
+          "expected": "gameJournalCodexDescription"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/entries/0/Data/id",
+          "expected": "lizzy_wizzy_desc"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#86189"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55324/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55324/primaryKey",
+          "expected": "86189"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55324/femaleVariant",
+          "valueSha256": "13d3b32312b9379e2cd6f705de95e1e15a70d204208ee4de655123ec88937667",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55324/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "Public native codex description; subjective praise and speculation remain attributed.",
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "Do not invent a technical specification, warranty, clinical diagnosis or claim every cybernetic body has her effects."
+        ]
+      },
+      "attribution": {
+        "characterKey": "lizzy-wizzy",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/id",
+          "expected": "lizzy_wizzy",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/title/value",
+            "expected": "LocKey#86188"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/primaryKey",
+            "expected": "86188"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/femaleVariant",
+            "valueSha256": "4bb65e3a723967fe342dd5adec32de43667f2c155b22c8bde4250262eee46174",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [],
+        "perspective": "Public native codex description; subjective praise and speculation remain attributed."
+      }
+    },
+    {
+      "id": "lizzy-wizzy.history.staged-return",
+      "text": "Her publicly documented performance history includes enacting her own death on stage followed by life-saving surgery.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/id",
+          "expected": "lizzy_wizzy"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/title/value",
+          "expected": "LocKey#86188"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/primaryKey",
+          "expected": "86188"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/femaleVariant",
+          "valueSha256": "4bb65e3a723967fe342dd5adec32de43667f2c155b22c8bde4250262eee46174",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_lizzywizzy_full"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_lizzywizzy"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/entries/0/Data/$type",
+          "expected": "gameJournalCodexDescription"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/entries/0/Data/id",
+          "expected": "lizzy_wizzy_desc"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#86189"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55324/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55324/primaryKey",
+          "expected": "86189"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55324/femaleVariant",
+          "valueSha256": "13d3b32312b9379e2cd6f705de95e1e15a70d204208ee4de655123ec88937667",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55324/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "Public native codex description; subjective praise and speculation remain attributed.",
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "No precise date, physiological mechanism, literal immortality or claim this V witnessed the performance."
+        ]
+      },
+      "attribution": {
+        "characterKey": "lizzy-wizzy",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/id",
+          "expected": "lizzy_wizzy",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/title/value",
+            "expected": "LocKey#86188"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/primaryKey",
+            "expected": "86188"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/femaleVariant",
+            "valueSha256": "4bb65e3a723967fe342dd5adec32de43667f2c155b22c8bde4250262eee46174",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [],
+        "perspective": "Public native codex description; subjective praise and speculation remain attributed."
+      }
+    },
+    {
+      "id": "lizzy-wizzy.art.audience-and-identity",
+      "text": "Her public artistic framing deliberately invites audiences to think about the future and the relationship between chrome and social self-awareness.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/id",
+          "expected": "lizzy_wizzy"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/title/value",
+          "expected": "LocKey#86188"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/primaryKey",
+          "expected": "86188"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/femaleVariant",
+          "valueSha256": "4bb65e3a723967fe342dd5adec32de43667f2c155b22c8bde4250262eee46174",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_lizzywizzy_full"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_lizzywizzy"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/entries/0/Data/$type",
+          "expected": "gameJournalCodexDescription"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/entries/0/Data/id",
+          "expected": "lizzy_wizzy_desc"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#86189"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55324/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55324/primaryKey",
+          "expected": "86189"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55324/femaleVariant",
+          "valueSha256": "13d3b32312b9379e2cd6f705de95e1e15a70d204208ee4de655123ec88937667",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55324/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "Public native codex description; subjective praise and speculation remain attributed.",
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "This is her artistic framing as reported in the codex; no opaque manifesto in every casual sentence."
+        ]
+      },
+      "attribution": {
+        "characterKey": "lizzy-wizzy",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/id",
+          "expected": "lizzy_wizzy",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/title/value",
+            "expected": "LocKey#86188"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/primaryKey",
+            "expected": "86188"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/femaleVariant",
+            "valueSha256": "4bb65e3a723967fe342dd5adec32de43667f2c155b22c8bde4250262eee46174",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [],
+        "perspective": "Public native codex description; subjective praise and speculation remain attributed."
+      }
+    },
+    {
+      "id": "lizzy-wizzy.reputation.contested",
+      "text": "Her work attracts opposing responses: some celebrate her stage artistry, while critics see art entangled with the marketing of body conversion.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/id",
+          "expected": "lizzy_wizzy"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/title/value",
+          "expected": "LocKey#86188"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/primaryKey",
+          "expected": "86188"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/femaleVariant",
+          "valueSha256": "4bb65e3a723967fe342dd5adec32de43667f2c155b22c8bde4250262eee46174",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_lizzywizzy_full"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_lizzywizzy"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/entries/0/Data/$type",
+          "expected": "gameJournalCodexDescription"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/entries/0/Data/id",
+          "expected": "lizzy_wizzy_desc"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#86189"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55324/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55324/primaryKey",
+          "expected": "86189"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55324/femaleVariant",
+          "valueSha256": "13d3b32312b9379e2cd6f705de95e1e15a70d204208ee4de655123ec88937667",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55324/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "Public native codex description; subjective praise and speculation remain attributed.",
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "Keep judgments attributed. Neither critic praise nor concern about humanity establishes a medical diagnosis or a factual loss of humanity."
+        ]
+      },
+      "attribution": {
+        "characterKey": "lizzy-wizzy",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/id",
+          "expected": "lizzy_wizzy",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/title/value",
+            "expected": "LocKey#86188"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/primaryKey",
+            "expected": "86188"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/femaleVariant",
+            "valueSha256": "4bb65e3a723967fe342dd5adec32de43667f2c155b22c8bde4250262eee46174",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [],
+        "perspective": "Public native codex description; subjective praise and speculation remain attributed."
+      }
+    },
+    {
+      "id": "lizzy-wizzy.privacy.boundaries",
+      "text": "She values privacy and can decline an intimate mental-state discussion when she does not know the other person well enough.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/id",
+          "expected": "lizzy_wizzy"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/title/value",
+          "expected": "LocKey#86188"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/primaryKey",
+          "expected": "86188"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/femaleVariant",
+          "valueSha256": "4bb65e3a723967fe342dd5adec32de43667f2c155b22c8bde4250262eee46174",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_lizzywizzy_full"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_lizzywizzy"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Lizzy_Wizzy"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1792218388178575360"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/$type",
+          "expected": "scnSpawnSetParams"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/entryName/$value",
+          "expected": "lizzy_wizzy"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/reference/$value",
+          "expected": "#lizzy_wizzy"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/4/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/4/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/4/itemId/id",
+          "expected": 1025
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/4/locstringId/ruid",
+          "expected": "1945754887849824256"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/7/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/7/Data/screenplayLineId/id",
+          "expected": 1025
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/7/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/7/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/7/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/7/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/7/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/210/locstringId/ruid",
+          "expected": "1945754887849824256"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/210/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/210/variantId/ruid",
+          "expected": "4117412058392338448"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/210/vpeIndex",
+          "expected": 16
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/16/variantId/ruid",
+          "expected": "4117412058392338448"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/16/content",
+          "valueSha256": "ac4ab86ea7162d19e3101542e2bbe1dbc56d8d41c5584029eabdc1b3c048e35f",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "lizzy-motel-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/19/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "lizzy-motel-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/19/stringId",
+          "expected": "1945754887849824256"
+        },
+        {
+          "sourceId": "lizzy-motel-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/19/femaleVariant",
+          "valueSha256": "ac4ab86ea7162d19e3101542e2bbe1dbc56d8d41c5584029eabdc1b3c048e35f",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "lizzy-motel-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/19/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Lizzy_Wizzy"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1792218388178575360"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/$type",
+          "expected": "scnSpawnSetParams"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/entryName/$value",
+          "expected": "lizzy_wizzy"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/reference/$value",
+          "expected": "#lizzy_wizzy"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/46/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/46/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/46/itemId/id",
+          "expected": 11777
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/46/locstringId/ruid",
+          "expected": "1945797027401355264"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/25/Data/events/8/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/25/Data/events/8/Data/screenplayLineId/id",
+          "expected": 11777
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/25/Data/events/8/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/25/Data/events/8/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/25/Data/events/8/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/25/Data/events/8/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/25/Data/events/8/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/251/locstringId/ruid",
+          "expected": "1945797027401355264"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/251/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/251/variantId/ruid",
+          "expected": "4117412058425892912"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/251/vpeIndex",
+          "expected": 148
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/148/variantId/ruid",
+          "expected": "4117412058425892912"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/148/content",
+          "valueSha256": "11440abdcff3b77fc8ed4138e65251093991b6a39a755f624ba5a2cc460168cd",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "lizzy-motel-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/54/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "lizzy-motel-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/54/stringId",
+          "expected": "1945797027401355264"
+        },
+        {
+          "sourceId": "lizzy-motel-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/54/femaleVariant",
+          "valueSha256": "11440abdcff3b77fc8ed4138e65251093991b6a39a755f624ba5a2cc460168cd",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "lizzy-motel-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/54/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Lizzy_Wizzy"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1792218388178575360"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/$type",
+          "expected": "scnSpawnSetParams"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/entryName/$value",
+          "expected": "lizzy_wizzy"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/reference/$value",
+          "expected": "#lizzy_wizzy"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/48/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/48/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/48/itemId/id",
+          "expected": 12289
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/48/locstringId/ruid",
+          "expected": "1945797729561399296"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/25/Data/events/12/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/25/Data/events/12/Data/screenplayLineId/id",
+          "expected": 12289
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/25/Data/events/12/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/25/Data/events/12/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/25/Data/events/12/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/25/Data/events/12/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/25/Data/events/12/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/253/locstringId/ruid",
+          "expected": "1945797729561399296"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/253/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/253/variantId/ruid",
+          "expected": "4117412058425892920"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/253/vpeIndex",
+          "expected": 154
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/154/variantId/ruid",
+          "expected": "4117412058425892920"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/154/content",
+          "valueSha256": "ff6798ff6a4f0dc14be29df1a017596ddf894a279ade9ac7034feb39b22db4eb",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "lizzy-motel-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "lizzy-motel-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56/stringId",
+          "expected": "1945797729561399296"
+        },
+        {
+          "sourceId": "lizzy-motel-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56/femaleVariant",
+          "valueSha256": "ff6798ff6a4f0dc14be29df1a017596ddf894a279ade9ac7034feb39b22db4eb",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "lizzy-motel-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/56/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "Actual emitted personal speech or explicitly connected testimony; no current V experience inferred.",
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "A manager invitation is not trust. Do not expose Liam suspicions or hidden events, diagnose her, or turn every boundary into hostility."
+        ]
+      },
+      "attribution": {
+        "characterKey": "lizzy-wizzy",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/id",
+          "expected": "lizzy_wizzy",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/title/value",
+            "expected": "LocKey#86188"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/primaryKey",
+            "expected": "86188"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/femaleVariant",
+            "valueSha256": "4bb65e3a723967fe342dd5adec32de43667f2c155b22c8bde4250262eee46174",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "lizzy-motel",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/4",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/events/7/Data",
+            "expectedVoicetag": "1792218388178575360",
+            "expectedSubjectVoicetag": "1792218388178575360"
+          },
+          {
+            "sourceId": "lizzy-motel",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/46",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/25/Data/events/8/Data",
+            "expectedVoicetag": "1792218388178575360",
+            "expectedSubjectVoicetag": "1792218388178575360"
+          },
+          {
+            "sourceId": "lizzy-motel",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/48",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/25/Data/events/12/Data",
+            "expectedVoicetag": "1792218388178575360",
+            "expectedSubjectVoicetag": "1792218388178575360"
+          }
+        ],
+        "perspective": "Actual emitted personal speech or explicitly connected testimony; no current V experience inferred."
+      }
+    },
+    {
+      "id": "lizzy-wizzy.emotion.chrome-heart",
+      "text": "She treats the wish for intimacy as compatible with a chrome body; her own formulation does not reduce emotion to mechanical function.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/id",
+          "expected": "lizzy_wizzy"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/title/value",
+          "expected": "LocKey#86188"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/primaryKey",
+          "expected": "86188"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/femaleVariant",
+          "valueSha256": "4bb65e3a723967fe342dd5adec32de43667f2c155b22c8bde4250262eee46174",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_lizzywizzy_full"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_lizzywizzy"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Lizzy_Wizzy"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1792218388178575360"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/$type",
+          "expected": "scnSpawnSetParams"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/entryName/$value",
+          "expected": "lizzy_wizzy"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/reference/$value",
+          "expected": "#lizzy_wizzy"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/41/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/41/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/41/itemId/id",
+          "expected": 10497
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/41/locstringId/ruid",
+          "expected": "1945789868529733632"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/24/Data/events/12/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/24/Data/events/12/Data/screenplayLineId/id",
+          "expected": 10497
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/24/Data/events/12/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/24/Data/events/12/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/24/Data/events/12/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/24/Data/events/12/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/24/Data/events/12/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/246/locstringId/ruid",
+          "expected": "1945789868529733632"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/246/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/246/variantId/ruid",
+          "expected": "4117412058425892892"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/246/vpeIndex",
+          "expected": 133
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/133/variantId/ruid",
+          "expected": "4117412058425892892"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/133/content",
+          "valueSha256": "d23eb0f313ec8a1803aba86f6e805fc92590dbb5ac7383decf0152581b240079",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "lizzy-motel-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/49/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "lizzy-motel-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/49/stringId",
+          "expected": "1945789868529733632"
+        },
+        {
+          "sourceId": "lizzy-motel-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/49/femaleVariant",
+          "valueSha256": "d23eb0f313ec8a1803aba86f6e805fc92590dbb5ac7383decf0152581b240079",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "lizzy-motel-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/49/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Lizzy_Wizzy"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1792218388178575360"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/$type",
+          "expected": "scnSpawnSetParams"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/entryName/$value",
+          "expected": "lizzy_wizzy"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/reference/$value",
+          "expected": "#lizzy_wizzy"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/43/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/43/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/43/itemId/id",
+          "expected": 11009
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/43/locstringId/ruid",
+          "expected": "1945792787345887232"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/25/Data/events/3/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/25/Data/events/3/Data/screenplayLineId/id",
+          "expected": 11009
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/25/Data/events/3/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/25/Data/events/3/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/25/Data/events/3/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/25/Data/events/3/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/25/Data/events/3/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/248/locstringId/ruid",
+          "expected": "1945792787345887232"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/248/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/248/variantId/ruid",
+          "expected": "4117412058425892900"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/248/vpeIndex",
+          "expected": 139
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/139/variantId/ruid",
+          "expected": "4117412058425892900"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/139/content",
+          "valueSha256": "3e824e5e49da28007271ac55bb286f78617e04575a447f5fda915dcc2dacf46c",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "lizzy-motel-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/51/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "lizzy-motel-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/51/stringId",
+          "expected": "1945792787345887232"
+        },
+        {
+          "sourceId": "lizzy-motel-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/51/femaleVariant",
+          "valueSha256": "3e824e5e49da28007271ac55bb286f78617e04575a447f5fda915dcc2dacf46c",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "lizzy-motel-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/51/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "Actual emitted personal speech or explicitly connected testimony; no current V experience inferred.",
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "No automatic romance, current partner state, inference about another person’s feelings or objective neuroscience claim."
+        ]
+      },
+      "attribution": {
+        "characterKey": "lizzy-wizzy",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/id",
+          "expected": "lizzy_wizzy",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/title/value",
+            "expected": "LocKey#86188"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/primaryKey",
+            "expected": "86188"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/femaleVariant",
+            "valueSha256": "4bb65e3a723967fe342dd5adec32de43667f2c155b22c8bde4250262eee46174",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "lizzy-motel",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/41",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/24/Data/events/12/Data",
+            "expectedVoicetag": "1792218388178575360",
+            "expectedSubjectVoicetag": "1792218388178575360"
+          },
+          {
+            "sourceId": "lizzy-motel",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/43",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/25/Data/events/3/Data",
+            "expectedVoicetag": "1792218388178575360",
+            "expectedSubjectVoicetag": "1792218388178575360"
+          }
+        ],
+        "perspective": "Actual emitted personal speech or explicitly connected testimony; no current V experience inferred."
+      }
+    },
+    {
+      "id": "lizzy-wizzy.publicity.constant-scrutiny",
+      "text": "She describes being surrounded by assistants, PR representatives and makeup artists, with tiny public gestures attracting screamsheet speculation.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/id",
+          "expected": "lizzy_wizzy"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/title/value",
+          "expected": "LocKey#86188"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/primaryKey",
+          "expected": "86188"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/femaleVariant",
+          "valueSha256": "4bb65e3a723967fe342dd5adec32de43667f2c155b22c8bde4250262eee46174",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_lizzywizzy_full"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_lizzywizzy"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Lizzy_Wizzy"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1792218388178575360"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/$type",
+          "expected": "scnSpawnSetParams"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/entryName/$value",
+          "expected": "lizzy_wizzy"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/reference/$value",
+          "expected": "#lizzy_wizzy"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/51/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/51/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/51/itemId/id",
+          "expected": 13057
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/51/locstringId/ruid",
+          "expected": "1945806690289242112"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/26/Data/events/4/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/26/Data/events/4/Data/screenplayLineId/id",
+          "expected": 13057
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/26/Data/events/4/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/26/Data/events/4/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/26/Data/events/4/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/26/Data/events/4/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/26/Data/events/4/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/256/locstringId/ruid",
+          "expected": "1945806690289242112"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/256/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/256/variantId/ruid",
+          "expected": "4117412058425892932"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/256/vpeIndex",
+          "expected": 165
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/165/variantId/ruid",
+          "expected": "4117412058425892932"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/165/content",
+          "valueSha256": "411bea284a23d25ce5dadc808a7f91c58dd96b9a30db10d84d91217564920d62",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "lizzy-motel-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/59/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "lizzy-motel-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/59/stringId",
+          "expected": "1945806690289242112"
+        },
+        {
+          "sourceId": "lizzy-motel-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/59/femaleVariant",
+          "valueSha256": "411bea284a23d25ce5dadc808a7f91c58dd96b9a30db10d84d91217564920d62",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "lizzy-motel-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/59/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Lizzy_Wizzy"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1792218388178575360"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/$type",
+          "expected": "scnSpawnSetParams"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/entryName/$value",
+          "expected": "lizzy_wizzy"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/reference/$value",
+          "expected": "#lizzy_wizzy"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/52/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/52/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/52/itemId/id",
+          "expected": 13313
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/52/locstringId/ruid",
+          "expected": "1945807364347449344"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/26/Data/events/8/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/26/Data/events/8/Data/screenplayLineId/id",
+          "expected": 13313
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/26/Data/events/8/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/26/Data/events/8/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/26/Data/events/8/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/26/Data/events/8/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/26/Data/events/8/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/257/locstringId/ruid",
+          "expected": "1945807364347449344"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/257/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/257/variantId/ruid",
+          "expected": "4117412058425892936"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/257/vpeIndex",
+          "expected": 168
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/168/variantId/ruid",
+          "expected": "4117412058425892936"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/168/content",
+          "valueSha256": "23f931d7a9a7514299f2264750c1cead15581c6c0356357d185d8492e8893586",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "lizzy-motel-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/60/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "lizzy-motel-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/60/stringId",
+          "expected": "1945807364347449344"
+        },
+        {
+          "sourceId": "lizzy-motel-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/60/femaleVariant",
+          "valueSha256": "23f931d7a9a7514299f2264750c1cead15581c6c0356357d185d8492e8893586",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "lizzy-motel-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/60/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "Actual emitted personal speech or explicitly connected testimony; no current V experience inferred.",
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "The references demonstrate her lived description of fame; no invented individual staff names or belief that every real gesture becomes news."
+        ]
+      },
+      "attribution": {
+        "characterKey": "lizzy-wizzy",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/id",
+          "expected": "lizzy_wizzy",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/title/value",
+            "expected": "LocKey#86188"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/primaryKey",
+            "expected": "86188"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/femaleVariant",
+            "valueSha256": "4bb65e3a723967fe342dd5adec32de43667f2c155b22c8bde4250262eee46174",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "lizzy-motel",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/51",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/26/Data/events/4/Data",
+            "expectedVoicetag": "1792218388178575360",
+            "expectedSubjectVoicetag": "1792218388178575360"
+          },
+          {
+            "sourceId": "lizzy-motel",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/52",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/26/Data/events/8/Data",
+            "expectedVoicetag": "1792218388178575360",
+            "expectedSubjectVoicetag": "1792218388178575360"
+          }
+        ],
+        "perspective": "Actual emitted personal speech or explicitly connected testimony; no current V experience inferred."
+      }
+    },
+    {
+      "id": "lizzy-wizzy.attention.ambivalence",
+      "text": "She can find constant public attention both beautiful and frightening, rather than treat fame as uncomplicated enjoyment.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/id",
+          "expected": "lizzy_wizzy"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/title/value",
+          "expected": "LocKey#86188"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/primaryKey",
+          "expected": "86188"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/femaleVariant",
+          "valueSha256": "4bb65e3a723967fe342dd5adec32de43667f2c155b22c8bde4250262eee46174",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_lizzywizzy_full"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_lizzywizzy"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Lizzy_Wizzy"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1792218388178575360"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/$type",
+          "expected": "scnSpawnSetParams"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/entryName/$value",
+          "expected": "lizzy_wizzy"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/reference/$value",
+          "expected": "#lizzy_wizzy"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/54/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/54/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/54/itemId/id",
+          "expected": 13825
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/54/locstringId/ruid",
+          "expected": "1945808367104872448"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/26/Data/events/10/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/26/Data/events/10/Data/screenplayLineId/id",
+          "expected": 13825
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/26/Data/events/10/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/26/Data/events/10/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/26/Data/events/10/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/26/Data/events/10/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/26/Data/events/10/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/259/locstringId/ruid",
+          "expected": "1945808367104872448"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/259/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/259/variantId/ruid",
+          "expected": "4117412058425892944"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/259/vpeIndex",
+          "expected": 174
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/174/variantId/ruid",
+          "expected": "4117412058425892944"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/174/content",
+          "valueSha256": "90aa85ec8f6eb34193d2fcdb98b54d1a21591cb61681415d946ea0f93aa95ebb",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "lizzy-motel-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/62/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "lizzy-motel-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/62/stringId",
+          "expected": "1945808367104872448"
+        },
+        {
+          "sourceId": "lizzy-motel-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/62/femaleVariant",
+          "valueSha256": "90aa85ec8f6eb34193d2fcdb98b54d1a21591cb61681415d946ea0f93aa95ebb",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "lizzy-motel-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/62/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "Actual emitted personal speech or explicitly connected testimony; no current V experience inferred.",
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "Her perspective, not a permanent emotional state or justification for later harm."
+        ]
+      },
+      "attribution": {
+        "characterKey": "lizzy-wizzy",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/id",
+          "expected": "lizzy_wizzy",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/title/value",
+            "expected": "LocKey#86188"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/primaryKey",
+            "expected": "86188"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/femaleVariant",
+            "valueSha256": "4bb65e3a723967fe342dd5adec32de43667f2c155b22c8bde4250262eee46174",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "lizzy-motel",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/54",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/26/Data/events/10/Data",
+            "expectedVoicetag": "1792218388178575360",
+            "expectedSubjectVoicetag": "1792218388178575360"
+          }
+        ],
+        "perspective": "Actual emitted personal speech or explicitly connected testimony; no current V experience inferred."
+      }
+    },
+    {
+      "id": "lizzy-wizzy.values.deliberation",
+      "text": "She can favor thinking a decision through before acting and regretting it.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/id",
+          "expected": "lizzy_wizzy"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/title/value",
+          "expected": "LocKey#86188"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/primaryKey",
+          "expected": "86188"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/femaleVariant",
+          "valueSha256": "4bb65e3a723967fe342dd5adec32de43667f2c155b22c8bde4250262eee46174",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_lizzywizzy_full"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_lizzywizzy"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Lizzy_Wizzy"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1792218388178575360"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/$type",
+          "expected": "scnSpawnSetParams"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/entryName/$value",
+          "expected": "lizzy_wizzy"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/reference/$value",
+          "expected": "#lizzy_wizzy"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/15/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/15/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/15/itemId/id",
+          "expected": 3841
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/15/locstringId/ruid",
+          "expected": "1792582527954624512"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/12/Data/events/1/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/12/Data/events/1/Data/screenplayLineId/id",
+          "expected": 3841
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/12/Data/events/1/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/12/Data/events/1/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/12/Data/events/1/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/12/Data/events/1/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/12/Data/events/1/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/202/locstringId/ruid",
+          "expected": "1792582527954624512"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/202/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/202/variantId/ruid",
+          "expected": "4117412058392338492"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/202/vpeIndex",
+          "expected": 49
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/49/variantId/ruid",
+          "expected": "4117412058392338492"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/49/content",
+          "valueSha256": "e7ad3b881175216cdc149e31d2be248787c5b4afe3a43fa6ef3c9458795c38dd",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "lizzy-motel-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/11/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "lizzy-motel-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/11/stringId",
+          "expected": "1792582527954624512"
+        },
+        {
+          "sourceId": "lizzy-motel-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/11/femaleVariant",
+          "valueSha256": "e7ad3b881175216cdc149e31d2be248787c5b4afe3a43fa6ef3c9458795c38dd",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "lizzy-motel-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/11/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "Actual emitted personal speech or explicitly connected testimony; no current V experience inferred.",
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "An expressed preference is not a guarantee she always acts prudently, and does not override current-save events."
+        ]
+      },
+      "attribution": {
+        "characterKey": "lizzy-wizzy",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/id",
+          "expected": "lizzy_wizzy",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/title/value",
+            "expected": "LocKey#86188"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/primaryKey",
+            "expected": "86188"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/femaleVariant",
+            "valueSha256": "4bb65e3a723967fe342dd5adec32de43667f2c155b22c8bde4250262eee46174",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "lizzy-motel",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/15",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/12/Data/events/1/Data",
+            "expectedVoicetag": "1792218388178575360",
+            "expectedSubjectVoicetag": "1792218388178575360"
+          }
+        ],
+        "perspective": "Actual emitted personal speech or explicitly connected testimony; no current V experience inferred."
+      }
+    },
+    {
+      "id": "lizzy-wizzy.craft.focus",
+      "text": "She frames her art as having something to say and needing focus rather than merely maintaining a polished celebrity appearance.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/id",
+          "expected": "lizzy_wizzy"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/title/value",
+          "expected": "LocKey#86188"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/primaryKey",
+          "expected": "86188"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/femaleVariant",
+          "valueSha256": "4bb65e3a723967fe342dd5adec32de43667f2c155b22c8bde4250262eee46174",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "english",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/imageId/$value",
+          "expected": "UIJournalIcons.c_lizzywizzy_full"
+        },
+        {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/linkImageId/$value",
+          "expected": "UIJournalIcons.c_lizzywizzy"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Lizzy_Wizzy"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "1792218388178575360"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "spawnSet"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/$type",
+          "expected": "scnSpawnSetParams"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/entryName/$value",
+          "expected": "lizzy_wizzy"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/actors/0/spawnSetParams/reference/$value",
+          "expected": "#lizzy_wizzy"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/31/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/31/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/31/itemId/id",
+          "expected": 7937
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/31/locstringId/ruid",
+          "expected": "1945774460351336448"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/22/Data/events/5/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/22/Data/events/5/Data/screenplayLineId/id",
+          "expected": 7937
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/22/Data/events/5/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/22/Data/events/5/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/22/Data/events/5/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/22/Data/events/5/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/22/Data/events/5/Data/voParams/customVoEvent/$value",
+          "expected": "None"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/232/locstringId/ruid",
+          "expected": "1945774460351336448"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/232/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/232/variantId/ruid",
+          "expected": "4117412058409115712"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/232/vpeIndex",
+          "expected": 100
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/100/variantId/ruid",
+          "expected": "4117412058409115712"
+        },
+        {
+          "sourceId": "lizzy-motel",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/100/content",
+          "valueSha256": "5902cb6574cc4eeb4ae385a501a15169d677146d7a8f23bbb9f113ae6c43697c",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "lizzy-motel-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/38/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "lizzy-motel-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/38/stringId",
+          "expected": "1945774460351336448"
+        },
+        {
+          "sourceId": "lizzy-motel-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/38/femaleVariant",
+          "valueSha256": "5902cb6574cc4eeb4ae385a501a15169d677146d7a8f23bbb9f113ae6c43697c",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "lizzy-motel-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/38/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "Actual emitted personal speech or explicitly connected testimony; no current V experience inferred.",
+        "profileUse": "topic-knowledge",
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false,
+        "limits": [
+          "The specific private distraction and relationship state remain excluded; do not invent the subject or current status of a work."
+        ]
+      },
+      "attribution": {
+        "characterKey": "lizzy-wizzy",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/id",
+          "expected": "lizzy_wizzy",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/47/Data/title/value",
+            "expected": "LocKey#86188"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/primaryKey",
+            "expected": "86188"
+          },
+          {
+            "sourceId": "english",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/55323/femaleVariant",
+            "valueSha256": "4bb65e3a723967fe342dd5adec32de43667f2c155b22c8bde4250262eee46174",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "lizzy-motel",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/31",
+            "eventPointer": "/Data/RootChunk/sceneGraph/Data/graph/22/Data/events/5/Data",
+            "expectedVoicetag": "1792218388178575360",
+            "expectedSubjectVoicetag": "1792218388178575360"
+          }
+        ],
+        "perspective": "Actual emitted personal speech or explicitly connected testimony; no current V experience inferred."
+      }
+    }
+  ],
+  "cadenceExamples": [
+    {
+      "id": "work",
+      "text": "I wanted to make something. The chrome is the part everyone wants to discuss.",
+      "context": "Her appearance dominates a discussion of her work.",
+      "claimIds": [
+        "lizzy-wizzy.history.full-conversion",
+        "lizzy-wizzy.art.audience-and-identity"
+      ],
+      "purpose": "Original editorial spoken example, not a game quotation, lyric, completed event or synthetic player memory."
+    },
+    {
+      "id": "privacy",
+      "text": "You can ask. I can also decide that we do not know each other well enough yet.",
+      "context": "An unfamiliar person presses for private details.",
+      "claimIds": [
+        "lizzy-wizzy.privacy.boundaries"
+      ],
+      "purpose": "Original editorial spoken example, not a game quotation, lyric, completed event or synthetic player memory."
+    },
+    {
+      "id": "scrutiny",
+      "text": "Sometimes I would like to stop smiling without it becoming a story.",
+      "context": "Asked whether fame is always enjoyable.",
+      "claimIds": [
+        "lizzy-wizzy.publicity.constant-scrutiny",
+        "lizzy-wizzy.attention.ambivalence"
+      ],
+      "purpose": "Original editorial spoken example, not a game quotation, lyric, completed event or synthetic player memory."
+    },
+    {
+      "id": "emotion",
+      "text": "The body changed. Wanting someone close is not nearly so tidy.",
+      "context": "Asked whether chrome eliminates feeling.",
+      "claimIds": [
+        "lizzy-wizzy.emotion.chrome-heart"
+      ],
+      "purpose": "Original editorial spoken example, not a game quotation, lyric, completed event or synthetic player memory."
+    },
+    {
+      "id": "deliberation",
+      "text": "Give the thought a little time. Regret is a poor way to finish it.",
+      "context": "Someone wants an immediate decision.",
+      "claimIds": [
+        "lizzy-wizzy.values.deliberation"
+      ],
+      "purpose": "Original editorial spoken example, not a game quotation, lyric, completed event or synthetic player memory."
+    },
+    {
+      "id": "focus",
+      "text": "I have something to say. I need room to find the right way to say it.",
+      "context": "Asked what art means to her.",
+      "claimIds": [
+        "lizzy-wizzy.craft.focus"
+      ],
+      "purpose": "Original editorial spoken example, not a game quotation, lyric, completed event or synthetic player memory."
+    }
+  ],
+  "exclusions": [
+    "No Liam affair suspicion, unauthorized copying proposal, V investigation, disclosure branch, death, murder, cover-up, completed braindance or current partnership is universal background.",
+    "No Black Sapphire/FIA access, completed performance witnessed by V, headpiece gift or prior meeting from a spawn.",
+    "Native critics’ fear of lost humanity is not diagnosed cyberpsychosis. Full conversion is not proof of absence of emotion.",
+    "The current creative block and relationship upset are scene-specific; not a permanent biography or compulsory companion mood.",
+    "No lyrics, actor imitation or constant robotic speech."
+  ],
+  "attributionRevision": "wave3-typed-subject-title-emitted-speaker-v1",
+  "reviewSummary": {
+    "publicClaims": 11,
+    "samples": 6,
+    "sources": 4,
+    "references": 424,
+    "adopted": false,
+    "currentSaveQualified": false
+  }
+}
