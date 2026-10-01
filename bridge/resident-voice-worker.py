@@ -5,6 +5,7 @@ serially, including lazy profile preparation; EOF releases the one model. A
 profile is a recording and transcript, never another trained model.
 """
 from collections import OrderedDict
+from contextlib import contextmanager
 from pathlib import Path, PurePosixPath
 import argparse
 import base64
@@ -300,11 +301,54 @@ def cached_profiles(adapter, registry):
     return profiles[-registry['maxCachedProfiles']:]
 
 
+@contextmanager
+def model_admission(root=ROOT):
+    """One OS-owned admission slot shared by bridge and audition workers."""
+    root = root.resolve()
+    relative = 'runtime/voice-studio-data/resident-model.lock'
+    candidate = root
+    for part in relative.split('/'):
+        candidate /= part
+        attributes = getattr(candidate.lstat(), 'st_file_attributes', 0) if candidate.exists() else 0
+        if candidate.is_symlink() or attributes & 0x400:
+            raise ValueError('Linked model-admission paths are not supported')
+    if not candidate.resolve().is_relative_to(root / 'runtime'):
+        raise ValueError('Model-admission path escaped the runtime')
+    candidate.parent.mkdir(parents=True, exist_ok=True)
+    with candidate.open('a+b') as handle:
+        if os.fstat(handle.fileno()).st_size == 0:
+            handle.write(b'0')
+            handle.flush()
+        handle.seek(0)
+        try:
+            if os.name == 'nt':
+                import msvcrt
+                msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+            else:
+                import fcntl
+                fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except OSError as error:
+            raise RuntimeError('Another resident voice worker owns the shared model slot') from error
+        try:
+            yield
+        finally:
+            handle.seek(0)
+            if os.name == 'nt':
+                msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+            else:
+                fcntl.flock(handle, fcntl.LOCK_UN)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--config', type=Path, required=True)
     args = parser.parse_args()
     registry = validate_config(read_config(args.config))
+    with model_admission():
+        run_worker(registry)
+
+
+def run_worker(registry):
     # Native libraries can write directly to fd 1. Isolate the JSON protocol
     # before imports and redirect Python/native logging to stderr.
     output = os.fdopen(os.dup(1), 'w', encoding='utf-8', buffering=1)

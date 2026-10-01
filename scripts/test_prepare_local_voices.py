@@ -209,6 +209,14 @@ class WorkerProfiles(Fixtures):
         with self.assertRaisesRegex(ValueError, 'byte limit'):
             worker.read_config(config_path)
 
+    def test_model_slot_is_shared_exclusive_and_released_without_cuda(self):
+        with worker.model_admission(self.root):
+            with self.assertRaisesRegex(RuntimeError, 'shared model slot'):
+                with worker.model_admission(self.root):
+                    self.fail('Second model must not be admitted')
+        with worker.model_admission(self.root):
+            pass
+
     def test_linked_reference_components_are_rejected(self):
         config = self.config()
         key = 'judy-alvarez'

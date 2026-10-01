@@ -49,6 +49,7 @@ class Archive:
         self.path = game / relative
         self.relative = relative
         self.entries = {}
+        self.shadowed_entries = {}
         length = self.path.stat().st_size
         with self.path.open("rb") as handle:
             magic, version, index_offset, index_size = struct.unpack("<4sIQI", handle.read(20))
@@ -60,7 +61,13 @@ class Archive:
                 raise ValueError(f"Invalid archive index bounds: {relative}")
             for _ in range(entries):
                 hashed, _, _, first, end, _, _, sha1 = struct.unpack("<QqIIIII20s", handle.read(56))
-                self.entries[hashed] = (first, end, sha1.hex())
+                entry = (first, end, sha1.hex())
+                # WolvenKit ArchiveReader keeps the first physical directory row
+                # for a duplicate path hash; later rows remain shadowed evidence.
+                if hashed in self.entries:
+                    self.shadowed_entries.setdefault(hashed, []).append(entry)
+                else:
+                    self.entries[hashed] = entry
             self.segments = [struct.unpack("<QII", handle.read(16)) for _ in range(segments)]
 
     def read(self, depot_path: str, oodle: "Oodle") -> tuple[bytes, dict] | None:
@@ -95,6 +102,7 @@ class Archive:
             "archiveEntrySha1": expected_sha1,
             "sha1Verified": True,
             "sha256": hashlib.sha256(data).hexdigest(),
+            "shadowedEntryCount": len(self.shadowed_entries.get(hashed, [])),
         }
 
 
@@ -127,12 +135,14 @@ class Oodle:
 
 def read_string(payload: bytes) -> str:
     """Read REDengine's signed VLQ length and UTF-8/UTF-16LE CString."""
+    if not payload:
+        raise ValueError("Empty CString property")
     first = payload[0]
     negative = bool(first & 0x80)
     length, position, shift = first & 0x3F, 1, 6
     more = bool(first & 0x40)
     while more:
-        if position >= 5:
+        if position >= 5 or position >= len(payload):
             raise ValueError("Invalid CString length")
         byte = payload[position]
         position += 1
@@ -145,12 +155,20 @@ def read_string(payload: bytes) -> str:
     return payload[position:].decode("utf-8" if negative else "utf-16-le")
 
 
-def local_subtitle(data: bytes, string_id: str) -> tuple[str, dict] | None:
+def local_subtitle(data: bytes, string_id: str, variant: str = "femaleVariant") -> tuple[str, dict] | None:
     """Read a specific typed subtitle entry, never a nearby text substring."""
+    if variant not in {"femaleVariant", "maleVariant"}:
+        raise ValueError("Explicit femaleVariant or maleVariant is required")
+    if not re.fullmatch(r"[0-9]{1,20}", string_id) or int(string_id) > 0xFFFFFFFFFFFFFFFF:
+        raise ValueError("Invalid subtitle StringID")
+    if len(data) < 64:
+        raise ValueError("Truncated subtitle CR2W header")
     if data[:4] != b"CR2W" or struct.unpack_from("<I", data, 4)[0] != 195:
         raise ValueError("Unsupported subtitle CR2W version")
     string_offset, string_size, _ = struct.unpack_from("<III", data, 40)
     names_offset, name_count, _ = struct.unpack_from("<III", data, 52)
+    if string_offset + string_size > len(data) or names_offset + name_count * 8 > len(data):
+        raise ValueError("Subtitle CR2W table exceeds resource bounds")
     names = []
     for index in range(name_count):
         offset, _ = struct.unpack_from("<II", data, names_offset + index * 8)
@@ -159,7 +177,7 @@ def local_subtitle(data: bytes, string_id: str) -> tuple[str, dict] | None:
         start = string_offset + offset
         end = data.index(0, start, string_offset + string_size)
         names.append(data[start:end].decode("utf-8"))
-    if "localizationPersistenceSubtitleEntries" not in names:
+    if not {"localizationPersistenceSubtitleEntries", "stringId", "CRUID"}.issubset(names):
         raise ValueError("Resource is not a subtitle table")
     pattern = struct.pack("<HHIQ", names.index("stringId"), names.index("CRUID"),
                           12, int(string_id))
@@ -171,21 +189,29 @@ def local_subtitle(data: bytes, string_id: str) -> tuple[str, dict] | None:
     position += len(pattern)
     variants = {}
     while True:
+        if position + 2 > len(data):
+            raise ValueError("Truncated subtitle property")
         name_index = struct.unpack_from("<H", data, position)[0]
         if name_index == 0:
             break
+        if position + 8 > len(data):
+            raise ValueError("Truncated subtitle property header")
         name_index, type_index, size = struct.unpack_from("<HHI", data, position)
         if size < 4 or position + 4 + size > len(data):
             raise ValueError("Invalid subtitle property bounds")
+        if name_index >= len(names) or type_index >= len(names):
+            raise ValueError("Subtitle property name exceeds table bounds")
         name, kind = names[name_index], names[type_index]
         payload = data[position + 8:position + 4 + size]
         if name not in {"femaleVariant", "maleVariant"} or kind != "String":
             raise ValueError(f"Unexpected subtitle property: {name}/{kind}")
+        if name in variants:
+            raise ValueError("Duplicate subtitle variant property")
         variants[name] = read_string(payload)
         position += 4 + size
-    if not variants.get("femaleVariant"):
-        raise ValueError("Expected nonempty default/female subtitle variant")
-    return variants["femaleVariant"], {"variant": "femaleVariant", "variants": variants}
+    if not variants.get(variant):
+        raise ValueError("Expected nonempty requested subtitle variant")
+    return variants[variant], {"variant": variant, "variants": variants}
 
 
 def hidden_run(arguments: list[str]) -> subprocess.CompletedProcess:
@@ -194,11 +220,15 @@ def hidden_run(arguments: list[str]) -> subprocess.CompletedProcess:
 
 
 def wav_quality(path: Path) -> dict:
+    if not 44 <= path.stat().st_size <= MAX_RESOURCE_BYTES * 4:
+        raise ValueError("Decoded WAV exceeds bounded reference size")
     with wave.open(str(path), "rb") as handle:
         channels, width, rate, frames = handle.getnchannels(), handle.getsampwidth(), handle.getframerate(), handle.getnframes()
-        if width != 2:
+        if width != 2 or channels not in {1, 2} or not 8000 <= rate <= 192000 or not 0 < frames <= rate * 120:
             raise ValueError("Expected vgmstream's unfiltered 16-bit PCM output")
         samples = array.array("h", handle.readframes(frames))
+        if not channels or not rate or not frames or len(samples) != frames * channels:
+            raise ValueError("Empty or truncated decoded PCM WAV")
     if sys.byteorder != "little":
         samples.byteswap()
     peak = max(abs(value) for value in samples)
