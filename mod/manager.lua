@@ -16,9 +16,18 @@ local dirty, feedback, partyClock = true, '', 0
 local party, partySignature, previousStates = {}, '', {}
 local visible, selectedItem = {}, nil
 local localVoiceState, localVoiceSignature = {}, ''
-local localVoices = {['johnny-silverhand'] = true, ['judy-alvarez'] = true, ['panam-palmer'] = true}
+local localVoices = {}
 local eyeContactHeights = {-0.10, -0.05, 0, 0.05, 0.10}
 local headFollowStrengths = {0, 0.5, 1, 1.5}
+local relationshipProfiles = {
+    {key = 'judy-alvarez', name = 'Judy Alvarez'},
+    {key = 'panam-palmer', name = 'Panam Palmer'},
+    {key = 'river-ward', name = 'River Ward'},
+    {key = 'kerry-eurodyne', name = 'Kerry Eurodyne'},
+    {key = 'meredith-stout', name = 'Meredith Stout'},
+}
+local relationshipKeys = {}
+for _, profile in ipairs(relationshipProfiles) do relationshipKeys[profile.key] = true end
 local memoryLoaded, memorySession, memorySequence, memoryConfirmSequence = false, nil, 0, 0
 local memorySelected, memoryConfirmation, memoryCommand, memoryNotice = nil, nil, nil, ''
 local memoryState, memoryRecoveryBlocked = {state = 'unavailable'}, false
@@ -119,14 +128,9 @@ local function memoryCanClear(scope, key)
     end
     if memoryState.state ~= 'ready' then return false, 'The memory service is unavailable. Reopen this page after it reconnects.' end
     if scope == 'all' then
-        if not memoryState.talkedToCount or memoryState.talkedToCount == 0 then
-            return false, 'You have not talked to any characters yet.'
-        end
+        if not wholeNumber(memoryState.talkedToCount) then return false, 'The memory service is unavailable. Reopen this page after it reconnects.' end
     elseif scope == 'character' then
         if not byKey[key] then return false, 'Choose a character from the catalogue first.' end
-        if memoryState.talkedToCount == 0 or (memoryState.characters and not memoryState.characters[key]) then
-            return false, 'You have not talked to this character yet.'
-        end
     else return false, 'Choose a memory clear action from Settings.' end
     return true
 end
@@ -276,7 +280,18 @@ local function loadSettings()
     if settings.subtitleStyle ~= 'overhead' and settings.subtitleStyle ~= 'dialogue' then
         settings.subtitleStyle, settingsNeedSave = 'dialogue', true
     end
-    if type(settings.disappearingMessages) ~= 'boolean' then settings.disappearingMessages = false end
+    if settings.disappearingMessages ~= nil then
+        settings.disappearingMessages, settingsNeedSave = nil, true
+    end
+    if type(settings.relationshipModes) ~= 'table' then settings.relationshipModes, settingsNeedSave = {}, true end
+    for key in pairs(settings.relationshipModes) do
+        if not relationshipKeys[key] then settings.relationshipModes[key], settingsNeedSave = nil, true end
+    end
+    for key in pairs(relationshipKeys) do
+        if not isChoice(settings.relationshipModes[key], {'auto', 'on', 'off'}) then
+            settings.relationshipModes[key], settingsNeedSave = 'auto', true
+        end
+    end
     if type(settings.followUpQuestions) ~= 'boolean' then settings.followUpQuestions, settingsNeedSave = false, true end
     if type(settings.battleReactions) ~= 'boolean' then settings.battleReactions, settingsNeedSave = true, true end
     if type(settings.lootReactions) ~= 'boolean' then settings.lootReactions, settingsNeedSave = true, true end
@@ -337,14 +352,18 @@ function M.profileEnabled(key)
     return key ~= nil and byKey[key] ~= nil and settings.enabledByKey[key] ~= false
 end
 
-function M.disappearingMessages()
-    loadSettings()
-    return settings.disappearingMessages == true
-end
-
 function M.followUpQuestions()
     loadSettings()
     return settings.followUpQuestions == true
+end
+
+function M.relationshipChoices()
+    loadSettings()
+    local result = {}
+    for _, profile in ipairs(relationshipProfiles) do
+        result[#result + 1] = {key = profile.key, name = profile.name, mode = settings.relationshipModes[profile.key]}
+    end
+    return result
 end
 
 function M.subtitleStyle()
@@ -433,8 +452,13 @@ end
 local function updateLocalVoice()
     local state = readJSON('runtime/local-voice-state.json') or {}
     local fresh = type(state.updated) == 'number' and math.abs(os.time() - state.updated / 1000) < 15
-    if not fresh then state.state = 'waiting' end
+    localVoices = {}
+    if not fresh then state.state, state.routedProfiles = 'waiting', {} end
+    for _, key in ipairs(state.routedProfiles or {}) do
+        if type(key) == 'string' and byKey[key] then localVoices[key] = true end
+    end
     local signature = tostring(state.provider) .. ':' .. tostring(state.state) .. ':' .. tostring(state.steps)
+        .. ':' .. tostring(state.routeRevision)
     localVoiceState = state
     if signature ~= localVoiceSignature then localVoiceSignature, dirty = signature, true end
 end
@@ -826,11 +850,13 @@ function M.snapshot(player)
     updateMemory()
     local enabled = {}
     for key, value in pairs(settings.enabledByKey) do enabled[key] = value end
+    local relationshipModes = {}
+    for key in pairs(relationshipKeys) do relationshipModes[key] = settings.relationshipModes[key] end
     return {
         profiles = profiles, models = models, party = party, feedback = feedback,
         settings = {voice = settings.voice, subtitles = settings.subtitles, subtitleStyle = settings.subtitleStyle,
-            disappearingMessages = settings.disappearingMessages,
             followUpQuestions = settings.followUpQuestions,
+            relationshipModes = relationshipModes,
             battleReactions = settings.battleReactions,
             lootReactions = settings.lootReactions,
             eyeContactHeight = settings.eyeContactHeight,
@@ -869,10 +895,20 @@ function M.applySettings(player, values)
     for key, value in pairs(settings) do nextSettings[key] = value end
     nextSettings.enabledByKey = {}
     for key, value in pairs(settings.enabledByKey) do nextSettings.enabledByKey[key] = value end
+    nextSettings.relationshipModes = {}
+    for key, value in pairs(settings.relationshipModes) do nextSettings.relationshipModes[key] = value end
     for key, value in pairs(values) do
-        if key == 'voice' or key == 'subtitles' or key == 'disappearingMessages' or key == 'followUpQuestions' or key == 'battleReactions' or key == 'lootReactions' then
+        if key == 'voice' or key == 'subtitles' or key == 'followUpQuestions' or key == 'battleReactions' or key == 'lootReactions' then
             if type(value) ~= 'boolean' then return false, 'This setting must be on or off.' end
             nextSettings[key] = value
+        elseif key == 'relationshipModes' then
+            if type(value) ~= 'table' then return false, 'Choose Auto, On or Off for each relationship.' end
+            for profileKey, mode in pairs(value) do
+                if not relationshipKeys[profileKey] or not isChoice(mode, {'auto', 'on', 'off'}) then
+                    return false, 'Choose Auto, On or Off for each relationship.'
+                end
+                nextSettings.relationshipModes[profileKey] = mode
+            end
         elseif key == 'subtitleStyle' then
             if value ~= 'overhead' and value ~= 'dialogue' then return false, 'Choose Above speaker or Dialogue HUD.' end
             nextSettings.subtitleStyle = value

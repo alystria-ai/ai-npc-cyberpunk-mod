@@ -168,8 +168,8 @@ test('the validated wider registry selects Omni only for the matching reference;
 
 const turn = () => new Promise(resolve => setImmediate(resolve));
 const deferred = () => { let resolve; const promise = new Promise(done => { resolve = done; }); return {resolve, promise}; };
-function invitationVoiceFixture({reconfigure = async () => {}, prepare} = {}) {
-  const changes = [], calls = [], local = new Set(['alex']);
+function invitationVoiceFixture({reconfigure = async () => {}, retire = async () => {}, prepare} = {}) {
+  const changes = [], relationshipChanges = [], calls = [], local = new Set(['alex']);
   const localVoice = {routeRevision: 0, consumeRouteChanges: () => changes.splice(0),
     usesProfile: profile => local.has(profile), profileReady: profile => local.has(profile),
     prepareProfile: async (profile, options) => {
@@ -178,14 +178,21 @@ function invitationVoiceFixture({reconfigure = async () => {}, prepare} = {}) {
         ? {provider: 'omnivoice', ready: true, profile} : {provider: 'convai', ready: true, reason: 'selected'};
     }};
   const sandbox = {localVoice, abortable, throwIfCancelled, stopped: false, active: null, streaming: 0,
-    polling: false, micPolling: false, mic: {current: null}, prefetchPolling: false, memoryQuiescing: 0,
+    polling: false, micPolling: false, mic: {current: null}, phone: {active: null}, prefetchPolling: false, memoryQuiescing: 0,
+    relationshipRoutes: {revision: 0, consumeRouteChanges: () => relationshipChanges.splice(0)}, prewarmObserved: 'prior',
+    retireRelationshipConnections: async (connections, keys) => {
+      assert.equal(connections, sandbox.connections); calls.push(['retire', [...keys]]); return retire(keys);
+    },
     connections: {reconfigure: async keys => { calls.push(['reconfigure', [...keys]]); return reconfigure(keys); }}};
   runInNewContext(section('let voiceRouteSync =', 'const invitations =')
     + section('async function pollMicrophone(', 'async function tick(')
     + section('async function tick(', 'async function pollPrefetch(')
-    + ';globalThis.api={syncVoiceRoutes,prepareInvitedVoice,voiceBoundaryBusy,invitedVoiceCurrent,tick,pollMicrophone,'
-    + 'reserved:()=>voiceRouteReservation,queued:()=>voiceRoutePending.size,waiters:()=>voiceRouteWaiters.size};', sandbox);
-  return {...sandbox, context: sandbox, local, changes, calls, mark(keys) { localVoice.routeRevision++; changes.push(...keys); }};
+    + ';globalThis.api={syncVoiceRoutes,syncRelationshipRoutes,prepareInvitedVoice,voiceBoundaryBusy,invitedVoiceCurrent,tick,pollMicrophone,'
+    + 'reserved:()=>voiceRouteReservation,relationshipReserved:()=>relationshipRouteReservation,'
+    + 'queued:()=>voiceRoutePending.size,waiters:()=>voiceRouteWaiters.size};', sandbox);
+  return {...sandbox, context: sandbox, local, changes, calls,
+    mark(keys) { localVoice.routeRevision++; changes.push(...keys); },
+    markRelationship(keys) { sandbox.relationshipRoutes.revision++; relationshipChanges.push(...keys); }};
 }
 
 test('voice preparation holds Invite readiness until the affected connection pages are reconciled', async () => {
@@ -243,7 +250,7 @@ test('invalid preparation receipts and bridge shutdown cannot authorize a spawn 
   await assert.rejects(f.api.prepareInvitedVoice('alex'), /closed/);
 });
 
-test('the routing boundary includes text, phrase, microphone and input/context ownership', () => {
+test('the routing boundary includes text, phrase, microphone, phone and input/context ownership', () => {
   const f = invitationVoiceFixture();
   assert.equal(f.api.voiceBoundaryBusy(), false);
   for (const key of ['active', 'streaming', 'polling', 'micPolling', 'prefetchPolling', 'memoryQuiescing']) {
@@ -252,6 +259,38 @@ test('the routing boundary includes text, phrase, microphone and input/context o
   }
   f.context.mic.current = {}; assert.equal(f.api.voiceBoundaryBusy(), true);
   f.context.mic.current = null; assert.equal(f.api.voiceBoundaryBusy(), false);
+  f.context.phone.active = {}; assert.equal(f.api.voiceBoundaryBusy(), true);
+  f.context.phone.active = null; assert.equal(f.api.voiceBoundaryBusy(), false);
+});
+
+test('an active phone reply holds Invite voice reconciliation until its conversation boundary is idle', async () => {
+  const f = invitationVoiceFixture();
+  f.context.phone.active = {id: 'phone-turn'}; f.mark(['alex']);
+  let ready = false;
+  const preparation = f.api.prepareInvitedVoice('alex').then(value => { ready = true; return value; });
+  await turn();
+  assert.equal(ready, false); assert.equal(f.api.waiters(), 1); assert.equal(f.api.queued(), 1);
+  await f.api.syncVoiceRoutes();
+  assert.equal(f.calls.filter(call => call[0] === 'reconfigure').length, 0);
+  f.context.phone.active = null; await f.api.syncVoiceRoutes();
+  assert.equal((await preparation).provider, 'omnivoice');
+  assert.equal(f.calls.filter(call => call[0] === 'reconfigure').length, 1);
+  assert.equal(f.api.waiters(), 0); assert.equal(f.api.queued(), 0); assert.equal(f.api.reserved(), false);
+});
+
+test('relationship page retirement holds text, microphone and voice reconfiguration until its reservation releases', async () => {
+  const held = deferred(), f = invitationVoiceFixture({retire: () => held.promise});
+  f.markRelationship(['alex']); const retirement = f.api.syncRelationshipRoutes();
+  assert.equal(f.api.relationshipReserved(), true); assert.equal(f.api.voiceBoundaryBusy(), true);
+  f.mark(['alex']); await f.api.syncVoiceRoutes();
+  await f.api.tick(); await f.api.pollMicrophone();
+  assert.equal(f.context.polling, false); assert.equal(f.context.micPolling, false);
+  assert.deepEqual(f.calls, [['retire', ['alex']]]); assert.equal(f.api.queued(), 1);
+  held.resolve(); await retirement;
+  assert.equal(f.api.relationshipReserved(), false); assert.equal(f.context.prewarmObserved, '');
+  await f.api.syncVoiceRoutes();
+  assert.deepEqual(f.calls, [['retire', ['alex']], ['reconfigure', ['alex']]]);
+  assert.equal(f.api.queued(), 0); assert.equal(f.api.reserved(), false);
 });
 
 test('a failed idle reconciliation defers retry throughout a new active turn and releases Invite on the next idle poll', async () => {

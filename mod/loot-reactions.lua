@@ -239,13 +239,13 @@ function M.new()
         local wasCombat = sample and sample.combat
         sample = type(observation) == 'table' and {available = observation.available == true,
             blocked = observation.blocked == true, paused = observation.paused == true,
-            combat = observation.combat == true, holdForBattle = observation.holdForBattle == true,
+            combat = observation.combat == true,
             reason = text(observation.reason, 96)} or nil
         enabled, people = allow == true, peopleSnapshot(nearby)
         if sample and sample.combat and not wasCombat then
             combatSerial = combatSerial + 1
-            -- A battle and its aftermath own a fresh loot beat. Exploration
-            -- pickups preceding this fight must not become its claimed spoils.
+            -- A new fight interrupts old pending automatic pickup work. The
+            -- fight's new acquisitions remain a separate pickup turn later.
             discard()
         end
         if gate() then discard()
@@ -280,12 +280,13 @@ function M.new()
         return true
     end
 
-    -- Without options this is a detached diagnostic view, not a consumable
-    -- snapshot. Battle capture explicitly names an exact witnessed speaker.
+    -- Without options this is a detached diagnostic view. A named reaction
+    -- snapshot belongs only to the pickup's exact witness and standalone turn.
     function self.capture(options, now)
         now = time(now); prune(now)
         local reason = gate()
-        if type(options) ~= 'table' or not options.forBattle then
+        if type(options) == 'table' and options.forBattle then return nil, 'separate-reactions' end
+        if type(options) ~= 'table' or not options.forReaction then
             local items, exceptional = describe()
             return {version = 1, status = reason and 'suppressed' or (#pending > 0 and 'pending' or 'none'),
                 reason = reason, items = items, exceptional = exceptional, quietSeconds = quiet(),
@@ -297,7 +298,7 @@ function M.new()
         local person = currentPerson(options.entity, options.profileKey)
         if not person then return nil, 'witness-missing' end
         if not person.available then return nil, 'witness-unavailable' end
-        local snapshot, token = snapshotFor(person, 'battle', now)
+        local snapshot, token = snapshotFor(person, 'standalone', now)
         if snapshot then return snapshot end
         return nil, token
     end
@@ -305,7 +306,7 @@ function M.new()
     function self.offer(busy, nearby, now)
         now = time(now); prune(now)
         people = peopleSnapshot(nearby)
-        if busy or active or gate() or sample.paused or sample.combat or sample.holdForBattle
+        if busy or active or gate() or sample.paused or sample.combat
             or #pending == 0 or quiet() < LIMIT.quiet then return nil end
         local chosen, profiles = nil, {}
         for _, person in ipairs(people) do
@@ -329,7 +330,7 @@ function M.new()
         now = time(now); prune(now)
         local reason = gate()
         if reason then return false, reason end
-        if sample.paused or sample.combat or sample.holdForBattle then return false, 'world-busy' end
+        if sample.paused or sample.combat then return false, 'world-busy' end
         if active then return false, 'reaction-active' end
         if type(event) ~= 'table' or type(event.reaction) ~= 'table' or event.reaction.kind ~= 'loot'
             or type(event.loot) ~= 'table' or event.reaction.batch ~= event.loot.batch then return false, 'event-invalid' end
@@ -359,7 +360,6 @@ function M.new()
             or reaction.batch ~= active.snapshot.batch then return false, 'reaction-not-owned' end
         if sample.paused then return false, 'paused' end
         if sample.combat or active.combat ~= combatSerial then return false, 'combat-resumed' end
-        if sample.holdForBattle then return false, 'battle-reserved' end
         local playing = finite(playbackAt) and playbackAt * 1000 <= active.expiresAt
             and playbackAt >= active.claimedAt and now >= playbackAt and now - playbackAt <= LIMIT.playback
         if not playing and now * 1000 > active.expiresAt then
@@ -381,30 +381,6 @@ function M.new()
         active = nil; return true
     end
 
-    -- The caller reserves the battle closing before offering standalone loot.
-    -- Capture may happen during combat; consume requires a quiet world again.
-    function self.consumeForBattle(snapshot, now)
-        now = time(now); prune(now)
-        local reason = gate()
-        if reason then return nil, reason end
-        if sample.paused or sample.combat then return nil, 'world-busy' end
-        if active then return nil, 'reaction-active' end
-        local token; token, reason = validateToken(snapshot, 'battle', now)
-        if not token then return nil, reason end
-        retire(token)
-        self.suppressAfterBattle(now)
-        lastSpeaker = token.snapshot.witness.profileKey
-        return copy(token.snapshot)
-    end
-
-    function self.suppressAfterBattle(now)
-        now = time(now); prune(now)
-        ordinaryUntil, exceptionalUntil = now + LIMIT.ordinary, now + LIMIT.exceptional
-        -- Suppression consumes no pending receipts: only an owned snapshot can
-        -- retire them. They expire silently instead of replaying after cooldown.
-        tokens, active = {}, nil
-    end
-
     function self.status()
         return {clock = clock, enabled = enabled, suppressed = gate(),
             pending = #pending, descriptions = #describe(), quietSeconds = quiet(),
@@ -412,7 +388,6 @@ function M.new()
             lastActivityAge = lastActivity and math.max(0, wall - lastActivity.wall),
             pendingUntil = lastActivity and lastActivity.wall + LIMIT.pending,
             combat = sample and sample.combat or false, paused = sample and sample.paused or false,
-            holdForBattle = sample and sample.holdForBattle or false,
             cooldownUntil = ordinaryUntil, exceptionalCooldownUntil = exceptionalUntil,
             snapshots = tokenCount(), rememberedReceipts = #seenOrder,
             active = active and active.snapshot.batch, rejected = rejected, expired = expired,

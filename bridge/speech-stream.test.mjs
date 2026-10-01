@@ -39,6 +39,14 @@ test('phrases preserve every word and favour natural boundaries with a short fir
   assert.equal(splitSpeechText(unpunctuated).join(' '), unpunctuated);
 });
 
+test('every locally synthesized Omni phrase retains one correlated Convai expression receipt',async()=>{
+  const h=harness(3),expressionSignal={version:1,correlated:true,sequence:0,emotion:'Grief',scale:2};
+  await h.stream.begin({...audio,expressionSignal});h.ack(0);await h.stream.finish();
+  assert.equal(h.manifests.at(-1).chunks.length,3);
+  for(const chunk of h.manifests.at(-1).chunks)
+    assert.deepEqual(chunk.face.expression,{version:1,...owner,sequence:0,emotion:'Grief',scale:2});
+});
+
 test('first phrase publishes immediately; production stays two phrases ahead and never overwrites playing audio', async () => {
   const h = harness(10);
   await h.stream.begin(audio);

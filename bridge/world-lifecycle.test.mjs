@@ -94,6 +94,7 @@ ObserveAfter = function(class, method, callback) after[class .. '.' .. method] =
 local player = {attached = true, dead = false, phoneOpen = false, phoneRequest = ''}
 function player:IsAttached() nativeRead('IsAttached'); return self.attached end
 function player:IsDeadNoStatPool() nativeRead('IsDeadNoStatPool'); return self.dead end
+function player:GetEntityID() nativeRead('GetEntityID'); return {hash='player'} end
 function player:ConvaiComposerOpen() return false end
 function player:ConvaiHasSubmission() return false end
 function player:ConvaiPhoneIsOpen() return self.phoneOpen end
@@ -105,8 +106,13 @@ function player:ConvaiEndFocus() note('end-focus') end
 function player:ConvaiCloseManager() note('close-manager') end
 local requests = {IsPreGame = function() nativeRead('IsPreGame'); return false end,
     IsGamePaused = function() return player.phoneOpen end, GetGameVersion = function() return '2.31' end}
-local definitions = {UI_System = {IsInMenu = 'in-menu'}}
-local board = {GetBool = function() return player.phoneOpen end}
+local definitions = {UI_System = {IsInMenu = 'in-menu'},FastTRavelSystem={StartingPoint='starting-point'}}
+local board = {GetBool = function() return player.phoneOpen end,GetVariant=function() return 'origin-point' end}
+FromVariant=function(value) return value end
+local fastTravelSystem={HasFastTravelPoint=function(_,point) return point.known==true end}
+local function travelRequest(destination,known,actor)
+    return {player=actor or player,pointData={known=known~=false,GetPointRecord=function() return destination end}}
+end
 local targeting = {GetTargetParts = function() return nil, {} end,
     GetObjectClosestToCrosshair = function() return nil end, GetLookAtObject = function() return nil end,
     GetCrosshairData = function() return {x = 0, y = 0, z = 0}, {x = 0, y = 1, z = 0} end}
@@ -247,6 +253,10 @@ modules = {
     ['loot-reactions.lua'] = {new = function() return loot end}, ['loot-observer.lua'] = lootObserver,
     ['manager-party.lua'] = (function() ${partyQueueSource} end)(), ['mcm-entry.lua'] = {}, ['companion-locomotion.lua'] = {install = noOp},
     ['composer-input.lua'] = {install = noOp}, ['phone-input.lua'] = {install = noOp},
+    ['relationship-state.lua'] = {new = function()
+        return {update = function() note('relationship-capture') end,
+            reset = function(_, reason) note('relationship-unavailable', reason) end}
+    end},
     ['world-knowledge.lua'] = {new = function(options)
         worldOptions = options; worldCollector = collector('world-collector', options); return worldCollector
     end},
@@ -282,7 +292,18 @@ local function primeSessions()
     companions.session, speech.requestId, subtitles.line = 'old-party', 'old-playback', 'old-caption'
     microphone.context, group.round, phone.pending = {id = 'old-microphone'}, {stage = 'waiting', participants = {}}, {id = 'old-phone'}
 end
-companions.abandon = function() note('companions-abandon'); companions.session = nil; members = {} end
+companions.beginFastTravel=function()
+    note('companions-transit-start'); companions.inTransit=true; return true
+end
+companions.fastTravel=function()
+    if not companions.inTransit then return false end
+    note('companions-transit-finished'); companions.travelReturns=(companions.travelReturns or 0)+1
+    return true
+end
+companions.abandon = function(preserveTransit)
+    note('companions-abandon'); companions.session = nil
+    if not preserveTransit then members = {}; companions.inTransit=nil end
+end
 speech.abandon = function() note('speech-abandon'); speech.requestId = nil end
 subtitles.abandon = function() note('subtitles-abandon'); subtitles.line = nil end
 microphone.cancel = function()
@@ -453,4 +474,80 @@ assert(controlled.ready and controlled.token ~= attached.token and controlled.ge
 local captured = assert(microphone.captureKnowledge({profileKey = 'judy-alvarez'}, 'private'))
 assert(captured.owner.worldToken == controlled.token and captured.worldKnowledge.identity.status == 'unknown')
 assert(worldCollector.configurations == 1 and convaiQuestContext.capture().status == 'active')
+`));
+
+test('verified fast travel request preserves only transit intent through detach and waits for true completion', () => run(`
+events.onInit(); events.onUpdate(0); primeSessions()
+members={{serial=4,key='judy-alvarez',profileKey='panam-palmer',state='ready'}}
+local first=published(); local callback=before['FastTravelSystem.OnPerformFastTravelRequest']
+local finished=after['FastTravelSystem.OnLoadingScreenFinished']
+assert(type(callback)=='function' and type(finished)=='function')
+finished(nil,true); assert(companions.travelReturns==nil and published().ready)
+callback(fastTravelSystem,travelRequest('origin-point')); assert(not companions.inTransit)
+callback(fastTravelSystem,travelRequest('destination',false)); assert(not companions.inTransit)
+callback(fastTravelSystem,travelRequest('destination',true,{})); assert(not companions.inTransit)
+callback(fastTravelSystem,travelRequest('destination'))
+assert(companions.inTransit and #members==1 and not published().ready)
+assert(speech.requestId==nil and phone.pending==nil and microphone.context==nil)
+local reads=stats.journalReads
+tearingDown=true; before['PlayerPuppet.OnDetach'](); tearingDown=false
+after['PlayerPuppet.OnGameAttached'](); events.onUpdate(0.1)
+assert(companions.inTransit and #members==1 and stats.journalReads==reads and not published().ready)
+finished(nil,false); events.onUpdate(0.1)
+assert(companions.travelReturns==nil and not published().ready)
+tearingDown=true; finished(nil,true); tearingDown=false
+events.onUpdate(0)
+assert(companions.travelReturns==1 and #members==1 and published().ready)
+assert(published().token~=first.token and members[1].profileKey=='panam-palmer')
+finished(nil,true); assert(companions.travelReturns==1,'late completion repeated recovery')
+`));
+
+test('save restoration and death always discard armed fast travel instead of recreating the party', () => run(`
+events.onInit(); events.onUpdate(0)
+local begin=before['FastTravelSystem.OnPerformFastTravelRequest']
+local finish=after['FastTravelSystem.OnLoadingScreenFinished']
+members={{serial=2,key='judy-alvarez',state='ready'}}
+begin(fastTravelSystem,travelRequest('destination'))
+tearingDown=true; after['PlayerSystem.OnGameRestored'](); tearingDown=false
+finish(nil,true); events.onUpdate(0.1)
+assert(#members==0 and not companions.inTransit and companions.travelReturns==nil and stats.spawned==0)
+members={{serial=3,key='judy-alvarez',state='ready'}}
+begin(fastTravelSystem,travelRequest('destination'))
+tearingDown=true; before['PlayerPuppet.OnDeath'](); tearingDown=false
+finish(nil,true); events.onUpdate(0.1)
+assert(#members==0 and not companions.inTransit and companions.travelReturns==nil and not published().ready)
+`));
+
+test('unfinished fast travel expires without restoration or native teardown reads', () => run(`
+events.onInit(); events.onUpdate(0)
+members={{serial=3,key='judy-alvarez',state='ready'}}
+before['FastTravelSystem.OnPerformFastTravelRequest'](fastTravelSystem,travelRequest('destination'))
+clock=clock+121; events.onUpdate(0.1)
+assert(#members==0 and not companions.inTransit and not published().ready)
+after['FastTravelSystem.OnLoadingScreenFinished'](nil,true); events.onUpdate(0.1)
+assert(companions.travelReturns==nil and not published().ready and stats.spawned==0)
+`));
+
+test('expression context samples current actors only in a ready world and listening requires active recording', () => run(`
+local context,actorSamples=nil,0
+speech.update=function(_,value) context=value end
+companions.conversationCandidates=function(_,radius)
+ nativeRead('expression actors'); actorSamples=actorSamples+1
+ return {{entity='13ULL',profileKey='judy-alvarez'}}
+end
+player.IsInCombat=function() nativeRead('expression combat'); return false end
+events.onInit(); events.onUpdate(0)
+assert(context and not context.paused and not context.blocked and #context.actors==1)
+microphone.state='recording'; microphone.context={entity='13ULL'}; events.onUpdate(0)
+assert(context.listeningEntity=='13ULL')
+microphone.state='reply'; events.onUpdate(0)
+assert(context.listeningEntity==nil,'inactive microphone context made idle focus look like listening')
+local beforeSamples=actorSamples
+player.phoneOpen=true; events.onUpdate(0)
+assert(context.paused and #context.actors==0 and actorSamples==beforeSamples)
+player.phoneOpen=false; player.IsInCombat=function() error('combat state unavailable') end
+events.onUpdate(0); assert(context.blocked and #context.actors==1)
+tearingDown=true; before['PlayerPuppet.OnDetach'](); tearingDown=false
+local lastContext=context; events.onUpdate(0)
+assert(context==lastContext and actorSamples==beforeSamples+1)
 `));

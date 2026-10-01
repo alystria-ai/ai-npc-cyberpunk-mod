@@ -11,6 +11,9 @@ end
 local function integer(value, minimum)
     return type(value) == 'number' and value == math.floor(value) and value >= (minimum or 0) and value <= 2147483647
 end
+local function resetInteger(value)
+    return type(value) == 'number' and value == math.floor(value) and value >= 0 and value <= 9007199254740991
+end
 local function nativeID(value)
     return type(value) == 'string' and #value == 32 and value:match('^[a-f0-9]+$') ~= nil
 end
@@ -88,6 +91,198 @@ local function publish(active)
     return write('runtime/phone-chat-input.json', {version = 2, world = M.world, active = active,
         saveIdentity = M.saveIdentity, updated = os.time() * 1000, request = M.pending})
 end
+local function resetIdentity(value)
+    return value.scope == 'all' and 'all' or 'character:' .. value.profileKey
+end
+local function resetAction(value)
+    return type(value) == 'table' and type(value.id) == 'string' and #value.id > 0 and #value.id <= 256
+        and value.id:match('^[A-Za-z0-9][A-Za-z0-9_.:@%-]*$') ~= nil
+        and (value.scope == 'all' and value.profileKey == nil
+            or value.scope == 'character' and type(value.profileKey) == 'string' and #value.profileKey > 0
+                and #value.profileKey <= 80 and value.profileKey:match('^[a-z0-9][a-z0-9%-]*$') ~= nil)
+end
+local function actionList(values)
+    if type(values) ~= 'table' or #values > 4096 then return nil end
+    local result, count = {}, 0
+    for key, value in pairs(values) do
+        count = count + 1
+        if not integer(key, 1) or key > #values or not resetAction(value) or result[value.id] then return nil end
+        result[value.id] = resetIdentity(value)
+    end
+    return count == #values and result or nil
+end
+local function resetState(value)
+    if type(value) ~= 'table' or value.version ~= 1 or not integer(value.revision)
+        or type(value.blockAll) ~= 'boolean' or type(value.blockedProfiles) ~= 'table'
+        or #value.blockedProfiles > 1024 then return nil end
+    local baseline, tracked, receipts, pending = actionList(value.baseline), actionList(value.tracked),
+        actionList(value.receipts), actionList(value.pending)
+    if not baseline or not tracked or not receipts or not pending then return nil end
+    local known, count = {}, 0
+    for id, identity in pairs(baseline) do known[id], count = identity, count + 1 end
+    for id, identity in pairs(tracked) do if known[id] then return nil end; known[id], count = identity, count + 1 end
+    if count > 4096 then return nil end
+    for id, identity in pairs(receipts) do if tracked[id] ~= identity then return nil end end
+    for id, identity in pairs(pending) do if known[id] ~= identity then return nil end end
+    local blocked, rows = {}, 0
+    for index, key in pairs(value.blockedProfiles) do
+        rows = rows + 1
+        if not integer(index, 1) or index > #value.blockedProfiles or type(key) ~= 'string'
+            or #key == 0 or #key > 80 or not key:match('^[a-z0-9][a-z0-9%-]*$') or blocked[key] then return nil end
+        blocked[key] = true
+    end
+    if rows ~= #value.blockedProfiles then return nil end
+    local families = value.profileFamilies or {}
+    if type(families) ~= 'table' then return nil end
+    local familyCount = 0
+    for key, family in pairs(families) do
+        familyCount = familyCount + 1
+        if familyCount > 1024 or type(key) ~= 'string' or #key > 80 or not key:match('^[a-z0-9][a-z0-9%-]*$')
+            or type(family) ~= 'string' or #family > 80 or not family:match('^[a-z0-9][a-z0-9%-]*$') then return nil end
+    end
+    for _, family in pairs(families) do if families[family] ~= nil and families[family] ~= family then return nil end end
+    local memoryEpochs = value.memoryEpochs
+    if memoryEpochs ~= nil then
+        if type(memoryEpochs) ~= 'table' or memoryEpochs.version ~= 1 or not resetInteger(memoryEpochs.globalEpoch)
+            or type(memoryEpochs.characterEpochs) ~= 'table' then return nil end
+        local epochCount = 0
+        for key, epoch in pairs(memoryEpochs.characterEpochs) do
+            epochCount = epochCount + 1
+            if epochCount > 2048 or type(key) ~= 'string' or #key > 80 or not key:match('^[a-z0-9][a-z0-9%-]*$')
+                or not resetInteger(epoch) then return nil end
+        end
+    end
+    local allEpoch, epochs = 0, {}
+    for _, actions in ipairs({value.baseline,value.tracked}) do for _, action in ipairs(actions) do
+        if action.scope == 'all' then allEpoch = allEpoch + 1
+        else local family = families[action.profileKey] or action.profileKey
+            epochs[family] = (epochs[family] or 0) + 1
+        end
+    end end
+    return {revision=value.revision, receipts=value.receipts, blocked=blocked, blockAll=value.blockAll,
+        families=families, globalEpoch=allEpoch, characterEpochs=epochs, memoryEpochs=memoryEpochs}
+end
+local function affected(contact, action)
+    local previous = M.store.contactProfiles[contact]
+    return action.scope == 'all' or M.catalog[contact] == action.profileKey or previous == action.profileKey
+        or (previous ~= nil and M.resetState.families[previous] == action.profileKey)
+end
+local function erase(container, action, depth)
+    if type(container) ~= 'table' or (depth or 0) > 64 then return end
+    for _, field in ipairs({'history', 'drafts'}) do
+        if type(container[field]) == 'table' then
+            if action.scope == 'all' then container[field] = {}
+            else for contact in pairs(container[field]) do if affected(contact, action) then container[field][contact] = nil end end end
+        end
+    end
+    -- Archived structured buckets remain on disk for migration/recovery. Apply
+    -- the same clear there, so recovery cannot resurrect a forgotten Chat.
+    for key, value in pairs(container) do
+        if key ~= 'history' and key ~= 'drafts' and type(value) == 'table' then erase(value, action, (depth or 0) + 1) end
+    end
+end
+local function memoryResets()
+    if M.resetStoreFault then return false end
+    local file = io.open('runtime/memory-chat-resets.json', 'rb')
+    local raw
+    if file then raw = file:read('*a'); file:close() end
+    if raw ~= M.resetRaw then
+        local decoded, value = pcall(json.decode, raw)
+        M.resetParsed = decoded and resetState(value) or nil
+        M.resetRaw = raw
+    end
+    local state = raw ~= nil and M.resetParsed or nil
+    if raw ~= nil and not state then return false end
+    if state and M.resetState and state.revision < M.resetState.revision then return false end
+    if state and (not M.resetState or state.revision >= M.resetState.revision) then M.resetState = state end
+    if not M.resetState then return raw == nil end -- a malformed established journal fails closed
+    state = M.resetState
+    local blockedChanged = M.blockAll ~= state.blockAll
+    for key in pairs(M.blockedProfiles or {}) do if not state.blocked[key] then blockedChanged = true end end
+    for key in pairs(state.blocked) do if not (M.blockedProfiles or {})[key] then blockedChanged = true end end
+    M.blockAll, M.blockedProfiles = state.blockAll, state.blocked
+    local cleared = false
+    local migrated, previousApplied = false, {}
+    for id, applied in pairs(M.store.memoryResetsApplied) do
+        local previous = applied:match('^character:([a-z0-9][a-z0-9%-]*)$')
+        local family = previous and state.families[previous]
+        if family and family ~= previous then
+            previousApplied[id] = applied; M.store.memoryResetsApplied[id] = 'character:' .. family; migrated = true
+        end
+    end
+    if migrated and not save() then
+        for id, previous in pairs(previousApplied) do M.store.memoryResetsApplied[id] = previous end
+        return false
+    end
+    for _, action in ipairs(state.receipts) do
+        local identity, applied = resetIdentity(action), M.store.memoryResetsApplied[action.id]
+        if applied and applied ~= identity then
+            local previous = type(applied) == 'string' and applied:match('^character:([a-z0-9][a-z0-9%-]*)$')
+            if action.scope ~= 'character' or not previous or state.families[previous] ~= action.profileKey then return false end
+            -- Family migration changes the label of an old tombstone, not its
+            -- action ID. Do not replay that deletion against post-clear Chat.
+            M.store.memoryResetsApplied[action.id] = identity
+            if not save() then M.store.memoryResetsApplied[action.id] = applied; return false end
+        end
+        if not applied then
+            erase(M.store.buckets, action)
+            if action.scope == 'all' then M.store.legacy = {} else erase(M.store.legacy, action) end
+            for contact in pairs(M.history) do if affected(contact, action) then M.history[contact] = nil end end
+            for contact in pairs(M.drafts) do if affected(contact, action) then M.drafts[contact] = nil end end
+            for contact in pairs(M.catalog) do if affected(contact, action) then
+                M.resetDrafts[contact] = true
+                if M.errors then M.errors[contact] = nil end
+            end end
+            if M.pending and affected(M.pending.contact, action) then M.pending, M.sentAt = nil, nil; publish(true) end
+            M.store.memoryResetsApplied[action.id] = identity
+            if not save() then M.store.memoryResetsApplied[action.id] = nil; return false end
+            cleared, M.dirty = true, true
+        end
+    end
+    local oldReset = M.pending and M.pending.memoryReset or {version=1,globalEpoch=0,characterEpoch=0}
+    local stalePending = M.pending and (oldReset.version ~= 1 or oldReset.globalEpoch ~= state.globalEpoch
+        or oldReset.characterEpoch ~= (state.characterEpochs[M.pending.profileKey] or 0)
+        or (oldReset.globalMemoryEpoch or 0) ~= (state.memoryEpochs and state.memoryEpochs.globalEpoch or 0)
+        or (oldReset.characterMemoryEpoch or 0) ~= (state.memoryEpochs and state.memoryEpochs.characterEpochs[M.pending.profileKey] or 0))
+    if M.pending and (M.blockAll or M.blockedProfiles[M.pending.profileKey] or stalePending) then
+        -- Pending/uncertain resets cancel the old turn, but preserve the draft
+        -- until success. A failed deletion must not erase the user's Chat.
+        if (M.drafts[M.pending.contact] or '') == '' then M.drafts[M.pending.contact] = M.pending.text end
+        M.resetDrafts[M.pending.contact] = true; M.clearDraft = M.pending.contact
+        M.errors = M.errors or {}; M.errors[M.pending.contact] = 'Conversation interrupted. Your message is in the draft.'
+        M.pending, M.sentAt, M.dirty = nil, nil, true
+        save(); publish(true)
+    end
+    if cleared or blockedChanged then M.dirty = true end
+    return true
+end
+local function refreshMemoryResets()
+    local healthy = memoryResets()
+    if M.resetHealthy ~= healthy then M.dirty = true end
+    M.resetHealthy = healthy
+    return healthy
+end
+local function phoneReset(key)
+    local state = M.resetState
+    local result = {version=1,globalEpoch=state and state.globalEpoch or 0,
+        characterEpoch=state and state.characterEpochs[key] or 0}
+    if state and state.memoryEpochs then
+        result.globalMemoryEpoch = state.memoryEpochs.globalEpoch
+        result.characterMemoryEpoch = state.memoryEpochs.characterEpochs[key] or 0
+    end
+    return result
+end
+local function recentPhoneConversation(contact, key, reset)
+    local rows, bytes, previous = {}, 0, M.history[contact] or {}
+    for index = #previous, math.max(1, #previous - 5), -1 do
+        local row = previous[index]
+        if type(row) ~= 'table' or type(row.text) ~= 'string' or not row.text:find('%S')
+            or type(row.sent) ~= 'boolean' or bytes + #row.text > 2400 then break end
+        table.insert(rows, 1, {text=row.text,sent=row.sent}); bytes = bytes + #row.text
+    end
+    return {version=1,source='local-phone-chat',contact=contact,profileKey=key,world=M.world,
+        binding=M.bindingKey,historyScope=M.scope,memoryReset=copy(reset),rows=rows}
+end
 function M.configure(profiles, manager, options)
     local supported = {}; for _, p in ipairs(profiles) do supported[p.key] = true end
     for _, c in ipairs(read('phone-contacts.json') or {}) do
@@ -108,9 +303,25 @@ function M.configure(profiles, manager, options)
     local legacy = stored or (raw and {unparsed=raw}) or {}
     stored = stored or {}
     if stored.version == 3 and type(stored.buckets) == 'table' then M.store = stored
-    else M.store = {version=3,buckets={},legacy={copy(legacy)},launchPolicies={}} end
-    M.store.launchPolicies = M.store.launchPolicies or {}
+    else M.store = {version=3,buckets={},legacy={copy(legacy)}} end
     M.store.legacy = M.store.legacy or {}
+    M.store.contactProfiles = M.store.contactProfiles or {}
+    M.store.memoryResetsApplied = M.store.memoryResetsApplied or {}
+    M.resetStoreFault = type(M.store.memoryResetsApplied) ~= 'table' or type(M.store.contactProfiles) ~= 'table'
+    if not M.resetStoreFault then for contact, key in pairs(M.store.contactProfiles) do
+        if type(contact) ~= 'string' or #contact == 0 or #contact > 120 or not contact:match('^[A-Za-z0-9_%-]+$')
+            or type(key) ~= 'string' or #key == 0 or #key > 80 or not key:match('^[a-z0-9][a-z0-9%-]*$') then
+            M.resetStoreFault = true; break
+        end
+    end end
+    if not M.resetStoreFault then for id, value in pairs(M.store.memoryResetsApplied) do
+        if type(id) ~= 'string' or #id == 0 or #id > 256 or not id:match('^[A-Za-z0-9][A-Za-z0-9_.:@%-]*$')
+            or type(value) ~= 'string' or (value ~= 'all' and not value:match('^character:[a-z0-9][a-z0-9%-]*$')) then
+            M.resetStoreFault = true; break
+        end
+    end end
+    if not M.resetStoreFault then for contact, key in pairs(M.catalog) do M.store.contactProfiles[contact] = key end end
+    M.resetDrafts, M.blockedProfiles, M.blockAll = {}, {}, false
     if damaged then M.store.legacy[#M.store.legacy + 1] = {reason='damaged-primary',unparsed=damaged} end
     -- Select only the exact prior displayed session for the one-time policy
     -- migration. Do not combine unrelated legacy campaign/session buckets.
@@ -125,7 +336,6 @@ function M.configure(profiles, manager, options)
             M.previousDisplayScope = key
         end
     end
-    M.disappearOnLaunch = manager.disappearingMessages and manager.disappearingMessages() or false
     M.captureDrafts = false
 end
 
@@ -148,8 +358,8 @@ local function selectBucket(value)
     for contact, rows in pairs(type(stored.history) == 'table' and stored.history or {}) do
         if type(rows) == 'table' then
             M.history[contact] = {}
-            -- The transcript is user history. Retention is controlled by the
-            -- explicit disappearing-messages policy, never a silent row cap.
+            -- Full transcripts persist across launches. Only an explicit,
+            -- confirmed character/all memory clear removes their Chat data.
             for i = 1, #rows do
                 local row = rows[i]
                 if type(row) == 'table' and type(row.text) == 'string' and #row.text <= 6000 then
@@ -163,20 +373,6 @@ local function selectBucket(value)
     end
 end
 
-local function identifyLaunch()
-    if M.launchResolved then return true end
-    local identity = read('runtime/phone-game-launch.json')
-    if not identity or identity.world ~= M.world or type(identity.launch) ~= 'string'
-        or not identity.launch:match('^%d+%-%d+$') then return not M.disappearOnLaunch end
-    local policy = M.store.launchPolicies[identity.launch]
-    if type(policy) ~= 'boolean' then policy = M.disappearOnLaunch; M.store.launchPolicies[identity.launch] = policy end
-    if policy and identity.launch ~= M.launch then
-        M.history, M.drafts, M.errors = {}, {}, {}
-    end
-    M.launch, M.launchResolved, M.dirty, M.lastPaint = identity.launch, true, true, nil
-    save()
-    return true
-end
 function M.abandon()
     if M.world then publish(false) end
     if M.pending then
@@ -185,7 +381,7 @@ function M.abandon()
     end
     save()
     M.world, M.pending, M.contact, M.lastPaint, M.lastHeartbeat, M.registered = nil, nil, nil, nil, nil, nil
-    M.saveIdentity, M.bindingKey, M.bucket, M.scope, M.launchResolved, M.captureDrafts = nil, nil, nil, nil, nil, false
+    M.saveIdentity, M.bindingKey, M.bucket, M.scope, M.captureDrafts = nil, nil, nil, nil, false
     M.history, M.drafts, M.errors = {}, {}, {}
 end
 function M.update(player, delta)
@@ -193,7 +389,11 @@ function M.update(player, delta)
     local currentKey = bindingKey(currentBinding)
     local changed = not M.world or currentKey ~= M.bindingKey
         or displayScope(currentBinding) ~= displayScope(M.saveIdentity or {})
+    local historyReady = M.resetHealthy ~= false
     if changed then
+        -- A load must observe clear receipts before abandon could restore an
+        -- interrupted draft. Otherwise poll on the existing phone cadence.
+        historyReady = refreshMemoryResets()
         if M.world then M.abandon() end
         M.world = tostring(os.time()) .. '-' .. tostring(math.random(100000000, 999999999))
         M.saveIdentity, M.bindingKey = currentBinding, currentKey
@@ -207,6 +407,7 @@ function M.update(player, delta)
     M.tick = M.tick + math.max(tonumber(delta) or 0, 1 / 60)
     if M.tick < 0.10 then return end
     M.tick = 0
+    if not changed then historyReady = refreshMemoryResets() end
     local supported, contact = pcall(function() return player:ConvaiPhoneChatContact() end)
     if not supported then return end -- staged Lua remains safe before native install
     player:ConvaiPhoneChatTick()
@@ -216,10 +417,10 @@ function M.update(player, delta)
         M.registered = true
     end
     contact = tostring(contact or '')
-    local historyReady = identifyLaunch()
     local draft = player:ConvaiPhoneChatDraft()
     -- Native stores the last draft before its controller is destroyed or recycled.
-    if M.captureDrafts and draft and M.catalog[draft.contact] and M.drafts[draft.contact] ~= draft.text then
+    if historyReady and M.captureDrafts and draft and M.catalog[draft.contact] and not M.resetDrafts[draft.contact]
+        and (M.drafts[draft.contact] or '') ~= draft.text then
         M.drafts[draft.contact] = draft.text; M.saveDraft = true
     end
     if contact ~= M.contact then M.contact = contact; M.dirty = true end
@@ -229,7 +430,13 @@ function M.update(player, delta)
         local text = tostring(submission.text or ''):match('^%s*(.-)%s*$')
         M.errors = M.errors or {}
         if not historyReady then
-            M.errors[submission.contact] = 'Waiting for the conversation service.'
+            M.errors[submission.contact] = 'Saved Chat cleanup could not be verified. Please wait for the memory service.'
+        elseif M.resetDrafts[submission.contact] then
+            -- A native submission queued before Forget belongs to the cleared
+            -- editor. Paint its empty draft before allowing a fresh send.
+            M.errors[submission.contact] = nil
+        elseif M.blockAll or M.blockedProfiles[key] then
+            M.errors[submission.contact] = 'Memory clearing is in progress. Your draft has been kept.'
         elseif text == '' then
             M.errors[submission.contact] = 'Type a message first.'
         elseif not key or not M.manager.profileEnabled(key) then
@@ -247,7 +454,9 @@ function M.update(player, delta)
                 M.abandon(); return
             end
             M.saveIdentity = confirmed
+            local reset = phoneReset(key)
             M.pending = {id = M.world .. '-' .. M.serial, contact = submission.contact, profileKey = key, text = text,
+                memoryReset=reset,recentConversation=recentPhoneConversation(submission.contact,key,reset),
                 followUpQuestions = type(M.manager.followUpQuestions) == 'function' and M.manager.followUpQuestions() == true,
                 saveIdentity = copy(confirmed), worldKnowledge = worldKnowledge or {version=1,status='unavailable'},
                 journalHistory = journalHistory, journal = journal, battle = battle}
@@ -272,7 +481,7 @@ function M.update(player, delta)
         end
         M.pending = nil; M.dirty = true; save(); publish(true)
     end
-    if M.pending then
+    if historyReady and M.pending then
         local reply = read('runtime/phone-chat-output.json')
         if reply and reply.world == M.world and reply.binding == M.bindingKey
             and reply.id == M.pending.id and reply.contact == M.pending.contact then
@@ -309,7 +518,8 @@ function M.update(player, delta)
     end
     if contact ~= '' and M.dirty then
         local key = M.catalog[contact]
-        local enabled = historyReady and key ~= nil and M.manager.profileEnabled(key)
+        local blocked = M.blockAll or M.blockedProfiles[key]
+        local enabled = historyReady and key ~= nil and not blocked and M.manager.profileEnabled(key)
         local lines = {}
         for _, row in ipairs(historyReady and M.history[contact] or {}) do
             local line = NewObject('CyberpunkConvai.ConvaiPhoneChatLine')
@@ -318,10 +528,12 @@ function M.update(player, delta)
         local waiting = M.pending and (M.pending.contact == contact and 'Message sent. Waiting for reply.' or 'Waiting for your previous message to finish.') or ''
         local status = (M.errors or {})[contact] or waiting
         if not enabled then status = key and 'Conversations are disabled in Companion Manager.' or 'Conversation is unavailable for this contact.' end
-        if not historyReady then status = 'Opening chat. Waiting for the conversation service.' end
-        local reset = M.lastPaint ~= contact or M.clearDraft == contact
+        if blocked then status = 'Memory clearing is in progress. Your draft has been kept.' end
+        if not historyReady then status = 'Saved Chat cleanup could not be verified. Please wait for the memory service.' end
+        local reset = M.lastPaint ~= contact or M.clearDraft == contact or M.resetDrafts[contact] == true
         player:ConvaiPhoneChatPresent(contact, lines, status, historyReady and (M.drafts[contact] or '') or '', enabled, M.pending ~= nil, reset)
         if historyReady then M.captureDrafts = true end
+        if historyReady then M.resetDrafts[contact] = nil end
         M.lastPaint, M.dirty, M.clearDraft = contact, false, nil
     end
     M.justBound = false

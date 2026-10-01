@@ -11,7 +11,7 @@ function fixture(initial = '') {
   const published = [], calls = [], actions = new Map(), gate = deferred();
   const memory = {
     status: ({actionId} = {}) => ({available: true, talkedToCount: 2,
-      characters: [{profileKey: 'judy-alvarez'}, {profileKey: 'panam-palmer'}], command: actions.get(actionId)}),
+      characters: [{profileKey: 'judy-alvarez'}, {profileKey: 'panam-palmer'}], command: actions.get(actionId), actions:[...actions.values()]}),
     async clearCharacter({profileKey, actionId, signal}) {
       calls.push({profileKey, actionId, signal});
       const pending = {id: actionId, scope: 'character', profileKey, state: 'pending'};
@@ -117,4 +117,58 @@ test('shutdown cancels the in-flight clear and publishes unavailable without sta
   assert.equal(f.published.at(-1).state, 'unavailable');
   f.set(command('after-close')); await control.poll();
   assert.equal(f.calls.length, 1);
+});
+
+test('a durable local Chat intent precedes provider dispatch and the aggregate result is reconciled', async () => {
+  const f=fixture(), events=[];
+  const chatResets={start:async command=>{events.push(['intent',command.id]);},
+    sync:async(status,options)=>{events.push(['sync',status.actions.map(row=>row.state),options?.finished?.id]);}};
+  const clear=f.memory.clearCharacter;
+  f.memory.clearCharacter=async options=>{events.push(['dispatch',options.actionId]);return clear(options);};
+  const control=await PlayerMemoryControl.open({...f.options,chatResets});
+  f.set(command('new-clear'));await control.poll();
+  await new Promise(done=>setImmediate(done));
+  assert.ok(events.findIndex(row=>row[0]==='intent') < events.findIndex(row=>row[0]==='dispatch'));
+  f.gate.resolve();await control.work;await control.writing;
+  assert.ok(events.some(row=>row[0]==='sync'&&row[1].includes('succeeded')&&row[2]==='new-clear'));
+  await control.close();
+});
+
+test('failed local intent persistence prevents cloud deletion; later status failure is explicit', async () => {
+  const f=fixture(), control=await PlayerMemoryControl.open({...f.options,
+    chatResets:{start:async()=>{throw Error('Disk full');},sync:async()=>{throw Error('Disk full');}}});
+  f.set(command('intent-failed'));await control.poll();await control.work;await control.writing;
+  assert.equal(f.calls.length,0);assert.equal(f.published.at(-1).command.state,'failed');
+  assert.equal(f.published.at(-1).chatHistory,'unavailable');
+  await control.close();
+});
+
+test('shutdown while intent is persisting never starts a provider operation afterward', async () => {
+  const f=fixture(), gate=deferred(), entered=deferred();
+  const control=await PlayerMemoryControl.open({...f.options,chatResets:{
+    start:async()=>{entered.resolve();await gate.promise;},sync:async()=>{}}});
+  f.set(command('persisting'));await control.poll();await entered.promise;
+  const closing=control.close();gate.resolve();await closing;
+  assert.equal(f.calls.length,0);assert.equal(f.published.at(-1).state,'unavailable');
+});
+
+test('explicit family mapping canonicalizes legacy command keys without changing their action ID', async () => {
+  const old=command('old-variant','judy-alvarez-romantic'), f=fixture(JSON.stringify(old));
+  f.actions.set(old.id,{...old,profileKey:'judy-alvarez',state:'succeeded'});
+  const control=await PlayerMemoryControl.open({...f.options,chatResetFamilies:{'judy-alvarez-romantic':'judy-alvarez'}});
+  assert.equal(f.calls.length,0);assert.equal(f.published.at(-1).command.state,'succeeded');
+  assert.equal(f.published.at(-1).command.profileKey,'judy-alvarez');
+  f.set(command('new-family','judy-alvarez-romantic'));await control.poll();
+  assert.equal(f.calls[0].profileKey,'judy-alvarez');assert.equal(f.calls[0].actionId,'new-family');
+  f.gate.resolve();await control.work;await control.close();
+});
+
+test('an all reset with the memory registry null profile restores exactly without invalid-request status', async () => {
+  const old=command('old-all',null), f=fixture(JSON.stringify(old));
+  f.actions.set(old.id,{...old,profileKey:null,state:'succeeded'});
+  const control=await PlayerMemoryControl.open(f.options);
+  assert.equal(f.calls.length,0);assert.equal(f.published.at(-1).command.state,'succeeded');
+  assert.equal(Object.hasOwn(f.published.at(-1).command,'profileKey'),false);
+  f.set({...old,issuedAt:NOW-1});await control.poll();
+  assert.equal(f.published.at(-1).command.state,'succeeded');await control.close();
 });

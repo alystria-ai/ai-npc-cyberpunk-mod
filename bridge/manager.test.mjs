@@ -191,7 +191,7 @@ test('MCM dismissals free planned places, cannot undo into an overfull party and
 test('MCM settings apply as one saved transaction and leave playback unchanged on a save failure', () => {
   run(`${managerFixture}
     manager.configure(api, profiles); manager.snapshot(player)
-    assert(not manager.disappearingMessages())
+    assert(manager.snapshot(player).settings.disappearingMessages == nil)
     assert(manager.subtitleStyle() == 'dialogue' and saved.subtitleStyle == 'dialogue')
     assert(manager.snapshot(player).settings.voiceProvider == 'hybrid')
     assert(manager.battleReactions() and manager.snapshot(player).settings.battleReactions)
@@ -203,16 +203,16 @@ test('MCM settings apply as one saved transaction and leave playback unchanged o
     assert(manager.applySettings(player, {battleReactions = false}))
     assert(not manager.battleReactions() and saved.battleReactions == false)
     assert(manager.applySettings(player, {battleReactions = 'on'}) == false)
-    assert(manager.applySettings(player, {voice = false, subtitleStyle = 'overhead', omniSteps = 16, voiceProvider = 'convai', disappearingMessages = true, followUpQuestions = true, enabledByKey = {['johnny-silverhand'] = false}}))
+    assert(manager.applySettings(player, {voice = false, subtitleStyle = 'overhead', omniSteps = 16, voiceProvider = 'convai', followUpQuestions = true, enabledByKey = {['johnny-silverhand'] = false}}))
     assert(player.voice == false and saved.omniSteps == 16 and not manager.profileEnabled('johnny-silverhand'))
-    assert(saved.disappearingMessages and manager.disappearingMessages())
+    assert(saved.disappearingMessages == nil)
     assert(saved.followUpQuestions == true and manager.followUpQuestions())
     failSave = true
-    assert(manager.applySettings(player, {voice = true, subtitles = false, subtitleStyle = 'dialogue', omniSteps = 32, voiceProvider = 'hybrid', disappearingMessages = false, followUpQuestions = false}) == false)
+    assert(manager.applySettings(player, {voice = true, subtitles = false, subtitleStyle = 'dialogue', omniSteps = 32, voiceProvider = 'hybrid', followUpQuestions = false}) == false)
     local values = manager.snapshot(player).settings
     assert(values.voice == false and values.subtitles == true and values.omniSteps == 16)
     assert(player.voice == false and player.subtitles == true)
-    assert(values.disappearingMessages and manager.disappearingMessages())
+    assert(values.disappearingMessages == nil)
     assert(values.followUpQuestions == true and manager.followUpQuestions())
     assert(values.voiceProvider == 'convai')
     assert(values.subtitleStyle == 'overhead' and manager.subtitleStyle() == 'overhead')
@@ -245,7 +245,7 @@ test('follow-up questions migrate to Off and retain explicit saved On or Off cho
       local state = manager.snapshot(player).settings
       assert(state.followUpQuestions == enabled)
       assert(not state.voice and not state.subtitles and state.voiceProvider == 'convai' and state.omniSteps == 16)
-      assert(not state.battleReactions and not state.lootReactions and state.disappearingMessages)
+      assert(not state.battleReactions and not state.lootReactions and state.disappearingMessages == nil)
       if type(savedValue) ~= 'boolean' then
         assert(saved.followUpQuestions == false and saved.future.keep == 'unchanged', 'migration must save its default')
       end
@@ -254,6 +254,26 @@ test('follow-up questions migrate to Off and retain explicit saved On or Off cho
     end
   `);
 });
+
+test('relationship modes default to Auto and apply atomically without changing unrelated preferences', () => run(`${managerFixture}
+  manager.configure(api, profiles)
+  local initial=manager.snapshot(player).settings
+  for _, row in ipairs(manager.relationshipChoices()) do assert(row.mode=='auto') end
+  assert(manager.applySettings(player,{relationshipModes={['judy-alvarez']='on',['kerry-eurodyne']='off'}}))
+  local current=manager.snapshot(player).settings
+  assert(current.relationshipModes['judy-alvarez']=='on' and current.relationshipModes['kerry-eurodyne']=='off')
+  assert(current.relationshipModes['meredith-stout']=='auto' and current.voiceProvider==initial.voiceProvider)
+  current.relationshipModes['judy-alvarez']='off'
+  assert(manager.snapshot(player).settings.relationshipModes['judy-alvarez']=='on','snapshot mutated policy')
+  failSave=true
+  assert(not manager.applySettings(player,{relationshipModes={['judy-alvarez']='off'}}))
+  assert(manager.snapshot(player).settings.relationshipModes['judy-alvarez']=='on')
+  failSave=false
+  assert(not manager.applySettings(player,{relationshipModes={unknown='on'}}))
+  assert(not manager.applySettings(player,{relationshipModes={['judy-alvarez']=true}}))
+  manager.reset()
+  assert(manager.snapshot(player).settings.relationshipModes['judy-alvarez']=='on')
+`));
 
 test('gaze choices preserve accepted defaults, reject invalid settings and survive reset atomically', () => {
   run(`${managerFixture}
@@ -352,7 +372,7 @@ test('subtitle style defaults to dialogue and preserves explicit overhead, Conva
       assert(state.subtitleStyle == 'dialogue' and saved.subtitleStyle == 'dialogue')
       assert(not state.subtitles and not player.subtitles, 'migration enabled the master switch')
       assert(state.voiceProvider == 'convai' and saved.voiceProvider == 'convai')
-      assert(not state.voice and state.omniSteps == 16 and state.disappearingMessages)
+      assert(not state.voice and state.omniSteps == 16 and state.disappearingMessages == nil)
       assert(not state.battleReactions and not state.lootReactions)
       assert(saved.future.keep == 'unchanged')
       assert(manager.applySettings(player, {subtitleStyle = 'overhead'}))
@@ -842,9 +862,10 @@ test('native Memory controls use the contacted count and full catalogue without 
         assert(not text:find(memoryStatus.endUserId, 1, true), 'raw player identity reached MCM')
       end
     end
-    assert(row('memory-chat-history').description:find('saved Chat messages remain', 1, true))
+    assert(row('memory-chat-history').description:find('clears their saved Chat messages and drafts', 1, true))
     manager.selectMemoryCharacter('person-19'); reloadMemory()
-    assert(row('memory:forget-character').disabled and not invoke('memory:forget-character').ok)
+    assert(not row('memory:forget-character').disabled, 'An uncontacted configured character may still have local Chat to clear')
+    assert(invoke('memory:forget-character').ok)
   `);
 });
 
@@ -882,6 +903,34 @@ test('memory clear needs a separate confirmation, cancel sends nothing and delib
     assert(memoryWrites() == 1, 'pending cloud work was sent again')
   `);
 });
+
+test('Memory permits deliberate local Chat clearing with zero contacted provider pairs', () => run(`${mcmFixture}${memoryFixture}
+  publishMemory(0,{})
+  openMemory()
+  assert(not row('memory:forget-all').disabled)
+  assert(invoke('memory:forget-all').ok and memoryWrites()==0)
+  assert(invoke('memory:cancel:'..token()).ok and memoryWrites()==0)
+  manager.selectMemoryCharacter('person-20');reloadMemory()
+  assert(not row('memory:forget-character').disabled)
+  assert(invoke('memory:forget-character').ok and memoryWrites()==0)
+  assert(invoke('memory:confirm:'..token()).ok and memoryWrites()==1)
+  assert(memoryRequest().profileKey=='person-20')
+`));
+
+test('Relationships use their own MCM page and only applied selections reach saved modes', () => run(`${mcmFixture}
+  assert(invoke('tab:settings').ok and row('relationships'))
+  assert(invoke('relationships').ok)
+  local selected=row('relationship:judy-alvarez')
+  assert(selected and selected.value==1 and selected.defaultValue==1)
+  assert(selected.elements[1]=='Auto' and selected.elements[2]=='On' and selected.elements[3]=='Off')
+  assert(row('relationship:meredith-stout').description:find('does not imply an ongoing relationship',1,true))
+  assert(manager.snapshot(player).settings.relationshipModes['judy-alvarez']=='auto')
+  assert(registered.applyBatch('manager',{{id='relationship:judy-alvarez',value=2}}).ok)
+  assert(saved.relationshipModes['judy-alvarez']=='on')
+  assert(not registered.applyBatch('manager',{{id='relationship:judy-alvarez',value=4}}).ok)
+  assert(saved.relationshipModes['judy-alvarez']=='on')
+  assert(invoke('relationships:back').ok and row('relationships') and not row('disappearingMessages'))
+`));
 
 test('memory completion requires exact ID, scope, profile and a current result; old success cannot complete a later request', () => {
   run(`${mcmFixture}${memoryFixture}
@@ -1044,7 +1093,7 @@ test('MCM schema uses native controls, operates on current copies while paused, 
     assert(row('subtitleStyle').defaultValue == 2 and row('subtitleStyle').capabilities.draft)
     assert(row('subtitleStyle').elements[1] == 'Above speaker' and row('subtitleStyle').elements[2] == 'Dialogue HUD')
     assert(row('voiceProvider').type == 'select' and row('voiceProvider').value == 1)
-    assert(row('disappearingMessages').type == 'bool' and row('disappearingMessages').value == false)
+    assert(row('disappearingMessages') == nil)
     assert(row('battleReactions').type == 'bool' and row('battleReactions').value == true)
     assert(row('lootReactions').type == 'bool' and row('lootReactions').value == true)
     assert(row('followUpQuestions').type == 'bool' and row('followUpQuestions').value == false)
@@ -1056,8 +1105,8 @@ test('MCM schema uses native controls, operates on current copies while paused, 
     assert(not manager.lootReactions())
     assert(registered.applyBatch('manager', {{id = 'battleReactions', value = false}}).ok)
     assert(not manager.battleReactions())
-    local applied = registered.applyBatch('manager', {{id = 'voice', value = false}, {id = 'omniSteps', value = 1}, {id = 'disappearingMessages', value = true}, {id = 'voiceProvider', value = 2}, {id = 'subtitleStyle', value = 1}})
-    assert(applied.ok and applied.atomic and #applied.appliedIds == 5 and saved.omniSteps == 16)
+    local applied = registered.applyBatch('manager', {{id = 'voice', value = false}, {id = 'omniSteps', value = 1}, {id = 'voiceProvider', value = 2}, {id = 'subtitleStyle', value = 1}})
+    assert(applied.ok and applied.atomic and #applied.appliedIds == 4 and saved.omniSteps == 16)
     assert(saved.voiceProvider == 'convai')
     loaded = registered.loadMod('manager')
     assert(manager.subtitleStyle() == 'overhead' and row('subtitleStyle').value == 1)
@@ -1068,7 +1117,7 @@ test('MCM schema uses native controls, operates on current copies while paused, 
     assert(registered.applyBatch('manager', {{id = 'subtitleStyle', value = 2}}).ok)
     assert(manager.subtitleStyle() == 'dialogue' and saved.voiceProvider == 'convai')
     assert(not registered.applyBatch('manager', {{id = 'voiceProvider', value = 3}}).ok)
-    assert(manager.disappearingMessages())
+    assert(not registered.applyBatch('manager', {{id = 'disappearingMessages', value = true}}).ok)
     assert(player.voice == false)
     drafts = true
     local before = reloads
@@ -1547,6 +1596,8 @@ const engineFixture = `
     return id
   end
   function system:IsSpawned(id) return true end
+  function system:IsManaged(id) return entities[id.hash] ~= nil end
+  function system:IsTagged(id, tag) return self:IsManaged(id) and tag == 'CyberpunkConvaiCompanion' end
   function system:GetEntity(id) return entities[id.hash] end
   function system:DeleteEntity(id)
     if deletionsFail or not entities[id.hash] then return false end

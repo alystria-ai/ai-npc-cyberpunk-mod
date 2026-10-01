@@ -43,9 +43,9 @@ export function parseCompanionInvitations(value, now = Date.now(), staleMs = 650
 export class CompanionInvitations {
   constructor({memory, connections, currentWorld, isKnown, isCurrentGuard = guard => memory.isCurrent(guard),
     prepareVoice = async () => ({provider: 'convai', ready: true}),
-    voiceCurrent = () => true,
+    voiceCurrent = () => true, routeCurrent = () => true,
     publish = async () => {}, now = Date.now, staleMs = 6500, bridgePid = process.pid}) {
-    Object.assign(this, {memory, connections, currentWorld, isKnown, isCurrentGuard, prepareVoice, voiceCurrent, publish, now, staleMs, bridgePid});
+    Object.assign(this, {memory, connections, currentWorld, isKnown, isCurrentGuard, prepareVoice, voiceCurrent, routeCurrent, publish, now, staleMs, bridgePid});
     this.rows = new Map(); this.lanes = new Map(); this.retired = new Map();
     this.owner = this.request = null; this.epoch = this.version = 0; this.stopped = false;
     this.reservations = []; this.retention = Promise.resolve(); this.publication = null; this.lastClear = null;
@@ -162,6 +162,25 @@ export class CompanionInvitations {
   waitingToSpawn(lane) {
     return [...this.rows.values()].some(row => row.lane === lane && row.phase === 'preparing');
   }
+  routeValid(lane) {
+    try { return this.routeCurrent(lane.profileKey, lane.guard) === true; } catch { return false; }
+  }
+  refreshRoute(lane) {
+    if (!this.current(lane) || !this.waitingToSpawn(lane) || lane.state === 'error' || this.routeValid(lane)) return false;
+    let guard;
+    try {
+      guard = this.memory.route(lane.profileKey, {channel: 'private'}).guard;
+      if (!this.isCurrentGuard(guard) || !this.routeCurrent(lane.profileKey, guard)) return false;
+    } catch { return false; } // A missing fresh native snapshot waits; it does not grant spawn.
+    const next = {profileKey: lane.profileKey, owner: {...lane.owner}, epoch: lane.epoch, guard,
+      controller: new AbortController(), state: 'memory', startedAt: this.now(), prepared: false, nextWarm: 0};
+    // The ticket/revision stays the same. Every late completion retains the
+    // aborted old lane object and cannot publish readiness for this replacement.
+    lane.controller.abort(); this.lanes.set(lane.profileKey, next);
+    for (const row of this.rows.values()) if (row.lane === lane) row.lane = next;
+    this.touch(); void this.syncReservations().catch(() => {}); this.prepare(next);
+    return true;
+  }
   refreshVoice(lane) {
     if (!this.current(lane) || lane.preparing || lane.state === 'error') return;
     lane.prepared = false; lane.voiceReceipt = null; lane.state = 'memory'; this.touch();
@@ -195,6 +214,7 @@ export class CompanionInvitations {
         const prepared = await this.memory.prepareCharacter({profileKey: lane.profileKey,
           guard: lane.guard, signal: lane.controller.signal});
         if (!this.current(lane)) return;
+        if (this.waitingToSpawn(lane) && !this.routeValid(lane)) { this.refreshRoute(lane); return; }
         if (prepared?.memoryEnabled !== true || !sameGuard(prepared.guard, lane.guard)) throw Error('Unverified preparation');
         lane.memoryReadyAt = this.now(); lane.memoryMs = this.now() - lane.startedAt;
         // The model and exact speaker conditioning must finish before a world
@@ -202,8 +222,9 @@ export class CompanionInvitations {
         // Preparing a voice never creates a dialogue turn or records contact.
         lane.stage = 'voice';
         const voice = await abortable(this.prepareVoice(lane.profileKey,
-          {signal: lane.controller.signal}), lane.controller.signal);
+          {signal: lane.controller.signal, guard: lane.guard}), lane.controller.signal);
         if (!this.current(lane)) return;
+        if (this.waitingToSpawn(lane) && !this.routeValid(lane)) { this.refreshRoute(lane); return; }
         if (voice?.ready !== true || !['convai', 'omnivoice'].includes(voice.provider)
             || (voice.provider === 'omnivoice' && voice.profile !== lane.profileKey)) throw Error('Unverified voice preparation');
         lane.voiceReadyAt = this.now(); lane.voiceMs = this.now() - lane.memoryReadyAt;
@@ -236,6 +257,7 @@ export class CompanionInvitations {
       try {
         const status = await this.connections.warmInvitation(lane.profileKey, {signal: lane.controller.signal});
         if (!this.current(lane)) return;
+        if (this.waitingToSpawn(lane) && !this.routeValid(lane)) { this.refreshRoute(lane); return; }
         this.acceptReadiness(lane, status);
       } catch (error) {
         if (this.current(lane)) {
@@ -249,7 +271,8 @@ export class CompanionInvitations {
     })();
   }
   acceptReadiness(lane, status) {
-    const ready = status?.present === true && status.ready === true && !status.busy;
+    const ready = status?.present === true && status.ready === true && !status.busy
+      && (!this.waitingToSpawn(lane) || this.routeValid(lane));
     const state = ready ? 'ready' : 'connecting';
     if (state !== lane.state) { lane.state = state; this.touch(); }
     if (ready) {
@@ -258,7 +281,15 @@ export class CompanionInvitations {
     }
   }
   async probe(lane) {
-    if (!this.current(lane) || !['ready', 'connecting'].includes(lane.state)) return;
+    if (!this.current(lane)) return;
+    if (this.waitingToSpawn(lane) && !this.routeValid(lane)) { this.refreshRoute(lane); return; }
+    // A fresh-state gap may have suspended preparation after a completed
+    // memory/voice await. Resume its verified/cached work once the same selected
+    // route returns; otherwise that lane would remain in "memory" forever.
+    if (this.waitingToSpawn(lane) && lane.state === 'memory' && !lane.preparing && !lane.prepared) {
+      this.prepare(lane); return;
+    }
+    if (!['ready', 'connecting'].includes(lane.state)) return;
     // A pending ticket is a promise about preparation before world appearance.
     // Already-spawned copies use bounded lazy reconditioning at speech time;
     // eagerly restoring every evicted active voice would thrash the LRU.
@@ -297,7 +328,8 @@ export class CompanionInvitations {
         const lane = row.lane;
         let state = lane?.state ?? row.state, error = lane?.error ?? row.error;
         if (lane && !this.currentGuard(lane) && state !== 'error') { state = 'error'; error = ERRORS.guard; }
-        if (lane && row.phase === 'preparing' && state === 'ready' && !this.voiceValid(lane)) state = 'connecting';
+        if (lane && row.phase === 'preparing' && state === 'ready'
+            && (!this.voiceValid(lane) || !this.routeValid(lane))) state = 'connecting';
         return {id: row.id, revision: row.revision, modelKey: row.modelKey,
           ...(row.profileKey !== undefined ? {profileKey: row.profileKey} : {}), state,
           ...(state === 'error' ? {error} : {})};

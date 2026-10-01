@@ -96,6 +96,9 @@ export class SpeechStream {
     return chunk;
   }
   async begin(first) {
+    // Omni creates later acoustic phrases locally. Preserve the one original
+    // Convai response's optional metadata through that same utterance.
+    this.expressionSignal = first.expressionSignal;
     await this.slots.begin(this.manifest.streamId, this.current);
     return this.append(first);
   }
@@ -127,7 +130,7 @@ export class SpeechStream {
         const index = this.manifest.chunks.length;
         const result = await this.synthesize(this.phrases[index], {signal: this.signal, steps: this.steps});
         await this.assertCurrent();
-        await this.append(result);
+        await this.append({...result, expressionSignal: this.expressionSignal});
       }
     } catch (error) {
       if (this.signal?.aborted || !await this.current() || error.name === 'AbortError') return;

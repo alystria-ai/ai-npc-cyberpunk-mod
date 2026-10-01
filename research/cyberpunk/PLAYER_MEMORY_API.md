@@ -15,9 +15,12 @@ The existing archive probes must not be resumed to implement this policy.
 - Persist one opaque UUID for the local player. Use that exact `endUserId` for
   all characters, saves, phone, private, group and microphone conversations.
   Save reload and either forget command preserve it.
-- Enable a verified mod profile at an actual player conversation admission.
-  Spawn, warmup, polling, current-world capture and synthetic triggers must not
-  enable it or add a contacted character. Never call `/memory/add` for this flow.
+- An explicit Invite prepares and verifies the selected profile's memory and
+  connection before spawning, including while the manager is open. Conversation
+  admission can also prepare an actually addressed profile. Polling, world
+  capture and unrelated profiles must not initiate setup. Preparation does not
+  mark a character contacted; only the player's actual conversation does.
+  Never call `/memory/add` or seed synthetic dialogue for this flow.
 - Send `endUserId` through the official realtime SDK, and verify the returned
   identity equals the requested UUID and character ID before a player turn.
 - Keep separate transient session scopes for channel, audience, world token and

@@ -6,7 +6,9 @@ const ids = {judy: 'mod-judy', panam: 'mod-panam'};
 const pair = {profileKey: 'judy', characterId: ids.judy, endUserId: '12e8c51a-bcde-4567-8123-123456789abc'};
 const detail = (enabled = false) => ({character_id: ids.judy, character_name: 'Judy',
   backstory: 'A fictional character.\n[CyberpunkConvai profile v2:judy]\n', voice_type: 'original-voice',
-  speaking_style_description: 'Original style.', personalised_prompt_config: {MODEL: 'original-model'},
+  speaking_style_description: 'Original style.',
+  speaking_style: {description: 'Original nested style.', sample_dialogues: 'Original spoken example.'},
+  personalised_prompt_config: {MODEL: 'original-model'},
   memory_settings: {enabled, time_to_live: 30, user_facts: true, ltm_min_credit_cost_e8: 1}});
 const empty = {memories: [], total_count: 0, page: 1, page_size: 1, has_more: false};
 const nonempty = {memories: [{id: 'private-memory', memory: 'private conversation text'}], total_count: 2,
@@ -112,7 +114,9 @@ test('toggle verifies preserved memory/profile configuration, allowing server co
   });
   assert.equal((await good.api.enableMemory(pair)).changed, true);
   for (const change of [row => { row.memory_settings.user_facts = false; }, row => { row.voice_type = 'other-voice'; },
-    row => { row.personalised_prompt_config.MODEL = 'other-model'; }, row => { delete row.memory_settings.time_to_live; }]) {
+    row => { row.personalised_prompt_config.MODEL = 'other-model'; }, row => { delete row.memory_settings.time_to_live; },
+    row => { row.speaking_style.description = 'Replaced style'; },
+    row => { row.speaking_style.sample_dialogues = 'Replaced examples'; }]) {
     let reads = 0;
     const {api, calls} = fake(call => {
       if (call.endpoint !== '/character/get') return standard(call);

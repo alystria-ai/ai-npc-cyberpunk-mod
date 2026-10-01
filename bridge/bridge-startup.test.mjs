@@ -55,7 +55,7 @@ syncBuiltinESMExports();
 `;
 
 test('real bridge retains one player ID across world changes without provider, browser or archive activity',
-  {timeout: 40000}, async () => {
+  {timeout: 60000}, async () => {
     const folder = await mkdtemp(join(tmpdir(), prefix));
     const state = join(folder, 'state'), game = join(folder, 'game');
     const runtime = join(game, 'bin', 'x64', 'plugins', 'cyber_engine_tweaks', 'mods', 'CyberpunkConvai', 'runtime');
@@ -83,7 +83,13 @@ test('real bridge retains one player ID across world changes without provider, b
       child.on('error', error => { errors += error.message; });
       child.once('close', (code, signal) => { closed = {code, signal}; });
       const bridgeStatus = join(runtime, 'bridge-status.json'), knowledgeStatus = join(runtime, 'knowledge-status.json');
-      await until(() => readJson(bridgeStatus), value => value?.state === 'waiting', 'bridge did not reach waiting', log);
+      // Cold imports and durable fixture writes contend with the full test
+      // runner. Give startup a bounded budget, while failing an exited child
+      // immediately; later protocol transitions retain their shorter deadline.
+      await until(() => {
+        assert.equal(closed, null, `bridge exited during startup\n${log()}`);
+        return readJson(bridgeStatus);
+      }, value => value?.state === 'waiting', 'bridge did not reach waiting', log, 30000);
       const initial = await until(() => readJson(knowledgeStatus), value => value?.version === 1,
         'knowledge status was not published', log);
       assert.equal(initial.bound, true); assert.equal(initial.identifiedMemory, true); assert.equal(initial.currentWorld, false);

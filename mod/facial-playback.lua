@@ -25,21 +25,240 @@ local function owns(actor, entity)
         and tostring(actor:GetEntityID().hash) == (entity or M.entity)
         and actor:IsAttached() and not actor:IsDeadNoStatPool() and actor:ConvaiFaceReady()
 end
+-- Speech and expressions share this one native writer. These per-copy entries
+-- retain primitives and feature values only, never actors or world components.
+local expressionTracks = {'lips_l_corner_up','lips_r_corner_up','lips_l_corner_dn','lips_r_corner_dn',
+    'eye_l_brows_raise_in','eye_r_brows_raise_in','eye_l_brows_raise_out','eye_r_brows_raise_out',
+    'eye_l_brows_lower','eye_r_brows_lower'}
+local negative = {anger=true,sadness=true,fear=true,disgust=true}
+local families = {
+    joy='joy',happy='joy',happiness='joy',ecstasy='joy',serenity='joy',
+    trust='trust',acceptance='trust',admiration='trust',love='trust',
+    sadness='sadness',sad='sadness',grief='sadness',pensiveness='sadness',
+    anger='anger',angry='anger',rage='anger',annoyance='anger',
+    fear='fear',terror='fear',apprehension='fear',anxiety='fear',
+    disgust='disgust',loathing='disgust',boredom='disgust',
+    surprise='surprise',amazement='surprise',distraction='surprise',
+    anticipation='anticipation',interest='anticipation',vigilance='anticipation',
+    neutral='neutral',none='neutral'}
+local function zeroExpression()
+    local pose={};for _,track in ipairs(expressionTracks) do pose[track]=0 end;return pose
+end
+local function clamp(value,maximum) return math.max(0,math.min(maximum or 1,value)) end
+local function expressionLimit(track)
+    return track:find('corner_up',1,true) and .09 or (track:find('corner_dn',1,true) and .08 or .10)
+end
+M.expressions, M.expressionClock, M.expressionFrame = {}, 0, 0
+local function expressionSlot(entity)
+    if not M.expressions[entity] then M.expressions[entity]={pose=zeroExpression(),sequence=-1} end
+    return M.expressions[entity]
+end
+local function sameExpressionOwner(slot,context)
+    return type(context)=='table' and slot.requestId==context.requestId and slot.generation==context.generation
+end
+function M.beginExpression(context,receipt)
+    if type(context)~='table' or type(context.entity)~='string' then return end
+    local slot=expressionSlot(context.entity)
+    if not sameExpressionOwner(slot,context) or not slot.active then
+        slot.requestId,slot.generation,slot.active=context.requestId,context.generation,true
+        slot.emotion,slot.family,slot.sequence,slot.expiry=nil,nil,-1,nil
+    end
+    M.acceptExpression(context,receipt)
+end
+function M.acceptExpression(context,receipt)
+    if type(context)~='table' or type(receipt)~='table' then return false end
+    local slot=M.expressions[context.entity]
+    if not slot or not slot.active or not sameExpressionOwner(slot,context) or receipt.version~=1
+        or type(context.entity)~='string' or #context.entity==0 or #context.entity>128 or context.entity:find('%c')
+        or type(context.requestId)~='string' or #context.requestId==0 or #context.requestId>256 or context.requestId:find('%c')
+        or receipt.entity~=context.entity or receipt.requestId~=context.requestId
+        or not finite(context.generation) or context.generation<0 or context.generation%1~=0
+        or context.generation>2147483647
+        or receipt.generation~=context.generation or not finite(receipt.sequence)
+        or receipt.sequence<0 or receipt.sequence>9007199254740991 or receipt.sequence%1~=0 or receipt.sequence<=slot.sequence
+        or type(receipt.emotion)~='string' or #receipt.emotion==0 or #receipt.emotion>80 or receipt.emotion:find('%c')
+        or not finite(receipt.scale) or receipt.scale<1 or receipt.scale>3 or receipt.scale%1~=0 then return false end
+    local label=receipt.emotion:match('^%s*(.-)%s*$')
+    if label=='' then return false end
+    slot.emotion,slot.family,slot.scale,slot.sequence=label,families[label:lower()] or 'unknown',receipt.scale,receipt.sequence
+    return true
+end
+function M.endExpression(context,finished)
+    local slot=type(context)=='table' and M.expressions[context.entity]
+    if not slot or not sameExpressionOwner(slot,context) then return end
+    slot.active=false
+    if finished and slot.emotion then slot.expiry=M.expressionClock+(negative[slot.family] and 8 or 4)
+    else slot.emotion,slot.family,slot.expiry=nil,nil,nil;slot.pose=zeroExpression() end
+end
+function M.clearExpression(entity)
+    M.expressions[entity]=nil
+end
+function M.beginExpressionFrame(delta,context)
+    M.expressionFrame=M.expressionFrame+1
+    M.expressionDelta=finite(delta) and clamp(delta,.1) or 0
+    M.expressionPaused=type(context)=='table' and context.paused==true
+    M.expressionBlocked=type(context)=='table' and context.blocked==true
+    M.expressionManaged=type(context)=='table'
+    local thinking=type(context)=='table' and context.thinkingEntity or nil
+    local listening=type(context)=='table' and context.listeningEntity or nil
+    local thinkingRequest=type(context)=='table' and context.thinkingRequestId or nil
+    -- A new player input retires an earlier reaction before another reply is
+    -- audible. Thinking/listening never infer mood from the text or voice.
+    for _,entity in ipairs({thinking or false,listening or false}) do
+        if entity and not (M.active and M.entity==entity) and
+            ((entity==thinking and (thinking~=M.thinkingEntity or thinkingRequest~=M.expressionThinkingRequest))
+                or (entity==listening and listening~=M.listeningEntity)) then
+            local slot=M.expressions[entity]
+            if slot then slot.emotion,slot.family,slot.expiry,slot.active=nil,nil,nil,false;slot.pose=zeroExpression() end
+        end
+    end
+    M.thinkingEntity,M.listeningEntity,M.expressionThinkingRequest=thinking,listening,thinkingRequest
+    if not M.expressionPaused and finite(delta) then M.expressionClock=M.expressionClock+math.max(0,delta) end
+end
+local function safeExpressionActor(actor)
+    if not M.expressionManaged then return true end
+    local ok,ready=pcall(function()
+        if not actor:IsOnAutonomousAI() or NPCPuppet.IsInCombat(actor) then return false end
+        local scene=Game.GetSceneSystem():GetScriptInterface()
+        if scene:IsEntityInDialogue(actor:GetEntityID()) or scene:IsEntityInScene(actor:GetEntityID()) then return false end
+        -- Status effects are the game's injury/incapacitation signal. Missing
+        -- native APIs fail closed for the optional expression layer only.
+        for _,tag in ipairs({'Injured','Defeated','Unconscious','Stunned','Ragdoll'}) do
+            if StatusEffectSystem.ObjectHasStatusEffectWithTag(actor,CName.new(tag)) then return false end
+        end
+        return true
+    end)
+    return ok and ready==true
+end
+local function mouthBudget(feature,phase)
+    local function read(track) local value=feature[track];return finite(value) and clamp(value) or 0 end
+    local closure=clamp(math.max(read('lips_together_up'),read('lips_together_dn'))/.85)
+    local rounding=clamp(math.max(read('lips_l_funnel'),read('lips_r_funnel'))/.32
+        +math.max(read('lips_l_purse'),read('lips_r_purse'))/.28)
+    return (phase=='speaking' and .30 or 1)*(1-closure)*(1-rounding)
+end
+local function expressionPose(slot,phase,feature,provider,blocked)
+    local target=zeroExpression()
+    if slot.expiry and M.expressionClock>=slot.expiry then slot.emotion,slot.family,slot.expiry=nil,nil,nil end
+    local family,strength=slot.family,({.35,.65,1})[slot.scale or 1]
+    local function pair(stem,value) target['lips_l_'..stem]=value;target['lips_r_'..stem]=value end
+    local function brows(stem,value) target['eye_l_brows_'..stem]=value;target['eye_r_brows_'..stem]=value end
+    if family=='joy' then pair('corner_up',.085*strength);brows('raise_out',.04*strength)
+    elseif family=='trust' then pair('corner_up',.055*strength)
+    elseif family=='sadness' then pair('corner_dn',.065*strength);brows('raise_in',.085*strength)
+    elseif family=='anger' then pair('corner_dn',.04*strength);brows('lower',.085*strength)
+    elseif family=='fear' then pair('corner_dn',.025*strength);brows('raise_in',.08*strength);brows('raise_out',.05*strength)
+    elseif family=='disgust' then pair('corner_dn',.055*strength);brows('lower',.06*strength)
+    elseif family=='surprise' then brows('raise_in',.04*strength);brows('raise_out',.08*strength)
+    elseif family=='anticipation' then brows('raise_out',.035*strength)
+    elseif family~='unknown' and phase=='idle' then pair('corner_up',.025) end
+    if provider then
+        local source={eye_l_brows_lower=.08*provider[5],eye_r_brows_lower=.08*provider[6],
+            eye_l_brows_raise_in=.08*provider[7],eye_r_brows_raise_in=.08*provider[7],
+            eye_l_brows_raise_out=.07*provider[8],eye_r_brows_raise_out=.07*provider[9]}
+        if family=='joy' or family=='trust' then source.lips_l_corner_up=.06*provider[1];source.lips_r_corner_up=.06*provider[2]
+        else source.lips_l_corner_dn=.06*provider[3];source.lips_r_corner_dn=.06*provider[4] end
+        for track,value in pairs(source) do target[track]=math.max(target[track],value) end
+        if (source.lips_l_corner_dn or 0)>.005 or (source.lips_r_corner_dn or 0)>.005
+            or source.eye_l_brows_lower>.01 or source.eye_r_brows_lower>.01 then pair('corner_up',0) end
+    end
+    local suppress=negative[family] or family=='unknown'
+    if suppress then pair('corner_up',0) end
+    if family=='joy' or family=='trust' then pair('corner_dn',0);brows('lower',0) end
+    local budget=mouthBudget(feature,phase)
+    for _,track in ipairs(expressionTracks) do
+        local goal=clamp(target[track],expressionLimit(track))
+        if track:sub(1,5)=='lips_' then goal=goal*budget end
+        local prior=slot.pose[track]
+        local seconds=goal>prior and .18 or .55
+        slot.pose[track]=blocked and 0 or (prior+(goal-prior)*(1-math.exp(-(M.expressionDelta or 0)/seconds)))
+    end
+    if suppress or target.lips_l_corner_dn>0 or target.lips_r_corner_dn>0 then
+        slot.pose.lips_l_corner_up,slot.pose.lips_r_corner_up=0,0
+    end
+    if target.lips_l_corner_up>0 or target.lips_r_corner_up>0 then
+        slot.pose.lips_l_corner_dn,slot.pose.lips_r_corner_dn=0,0
+        slot.pose.eye_l_brows_lower,slot.pose.eye_r_brows_lower=0,0
+    end
+    for _,track in ipairs(expressionTracks) do
+        -- Hard closure/rounding suppression happens after smoothing, too.
+        feature[track]=math.min(slot.pose[track],expressionLimit(track)*(track:sub(1,5)=='lips_' and budget or 1))
+    end
+end
+local function applyFeature(actor,feature,entity,phase,provider)
+    local slot=expressionSlot(entity)
+    local blocked=M.expressionBlocked or M.expressionPaused or not safeExpressionActor(actor)
+    if blocked then slot.emotion,slot.family,slot.expiry=nil,nil,nil end
+    expressionPose(slot,phase,feature,provider,blocked)
+    assert(actor:ConvaiFaceApply(feature),'Native facial layer rejected the frame')
+    slot.written=M.expressionFrame
+    slot.phase,slot.blocked,slot.applied=phase,blocked,(slot.applied or 0)+1
+    slot.appliedPose={};for _,track in ipairs(expressionTracks) do slot.appliedPose[track]=feature[track] end
+end
+-- Cached diagnostics for a parent-owned live probe. No native reads, actor
+-- handles, speech weights, remote owners or dialogue appear in this snapshot.
+function M.expressionStatus(entity)
+    local slot=M.expressions[entity]
+    if not slot then return nil end
+    local pose={};for _,track in ipairs(expressionTracks) do pose[track]=slot.appliedPose and slot.appliedPose[track] or 0 end
+    return {version=1,phase=slot.phase,blocked=slot.blocked,applied=slot.applied or 0,
+        emotionPresent=slot.emotion~=nil,active=slot.active==true,pose=pose,clock=M.expressionClock}
+end
+function M.updateExpressions(context)
+    if type(context)~='table' or M.expressionPaused then return end
+    local seen={}
+    for _,row in ipairs(context.actors or {}) do
+        local entity,actor=row.entity,row.npc
+        if type(entity)=='string' and not seen[entity] then
+            seen[entity]=true
+            local ok,err=pcall(function()
+                if not owns(actor,entity) then M.expressions[entity]=nil;return end
+                local slot=expressionSlot(entity)
+                if slot.written==M.expressionFrame or (M.active and M.entity==entity) then return end
+                slot.feature=slot.feature or NewObject('ConvaiFaceFeature')
+                assert(slot.feature,'Native facial feature is unavailable')
+                local phase=(slot.active and 'thinking') or (M.thinkingEntity==entity and 'thinking')
+                    or (M.listeningEntity==entity and 'listening') or 'idle'
+                applyFeature(actor,slot.feature,entity,phase)
+            end)
+            if not ok then M.expressionError=tostring(err);M.expressions[entity]=nil end
+        end
+    end
+    for entity in pairs(M.expressions) do
+        if not seen[entity] and not (M.active and M.entity==entity) then M.expressions[entity]=nil end
+    end
+end
+local function providerExpressions(timeline)
+    local value=timeline.providerExpressions
+    if timeline.source~='convai-arkit61' or type(value)~='table' or value.version~=1 or value.format~='arkit61-expression9'
+        or type(value.frames)~='table' or #value.frames~=#timeline.frames then return nil end
+    for index,frame in ipairs(value.frames) do
+        if type(frame)~='table' or #frame~=10 or frame[1]~=timeline.frames[index][1] then return nil end
+        for at=2,10 do if not finite(frame[at]) or frame[at]<0 or frame[at]>1 then return nil end end
+    end
+    return value.frames
+end
 local function reset(actor)
     local ok, done = pcall(function()
         return owns(actor) and actor:ConvaiFaceReset()
     end)
     M.restored = ok and done == true
+    if M.restored and M.entity and M.expressions[M.entity] then
+        local slot=M.expressions[M.entity]
+        slot.written,slot.appliedPose,slot.phase=M.expressionFrame,zeroExpression(),'released'
+    end
 end
 local function clear()
     M.active, M.requestId, M.timeline, M.feature, M.lastPosition = false, nil, nil, nil, nil
     M.segment, M.generation = nil, nil
     M.continuous, M.timelineChanged = nil, nil
+    M.providerExpressions=nil
 end
 
 function M.abandon(reason)
     clear()
     M.state, M.entity, M.restored = reason or 'unloaded', nil, false
+    M.expressions,M.expressionClock={},0
 end
 
 function M.stop(actor, reason)
@@ -97,13 +316,15 @@ function M.start(context, timeline, actor, duration, expectedSegment)
         and segment.index == M.segment.index + 1
         and math.abs(segment.startSeconds - (M.segment.startSeconds + M.timeline.duration)) < .0001
     if M.active and not contiguous then M.stop(actor, 'replaced') end
-    M.abandon('unavailable')
+    clear();M.state,M.entity,M.restored='unavailable',nil,false
     M.source, M.articulation, M.error, M.applied, M.position = nil, nil, nil, 0, nil
     if not ok then M.error = tostring(err); return false end
     M.entity, M.generation, M.segment, M.feature = context.entity, context.generation, segment, feature
     M.requestId, M.timeline, M.index = context.requestId, timeline, 1
     M.source, M.active, M.state = timeline.source, true, 'waiting-for-audio'
     M.articulation = timeline.articulation
+    M.providerExpressions=providerExpressions(timeline)
+    M.beginExpression(context,timeline.expression)
     return true
 end
 
@@ -170,6 +391,8 @@ function M.updateContinuous(context, timeline, actor, duration)
         M.lastPosition, M.position, M.segment, M.restored = nil, nil, nil, false
     end
     M.timeline, M.source, M.articulation = timeline, timeline.source, timeline.articulation
+    M.providerExpressions=providerExpressions(timeline)
+    M.beginExpression(context,timeline.expression)
     M.error, M.timelineChanged = nil, true
     -- A live tail can be re-interpolated or compacted. Keep the playback index
     -- when its bracket remains valid; otherwise locate the current cursor in
@@ -217,7 +440,12 @@ function M.sync(actor, position, requestId)
         for i, track in ipairs(tracks) do
             M.feature[track] = left[i + 1] + (right[i + 1] - left[i + 1]) * alpha
         end
-        assert(actor:ConvaiFaceApply(M.feature), 'Native facial layer rejected the frame')
+        local provider
+        if M.providerExpressions then
+            local a,b=M.providerExpressions[M.index],M.providerExpressions[M.index+1]
+            provider={};for i=2,10 do provider[i-1]=a[i]+(b[i]-a[i])*alpha end
+        end
+        applyFeature(actor,M.feature,M.entity,'speaking',provider)
         M.position, M.lastPosition = M.continuous and heardPosition or position, M.continuous and heardPosition or position
         M.timelineChanged = nil
         M.state = position >= M.timeline.duration and 'holding-boundary' or 'playing'
@@ -237,7 +465,8 @@ end
 
 function M.status()
     return {state = M.state or 'idle', source = M.source, articulation = M.articulation, position = M.position,
-        applied = M.applied or 0, restored = M.restored, error = M.error}
+        applied = M.applied or 0, restored = M.restored, error = M.error,
+        expressions = {clock=M.expressionClock,error=M.expressionError}}
 end
 
 convaiFacialPlayback = M

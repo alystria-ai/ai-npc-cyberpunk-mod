@@ -2,6 +2,7 @@
 // enters this adapter. The game admits the exact actor before any sound starts.
 import {randomUUID} from 'node:crypto';
 import {buildProviderFacialTimeline} from './facial-timeline.mjs';
+import {ownedExpressionReceipt} from './companion-expressions.mjs';
 
 const finite = value => typeof value === 'number' && Number.isFinite(value);
 const integer = value => Number.isSafeInteger(value) && value >= 0;
@@ -102,6 +103,8 @@ export class ConvaiContinuousSpeech {
       state: snapshot.state, position: this.position, bufferedDuration: duration,
       text: snapshot.text, textComplete: snapshot.textComplete, complete: snapshot.sourceComplete,
       ended: snapshot.ended, underruns: snapshot.underruns, face: this.face};
+    const expression = ownedExpressionReceipt(snapshot.expressionSignal, this.input);
+    if (expression) document.expression = expression;
     if (!await this.writeState(document)) throw Error('Continuous speech state could not be committed');
     if (!await this.valid()) throw Error('Continuous speech owner changed');
     if (!this.published) {

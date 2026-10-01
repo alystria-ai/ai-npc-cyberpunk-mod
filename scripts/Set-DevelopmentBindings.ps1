@@ -16,7 +16,7 @@ $desired = [ordered]@{
     cyberpunk_convai_text       = ([long]0x75 -shl 48) # F6
     cyberpunk_convai_voice      = ([long]0x76 -shl 48) # F7
     cyberpunk_convai_group_text = ([long]0x77 -shl 48) # F8
-    cyberpunk_convai_group_voice = ([long]0x78 -shl 48) # F9
+    cyberpunk_convai_group_voice = ([long]0x79 -shl 48) # F10
 }
 $pending = [ordered]@{}
 foreach ($entry in $desired.GetEnumerator()) {
@@ -46,4 +46,4 @@ try {
     [IO.File]::WriteAllText($temporary, $json, [Text.UTF8Encoding]::new($false))
     Move-Item -LiteralPath $temporary -Destination $path -Force
 } finally { if ([IO.File]::Exists($temporary)) { Remove-Item -LiteralPath $temporary } }
-Write-Output "Assigned $($pending.Count) missing shortcuts (defaults: F4 manager, F6 text, F7 voice, F8 group text, F9 group voice). Existing choices preserved. Phone invite/dismiss use J/L. Backup: $backup"
+Write-Output "Assigned $($pending.Count) missing shortcuts (defaults: F4 manager, F6 text, F7 voice, F8 group text, F10 group voice). Existing choices preserved. Phone invite/dismiss use J/L. Backup: $backup"

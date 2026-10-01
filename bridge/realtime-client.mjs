@@ -2,10 +2,12 @@ import {ConvaiClient} from '@convai/web-sdk/vanilla';
 import {endUserOptions, transportKey, SessionBindings} from './transport-pool.mjs';
 import {ConvaiDataAudio} from './convai-data-audio.mjs';
 import {ContinuousPcmPlayer} from './continuous-pcm-player.mjs';
+import {ConvaiEmotion} from './convai-emotion.mjs';
 
 let client, identity, turn, micTimer, verifiedProvider, audioParticipant, admitting;
 let initialSession, submitted = false, epoch = 0, ttsEnabled = true;
 let retiredAudioOwners = [];
+let retiredExpressionOwners = [];
 let observed = {}, previousTurnDiagnostics = null;
 let previousContinuous = null;
 const sessions = new SessionBindings();
@@ -82,6 +84,8 @@ function turnDiagnostics(current) {
     messageEvents: current.messageEvents ?? 0, llmRows: current.llmRows ?? 0,
     streamingLlmRows: current.streamingLlmRows ?? 0, unknownLlmRows: current.unknownLlmRows ?? 0,
     outputRows: current.outputRows ?? 0, lastMessageAtMs: current.lastMessageAtMs ?? null,
+    expression: {ownerPresent: !!current.emotion?.owner, admitted: !!current.emotion?.signal,
+      ambiguous: current.emotion?.ambiguous === true},
     errorCode: current.error ? 'turn-failed-or-cancelled' : audio?.error ? 'audio-collection-failed' : null,
     audio: audio ? {byteCount: audio.byteCount, packetCount: audio.packetCount,
       frameCount: audio.frames.size, sampleRate: audio.sampleRate, channels: audio.channels,
@@ -118,6 +122,7 @@ async function close(reason = 'Conversation cancelled') {
   micTimer = null;
   if (previous.turn) {
     previous.turn.error = reason;
+    previous.turn.emotion?.clear();
     previous.turn.dataAudio?.abort(reason);
     // Retire audible output immediately, before waiting for SDK shutdown.
     if (previous.turn.live) {
@@ -128,6 +133,7 @@ async function close(reason = 'Conversation cancelled') {
   if (previous.turn) previousTurnDiagnostics = turnDiagnostics(previous.turn);
   client = identity = turn = verifiedProvider = audioParticipant = null;
   retiredAudioOwners = [];
+  retiredExpressionOwners = [];
   initialSession = null; submitted = false;
   // Closing is cancellation, never an implicit microphone submission. Start
   // transport shutdown before stopping hardware; do not call disableAudio,
@@ -165,6 +171,7 @@ async function connect(config) {
   ttsEnabled = config.ttsEnabled !== false;
   observed = {packets: 0, bytes: 0, validJson: 0, malformed: 0, labelPresent: 0,
     matchingLabel: 0, pinnedParticipantPackets: 0, acceptedAudioEvents: 0,
+    acceptedEmotionEvents: 0, skippedEmotionEvents: 0,
     errorCode: null, outerTypes: {}, innerTypes: {}};
   previousTurnDiagnostics = null;
   initialSession = config.freshSession ? '-1' : config.sessionId || '-1';
@@ -172,6 +179,7 @@ async function connect(config) {
     ...endUserOptions(config),
     characterSessionId: initialSession, transport: 'livekit', startWithAudioOn: false,
     enableVideo: false, enableLipsync: ttsEnabled, ttsEnabled, logRtviMessages: false,
+    enableEmotion: true, emotionConfig: {provider: 'llm'},
     respondModes: {contextUpdate: 'silent'},
     blendshapeConfig: {format: 'arkit', output_fps: 30}});
   const currentConnection = () => epoch === connectionEpoch && client === connection;
@@ -225,6 +233,22 @@ async function connect(config) {
       audioParticipant = participant;
       return;
     }
+    if (type === 'bot-emotion') {
+      // Never borrow the active request for an ownerless SDK callback. Late
+      // owned metadata may affect an already draining continuous utterance,
+      // but missing/ambiguous emotion cannot block or fail audible playback.
+      const valid = kind === 0 && participant === audioParticipant && currentParticipant(connection, participant)
+        && verifiedProvider?.connection === connection && turn?.epoch === connectionEpoch && !turn.error;
+      if (valid && turn.dataAudio?.owner) turn.emotion.observeOwner(turn.dataAudio.owner);
+      if (valid && turn.emotion.accept(data)) observed.acceptedEmotionEvents++;
+      else observed.skippedEmotionEvents++;
+      return;
+    }
+    // TTS-disabled Omni replies have no audio owner. Only an explicitly owned
+    // LLM-start event from this same provider can establish their response.
+    if (type === 'bot-llm-started' && !ttsEnabled && turn && !turn.error && kind === 0
+        && participant === audioParticipant && currentParticipant(connection, participant)
+        && verifiedProvider?.connection === connection) turn.emotion.observeOwner(data);
     // PCM/faces/stats are server-message payloads, while owned lifecycle may
     // be flat or use an outer type with its response metadata in data.
     // Pass the original envelope to the collector, which validates both.
@@ -314,6 +338,7 @@ function beginTurn(timing = {}, config = {}) {
   const current = {before: new Set(client.chatMessages.map(m => m.id)), text: '',
     started: performance.now(), epoch, timing: connectionTiming, ttsEnabled, textComplete: false,
     providerIdentity: {characterId: config.characterId, endUserId: config.endUserId ?? null}};
+  current.emotion = new ConvaiEmotion({retiredOwners: retiredExpressionOwners});
   if (ttsEnabled) current.dataAudio = new ConvaiDataAudio({retiredOwners: retiredAudioOwners});
   attachContinuous(current, config.liveSpeechToken);
   turn = current;
@@ -383,6 +408,7 @@ function continuousView(current) {
   const diagnostic = clockDiagnostic(playback);
   // Explicit public shape: never expose SDK configuration or remote identities.
   return {version: 1, token: current.live.token, text: current.text,
+    ...(current.emotion?.snapshot() ? {expressionSignal: current.emotion.snapshot()} : {}),
     ...(current.userText ? {userText: current.userText} : {}),
     textComplete: current.textComplete, sampleRate: source.sampleRate, channels: source.channels,
     receivedFrames: source.receivedFrames, receivedDuration: source.sampleRate ? source.receivedFrames / source.sampleRate : 0,
@@ -454,6 +480,7 @@ async function collect(current) {
       await current.live.player.stop('completed');
     }
     return {...collected, text: current.text, sessionID: client.characterSessionId,
+      ...(current.emotion.snapshot() ? {expressionSignal: current.emotion.snapshot()} : {}),
       ...(current.userText ? {userText: current.userText} : {}),
       ...(current.live ? {continuous: true, liveSpeechToken: current.live.token} : {audio: collected?.audio}),
       timing: {...current.timing, ...collected?.timing, collectionMs: collectedAt - started,
@@ -466,7 +493,15 @@ async function collect(current) {
     if (turn === current && current.epoch === epoch) await close(failure.message || 'Conversation failed');
     throw failure;
   }
-  finally { if (turn === current) turn = null; }
+  finally {
+    if (turn === current) {
+      if (current.emotion.owner) {
+        retiredExpressionOwners.push({...current.emotion.owner});
+        if (retiredExpressionOwners.length > 32) retiredExpressionOwners.shift();
+      }
+      turn = null;
+    }
+  }
 }
 
 async function reply(config) {

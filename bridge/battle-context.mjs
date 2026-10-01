@@ -1,4 +1,4 @@
-import {lootFacts, lootTrigger} from './loot-context.mjs';
+import {lootTrigger} from './loot-context.mjs';
 
 const unknown = () => ({version: 1, status: 'unavailable'});
 const sequence = value => Array.isArray(value) ? value : value && typeof value === 'object' && !Object.keys(value).length ? [] : null;
@@ -29,11 +29,11 @@ export function parseBattle(value) {
 export function parseReaction(value, battle, loot) {
   if (value === undefined) return undefined;
   if (value?.kind === 'loot') {
-    if (!loot || value.batch !== loot.batch || !Number.isSafeInteger(value.expiresAt) || value.expiresAt <= 0) return null;
+    if (battle !== undefined || !loot || value.batch !== loot.batch || !Number.isSafeInteger(value.expiresAt) || value.expiresAt <= 0) return null;
     return {kind: 'loot', batch: value.batch, expiresAt: value.expiresAt};
   }
   if (!value || value.kind !== 'battle' || !['start', 'end'].includes(value.phase)
-      || (loot && value.phase !== 'end')
+      || loot !== undefined
       || value.encounter !== battle?.encounter || !['fighting', 'ended'].includes(battle?.status)
       || (value.phase === 'start') !== (battle.status === 'fighting')
       || !Number.isSafeInteger(value.expiresAt) || value.expiresAt <= 0) return null;
@@ -61,15 +61,15 @@ export function battleTrigger(input) {
     + 'You are a nearby companion. This event was not spoken by V. '
     + 'Observed hostile names/types (partial observations, not total enemy numbers): '
     + JSON.stringify(battle.opponents.map(({name, kind}) => ({name, ...(kind ? {kind} : {})}))) + '. '
-    + (opening ? '' : lootFacts(input))
     + (opening ? 'Give one urgent in-character warning of no more than eight words. '
-      : 'Give one brief in-character statement of no more than twenty words. ')
+      : 'Give one brief in-character statement of no more than twenty words. Keep this line about the encounter, without comments on pickups. ')
     + 'Use only these facts; do not invent enemy numbers, locations, arrivals, injuries, kills or victory. '
     + 'For this event, do not ask any question, including a rhetorical question or follow-up. '
     + 'Return only the spoken line, without narration or actions.';
 }
 
 export function battleContext(input) {
+  if (input.reaction?.kind === 'loot') return '';
   const battle = parseBattle(input.battle);
   if (!battle) return '';
   if (battle.status === 'unavailable') return 'Current combat observations are unavailable. Do not infer that an earlier encounter happened in this loaded save.';

@@ -224,6 +224,22 @@
         {
           "source": "mod/companions.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companions.lua"
+        },
+        {
+          "source": "mod/relationship-state.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/relationship-state.lua"
+        },
+        {
+          "source": "mod/companion-vehicles.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-vehicles.lua"
+        },
+        {
+          "source": "mod/companion-vehicle-native.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-vehicle-native.lua"
+        },
+        {
+          "source": "mod/companion-vehicle-catalog.lua",
+          "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-vehicle-catalog.lua"
         }
       ]
     },
@@ -406,9 +422,81 @@
     "compute": "CUDA PyTorch",
     "tensorRT": false,
     "localProfiles": [
+      "aaron",
+      "adam-smasher",
+      "alan-noel",
+      "alex",
+      "ana-friedman",
+      "arthur-jenkins",
+      "babs-okoye",
+      "bill-mitchell",
+      "blue-moon",
+      "bob-sagan",
+      "briana-dolson",
+      "carol-emeka",
+      "cassidy-righter",
+      "chang-hoon-nam",
+      "claire-russell",
+      "coach-fred",
+      "cynthia-najarro",
+      "dakota-smith",
+      "dennis-cranmer",
+      "dexter-deshawn",
+      "dino-dinovic",
+      "elizabeth-peralez",
+      "evelyn-parker",
+      "frank-nostra",
+      "hanako-arasaka",
+      "iris-tanner",
+      "jackie-welles",
+      "jefferson-peralez",
+      "jesse",
+      "jim-jarry",
       "johnny-silverhand",
+      "joss-kutcher",
       "judy-alvarez",
-      "panam-palmer"
+      "kerry-eurodyne",
+      "liam-northom",
+      "life-coach",
+      "lina-malina",
+      "lizzy-wizzy",
+      "mama-welles",
+      "mark-bana",
+      "meredith-stout",
+      "misty-olszewski",
+      "mitch-anderson",
+      "mr-hands",
+      "muamar-reyes",
+      "nancy-hartley",
+      "nele-springer",
+      "nix",
+      "ozob-bozo",
+      "paco-torres",
+      "padre-ibarra",
+      "panam-palmer",
+      "pepe-najarro",
+      "placide",
+      "r3n0",
+      "rachel-casich",
+      "regina-jones",
+      "river-ward",
+      "robert-wilson",
+      "rogue-amendiares",
+      "sandra-dorsett",
+      "santiago",
+      "saul-bright",
+      "sergei-karasinsky",
+      "shank",
+      "solomon-reed",
+      "songbird",
+      "spider-murphy",
+      "steven-santos",
+      "t-bug",
+      "takemura",
+      "thompson",
+      "viktor-vektor",
+      "wakako-okada",
+      "yorinobu-arasaka"
     ],
     "residentWhileSelected": true,
     "convaiAllUnloadsLocalModel": true,
@@ -424,8 +512,17 @@
       "preparation": "lazy",
       "startupProfilesLimit": 3,
       "maxCachedProfiles": 8,
-      "additionalProfileStatus": "source-qualified auditions; production promotion pending"
-    }
+      "additionalProfileStatus": "source-qualified activation; listening not required by user",
+      "sourceQualifiedActivation": true,
+      "subjectiveListeningRequired": false,
+      "preparedLocalProfiles": 75,
+      "fallbackProfiles": 4
+    },
+    "startupProfiles": [
+      "johnny-silverhand",
+      "judy-alvarez",
+      "panam-palmer"
+    ]
   },
   "licenses": [
     {
@@ -522,7 +619,8 @@
     "user-owned files",
     "tests and diagnostics receipts",
     "retired native KnowledgeState component",
-    "CET user settings and bindings"
+    "CET user settings and bindings",
+    "memory-chat-resets.json and per-player reset journals"
   ],
   "generatedUserState": [
     "credential storage",

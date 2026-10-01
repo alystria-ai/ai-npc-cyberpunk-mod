@@ -8,6 +8,9 @@ local placement = dofile('companion-placement.lua')
 local appearance = dofile('companion-appearance.lua')
 local spawnRecords = dofile('companion-records.lua')
 local equipment = dofile('companion-equipment.lua')
+local vehicles = dofile('companion-vehicles.lua')
+local vehicleNative = dofile('companion-vehicle-native.lua')
+local fleet = vehicles.new(vehicleNative)
 
 local records = {
     ['viktor-vektor'] = {id = 'Character.Victor_Vector', name = 'Viktor Vektor'},
@@ -86,6 +89,20 @@ local slots = space.slots
 local entries, serial = {}, 0
 local elapsed, runtimeClock, commandCursor = 0, 0, 0
 local groupFrame
+local transit
+local vehicleHooks = {
+    release = function(entry)
+        equipment.release(entry.equipment)
+        if entry.equipment and entry.equipment.phase ~= 'released' then return false end
+        return not entry.motor or actuator.release(entry.motor)
+    end,
+    resumed = function(entry)
+        entry.motor = actuator.new(entry.npc)
+        entry.equipment = equipment.new(entry.npc)
+        entry.person = behavior.new(entry.serial)
+        entry.position = nil
+    end,
+}
 local function distance(a,b) return space.distance(a,b) end
 local function copyPosition(p) return Vector4.new(p.x,p.y,p.z,p.w or 1) end
 local function formationPosition(player,slot)
@@ -130,18 +147,19 @@ local function attachFollower(entry, player)
     return true
 end
 
-function M.spawn(key, invitation)
-    local definition = records[key]
+local function spawnCopy(key, invitation, returning)
+    local definition = returning and {id=returning.record,recordID=returning.modelRecordID,
+        name=returning.name,profileKey=returning.profileKey,profileName=returning.profileName} or records[key]
     if not definition then return nil, 'Unknown companion' end
     -- Production installs a preparation guard. Keep the engine mutation behind
     -- the exact invitation even if an older menu or diagnostic calls spawn.
-    if M.canSpawn then
+    if not returning and M.canSpawn then
         local checked, allowed, reason = pcall(M.canSpawn, key, invitation)
         if not checked or allowed ~= true then
             return nil, checked and reason or 'Companion preparation is unavailable.'
         end
     end
-    if #entries >= #slots then return nil, 'Your party has eight copies. Dismiss one first.' end
+    if not returning and #entries >= #slots then return nil, 'Your party has eight copies. Dismiss one first.' end
     local player = Game.GetPlayer()
     local system = Game.GetDynamicEntitySystem()
     if not player or not system or not system:IsReady() then return nil, 'World is not ready' end
@@ -150,7 +168,7 @@ function M.spawn(key, invitation)
     if not recordOk or not record then return nil, 'This model is not available in your installation.' end
     local typeOk, character = pcall(function() return record:IsA('gamedataCharacter_Record') end)
     if not typeOk or not character then return nil, 'This record is not a character model.' end
-    if #entries == 0 then
+    if not groupFrame then
         local ok, _, view = pcall(function() return Game.GetTargetingSystem():GetCrosshairData(player) end)
         local forward = ok and view or player:GetWorldForward()
         if not forward then forward = player:GetWorldForward() end
@@ -159,12 +177,12 @@ function M.spawn(key, invitation)
     end
     local occupied, lanes = {}, {}
     for _, entry in ipairs(entries) do occupied[entry.slot] = true; lanes[entry.lane or entry.slot] = true end
-    local freeSlot, freeLane
+    local freeSlot, freeLane=returning and returning.slot,returning and returning.lane
     for slot = 1, #slots do
-        if not occupied[slot] then freeSlot = slot; break end
+        if not freeSlot and not occupied[slot] then freeSlot = slot; break end
     end
     for slot = 1, #slots do
-        if not lanes[slot] then freeLane = slot; break end
+        if not freeLane and not lanes[slot] then freeLane = slot; break end
     end
     if not freeSlot then return nil, 'Party is full' end
     local occupiedPositions = {}
@@ -194,24 +212,29 @@ function M.spawn(key, invitation)
     if not created or not entityID or tostring(entityID.hash):match('^0+[uUlL]*$') then
         return nil, 'The game could not create a copy of this model.'
     end
-    serial = serial + 1
+    if not returning then serial = serial + 1 end
     local assignedKey, assignedName = definition.profileKey, definition.profileName or definition.name
     if invitation then assignedKey, assignedName = invitation.profileKey, invitation.profileName or definition.name end
     local entry = {
-        serial = serial, key = key, name = definition.name, slot = freeSlot, lane = freeLane,
+        serial = returning and returning.serial or serial, key = key, name = definition.name, slot = freeSlot, lane = freeLane,
         profileKey = assignedKey, profileName = assignedName,
         record = definition.id or tostring(recordID),
+        modelRecordID = recordID,
         spawnRecord = spawnRecordName or definition.id or tostring(recordID),
         entityID = entityID, system = system, state = 'spawning',
         requestedAt = os.time(), requestedClock = runtimeClock,
         spawnPosition = copyPosition(spawnPosition),
-        person = behavior.new(serial),
+        person = behavior.new(returning and returning.serial or serial),
+        transitRecreated = returning ~= nil,
     }
-    entries[#entries + 1] = entry
+    if returning then
+        for index,prior in ipairs(entries) do if prior==returning then entries[index]=entry; break end end
+    else entries[#entries + 1] = entry end
     -- Transfer the invitation's prepared connection to the attaching copy.
     if M.onPartyChanged then pcall(M.onPartyChanged) end
-    return serial
+    return entry.serial
 end
+function M.spawn(key,invitation) return spawnCopy(key,invitation) end
 
 function M.setProfile(serialToAssign, key, name)
     if key ~= nil and (type(key) ~= 'string' or key == '') then
@@ -230,13 +253,27 @@ end
 
 local function deleteOwnedCopy(entry)
     if entry.removed then return true end
-    -- Remove reply-owned audio/captions while this exact entity is still live.
-    -- Other copies of the same character keep their own dialogue state.
-    if M.onBeforeRemove then pcall(M.onBeforeRemove, tostring(entry.entityID.hash)) end
+    local ready,available=pcall(function() return entry.system:IsReady() end)
+    if not ready or not available then return false end
     local checked, managed = pcall(function() return entry.system:IsManaged(entry.entityID) end)
     if checked and not managed then entry.removed = true; return true end
+    if not checked then return false end
+    local tagged,ours=pcall(function() return entry.system:IsTagged(entry.entityID,CName.new('CyberpunkConvaiCompanion')) end)
+    if not tagged or not ours then return false end
+    -- Notify exactly once while the managed entity still exists, before its
+    -- asynchronous despawn. Completion polls must not touch retired playback.
+    if not entry.removalNotified then
+        entry.removalNotified=true
+        if M.onBeforeRemove then pcall(M.onBeforeRemove,tostring(entry.entityID.hash)) end
+    end
+    if entry.deleteRequested then return false,true end
     local removed, result = pcall(function() return entry.system:DeleteEntity(entry.entityID) end)
-    if removed and result ~= false then entry.removed = true; return true end
+    if removed and result == true then
+        entry.deleteRequested=true
+        local confirmed,remaining=pcall(function() return entry.system:IsManaged(entry.entityID) end)
+        if confirmed and not remaining then entry.removed=true; return true end
+        return false,true
+    end
     return false
 end
 
@@ -244,21 +281,39 @@ end
 function M.dismiss(serialToDismiss)
     for index,entry in ipairs(entries) do
         if entry.serial==serialToDismiss then
-            if entry.equipment then equipment.release(entry.equipment) end
-            if entry.motor and entry.npc and entry.npc:IsAttached() then
-                pcall(actuator.release,entry.motor)
+            local checked,managed,ours=pcall(function()
+                if not entry.system or not entry.system:IsReady() then error('World is not ready') end
+                local managed=entry.system:IsManaged(entry.entityID)
+                return managed,not managed or entry.system:IsTagged(entry.entityID,CName.new('CyberpunkConvaiCompanion'))
+            end)
+            if not checked or not ours then
+                entry.error='Companion ownership could not be confirmed. Dismissal was not sent.'
+                return false,entry.error
             end
-            if entry.npc and entry.npc:IsAttached() and entry.role then
-                pcall(function()
-                    local ai=entry.npc:GetAIControllerComponent()
-                    entry.role:OnRoleCleared(entry.npc)
-                    ai:SetAIRole(NewObject('AINoRole')); ai:OnAttach()
-                end)
+            if managed then
+                if entry.equipment then equipment.release(entry.equipment) end
+                if entry.motor and entry.npc and entry.npc:IsAttached() then
+                    pcall(actuator.release,entry.motor)
+                end
+                if entry.npc and entry.npc:IsAttached() and entry.role then
+                    pcall(function()
+                        local ai=entry.npc:GetAIControllerComponent()
+                        entry.role:OnRoleCleared(entry.npc)
+                        ai:SetAIRole(NewObject('AINoRole')); ai:OnAttach()
+                    end)
+                end
             end
-            if not deleteOwnedCopy(entry) then
+            local deleted,pending=deleteOwnedCopy(entry)
+            if pending then
+                entry.state,entry.error='leaving',nil
+                vehicles.removing(fleet,entry.serial)
+                return true
+            end
+            if not deleted then
                 entry.state,entry.error='failed','The game could not dismiss this copy. Try again after closing other menus.'
                 return false,entry.error
             end
+            vehicles.remove(fleet, entry.serial)
             table.remove(entries,index)
             if #entries==0 then groupFrame=nil end
             if M.onPartyChanged then pcall(M.onPartyChanged) end
@@ -379,6 +434,7 @@ function M.list()
             npcZ=e.position and e.position.z,playerZ=groupFrame and groupFrame.position.z,
             phantomControllersDisabled=e.phantomControllersDisabled,
             equipment=equipment.snapshot(e.equipment),
+            transport=vehicles.snapshot(fleet,e.serial).people[1],
             focused=focused,focusLook=m.lookStyle=='full',ambientLook=m.lookStyle=='side',
             lookError=m.lookError,
             eyeContactHeight=m.lookHeight,headFollowStrength=m.lookStrength,
@@ -395,16 +451,137 @@ function M.list()
     return rows
 end
 
-function M.abandon()
+function M.abandon(preserveTransit)
     -- Native components may already be torn down. Dropping references is enough:
     -- these DynamicEntitySystem copies are explicitly nonpersistent.
     for _,entry in ipairs(entries) do
         if entry.motor then actuator.abandon(entry.motor) end
         if entry.equipment then equipment.abandon(entry.equipment) end
     end
-    entries={}
+    if not preserveTransit then entries={}; transit=nil end
     elapsed,runtimeClock,commandCursor=0,0,0
     groupFrame=nil
+    vehicles.abandon(fleet)
+end
+
+function M.vehicleSnapshot() return vehicles.snapshot(fleet) end
+
+function M.beginFastTravel()
+    if transit then return false end
+    local party={}
+    for _,entry in ipairs(entries) do
+        local eligible=entry.state=='spawning'
+        if entry.state=='ready' then
+            local ok,alive=pcall(function() return entry.npc:IsAttached() and not entry.npc:IsDeadNoStatPool() end)
+            eligible=ok and alive
+        end
+        if eligible then
+            -- This runs before TeleportToNode. Cancellation is allowed here;
+            -- OnDetach itself only discards references.
+            if entry.equipment then pcall(equipment.release,entry.equipment) end
+            if entry.motor then pcall(actuator.release,entry.motor) end
+            local commands={}
+            for _,owner in ipairs({entry.equipment or {},entry.motor or {}}) do
+                if owner.command then
+                    commands[#commands+1]=vehicleNative.commandReceipt({handle=owner.command,
+                        cancelRequested=owner.cancellation and owner.cancellation.requested==true})
+                end
+            end
+            party[#party+1]={serial=entry.serial,key=entry.key,name=entry.name,slot=entry.slot,lane=entry.lane,
+                profileKey=entry.profileKey,profileName=entry.profileName,record=entry.record,
+                modelRecordID=entry.modelRecordID,spawnRecord=entry.spawnRecord,entityID=entry.entityID,
+                state='transit',spawnPosition=space.copy(entry.spawnPosition),
+                retiredCommands=commands,
+                transitError=entry.motor and entry.motor.look and 'The previous gaze request could not be released.' or nil}
+        end
+        if entry.motor then actuator.abandon(entry.motor) end
+        if entry.equipment then equipment.abandon(entry.equipment) end
+    end
+    transit={phase='loading',clock=0,fleet=vehicles.suspend(fleet)}
+    entries=party; groupFrame=nil; elapsed=0
+    return true
+end
+
+function M.fastTravel()
+    -- Loading-screen callbacks without the matching before-request are inert.
+    if not transit or transit.phase~='loading' then return false end
+    transit.phase='recovering'
+    return true
+end
+
+local function recoverTransit(player,step)
+    if not transit then return false end
+    if transit.phase~='recovering' then return true end
+    transit.clock=transit.clock+step
+    local system=Game.GetDynamicEntitySystem()
+    if not system or not system:IsReady() then return true end
+    if not groupFrame then groupFrame=travel.new(space.copy(player:GetWorldPosition()),player:GetWorldForward()) end
+    local waiting=false
+    for _,entry in ipairs(entries) do
+        if entry.state=='transit' and transit.clock>=(entry.retryAt or 0) then
+            local ok,err=pcall(function()
+                entry.system=system
+                if not system:IsManaged(entry.entityID) then
+                    -- A transit receipt is the only internal admission token.
+                    -- The ordinary public spawn still requires preparation.
+                    if (entry.spawnAttempts or 0)>=3 then
+                        entry.state,entry.error='failed',entry.error or 'This copy could not return after fast travel.'; return
+                    end
+                    entry.spawnAttempts=(entry.spawnAttempts or 0)+1; entry.retryAt=transit.clock+2
+                    local created,reason=spawnCopy(entry.key,{profileKey=entry.profileKey,profileName=entry.profileName},entry)
+                    if not created then entry.error=reason end
+                    return
+                end
+                if not system:IsTagged(entry.entityID,CName.new('CyberpunkConvaiCompanion')) then
+                    entry.state,entry.error='failed','Companion ownership changed during fast travel.'; return
+                end
+                local npc=system:GetEntity(entry.entityID)
+                if not npc or not npc:IsAttached() then
+                    entry.error='Waiting for the existing copy after fast travel.'
+                    if transit.clock>=12 then entry.state='failed' end
+                    return
+                end
+                entry.npc,entry.system=npc,system
+                if npc:IsDeadNoStatPool() then entry.state='dead'; entry.error='This copy died during fast travel.'; return end
+                if entry.transitError then entry.state,entry.error='failed',entry.transitError; return end
+                local ai=npc:GetAIControllerComponent()
+                if not ai or not npc:IsA('NPCPuppet') or npc:IsCrowd() then
+                    entry.state,entry.error='failed','The existing copy cannot safely follow after fast travel.'; return
+                end
+                for _,receipt in ipairs(entry.retiredCommands) do
+                    local operation=vehicleNative.retiredCommand(receipt,npc,false)
+                    if not vehicleNative.cancel(operation) then
+                        receipt.cancelRequested=operation.cancelRequested==true
+                        entry.error='Waiting for the previous companion command to stop.'
+                        if transit.clock>=12 then entry.state='failed' end
+                        return
+                    end
+                end
+                local role=ai:GetAIRole()
+                if role and not role:IsA('AIFollowerRole') and not role:IsA('AINoRole') then
+                    entry.state,entry.error='failed','This copy now has another native AI role.'; return
+                end
+                if not role or role:IsA('AINoRole') then
+                    role=NewObject('AIFollowerRole'); role.followerRef=Game.CreateEntityReference('#player',{})
+                    ai:SetAIRole(role); ai:OnAttach()
+                end
+                entry.role=role; vehicleHooks.resumed(entry)
+                entry.state,entry.error,entry.retiredCommands='ready',nil,nil
+            end)
+            if not ok then
+                entry.error=tostring(err)
+                if transit.clock>=12 then entry.state='failed' end
+            end
+        end
+        if entry.state=='transit' or entry.state=='spawning' then waiting=true end
+    end
+    if waiting then return true end
+    local ready={}
+    for _,entry in ipairs(entries) do if entry.state=='ready' then ready[#ready+1]=entry end end
+    vehicles.resume(fleet,transit.fleet,ready,system)
+    transit=nil
+    if M.onPartyChanged then pcall(M.onPartyChanged) end
+    return false
 end
 
 local function peerYieldPoint(at,others,id)
@@ -446,9 +623,7 @@ function M.update(player,delta,focusEntity)
     if elapsed<0.1 then return end
     local step=elapsed; elapsed=0
     local playerPosition=space.copy(player:GetWorldPosition())
-    if not groupFrame then return end
     local gazeSettings=M.gazeSettings and M.gazeSettings() or nil
-    local lastReversal=groupFrame.reversal
 
     for _,entry in ipairs(entries) do
         if entry.state=='spawning' then
@@ -464,19 +639,42 @@ function M.update(player,delta,focusEntity)
             end
         end
     end
+    for index=#entries,1,-1 do
+        local entry=entries[index]
+        if entry.state=='leaving' then
+            local deleted,pending=deleteOwnedCopy(entry)
+            if deleted then
+                vehicles.remove(fleet,entry.serial); table.remove(entries,index)
+                if M.onPartyChanged then pcall(M.onPartyChanged) end
+            elseif not pending then entry.state,entry.error='failed','The game could not dismiss this copy.' end
+        end
+    end
+    if #entries==0 then groupFrame=nil end
 
-    local order,others,company={},{},{people={},focus=focusEntity}
-    -- All people are sensed before anyone is planned: iteration order must not
-    -- make later members react to partially updated group state.
+    if recoverTransit(player,step) then return end
+
+    local ready={}
     for _,entry in ipairs(entries) do
         if entry.state=='ready' then
             if not entry.npc:IsAttached() then
                 entry.state='missing'; actuator.abandon(entry.motor)
-                equipment.abandon(entry.equipment)
+                equipment.abandon(entry.equipment); vehicles.remove(fleet,entry.serial)
             elseif entry.npc:IsDeadNoStatPool() then
                 entry.state='dead'; actuator.abandon(entry.motor)
-                equipment.abandon(entry.equipment)
-            else
+                equipment.abandon(entry.equipment); vehicles.remove(fleet,entry.serial)
+            else ready[#ready+1]=entry end
+        end
+    end
+    -- Service empty fleets too: the last dismissal can leave a car waiting for
+    -- native cancellation/empty-seat confirmation after walking has no frame.
+    vehicles.update(fleet,player,ready,step,vehicleHooks)
+    if not groupFrame then return end
+    local lastReversal=groupFrame.reversal
+    local order,others,company={},{},{people={},focus=focusEntity}
+    -- All people are sensed before anyone is planned: iteration order must not
+    -- make later members react to partially updated group state.
+    for _,entry in ipairs(ready) do
+        if not vehicles.owns(fleet,entry.serial) then
                 local at=space.copy(entry.npc:GetWorldPosition())
                 entry.speed=entry.position and space.ground(entry.position,at)/step or 0
                 entry.position=at
@@ -490,7 +688,6 @@ function M.update(player,delta,focusEntity)
                 company.people[#company.people+1]={id=tostring(entry.entityID.hash),position=at,
                     phase=entry.person.phase}
                 others[#others+1]={id=tostring(entry.entityID.hash),position=at}
-            end
         end
     end
     travel.update(groupFrame,playerPosition,step,company)

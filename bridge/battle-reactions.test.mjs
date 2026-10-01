@@ -362,6 +362,14 @@ speakerReady,speakerBusy=false,true;now=now+.5;updateBattles(player,.5,true)
 assert(not automatic and stopped==1 and lastCancellation().reason=='speaker-unavailable')
 `));
 
+test('automatic delivery cannot transfer to a different profile on the same entity', () => run(adapterFixture + `
+openBattle();local context=automatic
+people[1].profileKey='alex'
+assert(not reactionCanDeliver(context,player) and not automatic,
+ 'An entity reused or reassigned to another profile cannot inherit the old speaker lease')
+assert(lastCancellation().reason=='speaker-missing')
+`));
+
 test('coordinator emits one claimed request for a completed confirmed world-loot batch', () => run(adapterFixture + `
 advance(.5);queueLoot('drink');advance(.5)
 assert(loot.status().pending==1 and #requests==0)
@@ -407,120 +415,124 @@ assert(#requests==1 and not automatic and not loot.valid(context.reaction,now))
 assert(loot.status().active~=priorBatch)
 `));
 
-test('battle closing waits six quiet loot seconds and its own opening does not impose thirty-second spacing', () => run(adapterFixture + `
+test('battle closing and pickup reactions take separate turns after owned playback completes', () => run(adapterFixture + `
 openBattle();local opening=automatic;finishAutomatic();endBattle()
-queueLoot('battle-drink');advance(.5)
-local collectedAt=now;assert(loot.status().holdForBattle and loot.status().collecting)
-waitGame(5.5);assert(not automatic and #requests==1)
-advance(.5);local closing=assert(automatic)
-assert(now-collectedAt==6 and now-opening.sentAt<30)
+queueLoot('battle-drink');advance(.5);waitGame(3.5)
+local closing=assert(automatic)
 assert(closing.reaction.kind=='battle' and closing.reaction.phase=='end' and #requests==2)
-assert(closing.reaction.encounter==opening.reaction.encounter and closing.loot.items[1].name=='NiCola')
-assert(closing.reaction.expiresAt/1000-now<40,'Waiting must use the original closing deadline')
+assert(closing.reaction.encounter==opening.reaction.encounter and not closing.loot)
+assert(loot.status().pending==1 and loot.status().cooldownUntil==0 and loot.status().exceptionalCooldownUntil==0)
+pending=nil;speech.requestId=closing.requestId;subtitles.line={}
+waitGame(8)
+assert(automatic==closing and #requests==2 and loot.status().pending==1,'Ready loot cannot overlap battle audio or captions')
+finishAutomatic();local releasedAt=lastAutomatic.finishedAt
+assert(lastAutomatic.requestId==closing.requestId and releasedAt)
+waitGame(1);assert(not automatic and #requests==2)
+while math.floor(now)-releasedAt<2 do advance(.5)end
+local pickup=assert(automatic)
+assert(pickup.reaction.kind=='loot' and pickup.requestId~=closing.requestId and #requests==3)
+assert(pickup.loot.items[1].name=='NiCola' and pickup.battle==nil)
 assert(loot.status().pending==0 and loot.status().cooldownUntil==math.floor(now)+600)
-assert(loot.status().exceptionalCooldownUntil==math.floor(now)+120)
 `));
 
-test('a combined closing prefers an exact pickup witness over unwitnessed speaker rotation', () => run(adapterFixture + `
-openBattle();local opening=automatic;assert(opening.profileKey=='judy-alvarez')
-finishAutomatic();endBattle()
+test('separate closing and loot turns retain their own exact-copy witness selection', () => run(adapterFixture + `
+openBattle();assert(automatic.profileKey=='judy-alvarez');finishAutomatic();endBattle()
 queueLoot('judy-only',nil,{people[1]});advance(.5);waitGame(6)
 local closing=assert(automatic)
-assert(closing.reaction.phase=='end')
-assert(closing.entity=='1ULL' and closing.profileKey=='judy-alvarez',
- 'The sole exact pickup witness must receive the combined closing')
-assert(closing.loot and closing.loot.witness.entity=='1ULL' and closing.loot.items[1].name=='NiCola')
-assert(loot.status().pending==0 and #requests==2)
+assert(closing.reaction.kind=='battle' and closing.reaction.phase=='end' and closing.profileKey=='alex')
+assert(not closing.loot and loot.status().pending==1)
+finishAutomatic();waitGame(2)
+local pickup=assert(automatic)
+assert(pickup.reaction.kind=='loot' and pickup.entity=='1ULL' and pickup.profileKey=='judy-alvarez')
+assert(pickup.loot.witness.entity=='1ULL' and pickup.battle==nil and #requests==3)
 `));
 
-test('a closing still speaks when no available companion witnessed both the battle and pickups', () => run(adapterFixture + `
+test('different battle and loot witnesses do not require an invented audience intersection', () => run(adapterFixture + `
 openBattle();finishAutomatic();endBattle()
 local newcomer={entity='4ULL',profileKey='panam-palmer',distance=3,available=true,name='Panam',npc='panam'}
 people[#people+1]=newcomer;supportedProfiles['panam-palmer']=true
 queueLoot('newcomer-only',nil,{newcomer});advance(.5);waitGame(6)
 local closing=assert(automatic)
 assert(closing.reaction.kind=='battle' and closing.reaction.phase=='end' and closing.profileKey=='alex')
-assert(not closing.loot and #requests==2,'A missing intersection must not invent a witness or lose the closing')
-assert(loot.status().pending==1 and loot.status().cooldownUntil==math.floor(now)+600)
+assert(not closing.loot and loot.status().pending==1 and loot.status().cooldownUntil==0)
+finishAutomatic();waitGame(2)
+assert(automatic.reaction.kind=='loot' and automatic.entity=='4ULL' and automatic.profileKey=='panam-palmer')
+assert(automatic.loot.witness.entity=='4ULL' and #requests==3)
 `));
 
-test('continuous pickups cannot defer a combined battle closing beyond twenty-five seconds after confirmation', () => run(adapterFixture + `
+test('continuous collecting does not postpone combat closing or consume an unfinished pickup batch', () => run(adapterFixture + `
 openBattle();finishAutomatic();endBattle()
 local confirmedAt=now
-for index=1,49 do
+for index=1,8 do
  queueLoot('continuous-'..index);advance(.5)
- assert(not automatic,'Closing fired before the collecting cap at '..(now-confirmedAt))
+ if index<8 then assert(not automatic)end
 end
-queueLoot('continuous-final');advance(.5)
 local closing=assert(automatic)
-assert(now-confirmedAt==25 and closing.reaction.phase=='end' and #requests==2)
-assert(closing.loot.items[1].quantity==50 and closing.loot.quietSeconds==0)
-assert(closing.reaction.expiresAt/1000-now<=15 and loot.status().pending==0)
+assert(now-confirmedAt==4 and closing.reaction.phase=='end' and not closing.loot)
+assert(loot.status().pending==8 and loot.status().collecting and #requests==2)
+for index=9,30 do queueLoot('continuous-'..index);advance(.5)end
+assert(automatic==closing and loot.status().pending==30)
+finishAutomatic();waitGame(5)
+assert(not automatic and loot.status().collecting)
+waitGame(1)
+assert(automatic.reaction.kind=='loot' and automatic.loot.items[1].quantity==30 and #requests==3)
 `));
 
-test('a brief combat-state dip inside one encounter preserves that fight\'s witnessed loot', () => run(adapterFixture + `
+test('a short combat-state dip preserves an earlier pickup turn before the separate closing', () => run(adapterFixture + `
 openBattle();finishAutomatic();queueLoot('during-fight');advance(.5)
 local encounter=battles.capture().encounter
-assert(loot.status().pending==1)
-sample.combat=false;advance(.5)
-assert(battles.capture().status=='fighting')
+sample.combat=false;advance(.5);assert(battles.capture().status=='fighting')
 sample.combat=true;advance(.5)
-assert(battles.capture().encounter==encounter)
-assert(loot.status().pending==1,'A native combat blip is not a new battle and must retain its loot')
+assert(battles.capture().encounter==encounter and loot.status().pending==1)
 endBattle();waitGame(4)
-assert(automatic and automatic.reaction.phase=='end' and automatic.loot.items[1].quantity==1)
+assert(automatic.reaction.kind=='loot' and automatic.loot.items[1].quantity==1 and automatic.battle==nil)
+finishAutomatic();waitGame(2)
+assert(automatic.reaction.kind=='battle' and automatic.reaction.phase=='end' and not automatic.loot)
+assert(#requests==3)
 `));
 
-test('a closing with no remaining witness releases reservation for a newly witnessed exploration batch', () => run(adapterFixture + `
-local judy=people[1]
-people={judy};active={};advance(.5)
-sample.combat=true;waitGame(14)
-assert(#requests==0,'Manual activity kept the expired opening silent')
+test('a closing with no remaining witness never reserves a newly witnessed pickup batch', () => run(adapterFixture + `
+people={people[1]};active={};advance(.5)
+sample.combat=true;waitGame(14);assert(#requests==0)
 sample.combat=false;advance(.5);waitGame(4)
 people={{entity='4ULL',profileKey='panam-palmer',distance=3,available=true,name='Panam',npc='panam'}}
 supportedProfiles['panam-palmer']=true;active=nil;advance(.5)
-assert(not battles.closingWindow(battlePeople) and not loot.status().holdForBattle)
+assert(not battles.closingWindow(battlePeople))
 queueLoot('new-witness');advance(.5);waitGame(6)
-assert(automatic and automatic.reaction.kind=='loot' and automatic.entity=='4ULL' and #requests==1)
-assert(automatic.loot.witness.profileKey=='panam-palmer')
+assert(automatic.reaction.kind=='loot' and automatic.entity=='4ULL' and #requests==1)
 `));
 
-test('temporary native speech cannot retain a closing reservation past its forty-second window', () => run(adapterFixture + `
-openBattle();finishAutomatic();endBattle()
-local confirmedAt=now
-queueLoot('after-battle');advance(.5)
-speakerReady,speakerBusy=false,true;waitGame(39.5)
-assert(now-confirmedAt==40 and loot.status().holdForBattle and not automatic)
-advance(.5)
-assert(not loot.status().holdForBattle and not battles.closingWindow(battlePeople))
-assert(#requests==1,'An unavailable witness must not receive a new standalone request')
+test('an unavailable battle witness does not block a different available loot witness', () => run(adapterFixture + `
+people={people[1]};openBattle();finishAutomatic();endBattle()
+local newcomer={entity='4ULL',profileKey='panam-palmer',distance=3,available=true,name='Panam',npc='panam'}
+people[#people+1]=newcomer;supportedProfiles['panam-palmer']=true
+local originalCanSpeak=battleObserver.canSpeak
+battleObserver.canSpeak=function(npc)
+ if npc==people[1].npc then return false,'native-dialogue',true end
+ return true,'available',false
+end
+queueLoot('newcomer',nil,{newcomer});advance(.5);waitGame(6)
+assert(automatic.reaction.kind=='loot' and automatic.profileKey=='panam-palmer' and #requests==2)
+finishAutomatic();battleObserver.canSpeak=originalCanSpeak;waitGame(2)
+assert(automatic.reaction.kind=='battle' and automatic.reaction.phase=='end' and automatic.entity=='1ULL')
+assert(not automatic.loot and #requests==3,'A later available battle witness gets its own timely turn')
+`));
+
+test('an expired closing window leaves unconsumed pickup receipts and cooldowns untouched', () => run(adapterFixture + `
+openBattle();finishAutomatic();endBattle();local confirmedAt=now
+queueLoot('after-battle');advance(.5);speakerReady,speakerBusy=false,true;waitGame(40)
+assert(now-confirmedAt>40 and not battles.closingWindow(battlePeople) and not automatic)
+assert(loot.status().pending==1 and loot.status().cooldownUntil==0 and #requests==1)
 speakerReady,speakerBusy=true,false;advance(.5)
-assert(automatic and automatic.reaction.kind=='loot' and #requests==2)
-assert(automatic.loot.items[1].quantity==1)
+assert(automatic.reaction.kind=='loot' and automatic.loot.items[1].quantity==1 and #requests==2)
 `));
 
-test('a combined closing consumes once while later acquisitions remain unconsumed and expire quietly', () => run(adapterFixture + `
-openBattle();finishAutomatic();endBattle()
-queueLoot('included');advance(.5);waitGame(6)
-local closing=assert(automatic);assert(closing.loot and loot.status().pending==0)
-local original=closing.loot
-queueLoot('after-closing',{quantity=3});advance(.5)
-assert(loot.status().pending==1 and loot.capture().items[1].quantity==3)
-assert(not loot.consumeForBattle(original,math.floor(now)))
-assert(loot.status().pending==1)
-finishAutomatic();waitGame(91)
-assert(#requests==2 and not automatic and loot.status().pending==0)
-`));
-
-test('unrelated automatic loot imposes shared spacing on a new battle pair', () => run(adapterFixture + `
+test('distinct automatic reaction types hand off after completion without the old thirty-second silence', () => run(adapterFixture + `
 advance(.5);queueLoot('before-battle');advance(.5);waitGame(6)
-local lootAt=lastAutomatic.at;assert(automatic.reaction.kind=='loot');finishAutomatic()
+assert(automatic.reaction.kind=='loot');finishAutomatic();local lootRelease=lastAutomatic.finishedAt
 sample.combat=true;waitGame(3)
-assert(not automatic and #requests==1,'A new opening cannot ignore recent unrelated loot')
-endBattle();waitGame(4)
-assert(not automatic and #requests==1,'A closing without its own spoken opening has no spacing exemption')
-while math.floor(now)-lootAt<30 do advance(.5)end
-assert(automatic and automatic.reaction.kind=='battle' and automatic.reaction.phase=='end' and #requests==2)
+assert(automatic.reaction.kind=='battle' and automatic.reaction.phase=='start' and #requests==2)
+assert(math.floor(now)-lootRelease>=2 and math.floor(now)-lootRelease<30)
 `));
 
 test('loot disable, story gates and session teardown cannot replay pending or queued receipts', () => run(adapterFixture + `

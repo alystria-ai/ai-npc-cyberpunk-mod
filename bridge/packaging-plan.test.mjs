@@ -50,7 +50,11 @@ test('voice plan preserves current precision, resident model, step options and e
   assert.equal(plan.voice.providerDefault, 'hybrid');
   assert.equal(plan.voice.stepsDefault, voiceSteps(undefined));
   assert.deepEqual(plan.voice.stepsOptions, [voiceSteps(16), voiceSteps(32)]);
-  assert.deepEqual(plan.voice.localProfiles, [...LOCAL_VOICE_KEYS]);
+  assert.deepEqual(plan.voice.startupProfiles, [...LOCAL_VOICE_KEYS]);
+  assert.equal(plan.voice.localProfiles.length, plan.voice.registry.preparedLocalProfiles);
+  assert.equal(new Set(plan.voice.localProfiles).size, plan.voice.localProfiles.length);
+  assert(plan.voice.startupProfiles.every(key => plan.voice.localProfiles.includes(key)));
+  assert.equal(plan.voice.registry.subjectiveListeningRequired, false);
   assert.equal(plan.voice.precision, 'float16'); assert.equal(plan.voice.tensorRT, false);
   assert.equal(plan.voice.residentWhileSelected, true); assert.equal(plan.voice.convaiAllUnloadsLocalModel, true);
 });

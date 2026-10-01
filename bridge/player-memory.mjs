@@ -5,7 +5,11 @@ import {randomUUID} from 'node:crypto';
 /**
  * One local player's identity, independent of character, world, save and channel.
  *
- * open({path, characterIds, provider, quiesce, timeoutMs}) is LOCAL ONLY.
+ * open({path, characterIds, characterFamilies, provider, quiesce, timeoutMs}) is LOCAL ONLY.
+ * characterFamilies explicitly maps provider profile keys to logical character
+ * keys. No name/suffix inference is performed. Guards remain exact provider-ID
+ * guards; Forget/status use logical keys and cover every durable/configured
+ * variant. Family bindings survive reopen without rotating the player identity.
  * route(profileKey, {channel, audience}) and isCurrent(guard) are synchronous,
  * read-only operations. They neither contact a profile nor call the provider.
  * The router owns channel/world/session scope; only identity reset epochs live here.
@@ -81,15 +85,28 @@ function exact(value, keys) {
   return object(value) && Object.keys(value).every(key => keys.includes(key))
     && keys.every(key => Object.hasOwn(value, key));
 }
+function exactOptional(value, required, optional) {
+  return object(value) && Object.keys(value).every(key => required.includes(key) || optional.includes(key))
+    && required.every(key => Object.hasOwn(value, key));
+}
+const storedFamily = row => row.familyKey ?? row.profileKey;
 function validateRegistry(value, anchor) {
   if (!exact(value, ['version', 'endUserId', 'revision', 'resetEpoch', 'characters', 'actions'])
       || value.version !== VERSION || !UUID.test(value.endUserId) || value.endUserId !== anchor
       || !integer(value.revision) || !integer(value.resetEpoch) || !object(value.characters)
       || Object.keys(value.characters).length > MAX_CHARACTERS || !Array.isArray(value.actions)
       || value.actions.length > MAX_ACTIONS) fail('CORRUPT_REGISTRY');
+  const profileFamilies = new Map();
   for (const [id, row] of Object.entries(value.characters)) {
-    if (!token(id) || !exact(row, ['profileKey', 'characterEpoch', 'contacted'])
-        || !token(row.profileKey) || !integer(row.characterEpoch) || typeof row.contacted !== 'boolean') fail('CORRUPT_REGISTRY');
+    if (!token(id) || !exactOptional(row, ['profileKey', 'characterEpoch', 'contacted'], ['familyKey'])
+        || !token(row.profileKey) || (Object.hasOwn(row, 'familyKey') && !token(row.familyKey))
+        || !integer(row.characterEpoch) || typeof row.contacted !== 'boolean') fail('CORRUPT_REGISTRY');
+    const family = storedFamily(row);
+    if (profileFamilies.has(row.profileKey) && profileFamilies.get(row.profileKey) !== family) fail('CORRUPT_REGISTRY');
+    profileFamilies.set(row.profileKey, family);
+  }
+  for (const family of profileFamilies.values()) {
+    if (profileFamilies.has(family) && profileFamilies.get(family) !== family) fail('CORRUPT_REGISTRY');
   }
   const seen = new Set();
   for (const action of value.actions) {
@@ -106,13 +123,14 @@ function validateRegistry(value, anchor) {
       if (!exact(row, ['characterId', 'profileKey', 'state', 'uncertain', 'mayHaveReachedProvider', 'providerEmptyObserved'])
           || !token(row.characterId) || targets.has(row.characterId) || !token(row.profileKey)
           || value.characters[row.characterId]?.contacted !== true
+          || value.characters[row.characterId].profileKey !== row.profileKey
           || !['pending', 'succeeded', 'failed'].includes(row.state) || typeof row.uncertain !== 'boolean'
           || typeof row.mayHaveReachedProvider !== 'boolean' || typeof row.providerEmptyObserved !== 'boolean'
           || (row.state === 'succeeded' && !row.providerEmptyObserved)) fail('CORRUPT_REGISTRY');
       targets.add(row.characterId);
+      if (action.scope === 'character' && storedFamily(value.characters[row.characterId]) !== action.profileKey) fail('CORRUPT_REGISTRY');
     }
     if (action.state === 'succeeded' && (!action.quiesced || action.targets.some(row => row.state !== 'succeeded'))) fail('CORRUPT_REGISTRY');
-    if (action.scope === 'character' && action.targets.length > 1) fail('CORRUPT_REGISTRY');
   }
   return value;
 }
@@ -202,6 +220,46 @@ function normalizeIds(characterIds) {
   }
   return ids;
 }
+function normalizeFamilies(characterFamilies) {
+  const entries = characterFamilies instanceof Map ? [...characterFamilies]
+    : object(characterFamilies) ? Object.entries(characterFamilies) : [];
+  if (entries.length > MAX_CHARACTERS || (characterFamilies !== undefined
+      && !(characterFamilies instanceof Map) && !object(characterFamilies))) fail('INVALID_CONFIGURATION');
+  const families = new Map();
+  for (const [key, family] of entries) {
+    if (!token(key) || !token(family)) fail('INVALID_CONFIGURATION');
+    families.set(key, family);
+  }
+  // Family values are final logical keys, never recursive aliases.
+  for (const family of families.values()) if (families.has(family) && families.get(family) !== family) fail('INVALID_CONFIGURATION');
+  return families;
+}
+function bindRegistryFamilies(state, ids, families) {
+  let changed = false;
+  const effective = new Map(families);
+  for (const row of Object.values(state.characters)) if (Object.hasOwn(row, 'familyKey')) {
+    if (families.has(row.profileKey) && families.get(row.profileKey) !== row.familyKey) fail('INVALID_CONFIGURATION');
+    effective.set(row.profileKey, row.familyKey);
+  }
+  // Both new and durable family values are final roots. Check the combined map:
+  // a partial config must not reassign a retired root or target a durable alias.
+  for (const family of effective.values()) {
+    if (effective.has(family) && effective.get(family) !== family) fail('INVALID_CONFIGURATION');
+  }
+  for (const [id, row] of Object.entries(state.characters)) {
+    const owner = [...ids].find(([, configuredId]) => configuredId === id)?.[0];
+    if (owner !== undefined && owner !== row.profileKey) fail('INVALID_CONFIGURATION');
+    if (!families.has(row.profileKey)) continue;
+    const familyKey = families.get(row.profileKey);
+    if (Object.hasOwn(row, 'familyKey') && row.familyKey !== familyKey) fail('INVALID_CONFIGURATION');
+    if (!Object.hasOwn(row, 'familyKey')) { row.familyKey = familyKey; changed = true; }
+  }
+  for (const action of state.actions) if (action.scope === 'character' && families.has(action.profileKey)) {
+    const canonical = families.get(action.profileKey);
+    if (action.profileKey !== canonical) { action.profileKey = canonical; changed = true; }
+  }
+  return changed;
+}
 function commandView(action) {
   if (!action) return null;
   return Object.freeze({id: action.id, scope: action.scope, profileKey: action.profileKey,
@@ -210,16 +268,18 @@ function commandView(action) {
 }
 
 export class PlayerMemory {
-  #files; #path; #anchorPath; #lockPath; #lockRaw; #anchorRaw; #diskRaw; #state; #ids;
+  #files; #path; #anchorPath; #lockPath; #lockRaw; #anchorRaw; #diskRaw; #state; #ids; #families;
   #provider; #quiesce; #timeoutMs; #mutation = Promise.resolve(); #closed = false; #fault = null;
   #enables = new Map(); #verified = new Set(); #enableReceipts = new Map(); #enableUnknown = new Set(); #activeClears = new Map();
   #reconnectPending = new Set();
   #controllers = new Set(); #fences = new Set();
 
-  static async open({path, characterIds, provider, quiesce, timeoutMs = 15000, fsImpl = fs} = {}) {
+  static async open({path, characterIds, characterFamilies, provider, quiesce, timeoutMs = 15000, fsImpl = fs} = {}) {
     if (typeof path !== 'string' || !path.trim() || !Number.isInteger(timeoutMs) || timeoutMs < 10 || timeoutMs > 60000
         || (provider !== undefined && !object(provider)) || (quiesce !== undefined && typeof quiesce !== 'function')) fail('INVALID_CONFIGURATION');
-    const ids = normalizeIds(characterIds), absolute = resolve(path), anchorPath = absolute + '.identity', lockPath = absolute + '.lock';
+    const ids = normalizeIds(characterIds), families = normalizeFamilies(characterFamilies);
+    if (characterFamilies !== undefined && new Set(ids.values()).size !== ids.size) fail('INVALID_CONFIGURATION');
+    const absolute = resolve(path), anchorPath = absolute + '.identity', lockPath = absolute + '.lock';
     let lockRaw;
     try {
       await fsImpl.mkdir(dirname(absolute), {recursive: true});
@@ -239,6 +299,7 @@ export class PlayerMemory {
         try { anchor = JSON.parse(anchorRaw); state = JSON.parse(diskRaw); } catch { fail('CORRUPT_REGISTRY'); }
         if (!exact(anchor, ['version', 'endUserId']) || anchor.version !== VERSION || !UUID.test(anchor.endUserId)) fail('CORRUPT_IDENTITY');
         validateRegistry(state, anchor.endUserId);
+        let changed = bindRegistryFamilies(state, ids, families);
         // Resolve interrupted local commands without doing remote recovery. The
         // persisted dispatch flag determines uncertainty; it never authorizes a
         // second deletion. Already observed per-target successes are retained.
@@ -252,6 +313,9 @@ export class PlayerMemory {
             action.message = action.uncertain ? MESSAGES.uncertain : action.state === 'failed' ? MESSAGES.failed
               : action.targets.length ? MESSAGES.succeeded : MESSAGES.empty;
           }
+          changed = true;
+        }
+        if (changed) {
           state.revision = increment(state.revision);
           validateRegistry(state, anchor.endUserId);
           diskRaw = JSON.stringify(state) + '\n';
@@ -259,7 +323,7 @@ export class PlayerMemory {
         }
       }
       return new PlayerMemory(CONSTRUCT, {files: fsImpl, path: absolute, anchorPath, lockPath, lockRaw,
-        anchorRaw, diskRaw, state, ids, provider, quiesce, timeoutMs});
+        anchorRaw, diskRaw, state, ids, families, provider, quiesce, timeoutMs});
     } catch (error) {
       if (lockRaw) await releaseLock(fsImpl, lockPath, lockRaw).catch(() => {});
       if (error instanceof PlayerMemoryError) throw error;
@@ -271,6 +335,10 @@ export class PlayerMemory {
     this.#files = options.files; this.#path = options.path; this.#anchorPath = options.anchorPath;
     this.#lockPath = options.lockPath; this.#lockRaw = options.lockRaw; this.#anchorRaw = options.anchorRaw;
     this.#diskRaw = options.diskRaw; this.#state = options.state; this.#ids = options.ids;
+    this.#families = new Map(options.families);
+    for (const row of Object.values(this.#state.characters)) {
+      if (Object.hasOwn(row, 'familyKey')) this.#families.set(row.profileKey, row.familyKey);
+    }
     this.#provider = options.provider; this.#quiesce = options.quiesce; this.#timeoutMs = options.timeoutMs;
   }
   #ready() { if (this.#closed) fail('CLOSED'); if (this.#fault) fail(this.#fault); }
@@ -278,13 +346,67 @@ export class PlayerMemory {
     if (!token(profileKey) || !this.#ids.has(profileKey)) fail('UNKNOWN_CHARACTER');
     return this.#ids.get(profileKey);
   }
+  #family(profileKey) { return this.#families.get(profileKey) ?? profileKey; }
+  #phoneMemoryEpochs() {
+    const characters = Object.create(null);
+    for(const key of this.#ids.keys())characters[this.#family(key)]=0;
+    for (const row of Object.values(this.#state.characters)) {
+      const family=storedFamily(row);characters[family]=Math.max(characters[family]??0,row.characterEpoch);
+    }
+    return Object.freeze({version:1,globalEpoch:this.#state.resetEpoch,characterEpochs:Object.freeze(characters)});
+  }
+  // UI/request ownership only. This exposes no player/provider/session IDs,
+  // performs no enable/query/write, and is independent of whether we have
+  // recorded contact. Same-action recovery advances these durable epochs too.
+  phoneResetEpochs(profileKey) {
+    this.#ready();if(!token(profileKey))fail('UNKNOWN_CHARACTER');
+    const epochs=this.#phoneMemoryEpochs();
+    const family=this.#family(profileKey);
+    return Object.freeze({version:1,globalEpoch:epochs.globalEpoch,
+      characterEpoch:Object.hasOwn(epochs.characterEpochs,family)?epochs.characterEpochs[family]:0});
+  }
+  #familyIds(family) {
+    return new Set([
+      ...[...this.#ids].filter(([key]) => this.#family(key) === family).map(([, id]) => id),
+      ...Object.entries(this.#state.characters).filter(([, row]) => storedFamily(row) === family).map(([id]) => id)
+    ]);
+  }
+  #profilesForIds(ids) {
+    return [...new Set([
+      ...[...this.#ids].filter(([, id]) => ids.has(id)).map(([key]) => key),
+      ...Object.entries(this.#state.characters).filter(([id]) => ids.has(id)).map(([, row]) => row.profileKey)
+    ])];
+  }
+  #rowForId(id) {
+    if (Object.hasOwn(this.#state.characters, id)) return this.#state.characters[id];
+    const profileKey = [...this.#ids].find(([, candidate]) => candidate === id)?.[0];
+    if (profileKey === undefined) fail('UNKNOWN_CHARACTER');
+    return this.#newRow(profileKey);
+  }
+  #newRow(profileKey, {characterEpoch = 0, contacted = false} = {}) {
+    return {profileKey, characterEpoch, contacted,
+      ...(this.#families.has(profileKey) ? {familyKey: this.#family(profileKey)} : {})};
+  }
   #blocked(id) {
     if (this.#fences.has(id)) return true;
-    // A newer explicitly successful clear/recovery supersedes older uncertainty.
+    const family = Object.hasOwn(this.#state.characters, id) ? storedFamily(this.#state.characters[id])
+      : this.#family([...this.#ids].find(([, candidate]) => candidate === id)?.[0]);
+    if ([...this.#familyIds(family)].some(member => this.#fences.has(member))) return true;
+    // Success supersedes uncertainty only for the exact IDs whose empty state
+    // was observed. A legacy subset clear cannot unblock its newly grouped
+    // sibling, even if both command keys were canonicalized during an upgrade.
+    const resolved = new Set();
     for (let index = this.#state.actions.length - 1; index >= 0; index--) {
-      const target = this.#state.actions[index].targets.find(row => row.characterId === id);
-      if (target?.state === 'succeeded' && target.providerEmptyObserved) return false;
-      if (target && (this.#state.actions[index].state === 'pending' || target.uncertain)) return true;
+      const action = this.#state.actions[index];
+      const targets = action.targets.filter(row => storedFamily(this.#state.characters[row.characterId]) === family);
+      const characterAction = action.scope === 'character' && action.profileKey === family;
+      if (!characterAction && targets.length === 0) continue;
+      if (action.state === 'pending') return true;
+      const partial = targets.some(row => row.state === 'succeeded') && targets.some(row => row.state !== 'succeeded');
+      for (const target of targets) {
+        if (target.state === 'succeeded' && target.providerEmptyObserved) resolved.add(target.characterId);
+        else if (!resolved.has(target.characterId) && (target.uncertain || partial)) return true;
+      }
     }
     return false;
   }
@@ -302,6 +424,13 @@ export class PlayerMemory {
       && [...this.#ids.values()].includes(guard.characterId) && !this.#blocked(guard.characterId)
       && guard.resetEpoch === this.#state.resetEpoch
       && guard.characterEpoch === (this.#state.characters[guard.characterId]?.characterEpoch ?? 0);
+  }
+  // Private adapter authorization seam: exposes no IDs or player identity.
+  // Historical pairs may authorize clear/inspect, never enable/new sends.
+  hasContactedProviderPair(profileKey, characterId) {
+    return !this.#closed && !this.#fault && token(profileKey) && token(characterId)
+      && this.#state.characters[characterId]?.contacted === true
+      && this.#state.characters[characterId].profileKey === profileKey;
   }
   async #verifyStorage() {
     this.#ready();
@@ -447,8 +576,8 @@ export class PlayerMemory {
     else await this.#persist(next => {
       if (!this.isCurrent(admitted) || signal?.aborted) fail('STALE_TURN');
       if (!Object.hasOwn(next.characters, characterId) && Object.keys(next.characters).length >= MAX_CHARACTERS) fail('CHARACTER_LIMIT');
-      if (!next.characters[characterId]?.contacted) next.characters[characterId] = {
-        profileKey, characterEpoch: next.characters[characterId]?.characterEpoch ?? 0, contacted: true};
+      if (!next.characters[characterId]?.contacted) next.characters[characterId] = this.#newRow(profileKey,
+        {characterEpoch: next.characters[characterId]?.characterEpoch ?? 0, contacted: true});
     });
     if (signal?.aborted || !this.isCurrent(admitted)) fail('STALE_TURN');
     return this.route(profileKey, {channel});
@@ -469,8 +598,8 @@ export class PlayerMemory {
     if (!this.#state.characters[characterId]?.contacted) await this.#persist(next => {
       if (!this.isCurrent(admitted) || signal?.aborted) fail('STALE_TURN');
       if (!Object.hasOwn(next.characters, characterId) && Object.keys(next.characters).length >= MAX_CHARACTERS) fail('CHARACTER_LIMIT');
-      if (!next.characters[characterId]?.contacted) next.characters[characterId] = {
-        profileKey, characterEpoch: next.characters[characterId]?.characterEpoch ?? 0, contacted: true};
+      if (!next.characters[characterId]?.contacted) next.characters[characterId] = this.#newRow(profileKey,
+        {characterEpoch: next.characters[characterId]?.characterEpoch ?? 0, contacted: true});
     });
     const {changed, reconnectRequired} = await this.#ensureEnabled({profileKey, characterId, admitted,
       verifiedAtAdmission, signal});
@@ -479,21 +608,30 @@ export class PlayerMemory {
   }
   #action(id) { return this.#state.actions.find(row => row.id === id); }
   status({actionId} = {}) {
-    const characters = Object.entries(this.#state.characters).filter(([, row]) => row.contacted)
-      .map(([id, row]) => Object.freeze({profileKey: row.profileKey, blocked: this.#blocked(id)}));
+    const contacted = new Map();
+    for (const [id, row] of Object.entries(this.#state.characters)) if (row.contacted) {
+      const family = storedFamily(row);
+      contacted.set(family, {profileKey: family, blocked: contacted.get(family)?.blocked === true || this.#blocked(id)});
+    }
+    const characters = [...contacted.values()].map(Object.freeze);
     const action = actionId === undefined ? this.#state.actions.at(-1) : this.#action(actionId);
     return Object.freeze({available: !this.#closed && !this.#fault, talkedToCount: characters.length,
       characters: Object.freeze(characters), command: commandView(action),
+      phoneMemoryEpochs:this.#phoneMemoryEpochs(),
       actions: Object.freeze(this.#state.actions.map(commandView))});
   }
   clearCharacter({profileKey, actionId, signal} = {}) {
     this.#ready();
-    return this.#clear({scope: 'character', profileKey, characterId: this.#id(profileKey), actionId, signal});
+    if (!token(profileKey)) fail('UNKNOWN_CHARACTER');
+    const canonical = this.#family(profileKey);
+    const fenced = this.#familyIds(canonical);
+    if (fenced.size === 0) fail('UNKNOWN_CHARACTER');
+    return this.#clear({scope: 'character', profileKey: canonical, actionId, signal});
   }
   clearAll({actionId, signal} = {}) {
     this.#ready(); return this.#clear({scope: 'all', profileKey: null, actionId, signal});
   }
-  #clear({scope, profileKey, characterId, actionId, signal}) {
+  #clear({scope, profileKey, actionId, signal}) {
     if (!token(actionId)) fail('INVALID_ACTION_ID');
     const prior = this.#action(actionId);
     if (prior && (prior.scope !== scope || prior.profileKey !== profileKey)) fail('ACTION_CONFLICT');
@@ -505,35 +643,35 @@ export class PlayerMemory {
     if (this.#state.actions.length >= MAX_ACTIONS) fail('ACTION_LIMIT');
     if ((scope === 'all' && this.#activeClears.size > 0)
         || [...this.#activeClears.values()].some(active => active.scope === 'all')) fail('CLEAR_IN_PROGRESS');
-    const targets = Object.entries(this.#state.characters).filter(([id, row]) => row.contacted && (scope === 'all' || id === characterId))
+    const targets = Object.entries(this.#state.characters).filter(([, row]) => row.contacted && (scope === 'all' || storedFamily(row) === profileKey))
       .map(([id, row]) => ({characterId: id, profileKey: row.profileKey, state: 'pending', uncertain: false,
         mayHaveReachedProvider: false, providerEmptyObserved: false}));
-    const fenced = scope === 'all' ? new Set([...this.#ids.values(), ...Object.keys(this.#state.characters)]) : new Set([characterId]);
+    const fenced = scope === 'all' ? new Set([...this.#ids.values(), ...Object.keys(this.#state.characters)]) : this.#familyIds(profileKey);
+    if (scope === 'character' && new Set([...Object.keys(this.#state.characters), ...fenced]).size > MAX_CHARACTERS) fail('CHARACTER_LIMIT');
     if ([...fenced].some(id => this.#fences.has(id))) fail('CLEAR_IN_PROGRESS');
     for (const id of fenced) {
       this.#fences.add(id); this.#verified.delete(id); this.#enableReceipts.delete(id); this.#enables.get(id)?.controller.abort();
       this.#reconnectPending.delete(id);
     }
-    const running = this.#runClear({scope, profileKey, characterId, actionId, targets, fenced, signal});
+    const running = this.#runClear({scope, profileKey, actionId, targets, fenced, signal});
     this.#activeClears.set(actionId, {scope, profileKey, promise: running});
     running.finally(() => this.#activeClears.delete(actionId)).catch(() => {});
     return running;
   }
-  async #runClear({scope, profileKey, characterId, actionId, targets, fenced, signal}) {
+  async #runClear({scope, profileKey, actionId, targets, fenced, signal}) {
     try {
       await this.#persist(next => {
         if (scope === 'all') next.resetEpoch = increment(next.resetEpoch);
-        else {
-          if (!Object.hasOwn(next.characters, characterId) && Object.keys(next.characters).length >= MAX_CHARACTERS) fail('CHARACTER_LIMIT');
-          const row = next.characters[characterId] ?? {profileKey, characterEpoch: 0, contacted: false};
-          row.characterEpoch = increment(row.characterEpoch); next.characters[characterId] = row;
+        else for (const id of fenced) {
+          const row = Object.hasOwn(next.characters, id) ? next.characters[id] : structuredClone(this.#rowForId(id));
+          row.characterEpoch = increment(row.characterEpoch); next.characters[id] = row;
         }
         next.actions.push({id: actionId, scope, profileKey, state: 'pending', message: MESSAGES.pending,
           uncertain: false, quiesced: false, targets});
       });
       try {
         if (typeof this.#quiesce !== 'function') fail('QUIESCE_FAILED');
-        const receipt = await this.#bounded(combined => this.#quiesce({scope, profileKeys: scope === 'character' ? [profileKey] : targets.map(row => row.profileKey),
+        const receipt = await this.#bounded(combined => this.#quiesce({scope, profileKeys: this.#profilesForIds(fenced),
           characterIds: [...fenced], actionId, signal: combined}), {signal});
         if (receipt?.quiesced !== true) fail('QUIESCE_FAILED');
         await this.#persist(next => { next.actions.find(row => row.id === actionId).quiesced = true; });
@@ -589,12 +727,14 @@ export class PlayerMemory {
     if (signal?.aborted) fail('CANCELLED');
     if (typeof this.#provider?.inspectMemory !== 'function') fail('MEMORY_UNAVAILABLE');
     const fenced = action.scope === 'all' ? new Set([...this.#ids.values(), ...Object.keys(this.#state.characters)])
-      : new Set(action.targets.map(row => row.characterId));
+      : this.#familyIds(action.profileKey);
+    if (action.scope === 'character' && new Set([...Object.keys(this.#state.characters), ...fenced]).size > MAX_CHARACTERS) fail('CHARACTER_LIMIT');
     if ((action.scope === 'all' && this.#activeClears.size > 0)
         || [...this.#activeClears.values()].some(active => active.scope === 'all')
         || [...fenced].some(id => this.#fences.has(id))) fail('CLEAR_IN_PROGRESS');
     for (const id of fenced) {
       this.#fences.add(id); this.#verified.delete(id); this.#enableReceipts.delete(id); this.#enables.get(id)?.controller.abort();
+      this.#reconnectPending.delete(id);
     }
     const running = this.#runRecovery({actionId, fenced, signal});
     this.#activeClears.set(actionId, {scope: action.scope, profileKey: action.profileKey, promise: running});
@@ -606,7 +746,10 @@ export class PlayerMemory {
       await this.#persist(next => {
         const action = next.actions.find(row => row.id === actionId);
         if (action.scope === 'all') next.resetEpoch = increment(next.resetEpoch);
-        else for (const id of fenced) next.characters[id].characterEpoch = increment(next.characters[id].characterEpoch);
+        else for (const id of fenced) {
+          const row = Object.hasOwn(next.characters, id) ? next.characters[id] : structuredClone(this.#rowForId(id));
+          row.characterEpoch = increment(row.characterEpoch); next.characters[id] = row;
+        }
         action.state = 'pending'; action.message = MESSAGES.pending;
       });
       const action = this.#action(actionId);
@@ -615,14 +758,18 @@ export class PlayerMemory {
       try {
         if (typeof this.#quiesce !== 'function') fail('QUIESCE_FAILED');
         const receipt = await this.#bounded(combined => this.#quiesce({scope: action.scope,
-          profileKeys: action.targets.map(row => row.profileKey), characterIds: [...fenced], actionId, signal: combined}), {signal});
+          profileKeys: this.#profilesForIds(fenced), characterIds: [...fenced], actionId, signal: combined}), {signal});
         if (receipt?.quiesced !== true) fail('QUIESCE_FAILED');
       } catch {
         await this.#persist(next => { const current = next.actions.find(row => row.id === actionId);
           current.quiesced = false; this.#finishAction(current); current.message = current.uncertain ? MESSAGES.uncertain : MESSAGES.quiesce; });
         return commandView(this.#action(actionId));
       }
-      for (const target of action.targets.filter(row => row.state !== 'succeeded')) {
+      const unresolvedFamilies = new Set(action.targets.filter(row => row.state !== 'succeeded')
+        .map(row => storedFamily(this.#state.characters[row.characterId])));
+      // A partial family is one blocked unit. Recheck its already-observed
+      // siblings too, while leaving unrelated completed families undisturbed.
+      for (const target of action.targets.filter(row => unresolvedFamilies.has(storedFamily(this.#state.characters[row.characterId])))) {
         try {
           const result = await this.#bounded(combined => this.#provider.inspectMemory({profileKey: target.profileKey,
             characterId: target.characterId, endUserId: this.#state.endUserId, signal: combined}), {signal});

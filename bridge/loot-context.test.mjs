@@ -164,19 +164,27 @@ test('standalone loot reaction validates its own batch and routes to a short pic
   assert.throws(() => lootTrigger({...input, reaction: {...input.reaction, batch: 'loot-1000-2'}}), /Invalid loot trigger/);
 });
 
-test('a battle closing can combine its verified pickups, while an opening cannot carry loot', () => {
+test('automatic battle and loot turns reject mixed payloads while manual conversation retains both', () => {
   const closing = message({loot: pickup(), battle: encounter(),
     reaction: {kind: 'battle', phase: 'end', encounter: 'battle-1', expiresAt: 20000}});
-  const input = wire(closing);
+  assert.equal(wire(closing), null, 'A battle closing must not consume or speak a pickup batch');
+  assert.throws(() => battleTrigger(closing), /Invalid battle trigger/);
+  const input = wire({...closing, loot: undefined});
   assert(input);
   const trigger = battleTrigger(input);
   assert.match(trigger, /no longer in combat, but the outcome is unknown/);
   assert.match(trigger, /Patrol Officer/);
-  assert.match(trigger, /Lexington/);
+  assert(!trigger.includes('Lexington'));
   assert.match(trigger, /no more than twenty words/);
   assert.match(trigger, /do not invent enemy numbers, locations, arrivals, injuries, kills or victory/);
   assert(!trigger.startsWith('V has finished collecting'));
   assert.deepEqual(parseReaction(input.reaction, input.battle, input.loot), input.reaction);
+  assert.equal(wire({...automatic(), battle: encounter()}), null,
+    'A pickup reaction does not carry a combat recap');
+  assert.throws(() => battleTrigger({...automatic(), battle: encounter()}), /Invalid loot trigger/);
+  const manual = wire({...closing, reaction: undefined});
+  assert(manual && manual.battle && manual.loot, 'V may still discuss both facts manually');
+  assert(!lootContext(closing));
   const opening = {...closing, battle: encounter('fighting'), reaction: {...closing.reaction, phase: 'start'}};
   assert.equal(wire(opening), null);
   assert(wire({...opening, loot: undefined}), 'Ordinary battle openings remain valid');
@@ -256,16 +264,29 @@ function bridgeFixture() {
     console: {error: (...args) => state.errors.push(args)}});
   vm.runInContext(`
     let polling=false,stopped=false,active=null,observed='',lastAcceptedIdentity='',voiceRouteReservation=false;
+    let relationshipRouteReservation=false;
     const inputPath='input',runtime='runtime',resolve=(...parts)=>parts.join('/');
     const stat=async()=>({mtimeMs:1,size:rawInput.length});
     const readFile=async path=>path===inputPath?rawInput:readLease();
     const prefetch={invalidate(){},claim(){return null;}},completeContext=()=>'',status=async()=>{};
     const processInput=request=>record(request);
     ${adapter}
-    globalThis.api={tick};
+    globalThis.api={tick,setRelationshipReservation:value=>{relationshipRouteReservation=value;}};
   `, context);
   return {state, api: context.api};
 }
+
+test('a relationship route reservation leaves a loot request available for the next idle poll', async () => {
+  const {state, api} = bridgeFixture();
+  api.setRelationshipReservation(true);
+  await api.tick();
+  assert.equal(state.accepted.length, 0); assert.equal(state.reads, 0);
+  api.setRelationshipReservation(false);
+  await api.tick();
+  assert.equal(state.accepted.length, 1); assert.equal(state.reads, 1);
+  assert.equal(state.accepted[0].input.reaction.kind, 'loot');
+  assert.deepEqual(state.errors, []);
+});
 
 test('the real bridge accepts one valid loot request and cancels its generation when its lease is revoked', async () => {
   const {state, api} = bridgeFixture();

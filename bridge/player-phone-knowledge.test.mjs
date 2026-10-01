@@ -57,6 +57,7 @@ function fixture({maxPending, maxAgeMs} = {}) {
 test('the exact player phone route works without native save identity and is consumed once', async () => {
   const f = fixture(), options = f.options(), context = await f.knowledge.prepareContext(options);
   assert.equal(context.status, 'player'); assert.equal(context.endUserId, f.endUserId);
+  assert.equal(context.characterId, f.prepared[0].guard.characterId);
   assert.equal(context.scope, f.prepared[0].scope); assert.equal(context.sessionKey, f.prepared[0].sessionKey);
   assert.equal(context.remoteGeneration, playerPhoneGeneration(f.prepared[0].guard));
   assert.equal(Object.isFrozen(context), true); assert.equal(Object.isFrozen(f.prepared[0].input), true);
@@ -96,6 +97,7 @@ test('changed request data or routing fields cannot borrow another prepared rout
     ['context', value => { value.input.worldKnowledge.reason = 'changed'; }],
     ['binding', value => { value.input.saveIdentity.generation = 2; value.saveIdentity.generation = 2; }],
     ['player', value => { value.endUserId = 'another-player'; }],
+    ['character ID', value => { value.characterId = 'ordinary-instead-of-selected'; }],
     ['scope', value => { value.scope = `phone:world:${'b'.repeat(24)}`; }],
     ['session', value => { value.sessionKey = 'e'.repeat(64); }],
     ['reset epoch', value => { value.remoteGeneration = 'f'.repeat(64); }],
@@ -200,6 +202,7 @@ test('real PhoneChat uses one exact player route and keeps per-contact phone ses
     reply: async options => {
       const prepared = await f.knowledge.preparedFor(options); calls.push(options);
       assert.equal(options.endUserId, prepared.remoteConfig.endUserId); assert.equal(options.scope, prepared.scope);
+      assert.equal(options.characterId, prepared.guard.characterId);
       assert.equal(options.sessionKey, prepared.sessionKey); assert.equal(options.remoteGeneration, playerPhoneGeneration(prepared.guard));
       return {text: 'Hey V.', sessionID: `phone-session-${calls.length}`};
     }});

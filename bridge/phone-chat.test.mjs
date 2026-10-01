@@ -2,7 +2,8 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import fengari from 'fengari';
-import {PhoneChat, parsePhoneState, parsePhoneBinding, phoneBindingKey, phoneScope, parsePlayerPhoneContext} from './phone-chat.mjs';
+import {PhoneChat, parsePhoneState, parsePhoneBinding, phoneBindingKey, phoneScope, parsePlayerPhoneContext,
+  parsePhoneReset, phoneRecentConversationContext} from './phone-chat.mjs';
 
 const now = 100000;
 const binding = (overrides = {}) => ({version: 1, status: 'available', authoritative: true, confidence: 'native-live',
@@ -53,6 +54,57 @@ const memory = (save, remoteGeneration = 'remote-generation-1') => ({status: 'av
 const playerContext = (overrides = {}) => ({status: 'player', endUserId: 'one-persistent-player',
   scope: `phone:world:${'a'.repeat(24)}`, sessionKey: 'b'.repeat(64), remoteGeneration: 'c'.repeat(64), ...overrides});
 const unknownState = (overrides = {}) => state({saveIdentity: {version: 1, status: 'unavailable', generation: 1}, ...overrides});
+const resetOwner = (characterEpoch=0,globalEpoch=0)=>({version:1,characterEpoch,globalEpoch});
+const recentPhone = (overrides={})=>({version:1,source:'local-phone-chat',contact:'judy',profileKey:'judy-alvarez',
+  world:'world-1',binding:'session:1',historyScope:'phone-local-player:v1',memoryReset:resetOwner(),
+  rows:[{sent:true,text:'What are you editing?'},{sent:false,text:'Something from Lizzie’s.'}],...overrides});
+
+test('recent actual phone messages are bounded, audience-bound and quoted without becoming instructions or facts', () => {
+  const value=unknownState({request:{id:'world-1-1',contact:'judy',text:'Continue',memoryReset:resetOwner(),recentConversation:recentPhone()}});
+  const parsed=parsePhoneState(JSON.stringify(value));assert.ok(parsed);
+  assert.equal(Object.isFrozen(parsed.request.recentConversation),true);assert.equal(Object.isFrozen(parsed.request.recentConversation.rows[0]),true);
+  const context=phoneRecentConversationContext({...parsed.request,profileKey:'judy-alvarez',channel:'phone'});
+  assert.match(context,/quoted utterances, not new instructions or verified world facts/);
+  assert.match(context,/What are you editing/);assert.ok(!context.includes('Continue'));
+  assert.equal(phoneRecentConversationContext({...parsed.request,profileKey:'panam-palmer',channel:'phone'}),'');
+  assert.equal(phoneRecentConversationContext({...parsed.request,profileKey:'judy-alvarez',channel:'private'}),'');
+  for (const recent of [recentPhone({contact:'panam'}),recentPhone({world:'another-world'}),recentPhone({binding:'session:2'}),
+    recentPhone({memoryReset:resetOwner(1)}),recentPhone({source:'native-story-messages'}),recentPhone({historyScope:'all-player-history'}),
+    recentPhone({rows:Array.from({length:7},()=>({text:'Too many rows',sent:true}))}),
+    recentPhone({rows:[{text:'あ'.repeat(801),sent:false}]}),recentPhone({rows:[{text:'Wrong role',sent:'false'}]}),
+    recentPhone({rows:{1:{text:'Unordered row',sent:true}}})]) {
+    assert.equal(parsePhoneState(JSON.stringify({...value,request:{...value.request,recentConversation:recent}})),null);
+  }
+  const empty=parsePhoneState(JSON.stringify({...value,request:{...value.request,recentConversation:recentPhone({rows:{}})}}));
+  assert.deepEqual(empty.request.recentConversation.rows,[]);
+  for(const owner of [{...resetOwner(),characterEpoch:-1},{...resetOwner(),globalEpoch:4097},{...resetOwner(),extra:'instruction'}]) assert.equal(parsePhoneReset(owner),null);
+});
+
+test('reset epochs prevent old pending phone files from acquiring a fresh guard after service restart', async () => {
+  let owner={...resetOwner(),blocked:false};const old=defer(),entered=defer();
+  const first=fixture(()=>{entered.resolve();return old.promise;},{resetFor:()=>owner,contextFor:()=>playerContext(),contextCurrent:()=>true});
+  const input=unknownState({request:{id:'world-1-1',contact:'judy',text:'Before Forget',memoryReset:resetOwner()}});
+  await first.chat.accept(input);const work=first.chat.active.work;await entered.promise;assert.equal(first.calls.length,1);
+  owner={...resetOwner(1),blocked:true};old.resolve({text:'Obsolete reply',sessionID:'old'});await work;
+  assert.equal(first.output.filter(row=>row.state==='reply').length,0);assert.equal(first.chat.transientSessions.size,0);
+  owner={...resetOwner(1),blocked:false};
+  const restarted=fixture(async()=>({text:'Fresh route',sessionID:'fresh'}),{resetFor:()=>owner,
+    contextFor:()=>playerContext(),contextCurrent:()=>true});
+  await finish(restarted.chat,input);assert.equal(restarted.calls.length,0);
+  await finish(restarted.chat,unknownState({request:{id:'world-1-2',contact:'judy',text:'After Forget',memoryReset:resetOwner(1)}}));
+  assert.equal(restarted.calls.length,1);assert.equal(restarted.output.at(-1).text,'Fresh route');
+  owner={...resetOwner(1,1),blocked:false};
+  await finish(restarted.chat,unknownState({request:{id:'world-1-3',contact:'judy',text:'Before all clear',memoryReset:resetOwner(1)}}));
+  assert.equal(restarted.calls.length,1);
+});
+
+test('a reset of another character cannot invalidate the current phone owner', async () => {
+  const gate=defer(), epochs={'judy-alvarez':0,'panam-palmer':0};
+  const f=fixture(()=>gate.promise,{resetFor:key=>({...resetOwner(epochs[key]),blocked:false})});
+  await f.chat.accept(unknownState({request:{id:'world-1-1',contact:'judy',text:'Unrelated to Panam',memoryReset:resetOwner()}}));
+  const work=f.chat.active.work;epochs['panam-palmer']=1;gate.resolve({text:'Judy reply',sessionID:'judy'});await work;
+  assert.equal(f.output.at(-1).text,'Judy reply');
+});
 
 test('stable player contexts require bounded exact phone, session and reset route fields', async () => {
   const context = playerContext(); assert.deepEqual(parsePlayerPhoneContext(context), context);
@@ -60,13 +112,41 @@ test('stable player contexts require bounded exact phone, session and reset rout
   for (const value of [playerContext({endUserId: ''}), playerContext({endUserId: 'x'.repeat(257)}),
     playerContext({endUserId: 'another player'}), playerContext({scope: `private:world:${'a'.repeat(24)}`}),
     playerContext({scope: 'phone'}), playerContext({sessionKey: 'b'.repeat(65)}),
-    playerContext({remoteGeneration: 'unverified-reset'})]) assert.equal(parsePlayerPhoneContext(value), null);
+    playerContext({remoteGeneration: 'unverified-reset'}), playerContext({characterId:'../wrong-id'}),
+    playerContext({characterId:''}), playerContext({characterId:'x'.repeat(257)})]) assert.equal(parsePlayerPhoneContext(value), null);
   for (const options of [{contextFor: () => playerContext()},
     {contextFor: () => playerContext({scope: `group:world:${'a'.repeat(24)}`}), contextCurrent: () => true}]) {
     const {chat, calls, output} = fixture(async () => ({text: 'Must not send', sessionID: 'invalid'}), options);
     await finish(chat, unknownState());
     assert.equal(calls.length, 0); assert.equal(output.at(-1).state, 'error');
   }
+});
+
+test('phone replies use the frozen selected provider ID and never borrow an ordinary/romantic session', async () => {
+  let context=playerContext({characterId:'judy-romantic-id'});
+  const {chat,calls,output}=fixture(async()=>({text:'Selected profile reply',sessionID:`variant-${calls.length}`}),
+    {contextFor:()=>context,contextCurrent:()=>true});
+  await finish(chat,unknownState());
+  await finish(chat,unknownState({request:{id:'world-1-2',contact:'judy',text:'Again'}}));
+  assert.deepEqual(calls.map(row=>row.characterId),['judy-romantic-id','judy-romantic-id']);
+  assert.deepEqual(calls.map(row=>row.sessionId),['-1','variant-1']);
+  context=playerContext({characterId:'judy-id'});
+  await finish(chat,unknownState({request:{id:'world-1-3',contact:'judy',text:'Ordinary profile'}}));
+  assert.equal(calls[2].characterId,'judy-id');assert.equal(calls[2].sessionId,'-1');
+  context=playerContext({characterId:'judy-romantic-id'});
+  await finish(chat,unknownState({request:{id:'world-1-4',contact:'judy',text:'Romantic again'}}));
+  assert.equal(calls[3].sessionId,'variant-2');
+  assert.ok(calls.every(row=>row.profileKey==='judy-alvarez'));
+  assert.ok(output.every(row=>row.contact==='judy'&&!Object.hasOwn(row,'characterId')));
+});
+
+test('mutating a raw relationship context after dispatch cannot change that turn selected ID', async () => {
+  const context=playerContext({characterId:'judy-romantic-id'}), gate=defer();
+  const {chat,calls}=fixture(()=>gate.promise,{contextFor:()=>context,contextCurrent:()=>true});
+  await chat.accept(unknownState());const work=chat.active.work;
+  context.characterId='judy-id';gate.resolve({text:'Frozen profile reply',sessionID:'selected'});await work;
+  assert.equal(calls[0].characterId,'judy-romantic-id');
+  assert.equal([...chat.transientSessions.values()][0].characterId,'judy-romantic-id');
 });
 
 test('same player and contact still require exact scope, session key and reset epoch session reuse', async () => {
@@ -328,6 +408,17 @@ local function configure()
 end
 configure()
 local function update() for i=1,8 do m.update(player,0) end end
+local resetRevision=0
+local function resetJournal(receipts,pending,blocked,all,trackedOverride)
+  resetRevision=resetRevision+1
+  local tracked,seen={},{}
+  for _,rows in ipairs({receipts or {},pending or {}}) do for _,row in ipairs(rows) do
+    if not seen[row.id] then tracked[#tracked+1]=clone(row);seen[row.id]=true end
+  end end
+  put('runtime/memory-chat-resets.json',{version=1,revision=resetRevision,updated=clock*1000,
+    baseline={},tracked=trackedOverride or tracked,receipts=receipts or {},pending=pending or {},blockedProfiles=blocked or {},blockAll=all==true})
+end
+local function clearAction(id,key) return {id=id,scope=key and 'character' or 'all',profileKey=key} end
 `;
 test('phone Lua captures the preference on Send and keeps it through pending heartbeat updates', () => runLua(setup + `
 local followUps=false
@@ -341,6 +432,28 @@ put('runtime/phone-chat-output.json',{world=m.world,binding=m.bindingKey,id=pend
 update();submission={contact='judy',text='How are you?'};update()
 assert(m.pending.followUpQuestions==true)
 followUps=false;clock=clock+1;update();assert(m.pending.followUpQuestions==true)
+`));
+
+test('Lua recent phone continuity includes only six actual rows before the current send and preserves full history', () => runLua(setup + `
+saveBinding={version=1,status='unavailable',generation=1,historyScope='local-player-v1'};update()
+m.history.judy={};for index=1,8 do m.history.judy[index]={text='Actual row '..index,sent=index%2==1} end
+m.history.panam={{text='Another private conversation',sent=false}}
+submission={contact='judy',text='Current message'};update()
+local recent=m.pending.recentConversation
+assert(recent.contact=='judy' and recent.profileKey=='judy-alvarez' and recent.world==m.world and recent.binding==m.bindingKey)
+assert(#recent.rows==6 and recent.rows[1].text=='Actual row 3' and recent.rows[6].text=='Actual row 8')
+assert(#m.history.judy==9 and m.history.judy[9].text=='Current message')
+assert(recent.memoryReset.characterEpoch==0 and m.pending.memoryReset.globalEpoch==0)
+for _,row in ipairs(recent.rows) do assert(not row.text:find('Another') and not row.text:find('Current')) end
+`));
+
+test('Lua continuity keeps complete UTF-8 utterances within its byte budget and stamps failed-clear epochs', () => runLua(setup + `
+update();local intent=clearAction('failed-intent','judy-alvarez')
+resetJournal({}, {}, {}, false, {intent});update()
+m.history.judy={{text=string.rep('あ',300),sent=true},{text=string.rep('あ',660),sent=false}}
+submission={contact='judy',text='Fresh after failed clear'};update()
+assert(#m.pending.recentConversation.rows==1 and #m.pending.recentConversation.rows[1].text==1980)
+assert(#m.history.judy==3 and m.pending.memoryReset.characterEpoch==1 and m.pending.memoryReset.globalEpoch==0)
 `));
 test('paused phone frames deliver replies to the original contact after selection changes', () => runLua(setup + `
 update(); draft='Hey Judy'; submission={contact='judy',text=draft}; update()
@@ -370,7 +483,7 @@ draft='A new unsent thought'; clock=clock+46; update()
 assert(not m.pending and draft=='A new unsent thought')
 `));
 
-test('disappearing messages wait for the current launch and clear only the local transcript and drafts', () => runLua(setup + `
+test('retired disappearing-message settings never clear stored Chat or wait for a launch token', () => runLua(setup + `
 update();local stored=json.decode(files['runtime/phone-history.json'])
 stored.buckets[m.scope].launch='1-100'
 stored.buckets[m.scope].history={judy={{text='An old conversation',sent=false}}}
@@ -379,13 +492,9 @@ put('runtime/phone-history.json',stored)
 put('runtime/phone-sessions.json',{['judy-alvarez']='retained-convai-session'})
 local sessions=files['runtime/phone-sessions.json']
 disappearing=true; m=newModule(); configure(); update()
-assert(not paints[#paints].allowed and #paints[#paints].lines==0 and draft=='')
-put('runtime/phone-game-launch.json',{world='stale-world',launch='2-200'})
-update(); assert(not paints[#paints].allowed and m.history.judy)
-put('runtime/phone-game-launch.json',{world=m.world,launch='2-200'})
-update(); assert(paints[#paints].allowed and not m.history.judy and (m.drafts.judy or '')=='')
-local saved=json.decode(files['runtime/phone-history.json'])
-assert(saved.buckets[m.scope].launch=='2-200' and not saved.buckets[m.scope].history.judy and not saved.buckets[m.scope].drafts.judy)
+assert(paints[#paints].allowed and m.history.judy[1].text=='An old conversation' and draft=='Old draft')
+put('runtime/phone-game-launch.json',{world=m.world,launch='2-200'});update()
+assert(m.history.judy[1].text=='An old conversation' and m.drafts.judy=='Old draft')
 assert(files['runtime/phone-sessions.json']==sessions)
 `));
 
@@ -399,24 +508,20 @@ update(); draft='Keep my draft'; clock=clock+1; update(); m.abandon()
 update();put('runtime/phone-game-launch.json',{world=m.world,launch='2-200'});update()
 assert(#m.history.judy==2 and draft=='Keep my draft')
 m.abandon(); m=newModule(); configure(); update()
-assert(not paints[#paints].allowed)
+assert(paints[#paints].allowed)
 put('runtime/phone-game-launch.json',{world=m.world,launch='2-200'}); update()
 assert(paints[#paints].allowed and #m.history.judy==2 and draft=='Keep my draft')
 `));
 
-test('persistent history is the default and enabling disappearance applies at the next game launch', () => runLua(setup + `
-update(); put('runtime/phone-game-launch.json',{world=m.world,launch='2-200'}); update()
-draft='Remember this'; submission={contact='judy',text=draft}; update()
+test('full Chat and drafts survive every game launch even when a retired setting remains in saved settings', () => runLua(setup + `
+update();draft='Remember this';submission={contact='judy',text=draft};update()
 local pending=m.pending
 put('runtime/phone-chat-output.json',{world=m.world,binding=m.bindingKey,id=pending.id,contact='judy',state='reply',text='Of course'})
-update(); disappearing=true
-update(); assert(#m.history.judy==2)
-m.abandon(); m=newModule(); configure(); update()
-put('runtime/phone-game-launch.json',{world=m.world,launch='2-200'}); update()
-assert(#m.history.judy==2, 'enabling then CET reload is not a new game launch')
-m.abandon(); m=newModule(); configure(); update()
-put('runtime/phone-game-launch.json',{world=m.world,launch='3-300'}); update()
-assert(not m.history.judy)
+update();draft='Keep the unsent thought';clock=clock+1;update();disappearing=true
+m.abandon();m=newModule();configure();update()
+assert(#m.history.judy==2 and draft=='Keep the unsent thought' and paints[#paints].allowed)
+put('runtime/phone-game-launch.json',{world=m.world,launch='3-300'});update()
+assert(#m.history.judy==2 and m.drafts.judy=='Keep the unsent thought')
 `));
 
 test('legacy display history is preserved without assigning it to an arbitrary campaign', () => runLua(setup + `
@@ -424,7 +529,7 @@ put('runtime/phone-history.json',{version=1,history={judy={{text='Remember me',s
 m=newModule(); configure(); update()
 assert(not m.history.judy and paints[#paints].allowed)
 put('runtime/phone-game-launch.json',{world=m.world,launch='3-300'}); update()
-assert(not m.history.judy and m.launch=='3-300')
+assert(not m.history.judy)
 local stored=json.decode(files['runtime/phone-history.json'])
 assert(stored.version==3 and stored.legacy[1].version==1)
 assert(stored.legacy[1].history.judy[1].text=='Remember me' and stored.legacy[1].drafts.judy=='Hello')
@@ -441,6 +546,147 @@ end
 assert(#m.history.judy==50 and m.history.judy[1].text=='Message 1')
 m.abandon(); m=newModule(); configure(); update()
 assert(#m.history.judy==50 and #paints[#paints].lines==50)
+`));
+
+test('confirmed character Forget clears every contact alias and archived bucket while preserving other characters', () => runLua(setup + `
+saveBinding={version=1,status='unavailable',generation=1,historyScope='local-player-v1'};update()
+m.catalog.judy_alias='judy-alvarez'
+m.history={judy={{text='Judy history',sent=false}},judy_alias={{text='Alias history',sent=true}},panam={{text='Panam history',sent=false}}}
+m.drafts={judy='Old native draft',judy_alias='Alias draft',panam='Panam draft'}
+m.store.buckets.archived={history=clone(m.history),drafts=clone(m.drafts)}
+m.store.contactProfiles.retired_judy_alias='judy-alvarez'
+m.store.buckets.archived.history.retired_judy_alias={{text='Retired alias history',sent=false}}
+m.store.buckets.archived.drafts.retired_judy_alias='Retired alias draft'
+m.store.legacy={{version=1,history=clone(m.history),drafts=clone(m.drafts)}}
+draft='Old native draft';m.dirty=true;update()
+resetJournal({clearAction('forget-judy','judy-alvarez')});update()
+assert(not m.history.judy and not m.history.judy_alias and not m.drafts.judy and draft=='')
+assert(m.history.panam[1].text=='Panam history' and m.drafts.panam=='Panam draft')
+local saved=json.decode(files['runtime/phone-history.json'])
+assert(not saved.buckets.archived.history.judy and not saved.buckets.archived.drafts.judy_alias)
+assert(not saved.buckets.archived.history.retired_judy_alias and not saved.buckets.archived.drafts.retired_judy_alias)
+assert(saved.buckets.archived.history.panam[1].text=='Panam history')
+assert(not saved.legacy[1].history.judy and saved.legacy[1].drafts.panam=='Panam draft')
+assert(saved.memoryResetsApplied['forget-judy']=='character:judy-alvarez')
+`));
+
+test('successful Forget cancels stale replies and native queued submissions without restoring the old draft', () => runLua(setup + `
+update();draft='Old outgoing message';submission={contact='judy',text=draft};update()
+local old=m.pending;assert(old)
+draft='Queued before Forget';submission={contact='judy',text=draft}
+put('runtime/phone-chat-output.json',{world=m.world,binding=m.bindingKey,id=old.id,contact='judy',state='reply',text='Old reply'})
+resetJournal({clearAction('clear-active','judy-alvarez')});update()
+assert(not m.pending and not m.history.judy and not m.drafts.judy and draft=='')
+assert(json.decode(files['runtime/phone-chat-input.json']).request==nil)
+clock=clock+46;update();m.abandon();update()
+assert(not m.history.judy and not m.drafts.judy)
+`));
+
+test('failed or uncertain clears preserve Chat/drafts and block only the affected character', () => runLua(setup + `
+update();draft='Preserve my question';submission={contact='judy',text=draft};update()
+local pending=m.pending
+resetJournal({}, {clearAction('pending-clear','judy-alvarez')},{'judy-alvarez'});update()
+assert(not m.pending and m.history.judy[1].text=='Preserve my question' and m.drafts.judy=='Preserve my question')
+assert(not paints[#paints].allowed)
+put('runtime/phone-chat-output.json',{world=m.world,binding=m.bindingKey,id=pending.id,contact='judy',state='reply',text='Stale before reset'})
+resetJournal({}, {}, {'judy-alvarez'});update();assert(#m.history.judy==1 and not paints[#paints].allowed)
+contact='panam';draft='';update();assert(paints[#paints].allowed)
+submission={contact='panam',text='Unaffected chat'};update();assert(m.pending and m.pending.profileKey=='panam-palmer')
+resetJournal({}, {}, {});update()
+assert(m.history.judy[1].text=='Preserve my question' and m.drafts.judy=='Preserve my question')
+`));
+
+test('an unrelated successful clear does not cancel another character pending reply or draft', () => runLua(setup + `
+update();contact='panam';draft='Panam question';submission={contact='panam',text=draft};update()
+local old=m.pending;assert(old)
+draft='Panam follow-up draft';update()
+resetJournal({clearAction('judy-only','judy-alvarez')});update();assert(m.pending==old)
+put('runtime/phone-chat-output.json',{world=m.world,binding=m.bindingKey,id=old.id,contact='panam',state='reply',text='Panam response'})
+update();assert(not m.pending and #m.history.panam==2 and m.drafts.panam=='Panam follow-up draft')
+`));
+
+test('confirmed Forget all removes every Chat bucket and draft and cannot replay after new conversations', () => runLua(setup + `
+saveBinding={version=1,status='unavailable',generation=1,historyScope='local-player-v1'};update()
+m.history={judy={{text='Before clear',sent=true}},panam={{text='Panam before clear',sent=false}}};m.drafts={judy='Draft',panam='Another draft'}
+m.store.buckets.old={history={unknown_contact={{text='Archived history',sent=false}}},drafts={unknown_contact='Archived draft'}}
+m.store.legacy={{history={unknown_contact={{text='Older history',sent=false}}}},{unparsed='unparseable-old-data'}}
+local clear=clearAction('clear-everyone');resetJournal({clear});update()
+assert(next(m.history)==nil and next(m.drafts)==nil and #m.store.legacy==0)
+assert(next(m.store.buckets.old.history)==nil and next(m.store.buckets.old.drafts)==nil)
+submission={contact='judy',text='After clear'};update();local new=m.pending
+put('runtime/phone-chat-output.json',{world=m.world,binding=m.bindingKey,id=new.id,contact='judy',state='reply',text='New memory starts here'});update()
+m.abandon();m=newModule();configure();update()
+assert(#m.history.judy==2 and m.history.judy[1].text=='After clear')
+assert(m.store.memoryResetsApplied['clear-everyone']=='all')
+`));
+
+test('explicit profile-family migration updates an old tombstone without deleting post-clear Chat', () => runLua(setup + `
+update();m.history.judy={{text='After the old reset',sent=false}};m.drafts.judy='New draft';draft='New draft'
+m.store.memoryResetsApplied['old-variant']='character:judy-alvarez-romantic';m.dirty=true;update()
+local action=clearAction('old-variant','judy-alvarez')
+put('runtime/memory-chat-resets.json',{version=1,revision=1,baseline={action},tracked={},receipts={},pending={},
+ blockedProfiles={},blockAll=false,profileFamilies={['judy-alvarez-romantic']='judy-alvarez'}})
+update();assert(m.history.judy[1].text=='After the old reset' and m.drafts.judy=='New draft')
+assert(m.store.memoryResetsApplied['old-variant']=='character:judy-alvarez')
+`));
+
+test('a clear arriving during a save change never restores the cancelled request into the cleared draft', () => runLua(setup + `
+saveBinding={version=1,status='unavailable',generation=1,historyScope='local-player-v1'};update()
+submission={contact='judy',text='Old-world pending'};update();assert(m.pending)
+resetJournal({clearAction('clear-across-load','judy-alvarez')});saveBinding.generation=2;update()
+assert(not m.pending and not m.history.judy and not m.drafts.judy and draft=='')
+`));
+
+test('failed local history replacement holds sends until the durable clear and tombstone can be saved', () => runLua(setup + `
+update();submission={contact='judy',text='Before disk failure'};update();assert(m.history.judy)
+local realOpen=io.open
+io.open=function(path,mode)
+ if path=='runtime/phone-history.json.tmp' and mode=='wb' then return nil end
+ return realOpen(path,mode)
+end
+resetJournal({clearAction('disk-clear','judy-alvarez')});submission={contact='judy',text='Must wait'};update()
+assert(not m.pending and not paints[#paints].allowed and not m.store.memoryResetsApplied['disk-clear'])
+io.open=realOpen;update()
+assert(paints[#paints].allowed and not m.history.judy and m.store.memoryResetsApplied['disk-clear'])
+m.abandon();m=newModule();configure();update();assert(not m.history.judy)
+`));
+
+test('invalid reset ownership cannot erase histories or admit a new send', () => runLua(setup + `
+update();m.history.judy={{text='Keep this',sent=false}};m.dirty=true;update()
+put('runtime/memory-chat-resets.json',{version=1,revision=1,baseline={},tracked={},receipts={clearAction('unowned')},pending={},blockedProfiles={},blockAll=false})
+submission={contact='judy',text='Must wait'};update()
+assert(m.history.judy[1].text=='Keep this' and not m.pending and not paints[#paints].allowed)
+resetJournal({}, {}, {});update();assert(paints[#paints].allowed and m.history.judy[1].text=='Keep this')
+`));
+
+test('a newly invalid journal cannot borrow cached valid reset readiness', () => runLua(setup + `
+update();resetJournal({}, {}, {});update()
+m.history.judy={{text='Keep through corruption',sent=false}};m.dirty=true;update()
+put('runtime/memory-chat-resets.json',{version=1,revision=2,baseline={},tracked={},receipts={clearAction('unowned')},pending={},blockedProfiles={},blockAll=false})
+submission={contact='judy',text='Must not submit'};update()
+assert(not m.pending and not paints[#paints].allowed and m.history.judy[1].text=='Keep through corruption')
+resetJournal({}, {}, {});update();assert(paints[#paints].allowed)
+`));
+
+test('a fast failed clear cancels an old queued reply even when no blocked frame was observed', () => runLua(setup + `
+update();submission={contact='judy',text='Before failed clear'};update();local old=m.pending
+local failed=clearAction('missed-pending','judy-alvarez')
+put('runtime/phone-chat-output.json',{world=m.world,binding=m.bindingKey,id=old.id,contact='judy',state='reply',text='Stale queued reply'})
+resetJournal({}, {}, {}, false, {failed});update()
+assert(not m.pending and #m.history.judy==1 and m.history.judy[1].text=='Before failed clear')
+assert(m.drafts.judy=='Before failed clear' and draft=='Before failed clear')
+`));
+
+test('same-ID recovery memory epochs invalidate a pending reply without erasing preserved Chat', () => runLua(setup + `
+update();local failed=clearAction('recover-one','judy-alvarez')
+resetJournal({}, {}, {}, false, {failed});local current=json.decode(files['runtime/memory-chat-resets.json'])
+current.memoryEpochs={version=1,globalEpoch=0,characterEpochs={['judy-alvarez']=1}};put('runtime/memory-chat-resets.json',current);update()
+submission={contact='judy',text='Before recovery'};update();local old=m.pending
+assert(old.memoryReset.characterEpoch==1 and old.memoryReset.characterMemoryEpoch==1)
+current.revision=current.revision+1;current.memoryEpochs.characterEpochs['judy-alvarez']=2
+put('runtime/memory-chat-resets.json',current)
+put('runtime/phone-chat-output.json',{world=m.world,binding=m.bindingKey,id=old.id,contact='judy',state='reply',text='Old recovery reply'})
+update();assert(not m.pending and #m.history.judy==1 and m.drafts.judy=='Before recovery')
 `));
 
 test('a fresh game/bridge session reuses saved Convai memory independently of the UI transcript', async () => {
@@ -539,20 +785,16 @@ local stored=json.decode(files['runtime/phone-history.json'])
 assert(stored.buckets[oldScope].history.judy[1].text=='Archived session')
 `));
 
-test('single-player disappearing messages clear only on a verified new game launch', () => runLua(setup + `
+test('single-player Chat stays visible through new game launches, saves and bridge restarts', () => runLua(setup + `
 saveBinding={version=1,status='unavailable',generation=1,historyScope='local-player-v1'}
-update();put('runtime/phone-game-launch.json',{world=m.world,launch='20-2000'});update()
-submission={contact='judy',text='Persistent until next launch'};update();local pending=m.pending
+update();submission={contact='judy',text='Persistent across launches'};update();local pending=m.pending
 put('runtime/phone-chat-output.json',{world=m.world,binding=m.bindingKey,id=pending.id,contact='judy',state='reply',text='Still here'})
 update();disappearing=true;m.abandon();m=newModule();configure();update()
-assert(not paints[#paints].allowed and #m.history.judy==2,'Missing launch token hides history without clearing it')
-put('runtime/phone-game-launch.json',{world=m.world,launch='20-2000'});update()
-assert(#m.history.judy==2 and paints[#paints].allowed,'CET reload is not a game launch')
-saveBinding.generation=2;update();put('runtime/phone-game-launch.json',{world=m.world,launch='20-2000'});update()
-assert(#m.history.judy==2,'Save loading is not a game launch')
+assert(paints[#paints].allowed and #m.history.judy==2)
+saveBinding.generation=2;update();assert(#m.history.judy==2)
 m.abandon();m=newModule();configure();update()
 put('runtime/phone-game-launch.json',{world=m.world,launch='21-2100'});update()
-assert(not m.history.judy and paints[#paints].allowed)
+assert(#m.history.judy==2 and paints[#paints].allowed)
 `));
 
 test('temporary unavailable startup frame cannot replace the persistent local display bucket', () => runLua(setup + `
@@ -616,7 +858,7 @@ local input=json.decode(files['runtime/phone-chat-input.json'])
 assert(input.request==nil,'A mixed-world capture must never publish an outgoing request')
 `));
 
-test('same-process branch changes do not trigger disappearing messages or delete durable session storage', () => runLua(setup + `
+test('branch and game launch changes preserve full Chat and durable session storage', () => runLua(setup + `
 disappearing=true;m=newModule();configure();update()
 put('runtime/phone-game-launch.json',{world=m.world,launch='9-900'});update()
 draft='Keep within this launch';submission={contact='judy',text=draft};update()
@@ -631,7 +873,7 @@ update();put('runtime/phone-game-launch.json',{world=m.world,launch='9-900'});up
 assert(m.scope==originalScope and #m.history.judy==2 and files['runtime/phone-sessions.json']==sessions)
 m.abandon();m=newModule();configure();update()
 put('runtime/phone-game-launch.json',{world=m.world,launch='10-1000'});update()
-assert(not m.history.judy and files['runtime/phone-sessions.json']==sessions)
+assert(#m.history.judy==2 and files['runtime/phone-sessions.json']==sessions)
 `));
 
 test('unparseable legacy history is retained verbatim instead of overwritten as empty history', () => runLua(setup + `

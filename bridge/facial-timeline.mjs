@@ -1,6 +1,7 @@
 import {readPcmWav} from './speech-audio.mjs';
 import {PHONETIC_TRACKS, PHONETIC_ARTICULATION, phoneticPose} from './phonetic-poses.mjs';
 import {validateMouthCues} from './phonetic-lipsync.mjs';
+import {PROVIDER_EXPRESSION_INDICES, ownedExpressionReceipt} from './companion-expressions.mjs';
 
 // Conservative speech controls. Head/eye rotation stays with the companion
 // gaze controller. Local voices use audio-derived phonetic cues; the envelope
@@ -133,8 +134,8 @@ function mapArkit(v) {
     .06 * shapeResponse(a(32), 5)];
 }
 
-function renderTimeline({owner, duration, segment, source, cues, envelope = [], first, last, sampleRate}) {
-  const frames = [];
+function renderTimeline({owner, duration, segment, source, cues, envelope = [], first, last, sampleRate, expressionSignal}) {
+  const frames = [], expressionFrames = source ? [] : undefined;
   // Provider articulation includes quiet closures and anticipatory shapes.
   // Per-file RMS normalization cannot distinguish these from rest: gating it
   // erased whole 33ms poses and made a file cut change the same mouth shape.
@@ -151,14 +152,15 @@ function renderTimeline({owner, duration, segment, source, cues, envelope = [], 
     const energyFrame = energyAt * 30, energyIndex = Math.floor(energyFrame);
     const level = (envelope[energyIndex] || 0) * (1 - energyFrame + energyIndex)
       + (envelope[energyIndex + 1] ?? (segment && !last ? envelope[energyIndex] || 0 : 0)) * (energyFrame - energyIndex);
-    let values = zero();
+    let values = zero(), providerValues;
     if (source || level > 0 || cues) {
       if (source) {
         while (index + 1 < source.length && source[index + 1].at <= at) index++;
         const left = source[index], right = source[index + 1];
         if (at >= left.at && (right || at - left.at < 0.1)) {
           const blend = right ? clamp((at - left.at) / (right.at - left.at)) : 0;
-          values = mapArkit(left.values.map((v, i) => v + ((right?.values[i] ?? v) - v) * blend));
+          providerValues = left.values.map((v, i) => v + ((right?.values[i] ?? v) - v) * blend);
+          values = mapArkit(providerValues);
         }
       } else if (cues) {
         values = phoneticPose(cues, at, level, SPEECH_TRACKS);
@@ -171,6 +173,8 @@ function renderTimeline({owner, duration, segment, source, cues, envelope = [], 
       const edge = clamp(Math.min(first ? at / .04 : 1, last ? (duration - at) / .04 : 1));
       values = values.map(v => rounded(v * edge));
     }
+    if (expressionFrames) expressionFrames.push([at,
+      ...PROVIDER_EXPRESSION_INDICES.map(i => rounded(clamp(providerValues?.[i] ?? 0)))]);
     return values;
   };
   for (let sample = 0; sample / fps < duration; sample++) {
@@ -181,7 +185,9 @@ function renderTimeline({owner, duration, segment, source, cues, envelope = [], 
   return {version: 1, requestId: owner.requestId, entity: owner.entity, duration,
     source: source ? 'convai-arkit61' : cues ? 'local-phonetic' : 'audio-envelope',
     articulation: source ? 'arkit61-native-v10' : cues ? PHONETIC_ARTICULATION : undefined,
-    ...(segment ? {segment} : {}), tracks: [...SPEECH_TRACKS], frames};
+    ...(segment ? {segment} : {}), tracks: [...SPEECH_TRACKS], frames,
+    ...(expressionFrames ? {providerExpressions: {version: 1, format: 'arkit61-expression9', frames: expressionFrames}} : {}),
+    ...(ownedExpressionReceipt(expressionSignal, owner) ? {expression: ownedExpressionReceipt(expressionSignal, owner)} : {})};
 }
 
 export function buildFacialTimeline(result, owner) {
@@ -196,7 +202,7 @@ export function buildFacialTimeline(result, owner) {
     catch { /* A damaged analyser result cannot take voice playback down. */ }
   }
   return renderTimeline({owner, duration: wav.duration, sampleRate: wav.sampleRate, segment, source, cues,
-    first, last, envelope: source ? [] : amplitude(wav, segment)});
+    first, last, envelope: source ? [] : amplitude(wav, segment), expressionSignal: result.expressionSignal});
 }
 
 // Continuous PCM playback owns one global audio clock. Build only its received
@@ -218,7 +224,7 @@ export function buildProviderFacialTimeline(result, owner) {
   const right = source.findIndex(frame => frame.at >= result.duration);
   const window = right >= 0 ? source.slice(0, right + 1) : source;
   const line = renderTimeline({owner, duration: result.duration, source: window,
-    first: true, last: result.complete});
+    first: true, last: result.complete, expressionSignal: result.expressionSignal});
   // A growing timeline crosses repeated game polls; preserve the same load/
   // request generation that the Lua owner uses to reject stale facial data.
   return {...line, generation: owner.generation, continuous: true, complete: result.complete};

@@ -8,12 +8,21 @@ const space = readFileSync(new URL('../mod/companion-space.lua', import.meta.url
 const travel = readFileSync(new URL('../mod/companion-travel.lua', import.meta.url), 'utf8');
 const actuator = readFileSync(new URL('../mod/companion-actuator.lua', import.meta.url), 'utf8');
 const equipment = readFileSync(new URL('../mod/companion-equipment.lua', import.meta.url), 'utf8');
+const vehicles = readFileSync(new URL('../mod/companion-vehicles.lua', import.meta.url), 'utf8');
+const vehicleNative = readFileSync(new URL('../mod/companion-vehicle-native.lua', import.meta.url), 'utf8');
+const vehicleCatalog = readFileSync(new URL('../mod/companion-vehicle-catalog.lua', import.meta.url), 'utf8');
 export const companionModules = `
   dofile=function(file)
     if file=='companion-space.lua' then return (function() ${space} end)() end
     if file=='companion-travel.lua' then return (function() ${travel} end)() end
     if file=='companion-actuator.lua' then return (function() ${actuator} end)() end
     if file=='companion-equipment.lua' then return (function() ${equipment} end)() end
+    if file=='companion-vehicles.lua' then return (function() ${vehicles} end)() end
+    if file=='companion-vehicle-native.lua' then
+      local native=(function() ${vehicleNative} end)()
+      return companionVehicleAdapter and companionVehicleAdapter(native) or native
+    end
+    if file=='companion-vehicle-catalog.lua' then return (function() ${vehicleCatalog} end)() end
     if file=='companion-behavior.lua' then return (function() ${behavior} end)() end
     if file=='companion-placement.lua' then return (function() ${placement} end)() end
     if file=='companion-appearance.lua' then return (function() ${appearance} end)() end
@@ -56,11 +65,16 @@ export const companionEngine = `
     SetAdditionalPartsArray=function(self,parts) self.parts=parts end} end}
   LookAtRemoveEvent={QueueRemoveLookatEvent=function(npc,event) npc.looks[event]=nil end}
   NewObject=function(kind) return {kind=kind, state='New',
+    GetClassName=function() return kind end,IsA=function(_,name) return name==kind end,
+    Copy=function(self) return self end,
     rotateEntityTowardsFacingTarget=true, OnRoleCleared=function() end} end
+  NameToString=function(value) return value end
   local player={pos=Vector4.new(0,0),forward=Vector4.new(0,1)}
   function player:GetWorldPosition() return self.pos end
   function player:GetWorldForward() return self.forward end
   function player:GetWorldOrientation() return {} end
+  function player:IsAttached() return true end
+  function player:GetEntityID() return {hash='player'} end
   local entities, sequence={},0
   local system={IsReady=function() return true end, IsSpawned=function() return true end}
   function system:CreateEntity(spec)
@@ -76,6 +90,15 @@ export const companionEngine = `
     function ai:GetCommandState(cmd) return cmd.state end
     function ai:StopExecutingCommand(cmd) cmd.state='Success' end
     function ai:CancelCommand(cmd) cmd.state='Cancelled' end
+    function ai:IsCommandActive(id)
+      for _,cmd in ipairs(self.commands) do
+        if cmd.id==id then return cmd.state=='Executing' or cmd.state=='Enqueued' or cmd.state=='NotExecuting' end
+      end
+      return false
+    end
+    function ai:GetEnqueuedOrExecutingCommand(kind)
+      for _,cmd in ipairs(self.commands) do if cmd.kind==kind and self:IsCommandActive(cmd.id) then return cmd end end
+    end
     local npc={id={hash=tostring(sequence)},pos=spec.position,forward=Vector4.new(0,1),ai=ai,looks={},spec=spec}
     function npc:GetEntityID() return self.id end
     function npc:IsAttached() return true end
@@ -84,6 +107,7 @@ export const companionEngine = `
     function npc:IsDeadNoStatPool() return false end
     function npc:GetWorldPosition() return self.pos end
     function npc:GetWorldForward() return self.forward end
+    function npc:GetWorldOrientation() return {} end
     function npc:GetAIControllerComponent() return self.ai end
     function npc:GetComponents() return self.components or {} end
     function npc:QueueEvent(event) self.looks[event]=true end
@@ -91,8 +115,14 @@ export const companionEngine = `
     return npc.id
   end
   function system:GetEntity(id) return entities[tonumber(id.hash)] end
+  function system:IsManaged(id) return entities[tonumber(id.hash)]~=nil end
+  function system:IsTagged(id,tag)
+    local npc=entities[tonumber(id.hash)]
+    return npc and npc.spec.tags and npc.spec.tags[1]==tag or false
+  end
   function system:DeleteEntity(id) entities[tonumber(id.hash)]=nil; return true end
   Game={GetPlayer=function() return player end,GetDynamicEntitySystem=function() return system end,
+    GetMountingFacility=function() return {GetMountingInfoSingleWithObjects=function() return nil end} end,
     GetTargetingSystem=function() return {GetCrosshairData=function() return nil,player.forward end} end,
     CreateEntityReference=function() return {} end}
   NPCPuppet={IsInCombat=function(npc) return npc.combat or false end}

@@ -2,6 +2,37 @@
 local requestFile = io.open('runtime/diagnostic-request.txt', 'rb')
 local request = requestFile and requestFile:read('*a') or ''
 if requestFile then requestFile:close() end
+if request:match('^record%-name%-probe:') then
+    local report = {version = 1, readOnly = true, capturedAt = os.time() * 1000,
+        record = 'Character.mq015_seller', properties = {}}
+    local versionOk, version = pcall(function() return Game.GetSystemRequestsHandler():GetGameVersion() end)
+    report.gameVersion = versionOk and tostring(version) or 'unavailable'
+    local recordOk, record = pcall(function() return TweakDB:GetRecord(report.record) end)
+    report.recordExists = recordOk and record ~= nil
+    if report.recordExists then
+        local ok, id = pcall(function() return tostring(record:GetID()) end)
+        if ok then report.nativeRecordId = id end
+    end
+    for _, property in ipairs({'displayName', 'fullDisplayName'}) do
+        local key = report.record .. '.' .. property
+        local row = {query = "TweakDB:GetFlat('" .. key .. "')"}
+        local ok, value = pcall(function() return TweakDB:GetFlat(key) end)
+        row.ok, row.luaType = ok, type(value)
+        if ok then
+            row.value = tostring(value)
+            local typeOk, nativeType = pcall(function() return tostring(value:GetClassName()) end)
+            if typeOk then row.nativeType = nativeType end
+            local key = row.value:match('^LocKey%((%d+)ull%)$') or row.value:match('^LocKey#(%d+)$')
+            if key then row.localizationKey = key end
+            local localized, text = pcall(function() return GetLocalizedText(key and ('LocKey#' .. key) or value) end)
+            if localized then row.localized = tostring(text) end
+        else row.error = tostring(value) end
+        report.properties[property] = row
+    end
+    local file = assert(io.open('runtime/record-name-probe.json', 'wb'))
+    file:write(json.encode(report)); file:close()
+    return
+end
 if request:match('^speech%-cadence:') then
     if request:match('^speech%-cadence:stop:') then
         if convaiSpeechCadenceProbe then convaiSpeechCadenceProbe.stop('cancelled') end

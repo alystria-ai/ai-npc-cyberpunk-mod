@@ -34,14 +34,22 @@ speaker, renewed combat, expired request or disabled output cancels automatic
 delivery. A temporary native bark may finish before AI playback starts, within
 the original deadline; speech that interrupts an already playing line cancels it.
 
-During an eligible battle closing, loot waits for the closing reply. If new
-pickups are arriving, the closing waits for six quiet seconds, capped at 25
-seconds after confirmed combat end and still within its original 40-second
-admission window. The chosen witness receives only the items that copy witnessed.
-The request freezes both snapshots; a successful dispatch consumes the captured
-batch once. Newer pickups are not accidentally consumed. A closing starts both
-loot cooldowns, including when it had no loot to describe. Other automatic events
-are separated by 30 seconds; a battle's closing is exempt from its own opening.
+Combat and pickups produce **separate spoken turns**. A battle closing never
+captures or consumes a pickup batch, starts a loot cooldown, or waits for loot
+collection to finish. The pickup policy keeps its own six-second quiet window,
+90-second pending limit and exact-copy witnesses. Only dispatching its own
+standalone reaction can consume the captured prefix or start a loot cooldown;
+later acquisitions stay outside that prefix.
+
+The shared owner admits one request/audio/caption turn at a time. Once that owner
+is released, a different reaction type can follow after about two seconds,
+instead of the previous thirty-second spacing. The same battle's closing can
+also follow its opening. Per-feature cooldowns and original admission deadlines
+still apply. If battle closing and a quiet pickup batch become eligible together,
+closing normally takes the shorter-window slot first; the pending pickup gets its
+own next turn. A pickup already eligible earlier may speak before closing. An
+unavailable battle witness does not reserve the channel against another eligible
+pickup witness. Manual conversation and authored scenes still take priority.
 
 The bridge validates the witness, bounds and computed equipment exception,
 includes the actual item facts in the automatic trigger, and treats all item
@@ -61,7 +69,7 @@ The live September 30 diagnostic established:
   same Added/Changed shape as loot. Source exclusion is therefore required.
 
 `npm run test:loot` covers the source sequences, batching, exact-copy witnesses,
-cooldowns, cancellation, battle merging and wire validation. September 30:
+cooldowns, cancellation, the then-current battle merging and wire validation. September 30:
 110 checks pass; the optional installed-MCM integration check also passes when
 run separately against the game's actual API files. The source checkpoint is
 `ac609bc`. Fixture checks do not qualify audible game behavior.
@@ -75,15 +83,27 @@ a successful result at 01:03:36 and completed playback at 01:03:41. No duplicate
 reaction was generated. Evidence is retained locally in
 `runtime/loot-first-audible-20260930.json` and the matching `.log`.
 
-Storage provenance is captured and has regression coverage; the combined battle
-closing with loot and the Legendary exception still need live acceptance. The
+Storage provenance is captured and has regression coverage; the Legendary
+exception still needs live acceptance. The combined battle/loot behavior was
+replaced on October 1 by the separate-turn policy described above. The
 previous installed adapters are backed up under
 `backups/loot-equipment-before-20260930-010043/`.
 
 Only the observed item-specific Loot path is admitted initially. Corpse loot-all,
 virtual pickups and acquisitions that emit Changed without Added are not yet
 qualified; the observer reports unsupported coverage rather than guessing from
-an inventory increase. Exploration observations remain a separate backlog item.
+an inventory increase. Automatic exploration observations remain inactive; this
+change does not add an unreliable speech or exploration trigger.
+
+## Separate-turn verification — October 1
+
+Executable tests exercise the actual coordinator with simultaneous closing and
+pickup eligibility, ongoing collection, long owned playback, different exact
+witnesses, a native-busy battle witness, expired closing windows, combat-state
+dips and manual/save interruption. Battle and loot automatic payloads reject
+mixed contexts at the bridge boundary. Ordinary manual messages may still carry
+both types of factual context. These checks verify queue/prompt ownership; live
+audible acceptance of the new separate-turn behavior is pending installation.
 
 For live pickup checks, use `loot-test-drop:<nonce>` through the existing
 diagnostics owner. It places exactly two test drinks at V's current feet using

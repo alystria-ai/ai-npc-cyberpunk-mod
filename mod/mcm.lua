@@ -215,9 +215,13 @@ end
 
 local function profileDescription(profile, snapshot)
     local voice = profile.voiceName or ui.t('Convai voice')
-    if snapshot.settings.voiceProvider ~= 'convai' and (profile.key == 'judy-alvarez'
-        or profile.key == 'panam-palmer' or profile.key == 'johnny-silverhand') then
-        voice = ui.t('OmniVoice {steps} steps',{steps=snapshot.settings.omniSteps})
+    if snapshot.settings.voiceProvider ~= 'convai' then
+        for _, key in ipairs(snapshot.localVoice.routedProfiles or {}) do
+            if key == profile.key then
+                voice = ui.t('OmniVoice {steps} steps',{steps=snapshot.settings.omniSteps})
+                break
+            end
+        end
     end
     return (profile.summary or profile.name) .. '\n\n' .. ui.t('Voice: {voice}',{voice=voice})
         .. '\n' .. ui.t('Conversation: {state}',{state=ui.t(snapshot.settings.enabledByKey[profile.key] ~= false and 'On' or 'Off')})
@@ -276,7 +280,7 @@ local function memorySettings(snapshot)
         local description = confirmation.scope == 'all'
             and ui.t('Clear memories about you for all {count} characters you have talked to?',{count=confirmation.count})
             or ui.t('Clear {name}’s memories about conversations with you?',{name=confirmation.target})
-        description = description .. ' ' .. ui.t('Your player identity stays the same. Phone Chat messages are managed separately.')
+        description = description .. ' ' .. ui.t('Your player identity stays the same. Matching Phone Chat messages and drafts are also cleared.')
         rows[#rows + 1] = readonly('memory-confirmation', 'Confirm memory clear', description, description)
         rows[#rows + 1] = action('memory:confirm:' .. confirmation.token, 'Confirm', 'Forget memories', description,
             function() return manager.confirmMemoryClear(confirmation.token) end,
@@ -293,8 +297,8 @@ local function memorySettings(snapshot)
             'Clear memories about you for every character you have talked to. Your player identity is retained. Review an inline confirmation first.',
             function() return manager.beginMemoryClear('all') end, memory.canClearAll)
     end
-    rows[#rows + 1] = readonly('memory-chat-history', 'Phone Chat messages', 'Managed separately',
-        'Disappearing messages clears the local Chat history and drafts on the next game launch. Forget controls clear character memories about you; saved Chat messages remain available.')
+    rows[#rows + 1] = readonly('memory-chat-history', 'Phone Chat messages', 'Kept until forgotten',
+        'Chat history stays available across game launches. Forgetting a character also clears their saved Chat messages and drafts. Forgetting all memories clears all saved chats.')
     return rows
 end
 
@@ -308,7 +312,7 @@ local function schema()
     for _, tab in ipairs({{'characters', 'Characters'}, {'party', 'Current party'},
         {'models', 'Model browser'}, {'settings', 'Settings'}}) do
         local selected = view == tab[1] or (tab[1] == 'settings'
-            and (view == 'permissions' or view == 'memory' or view == 'memory-characters'))
+            and (view == 'permissions' or view == 'memory' or view == 'memory-characters' or view == 'relationships'))
         navigation[#navigation + 1] = action('tab:' .. tab[1], tab[2], selected and 'Selected' or 'Open',
             ui.t('Browse {section}. {query}',{section=ui.t(tab[2]):lower(),query=modelQuery}),
             function(context) return navigate(tab[1], context) end, not selected)
@@ -459,6 +463,19 @@ local function schema()
                 end)
         end
         categories[#categories + 1] = category('memory-characters', 'Character memories', rows)
+    elseif view == 'relationships' then
+        rows[#rows + 1] = action('relationships:back', 'Back to settings', 'Back',
+            'Return to conversation settings.', function(context) return navigate('settings', context) end)
+        for _, profile in ipairs(manager.relationshipChoices()) do
+            local mode = snapshot.settings.relationshipModes[profile.key]
+            local description = profile.key == 'meredith-stout'
+                and 'Auto follows the completed encounter in this save. On uses the intimate profile; Off uses the ordinary profile. This does not imply an ongoing relationship.'
+                or 'Auto follows the relationship in this save. On uses the romantic profile; Off uses the ordinary profile. This changes conversations without changing game choices.'
+            rows[#rows + 1] = setting('relationship:' .. profile.key, profile.name, 'select',
+                mode == 'on' and 2 or mode == 'off' and 3 or 1, 1, description, {'Auto', 'On', 'Off'})
+        end
+        categories[#categories + 1] = category('relationships', 'Relationships', rows,
+            'Choose ordinary or romantic conversations for supported characters.')
     elseif view == 'permissions' then
         rows[#rows + 1] = action('permissions:back', 'Back to settings', 'Back',
             'Return to conversation settings.', function(context) return navigate('settings', context) end)
@@ -486,6 +503,9 @@ local function schema()
             action('memory', 'Memory', 'Manage',
                 'Choose a character, review memory status and manage memories from your conversations.',
                 function(context) return navigate('memory', context) end),
+            action('relationships', 'Relationships', 'Manage',
+                'Choose ordinary or romantic conversations for supported characters.',
+                function(context) return navigate('relationships', context) end),
             setting('followUpQuestions', 'Follow-up questions', 'bool', snapshot.settings.followUpQuestions, false,
                 'Characters answer, then ask one brief, relevant question in ordinary conversations. They omit it when you say goodbye, ask for no questions or request an exact fixed reply. In a group, only the final speaker asks. When off, characters answer without inviting another turn. Automatic reactions never ask questions.'),
         })
@@ -523,13 +543,8 @@ local function schema()
             setting('battleReactions', 'React to battles', 'bool', snapshot.settings.battleReactions, true,
                 'A nearby companion can make one short comment as combat starts and another afterward. Ten-minute cooldown after a fight; conversations and story scenes take priority. Loading a save resets the cooldown.'),
             setting('lootReactions', 'React to collected loot', 'bool', snapshot.settings.lootReactions, true,
-                'Companions can comment after you finish collecting world loot. Storage transfers stay silent. A ten-minute cooldown spaces ordinary comments; newly acquired Legendary equipment has a separate two-minute cooldown. Loot can join a post-battle comment.'),
+                'Companions can comment after you finish collecting world loot. Storage transfers stay silent. A ten-minute cooldown spaces ordinary comments; newly acquired Legendary equipment has a separate two-minute cooldown. Battle and loot comments play separately, one after another.'),
         })
-        categories[#categories + 1] = category('phone-messages', 'Phone messages', {
-            setting('disappearingMessages', 'Disappearing messages', 'bool', snapshot.settings.disappearingMessages, false,
-                'Clear the phone Chat history and drafts when you next launch the game. Characters keep their Convai conversation memory. Loading a save or reloading mods does not clear messages.'),
-        },
-            'Use Apply to save changed settings, or Revert to discard them.')
     end
     return {name = ui.t(LABEL), description = ui.t('Your companions, character models and conversation settings.'), categories = categories}
 end
@@ -563,10 +578,10 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
         end,
         applyBatch = function(id, changes)
             if id ~= MOD then return {ok = false, error = ui.t('Unknown mod.')} end
-            local values, applied = {enabledByKey = {}}, {}
+            local values, applied = {enabledByKey = {}, relationshipModes = {}}, {}
             for _, change in ipairs(changes) do
                 local key = change.id
-                if key == 'voice' or key == 'subtitles' or key == 'disappearingMessages' or key == 'followUpQuestions' or key == 'battleReactions' or key == 'lootReactions' then values[key] = change.value
+                if key == 'voice' or key == 'subtitles' or key == 'followUpQuestions' or key == 'battleReactions' or key == 'lootReactions' then values[key] = change.value
                 elseif key == 'subtitleStyle' then
                     if change.value ~= 1 and change.value ~= 2 then return {ok = false, error = ui.t('Choose Above speaker or Dialogue HUD.')} end
                     values.subtitleStyle = change.value == 1 and 'overhead' or 'dialogue'
@@ -590,6 +605,11 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
                         return {ok = false, error = ui.t('Choose an eye contact option.')}
                     end
                     values[key]=choices[change.value]
+                elseif key:sub(1, 13) == 'relationship:' then
+                    if change.value ~= 1 and change.value ~= 2 and change.value ~= 3 then
+                        return {ok = false, error = ui.t('Choose Auto, On or Off for each relationship.')}
+                    end
+                    values.relationshipModes[key:sub(14)] = ({'auto', 'on', 'off'})[change.value]
                 elseif key:sub(1, 8) == 'enabled:' then values.enabledByKey[key:sub(9)] = change.value
                 else return {ok = false, error = ui.t('That setting is read-only.')} end
                 applied[#applied + 1] = key

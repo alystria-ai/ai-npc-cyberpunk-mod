@@ -107,6 +107,7 @@ local function collectionReady()
  return ready
 end
 local modules={
+ ['relationship-state.lua']={new=function()return {update=function()end,reset=function()end}end},
  ['invitation-readiness.lua']=(function()${invitationSource}end)(),
  ['knowledge-state.lua']={new=function()
   saveIdentityReads=saveIdentityReads+1;error('The Lua world adapter must not load native save identity')
@@ -211,7 +212,7 @@ test('actual module and onInit remain inert; collection starts only in attached 
 
 test('private sends use the fresh Lua world and audience, preserving battle and loot payloads', () => run(`
  start();local live=stored('runtime/world-session.json');local first=input('first')
- first.battle={version=1,status='ended'};first.loot={batch='loot-kept'};first.reaction={kind='loot'}
+ first.battle={version=1,status='ended'};first.loot={batch='loot-kept'}
  assert(runtime.send(first));local out=stored('runtime/last-input.json')
  assert(out.generation==999 and out.worldKnowledge.generation==live.generation)
  assert(out.worldKnowledge.worldToken==live.token and out.worldKnowledge.identity.status=='unknown')
@@ -219,7 +220,7 @@ test('private sends use the fresh Lua world and audience, preserving battle and 
  assert(out.worldKnowledge.audience.channel=='private'and #out.worldKnowledge.audience.profileKeys==1)
  assert(out.worldKnowledge.audience.profileKeys[1]=='judy-alvarez' and out.worldKnowledge.facts.observed_fact.value==1)
  assert(out.journalHistory.generation==live.generation and out.journalHistory.worldToken==live.token)
- assert(out.battle.status=='ended'and out.loot.batch=='loot-kept'and out.reaction.kind=='loot')
+ assert(out.battle.status=='ended'and out.loot.batch=='loot-kept'and out.reaction==nil)
  factValue=2;now=now+1;runtime.step(0);out.worldKnowledge.facts.observed_fact.value=999
  assert(runtime.send(input('second')))
  assert(stored('runtime/last-input.json').worldKnowledge.facts.observed_fact.value==2)
@@ -432,10 +433,10 @@ test('temporary collector unavailability preserves the Lua world and omits old f
  assert(recovered.worldKnowledge.worldToken==live.token and recovered.worldKnowledge.generation==live.generation)
 `));
 
-test('real F9 hotkey freezes three distinct speakers, uses the first microphone reply once and sequences recognized text', () => run(`
+test('real F10 hotkey freezes three distinct speakers, uses the first microphone reply once and sequences recognized text', () => run(`
  start();looked=resident;people={judy,actor('judy-alvarez',4,'Judy copy'),alex,resident}
  local enabled=true;modules['manager.lua'].followUpQuestions=function()return enabled end
- assert(hotkeyLabels.cyberpunk_convai_group_voice=='Cyberpunk Convai: group voice chat (F9)')
+ assert(hotkeyLabels.cyberpunk_convai_group_voice=='Cyberpunk Convai: group voice chat (F10)')
  hotkeys.cyberpunk_convai_group_voice()
  local context=microphone.context;local first=stored('runtime/microphone-command.json').input
  assert(context and group.round.stage=='recording'and runtime.pending()==nil)
@@ -443,11 +444,11 @@ test('real F9 hotkey freezes three distinct speakers, uses the first microphone 
  assert(table.concat(first.group.audience,',')=='resident-male,judy-alvarez,alex')
  assert(first.worldKnowledge.audience.channel=='group'and first.followUpQuestions==true)
  tick();assert(files['runtime/last-input.json']==nil and #commands==1)
- micState('recording');tick();assert(feedback[#feedback]=='Listening - press F9 again to finish')
+ micState('recording');tick();assert(feedback[#feedback]=='Listening - press F10 again to finish')
  looked=judy;people={alex};enabled=false;now=1002;journalVersion=2;factValue=2;runtime.step(0)
  hotkeys.cyberpunk_convai_voice()
  assert(microphone.context==context and #commands==1 and group.round.stage=='recording')
- assert(feedback[#feedback]=='Use F9 to finish this recording.')
+ assert(feedback[#feedback]=='Use F10 to finish this recording.')
  hotkeys.cyberpunk_convai_group_voice()
  local finish=commands[#commands]
  assert(#commands==2 and finish.action=='finish'and finish.input.requestId==first.requestId)
@@ -475,7 +476,7 @@ test('real F9 hotkey freezes three distinct speakers, uses the first microphone 
  assertHotkeyClean()
 `));
 
-test('F6 F7 F8 and F9 share the explicitly addressed primary and unsupported targets never redirect', () => run(`
+test('F6 F7 F8 and F10 share the explicitly addressed primary and unsupported targets never redirect', () => run(`
  start();people={judy,alex,resident};looked=alex
  hotkeys.cyberpunk_convai_text();assert(player.composerName=='Alex')
  player.composer=false;tick()
@@ -501,7 +502,7 @@ test('F6 F7 F8 and F9 share the explicitly addressed primary and unsupported tar
  assertHotkeyClean()
 `));
 
-test('F9 missing transcript, first error and stale recognized replies never submit later speakers', () => run(`
+test('F10 missing transcript, first error and stale recognized replies never submit later speakers', () => run(`
  start();looked=judy;people={judy,alex}
  for _,kind in ipairs({'missing','empty','placeholder','error'})do
   hotkeys.cyberpunk_convai_group_voice();local context=microphone.context
@@ -517,7 +518,7 @@ test('F9 missing transcript, first error and stale recognized replies never subm
  assertHotkeyClean()
 `));
 
-test('F9 pause cancels at zero delta, save callbacks cancel ownership and old results cannot revive the round', () => run(`
+test('F10 pause cancels at zero delta, save callbacks cancel ownership and old results cannot revive the round', () => run(`
  start();looked=judy;people={judy,alex}
  for _,stage in ipairs({'recording','waiting','playing'})do
   hotkeys.cyberpunk_convai_group_voice();local context=microphone.context
@@ -537,7 +538,7 @@ test('F9 pause cancels at zero delta, save callbacks cancel ownership and old re
  assertHotkeyClean()
 `));
 
-test('F9 losing the frozen primary cancels at every stage and never substitutes the current camera target', () => run(`
+test('F10 losing the frozen primary cancels at every stage and never substitutes the current camera target', () => run(`
  start();people={judy,alex,resident}
  for _,stage in ipairs({'recording','waiting','playing'})do
   judy.attached=true;looked=judy
@@ -553,7 +554,7 @@ test('F9 losing the frozen primary cancels at every stage and never substitutes 
  assertHotkeyClean()
 `));
 
-test('F9 microphone device failure and automatic 30 second finish keep exact request ownership', () => run(`
+test('F10 microphone device failure and automatic 30 second finish keep exact request ownership', () => run(`
  start();looked=judy;people={judy,alex}
  hotkeys.cyberpunk_convai_group_voice();local first=microphone.context
  micState('error');tick()
@@ -568,7 +569,7 @@ test('F9 microphone device failure and automatic 30 second finish keep exact req
  assertHotkeyClean()
 `));
 
-test('F9 retires microphone and group exactly at the reply deadline before late results, then accepts a fresh recording', () => run(`
+test('F10 retires microphone and group exactly at the reply deadline before late results, then accepts a fresh recording', () => run(`
  start();looked=judy;people={judy,alex}
  hotkeys.cyberpunk_convai_group_voice();local expired=microphone.context
  hotkeys.cyberpunk_convai_group_voice()
@@ -594,7 +595,7 @@ test('F9 retires microphone and group exactly at the reply deadline before late 
  assertHotkeyClean()
 `));
 
-test('F9 later-speaker timeout retires its group without restarting the completed microphone request', () => run(`
+test('F10 later-speaker timeout retires its group without restarting the completed microphone request', () => run(`
  start();looked=judy;people={judy,alex}
  hotkeys.cyberpunk_convai_group_voice();local first=microphone.context
  hotkeys.cyberpunk_convai_group_voice();respond(first,'Actual group question');tick()

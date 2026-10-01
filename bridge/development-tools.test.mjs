@@ -101,7 +101,7 @@ Get-DevelopmentFiles -ProjectDirectory (Join-Path $env:CONVAI_TEST_ROOT 'project
   await assert.rejects(ps(folder, script), /Unrecognized retired native component/);
 }));
 
-test('binding setup fills F7-F9 and preserves custom manager/text assignments', async () => fixture(async folder => {
+test('binding setup fills F7 F8 and F10 and preserves custom manager/text assignments', async () => fixture(async folder => {
   const file = join(folder, 'game/bin/x64/plugins/cyber_engine_tweaks/bindings.json');
   const initial = {CyberpunkConvai: {cyberpunk_convai_manager: 32369622321725440, cyberpunk_convai_text: 99}, OtherMod: {other: 77}};
   await put(file, JSON.stringify(initial));
@@ -110,12 +110,12 @@ test('binding setup fills F7-F9 and preserves custom manager/text assignments', 
   const result = JSON.parse(await readFile(file, 'utf8'));
   assert.equal(result.CyberpunkConvai.cyberpunk_convai_manager, initial.CyberpunkConvai.cyberpunk_convai_manager);
   assert.equal(result.CyberpunkConvai.cyberpunk_convai_text, 99); assert.deepEqual(result.OtherMod, initial.OtherMod);
-  for (const [action, vk] of [['voice', 0x76], ['group_text', 0x77], ['group_voice', 0x78]]) assert.equal(result.CyberpunkConvai[`cyberpunk_convai_${action}`], vk * 2 ** 48);
+  for (const [action, vk] of [['voice', 0x76], ['group_text', 0x77], ['group_voice', 0x79]]) assert.equal(result.CyberpunkConvai[`cyberpunk_convai_${action}`], vk * 2 ** 48);
 }));
 
 test('binding conflicts, including same-mod assignments, fail before changing the file', async () => fixture(async folder => {
   const file = join(folder, 'game/bin/x64/plugins/cyber_engine_tweaks/bindings.json');
-  const initial = JSON.stringify({CyberpunkConvai: {custom_action: 0x78 * 2 ** 48}});
+  const initial = JSON.stringify({CyberpunkConvai: {custom_action: 0x79 * 2 ** 48}});
   await put(file, initial);
   await assert.rejects(ps(folder, `function global:Get-Process { return @() }
 & (Join-Path $env:CONVAI_TEST_SOURCE 'scripts/Set-DevelopmentBindings.ps1') -GameDirectory (Join-Path $env:CONVAI_TEST_ROOT 'game')`), /conflicts with existing binding/);

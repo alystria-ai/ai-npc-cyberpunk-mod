@@ -681,12 +681,19 @@ test('read-only recovery advances reset epochs and cannot race an overlapping de
   assert.equal(memory.route('judy').guard.characterEpoch, original.characterEpoch + 2);
 });
 
-test('restart resolves a pre-dispatch interrupted intent locally without claiming an uncertain delete', async t => {
-  const gate = deferred(); let entered = false;
-  const {memory, calls, open} = await fixture(t, {quiesce: () => { entered = true; return gate.promise; }});
+test('restart resolves a pre-dispatch interrupted intent locally without claiming an uncertain delete', {timeout: 10000}, async t => {
+  const gate = deferred(), entered = deferred();
+  const {memory, path, calls, open} = await fixture(t, {quiesce: () => { entered.resolve(); return gate.promise; }});
   await talk(memory, 'judy');
   const clearing = memory.clearCharacter({profileKey: 'judy', actionId: 'pre-dispatch-crash'}); clearing.catch(() => {});
-  await until(() => entered); await memory.close(); await assert.rejects(clearing);
+  // Wait for the actual callback after its durable intent write. An early
+  // settlement fails immediately; the test deadline bounds a stalled write.
+  await Promise.race([entered.promise, clearing.then(() => assert.fail('Clear settled before its quiesce callback'))]);
+  const pending = JSON.parse(await fs.readFile(path, 'utf8')).actions.at(-1);
+  assert.equal(pending.state, 'pending'); assert.equal(pending.quiesced, false);
+  assert.ok(pending.targets.every(target => target.mayHaveReachedProvider === false));
+  assert.ok(!calls.some(call => call.kind === 'clear'));
+  await memory.close(); await assert.rejects(clearing);
   const before = calls.length, reopened = await open({quiesce: async () => ({quiesced: true})});
   assert.equal(calls.length, before);
   assert.equal(reopened.status().command.state, 'failed'); assert.equal(reopened.status().command.uncertain, false);

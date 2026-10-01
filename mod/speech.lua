@@ -99,6 +99,7 @@ function M.stop(reason)
             and delivered.sequence > M.utterance.startSequence
     end
     if continuous then continuous.stop() end
+    if face.endExpression then face.endExpression(M.context,reason=='finished') end
     face.stop(M.actor, reason)
     if M.player and not M.continuous then pcall(function() M.player:ConvaiSpeechStop() end) end
     if M.requestId then captions.clear() end
@@ -132,6 +133,7 @@ function M.clearEntity(entity)
         if ok and current == entity then M.target = nil end
     end
     captions.clearEntity(entity)
+    if face.clearExpression then face.clearExpression(entity) end
 end
 
 local function beginChunk(audio, text, timeline, startSeconds)
@@ -171,6 +173,7 @@ function M.start(context, reply)
         M.player, M.actor, M.playerID = player, actor, tostring(player:GetEntityID().hash)
         M.requestId, M.context = context.requestId, {requestId=context.requestId,generation=context.generation,
             entity=context.entity,name=context.name}
+        if face.beginExpression then face.beginExpression(M.context,reply.expression) end
         M.speaker, M.text, M.error, M.paused = context.name, reply.text, nil, paused
         M.continuous, M.continuousId, M.continuousEnded = true, reply.continuous.id, false
         M.continuousFaceCursor, M.continuousFaceTarget, M.continuousFaceState = nil, nil, nil
@@ -207,6 +210,7 @@ function M.start(context, reply)
     M.playerID = tostring(player:GetEntityID().hash)
     M.requestId, M.context = context.requestId, {requestId = context.requestId, generation = context.generation,
         entity = context.entity, name = context.name}
+    if face.beginExpression then face.beginExpression(M.context,reply.expression) end
     M.speaker, M.text, M.error, M.paused = context.name, reply.text, nil, false
     M.utterance = {requestId=context.requestId,generation=context.generation,entity=context.entity,
         text=reply.text,streamVersion=descriptor and descriptor.version,streamId=descriptor and descriptor.id,
@@ -350,6 +354,7 @@ local function updateContinuous(delta, player, paused)
         -- The source/audio/subtitle position remains the exact device report.
         M.position, M.duration, M.text, M.state = state.position, state.bufferedDuration, state.text, state.state
         M.utterance.text, M.utterance.textComplete = state.text, state.textComplete
+        if face.acceptExpression then face.acceptExpression(M.context,state.expression) end
         local caption = M.continuousCaptions
         caption.text, caption.bufferedDuration, caption.final = state.text, state.bufferedDuration, state.complete
         if type(state.face) == 'table' and state.bufferedDuration > 0 and type(face.updateContinuous) == 'function' then
@@ -382,7 +387,7 @@ local function updateContinuous(delta, player, paused)
     face.sync(M.actor, cursor, M.requestId)
 end
 
-function M.update(delta)
+local function updateSpeech(delta)
     local player = Game.GetPlayer()
     M.heartbeat = M.heartbeat + delta
     if M.heartbeat >= 1 then
@@ -471,6 +476,15 @@ function M.update(delta)
         M.error = 'Native speech playback did not advance'
         fallback('playback-failed', M.text)
     end
+end
+
+-- init supplies current actor rows for this frame only. The speech cursor and
+-- feature interpolation above keep their accepted timing; idle actors use the
+-- same final writer after the current speaker has had its one write.
+function M.update(delta,expressionContext)
+    if face.beginExpressionFrame then face.beginExpressionFrame(delta,expressionContext) end
+    updateSpeech(delta)
+    if face.updateExpressions then face.updateExpressions(expressionContext) end
 end
 
 convaiSpeech = M

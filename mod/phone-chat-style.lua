@@ -28,6 +28,8 @@ end
 -- Only status messages authored by our phone adapter are localizable. Provider
 -- error details, conversation lines and user drafts must never be translated.
 local statusSources = {
+    ['Saved Chat cleanup could not be verified. Please wait for the memory service.'] = true,
+    ['Memory clearing is in progress. Your draft has been kept.'] = true,
     ['Conversation interrupted. Your message is in the draft.'] = true,
     ['Waiting for the conversation service.'] = true,
     ['Type a message first.'] = true,

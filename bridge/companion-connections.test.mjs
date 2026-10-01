@@ -9,7 +9,7 @@ const source = readFileSync(new URL('../mod/companions.lua', import.meta.url), '
 test('accepted spawns immediately publish unique identities; last dismissal and failed spawns release them', () => {
   const state = lauxlib.luaL_newstate(); lualib.luaL_openlibs(state);
   const program = `
-    local now, created = 100, 0
+    local now, created, managed = 100, 0, {}
     os.time=function() return now end
     io.open=function() return nil end
     Vector4={new=function(x,y,z,w) return {x=x,y=y,z=z,w=w} end}
@@ -26,8 +26,10 @@ test('accepted spawns immediately publish unique identities; last dismissal and 
     local system={IsReady=function() return true end,
       CreateEntity=function(_,spec)
         assert(spec.tags[1]=='CyberpunkConvaiCompanion')
-        created=created+1; return {hash=tostring(created)} end,
-      DeleteEntity=function() end, IsSpawned=function() return false end}
+        created=created+1; managed[tostring(created)]=true; return {hash=tostring(created)} end,
+      IsManaged=function(_,id) return managed[id.hash]==true end,
+      IsTagged=function(_,id,tag) return managed[id.hash]==true and tag=='CyberpunkConvaiCompanion' end,
+      DeleteEntity=function(_,id) managed[id.hash]=nil; return true end, IsSpawned=function() return false end}
     Game={GetPlayer=function() return player end,GetDynamicEntitySystem=function() return system end,
       GetTargetingSystem=function() return {GetCrosshairData=function()
         return player:GetWorldPosition(),player:GetWorldForward() end} end}

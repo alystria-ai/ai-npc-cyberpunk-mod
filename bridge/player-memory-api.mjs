@@ -1,13 +1,16 @@
 // Narrow natural-LTM adapter. Construction performs zero network operations.
 // The provider contract and primary source links are recorded in
 // research/cyberpunk/PLAYER_MEMORY_API.md. This adapter has no memory-seeding API.
+// historicalPairAllowed({profileKey,characterId}) is a local, synchronous boolean
+// authorization callback for durable CONTACTED pairs, used only by clear/inspect.
+// It supplements (never replaces) exact provider ownership/marker verification.
 const API = 'https://api.convai.com';
 const ENDPOINTS = new Set(['/character/list', '/character/get', '/character/update', '/memory/delete-all', '/memory/list']);
 const token = value => typeof value === 'string' && /^[A-Za-z0-9][A-Za-z0-9_.:@-]{0,255}$/.test(value);
 const uuid = value => typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(value);
 const object = value => !!value && typeof value === 'object' && !Array.isArray(value);
 const OMIT_MEMORY_FIELDS = new Set(['enabled', 'ltm_min_credit_cost_e8', 'kb_min_credit_cost_e8']);
-const PROFILE_FIELDS = ['character_name', 'backstory', 'speaking_style_description', 'sample_dialogue',
+const PROFILE_FIELDS = ['character_name', 'backstory', 'speaking_style', 'speaking_style_description', 'sample_dialogue',
   'sample_dialogues', 'voice_type', 'personalised_prompt_config'];
 
 export class PlayerMemoryApiError extends Error {
@@ -71,24 +74,43 @@ async function boundedJson(response, maxBytes, signal) {
 }
 
 export class PlayerMemoryApi {
-  #key; #ids; #fetch; #timeout; #maxBytes; #polls; #interval;
+  #key; #ids; #fetch; #timeout; #maxBytes; #polls; #interval; #historicalPairAllowed;
   constructor({key, characterIds = {}, fetchImpl = globalThis.fetch, timeoutMs = 15000,
-    maxResponseBytes = 4 * 1024 * 1024, maxClearPolls = 5, pollIntervalMs = 250} = {}) {
+    maxResponseBytes = 4 * 1024 * 1024, maxClearPolls = 5, pollIntervalMs = 250, historicalPairAllowed} = {}) {
     if ((key !== undefined && typeof key !== 'string') || typeof fetchImpl !== 'function'
         || !Number.isInteger(timeoutMs) || timeoutMs < 10 || timeoutMs > 60000
         || !Number.isInteger(maxResponseBytes) || maxResponseBytes < 128 || maxResponseBytes > 8 * 1024 * 1024
         || !Number.isInteger(maxClearPolls) || maxClearPolls < 1 || maxClearPolls > 20
         || !Number.isInteger(pollIntervalMs) || pollIntervalMs < 0 || pollIntervalMs > 2000
-        || !(characterIds instanceof Map || object(characterIds))) fail('INVALID_CONFIGURATION');
+        || !(characterIds instanceof Map || object(characterIds))
+        || (historicalPairAllowed !== undefined && typeof historicalPairAllowed !== 'function')) fail('INVALID_CONFIGURATION');
     this.#ids = new Map(characterIds instanceof Map ? characterIds : Object.entries(characterIds));
     if (this.#ids.size > 1024 || [...this.#ids].some(([profileKey, id]) => !token(profileKey) || !token(id))) fail('INVALID_CONFIGURATION');
     this.#key = key?.trim(); this.#fetch = fetchImpl; this.#timeout = timeoutMs; this.#maxBytes = maxResponseBytes;
     this.#polls = maxClearPolls; this.#interval = pollIntervalMs;
+    this.#historicalPairAllowed = historicalPairAllowed;
   }
-  #pair({profileKey, characterId, endUserId} = {}) {
+  #pair({profileKey, characterId, endUserId} = {}, {historical = false} = {}) {
     if (!this.#key) fail('DISABLED');
     if (!token(profileKey) || !token(characterId) || !uuid(endUserId)) fail('INVALID_IDENTITY');
-    if (this.#ids.get(profileKey) !== characterId || [...this.#ids.values()].filter(id => id === characterId).length !== 1) fail('CHARACTER_MISMATCH');
+    const owners = [...this.#ids].filter(([, id]) => id === characterId).map(([key]) => key);
+    // A durable historical pair may clear/inspect a retired ID after the current
+    // config changes. It never authorizes enabling memory or a new conversation,
+    // and cannot bypass another configured owner or an ambiguous current ID.
+    if (owners.length > 1 || (owners.length === 1 && owners[0] !== profileKey)) fail('CHARACTER_MISMATCH');
+    const current = this.#ids.get(profileKey) === characterId && owners.length === 1;
+    let allowed = false;
+    if (!current && historical && this.#historicalPairAllowed) {
+      try {
+        const result = this.#historicalPairAllowed(Object.freeze({profileKey, characterId}));
+        allowed = result === true;
+        // Async callbacks grant nothing. Consume rejection without leaking its
+        // exception or turning invalid authorization into an unhandled failure.
+        if (result && typeof result.then === 'function') Promise.resolve(result).catch(() => {});
+      }
+      catch { /* A faulty/unavailable durable store grants no authorization. */ }
+    }
+    if (!current && !allowed) fail('CHARACTER_MISMATCH');
     return {character_id: characterId, end_user_id: endUserId};
   }
   async #request(endpoint, body, {signal, write = false} = {}) {
@@ -181,9 +203,11 @@ export class PlayerMemoryApi {
     return value.total_count === 0 && value.memories.length === 0 && value.has_more === false;
   }
   clearMemory(options = {}) {
-    const pair = this.#pair(options), {profileKey, characterId, signal} = options;
+    const identity = Object.freeze({profileKey: options.profileKey, characterId: options.characterId, endUserId: options.endUserId});
+    const pair = this.#pair(identity, {historical: true}), {profileKey, characterId} = identity, {signal} = options;
     return this.#run(async (combined, writeState) => {
       await this.#owned(profileKey, characterId, combined);
+      this.#pair(identity, {historical: true});
       writeState.uncertain = true;
       const ack = await this.#request('/memory/delete-all', pair, {signal: combined, write: true});
       if (typeof ack.message !== 'string' || !ack.message.trim() || ack.message.length > 1000
@@ -203,9 +227,11 @@ export class PlayerMemoryApi {
     }, signal);
   }
   inspectMemory(options = {}) {
-    const pair = this.#pair(options), {profileKey, characterId, signal} = options;
+    const identity = Object.freeze({profileKey: options.profileKey, characterId: options.characterId, endUserId: options.endUserId});
+    const pair = this.#pair(identity, {historical: true}), {profileKey, characterId} = identity, {signal} = options;
     return this.#run(async combined => {
       await this.#owned(profileKey, characterId, combined);
+      this.#pair(identity, {historical: true});
       return {providerEmptyObserved: await this.#empty(pair, combined)};
     }, signal);
   }

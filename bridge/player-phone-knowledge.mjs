@@ -53,7 +53,8 @@ function routeContext(prepared, entry) {
     fail('MEMORY_ROUTE_CHANGED');
   }
   const context = parsePlayerPhoneContext({status: 'player', endUserId: prepared.remoteConfig.endUserId,
-    scope: prepared.scope, sessionKey: prepared.sessionKey, remoteGeneration: playerPhoneGeneration(guard)});
+    characterId: guard.characterId, scope: prepared.scope, sessionKey: prepared.sessionKey,
+    remoteGeneration: playerPhoneGeneration(guard)});
   if (!context) fail('MEMORY_ROUTE_CHANGED');
   return context;
 }
@@ -125,7 +126,7 @@ export class PlayerPhoneKnowledge {
     this.#prune();
     const entry = this.#pending.get(request.input.id);
     if (!entry?.ready || entry.claimed || entry.fingerprint !== request.fingerprint || entry.signal !== signal
-        || ['endUserId', 'scope', 'sessionKey', 'remoteGeneration'].some(key => key in options && options[key] !== entry.context[key])) {
+        || ['characterId', 'endUserId', 'scope', 'sessionKey', 'remoteGeneration'].some(key => key in options && options[key] !== entry.context[key])) {
       fail('REQUEST_NOT_PREPARED');
     }
     entry.claimed = true;

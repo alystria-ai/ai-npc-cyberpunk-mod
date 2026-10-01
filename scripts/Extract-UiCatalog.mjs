@@ -136,7 +136,11 @@ const reviewed = {
     'Choose a character', 'Unavailable', 'Memories can be managed here.',
     'Reopen this page after the memory service reconnects. A pending clear keeps waiting for its own result.',
     'Choose a character before clearing their memories about you.',
-    'Your player identity stays the same. Phone Chat messages are managed separately.',
+    'Your player identity stays the same. Matching Phone Chat messages and drafts are also cleared.',
+  ],
+  'mcm.relationships': [
+    'Auto follows the completed encounter in this save. On uses the intimate profile; Off uses the ordinary profile. This does not imply an ongoing relationship.',
+    'Auto follows the relationship in this save. On uses the romantic profile; Off uses the ordinary profile. This changes conversations without changing game choices.',
   ],
   'mcm.party': [
     'Invite', 'Profile only', 'Following', 'Joining', 'Waiting to join', 'Preparing memory',
@@ -174,6 +178,8 @@ const reviewed = {
   ],
   'phone.chat': [
     'Conversation interrupted. Your message is in the draft.', 'Waiting for the conversation service.',
+    'Saved Chat cleanup could not be verified. Please wait for the memory service.',
+    'Memory clearing is in progress. Your draft has been kept.',
     'Type a message first.', 'Conversations are disabled for this contact.',
     'Wait for your previous reply before sending another message.', 'Unable to send the message. Your draft has been kept.',
     'No reply received. Your message is in the draft; press Enter to retry.',

@@ -42,6 +42,21 @@ test('F9 waits for its recognized prompt then includes it in the single admissio
   assert.equal(f.replies.length, 1);
 });
 
+test('late expression metadata publishes against the same game owner without rebuilding speech weights',async()=>{
+  const f=fixture();f.control();
+  const snapshot=f.snapshot({faces:poses(.5),facesFormat:'arkit61',facesTimebase:'audio-seconds',
+    sourceComplete:true,textComplete:true});
+  await f.stream.frame(snapshot);const face=structuredClone(f.states.at(-1).face);
+  await f.stream.frame({...snapshot,positionSeconds:.1,
+    expressionSignal:{version:1,correlated:true,sequence:0,emotion:'Grief',scale:3}});
+  const state=f.states.at(-1);
+  assert.deepEqual(state.face,face);
+  assert.deepEqual(state.expression,{version:1,...owner,sequence:0,emotion:'Grief',scale:3});
+  await f.stream.frame({...snapshot,positionSeconds:.2,expressionSignal:{emotion:'Joy',scale:3}});
+  assert.equal(f.states.at(-1).expression,undefined);
+  assert.equal(f.replies.length,1);assert.equal(f.states.at(-1).position,.2);
+});
+
 test('a completed F9 reply without a transcript cannot play or invent a prompt for the group', async () => {
   const f = fixture({...owner, source: 'microphone', group: {index: 1}});
   await assert.rejects(f.stream.frame(f.snapshot({sourceComplete: true, textComplete: true})), /transcript unavailable/);

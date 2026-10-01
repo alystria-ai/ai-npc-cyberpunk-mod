@@ -10,6 +10,42 @@ const observation = (value, fields = {}) => ({status: 'known', value, sourceId: 
   evidenceRefs: ['capture:12:observation'], ...fields});
 const audience = (channel = 'private', profileKeys = ['judy-alvarez']) => ({channel, profileKeys});
 
+test('relationship routes freeze actual provider ID while canonical audience and current-world context stay unchanged', async () => {
+  let selection = {status: 'ready', profileKey: 'judy-alvarez', providerProfileKey: 'judy-alvarez-romantic',
+    characterId: 'judy-romantic-provider', variant: 'romantic', reason: 'explicit-on'};
+  const f = fixture({selectProfile: () => selection});
+  f.ids['judy-alvarez-romantic'] = 'judy-romantic-provider';
+  const prepared = await f.router.prepare(f.input);
+  assert.equal(prepared.sendAllowed, true);
+  assert.equal(prepared.guard.characterId, 'judy-romantic-provider');
+  assert.equal(prepared.remoteConfig.endUserId, USER);
+  assert.equal(prepared.route.profileKey, 'judy-alvarez');
+  assert.deepEqual(prepared.route.audience, ['judy-alvarez']);
+  assert.equal(f.routes[0].profileKey, 'judy-alvarez-romantic');
+  assert(Object.isFrozen(prepared.relationship));
+  const oldSession = prepared.sessionKey;
+  selection = {...selection, providerProfileKey: 'judy-alvarez', characterId: 'judy-provider', variant: 'ordinary'};
+  assert.equal(await f.router.current(prepared), true, 'a settings change redirected/cancelled an admitted turn');
+  const next = await f.router.prepare({...f.input, requestId: 'next-turn'});
+  assert.equal(next.guard.characterId, 'judy-provider');
+  assert.notEqual(next.sessionKey, oldSession);
+  assert.equal(next.remoteConfig.endUserId, prepared.remoteConfig.endUserId);
+  assert.deepEqual(f.forbidden, []);
+});
+
+test('missing or mismatched selected relationship profiles fail before a send instead of borrowing another character', async () => {
+  for (const selection of [
+    {status: 'unavailable'},
+    {status: 'ready', profileKey: 'judy-alvarez', providerProfileKey: 'panam-palmer', characterId: 'panam-provider', variant: 'ordinary'},
+    {status: 'ready', profileKey: 'judy-alvarez', providerProfileKey: 'judy-alvarez', characterId: 'wrong-judy-provider', variant: 'ordinary'},
+  ]) {
+    const f = fixture({selectProfile: () => selection}), prepared = await f.router.prepare(f.input);
+    assert.equal(prepared.sendAllowed, false); assert.equal(prepared.remoteConfig, null);
+    assert.equal(f.router.configFor('judy-alvarez'), null);
+    assert.deepEqual(f.forbidden, []);
+  }
+});
+
 function pack() {
   const base = {revision: 1, questKey: 'the-choice', outcome: 'a', status: 'source-verified', reviewed: true,
     gameVersions: ['2.31'], category: 'decision', priority: 5, stable: true,
@@ -78,7 +114,7 @@ function fixture(options = {}) {
     return !!value && binding.worldToken === value.worldToken && binding.generation === value.generation;
   };
   const router = new PlayerKnowledge({playerMemory: memory, pack: pack(), now: () => now,
-    getBoundary, isWorldCurrent: options.isWorldCurrent ?? isWorldCurrent});
+    getBoundary, isWorldCurrent: options.isWorldCurrent ?? isWorldCurrent, selectProfile: options.selectProfile});
   const input = {requestId: '100-9-13ULL', generation: 9, entity: '13ULL', name: 'Judy',
     profileKey: 'judy-alvarez', text: 'What is the current objective?', worldKnowledge: snapshot(),
     journalHistory: journalHistory(), journal: {version: 1, status: 'active', quest: {id: '1', title: 'The Choice',

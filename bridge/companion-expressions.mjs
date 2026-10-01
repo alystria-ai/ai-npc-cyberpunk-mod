@@ -1,0 +1,240 @@
+// Pure expression policy. The native adapter must merge this with speech and
+// call ConvaiFaceApply only once per owned actor. No actor handles, timers,
+// network calls, text sentiment analysis, blink or gaze ownership live here.
+const finite = value => typeof value === 'number' && Number.isFinite(value);
+const clamp = (value, max = 1) => Math.max(0, Math.min(max, value));
+const plain = value => value && typeof value === 'object' && !Array.isArray(value)
+  && [Object.prototype, null].includes(Object.getPrototypeOf(value));
+
+export const EXPRESSION_TRACKS = Object.freeze([
+  'lips_l_corner_up', 'lips_r_corner_up', 'lips_l_corner_dn', 'lips_r_corner_dn',
+  'eye_l_brows_raise_in', 'eye_r_brows_raise_in',
+  'eye_l_brows_raise_out', 'eye_r_brows_raise_out', 'eye_l_brows_lower', 'eye_r_brows_lower',
+]);
+export const EXPRESSION_POLICY = Object.freeze({
+  version: 1, restSmile: .025, cornerUpMax: .09, cornerDownMax: .08, browMax: .10,
+  speechMouthFactor: .30, attackSeconds: .18, releaseSeconds: .55,
+  positiveAfterSpeechMs: 4000, negativeAfterSpeechMs: 8000,
+});
+// The only provider channels admitted by the native expression adapter. Their
+// timestamps remain identical to the accepted speech timeline's timestamps.
+export const PROVIDER_EXPRESSION_INDICES = Object.freeze([23, 24, 25, 26, 41, 42, 43, 44, 45]);
+
+/** Bind a transport-qualified optional signal to the already accepted game
+ * request. A raw SDK emotionChange body has no correlation authority. */
+export function ownedExpressionReceipt(signal, owner) {
+  if (!sameExpressionOwner(owner, owner) || signal?.version !== 1 || signal.correlated !== true
+      || !Number.isSafeInteger(signal.sequence) || signal.sequence < 0) return undefined;
+  const parsed = normalizeConvaiEmotion(signal);
+  if (!parsed) return undefined;
+  return {version: 1, entity: owner.entity, requestId: owner.requestId, generation: owner.generation,
+    sequence: signal.sequence, emotion: parsed.emotion, scale: parsed.scale};
+}
+const limits = Object.freeze(Object.fromEntries(EXPRESSION_TRACKS.map(track => [track,
+  track.includes('corner_up') ? EXPRESSION_POLICY.cornerUpMax
+    : track.includes('corner_dn') ? EXPRESSION_POLICY.cornerDownMax : EXPRESSION_POLICY.browMax])));
+const zero = () => Object.fromEntries(EXPRESSION_TRACKS.map(track => [track, 0]));
+const negative = new Set(['anger', 'sadness', 'fear', 'disgust']);
+// These are rendering aliases for explicit provider labels, not a claim that
+// Convai guarantees this closed taxonomy. Unrecognized labels stay neutral.
+const families = new Map([
+  ['joy', 'joy'], ['happy', 'joy'], ['happiness', 'joy'], ['ecstasy', 'joy'], ['serenity', 'joy'],
+  ['trust', 'trust'], ['acceptance', 'trust'], ['admiration', 'trust'], ['love', 'trust'],
+  ['sadness', 'sadness'], ['sad', 'sadness'], ['grief', 'sadness'], ['pensiveness', 'sadness'],
+  ['anger', 'anger'], ['angry', 'anger'], ['rage', 'anger'], ['annoyance', 'anger'],
+  ['fear', 'fear'], ['terror', 'fear'], ['apprehension', 'fear'], ['anxiety', 'fear'],
+  ['disgust', 'disgust'], ['loathing', 'disgust'], ['boredom', 'disgust'],
+  ['surprise', 'surprise'], ['amazement', 'surprise'], ['distraction', 'surprise'],
+  ['anticipation', 'anticipation'], ['interest', 'anticipation'], ['vigilance', 'anticipation'],
+  ['neutral', 'neutral'], ['none', 'neutral'],
+]);
+
+/** SDK 1.7 emotionChange body; scale is categorical 1..3, not an ARKit weight.
+ * Transport/response ownership must be established before admitting the body.
+ * A null return means malformed/reset; an unknown valid label is neutral.
+ */
+export function normalizeConvaiEmotion(value) {
+  if (!plain(value) || typeof value.emotion !== 'string') return null;
+  const label = value.emotion.trim();
+  if (!label || label.length > 80 || /[\u0000-\u001f\u007f]/u.test(label)) return null;
+  const scale = value.scale === undefined ? 1 : value.scale;
+  if (!Number.isInteger(scale) || scale < 1 || scale > 3) return null;
+  return Object.freeze({version: 1, emotion: label, family: families.get(label.toLowerCase()) || 'unknown', scale});
+}
+
+/** Compare game request ownership only; never invent it from a late SDK event. */
+export function sameExpressionOwner(left, right) {
+  const valid = owner => plain(owner) && typeof owner.entity === 'string' && owner.entity.length > 0
+    && owner.entity.length <= 128 && typeof owner.requestId === 'string' && owner.requestId.length > 0
+    && owner.requestId.length <= 256 && !/[\u0000-\u001f\u007f]/u.test(owner.entity + owner.requestId)
+    && Number.isSafeInteger(owner.generation) && owner.generation >= 0;
+  return valid(left) && valid(right) && left.entity === right.entity
+    && left.requestId === right.requestId && left.generation === right.generation;
+}
+
+/** One metadata lease per managed copy, with bounded post-speech expression.
+ * The adapter supplies an already correlated owner and monotonic local time.
+ * Cancellation/dismissal uses clear(); normal audible completion uses end().
+ */
+export class OwnedExpressionSignal {
+  constructor(entity) {
+    if (typeof entity !== 'string' || !entity || entity.length > 128) throw Error('Invalid expression actor');
+    this.entity = entity; this.clear();
+  }
+  begin(owner) {
+    if (!sameExpressionOwner(owner, owner) || owner.entity !== this.entity) throw Error('Invalid expression owner');
+    this.owner = Object.freeze({entity: owner.entity, requestId: owner.requestId, generation: owner.generation});
+    this.sequence = -1; this.emotion = null; this.expiry = null; this.active = true;
+  }
+  accept(value, owner, sequence) {
+    if (!this.active || !sameExpressionOwner(this.owner, owner)
+      || !Number.isSafeInteger(sequence) || sequence < 0 || sequence <= this.sequence) return false;
+    const parsed = normalizeConvaiEmotion(value);
+    if (!parsed) return false;
+    this.emotion = parsed; this.sequence = sequence; return true;
+  }
+  end(owner, nowMs) {
+    if (!this.active || !sameExpressionOwner(this.owner, owner) || !finite(nowMs) || nowMs < 0) return false;
+    this.active = false;
+    this.expiry = nowMs + (negative.has(this.emotion?.family)
+      ? EXPRESSION_POLICY.negativeAfterSpeechMs : EXPRESSION_POLICY.positiveAfterSpeechMs);
+    this.endedAt = nowMs; return true;
+  }
+  read(nowMs) {
+    if (!finite(nowMs) || nowMs < 0) return null;
+    if (!this.active && this.expiry !== null && (nowMs < this.endedAt || nowMs >= this.expiry)) this.clear();
+    return this.emotion;
+  }
+  clear() {
+    this.owner = null; this.emotion = null; this.active = false;
+    this.sequence = -1; this.expiry = null; this.endedAt = null;
+  }
+}
+
+export function emotionSuppressesSmile(value) {
+  const family = normalizeConvaiEmotion(value)?.family;
+  return negative.has(family) || family === 'unknown';
+}
+
+function pair(target, stem, value) { target[`lips_l_${stem}`] = target[`lips_r_${stem}`] = value; }
+function brows(target, stem, value) { target[`eye_l_brows_${stem}`] = target[`eye_r_brows_${stem}`] = value; }
+function providerPose(frame, family) {
+  if (!plain(frame) || frame.format !== 'arkit61' || !Array.isArray(frame.values)
+    || frame.values.length !== 61 || !frame.values.every(finite)) return null;
+  const out = zero(), v = index => clamp(frame.values[index]);
+  out.eye_l_brows_lower = .08 * v(41); out.eye_r_brows_lower = .08 * v(42);
+  brows(out, 'raise_in', .08 * v(43));
+  out.eye_l_brows_raise_out = .07 * v(44); out.eye_r_brows_raise_out = .07 * v(45);
+  // Smile is also an "ee" speech shape. Only explicit positive metadata grants
+  // additional smile intent; source smile values never classify the dialogue.
+  if (family === 'joy' || family === 'trust') {
+    out.lips_l_corner_up = .06 * v(23); out.lips_r_corner_up = .06 * v(24);
+  } else {
+    out.lips_l_corner_dn = .06 * v(25); out.lips_r_corner_dn = .06 * v(26);
+  }
+  return out;
+}
+
+function mouthBudget(speechPose, phase) {
+  const read = name => finite(speechPose?.[name]) ? clamp(speechPose[name]) : 0;
+  const closure = clamp(Math.max(read('lips_together_up'), read('lips_together_dn')) / .85);
+  const rounding = clamp(Math.max(read('lips_l_funnel'), read('lips_r_funnel')) / .32
+    + Math.max(read('lips_l_purse'), read('lips_r_purse')) / .28);
+  return (phase === 'speaking' ? EXPRESSION_POLICY.speechMouthFactor : 1) * (1 - closure) * (1 - rounding);
+}
+
+/** Complete expression-only target. Native adapters may pass verified timed
+ * ARKit61 poses, or omit them for Omni/fallback. Jaw/lip contact/visemes are
+ * read only as conflict budgets and are never changed by this function.
+ */
+export function expressionTarget({emotion = null, phase = 'idle', speechPose = {}, providerFrame, blocked = false} = {}) {
+  if (!['idle', 'listening', 'thinking', 'speaking'].includes(phase)) throw Error('Unknown expression phase');
+  const out = zero();
+  if (blocked) return out;
+  const parsed = normalizeConvaiEmotion(emotion), family = parsed?.family;
+  const strength = parsed ? [.35, .65, 1][parsed.scale - 1] : 0;
+  switch (family) {
+    case 'joy': pair(out, 'corner_up', .085 * strength); brows(out, 'raise_out', .04 * strength); break;
+    case 'trust': pair(out, 'corner_up', .055 * strength); break;
+    case 'sadness': pair(out, 'corner_dn', .065 * strength); brows(out, 'raise_in', .085 * strength); break;
+    case 'anger': pair(out, 'corner_dn', .04 * strength); brows(out, 'lower', .085 * strength); break;
+    case 'fear': pair(out, 'corner_dn', .025 * strength); brows(out, 'raise_in', .08 * strength); brows(out, 'raise_out', .05 * strength); break;
+    case 'disgust': pair(out, 'corner_dn', .055 * strength); brows(out, 'lower', .06 * strength); break;
+    case 'surprise': brows(out, 'raise_in', .04 * strength); brows(out, 'raise_out', .08 * strength); break;
+    case 'anticipation': brows(out, 'raise_out', .035 * strength); break;
+    case 'unknown': break; // A new provider label must not become a happy face.
+    default: if (phase === 'idle') pair(out, 'corner_up', EXPRESSION_POLICY.restSmile);
+  }
+  if (providerFrame !== undefined) {
+    const source = providerPose(providerFrame, family);
+    if (!source) return zero(); // Unqualified formats have no expression authority.
+    for (const track of EXPRESSION_TRACKS) out[track] = Math.max(out[track], source[track]);
+    if (source.lips_l_corner_dn > .005 || source.lips_r_corner_dn > .005
+      || source.eye_l_brows_lower > .01 || source.eye_r_brows_lower > .01) pair(out, 'corner_up', 0);
+  }
+  if (negative.has(family) || family === 'unknown') pair(out, 'corner_up', 0);
+  if (family === 'joy' || family === 'trust') {
+    pair(out, 'corner_dn', 0); brows(out, 'lower', 0);
+  }
+  const budget = mouthBudget(speechPose, phase);
+  for (const track of EXPRESSION_TRACKS) {
+    if (track.startsWith('lips_')) out[track] *= budget;
+    out[track] = clamp(out[track], limits[track]);
+  }
+  return out;
+}
+
+function validatedPose(pose) {
+  if (!plain(pose)) throw Error('Invalid expression pose');
+  for (const [track, value] of Object.entries(pose)) {
+    if (!EXPRESSION_TRACKS.includes(track) || !finite(value) || value < 0 || value > limits[track])
+      throw Error('Expression pose exceeds its owned tracks or bounds');
+  }
+  return {...zero(), ...pose};
+}
+
+/** Copy the speech pose without changing any speech, blink, eye or head value.
+ * Only the ten additional expression tracks are replaced by the expression
+ * owner's complete pose. The caller remains the single native feature writer.
+ */
+export function composeExpressionPose(speechPose, expressionPose,
+  {phase = 'idle', blocked = false, suppressSmile = false} = {}) {
+  if (!plain(speechPose)) throw Error('Invalid speech pose');
+  if (!['idle', 'listening', 'thinking', 'speaking'].includes(phase)) throw Error('Unknown expression phase');
+  const expression = blocked ? zero() : validatedPose(expressionPose);
+  // Reapply a hard phoneme budget AFTER smoothing. Otherwise a decaying smile
+  // can linger into a new pressed P/B/M or rounded O/U articulation.
+  const budget = mouthBudget(speechPose, phase);
+  for (const track of EXPRESSION_TRACKS) {
+    if (track.startsWith('lips_')) expression[track] = Math.min(expression[track], limits[track] * budget);
+  }
+  if (suppressSmile || expression.lips_l_corner_dn > 0 || expression.lips_r_corner_dn > 0)
+    expression.lips_l_corner_up = expression.lips_r_corner_up = 0;
+  return {...speechPose, ...expression};
+}
+
+export class ExpressionSmoother {
+  constructor() { this.reset(); }
+  reset() { this.pose = zero(); }
+  update(target, deltaSeconds, {paused = false, suppressSmile = false} = {}) {
+    const wanted = validatedPose(target);
+    if (!finite(deltaSeconds) || deltaSeconds < 0) throw Error('Invalid expression clock');
+    if (paused) return {...this.pose};
+    const delta = Math.min(.10, deltaSeconds);
+    for (const track of EXPRESSION_TRACKS) {
+      const current = this.pose[track], goal = wanted[track];
+      const seconds = goal > current ? EXPRESSION_POLICY.attackSeconds : EXPRESSION_POLICY.releaseSeconds;
+      this.pose[track] = current + (goal - current) * (1 - Math.exp(-delta / seconds));
+    }
+    // Negative/unknown intent suppresses a prior smile immediately. Likewise a
+    // frown target must not be combined with decaying positive mouth corners.
+    if (suppressSmile || wanted.lips_l_corner_dn > 0 || wanted.lips_r_corner_dn > 0) {
+      this.pose.lips_l_corner_up = this.pose.lips_r_corner_up = 0;
+    }
+    if (wanted.lips_l_corner_up > 0 || wanted.lips_r_corner_up > 0) {
+      this.pose.lips_l_corner_dn = this.pose.lips_r_corner_dn = 0;
+      this.pose.eye_l_brows_lower = this.pose.eye_r_brows_lower = 0;
+    }
+    return {...this.pose};
+  }
+}

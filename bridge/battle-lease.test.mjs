@@ -33,6 +33,7 @@ function fixture() {
     console: {error: (...args) => state.errors.push(args)}, rawInput: JSON.stringify(input)});
   vm.runInContext(`
     let polling=false, stopped=false, active=null, observed='', lastAcceptedIdentity='', voiceRouteReservation=false;
+    let relationshipRouteReservation=false;
     const inputPath='input', runtime='runtime', resolve=(...parts)=>parts.join('/');
     const stat=async()=>({mtimeMs:1,size:rawInput.length});
     const readFile=async path=>path===inputPath ? rawInput : readLease();
@@ -40,7 +41,7 @@ function fixture() {
     const processInput=request=>record(request);
     ${adapter}
     globalThis.api={tick,reactionCurrent,state:()=>({active,observed,lastAcceptedIdentity}),
-      setActive:value=>{active=value;}};
+      setActive:value=>{active=value;},setRelationshipReservation:value=>{relationshipRouteReservation=value;}};
   `, context);
   return {state, api: context.api};
 }
@@ -49,6 +50,19 @@ test('manual turns do not read a reaction lease', async () => {
   const {state, api} = fixture();
   assert.equal(await api.reactionCurrent({...input, reaction: undefined}), true);
   assert.equal(state.reads, 0);
+});
+
+test('a relationship route reservation preserves an unseen battle input until page retirement finishes', async () => {
+  const {state, api} = fixture();
+  api.setRelationshipReservation(true);
+  await api.tick();
+  assert.equal(state.reads, 0); assert.equal(state.accepted.length, 0);
+  assert.equal(api.state().observed, ''); assert.equal(api.state().lastAcceptedIdentity, '');
+  api.setRelationshipReservation(false);
+  await api.tick();
+  assert.equal(state.accepted.length, 1); assert.equal(state.reads, 1);
+  assert.equal(api.state().lastAcceptedIdentity, inputIdentity(input));
+  assert.deepEqual(state.errors, []);
 });
 
 test('heartbeat rename gaps and partial JSON recover within a bounded read', async () => {

@@ -20,7 +20,7 @@ import {PartyConnections, parsePartyConnections} from './party-connections.mjs';
 import {CompanionInvitations} from './companion-invitations.mjs';
 import {VoiceSelection} from './voice-selection.mjs';
 import {VoicePreviewLease} from './voice-preview.mjs';
-import {PhoneChat, parsePhoneState} from './phone-chat.mjs';
+import {PhoneChat, parsePhoneState, phoneRecentConversationContext} from './phone-chat.mjs';
 import {GameLaunchIdentity, identifyGameLaunch} from './game-launch.mjs';
 import {PlayerMemory} from './player-memory.mjs';
 import {PlayerMemoryApi} from './player-memory-api.mjs';
@@ -29,6 +29,7 @@ import {PlayerKnowledge} from './player-knowledge.mjs';
 import {PlayerPhoneKnowledge, playerPhoneGeneration} from './player-phone-knowledge.mjs';
 import {atomicFile as atomic} from './guarded-file.mjs';
 import {readWorldSession} from './world-session.mjs';
+import {RelationshipRouting, relationshipContext, retireRelationshipConnections} from './relationship-routing.mjs';
 
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const stateDirectory = resolve(process.env.CYBERPUNK_CONVAI_STATE || resolve(project, 'runtime'));
@@ -37,6 +38,11 @@ const runtime = resolve(game, 'bin/x64/plugins/cyber_engine_tweaks/mods/Cyberpun
 const keyFile = process.env.CYBERPUNK_CONVAI_KEY_FILE || resolve(stateDirectory, 'convai-key.txt');
 const roster = JSON.parse(await readFile(resolve(project, 'characters/roster.json'), 'utf8'));
 const ids = JSON.parse(await readFile(resolve(stateDirectory, 'characters.json'), 'utf8'));
+const relationshipVariants = JSON.parse(await readFile(resolve(stateDirectory, 'relationship-profiles.json'), 'utf8').catch(error => {
+  if (error.code === 'ENOENT') return '{}';
+  throw error;
+}));
+const relationshipRoutes = new RelationshipRouting({ordinaryIds: ids, variants: relationshipVariants});
 const localVoiceConfigPath = resolve(stateDirectory, 'local-voices.json');
 const voiceConfig = JSON.parse(await readFile(localVoiceConfigPath, 'utf8').catch(error => {
   if (error.code === 'ENOENT') return '{}';
@@ -69,10 +75,15 @@ const worldCurrent = boundary => {
   const current = currentBoundary();
   return !!current && current.worldToken === boundary.worldToken && current.generation === boundary.generation;
 };
-const playerMemory = await PlayerMemory.open({path: resolve(stateDirectory, 'player-memory.json'),
-  characterIds: ids, provider: new PlayerMemoryApi({key, characterIds: ids}), quiesce: quiescePlayerMemory});
+let playerMemory;
+const memoryProvider = new PlayerMemoryApi({key, characterIds: relationshipRoutes.providerIds,
+  historicalPairAllowed: ({profileKey, characterId}) => playerMemory?.hasContactedProviderPair(profileKey, characterId) === true});
+playerMemory = await PlayerMemory.open({path: resolve(stateDirectory, 'player-memory.json'),
+  characterIds: relationshipRoutes.providerIds, characterFamilies: relationshipRoutes.providerFamilies,
+  provider: memoryProvider, quiesce: quiescePlayerMemory});
 const knowledgeRouter = new PlayerKnowledge({playerMemory, pack: knowledgePack, questCatalog,
-  isWorldCurrent: worldCurrent, getBoundary: currentBoundary});
+  isWorldCurrent: worldCurrent, getBoundary: currentBoundary,
+  selectProfile: (profile, boundary) => relationshipRoutes.select(profile, boundary)});
 const phoneKnowledge = new PlayerPhoneKnowledge({router: knowledgeRouter, getBoundary: currentBoundary});
 const phoneRealtime = new RealtimeHost();
 const knowledgeTurns = new Map();
@@ -120,6 +131,7 @@ let phoneSessions = {};
 try { phoneSessions = JSON.parse(await readFile(phoneSessionPath, 'utf8')) || {}; } catch {}
 const phone = new PhoneChat({
   contacts: JSON.parse(await readFile(resolve(project, 'characters/phone-contacts.json'), 'utf8')), ids,
+  resetFor: profileKey => memoryControl.chatResets.phoneState(profileKey),
   contextFor: options => phoneKnowledge.prepareContext(options),
   contextCurrent: context => phoneKnowledge.current(context),
   contextCurrentSync: context => phoneKnowledge.currentSync(context),
@@ -154,7 +166,7 @@ let phonePolling = false;
 const phoneLaunch = new GameLaunchIdentity({identify: () => identifyGameLaunch(game),
   publish: value => atomic(resolve(runtime, 'phone-game-launch.json'), JSON.stringify(value))});
 async function pollPhone() {
-  if (phonePolling || stopped) return;
+  if (phonePolling || stopped || voiceRouteReservation || relationshipRouteReservation) return;
   phonePolling = true;
   try {
     const state = parsePhoneState(await readFile(phoneInput, 'utf8').catch(() => ''));
@@ -203,18 +215,25 @@ let metricsWriting = Promise.resolve();
 let connectionMetricsWriting = Promise.resolve();
 
 const preparedInputs = new WeakMap();
-const conversationContext = createIntrinsicConversationContext({baseContext: baseConversationContext,
+const intrinsicConversationContext = createIntrinsicConversationContext({baseContext: baseConversationContext,
   intrinsic: intrinsicHistory, resolveAdmission: input => preparedInputs.get(input),
   isCurrentSync: prepared => knowledgeRouter.currentSync(prepared)});
+const conversationContext = input => {
+  const prepared = preparedInputs.get(input), admitted = prepared && knowledgeRouter.currentSync(prepared);
+  return [intrinsicConversationContext(input),
+    admitted ? relationshipContext(prepared.relationship, prepared.route.channel) : '',
+    admitted && prepared.route.channel === 'phone' ? phoneRecentConversationContext(prepared.input) : '']
+    .filter(Boolean).join('\n\n');
+};
 const boundaryFor = input => ({entity: input?.entity,
   worldToken: input?.worldKnowledge?.worldToken || worldSession?.token,
   generation: input?.worldKnowledge?.generation || worldSession?.generation});
 const routeFor = input => preparedInputs.get(input)
   || knowledgeRouter.configFor(input.profileKey, conversationScope(input), boundaryFor(input));
 const sessionKey = input => routeFor(input)?.sessionKey || JSON.stringify(['unavailable', input.profileKey, input.requestId]);
-const completeContext = input => JSON.stringify([conversationContext(input), ids[input.profileKey], realtimeSessions.get(sessionKey(input)) || null,
+const completeContext = input => JSON.stringify([conversationContext(input), routeFor(input)?.guard?.characterId, realtimeSessions.get(sessionKey(input)) || null,
   localVoice.usesProfile(input.profileKey) ? localVoice.steps : 'convai']);
-const realtimeConfig = input => ({key, characterId: ids[input.profileKey], sessionId: realtimeSessions.get(sessionKey(input)),
+const realtimeConfig = input => ({key, characterId: routeFor(input)?.guard?.characterId, sessionId: realtimeSessions.get(sessionKey(input)),
   scope: routeFor(input)?.scope || conversationScope(input), ...(routeFor(input)?.remoteConfig || {}),
   context: conversationContext(input), text: battleTrigger(input), reaction: input.reaction,
   ttsEnabled: !localVoice.usesProfile(input.profileKey)});
@@ -226,7 +245,7 @@ const connections = new PartyConnections({host: realtime,
   configFor: (profile, scope) => {
     const route = warmRoute(profile, scope);
     if (!route) throw Error('No current world for conversation warmup');
-    return {key, characterId: ids[profile], scope: route.scope, ...(route.remoteConfig || {}),
+    return {key, characterId: route.guard.characterId, scope: route.scope, ...(route.remoteConfig || {}),
       sessionId: realtimeSessions.get(route.sessionKey), ttsEnabled: !localVoice.usesProfile(profile)};
   },
   onState: state => {
@@ -238,8 +257,34 @@ let voiceRouteSync = Promise.resolve();
 const voiceRoutePending = new Map();
 let voiceRouteReservation = false;
 const voiceRouteWaiters = new Set();
+let relationshipRouteSync = Promise.resolve(), relationshipRouteReservation = false;
+const relationshipRoutePending = new Map();
 function voiceBoundaryBusy() {
-  return !!(active || streaming || polling || micPolling || mic.current || prefetchPolling || memoryQuiescing);
+  return !!(active || streaming || polling || micPolling || mic.current || prefetchPolling || memoryQuiescing
+    || phone.active || relationshipRouteReservation);
+}
+function syncRelationshipRoutes() {
+  for (const profile of relationshipRoutes.consumeRouteChanges()) relationshipRoutePending.set(profile, relationshipRoutes.revision);
+  if (relationshipRouteReservation) return relationshipRouteSync;
+  if (!relationshipRoutePending.size || voiceBoundaryBusy() || voiceRouteReservation) return Promise.resolve();
+  // A distinct reservation prevents an input from entering while old-ID pages
+  // are being retired. Voice-quality/TTS changes keep their own namespace.
+  relationshipRouteReservation = true;
+  const operation = (async () => {
+    try {
+      while (relationshipRoutePending.size) {
+        if (stopped) throw Error('Conversation service is closed');
+        const changes = [...relationshipRoutePending];
+        await retireRelationshipConnections(connections, changes.map(([profile]) => profile));
+        prewarmObserved = ''; // A cleared completed request may have held the composer focus.
+        for (const [profile, revision] of changes) {
+          if (relationshipRoutePending.get(profile) === revision) relationshipRoutePending.delete(profile);
+        }
+      }
+    } finally { relationshipRouteReservation = false; }
+  })();
+  operation.catch(() => {}); relationshipRouteSync = operation;
+  return operation;
 }
 function settleVoiceRouteWaiters(error) {
   if (!error && voiceRoutePending.size) return;
@@ -312,9 +357,11 @@ async function prepareInvitedVoice(profile, {signal} = {}) {
     return receipt;
   }
 }
-const invitations = new CompanionInvitations({memory: playerMemory, connections,
+const invitations = new CompanionInvitations({memory: relationshipRoutes.invitationMemory(playerMemory, currentBoundary), connections,
   prepareVoice: prepareInvitedVoice,
   voiceCurrent: invitedVoiceCurrent,
+  routeCurrent: (profile, guard) => !relationshipRouteReservation && !relationshipRoutePending.size
+    && relationshipRoutes.guardSelected(profile, guard, currentBoundary()),
   currentWorld: currentBoundary,
   isKnown: profile => Object.hasOwn(ids, profile),
   isCurrentGuard: guard => playerMemory.isCurrent(guard),
@@ -597,20 +644,20 @@ async function admitPlayerConversation(prepared, {signal} = {}) {
   // An actually admitted battle/loot reply can enter natural provider memory.
   // Register its Forget target locally without enabling or seeding anything.
   if (prepared.input.reaction) {
-    await playerMemory.recordAutomaticConversation({profileKey: prepared.route.profileKey,
+    await playerMemory.recordAutomaticConversation({profileKey: prepared.route.providerProfileKey ?? prepared.route.profileKey,
       guard: prepared.guard, channel: prepared.route.channel,
       requestId: prepared.input.requestId || prepared.input.id, signal});
     throwIfCancelled(signal);
     if (!await knowledgeRouter.current(prepared)) throw Error('Conversation memory changed');
     return {reconnectRequired: false};
   }
-  await playerMemory.beginConversation({profileKey: prepared.route.profileKey,
+  await playerMemory.beginConversation({profileKey: prepared.route.providerProfileKey ?? prepared.route.profileKey,
     guard: prepared.guard, source: 'player',
     channel: prepared.route.transport === 'microphone' ? 'microphone' : prepared.route.channel,
     requestId: prepared.input.requestId || prepared.input.id, signal});
   throwIfCancelled(signal);
   if (!await knowledgeRouter.current(prepared)) throw Error('Conversation memory changed');
-  const refresh = {profileKey: prepared.route.profileKey, guard: prepared.guard};
+  const refresh = {profileKey: prepared.route.providerProfileKey ?? prepared.route.profileKey, guard: prepared.guard};
   const reconnectRequired = playerMemory.connectionRefreshRequired(refresh)
     || connections.needsRetirement(prepared.route.profileKey);
   if (reconnectRequired) {
@@ -630,7 +677,7 @@ async function admitPlayerConversation(prepared, {signal} = {}) {
 }
 
 async function pollMicrophone() {
-  if (micPolling || stopped || voiceRouteReservation) return;
+  if (micPolling || stopped || voiceRouteReservation || relationshipRouteReservation) return;
   micPolling = true;
   try {
     const raw = await readFile(micPath, 'utf8').catch(() => '');
@@ -712,7 +759,7 @@ async function reactionCurrent(input) {
 }
 
 async function tick() {
-  if (polling || stopped || voiceRouteReservation) return;
+  if (polling || stopped || voiceRouteReservation || relationshipRouteReservation) return;
   polling = true;
   try {
     const reactionRequest = active;
@@ -851,7 +898,7 @@ async function pollPrefetch() {
     await invitations.poll();
     // Keep invitation/world leases fresh during page reconciliation; composer
     // warmup and speculative turns resume after the reservation finishes.
-    if (voiceRouteReservation) return;
+    if (voiceRouteReservation || relationshipRouteReservation) return;
     await connections.maintain();
     if (partyWasFresh && connections.stale) {
       prefetch.invalidate(); active?.controller.abort(); await mic.cancel(); await realtime.close();
@@ -985,12 +1032,17 @@ async function pollSettings(checkShutdown = true) {
     // A transient rename/partial settings write must not reset the selected quality.
     const raw = await readFile(resolve(runtime, 'settings.json'), 'utf8').catch(() => '');
     let settings; try { settings = JSON.parse(raw); } catch {}
+    const relationshipState = await readFile(resolve(runtime, 'relationship-state.json'), 'utf8').catch(() => undefined);
+    if (relationshipRoutes.update(settings, relationshipState,
+        {boundary: currentBoundary(), busy: voiceBoundaryBusy() || voiceRouteReservation})) {
+      prefetch.invalidate(); prefetchObserved = '';
+    }
     // Every phrase of an accepted turn keeps its original provider and quality.
     // Microphone startup and input polling also own a boundary before `active`.
     if (localVoice.update(settings, preview, voiceBoundaryBusy())) {
       prefetch.invalidate(); prefetchObserved = '';
     }
-    await syncVoiceRoutes();
+    await syncRelationshipRoutes(); await syncVoiceRoutes();
     if (Date.now() - lastVoiceHeartbeat >= 5000) {
       lastVoiceHeartbeat = Date.now(); localVoice.publish(localVoice.state);
     }
@@ -1004,6 +1056,8 @@ async function pollSettings(checkShutdown = true) {
 }
 const memoryControl = await PlayerMemoryControl.open({memory: playerMemory,
   commandPath: resolve(runtime, 'memory-command.json'),
+  chatResetPath: resolve(runtime, 'memory-chat-resets.json'),
+  chatResetFamilies: relationshipRoutes.providerFamilies,
   publish: value => atomic(resolve(runtime, 'memory-status.json'), JSON.stringify(value))});
 await status('waiting');
 await pollSettings(false);
@@ -1028,6 +1082,7 @@ async function shutdown() {
   clearInterval(timer); clearInterval(micTimer); clearInterval(prefetchTimer); clearInterval(settingsTimer);
   await invitations.clear('service-stopped');
   await voiceRouteSync.catch(() => {});
+  await relationshipRouteSync.catch(() => {});
   await Promise.allSettled([localVoice.close(), mic.cancel(), connections.clear()]);
   await Promise.allSettled([realtime.close(), phoneRealtime.close()]);
   await memoryControl.close(); await playerMemory.close();

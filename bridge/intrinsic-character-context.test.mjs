@@ -253,7 +253,9 @@ test('actual protocol and PlayerKnowledge path preserves current-world authority
 test('the bridge wrapper reaches actual phone and admitted world paths', async () => {
   const code = await readFile(new URL('./convai-bridge.mjs', import.meta.url), 'utf8');
   assert.match(code, /conversationContext as baseConversationContext/);
-  assert.match(code, /const conversationContext = createIntrinsicConversationContext/);
+  assert.match(code, /const intrinsicConversationContext = createIntrinsicConversationContext/);
+  assert.ok(/const conversationContext = input => \{[\s\S]{0,500}return \[intrinsicConversationContext\(input\),/.test(code),
+    'The live context wrapper must retain the qualified intrinsic context before adding other context.');
   assert.match(code, /prepared = await phoneKnowledge\.preparedFor\(options\);\s+preparedInputs\.set\(prepared\.input, prepared\)/);
   assert.match(code, /intrinsicHistory\.select\(prepared\.input, prepared, value => knowledgeRouter\.currentSync\(value\)\)/);
   assert.match(code, /context: conversationContext\(prepared\.input\)/);

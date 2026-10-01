@@ -72,15 +72,15 @@ function freshSnapshot(snapshot, binding, route, now) {
 export class PlayerKnowledge {
   #prepared = new WeakMap();
 
-  constructor({playerMemory, pack, questCatalog = [], now = Date.now, isWorldCurrent, getBoundary} = {}) {
+  constructor({playerMemory, pack, questCatalog = [], now = Date.now, isWorldCurrent, getBoundary, selectProfile} = {}) {
     if (!playerMemory || typeof playerMemory.route !== 'function' || typeof playerMemory.isCurrent !== 'function'
         || typeof now !== 'function' || isWorldCurrent !== undefined && typeof isWorldCurrent !== 'function'
         || getBoundary !== undefined && typeof getBoundary !== 'function'
-        || !isWorldCurrent && !getBoundary) fail('INVALID_CONFIGURATION');
+        || !isWorldCurrent && !getBoundary || selectProfile !== undefined && typeof selectProfile !== 'function') fail('INVALID_CONFIGURATION');
     if (!validateKnowledgePack(pack).ok) fail('INVALID_REVIEWED_PACK');
     this.playerMemory = playerMemory; this.pack = freeze(clone(pack));
     this.questCatalog = freeze(clone(questCatalog)); this.now = now;
-    this.isWorldCurrent = isWorldCurrent; this.getBoundary = getBoundary;
+    this.isWorldCurrent = isWorldCurrent; this.getBoundary = getBoundary; this.selectProfile = selectProfile;
   }
 
   #boundary() {
@@ -128,9 +128,24 @@ export class PlayerKnowledge {
     try { return !!guard && this.playerMemory.isCurrent(guard) === true; } catch { return false; }
   }
 
+  #selectedRoute(route, binding) {
+    if (!this.selectProfile) return {route};
+    try {
+      const selection = this.selectProfile(route.profileKey, binding);
+      if (selection?.status !== 'ready') return {route, reason: 'relationship-profile-unavailable'};
+      if (selection.profileKey !== route.profileKey || !PROFILE.test(selection.providerProfileKey ?? '')
+          || !boundedId(selection.characterId) || !['ordinary', 'romantic'].includes(selection.variant)
+          || selection.providerProfileKey !== route.profileKey + (selection.variant === 'romantic' ? '-romantic' : '')) {
+        return {route, reason: 'invalid-relationship-profile'};
+      }
+      return freeze({route: {...route, providerProfileKey: selection.providerProfileKey,
+        relationshipVariant: selection.variant}, relationship: clone(selection)});
+    } catch { return {route, reason: 'relationship-profile-unavailable'}; }
+  }
+
   #memoryRoute(route) {
     try {
-      const value = this.playerMemory.route(route.profileKey, {channel: route.channel, audience: route.audience});
+      const value = this.playerMemory.route(route.providerProfileKey ?? route.profileKey, {channel: route.channel, audience: route.audience});
       const guard = value?.guard;
       if (!boundedId(value?.endUserId) || !guard || guard.endUserId !== value.endUserId
           || !boundedId(guard.characterId) || !validEpoch(guard.resetEpoch) || !validEpoch(guard.characterEpoch)) {
@@ -143,10 +158,11 @@ export class PlayerKnowledge {
     }
   }
 
-  #configuration(route, binding, memory, entity, ready) {
+  #configuration(route, binding, memory, entity, ready, relationship) {
     const ambient = AMBIENT.has(route.profileKey);
     const entityReady = !ambient || typeof entity === 'string' && /^\d+ULL$/.test(entity);
-    const available = ready && entityReady && this.#memoryCurrent(memory?.guard);
+    const available = ready && entityReady && this.#memoryCurrent(memory?.guard)
+      && (!relationship || memory.guard.characterId === relationship.characterId);
     const base = route.channel === 'group' ? `group:${hash(route.audience).slice(0, 16)}` : route.channel;
     // Input modality is not another conversation. F7/F9 must reuse the exact
     // private/group page retained at invitation/composer time; a microphone-only
@@ -157,6 +173,7 @@ export class PlayerKnowledge {
       memory.guard.resetEpoch, memory.guard.characterEpoch, route.profileKey, route.channel, route.audience,
       route.channel, ambient ? entity : null] : null;
     return freeze({status: available ? 'ready' : 'unavailable', sendAllowed: available, route,
+      ...(relationship ? {relationship} : {}),
       scope: available ? `${base}:world:${hash(partition).slice(0, 24)}` : null,
       sessionKey: available ? hash(partition) : null,
       remoteConfig: available ? {endUserId: memory.endUserId} : null, guard: available ? memory.guard : null,
@@ -169,10 +186,14 @@ export class PlayerKnowledge {
    * heartbeat. Missing world bindings or unmapped ambient entities skip warm.
    */
   configFor(profileKey, scope = 'private', {entity, worldToken, generation, source} = {}) {
-    const route = routeFor(profileKey, scope, source), binding = this.#binding({worldToken, generation});
+    let route = routeFor(profileKey, scope, source);
+    const binding = this.#binding({worldToken, generation});
     if (!this.#liveSync(binding) || AMBIENT.has(profileKey) && !(typeof entity === 'string' && /^\d+ULL$/.test(entity))) return null;
+    const selected = this.#selectedRoute(route, binding);
+    if (selected.reason) return null;
+    route = selected.route;
     const memory = this.#memoryRoute(route);
-    const configuration = this.#configuration(route, binding, memory, entity, this.#liveSync(binding));
+    const configuration = this.#configuration(route, binding, memory, entity, this.#liveSync(binding), selected.relationship);
     return configuration.sendAllowed ? configuration : null;
   }
 
@@ -180,15 +201,19 @@ export class PlayerKnowledge {
     // Capture request, options, world boundary and reset guard before any await.
     // Shared group inputs and provider resets cannot rebind an admitted turn.
     const frozen = clone(input), settings = clone(options);
-    const route = inputRoute(frozen, settings.channel), snapshot = parseWorldSnapshot(frozen.worldKnowledge);
+    let route = inputRoute(frozen, settings.channel);
+    const snapshot = parseWorldSnapshot(frozen.worldKnowledge);
     const binding = this.#binding(settings, snapshot);
+    const selected = this.#selectedRoute(route, binding);
+    route = selected.route;
     frozen.channel = route.channel;
     frozen.worldKnowledge = snapshot;
     if (frozen.journal !== undefined) frozen.journal = parseJournal(frozen.journal);
     freeze(frozen);
-    const memory = validBinding(binding) ? this.#memoryRoute(route) : {reason: 'current-world-unavailable'};
+    const memory = selected.reason ? {reason: selected.reason}
+      : validBinding(binding) ? this.#memoryRoute(route) : {reason: 'current-world-unavailable'};
     const live = await this.#live(binding);
-    const configuration = this.#configuration(route, binding, memory, frozen.entity, live);
+    const configuration = this.#configuration(route, binding, memory, frozen.entity, live, selected.relationship);
     const capturedAt = this.now();
     const captureCurrent = configuration.sendAllowed && freshSnapshot(snapshot, binding, route, capturedAt);
     let knowledgeContext = '';

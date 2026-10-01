@@ -39,6 +39,7 @@ export function lootFacts(input) {
 }
 
 export function lootContext(input) {
+  if (input.reaction?.kind === 'battle') return '';
   const facts = lootFacts(input);
   return facts ? facts + 'An acquired item does not establish a successful battle or completed objective. '
     + 'This is a recent pickup snapshot, not V\'s entire inventory.' : '';
@@ -46,10 +47,11 @@ export function lootContext(input) {
 
 export function lootTrigger(input) {
   const loot = parseLoot(input.loot, input);
-  if (!loot || input.reaction?.kind !== 'loot' || input.reaction.batch !== loot.batch) throw Error('Invalid loot trigger');
+  if (input.battle !== undefined || !loot || input.reaction?.kind !== 'loot' || input.reaction.batch !== loot.batch) throw Error('Invalid loot trigger');
   return 'V has finished collecting a batch of world loot. This event was not spoken by V. '
     + lootFacts(input)
     + 'Give one brief in-character statement of no more than twenty words. '
     + 'You need not list every item. Do not ask a question, including a follow-up, or claim to perform a game action. '
+    + 'Keep this line about the supplied pickups, without a combat recap. '
     + 'Return only the spoken line, without narration or actions.';
 }

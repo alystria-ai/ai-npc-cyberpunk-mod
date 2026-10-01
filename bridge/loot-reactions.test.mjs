@@ -38,7 +38,7 @@ local function add(id,overrides,witnesses)
 end
 local function offer(busy)return policy.offer(busy,people,now)end
 local function capture(entity,profile)
-  return policy.capture({forBattle=true,entity=entity or '1ULL',profileKey=profile or 'judy-alvarez'},now)
+  return policy.capture({forReaction=true,entity=entity or '1ULL',profileKey=profile or 'judy-alvarez'},now)
 end
 tick(0)
 `;
@@ -142,9 +142,9 @@ wait(6)
 local judy=assert(capture());local panam=assert(capture('3ULL','panam-palmer'))
 assert(#judy.items==2 and judy.items[1].name=='Judy pickup')
 assert(#panam.items==2 and panam.items[1].name=='Panam pickup')
-local merged=assert(policy.consumeForBattle(judy,now))
-assert(merged.witness.entity=='1ULL' and policy.status().pending==0)
-assert(not policy.consumeForBattle(panam,now),'One pickup batch cannot be spoken by each witness in turn')
+local event=assert(offer(false));local ok,trusted=policy.claim(event,now);assert(ok)
+assert(trusted.witness.entity=='1ULL' and policy.status().pending==0)
+assert(not offer(false),'One pickup batch cannot be spoken by each witness in turn')
 `));
 
 test('speakers are nearby available witnesses, deduplicated by profile, with deterministic rotation', () => run(fixture + `
@@ -177,67 +177,69 @@ assert(policy.claim(oldEvent,now));assert(policy.valid(oldEvent.reaction,now))
 policy.reset();tick(0);assert(policy.status().cooldownUntil==0)
 assert(add('one'));wait(6);local fresh=assert(capture())
 assert(fresh.batch~=oldSnapshot.batch)
-assert(not policy.consumeForBattle(oldSnapshot,now) and not policy.valid(oldEvent.reaction,now))
-assert(policy.status().pending==1 and policy.consumeForBattle(fresh,now))
+assert(not policy.claim(oldEvent,now) and not policy.valid(oldEvent.reaction,now))
+assert(policy.status().pending==1 and policy.claim(assert(offer(false)),now))
 `));
 
-test('combat loot accumulates and the battle reservation wins over standalone emission', () => run(fixture + `
+test('combat loot accumulates, then waits for its own standalone turn without a battle reservation', () => run(fixture + `
 sample.combat=true;tick(0);add('battle');wait(6);assert(not offer(false))
-local during=assert(capture());assert(not policy.consumeForBattle(during,now))
+local during=assert(capture());assert(policy.status().pending==1)
 sample.combat=false;sample.holdForBattle=true;tick(0)
-assert(not offer(false));assert(policy.consumeForBattle(during,now))
-assert(policy.status().cooldownUntil==now+600 and policy.status().exceptionalCooldownUntil==now+120)
+local event=assert(offer(false));assert(event.loot.batch==during.batch)
+assert(policy.status().cooldownUntil==0 and policy.status().exceptionalCooldownUntil==0)
+assert(policy.claim(event,now))
+assert(policy.status().cooldownUntil==now+600 and policy.status().exceptionalCooldownUntil==0)
 assert(policy.status().pending==0)
 `));
 
 test('a new combat transition discards prior exploration loot; this battle and aftermath share one batch', () => run(fixture + `
 add('exploration',{name='Before the fight'});wait(6);local old=assert(capture())
 sample.combat=true;tick(0)
-assert(policy.status().pending==0 and not policy.consumeForBattle(old,now))
+assert(policy.status().pending==0)
 assert(not add('exploration'),'The old receipt cannot be retried into the new fight')
 add('during',{name='During the fight'});wait(6);assert(policy.status().pending==1)
 sample.combat=false;sample.holdForBattle=true;tick(0)
 add('after',{name='After the fight'});wait(6)
 local snapshot=assert(capture());assert(#snapshot.items==2)
 assert(snapshot.items[1].name=='During the fight' and snapshot.items[2].name=='After the fight')
-assert(policy.consumeForBattle(snapshot,now))
+local event=assert(offer(false));assert(event.loot.batch==snapshot.batch and policy.claim(event,now))
 `));
 
-test('battle snapshot consumption is exactly once and preserves later acquisitions of the same item', () => run(fixture + `
-add('first',{identity='same',quantity=2});local snapshot=assert(capture())
+test('standalone snapshot claim is exactly once and preserves later acquisitions of the same item', () => run(fixture + `
+add('first',{identity='same',quantity=2});wait(6);local event=assert(offer(false));local snapshot=event.loot
 add('later',{identity='same',quantity=3})
 snapshot.items[1].quantity=999;snapshot.items[1].name='Caller mutation'
-local trusted=assert(policy.consumeForBattle(snapshot,now))
+wait(6);local ok,trusted=policy.claim(event,now);assert(ok)
 assert(trusted.items[1].quantity==2 and trusted.items[1].name=='NiCola')
 assert(policy.status().pending==1 and policy.capture().items[1].quantity==3)
-assert(not policy.consumeForBattle(snapshot,now))
+assert(not policy.claim(event,now))
 assert(policy.status().pending==1)
 `));
 
 test('stale overlapping captures cannot consume a newer prefix', () => run(fixture + `
-add('first');local older=assert(capture());add('second');local larger=assert(capture())
-assert(policy.consumeForBattle(older,now));assert(not policy.consumeForBattle(larger,now))
+add('first');wait(6);local older=assert(offer(false));add('second');wait(6);local larger=assert(offer(false))
+assert(policy.claim(older,now));policy.release(older.reaction);assert(not policy.claim(larger,now))
 assert(policy.status().pending==1 and policy.capture().items[1].quantity==1)
-local remaining=assert(capture());assert(policy.consumeForBattle(remaining,now))
-assert(policy.status().pending==0)
+assert(not offer(false),'The independent loot cooldown still applies to later pickups')
 `));
 
-test('battle claims require an owned battle snapshot and a currently available exact witness', () => run(fixture + `
-add('one');wait(6);local ordinary=assert(offer(false));assert(not policy.consumeForBattle(ordinary.loot,now))
-local battle=assert(capture());people[1].available=false;tick(0)
-assert(not policy.consumeForBattle(battle,now))
+test('battle cannot capture or consume loot and standalone claims require their available exact witness', () => run(fixture + `
+add('one');wait(6);local ordinary=assert(offer(false))
+assert(policy.consumeForBattle==nil and policy.suppressAfterBattle==nil)
+local none,reason=policy.capture({forBattle=true,entity='1ULL',profileKey='judy-alvarez'},now)
+assert(not none and reason=='separate-reactions' and policy.status().pending==1)
+people[1].available=false;tick(0);assert(not policy.claim(ordinary,now))
 people[1].available=true;tick(0);sample.combat=true;tick(0)
 sample.combat=false;tick(0)
-assert(not policy.consumeForBattle(battle,now),'A later fight invalidates an earlier closing capture')
+assert(not policy.claim(ordinary,now),'A later fight invalidates an earlier pickup request')
 assert(policy.status().pending==0)
 `));
 
-test('a battle closing with no captured loot suppresses both standalone cooldowns', () => run(fixture + `
-policy.suppressAfterBattle(now)
-assert(policy.status().cooldownUntil==now+600 and policy.status().exceptionalCooldownUntil==now+120)
+test('a legacy battle reservation does not change standalone pickup cooldowns', () => run(fixture + `
+sample.holdForBattle=true;tick(0)
+assert(policy.status().cooldownUntil==0 and policy.status().exceptionalCooldownUntil==0)
 add('new-legendary',{record='Items.Pistol',quality='Legendary',category='Weapon',newlyAcquired=true})
-wait(6);assert(not offer(false));wait(91)
-assert(policy.status().pending==0 and not offer(false))
+wait(6);local event=assert(offer(false));assert(event.loot.exceptional and policy.status().pending==1)
 `));
 
 test('manual busy and collecting races cannot admit a prepared standalone reaction', () => run(fixture + `
@@ -279,8 +281,8 @@ assert(not policy.valid(event.reaction,now) and not offer(false))
 assert(policy.status().pending==0)
 `));
 
-test('a claimed reaction is invalidated by a new fight, closing reservation or save teardown', () => run(fixture + `
-for _,mode in ipairs({'combat','holdForBattle','unavailable'})do
+test('a claimed reaction is invalidated by a new fight or save teardown', () => run(fixture + `
+for _,mode in ipairs({'combat','unavailable'})do
   policy.reset();sample={available=true};tick(0);add('one');wait(6)
   local event=assert(offer(false));assert(policy.claim(event,now))
   if mode=='unavailable'then sample.available=false else sample[mode]=true end
@@ -293,7 +295,7 @@ test('pending age expires after ninety seconds of activity even across a long pa
 add('one');wait(6);local old=assert(capture());sample.paused=true
 now=now+91;tick(0)
 assert(policy.status().pending==0 and policy.status().snapshots==0)
-sample.paused=false;tick(0);assert(not policy.consumeForBattle(old,now) and not offer(false))
+sample.paused=false;tick(0);assert(not offer(false))
 assert(add('fresh'));wait(6);assert(offer(false))
 `));
 
@@ -339,8 +341,8 @@ local function plain(value)
   else assert(type(value)=='string' or type(value)=='number' or type(value)=='boolean' or value==nil)end
 end
 plain(event);plain(policy.status());plain(policy.capture())
-local battle,extra=capture();assert(battle and extra==nil,'Do not expose the internal token table')
-battle.witness.entity='MUTATED';battle.items[1].name='MUTATED'
-local trusted=assert(policy.consumeForBattle(battle,now))
+local snapshot,extra=capture();assert(snapshot and extra==nil,'Do not expose the internal token table')
+snapshot.witness.entity='MUTATED';snapshot.items[1].name='MUTATED';event.loot=snapshot
+local ok,trusted=policy.claim(event,now);assert(ok)
 assert(trusted.witness.entity=='1ULL' and trusted.items[1].name=='NiCola')
 `));

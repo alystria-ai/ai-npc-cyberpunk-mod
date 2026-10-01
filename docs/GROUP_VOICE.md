@@ -1,24 +1,24 @@
-# F9 group voice
+# F10 group voice
 
 ## Controls
 
-F9 is the requested binding for **Cyberpunk Convai: group voice chat (F9)** in
-CET. Press it to begin, wait for Listening, speak, then press F9 again to finish.
+F10 is the requested binding for **Cyberpunk Convai: group voice chat (F10)** in
+CET. Press it to begin, wait for Listening, speak, then press F10 again to finish.
 F7 remains private voice. The wrong mode's key cannot submit or redirect an
 ongoing capture; the hint identifies its finishing key. Capture auto-finishes
 after 30 seconds. Opening a menu cancels it, including paused frames with zero
 simulation delta. Starting a conversation never silently enables the microphone.
 
-The registered actions do not rewrite a running user's CET bindings. If F9 is
+The registered actions do not rewrite a running user's CET bindings. If F10 is
 unassigned, bind the new action in CET when choosing to test microphone input.
 
 ## One captured utterance, one ordered group round
 
-- F6/F7/F8/F9 share target resolution. The addressed supported character goes
+- F6/F7/F8/F10 share target resolution. The addressed supported character goes
   first. Group mode requires at least two distinct enabled profiles and selects
   at most three. Duplicate copies do not produce duplicate speakers. A looked-at
   unsupported NPC is reported rather than silently replaced by another person.
-- Starting F9 freezes the participating entities/profiles and follow-up setting.
+- Starting F10 freezes the participating entities/profiles and follow-up setting.
   The first request contains microphone input and its group context. Finish
   refreshes quest/battle/world facts without changing the captured audience or
   player identity. Only the last remaining scheduled speaker may ask a follow-up
@@ -51,7 +51,7 @@ command files, reply polling, first reply, later speakers, prefetch, wrong-mode
 keys, lost targets, zero-delta menus, save restoration, missing transcription,
 timeouts and automatic finish. SDK transcript tests use the installed SDK event
 contract with mocks. These checks never access a microphone or submit cloud
-dialogue. Audible F7/F9 acceptance remains deferred at the user's request.
+dialogue. Audible F7/F10 acceptance remains deferred at the user's request.
 
 Microphone's first Convai reply currently retains the existing full-reply
 collection path. This change does not claim streaming onset for that first

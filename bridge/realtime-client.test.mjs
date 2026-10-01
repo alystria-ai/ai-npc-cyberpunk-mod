@@ -5,12 +5,14 @@ import {runInNewContext} from 'node:vm';
 import {journalContext} from './quest-context.mjs';
 import {endUserOptions, transportKey, SessionBindings} from './transport-pool.mjs';
 import {ConvaiDataAudio} from './convai-data-audio.mjs';
+import {ConvaiEmotion} from './convai-emotion.mjs';
 
 const source = readFileSync(new URL('./realtime-client.mjs', import.meta.url), 'utf8')
   .replace("import {ConvaiClient} from '@convai/web-sdk/vanilla';", '')
   .replace("import {endUserOptions, transportKey, SessionBindings} from './transport-pool.mjs';", '')
   .replace("import {ConvaiDataAudio} from './convai-data-audio.mjs';", '')
-  .replace("import {ContinuousPcmPlayer} from './continuous-pcm-player.mjs';", '');
+  .replace("import {ContinuousPcmPlayer} from './continuous-pcm-player.mjs';", '')
+  .replace("import {ConvaiEmotion} from './convai-emotion.mjs';", '');
 const flush = () => new Promise(done => setImmediate(done));
 function manualTimers() {
   let now = 0, nextId = 0;
@@ -79,7 +81,7 @@ function fixture({emitAudio, allowMic = false, timers, onConnect, onDisconnect, 
   class ForbiddenAudio { constructor() { throw Error('Browser audio recapture must not be used'); } }
   const window = {__convaiAudioChunk: emitAudio};
   runInNewContext(source, {ConvaiClient: Client, AudioContext: ForbiddenAudio, AudioWorkletNode: ForbiddenAudio,
-    endUserOptions, transportKey, SessionBindings, ConvaiDataAudio, TextDecoder,
+    endUserOptions, transportKey, SessionBindings, ConvaiDataAudio, ConvaiEmotion, TextDecoder,
     ContinuousPcmPlayer: player || ForbiddenAudio,
     window, performance, setTimeout: timers?.setTimeout ?? setTimeout, clearTimeout: timers?.clearTimeout ?? clearTimeout,
     setInterval, clearInterval,
@@ -112,6 +114,88 @@ function sendAudio(client, audio = audioFixture()) {
   client.data(audio.faces); client.data(audio.pcm()); client.data(audio.stats); client.data(audio.terminal);
   return audio;
 }
+
+test('emotion detection is enabled without changing the voice route or forcing generation mood',async()=>{
+  const {api,clients,events}=fixture();await api.warm({...config,ttsEnabled:false});
+  assert.equal(clients[0].options.enableEmotion,true);
+  assert.equal(clients[0].options.emotionConfig.provider,'llm');
+  assert.equal(clients[0].options.ttsEnabled,false);
+  assert.equal(clients[0].options.enableLipsync,false);
+  assert.equal(Object.hasOwn(clients[0].options,'stateOfMind'),false);
+  assert.equal(events.some(row=>row[0]==='message'),false);await api.close();
+});
+
+test('raw reliable owned emotion reaches the native Convai result without leaking transport owner IDs',async()=>{
+  const {api,clients}=fixture();await api.warm(config);
+  const pending=api.reply(config);await flush();const c=clients[0],data=audioFixture();
+  c.data(data.faces);
+  c.data({label:'rtvi-ai',type:'bot-emotion',data:{...data.owner,emotion:'Grief',scale:2}});
+  c.data(data.pcm());c.data(data.stats);c.data(data.terminal);finalText(c);
+  const result=await pending;
+  assert.deepEqual(JSON.parse(JSON.stringify(result.expressionSignal)),
+    {version:1,correlated:true,sequence:0,emotion:'Grief',scale:2});
+  assert.equal(JSON.stringify(result.expressionSignal).includes(data.owner.response_id),false);
+  assert.equal(api.diagnostics().wire.acceptedEmotionEvents,1);await api.close();
+});
+
+test('ownerless, stale, foreign, unreliable and malformed emotion cannot delay or fail speech',async()=>{
+  const {api,clients}=fixture();await api.warm(config);
+  const pending=api.reply(config);await flush();const c=clients[0],data=audioFixture();c.data(data.faces);
+  for (const [body,options] of [
+    [{emotion:'Joy',scale:3},{}],
+    [{...data.owner,response_id:'old-response',emotion:'Joy',scale:3},{}],
+    [{...data.owner,emotion:'Joy',scale:3},{kind:1}],
+    [{...data.owner,emotion:'Joy',scale:3},{participant:{identity:c.peer.identity}}],
+    [{...data.owner,emotion:'Joy',scale:.5},{}],
+  ]) c.data({label:'rtvi-ai',type:'bot-emotion',data:body},options);
+  c.handlers.get('emotionChange')?.({emotion:'Joy',scale:3});
+  c.data(data.pcm());c.data(data.stats);c.data(data.terminal);finalText(c);
+  const result=await pending;assert.equal(result.expressionSignal,undefined);
+  assert.equal(result.text,'Hello V.');assert.equal(c.isBotReady,true);
+  assert.equal(api.diagnostics().wire.skippedEmotionEvents,5);await api.close();
+});
+
+test('Omni text generation admits emotion only after its explicit raw LLM response owner and rejects retired turns',async()=>{
+  const {api,clients}=fixture();const cfg={...config,ttsEnabled:false};await api.warm(cfg);
+  const first=api.reply(cfg);await flush();const c=clients[0];
+  c.data({label:'rtvi-ai',type:'bot-llm-started',data:{response_id:'llm-one',epoch:2}});
+  c.data(wire({type:'bot-emotion',response_id:'llm-one',epoch:2,emotion:'Trust',scale:1}));
+  finalText(c);assert.equal((await first).expressionSignal.emotion,'Trust');
+  const second=api.reply(cfg);await flush();
+  c.data({label:'rtvi-ai',type:'bot-llm-started',data:{response_id:'llm-one',epoch:2}});
+  c.data(wire({type:'bot-emotion',response_id:'llm-one',epoch:2,emotion:'Joy',scale:3}));
+  finalText(c,'Next reply.','next');assert.equal((await second).expressionSignal,undefined);
+  const third=api.reply(cfg);await flush();
+  c.data({label:'rtvi-ai',type:'bot-llm-started',data:{response_id:'llm-three',epoch:2}});
+  c.data(wire({type:'bot-emotion',response_id:'llm-three',epoch:2,emotion:'Unknown mood',scale:1}));
+  finalText(c,'Third reply.','third');assert.equal((await third).expressionSignal.emotion,'Unknown mood');
+  await api.close();
+});
+
+test('cancelled connection emotion cannot cross into a replacement copy or turn',async()=>{
+  const {api,clients}=fixture();await api.warm(config);const first=api.reply(config);first.catch(()=>{});await flush();
+  const retired=clients[0],data=audioFixture();retired.data(data.faces);
+  await api.close('Owner dismissed');await assert.rejects(first,/Owner dismissed/);
+  const next=api.reply(config);await flush();await new Promise(done=>setTimeout(done,65));
+  const active=clients[1];assert.ok(active);
+  retired.data(wire({type:'bot-emotion',...data.owner,emotion:'Joy',scale:3}));
+  sendAudio(active,audioFixture({sequence:2}));finalText(active);
+  assert.equal((await next).expressionSignal,undefined);await api.close();
+});
+
+test('owned emotion arriving after provider completion is visible while continuous audio drains',async()=>{
+  const {Player,instances}=playerFixture();const {api,clients}=fixture({player:Player});await api.warm(config);
+  const pending=api.reply({...config,liveSpeechToken:'expression-drain'});await flush();
+  const c=clients[0],data=sendAudio(c);finalText(c);await new Promise(done=>setTimeout(done,80));
+  assert.equal(api.continuousSnapshot('expression-drain').sourceComplete,true);
+  c.data({label:'rtvi-ai',type:'bot-emotion',data:{...data.owner,emotion:'Fear',scale:2}});
+  assert.equal(api.continuousSnapshot('expression-drain').expressionSignal.emotion,'Fear');
+  assert.equal(instances[0].state.ended,false);
+  instances[0].drain();assert.equal((await pending).expressionSignal.emotion,'Fear');
+  c.data({label:'rtvi-ai',type:'bot-emotion',data:{...data.owner,emotion:'Joy',scale:3}});
+  assert.equal(api.continuousSnapshot('expression-drain').expressionSignal.emotion,'Fear');
+  await api.close();
+});
 
 test('automatic reactions send a game trigger without inventing a player utterance', async () => {
   const {api, events} = fixture();

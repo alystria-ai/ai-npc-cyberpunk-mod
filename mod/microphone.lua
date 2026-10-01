@@ -108,7 +108,7 @@ function M.update(player)
         if ok and value.requestId == M.context.requestId then
             if value.state == 'recording' and M.state == 'starting' then
                 M.state = 'recording'; M.started = os.time()
-                player:ConvaiPhoneFeedback(ui.t('Listening - press {key} again to finish', {key = M.context.group and 'F9' or 'F7'}))
+                player:ConvaiPhoneFeedback(ui.t('Listening - press {key} again to finish', {key = M.context.group and 'F10' or 'F7'}))
             elseif value.state == 'error' then
                 player:ConvaiPhoneFeedback(ui.t('Microphone unavailable. Check your Windows input device.'))
                 M.cancel('microphone-error')

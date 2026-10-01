@@ -29,6 +29,14 @@ sequences. Opening a menu, starting a conversation, leaving the speaker, disabli
 the option or changing combat phase cancels pending automatic work and its owned
 playback. Missed windows are skipped, not replayed later.
 
+Combat comments and pickup comments have independent requests. Closing does not
+wait for looting, include pickup facts, consume loot receipts or change loot
+cooldowns. Both features share one speech owner. Once the current generation,
+audio and captions release that owner, the other type may take its own turn
+after about two seconds. Their original deadlines, exact witnesses and manual
+conversation priority remain enforced. An unavailable closing witness does not
+hold the channel against an eligible pickup witness.
+
 An owned companion in autonomous gameplay may become temporarily busy with
 native speech while a reply is being generated. Keep that same request and lease,
 but admit no audio, facial animation or captions until the speaker is free. Read
@@ -105,10 +113,11 @@ are reused.
 - In-game audio was initially unaccepted; the later corrected-run evidence is
   recorded below. Cooldown/save-reset edge cases have automated coverage, without
   a separate full ten-minute live check.
-- September 30: witnessed loot merging is implemented with one shared automatic
+- September 30 historical behavior: witnessed loot merging was implemented with one shared automatic
   reply owner, six-second collection quiet time, a bounded closing wait and
   exact-copy witness selection. Production audible acceptance is pending; see
-  `LOOT_REACTIONS.md`. Exploration merging remains a separate task. No Horde-wave
+  `LOOT_REACTIONS.md`. October 1 replaces merging with separate sequential
+  combat and pickup turns. Exploration remains inactive. No Horde-wave
   or kill-count equivalent is invented for Cyberpunk.
 - Second live fight: the opening was cancelled two seconds after submission by
   Judy's `native-dialogue` gate, at 7.16 metres, with player combat true and all

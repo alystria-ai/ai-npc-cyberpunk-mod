@@ -24,6 +24,8 @@ convaiLootObserver, convaiLootReactions = lootObserver, loot
 -- player ID; collecting game context never creates or changes that ID.
 local knowledgeAllowed, knowledgeEpoch, knowledgeInvalidated = false, 0, false
 local knowledgeFrame, knowledgeChanged, knowledgeConfigured = nil, false, false
+local relationshipState = dofile('relationship-state.lua').new({
+    currentWorld = function() return knowledgeFrame end})
 local knowledgePhoneCapture, knowledgePhoneReceipts = nil, {}
 local invitations
 local knowledgeLaunch = 'lua-world-' .. tostring(os.time()) .. '-' .. tostring(math.random(100000000, 999999999))
@@ -79,6 +81,7 @@ local function invalidateKnowledge(reason)
     local before = knowledgeFrame
     knowledgeAllowed, knowledgeFrame, knowledgePhoneCapture = false, nil, nil
     publishWorldSession(before, false, true)
+    relationshipState:reset(reason)
     if invitations then invitations.bind(nil) end
     knowledgeEpoch, knowledgeChanged = knowledgeEpoch + 1, false
     knowledgeInvalidated = true
@@ -103,9 +106,11 @@ local function updateKnowledge(delta)
     local before = refreshKnowledgeFrame()
     if before.status == 'paused' then return end
     if before.status ~= 'ready' then
+        relationshipState:reset(before.reason)
         worldKnowledge:reset(nil, before.reason); journalHistory:reset(); return
     end
     configureKnowledge()
+    relationshipState:update(before)
     local context = {generation = before.generation, worldToken = before.worldToken}
     -- Each collector enforces its own per-frame work and age limits. A second
     -- inspection rejects any native transition that occurred during its reads.
@@ -603,7 +608,7 @@ local function toggleVoice(groupMode)
         if microphone.context then
             local recordingMode = microphone.context.group and 'group' or 'private'
             if recordingMode ~= mode then
-                player:ConvaiPhoneFeedback(ui.t('Use {key} to finish this recording.',{key=recordingMode == 'group' and 'F9' or 'F7'}))
+                player:ConvaiPhoneFeedback(ui.t('Use {key} to finish this recording.',{key=recordingMode == 'group' and 'F10' or 'F7'}))
                 return
             end
             if not gameplayCanAcquire(player) or (microphone.targetValid and not microphone.targetValid(microphone.context)) then
@@ -649,7 +654,10 @@ local function sendRequest(context)
     local owner = attachKnowledge(context)
     if not owner then return false end
     context.journal = context.journal or questContext.capture()
-    context.battle = context.battle or battles.capture()
+    -- Automatic turns have one subject. Manual conversations may still discuss
+    -- recent combat and pickups together when V asks about them.
+    if context.reaction and context.reaction.kind == 'loot' then context.battle = nil
+    else context.battle = context.battle or battles.capture() end
     local current = knowledgeOwner(refreshKnowledgeFrame())
     if not knowledgeAllowed or current.paused or not sameKnowledgeOwner(owner, current) then return false end
     local file = io.open('runtime/last-input.json.tmp', 'wb')
@@ -754,6 +762,9 @@ cancelAutomatic = function(reason, abandoning)
     end
     log('Automatic reaction released: ' .. tostring(reason))
     if automatic.reaction.kind == 'loot' then loot.release(automatic.reaction) end
+    if lastAutomatic and lastAutomatic.requestId == automatic.requestId then
+        lastAutomatic.finishedAt = os.time()
+    end
     automatic, reactionGuard = nil, nil
 end
 
@@ -810,9 +821,8 @@ local function updateBattles(player, elapsed, worldReady)
     end
     local now = os.time()
     battles.update(battleSample, worldReady and elapsed or 0, now, manager.battleReactions(), battlePeople)
-    local closing = battles.closingWindow(battlePeople)
     loot.update({available = battleSample.available, blocked = battleSample.blocked,
-        paused = not worldReady, combat = battleSample.combat or battles.status().state == 'fighting', holdForBattle = closing ~= nil},
+        paused = not worldReady, combat = battleSample.combat or battles.status().state == 'fighting'},
         worldReady and elapsed or 0, now, manager.lootReactions(), battlePeople)
     -- Drain already confirmed receipts before suspending source collection in
     -- a menu. Pausing freezes their policy timer; story/disabled gates discard.
@@ -829,7 +839,7 @@ local function updateBattles(player, elapsed, worldReady)
     if automatic then
         local speaker
         for _, person in ipairs(battlePeople) do
-            if person.entity == automatic.entity then speaker = person; break end
+            if person.entity == automatic.entity and person.profileKey == automatic.profileKey then speaker = person; break end
         end
         captureReactionGuard(worldReady, outputs, speaker)
         local waiting = reactionSpeakerWait(speaker)
@@ -846,42 +856,31 @@ local function updateBattles(player, elapsed, worldReady)
         elseif not reactionLease(true) then cancelAutomatic('lease-write-failed') end
     end
     local busy = not worldReady or manual or not outputs.enabled or pending ~= nil or speech.requestId ~= nil or subtitles.line ~= nil or automatic ~= nil
-    local lootState = loot.status()
-    -- Complete one post-battle reply once looting settles. Continuous pickup
-    -- activity cannot defer that reply beyond its original admission window.
-    local holdClosing = closing and closing.elapsed < 25 and lootState.collecting
-    local spaced = not lastAutomatic or now - lastAutomatic.at >= 30
-    local event = battles.offer(busy, battlePeople, now, holdClosing)
-    if event and not spaced and not (event.phase == 'end' and lastAutomatic.kind == 'battle'
-        and lastAutomatic.phase == 'start' and lastAutomatic.encounter == event.encounter) then event = nil end
-    if event then
-        if event.phase == 'end' then
-            event.loot = loot.capture({forBattle = true, entity = event.person.entity, profileKey = event.person.profileKey}, now)
-            if not event.loot and lootState.pending > 0 then
-                -- Rotation must not choose a non-witness and silently drop a
-                -- witnessed batch. Prefer the intersection, then use the same
-                -- battle speaker policy within it. At most eight party copies
-                -- can reserve these detached, single-use snapshot tokens.
-                local battleWitnesses, witnessed, snapshots = {}, {}, {}
-                for _, key in ipairs(event.battle.witnesses) do battleWitnesses[key] = true end
-                for _, candidate in ipairs(battlePeople) do
-                    if battleWitnesses[candidate.profileKey] then
-                        local snapshot = loot.capture({forBattle = true, entity = candidate.entity, profileKey = candidate.profileKey}, now)
-                        if snapshot then
-                            witnessed[#witnessed + 1] = candidate
-                            snapshots[candidate.entity] = snapshot
-                        end
-                    end
-                end
-                local combined = battles.offer(false, witnessed, now)
-                if combined then
-                    event = combined
-                    event.loot = snapshots[event.person.entity]
-                end
-            end
-        end
+    local function mayFollow(event, kind)
+        if not event or busy then return false end
+        if not lastAutomatic then return true end
+        -- A generation, native bark wait, audio track or subtitle still owns
+        -- the previous turn until cancelAutomatic releases it. Count the small
+        -- handoff pause from that release, not from the earlier request write.
+        if not lastAutomatic.finishedAt or now - lastAutomatic.finishedAt < 2 then return false end
+        if now - lastAutomatic.at >= 30 or kind ~= lastAutomatic.kind then return true end
+        return kind == 'battle' and event.phase == 'end' and lastAutomatic.phase == 'start'
+            and lastAutomatic.encounter == event.encounter
+    end
+    local battleEvent = battles.offer(busy, battlePeople, now)
+    local lootEvent = loot.offer(busy, battlePeople, now)
+    if not mayFollow(battleEvent, 'battle') then battleEvent = nil end
+    if not mayFollow(lootEvent, 'loot') then lootEvent = nil end
+    -- Closing has the shorter admission window and normally goes first. Once
+    -- a battle closing has had a turn, an eligible pickup gets the next turn.
+    -- Neither event changes the other policy's receipts or cooldowns.
+    local event
+    if battleEvent and lootEvent and lastAutomatic and lastAutomatic.kind == 'battle'
+        and lastAutomatic.phase == 'end' then event = lootEvent
+    else event = battleEvent or lootEvent end
+    if event == battleEvent and event then
         event.reaction = {kind = 'battle', encounter = event.encounter, phase = event.phase, expiresAt = event.expiresAt}
-    else event = loot.offer(busy or not spaced, battlePeople, now) end
+    end
     if not event then return end
     generation = generation + 1
     local person
@@ -901,16 +900,11 @@ local function updateBattles(player, elapsed, worldReady)
     if reactionLease(true) and sendRequest(context) then
         local claimed
         if event.reaction.kind == 'loot' then claimed = loot.claim(event, now)
-        else
-            claimed = not event.loot or loot.consumeForBattle(event.loot, now) ~= nil
-            if claimed then
-                claimed = battles.claim(event)
-                if claimed and event.phase == 'end' then loot.suppressAfterBattle(now) end
-            end
-        end
+        else claimed = battles.claim(event) end
         if not claimed then cancelAutomatic('claim-failed'); return end
         speech.target = person.npc
-        lastAutomatic = {at = now, kind = event.reaction.kind, phase = event.phase, encounter = event.encounter}
+        lastAutomatic = {at = now, requestId = context.requestId, kind = event.reaction.kind,
+            phase = event.phase, encounter = event.encounter}
         log('Automatic ' .. event.reaction.kind .. ' reaction: ' .. tostring(event.phase or 'batch') .. ' speaker=' .. person.profileKey)
     else cancelAutomatic('request-write-failed') end
 end
@@ -921,7 +915,7 @@ local function reactionCanDeliver(context, player)
     -- A reply can become ready between the half-second observer samples. Read
     -- the owned speaker again before any audio, captions or facial playback.
     for _, person in ipairs(battlePeople) do
-        if person.entity == context.entity then
+        if person.entity == context.entity and person.profileKey == context.profileKey then
             person.available, person.availableReason, person.voiceBusy = battleObserver.canSpeak(person.npc, context.reaction.phase)
             captureReactionGuard(true, reactionOutputs(player), person)
             local waiting = reactionSpeakerWait(person)
@@ -1089,13 +1083,14 @@ end
 registerHotkey('cyberpunk_convai_text', 'Cyberpunk Convai: talk by text', function() beginText(false) end)
 registerHotkey('cyberpunk_convai_group_text', 'Cyberpunk Convai: group text chat (F8)', function() beginText(true) end)
 registerHotkey('cyberpunk_convai_voice', 'Cyberpunk Convai: talk by voice (F7)', function() toggleVoice(false) end)
-registerHotkey('cyberpunk_convai_group_voice', 'Cyberpunk Convai: group voice chat (F9)', function() toggleVoice(true) end)
+registerHotkey('cyberpunk_convai_group_voice', 'Cyberpunk Convai: group voice chat (F10)', function() toggleVoice(true) end)
 registerHotkey('cyberpunk_convai_diagnostic', 'Cyberpunk Convai: capture NPC diagnostic', captureNpcDiagnostic)
 registerHotkey('cyberpunk_convai_manager', 'Cyberpunk Convai: companion manager', openManager)
 
 local worldSuspended, sessionHasState = false, false
+local fastTravelActive
 
-local function abandonSession(reason)
+local function abandonSession(reason,preserveTransit)
     -- Never touch NPC/player components during native world destruction.
     -- pcall cannot catch an access violation in an already unloaded component.
     invalidateKnowledge(reason)
@@ -1103,7 +1098,7 @@ local function abandonSession(reason)
     battles.reset()
     loot.reset(); lootObserver.reset(); lastAutomatic = nil
     battleSample, battlePeople, battlePoll = nil, {}, 0
-    companions.abandon()
+    companions.abandon(preserveTransit==true)
     mcm.resetSession()
     speech.abandon()
     subtitles.abandon()
@@ -1136,19 +1131,54 @@ registerForEvent('onInit', function()
     phoneChatStyle.install()
     local ok, err = pcall(mcm.install)
     if not ok then log('MCM registration failed: ' .. tostring(err)) end
+    -- Native FastTravelSystem.PerformFastTravel tests HasFastTravelPoint and
+    -- distinct StartingPoint/DestinationPoint before TeleportToNode. Observe
+    -- the request BEFORE that call: SetFastTravelStarted is already too late
+    -- to protect a PlayerPuppet.OnDetach emitted by native teleportation.
+    ObserveBefore('FastTravelSystem','OnPerformFastTravelRequest',function(system,request)
+        if fastTravelActive or worldSuspended or not sessionHasState then return end
+        local valid,travelling=pcall(function()
+            local current=Game.GetPlayer()
+            if not request or not request.player or not current or not request.pointData
+                or not system:HasFastTravelPoint(request.pointData) then return false end
+            if tostring(request.player:GetEntityID().hash)~=tostring(current:GetEntityID().hash) then return false end
+            local defs=Game.GetAllBlackboardDefs().FastTRavelSystem
+            local board=Game.GetBlackboardSystem():Get(defs)
+            local origin=FromVariant(board:GetVariant(defs.StartingPoint))
+            local destination=request.pointData:GetPointRecord()
+            return origin~=nil and destination~=nil and tostring(origin)~=tostring(destination)
+        end)
+        if not valid or not travelling then return end
+        local prepared,accepted=pcall(companions.beginFastTravel)
+        if not prepared or not accepted then log('Party fast travel could not start: '..tostring(accepted)); return end
+        fastTravelActive={started=os.time(),finished=false}
+        worldSuspended=true
+        abandonSession('fast travel started',true)
+    end)
+    ObserveAfter('FastTravelSystem','OnLoadingScreenFinished',function(_,finished)
+        if finished~=true or not fastTravelActive then return end
+        fastTravelActive.finished=true
+        companions.fastTravel()
+        worldSuspended=false
+    end)
     ObserveBefore('PlayerPuppet', 'OnDetach', function()
         worldSuspended = true
-        abandonSession('player detached')
+        if not fastTravelActive then abandonSession('player detached') end
     end)
     ObserveBefore('PlayerPuppet', 'OnDeath', function()
+        fastTravelActive=nil
         worldSuspended = true
         abandonSession('player died')
     end)
-    ObserveAfter('PlayerPuppet', 'OnGameAttached', function() worldSuspended = false end)
-    ObserveAfter('PlayerPuppet', 'OnTakeControl', function() worldSuspended = false end)
+    local function playerAttached()
+        if not fastTravelActive or fastTravelActive.finished then worldSuspended=false end
+    end
+    ObserveAfter('PlayerPuppet', 'OnGameAttached', playerAttached)
+    ObserveAfter('PlayerPuppet', 'OnTakeControl', playerAttached)
     ObserveAfter('PlayerSystem', 'OnGameRestored', function()
         -- Observed on a real load in the read-only probe. This clears old
         -- transient references without writing anything into the save.
+        fastTravelActive=nil
         abandonSession('save restored')
         worldSuspended = false
     end)
@@ -1163,16 +1193,22 @@ registerForEvent('onInit', function()
 end)
 
 registerForEvent('onUpdate', function(delta)
+    -- A missing completion must not keep a stale travel intent armed for a
+    -- later unrelated load. Expiration only drops receipts; it never restores.
+    if fastTravelActive and not fastTravelActive.finished and os.time()-fastTravelActive.started>120 then
+        fastTravelActive=nil; abandonSession('fast travel timed out')
+    end
     local menuPlayer = Game.GetPlayer()
     local sessionOk, sessionReady = pcall(function()
         return not worldSuspended and menuPlayer and menuPlayer:IsAttached()
             and not menuPlayer:IsDeadNoStatPool() and not Game.GetSystemRequestsHandler():IsPreGame()
     end)
     if not sessionOk or not sessionReady then
-        if sessionHasState then abandonSession('world unavailable') end
+        if sessionHasState then abandonSession('world unavailable',fastTravelActive~=nil) end
         if not knowledgeInvalidated then invalidateKnowledge('world unavailable') end
         return
     end
+    if fastTravelActive and fastTravelActive.finished then fastTravelActive=nil end
     sessionHasState = true
     knowledgeAllowed, knowledgeInvalidated = true, false
     local knowledgeOk = pcall(updateKnowledge, delta)
@@ -1228,7 +1264,17 @@ registerForEvent('onUpdate', function(delta)
     if not styleOk then phoneChatStyle.lastError = tostring(styleError) end
     local chatOk, chatError = pcall(phoneChat.update, menuPlayer, delta)
     if not chatOk then phoneChat.lastError = tostring(chatError) end
-    local speechOk, speechError = pcall(speech.update, tonumber(delta) or 0)
+    local expressionActors,expressionBlocked={},true
+    if worldReady then
+        local sampled,rows=pcall(companions.conversationCandidates,menuPlayer,1000)
+        if sampled and type(rows)=='table' then expressionActors=rows end
+        local combatKnown,inCombat=pcall(function() return menuPlayer:IsInCombat() end)
+        expressionBlocked=not combatKnown or inCombat==true
+    end
+    local expressionContext={paused=not worldReady,actors=expressionActors,blocked=expressionBlocked,
+        thinkingEntity=pending and pending.entity,thinkingRequestId=pending and pending.requestId,
+        listeningEntity=microphone.state=='recording' and microphone.context and microphone.context.entity or nil}
+    local speechOk, speechError = pcall(speech.update, tonumber(delta) or 0,expressionContext)
     if not speechOk then
         log('Speech update failed: ' .. tostring(speechError))
         speech.stop('error')

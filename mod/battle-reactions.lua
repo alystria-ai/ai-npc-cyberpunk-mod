@@ -84,8 +84,8 @@ function M.new()
             opponents = opponents, witnesses = witnesses}
     end
 
-    -- Reservation lasts only while this encounter still has a closing slot
-    -- and a surviving nearby witness. Recent context lives much longer.
+    -- Diagnostic closing opportunity: a surviving nearby witness must still
+    -- have a slot. It does not reserve or suppress a separate pickup turn.
     function self.closingWindow(people)
         if not enabled or not sample or not sample.available or sample.blocked
             or not current or not current.eligible or current.closed or current.state ~= 'ended' then return nil end
@@ -100,7 +100,7 @@ function M.new()
         return nil
     end
 
-    function self.offer(busy, people, now, holdClosing)
+    function self.offer(busy, people, now)
         if busy or not enabled or not sample or not sample.available or sample.blocked or not current or not current.eligible then return nil end
         local phase, remaining
         if current.state == 'fighting' then
@@ -109,7 +109,7 @@ function M.new()
             phase, remaining = 'start', 12 - elapsed
         else
             local elapsed = clock - current.ended
-            if current.closed or holdClosing or elapsed < 4 or elapsed > 40 then return nil end
+            if current.closed or elapsed < 4 or elapsed > 40 then return nil end
             phase, remaining = 'end', 40 - elapsed
         end
         local chosen
