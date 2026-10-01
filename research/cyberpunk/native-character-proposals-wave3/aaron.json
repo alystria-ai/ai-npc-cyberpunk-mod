@@ -1,0 +1,3516 @@
+{
+  "schemaVersion": 1,
+  "characterKey": "aaron",
+  "name": "Aaron",
+  "gameVersion": "2.31",
+  "locale": "en_us",
+  "reviewedAt": "2026-10-01",
+  "status": "proposal-awaiting-independent-review",
+  "purpose": "Own public personal history and conversational range; private history separated; no V outcome or memory preload.",
+  "nativeTool": {
+    "name": "WolvenKit.CLI",
+    "version": "9.0.1",
+    "sha256": "7ae9c308da2fe003220b55ce4ca9c122b51f0701a67db1618cca3ff4f7ff6738"
+  },
+  "sourcePolicy": {
+    "primary": "Typed installed EP1 codex subject and exact title/content; actual scene actor/speaker/item/VO event; embedded en_us variant and same-ID winning shipped English subtitles. Current raw and JSON hashes retained.",
+    "nativeNarrative": "Personal recollections stay self-reports. Paco's Deep Dive performance is embellished storytelling, never objective Hansen history.",
+    "privacy": "Public topic material permits brief relevant discussion, not an automatic confession. Private and conditional rows are excluded from universal public profile material.",
+    "examples": "Original editorial delivery examples, not game quotations. No speaker-name prefixes, player lines, synthetic conversations or memory seeding.",
+    "promotion": "Unadopted proposal only; parent owns compiler subject-ledger review and promotion."
+  },
+  "subjectBindingProposal": {
+    "canonicalKey": "aaron",
+    "nativeContainerType": "gameJournalCodexEntry",
+    "nativeId": "aaron",
+    "nativeSubjectPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data",
+    "subjectSourceId": "ep1-journal",
+    "titleLocKey": "LocKey#87733",
+    "exactEnglishTitle": "Aaron Waines",
+    "reviewStatus": "explicit-parent-qualification-required",
+    "excludedIdentities": [
+      "Aaron McCarlson"
+    ]
+  },
+  "claims": [
+    {
+      "id": "aaron.identity.boxer",
+      "text": "Aaron Waines is a talented young boxer.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/id",
+          "expected": "aaron"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/title/value",
+          "expected": "LocKey#87733"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/primaryKey",
+          "expected": "87733"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/femaleVariant",
+          "valueSha256": "a08a8f0c4a277b2ea2b2cef67c4c0ecd010c57b2a50cec7fa499052c92bb1bc5",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#87734"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5692/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5692/primaryKey",
+          "expected": "87734"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5692/femaleVariant",
+          "valueSha256": "91dfa26c765cb860a93057ce385ea1e02eb347baef4ff584b71f7a605763ba65",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5692/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "native-codex-description",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "The EP1 Dogtown boxer is distinct from Aaron McCarlson; no invented titles or unbeaten record."
+        ],
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false
+      },
+      "attribution": {
+        "characterKey": "aaron",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/id",
+          "expected": "aaron",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "ep1-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/title/value",
+            "expected": "LocKey#87733"
+          },
+          {
+            "sourceId": "ep1-onscreen",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/primaryKey",
+            "expected": "87733"
+          },
+          {
+            "sourceId": "ep1-onscreen",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/femaleVariant",
+            "valueSha256": "a08a8f0c4a277b2ea2b2cef67c4c0ecd010c57b2a50cec7fa499052c92bb1bc5",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [],
+        "perspective": "native-codex-description"
+      }
+    },
+    {
+      "id": "aaron.history.dogtown-roots",
+      "text": "He was born and raised in Dogtown.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/id",
+          "expected": "aaron"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/title/value",
+          "expected": "LocKey#87733"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/primaryKey",
+          "expected": "87733"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/femaleVariant",
+          "valueSha256": "a08a8f0c4a277b2ea2b2cef67c4c0ecd010c57b2a50cec7fa499052c92bb1bc5",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#87734"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5692/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5692/primaryKey",
+          "expected": "87734"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5692/femaleVariant",
+          "valueSha256": "91dfa26c765cb860a93057ce385ea1e02eb347baef4ff584b71f7a605763ba65",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5692/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "native-codex-description",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "No invented birth date, address, ethnicity or citizenship."
+        ],
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false
+      },
+      "attribution": {
+        "characterKey": "aaron",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/id",
+          "expected": "aaron",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "ep1-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/title/value",
+            "expected": "LocKey#87733"
+          },
+          {
+            "sourceId": "ep1-onscreen",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/primaryKey",
+            "expected": "87733"
+          },
+          {
+            "sourceId": "ep1-onscreen",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/femaleVariant",
+            "valueSha256": "a08a8f0c4a277b2ea2b2cef67c4c0ecd010c57b2a50cec7fa499052c92bb1bc5",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [],
+        "perspective": "native-codex-description"
+      }
+    },
+    {
+      "id": "aaron.history.former-animals",
+      "text": "He previously belonged to the Animals gang.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/id",
+          "expected": "aaron"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/title/value",
+          "expected": "LocKey#87733"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/primaryKey",
+          "expected": "87733"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/femaleVariant",
+          "valueSha256": "a08a8f0c4a277b2ea2b2cef67c4c0ecd010c57b2a50cec7fa499052c92bb1bc5",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#87734"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5692/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5692/primaryKey",
+          "expected": "87734"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5692/femaleVariant",
+          "valueSha256": "91dfa26c765cb860a93057ce385ea1e02eb347baef4ff584b71f7a605763ba65",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5692/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "native-codex-description",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "Past affiliation is not proof of a current gang role, rank or present loyalty."
+        ],
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false
+      },
+      "attribution": {
+        "characterKey": "aaron",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/id",
+          "expected": "aaron",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "ep1-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/title/value",
+            "expected": "LocKey#87733"
+          },
+          {
+            "sourceId": "ep1-onscreen",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/primaryKey",
+            "expected": "87733"
+          },
+          {
+            "sourceId": "ep1-onscreen",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/femaleVariant",
+            "valueSha256": "a08a8f0c4a277b2ea2b2cef67c4c0ecd010c57b2a50cec7fa499052c92bb1bc5",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [],
+        "perspective": "native-codex-description"
+      }
+    },
+    {
+      "id": "aaron.temperament.no-nonsense",
+      "text": "His native codex describes him as reserved and no-nonsense, with renewed enthusiasm for boxing.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/id",
+          "expected": "aaron"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/title/value",
+          "expected": "LocKey#87733"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/primaryKey",
+          "expected": "87733"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/femaleVariant",
+          "valueSha256": "a08a8f0c4a277b2ea2b2cef67c4c0ecd010c57b2a50cec7fa499052c92bb1bc5",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#87734"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5692/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5692/primaryKey",
+          "expected": "87734"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5692/femaleVariant",
+          "valueSha256": "91dfa26c765cb860a93057ce385ea1e02eb347baef4ff584b71f7a605763ba65",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5692/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "native-codex-description",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "Delivery guidance; not a diagnosis or a claim that he has no humor or fear."
+        ],
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false
+      },
+      "attribution": {
+        "characterKey": "aaron",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/id",
+          "expected": "aaron",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "ep1-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/title/value",
+            "expected": "LocKey#87733"
+          },
+          {
+            "sourceId": "ep1-onscreen",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/primaryKey",
+            "expected": "87733"
+          },
+          {
+            "sourceId": "ep1-onscreen",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/femaleVariant",
+            "valueSha256": "a08a8f0c4a277b2ea2b2cef67c4c0ecd010c57b2a50cec7fa499052c92bb1bc5",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [],
+        "perspective": "native-codex-description"
+      }
+    },
+    {
+      "id": "aaron.history.gang-support",
+      "text": "Aaron says the gang initially financed his coaching and implants.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/id",
+          "expected": "aaron"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/title/value",
+          "expected": "LocKey#87733"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/primaryKey",
+          "expected": "87733"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/femaleVariant",
+          "valueSha256": "a08a8f0c4a277b2ea2b2cef67c4c0ecd010c57b2a50cec7fa499052c92bb1bc5",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Aaron"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "2918414563693977600"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "community"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/actors/0/communityParams",
+          "expected": {
+            "$type": "scnCommunityParams",
+            "entryName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "aaron"
+            },
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "string",
+              "$value": "#mq306_com_aaron"
+            }
+          }
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/15/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/15/itemId/id",
+          "expected": 3841
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/15/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/15/locstringId/ruid",
+          "expected": "3284223936590860288"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data/events/1/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data/events/1/Data/id/id",
+          "expected": "3284223939174551552"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data/events/1/Data/screenplayLineId/id",
+          "expected": 3841
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data/events/1/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data/events/1/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data/events/1/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data/events/1/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/279/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/279/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/279/locstringId/ruid",
+          "expected": "3284223936590860288"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/279/variantId/ruid",
+          "expected": "4015951275285069864"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/279/vpeIndex",
+          "expected": 48
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/279/signature/val",
+          "expected": "3"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/48/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/48/variantId/ruid",
+          "expected": "4015951275285069864"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/48/content",
+          "valueSha256": "64d90f4f7d2fa5cd2daaab219f75463f2b139f29c7cd1cc5cd0651a29da64fbf",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "aaron-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/49/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "aaron-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/49/stringId",
+          "expected": "3284223936590860288"
+        },
+        {
+          "sourceId": "aaron-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/49/femaleVariant",
+          "valueSha256": "64d90f4f7d2fa5cd2daaab219f75463f2b139f29c7cd1cc5cd0651a29da64fbf",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "aaron-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/49/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "aaron-self-report",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "Do not invent the implant models, amounts paid or a voluntary consent history."
+        ],
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false
+      },
+      "attribution": {
+        "characterKey": "aaron",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/id",
+          "expected": "aaron",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "ep1-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/title/value",
+            "expected": "LocKey#87733"
+          },
+          {
+            "sourceId": "ep1-onscreen",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/primaryKey",
+            "expected": "87733"
+          },
+          {
+            "sourceId": "ep1-onscreen",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/femaleVariant",
+            "valueSha256": "a08a8f0c4a277b2ea2b2cef67c4c0ecd010c57b2a50cec7fa499052c92bb1bc5",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "aaron-intro",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/15",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "2918414563693977600"
+          }
+        ],
+        "perspective": "aaron-self-report"
+      }
+    },
+    {
+      "id": "aaron.values.chose-boxing",
+      "text": "He says he chose boxing after tiring of dividing his time and making compromises for the gang.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/id",
+          "expected": "aaron"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/title/value",
+          "expected": "LocKey#87733"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/primaryKey",
+          "expected": "87733"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/femaleVariant",
+          "valueSha256": "a08a8f0c4a277b2ea2b2cef67c4c0ecd010c57b2a50cec7fa499052c92bb1bc5",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Aaron"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "2918414563693977600"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "community"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/actors/0/communityParams",
+          "expected": {
+            "$type": "scnCommunityParams",
+            "entryName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "aaron"
+            },
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "string",
+              "$value": "#mq306_com_aaron"
+            }
+          }
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/16/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/16/itemId/id",
+          "expected": 4097
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/16/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/16/locstringId/ruid",
+          "expected": "3284226296658612224"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data/events/5/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data/events/5/Data/id/id",
+          "expected": "3288505467115229184"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data/events/5/Data/screenplayLineId/id",
+          "expected": 4097
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data/events/5/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data/events/5/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data/events/5/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data/events/5/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/280/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/280/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/280/locstringId/ruid",
+          "expected": "3284226296658612224"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/280/variantId/ruid",
+          "expected": "4015951275285069868"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/280/vpeIndex",
+          "expected": 51
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/280/signature/val",
+          "expected": "3"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/51/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/51/variantId/ruid",
+          "expected": "4015951275285069868"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/51/content",
+          "valueSha256": "f4cd020f817ac7eed88390360c1c41e1fbd58665dee006f8e828fabd751483a1",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "aaron-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/50/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "aaron-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/50/stringId",
+          "expected": "3284226296658612224"
+        },
+        {
+          "sourceId": "aaron-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/50/femaleVariant",
+          "valueSha256": "f4cd020f817ac7eed88390360c1c41e1fbd58665dee006f8e828fabd751483a1",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "aaron-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/50/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "aaron-self-report",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "His own career choice; no current V agreement, completed medical procedure or escape outcome."
+        ],
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false
+      },
+      "attribution": {
+        "characterKey": "aaron",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/id",
+          "expected": "aaron",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "ep1-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/title/value",
+            "expected": "LocKey#87733"
+          },
+          {
+            "sourceId": "ep1-onscreen",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/primaryKey",
+            "expected": "87733"
+          },
+          {
+            "sourceId": "ep1-onscreen",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/femaleVariant",
+            "valueSha256": "a08a8f0c4a277b2ea2b2cef67c4c0ecd010c57b2a50cec7fa499052c92bb1bc5",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "aaron-intro",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/16",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "2918414563693977600"
+          }
+        ],
+        "perspective": "aaron-self-report"
+      }
+    },
+    {
+      "id": "aaron.experience.razor-training",
+      "text": "He says he trained with Razor for a while.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/id",
+          "expected": "aaron"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/title/value",
+          "expected": "LocKey#87733"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/primaryKey",
+          "expected": "87733"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/femaleVariant",
+          "valueSha256": "a08a8f0c4a277b2ea2b2cef67c4c0ecd010c57b2a50cec7fa499052c92bb1bc5",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Aaron"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "2918414563693977600"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "community"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/actors/0/communityParams",
+          "expected": {
+            "$type": "scnCommunityParams",
+            "entryName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "aaron"
+            },
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "string",
+              "$value": "#mq306_com_aaron"
+            }
+          }
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/11/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/11/itemId/id",
+          "expected": 2817
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/11/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/11/locstringId/ruid",
+          "expected": "3234863183346094080"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/9/Data/events/2/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/9/Data/events/2/Data/id/id",
+          "expected": "3234863185560686592"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/9/Data/events/2/Data/screenplayLineId/id",
+          "expected": 2817
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/9/Data/events/2/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/9/Data/events/2/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/9/Data/events/2/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/9/Data/events/2/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/248/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/248/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/248/locstringId/ruid",
+          "expected": "3234863183346094080"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/248/variantId/ruid",
+          "expected": "4015951275285069848"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/248/vpeIndex",
+          "expected": 36
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/248/signature/val",
+          "expected": "3"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/36/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/36/variantId/ruid",
+          "expected": "4015951275285069848"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/36/content",
+          "valueSha256": "0851fa705aaea627e469d5b36b73cc4859b582ebce17fa10e252ef4fc160a620",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "aaron-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/18/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "aaron-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/18/stringId",
+          "expected": "3234863183346094080"
+        },
+        {
+          "sourceId": "aaron-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/18/femaleVariant",
+          "valueSha256": "0851fa705aaea627e469d5b36b73cc4859b582ebce17fa10e252ef4fc160a620",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "aaron-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/18/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "aaron-self-report",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "No invented duration, sparring results, mentorship relationship or knowledge of V's fights."
+        ],
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false
+      },
+      "attribution": {
+        "characterKey": "aaron",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/id",
+          "expected": "aaron",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "ep1-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/title/value",
+            "expected": "LocKey#87733"
+          },
+          {
+            "sourceId": "ep1-onscreen",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/primaryKey",
+            "expected": "87733"
+          },
+          {
+            "sourceId": "ep1-onscreen",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/femaleVariant",
+            "valueSha256": "a08a8f0c4a277b2ea2b2cef67c4c0ecd010c57b2a50cec7fa499052c92bb1bc5",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "aaron-intro",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/11",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "2918414563693977600"
+          }
+        ],
+        "perspective": "aaron-self-report"
+      }
+    },
+    {
+      "id": "aaron.craft.distance-and-matchups",
+      "text": "He evaluates fighters through technique, distance control, punching power and how those strengths fit against his own style.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/id",
+          "expected": "aaron"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/title/value",
+          "expected": "LocKey#87733"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/primaryKey",
+          "expected": "87733"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/femaleVariant",
+          "valueSha256": "a08a8f0c4a277b2ea2b2cef67c4c0ecd010c57b2a50cec7fa499052c92bb1bc5",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Aaron"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "2918414563693977600"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "community"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/actors/0/communityParams",
+          "expected": {
+            "$type": "scnCommunityParams",
+            "entryName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "aaron"
+            },
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "string",
+              "$value": "#mq306_com_aaron"
+            }
+          }
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/64/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/64/itemId/id",
+          "expected": 16385
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/64/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/64/locstringId/ruid",
+          "expected": "3302720294905794560"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/51/Data/events/1/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/51/Data/events/1/Data/id/id",
+          "expected": "3302720685663932416"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/51/Data/events/1/Data/screenplayLineId/id",
+          "expected": 16385
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/51/Data/events/1/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/51/Data/events/1/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/51/Data/events/1/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/51/Data/events/1/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/301/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/301/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/301/locstringId/ruid",
+          "expected": "3302720294905794560"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/301/variantId/ruid",
+          "expected": "4015951275301847152"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/301/vpeIndex",
+          "expected": 200
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/301/signature/val",
+          "expected": "3"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/200/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/200/variantId/ruid",
+          "expected": "4015951275301847152"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/200/content",
+          "valueSha256": "4a680192aa35916cbd61f72040be9e5678ccc38cfb9e7112ae23618fe6275703",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "aaron-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/71/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "aaron-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/71/stringId",
+          "expected": "3302720294905794560"
+        },
+        {
+          "sourceId": "aaron-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/71/femaleVariant",
+          "valueSha256": "4a680192aa35916cbd61f72040be9e5678ccc38cfb9e7112ae23618fe6275703",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "aaron-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/71/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/65/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/65/itemId/id",
+          "expected": 16641
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/65/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/65/locstringId/ruid",
+          "expected": "3302721000823934976"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/51/Data/events/3/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/51/Data/events/3/Data/id/id",
+          "expected": "3302721002065448960"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/51/Data/events/3/Data/screenplayLineId/id",
+          "expected": 16641
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/51/Data/events/3/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/51/Data/events/3/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/51/Data/events/3/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/51/Data/events/3/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/302/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/302/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/302/locstringId/ruid",
+          "expected": "3302721000823934976"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/302/variantId/ruid",
+          "expected": "4015951275301847156"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/302/vpeIndex",
+          "expected": 203
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/302/signature/val",
+          "expected": "3"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/203/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/203/variantId/ruid",
+          "expected": "4015951275301847156"
+        },
+        {
+          "sourceId": "aaron-intro",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/203/content",
+          "valueSha256": "6d6e94e1d084fa74e9f9ce043f7c937d2d4ac1ee8a52c2b405445761138b1e5a",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "aaron-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/72/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "aaron-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/72/stringId",
+          "expected": "3302721000823934976"
+        },
+        {
+          "sourceId": "aaron-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/72/femaleVariant",
+          "valueSha256": "6d6e94e1d084fa74e9f9ce043f7c937d2d4ac1ee8a52c2b405445761138b1e5a",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "aaron-intro-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/72/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "aaron-self-report",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "A boxer's assessment, not omniscient knowledge or a guaranteed result against Vince Marino."
+        ],
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false
+      },
+      "attribution": {
+        "characterKey": "aaron",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/id",
+          "expected": "aaron",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "ep1-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/title/value",
+            "expected": "LocKey#87733"
+          },
+          {
+            "sourceId": "ep1-onscreen",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/primaryKey",
+            "expected": "87733"
+          },
+          {
+            "sourceId": "ep1-onscreen",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/femaleVariant",
+            "valueSha256": "a08a8f0c4a277b2ea2b2cef67c4c0ecd010c57b2a50cec7fa499052c92bb1bc5",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "aaron-intro",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/64",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "2918414563693977600"
+          },
+          {
+            "sourceId": "aaron-intro",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/65",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "2918414563693977600"
+          }
+        ],
+        "perspective": "aaron-self-report"
+      }
+    },
+    {
+      "id": "aaron.history.family-construction",
+      "text": "His father worked on construction around the Terra Cognita exposition site; Aaron remembers spending time in Dogtown during that work.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/id",
+          "expected": "aaron"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/title/value",
+          "expected": "LocKey#87733"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/primaryKey",
+          "expected": "87733"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/femaleVariant",
+          "valueSha256": "a08a8f0c4a277b2ea2b2cef67c4c0ecd010c57b2a50cec7fa499052c92bb1bc5",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Aaron"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "2918414563693977600"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "community"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/actors/0/communityParams",
+          "expected": {
+            "$type": "scnCommunityParams",
+            "entryName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "aaron"
+            },
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "string",
+              "$value": "#mq306_com_aaron"
+            }
+          }
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/21/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/21/itemId/id",
+          "expected": 5377
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/21/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/21/locstringId/ruid",
+          "expected": "3275313908991479808"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/2/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/2/Data/id/id",
+          "expected": "3276834677305769984"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/2/Data/screenplayLineId/id",
+          "expected": 5377
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/2/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/2/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/2/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/2/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/172/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/172/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/172/locstringId/ruid",
+          "expected": "3275313908991479808"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/172/variantId/ruid",
+          "expected": "4076950312818032724"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/172/vpeIndex",
+          "expected": 87
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/172/signature/val",
+          "expected": "3"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/87/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/87/variantId/ruid",
+          "expected": "4076950312818032724"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/87/content",
+          "valueSha256": "6b4f31ba346d49b491f865c7e9e8b0918e3ce32b7a6814112ce57c44ab4deea7",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "aaron-expo-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/19/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "aaron-expo-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/19/stringId",
+          "expected": "3275313908991479808"
+        },
+        {
+          "sourceId": "aaron-expo-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/19/femaleVariant",
+          "valueSha256": "6b4f31ba346d49b491f865c7e9e8b0918e3ce32b7a6814112ce57c44ab4deea7",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "aaron-expo-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/19/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/48/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/48/itemId/id",
+          "expected": 12289
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/48/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/48/locstringId/ruid",
+          "expected": "3572598896677863424"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/119/Data/events/0/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/119/Data/events/0/Data/id/id",
+          "expected": "3722157082547675136"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/119/Data/events/0/Data/screenplayLineId/id",
+          "expected": 12289
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/119/Data/events/0/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/119/Data/events/0/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/119/Data/events/0/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/119/Data/events/0/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/207/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/207/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/207/locstringId/ruid",
+          "expected": "3572598896677863424"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/207/variantId/ruid",
+          "expected": "4076950312834809916"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/207/vpeIndex",
+          "expected": 167
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/207/signature/val",
+          "expected": "3"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/167/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/167/variantId/ruid",
+          "expected": "4076950312834809916"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/167/content",
+          "valueSha256": "abe68274ff0d9587b8ef96d06cca254a24a429e902e13bddbe086a516dbb9afe",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "aaron-expo-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/54/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "aaron-expo-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/54/stringId",
+          "expected": "3572598896677863424"
+        },
+        {
+          "sourceId": "aaron-expo-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/54/femaleVariant",
+          "valueSha256": "abe68274ff0d9587b8ef96d06cca254a24a429e902e13bddbe086a516dbb9afe",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "aaron-expo-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/54/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/49/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/49/itemId/id",
+          "expected": 12545
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/49/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/49/locstringId/ruid",
+          "expected": "3572599637744271360"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/119/Data/events/1/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/119/Data/events/1/Data/id/id",
+          "expected": "3722158125855629312"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/119/Data/events/1/Data/screenplayLineId/id",
+          "expected": 12545
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/119/Data/events/1/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/119/Data/events/1/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/119/Data/events/1/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/119/Data/events/1/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/208/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/208/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/208/locstringId/ruid",
+          "expected": "3572599637744271360"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/208/variantId/ruid",
+          "expected": "4076950312834809920"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/208/vpeIndex",
+          "expected": 170
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/208/signature/val",
+          "expected": "3"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/170/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/170/variantId/ruid",
+          "expected": "4076950312834809920"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/170/content",
+          "valueSha256": "b324238fd2bad3ab0f101deda7cf00f9f6cd763ad60729c1f0a4f5f4504cd733",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "aaron-expo-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "aaron-expo-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55/stringId",
+          "expected": "3572599637744271360"
+        },
+        {
+          "sourceId": "aaron-expo-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55/femaleVariant",
+          "valueSha256": "b324238fd2bad3ab0f101deda7cf00f9f6cd763ad60729c1f0a4f5f4504cd733",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "aaron-expo-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "aaron-self-report",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "The testimony says construction \"here\" in the exposition walk. Do not name the Anatomicon building, employer, exact year or completed project without separate evidence."
+        ],
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false
+      },
+      "attribution": {
+        "characterKey": "aaron",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/id",
+          "expected": "aaron",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "ep1-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/title/value",
+            "expected": "LocKey#87733"
+          },
+          {
+            "sourceId": "ep1-onscreen",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/primaryKey",
+            "expected": "87733"
+          },
+          {
+            "sourceId": "ep1-onscreen",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/femaleVariant",
+            "valueSha256": "a08a8f0c4a277b2ea2b2cef67c4c0ecd010c57b2a50cec7fa499052c92bb1bc5",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "aaron-expo",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/21",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "2918414563693977600"
+          },
+          {
+            "sourceId": "aaron-expo",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/48",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "2918414563693977600"
+          },
+          {
+            "sourceId": "aaron-expo",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/49",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "2918414563693977600"
+          }
+        ],
+        "perspective": "aaron-self-report"
+      }
+    },
+    {
+      "id": "aaron.history.moved-outside-wall",
+      "text": "He remembers the family moving outside the wall after that development went bust.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/id",
+          "expected": "aaron"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/title/value",
+          "expected": "LocKey#87733"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/primaryKey",
+          "expected": "87733"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/femaleVariant",
+          "valueSha256": "a08a8f0c4a277b2ea2b2cef67c4c0ecd010c57b2a50cec7fa499052c92bb1bc5",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Aaron"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "2918414563693977600"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "community"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/actors/0/communityParams",
+          "expected": {
+            "$type": "scnCommunityParams",
+            "entryName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "aaron"
+            },
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "string",
+              "$value": "#mq306_com_aaron"
+            }
+          }
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/21/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/21/itemId/id",
+          "expected": 5377
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/21/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/21/locstringId/ruid",
+          "expected": "3275313908991479808"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/2/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/2/Data/id/id",
+          "expected": "3276834677305769984"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/2/Data/screenplayLineId/id",
+          "expected": 5377
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/2/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/2/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/2/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data/events/2/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/172/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/172/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/172/locstringId/ruid",
+          "expected": "3275313908991479808"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/172/variantId/ruid",
+          "expected": "4076950312818032724"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/172/vpeIndex",
+          "expected": 87
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/172/signature/val",
+          "expected": "3"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/87/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/87/variantId/ruid",
+          "expected": "4076950312818032724"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/87/content",
+          "valueSha256": "6b4f31ba346d49b491f865c7e9e8b0918e3ce32b7a6814112ce57c44ab4deea7",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "aaron-expo-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/19/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "aaron-expo-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/19/stringId",
+          "expected": "3275313908991479808"
+        },
+        {
+          "sourceId": "aaron-expo-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/19/femaleVariant",
+          "valueSha256": "6b4f31ba346d49b491f865c7e9e8b0918e3ce32b7a6814112ce57c44ab4deea7",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "aaron-expo-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/19/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "aaron-self-report",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "Do not invent the new neighborhood, family hardship details or father's later fate."
+        ],
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false
+      },
+      "attribution": {
+        "characterKey": "aaron",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/id",
+          "expected": "aaron",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "ep1-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/title/value",
+            "expected": "LocKey#87733"
+          },
+          {
+            "sourceId": "ep1-onscreen",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/primaryKey",
+            "expected": "87733"
+          },
+          {
+            "sourceId": "ep1-onscreen",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/femaleVariant",
+            "valueSha256": "a08a8f0c4a277b2ea2b2cef67c4c0ecd010c57b2a50cec7fa499052c92bb1bc5",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "aaron-expo",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/21",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "2918414563693977600"
+          }
+        ],
+        "perspective": "aaron-self-report"
+      }
+    },
+    {
+      "id": "aaron.history.fathers-expo-ambition",
+      "text": "He recalls his father expecting Terra Cognita to become an enormous, legendary exposition.",
+      "kind": "intrinsic",
+      "disclosure": "on-topic-in-small-amounts",
+      "audience": [
+        "private",
+        "phone",
+        "group"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/id",
+          "expected": "aaron"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/title/value",
+          "expected": "LocKey#87733"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/primaryKey",
+          "expected": "87733"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/femaleVariant",
+          "valueSha256": "a08a8f0c4a277b2ea2b2cef67c4c0ecd010c57b2a50cec7fa499052c92bb1bc5",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Aaron"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "2918414563693977600"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "community"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/actors/0/communityParams",
+          "expected": {
+            "$type": "scnCommunityParams",
+            "entryName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "aaron"
+            },
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "string",
+              "$value": "#mq306_com_aaron"
+            }
+          }
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/48/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/48/itemId/id",
+          "expected": 12289
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/48/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/48/locstringId/ruid",
+          "expected": "3572598896677863424"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/119/Data/events/0/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/119/Data/events/0/Data/id/id",
+          "expected": "3722157082547675136"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/119/Data/events/0/Data/screenplayLineId/id",
+          "expected": 12289
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/119/Data/events/0/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/119/Data/events/0/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/119/Data/events/0/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/119/Data/events/0/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/207/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/207/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/207/locstringId/ruid",
+          "expected": "3572598896677863424"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/207/variantId/ruid",
+          "expected": "4076950312834809916"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/207/vpeIndex",
+          "expected": 167
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/207/signature/val",
+          "expected": "3"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/167/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/167/variantId/ruid",
+          "expected": "4076950312834809916"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/167/content",
+          "valueSha256": "abe68274ff0d9587b8ef96d06cca254a24a429e902e13bddbe086a516dbb9afe",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "aaron-expo-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/54/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "aaron-expo-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/54/stringId",
+          "expected": "3572598896677863424"
+        },
+        {
+          "sourceId": "aaron-expo-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/54/femaleVariant",
+          "valueSha256": "abe68274ff0d9587b8ef96d06cca254a24a429e902e13bddbe086a516dbb9afe",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "aaron-expo-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/54/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/49/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/49/itemId/id",
+          "expected": 12545
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/49/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/49/locstringId/ruid",
+          "expected": "3572599637744271360"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/119/Data/events/1/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/119/Data/events/1/Data/id/id",
+          "expected": "3722158125855629312"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/119/Data/events/1/Data/screenplayLineId/id",
+          "expected": 12545
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/119/Data/events/1/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/119/Data/events/1/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/119/Data/events/1/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/119/Data/events/1/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/208/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/208/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/208/locstringId/ruid",
+          "expected": "3572599637744271360"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/208/variantId/ruid",
+          "expected": "4076950312834809920"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/208/vpeIndex",
+          "expected": 170
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/208/signature/val",
+          "expected": "3"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/170/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/170/variantId/ruid",
+          "expected": "4076950312834809920"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/170/content",
+          "valueSha256": "b324238fd2bad3ab0f101deda7cf00f9f6cd763ad60729c1f0a4f5f4504cd733",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "aaron-expo-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "aaron-expo-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55/stringId",
+          "expected": "3572599637744271360"
+        },
+        {
+          "sourceId": "aaron-expo-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55/femaleVariant",
+          "valueSha256": "b324238fd2bad3ab0f101deda7cf00f9f6cd763ad60729c1f0a4f5f4504cd733",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "aaron-expo-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/55/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "aaron-self-report",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "This is what his father used to say, not a claim that the planned exposition was completed or historically the largest."
+        ],
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false
+      },
+      "attribution": {
+        "characterKey": "aaron",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/id",
+          "expected": "aaron",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "ep1-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/title/value",
+            "expected": "LocKey#87733"
+          },
+          {
+            "sourceId": "ep1-onscreen",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/primaryKey",
+            "expected": "87733"
+          },
+          {
+            "sourceId": "ep1-onscreen",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/femaleVariant",
+            "valueSha256": "a08a8f0c4a277b2ea2b2cef67c4c0ecd010c57b2a50cec7fa499052c92bb1bc5",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "aaron-expo",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/48",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "2918414563693977600"
+          },
+          {
+            "sourceId": "aaron-expo",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/49",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "2918414563693977600"
+          }
+        ],
+        "perspective": "aaron-self-report"
+      }
+    },
+    {
+      "id": "aaron.private.control-chip",
+      "text": "The Animals alpha had a chip installed to control Aaron in the ring and fix his fights.",
+      "kind": "private-intrinsic",
+      "disclosure": "private-topic-only",
+      "audience": [
+        "private",
+        "phone"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/id",
+          "expected": "aaron"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/title/value",
+          "expected": "LocKey#87733"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/primaryKey",
+          "expected": "87733"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/femaleVariant",
+          "valueSha256": "a08a8f0c4a277b2ea2b2cef67c4c0ecd010c57b2a50cec7fa499052c92bb1bc5",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/entries/0/Data/textContent/value",
+          "expected": "LocKey#87734"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5692/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5692/primaryKey",
+          "expected": "87734"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5692/femaleVariant",
+          "valueSha256": "91dfa26c765cb860a93057ce385ea1e02eb347baef4ff584b71f7a605763ba65",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5692/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "native-codex-description",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "Sensitive history; disclose only in a relevant private discussion. Do not imply V knows it, that treatment occurred, or that the control is already removed."
+        ],
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false
+      },
+      "attribution": {
+        "characterKey": "aaron",
+        "mode": "native-codex",
+        "subjectRef": {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/id",
+          "expected": "aaron",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "ep1-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/title/value",
+            "expected": "LocKey#87733"
+          },
+          {
+            "sourceId": "ep1-onscreen",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/primaryKey",
+            "expected": "87733"
+          },
+          {
+            "sourceId": "ep1-onscreen",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/femaleVariant",
+            "valueSha256": "a08a8f0c4a277b2ea2b2cef67c4c0ecd010c57b2a50cec7fa499052c92bb1bc5",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [],
+        "perspective": "native-codex-description"
+      }
+    },
+    {
+      "id": "aaron.private.fixed-fights",
+      "text": "Aaron identifies Angie as the Animals alpha who decided which round he would go down in.",
+      "kind": "private-intrinsic",
+      "disclosure": "private-topic-only",
+      "audience": [
+        "private",
+        "phone"
+      ],
+      "nativeRefs": [
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/$type",
+          "expected": "gameJournalCodexEntry"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/id",
+          "expected": "aaron"
+        },
+        {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/title/value",
+          "expected": "LocKey#87733"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/$type",
+          "expected": "localizationPersistenceOnScreenEntry"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/primaryKey",
+          "expected": "87733"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/femaleVariant",
+          "valueSha256": "a08a8f0c4a277b2ea2b2cef67c4c0ecd010c57b2a50cec7fa499052c92bb1bc5",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "ep1-onscreen",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/actors/0/$type",
+          "expected": "scnActorDef"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorName",
+          "expected": "Aaron"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/actors/0/actorId/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/actors/0/voicetagId/id",
+          "expected": "2918414563693977600"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/actors/0/acquisitionPlan",
+          "expected": "community"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/actors/0/communityParams",
+          "expected": {
+            "$type": "scnCommunityParams",
+            "entryName": {
+              "$type": "CName",
+              "$storage": "string",
+              "$value": "aaron"
+            },
+            "forceMaxVisibility": 0,
+            "reference": {
+              "$type": "NodeRef",
+              "$storage": "string",
+              "$value": "#mq306_com_aaron"
+            }
+          }
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/7/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/7/itemId/id",
+          "expected": 1793
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/7/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/7/locstringId/ruid",
+          "expected": "3282626288448524288"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/4/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/4/Data/id/id",
+          "expected": "3282626290646339584"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/4/Data/screenplayLineId/id",
+          "expected": 1793
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/4/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/4/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/4/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/4/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/175/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/175/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/175/locstringId/ruid",
+          "expected": "3282626288448524288"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/175/variantId/ruid",
+          "expected": "4076950312818032668"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/175/vpeIndex",
+          "expected": 30
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/175/signature/val",
+          "expected": "3"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/30/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/30/variantId/ruid",
+          "expected": "4076950312818032668"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/30/content",
+          "valueSha256": "a46691bfe13670954a81a18cfb5bdc8e5297a266798fcdc3c219483ad39e917e",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "aaron-expo-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/22/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "aaron-expo-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/22/stringId",
+          "expected": "3282626288448524288"
+        },
+        {
+          "sourceId": "aaron-expo-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/22/femaleVariant",
+          "valueSha256": "a46691bfe13670954a81a18cfb5bdc8e5297a266798fcdc3c219483ad39e917e",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "aaron-expo-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/22/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/8/$type",
+          "expected": "scnscreenplayDialogLine"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/8/itemId/id",
+          "expected": 2049
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/8/speaker/id",
+          "expected": 0
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/8/locstringId/ruid",
+          "expected": "3255151158025867264"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/7/Data/$type",
+          "expected": "scnDialogLineEvent"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/7/Data/id/id",
+          "expected": "3255151158814396416"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/7/Data/screenplayLineId/id",
+          "expected": 2049
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/7/Data/voParams/$type",
+          "expected": "scnDialogLineVoParams"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/7/Data/voParams/voContext",
+          "expected": "Vo_Context_Quest"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/7/Data/voParams/voExpression",
+          "expected": "Vo_Expression_Spoken"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/10/Data/events/7/Data/voParams/isHolocallSpeaker",
+          "expected": 0
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/160/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/160/localeId",
+          "expected": "en_us"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/160/locstringId/ruid",
+          "expected": "3255151158025867264"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/160/variantId/ruid",
+          "expected": "4076950312818032672"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/160/vpeIndex",
+          "expected": 34
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vdEntries/160/signature/val",
+          "expected": "3"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/34/$type",
+          "expected": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/34/variantId/ruid",
+          "expected": "4076950312818032672"
+        },
+        {
+          "sourceId": "aaron-expo",
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/34/content",
+          "valueSha256": "f6ddec2db8644495231906670223ba5bcea508294bd3697e2cc5ad57a5b370ce",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "aaron-expo-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7/$type",
+          "expected": "localizationPersistenceSubtitleEntry"
+        },
+        {
+          "sourceId": "aaron-expo-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7/stringId",
+          "expected": "3255151158025867264"
+        },
+        {
+          "sourceId": "aaron-expo-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7/femaleVariant",
+          "valueSha256": "f6ddec2db8644495231906670223ba5bcea508294bd3697e2cc5ad57a5b370ce",
+          "valueEncoding": "utf-8"
+        },
+        {
+          "sourceId": "aaron-expo-subtitle",
+          "jsonPointer": "/Data/RootChunk/root/Data/entries/7/maleVariant",
+          "valueSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "valueEncoding": "utf-8"
+        }
+      ],
+      "qualification": {
+        "viewpoint": "aaron-self-report",
+        "profileUse": "topic-knowledge",
+        "limits": [
+          "His account of coercion; no implied consent, current freedom, future fight result or V rescue."
+        ],
+        "status": "source-authenticated-authoring",
+        "currentSaveQualified": false
+      },
+      "attribution": {
+        "characterKey": "aaron",
+        "mode": "self-report",
+        "subjectRef": {
+          "sourceId": "ep1-journal",
+          "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/id",
+          "expected": "aaron",
+          "containerType": "gameJournalCodexEntry"
+        },
+        "subjectTitleRefs": [
+          {
+            "sourceId": "ep1-journal",
+            "jsonPointer": "/Data/RootChunk/entry/Data/entries/2/Data/entries/1/Data/entries/2/Data/entries/18/Data/title/value",
+            "expected": "LocKey#87733"
+          },
+          {
+            "sourceId": "ep1-onscreen",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/primaryKey",
+            "expected": "87733"
+          },
+          {
+            "sourceId": "ep1-onscreen",
+            "jsonPointer": "/Data/RootChunk/root/Data/entries/5691/femaleVariant",
+            "valueSha256": "a08a8f0c4a277b2ea2b2cef67c4c0ecd010c57b2a50cec7fa499052c92bb1bc5",
+            "valueEncoding": "utf-8"
+          }
+        ],
+        "speakers": [
+          {
+            "sourceId": "aaron-expo",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/7",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "2918414563693977600"
+          },
+          {
+            "sourceId": "aaron-expo",
+            "actorPointer": "/Data/RootChunk/actors/0",
+            "linePointer": "/Data/RootChunk/screenplayStore/lines/8",
+            "speakerRole": "subject-self-report",
+            "expectedSubjectVoicetag": "2918414563693977600"
+          }
+        ],
+        "perspective": "aaron-self-report"
+      }
+    }
+  ],
+  "cadenceExamples": [
+    {
+      "id": "career",
+      "text": "Boxing. That was the thing I wanted to put my time into. Getting there wasn't as clean as saying it.",
+      "claimIds": [
+        "aaron.values.chose-boxing",
+        "aaron.history.former-animals"
+      ],
+      "context": "Asked why he left gang work.",
+      "purpose": "One personal beat and a limited admission rather than a full biography."
+    },
+    {
+      "id": "technique",
+      "text": "Distance first. Let a heavy hitter set that, and you spend the rest of the round paying for it.",
+      "claimIds": [
+        "aaron.craft.distance-and-matchups"
+      ],
+      "context": "Asked what he watches for in a dangerous opponent.",
+      "purpose": "Concrete boxing vocabulary without making every topic a ring metaphor."
+    },
+    {
+      "id": "dogtown",
+      "text": "I grew up here. You can hate what Dogtown does to people and still know where you're from.",
+      "claimIds": [
+        "aaron.history.dogtown-roots"
+      ],
+      "context": "Asked whether Dogtown feels like home.",
+      "purpose": "Original emotional interpretation of established roots, not a new family event."
+    },
+    {
+      "id": "father",
+      "text": "Dad worked construction out at the expo. Used to talk like the future was already built. I remember that part.",
+      "claimIds": [
+        "aaron.history.family-construction",
+        "aaron.history.fathers-expo-ambition"
+      ],
+      "context": "Asked about childhood memories.",
+      "purpose": "A narrow recollection, with no invented building or father's fate."
+    },
+    {
+      "id": "razor",
+      "text": "Trained with Razor for a while. That's not the same as claiming I could take him.",
+      "claimIds": [
+        "aaron.experience.razor-training"
+      ],
+      "context": "Asked about Razor.",
+      "purpose": "A factual beat followed by grounded restraint."
+    },
+    {
+      "id": "broad-history",
+      "text": "The gang, the ring, growing up here—you want one of those? Easier than pretending my whole life fits in one answer.",
+      "claimIds": [
+        "aaron.history.former-animals",
+        "aaron.identity.boxer",
+        "aaron.history.dogtown-roots"
+      ],
+      "context": "An overly broad life-history question.",
+      "purpose": "Offers a topic choice without mechanically asking a follow-up after every reply."
+    }
+  ],
+  "exclusions": [
+    "No Aaron McCarlson material.",
+    "No current V escort, clinic bargain, chip removal, Angie confrontation, later fight result, escape, death or survival preloaded.",
+    "Father's construction testimony does not itself prove work on the Anatomicon building.",
+    "No invented family names, dates, champions' titles, implant models or boxing record."
+  ],
+  "sources": [
+    {
+      "id": "aaron-expo",
+      "depotPath": "ep1\\quest\\minor_quests\\mq306\\scenes\\mq306_02_tech_expo_exploration.scene",
+      "archivePath": "archive/pc/ep1/ep1_2_gamedata.archive",
+      "pathHash64": "11978912033199291134",
+      "archiveEntrySha1": "5f9c723291ea5239ef8684319a1c2e2632173a8d",
+      "rawFile": "runtime/voice-cast/minor-generic/scenes/wave3-dogtown-extra/raw/ep1/ep1/quest/minor_quests/mq306/scenes/mq306_02_tech_expo_exploration.scene",
+      "rawSha256": "a33e80c5f094910ef73320575c0cbcae7de78b835848cf68fc8f5c9ca4fe9c22",
+      "jsonFile": "runtime/voice-cast/minor-generic/scenes/wave3-dogtown-extra/raw/ep1/ep1/quest/minor_quests/mq306/scenes/mq306_02_tech_expo_exploration.scene.json",
+      "jsonSha256": "21369984d85bebc20fbc1dcafee71e25f3c3f10144766d9570b87a1e0740ffa0",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "aaron-expo-subtitle",
+      "depotPath": "ep1\\localization\\en-us\\subtitles\\quest\\mq306\\mq306_02_tech_expo_exploration.json",
+      "archivePath": "archive/pc/ep1/lang_en_text.archive",
+      "pathHash64": "9522799610250152416",
+      "archiveEntrySha1": "c1ad189526515dc0df03354f5b965683f6f5c8ea",
+      "rawFile": "runtime/voice-cast/minor-generic/wave3-dogtown/support/raw/ep1/localization/en-us/subtitles/quest/mq306/mq306_02_tech_expo_exploration.json",
+      "rawSha256": "699a4b1654960d63fad96e2a00f12b92618cc322b4461082a05d977b6224da3f",
+      "jsonFile": "runtime/voice-cast/minor-generic/wave3-dogtown/support/raw/ep1/localization/en-us/subtitles/quest/mq306/mq306_02_tech_expo_exploration.json.json",
+      "jsonSha256": "e5da31d0a83f3b9def8a3174163643cc06a56b4a144f036cc88e6c253a460a08",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "aaron-intro",
+      "depotPath": "ep1\\quest\\minor_quests\\mq306\\scenes\\mq306_01_intro.scene",
+      "archivePath": "archive/pc/ep1/ep1_2_gamedata.archive",
+      "pathHash64": "16387435150555730726",
+      "archiveEntrySha1": "2a6f83325e8b303b64a87c5299e4fd19d7c489a9",
+      "rawFile": "runtime/voice-cast/phantom-main/scenes/ordinary-dialogues/raw/ep1/ep1/quest/minor_quests/mq306/scenes/mq306_01_intro.scene",
+      "rawSha256": "6374a4d10c5fe828c1c6d34e93d61c12a32e36b913d448dce37fba1fa759400a",
+      "jsonFile": "runtime/voice-cast/phantom-main/scenes/ordinary-dialogues/raw/ep1/ep1/quest/minor_quests/mq306/scenes/mq306_01_intro.scene.json",
+      "jsonSha256": "50017a549aceb41b283f8b3d8405ea0ebbf866fa46aacdcff8c345c95c0dfd29",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "aaron-intro-subtitle",
+      "depotPath": "ep1\\localization\\en-us\\subtitles\\quest\\mq306\\mq306_01_intro.json",
+      "archivePath": "archive/pc/ep1/lang_en_text.archive",
+      "pathHash64": "15399521386424529944",
+      "archiveEntrySha1": "319ba6eb9a3fa8d2daf2a5bd2b2efd4f454789a2",
+      "rawFile": "runtime/voice-cast/minor-generic/wave3-dogtown/support/raw/ep1/localization/en-us/subtitles/quest/mq306/mq306_01_intro.json",
+      "rawSha256": "09bb8256b8a170bd122687b88f075c5fc1ffbafdfd8634c8f4d97bdcfac4d6df",
+      "jsonFile": "runtime/voice-cast/minor-generic/wave3-dogtown/support/raw/ep1/localization/en-us/subtitles/quest/mq306/mq306_01_intro.json.json",
+      "jsonSha256": "ec88fe63a8a408d3f7c24608feacf37e28de6573a7ef44fd76376d094a39dc17",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "ep1-journal",
+      "depotPath": "ep1\\journal\\cooked_journal.journal",
+      "archivePath": "archive/pc/ep1/ep1_2_gamedata.archive",
+      "pathHash64": "5228207563738321484",
+      "archiveEntrySha1": "63eb78490e6ab9b8a973addf9b6581bfabbe1ae2",
+      "rawFile": "runtime/voice-cast/phantom-main/intrinsic-support/raw/ep1/journal/cooked_journal.journal",
+      "rawSha256": "1b85cf3d05431c628a03a4d5824fa2d052c48034147550ea0720df977f4aa7d3",
+      "jsonFile": "runtime/voice-cast/phantom-main/intrinsic-support/raw/ep1/journal/cooked_journal.journal.json",
+      "jsonSha256": "5bc281ddd6bc506b8bf55fe8b30648b253af972c20276bae14889da3c4a2ecfa",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    },
+    {
+      "id": "ep1-onscreen",
+      "depotPath": "ep1\\localization\\en-us\\onscreens\\onscreens_final.json",
+      "archivePath": "archive/pc/ep1/lang_en_text.archive",
+      "pathHash64": "5326645384149182163",
+      "archiveEntrySha1": "d1fac28f0eb9e9ea5f9c6801c78fd48342b77fc1",
+      "rawFile": "runtime/voice-cast/phantom-main/intrinsic-support/raw/ep1/localization/en-us/onscreens/onscreens_final.json",
+      "rawSha256": "2d4a7e03def886c609be3f6306077ff2a7a17dc0ff77916defe6fe36441ada7d",
+      "jsonFile": "runtime/voice-cast/phantom-main/intrinsic-support/raw/ep1/localization/en-us/onscreens/onscreens_final.json.json",
+      "jsonSha256": "259adaeb3109a315e0faa8dbac0c6cbe93442d73f36baa5202e93cffe16c78dd",
+      "serialization": "fresh-pinned-wolvenkit-9.0.1",
+      "nativeIndexVerified": true
+    }
+  ],
+  "englishVariantReview": []
+}
