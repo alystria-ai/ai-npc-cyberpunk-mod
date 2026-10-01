@@ -32,6 +32,14 @@ local function readPacket()
     return raw
 end
 
+local function normalizeOffer(offer)
+    -- CET's JSON encoder rounds nonintegral native coordinates. Freeze exactly
+    -- the representation sent to the bridge, retaining strict packet equality.
+    local raw = json.encode(offer)
+    if type(raw) ~= 'string' or #raw > MAX_PACKET then return nil end
+    return json.decode(raw)
+end
+
 function M.new(options)
     local Q = {}
     local lease, lastRaw, result, lastAdmission
@@ -66,10 +74,14 @@ function M.new(options)
         local ok, offer = pcall(options.offer, context.entity)
         if not ok or type(offer) ~= 'table' or offer.available ~= true or type(offer.actor) ~= 'table'
             or offer.actor.id ~= context.entity or offer.actor.key ~= context.profileKey then return false end
+        local normalized, captured = pcall(options.normalizeOffer or normalizeOffer, offer)
+        if not normalized or type(captured) ~= 'table' or captured.available ~= true
+            or type(captured.actor) ~= 'table' or captured.actor.id ~= context.entity
+            or captured.actor.key ~= context.profileKey then return false end
         lease = {requestId = context.requestId, generation = context.generation, entity = context.entity,
             profileKey = context.profileKey, source = source, worldToken = world.worldToken,
-            worldGeneration = world.generation, offer = copy(offer), expiresAt = clock() + MAX_LEASE_MS}
-        context.chauffeurOffer = copy(offer)
+            worldGeneration = world.generation, offer = copy(captured), expiresAt = clock() + MAX_LEASE_MS}
+        context.chauffeurOffer = copy(captured)
         result = {state = 'available'}
         return true
     end

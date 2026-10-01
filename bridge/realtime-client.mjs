@@ -630,6 +630,8 @@ async function updateContext(config, allowActions = false) {
     + '. It takes the wheel for the selected route. Its optional target is ' + offered.token + '. '
     + 'This action belongs only to this request. The action name and target are protocol fields; never say them aloud. '
     + 'If V explicitly requests a different destination, ask them to select that different route on the map first. '
+    + 'Only the new user message in this turn can authorize that action. Previous driving requests do not authorize it. '
+    + 'For a greeting, ordinary question, or discussion of driving, emit no action even if an earlier request was not carried out. '
     + 'You take the driver seat and wait for V to get into a passenger seat themselves before departing. '
     + 'Do not request it for hypothetical discussion, quoted speech, or an automatic event. '
     + 'The game must confirm boarding, driving, and arrival; never claim success before confirmation.';

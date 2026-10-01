@@ -258,6 +258,17 @@ frozen offer and states that the route is already ready. It asks for a new map
 selection only when V explicitly requests a different destination. These
 presentation labels cannot change the native coordinates or identity.
 
+After the targetless action fix, the live bridge accepted and published the
+driving packet, but the native consumer still rejected it. A read-only native
+offer round trip through CET's own `json.encode`/`json.decode` differed at all
+three `waypoint.position` coordinates. The exact receipt had kept native
+floating-point values while the bridge received rounded values. Capture now
+freezes that bounded serialized representation and sends the same copy to the
+bridge. Packet equality remains exact; changed coordinates and identities
+remain rejected. The fleet still obtains a fresh native route before queueing,
+with its existing 0.25 m position check. This is representation normalization,
+not a wider route tolerance.
+
 PID-bound `runtime/bridge-control.json` diagnostics inspect existing browser
 pages only. They report action eligibility, context acknowledgment, proposal
 counts and matching booleans; they omit credentials, player/provider/session

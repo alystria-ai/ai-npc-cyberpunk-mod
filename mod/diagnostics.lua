@@ -90,9 +90,17 @@ if request:match('^companion%-systems:') then
     end
     local ok, fleet = pcall(function() return convaiCompanions.vehicleSnapshot() end)
     report.vehicles = ok and fleet or {error = tostring(fleet)}
+    local actionOk, actionState = pcall(function() return convaiGameplayActions.inspect() end)
+    report.gameplayActions = actionOk and actionState or {available = false}
+    report.clockMs = os.time() * 1000
     local nativeOk, nativeError = pcall(function()
         local adapter = dofile('companion-vehicle-native.lua')
         local player = Game.GetPlayer()
+        local definitions = Game.GetAllBlackboardDefs()
+        report.world = {paused = Game.GetSystemRequestsHandler():IsGamePaused(),
+            preGame = Game.GetSystemRequestsHandler():IsPreGame(),
+            menu = Game.GetBlackboardSystem():Get(definitions.UI_System):GetBool(definitions.UI_System.IsInMenu),
+            composerOpen = player and player:ConvaiComposerOpen() or false}
         local vehicle = player and adapter.player(player)
         report.playerVehicle = vehicle ~= nil
         if vehicle then
@@ -102,6 +110,24 @@ if request:match('^companion%-systems:') then
         for _, candidate in ipairs(convaiCompanions.conversationCandidates(player, 30)) do
             report.expressions[#report.expressions + 1] = {
                 name = candidate.name, status = convaiFacialPlayback.expressionStatus(candidate.entity)}
+            if not report.offerRoundTrip then
+                local offer = convaiCompanions.chauffeurOffer(candidate.entity)
+                if offer and offer.available then
+                    local decoded = json.decode(json.encode(offer))
+                    local paths = {}
+                    local function compare(a, b, path, depth)
+                        if depth > 8 or type(a) ~= type(b) then paths[#paths + 1] = path; return end
+                        if type(a) ~= 'table' then
+                            if a ~= b then paths[#paths + 1] = path end
+                            return
+                        end
+                        for key, value in pairs(a) do compare(value, b[key], path .. '/' .. tostring(key), depth + 1) end
+                        for key in pairs(b) do if a[key] == nil then paths[#paths + 1] = path .. '/' .. tostring(key) end end
+                    end
+                    compare(offer, decoded, 'offer', 0)
+                    report.offerRoundTrip = {matches = #paths == 0, differences = paths}
+                end
+            end
         end
     end)
     if not nativeOk then report.nativeError = tostring(nativeError) end

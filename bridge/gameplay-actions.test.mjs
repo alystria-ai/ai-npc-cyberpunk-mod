@@ -16,10 +16,11 @@ local function clone(value)
  local result={};for k,v in pairs(value)do result[k]=clone(v)end;return result
 end
 local function context(id)return {requestId=id or 'request-1',generation=7,entity='22ULL',profileKey='judy'}end
+local normalize=clone
 local function packet(input)
  return {version=1,action='drive-to-waypoint',actionId='action-'..(sequence+1),requestId=input.requestId,
   generation=input.generation,entity=input.entity,profileKey=input.profileKey,source='private-text',
-  worldToken='world-a',worldGeneration=1,createdAt=now,expiresAt=now+10000,offer=clone(offer)}
+  worldToken='world-a',worldGeneration=1,createdAt=now,expiresAt=now+10000,offer=clone(input.chauffeurOffer or offer)}
 end
 local function publish(value)
  sequence=sequence+1;raw=tostring(sequence);packets[raw]=value
@@ -27,6 +28,7 @@ end
 local nativeRefused,nativeThrow=false,false
 local q=(function() ${source} end)().new({
  world=function()return world end,clock=function()return now end,
+ normalizeOffer=function(value)return normalize(value)end,
  offer=function(entity)assert(entity=='22ULL');return offer end,
  queue=function(serial,snapshot,entity)
   queued[#queued+1]={serial=serial,offer=snapshot,entity=entity}
@@ -68,6 +70,40 @@ test('wrong request, actor, source, world, action and destination cannot acquire
  bad=clone(valid);bad.expiresAt=now;publish(bad);q.update(true);assert(#queued==0)
  bad=clone(valid);bad.createdAt=now+6000;publish(bad);q.update(true);assert(#queued==0)
  publish(valid);q.update(true);assert(#queued==1)
+`));
+
+test('the captured receipt uses the wire coordinate precision while changed actor, car and route remain rejected', () => run(`
+ offer.waypoint.position={x=-1099.8369140625,y=2314.44873046875,z=37.0538749694824}
+ normalize=function(value)
+  local result=clone(value)
+  for key,number in pairs(result.waypoint.position)do
+   result.waypoint.position[key]=math.floor(number*1000000+0.5)/1000000
+  end
+  return result
+ end
+ local input=context();assert(q.capture(input,'private-text'))
+ assert(input.chauffeurOffer.waypoint.position.x~=offer.waypoint.position.x)
+ local valid=packet(input)
+ local bad=clone(valid);bad.offer.actor.serial=19;publish(bad);q.update(true);assert(#queued==0)
+ bad=clone(valid);bad.offer.car.id='changed';publish(bad);q.update(true);assert(#queued==0)
+ bad=clone(valid);bad.offer.waypoint.position.x=bad.offer.waypoint.position.x+0.000001
+ publish(bad);q.update(true);assert(#queued==0,'canonical packet equality must remain exact')
+ publish(valid);q.update(true);assert(#queued==1)
+ assert(queued[1].offer.waypoint.position.x==input.chauffeurOffer.waypoint.position.x)
+`));
+
+test('failed or identity-changing offer serialization cannot authorize an action', () => run(`
+ for _,fault in ipairs({'throw','nil','actor','availability'})do
+  normalize=function(value)
+   if fault=='throw'then error('codec failed')end
+   if fault=='nil'then return nil end
+   local result=clone(value)
+   if fault=='actor'then result.actor.id='other-actor'else result.available=false end
+   return result
+  end
+  local input=context(fault);assert(not q.capture(input,'private-text'))
+  assert(input.chauffeurOffer==nil and not q.inspect().pending)
+ end
 `));
 
 test('duplicates and a throw after native submission never replay; repeated capture cannot rearm it', () => run(`
