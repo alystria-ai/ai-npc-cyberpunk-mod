@@ -108,7 +108,11 @@ function M.update(player)
         if ok and value.requestId == M.context.requestId then
             if value.state == 'recording' and M.state == 'starting' then
                 M.state = 'recording'; M.started = os.time()
-                player:ConvaiPhoneFeedback(ui.t('Listening - press {key} again to finish', {key = M.context.group and 'F10' or 'F7'}))
+                local shortcut = ui.boundKey(M.context.group
+                    and 'cyberpunk_convai_group_voice' or 'cyberpunk_convai_voice')
+                player:ConvaiPhoneFeedback(shortcut
+                    and ui.t('Listening - press {key} again to finish', {key = shortcut})
+                    or ui.t('Listening - press the same voice chat shortcut again to finish'))
             elseif value.state == 'error' then
                 player:ConvaiPhoneFeedback(ui.t('Microphone unavailable. Check your Windows input device.'))
                 M.cancel('microphone-error')

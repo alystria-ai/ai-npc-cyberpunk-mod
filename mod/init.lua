@@ -495,7 +495,7 @@ local function updateGaze(player, elapsed)
     resetGaze()
 end
 
-local function selectConversation(player, groupMode, singleKey)
+local function selectConversation(player, groupMode, singleAction)
     local npc, reason = targetAtCrosshair()
     local candidates = groupMode and companions.conversationCandidates(player, 8) or {}
     if groupMode then
@@ -517,7 +517,10 @@ local function selectConversation(player, groupMode, singleKey)
     local primary = {npc = npc, name = name, entity = tostring(npc:GetEntityID().hash), bodyType = bodyType, profileKey = key}
     local participants = groupMode and groupChat.choose(primary, candidates, supportedProfiles) or nil
     if participants and #participants < 2 then
-        player:ConvaiPhoneFeedback(ui.t('Group chat needs two characters nearby. Use {key} for one person.',{key=singleKey}))
+        local shortcut = ui.boundKey(singleAction)
+        player:ConvaiPhoneFeedback(shortcut
+            and ui.t('Group chat needs two characters nearby. Use {key} for one person.', {key = shortcut})
+            or ui.t('Group chat needs two characters nearby. Use private chat for one person.'))
         return nil
     end
     return primary, participants
@@ -566,7 +569,7 @@ local function beginText(groupMode)
     local ok, err = pcall(function()
         local player = Game.GetPlayer()
         if not player or not gameplayCanAcquire(player) then return end
-        local primary, participants = selectConversation(player, groupMode, 'F6')
+        local primary, participants = selectConversation(player, groupMode, 'cyberpunk_convai_text')
         if not primary then return end
         local npc, key, name, bodyType, identity = primary.npc, primary.profileKey, primary.name, primary.bodyType, primary.entity
         generation = generation + 1
@@ -608,7 +611,13 @@ local function toggleVoice(groupMode)
         if microphone.context then
             local recordingMode = microphone.context.group and 'group' or 'private'
             if recordingMode ~= mode then
-                player:ConvaiPhoneFeedback(ui.t('Use {key} to finish this recording.',{key=recordingMode == 'group' and 'F10' or 'F7'}))
+                local shortcut = ui.boundKey(recordingMode == 'group'
+                    and 'cyberpunk_convai_group_voice' or 'cyberpunk_convai_voice')
+                player:ConvaiPhoneFeedback(shortcut
+                    and ui.t('Use {key} to finish this recording.', {key = shortcut})
+                    or (recordingMode == 'group'
+                        and ui.t('Press your Group voice chat shortcut to finish recording.')
+                        or ui.t('Press your Talk by voice shortcut to finish recording.')))
                 return
             end
             if not gameplayCanAcquire(player) or (microphone.targetValid and not microphone.targetValid(microphone.context)) then
@@ -618,7 +627,7 @@ local function toggleVoice(groupMode)
             return
         end
         if not gameplayCanAcquire(player) then return end
-        local primary, participants = selectConversation(player, groupMode, 'F7')
+        local primary, participants = selectConversation(player, groupMode, 'cyberpunk_convai_voice')
         if not primary then return end
         local npc, key, name, body, entity = primary.npc, primary.profileKey, primary.name, primary.bodyType, primary.entity
         generation = generation + 1
@@ -1081,9 +1090,9 @@ local function updatePhoneInvitationFeedback(player)
 end
 
 registerHotkey('cyberpunk_convai_text', 'Cyberpunk Convai: talk by text', function() beginText(false) end)
-registerHotkey('cyberpunk_convai_group_text', 'Cyberpunk Convai: group text chat (F8)', function() beginText(true) end)
-registerHotkey('cyberpunk_convai_voice', 'Cyberpunk Convai: talk by voice (F7)', function() toggleVoice(false) end)
-registerHotkey('cyberpunk_convai_group_voice', 'Cyberpunk Convai: group voice chat (F10)', function() toggleVoice(true) end)
+registerHotkey('cyberpunk_convai_group_text', 'Cyberpunk Convai: group text chat', function() beginText(true) end)
+registerHotkey('cyberpunk_convai_voice', 'Cyberpunk Convai: talk by voice', function() toggleVoice(false) end)
+registerHotkey('cyberpunk_convai_group_voice', 'Cyberpunk Convai: group voice chat', function() toggleVoice(true) end)
 registerHotkey('cyberpunk_convai_diagnostic', 'Cyberpunk Convai: capture NPC diagnostic', captureNpcDiagnostic)
 registerHotkey('cyberpunk_convai_manager', 'Cyberpunk Convai: companion manager', openManager)
 

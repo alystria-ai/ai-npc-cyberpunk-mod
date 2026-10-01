@@ -51,6 +51,21 @@ test('one shared singleton starts in English without native reads or filesystem 
   assert(ui == module() and reads == 1)
 `));
 
+test('binding hints follow live CET remaps and fall back without assuming a key', () => run(`
+  local action='cyberpunk_convai_group_voice'
+  assert(ui.boundKey(action)==nil)
+  local chord='Ctrl + H'
+  IsBound=function(id)assert(id==action)return chord~=nil end
+  GetBind=function(id)assert(id==action)return chord end
+  assert(ui.boundKey(action)=='Ctrl + H')
+  chord='Alt + Num 5';assert(ui.boundKey(action)=='Alt + Num 5')
+  chord=nil;assert(ui.boundKey(action)==nil)
+  chord='Unbound';assert(ui.boundKey(action)==nil)
+  GetBind=function()error('binding retired during reload')end
+  assert(ui.boundKey(action)==nil)
+  assert(reads==0 and fileReads==0)
+`));
+
 test('manual selection is queued, pure in callbacks, and independent of the native voice language', () => run(`
   catalogs['locales/fr.lua'] = {['Companion Manager'] = 'Gestion des compagnons',
       ['Automatic (game interface language)'] = 'Automatique (langue du jeu)'}

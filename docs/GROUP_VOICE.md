@@ -1,24 +1,30 @@
-# F10 group voice
+# Group voice
 
 ## Controls
 
-F10 is the requested binding for **Cyberpunk Convai: group voice chat (F10)** in
-CET. Press it to begin, wait for Listening, speak, then press F10 again to finish.
-F7 remains private voice. The wrong mode's key cannot submit or redirect an
-ongoing capture; the hint identifies its finishing key. Capture auto-finishes
+Assign any suitable key or chord to **Cyberpunk Convai: group voice chat** in
+CET. Press it to begin, wait for Listening, speak, then press that same shortcut
+again to finish. **Talk by voice** is the separate private action. The wrong
+mode's shortcut cannot submit or redirect an ongoing capture; the hint names
+the action that started it. Capture auto-finishes
 after 30 seconds. Opening a menu cancels it, including paused frames with zero
 simulation delta. Starting a conversation never silently enables the microphone.
 
-The registered actions do not rewrite a running user's CET bindings. If F10 is
-unassigned, bind the new action in CET when choosing to test microphone input.
+Registered actions do not assign or rewrite a player's CET bindings. Action IDs
+stay stable so existing choices survive updates. Bind an unassigned action in
+CET when choosing to test microphone input. Runtime hints read CET's `IsBound`
+and `GetBind` on demand, so changed keys and modifier chords are reflected
+immediately. Missing APIs or unbound actions fall back to the action name.
+No runtime hint assumes a function key. The optional local development setup recommends keys and preserves any
+existing assignments; it is not automatic mod initialization.
 
 ## One captured utterance, one ordered group round
 
-- F6/F7/F8/F10 share target resolution. The addressed supported character goes
+- Private/group text and voice share target resolution. The addressed supported character goes
   first. Group mode requires at least two distinct enabled profiles and selects
   at most three. Duplicate copies do not produce duplicate speakers. A looked-at
   unsupported NPC is reported rather than silently replaced by another person.
-- Starting F10 freezes the participating entities/profiles and follow-up setting.
+- Starting group voice freezes the participating entities/profiles and follow-up setting.
   The first request contains microphone input and its group context. Finish
   refreshes quest/battle/world facts without changing the captured audience or
   player identity. Only the last remaining scheduled speaker may ask a follow-up
@@ -51,7 +57,7 @@ command files, reply polling, first reply, later speakers, prefetch, wrong-mode
 keys, lost targets, zero-delta menus, save restoration, missing transcription,
 timeouts and automatic finish. SDK transcript tests use the installed SDK event
 contract with mocks. These checks never access a microphone or submit cloud
-dialogue. Audible F7/F10 acceptance remains deferred at the user's request.
+dialogue. Audible microphone acceptance remains deferred at the user's request.
 
 Microphone's first Convai reply currently retains the existing full-reply
 collection path. This change does not claim streaming onset for that first

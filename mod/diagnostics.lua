@@ -2,6 +2,32 @@
 local requestFile = io.open('runtime/diagnostic-request.txt', 'rb')
 local request = requestFile and requestFile:read('*a') or ''
 if requestFile then requestFile:close() end
+if request:match('^companion%-systems:') then
+    local report = {capturedAt = os.time() * 1000, readOnly = true, bindings = {}, expressions = {}}
+    for _, action in ipairs({'manager', 'text', 'voice', 'group_text', 'group_voice'}) do
+        report.bindings[action] = convaiUiLocale.boundKey('cyberpunk_convai_' .. action) or 'Unbound'
+    end
+    local ok, fleet = pcall(function() return convaiCompanions.vehicleSnapshot() end)
+    report.vehicles = ok and fleet or {error = tostring(fleet)}
+    local nativeOk, nativeError = pcall(function()
+        local adapter = dofile('companion-vehicle-native.lua')
+        local player = Game.GetPlayer()
+        local vehicle = player and adapter.player(player)
+        report.playerVehicle = vehicle ~= nil
+        if vehicle then
+            local info = adapter.inspect(vehicle)
+            report.nativeVehicle = {ready = info.ready, speed = info.speed, invalid = info.invalid, seats = info.seats}
+        end
+        for _, candidate in ipairs(convaiCompanions.conversationCandidates(player, 30)) do
+            report.expressions[#report.expressions + 1] = {
+                name = candidate.name, status = convaiFacialPlayback.expressionStatus(candidate.entity)}
+        end
+    end)
+    if not nativeOk then report.nativeError = tostring(nativeError) end
+    local output = assert(io.open('runtime/companion-systems.json', 'wb'))
+    output:write(json.encode(report)); output:close()
+    return
+end
 if request:match('^record%-name%-probe:') then
     local report = {version = 1, readOnly = true, capturedAt = os.time() * 1000,
         record = 'Character.mq015_seller', properties = {}}

@@ -152,6 +152,20 @@ function M.t(source, args)
 end
 
 function M.selection() return selected end
+
+-- CET scopes these functions to our mod. Read on demand: bindings can change
+-- while the overlay is open and are not initialized during top-level loading.
+function M.boundKey(action)
+    if type(IsBound) ~= 'function' or type(GetBind) ~= 'function' then return nil end
+    local ok, value = pcall(function()
+        if not IsBound(action) then return nil end
+        return GetBind(action)
+    end)
+    if ok and type(value) == 'string' and #value > 0 and #value <= 100
+        and value ~= 'Unbound' and not value:find('%c') then return value end
+    return nil
+end
+
 function M.current() return resolved end
 function M.revision() return generation end
 

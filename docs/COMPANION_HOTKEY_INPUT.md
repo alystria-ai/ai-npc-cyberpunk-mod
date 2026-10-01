@@ -11,3 +11,16 @@ Existing protections do not cover ordinary gameplay F9: `mod/phone-input.lua` gu
 **F10 was free at this check.** No F10/IK_F10 entry appeared in installed `r6/config` XML/JSON or `%LOCALAPPDATA%/CD Projekt Red/Cyberpunk 2077/UserSettings.json`. Decoding every 16-bit key slot of every saved CET binding found no virtual key 121 (F10). The agreed local controls are F4 manager, F6 text, F7 voice, F8 group text, and F10 group voice, preserving native F5 quicksave and F9 quickload. No quickload override or input suppression module is required for these assignments.
 
 This was a source and configuration check. It did not press conversation hotkeys, open a microphone, or validate an actual group voice recording.
+# Player-selected bindings
+
+The player chooses every CET action binding. Registration labels contain action
+names only. Runtime hints query CET's mod-scoped `IsBound(actionId)` and
+`GetBind(actionId)` when shown, retaining the complete current modifier chord.
+Unbound actions or unavailable APIs get an action-based fallback. Nothing caches
+a binding during top-level script registration or rewrites the user's choices.
+
+The API is implemented in pinned CET v1.37.1
+[LuaSandbox.cpp](https://github.com/maximegmd/CyberEngineTweaks/blob/61bd6214f0f5f8748589c9e476538614a13908c0/src/scripting/LuaSandbox.cpp#L621).
+`VKBindings::GetBindString` joins the current chord with ` + `; the overlay edits
+that live map before Save persists it. The default recommendations discussed
+below are for the optional development setup only, not automatic mod behavior.

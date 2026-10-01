@@ -433,10 +433,10 @@ test('temporary collector unavailability preserves the Lua world and omits old f
  assert(recovered.worldKnowledge.worldToken==live.token and recovered.worldKnowledge.generation==live.generation)
 `));
 
-test('real F10 hotkey freezes three distinct speakers, uses the first microphone reply once and sequences recognized text', () => run(`
+test('real group voice hotkey freezes three distinct speakers, uses the first microphone reply once and sequences recognized text', () => run(`
  start();looked=resident;people={judy,actor('judy-alvarez',4,'Judy copy'),alex,resident}
  local enabled=true;modules['manager.lua'].followUpQuestions=function()return enabled end
- assert(hotkeyLabels.cyberpunk_convai_group_voice=='Cyberpunk Convai: group voice chat (F10)')
+ assert(hotkeyLabels.cyberpunk_convai_group_voice=='Cyberpunk Convai: group voice chat')
  hotkeys.cyberpunk_convai_group_voice()
  local context=microphone.context;local first=stored('runtime/microphone-command.json').input
  assert(context and group.round.stage=='recording'and runtime.pending()==nil)
@@ -444,11 +444,11 @@ test('real F10 hotkey freezes three distinct speakers, uses the first microphone
  assert(table.concat(first.group.audience,',')=='resident-male,judy-alvarez,alex')
  assert(first.worldKnowledge.audience.channel=='group'and first.followUpQuestions==true)
  tick();assert(files['runtime/last-input.json']==nil and #commands==1)
- micState('recording');tick();assert(feedback[#feedback]=='Listening - press F10 again to finish')
+ micState('recording');tick();assert(feedback[#feedback]=='Listening - press the same voice chat shortcut again to finish')
  looked=judy;people={alex};enabled=false;now=1002;journalVersion=2;factValue=2;runtime.step(0)
  hotkeys.cyberpunk_convai_voice()
  assert(microphone.context==context and #commands==1 and group.round.stage=='recording')
- assert(feedback[#feedback]=='Use F10 to finish this recording.')
+ assert(feedback[#feedback]=='Press your Group voice chat shortcut to finish recording.')
  hotkeys.cyberpunk_convai_group_voice()
  local finish=commands[#commands]
  assert(#commands==2 and finish.action=='finish'and finish.input.requestId==first.requestId)
@@ -476,7 +476,22 @@ test('real F10 hotkey freezes three distinct speakers, uses the first microphone
  assertHotkeyClean()
 `));
 
-test('F6 F7 F8 and F10 share the explicitly addressed primary and unsupported targets never redirect', () => run(`
+test('registered action names and recording hints respect arbitrary live CET chords', () => run(`
+ start();looked=judy;people={judy,alex}
+ local bindings={cyberpunk_convai_group_voice='Ctrl + H',cyberpunk_convai_voice='Alt + Num 5'}
+ IsBound=function(id)return bindings[id]~=nil end
+ GetBind=function(id)return bindings[id]or'Unbound'end
+ for _,label in pairs(hotkeyLabels)do assert(not label:match('F%d+'),'hardcoded function key in an action label')end
+ hotkeys.cyberpunk_convai_group_voice();micState('recording');tick()
+ assert(feedback[#feedback]=='Listening - press Ctrl + H again to finish')
+ bindings.cyberpunk_convai_group_voice='Shift + K'
+ hotkeys.cyberpunk_convai_voice()
+ assert(feedback[#feedback]=='Use Shift + K to finish this recording.')
+ bindings.cyberpunk_convai_group_voice=nil;hotkeys.cyberpunk_convai_voice()
+ assert(feedback[#feedback]=='Press your Group voice chat shortcut to finish recording.')
+`));
+
+test('private and group text/voice share the explicitly addressed primary and unsupported targets never redirect', () => run(`
  start();people={judy,alex,resident};looked=alex
  hotkeys.cyberpunk_convai_text();assert(player.composerName=='Alex')
  player.composer=false;tick()
@@ -486,8 +501,8 @@ test('F6 F7 F8 and F10 share the explicitly addressed primary and unsupported ta
  hotkeys.cyberpunk_convai_voice();assert(microphone.context.profileKey=='alex'and not microphone.context.group)
  local original=microphone.context;local count=#commands
  hotkeys.cyberpunk_convai_group_voice()
- assert(microphone.context==original and #commands==count and feedback[#feedback]=='Use F7 to finish this recording.')
- micState('recording');tick();assert(feedback[#feedback]=='Listening - press F7 again to finish')
+ assert(microphone.context==original and #commands==count and feedback[#feedback]=='Press your Talk by voice shortcut to finish recording.')
+ micState('recording');tick();assert(feedback[#feedback]=='Listening - press the same voice chat shortcut again to finish')
  hotkeys.cyberpunk_convai_voice();respond(microphone.context);tick();assert(not microphone.context)
  looked=actor('not-configured',4,'Unconfigured');count=#commands
  for _,key in ipairs({'cyberpunk_convai_text','cyberpunk_convai_group_text','cyberpunk_convai_voice','cyberpunk_convai_group_voice'})do
@@ -496,13 +511,13 @@ test('F6 F7 F8 and F10 share the explicitly addressed primary and unsupported ta
  end
  looked=judy;people={judy,actor('judy-alvarez',4,'Second Judy')}
  hotkeys.cyberpunk_convai_group_voice();assert(#commands==count and not microphone.context)
- assert(feedback[#feedback]=='Group chat needs two characters nearby. Use F7 for one person.')
+ assert(feedback[#feedback]=='Group chat needs two characters nearby. Use private chat for one person.')
  looked=nil;people={alex,judy};hotkeys.cyberpunk_convai_group_voice()
  assert(microphone.context.profileKey=='alex'and microphone.context.group.index==1)
  assertHotkeyClean()
 `));
 
-test('F10 missing transcript, first error and stale recognized replies never submit later speakers', () => run(`
+test('group voice missing transcript, first error and stale recognized replies never submit later speakers', () => run(`
  start();looked=judy;people={judy,alex}
  for _,kind in ipairs({'missing','empty','placeholder','error'})do
   hotkeys.cyberpunk_convai_group_voice();local context=microphone.context
@@ -518,7 +533,7 @@ test('F10 missing transcript, first error and stale recognized replies never sub
  assertHotkeyClean()
 `));
 
-test('F10 pause cancels at zero delta, save callbacks cancel ownership and old results cannot revive the round', () => run(`
+test('group voice pause cancels at zero delta, save callbacks cancel ownership and old results cannot revive the round', () => run(`
  start();looked=judy;people={judy,alex}
  for _,stage in ipairs({'recording','waiting','playing'})do
   hotkeys.cyberpunk_convai_group_voice();local context=microphone.context
@@ -538,7 +553,7 @@ test('F10 pause cancels at zero delta, save callbacks cancel ownership and old r
  assertHotkeyClean()
 `));
 
-test('F10 losing the frozen primary cancels at every stage and never substitutes the current camera target', () => run(`
+test('group voice losing the frozen primary cancels at every stage and never substitutes the current camera target', () => run(`
  start();people={judy,alex,resident}
  for _,stage in ipairs({'recording','waiting','playing'})do
   judy.attached=true;looked=judy
@@ -554,7 +569,7 @@ test('F10 losing the frozen primary cancels at every stage and never substitutes
  assertHotkeyClean()
 `));
 
-test('F10 microphone device failure and automatic 30 second finish keep exact request ownership', () => run(`
+test('group voice microphone device failure and automatic 30 second finish keep exact request ownership', () => run(`
  start();looked=judy;people={judy,alex}
  hotkeys.cyberpunk_convai_group_voice();local first=microphone.context
  micState('error');tick()
@@ -569,7 +584,7 @@ test('F10 microphone device failure and automatic 30 second finish keep exact re
  assertHotkeyClean()
 `));
 
-test('F10 retires microphone and group exactly at the reply deadline before late results, then accepts a fresh recording', () => run(`
+test('group voice retires microphone and group exactly at the reply deadline before late results, then accepts a fresh recording', () => run(`
  start();looked=judy;people={judy,alex}
  hotkeys.cyberpunk_convai_group_voice();local expired=microphone.context
  hotkeys.cyberpunk_convai_group_voice()
@@ -595,7 +610,7 @@ test('F10 retires microphone and group exactly at the reply deadline before late
  assertHotkeyClean()
 `));
 
-test('F10 later-speaker timeout retires its group without restarting the completed microphone request', () => run(`
+test('group voice later-speaker timeout retires its group without restarting the completed microphone request', () => run(`
  start();looked=judy;people={judy,alex}
  hotkeys.cyberpunk_convai_group_voice();local first=microphone.context
  hotkeys.cyberpunk_convai_group_voice();respond(first,'Actual group question');tick()

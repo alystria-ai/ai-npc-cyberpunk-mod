@@ -16,7 +16,7 @@ does not establish that its animation looks correct in Cyberpunk.
 | Expressions | Subtle default smile, bounded face reactions, optional correctly correlated provider emotion | One final facial writer, speech-shape preservation, pause/combat/lifecycle tests; rendered appearance still needs verification |
 | Vehicles | Fill V's passenger seats, then additional carpools using sourced personal cars where available | Allocation, exact command ownership, actual seat sensing, delayed completion and cleanup tests; native road behavior still needs verification |
 | Fast travel | Carry active managed copies through an explicitly observed fast travel transaction | Restore descriptors only after destination readiness; ordinary save loading and death discard the transaction |
-| Keys | F4 manager, F6 text, F7 voice, F8 group text, F10 group voice | F9 is native Quick Load; F10 is free in the installed game and saved CET bindings |
+| Keys | Players choose all CET bindings; labels name actions and live hints read the current chord | CET `IsBound` / `GetBind` reflect remaps immediately; F9 is native Quick Load and is not recommended |
 
 Prepared references are enabled without a new listening gate, as requested.
 Their receipt says `listeningVerified: false`; attribution is not a claim that
@@ -64,8 +64,8 @@ profiles; the rest use bounded lazy conditioning, at most eight cached profiles.
 - Native blinking and accepted eye contact are retained. There is no extra
   expression toggle, per-character voice picker, disappearing-message setting,
   combined battle/loot comment, or save-load party restoration.
-- Microphone listening remains user-deferred. The F10 binding can be assigned
-  without starting a recording.
+- Microphone listening remains user-deferred. Changing a binding is separate
+  from starting a recording. The mod does not automatically assign keys.
 - Packaging remains a design, not a qualified release. Portable dependencies,
   licenses and the model asset size still need a buildable distribution plan.
 - Local TODO and pause notes are ignored by Git. Credentials, player state,

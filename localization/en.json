@@ -30,7 +30,7 @@
     ]
   },
   "counts": {
-    "strings": 386,
+    "strings": 390,
     "dynamicTemplates": 71,
     "contexts": 31
   },
@@ -152,10 +152,10 @@
     "Current party": "Current party",
     "Currently {state}.": "Currently {state}.",
     "Cyberpunk Convai: companion manager": "Cyberpunk Convai: companion manager",
-    "Cyberpunk Convai: group text chat (F8)": "Cyberpunk Convai: group text chat (F8)",
-    "Cyberpunk Convai: group voice chat (F10)": "Cyberpunk Convai: group voice chat (F10)",
+    "Cyberpunk Convai: group text chat": "Cyberpunk Convai: group text chat",
+    "Cyberpunk Convai: group voice chat": "Cyberpunk Convai: group voice chat",
     "Cyberpunk Convai: talk by text": "Cyberpunk Convai: talk by text",
-    "Cyberpunk Convai: talk by voice (F7)": "Cyberpunk Convai: talk by voice (F7)",
+    "Cyberpunk Convai: talk by voice": "Cyberpunk Convai: talk by voice",
     "DETAILS  {page} / {pages}": "DETAILS  {page} / {pages}",
     "DISMISS QUEUED - CLOSE PHONE": "DISMISS QUEUED - CLOSE PHONE",
     "Default": "Default",
@@ -179,6 +179,7 @@
     "Forget selected character": "Forget selected character",
     "GAME MODELS": "GAME MODELS",
     "Gentle (default)": "Gentle (default)",
+    "Group chat needs two characters nearby. Use private chat for one person.": "Group chat needs two characters nearby. Use private chat for one person.",
     "Group chat needs two characters nearby. Use {key} for one person.": "Group chat needs two characters nearby. Use {key} for one person.",
     "Head tracking strength": "Head tracking strength",
     "INVITE QUEUED - CLOSE PHONE": "INVITE QUEUED - CLOSE PHONE",
@@ -203,6 +204,7 @@
     "Kept until forgotten": "Kept until forgotten",
     "Leaving": "Leaving",
     "Less": "Less",
+    "Listening - press the same voice chat shortcut again to finish": "Listening - press the same voice chat shortcut again to finish",
     "Listening - press {key} again to finish": "Listening - press {key} again to finish",
     "Load a save before inviting a companion.": "Load a save before inviting a companion.",
     "Loading": "Loading",
@@ -266,6 +268,8 @@
     "Preparing this character with your player identity and current world context. This copy has a reserved place. You can change its conversation profile or cancel the invitation.": "Preparing this character with your player identity and current world context. This copy has a reserved place. You can change its conversation profile or cancel the invitation.",
     "Preparing voices": "Preparing voices",
     "Press Enter to write  /  Esc to stop typing": "Press Enter to write  /  Esc to stop typing",
+    "Press your Group voice chat shortcut to finish recording.": "Press your Group voice chat shortcut to finish recording.",
+    "Press your Talk by voice shortcut to finish recording.": "Press your Talk by voice shortcut to finish recording.",
     "Previous": "Previous",
     "Previous characters": "Previous characters",
     "Previous models": "Previous models",
@@ -425,10 +429,10 @@
   "contexts": {
     "cet.bindings": [
       "Cyberpunk Convai: companion manager",
-      "Cyberpunk Convai: group text chat (F8)",
-      "Cyberpunk Convai: group voice chat (F10)",
+      "Cyberpunk Convai: group text chat",
+      "Cyberpunk Convai: group voice chat",
       "Cyberpunk Convai: talk by text",
-      "Cyberpunk Convai: talk by voice (F7)"
+      "Cyberpunk Convai: talk by voice"
     ],
     "legacy.manager": [
       "0 results",
@@ -856,7 +860,6 @@
       "Chat",
       "Close the phone to finish the pending companion requests.",
       "ENTER  Write message   /   ESC  Stop typing",
-      "Listening - press {key} again to finish",
       "Microphone connection timed out. Please try again.",
       "Microphone unavailable. Check your Windows input device.",
       "This contact has no companion mapping yet.",
@@ -908,10 +911,12 @@
       "Conversation for {name}",
       "Conversation: {state}",
       "Forget ({count} characters)",
+      "Group chat needs two characters nearby. Use private chat for one person.",
       "Group chat needs two characters nearby. Use {key} for one person.",
       "Invitations create separate companion copies, including characters outside your phone contacts. Memory and connection preparation starts immediately; the copy joins when ready after you return to gameplay.",
       "Invite characters, manage your group, browse game models and configure conversations.",
       "Keep {name} as a follower without AI conversations.",
+      "Listening - press the same voice chat shortcut again to finish",
       "Listening - press {key} again to finish",
       "Load a save before inviting a companion.",
       "Memory clear confirmed for {target}.",
@@ -923,6 +928,8 @@
       "OmniVoice {steps} steps",
       "Page {page} / {pages}",
       "Preparing voices",
+      "Press your Group voice chat shortcut to finish recording.",
+      "Press your Talk by voice shortcut to finish recording.",
       "Ready · Unsaved selection",
       "Reopen the manager; that action is no longer available.",
       "Search by character name or model record using Search settings. {query}",
@@ -978,7 +985,6 @@
       "No reply arrived. Check that the Convai bridge is running.",
       "Player unavailable",
       "Type your message to the character.",
-      "Use {key} to finish this recording.",
       "{name} does not have a conversation profile configured yet.",
       "{name} is not in your group."
     ],
@@ -1811,7 +1817,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:643"
+        "mod/init.lua:652"
       ]
     },
     "Connecting this character for conversation. This copy has a reserved place. You can change its conversation profile or cancel the invitation.": {
@@ -1992,23 +1998,23 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:1088"
+        "mod/init.lua:1097"
       ]
     },
-    "Cyberpunk Convai: group text chat (F8)": {
+    "Cyberpunk Convai: group text chat": {
       "contexts": [
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:1084"
+        "mod/init.lua:1093"
       ]
     },
-    "Cyberpunk Convai: group voice chat (F10)": {
+    "Cyberpunk Convai: group voice chat": {
       "contexts": [
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:1086"
+        "mod/init.lua:1095"
       ]
     },
     "Cyberpunk Convai: talk by text": {
@@ -2016,15 +2022,15 @@
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:1083"
+        "mod/init.lua:1092"
       ]
     },
-    "Cyberpunk Convai: talk by voice (F7)": {
+    "Cyberpunk Convai: talk by voice": {
       "contexts": [
         "cet.bindings"
       ],
       "references": [
-        "mod/init.lua:1085"
+        "mod/init.lua:1094"
       ]
     },
     "DETAILS  {page} / {pages}": {
@@ -2214,13 +2220,21 @@
         "mod/mcm.lua:522"
       ]
     },
+    "Group chat needs two characters nearby. Use private chat for one person.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/init.lua:523"
+      ]
+    },
     "Group chat needs two characters nearby. Use {key} for one person.": {
       "contexts": [
         "ui.localized",
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:520"
+        "mod/init.lua:522"
       ]
     },
     "Head tracking strength": {
@@ -2416,14 +2430,21 @@
         "mod/mcm.lua:522"
       ]
     },
+    "Listening - press the same voice chat shortcut again to finish": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/microphone.lua:115"
+      ]
+    },
     "Listening - press {key} again to finish": {
       "contexts": [
-        "phone.native",
         "ui.localized",
         "world.microphone"
       ],
       "references": [
-        "mod/microphone.lua:111"
+        "mod/microphone.lua:114"
       ]
     },
     "Load a save before inviting a companion.": {
@@ -2562,7 +2583,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/microphone.lua:121"
+        "mod/microphone.lua:125"
       ]
     },
     "Microphone unavailable. Check your Windows input device.": {
@@ -2571,7 +2592,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/microphone.lua:113"
+        "mod/microphone.lua:117"
       ]
     },
     "Missing": {
@@ -2703,7 +2724,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:1373"
+        "mod/init.lua:1382"
       ]
     },
     "No reply received. Your message is in the draft; press Enter to retry.": {
@@ -2952,6 +2973,22 @@
       ],
       "references": [
         "mod/phone-chat-style.lua:289"
+      ]
+    },
+    "Press your Group voice chat shortcut to finish recording.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/init.lua:619"
+      ]
+    },
+    "Press your Talk by voice shortcut to finish recording.": {
+      "contexts": [
+        "ui.localized"
+      ],
+      "references": [
+        "mod/init.lua:620"
       ]
     },
     "Previous": {
@@ -3817,11 +3854,10 @@
     "Use {key} to finish this recording.": {
       "contexts": [
         "ui.localized",
-        "world.conversation",
         "world.microphone"
       ],
       "references": [
-        "mod/init.lua:611"
+        "mod/init.lua:617"
       ]
     },
     "Voice playback": {
@@ -4108,7 +4144,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:1061"
+        "mod/init.lua:1070"
       ]
     },
     "{name} is preparing memory and conversation.": {
@@ -4133,7 +4169,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:1074"
+        "mod/init.lua:1083"
       ]
     },
     "{name} joined your group.": {
@@ -4212,7 +4248,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:1073"
+        "mod/init.lua:1082"
       ]
     },
     "{name}: conversation profile cleared.": {
@@ -4264,7 +4300,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:1075"
+        "mod/init.lua:1084"
       ]
     },
     "{name}: preparing memory...": {
@@ -4273,7 +4309,7 @@
         "ui.localized"
       ],
       "references": [
-        "mod/init.lua:1072"
+        "mod/init.lua:1081"
       ]
     },
     "{status} · After current reply": {
@@ -4490,7 +4526,7 @@
         "world.conversation"
       ],
       "references": [
-        "mod/init.lua:520"
+        "mod/init.lua:522"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -4514,7 +4550,7 @@
         "world.microphone"
       ],
       "references": [
-        "mod/microphone.lua:111"
+        "mod/microphone.lua:114"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -4759,7 +4795,7 @@
         "world.microphone"
       ],
       "references": [
-        "mod/init.lua:611"
+        "mod/init.lua:617"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -4908,7 +4944,7 @@
         "phone.feedback"
       ],
       "references": [
-        "mod/init.lua:1061"
+        "mod/init.lua:1070"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -4944,7 +4980,7 @@
         "phone.feedback"
       ],
       "references": [
-        "mod/init.lua:1074"
+        "mod/init.lua:1083"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -5053,7 +5089,7 @@
         "phone.feedback"
       ],
       "references": [
-        "mod/init.lua:1073"
+        "mod/init.lua:1082"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -5126,7 +5162,7 @@
         "phone.feedback"
       ],
       "references": [
-        "mod/init.lua:1075"
+        "mod/init.lua:1084"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },
@@ -5138,7 +5174,7 @@
         "phone.feedback"
       ],
       "references": [
-        "mod/init.lua:1072"
+        "mod/init.lua:1081"
       ],
       "integration": "Replace reviewed concatenation at its origin; never match arbitrary formatted text."
     },

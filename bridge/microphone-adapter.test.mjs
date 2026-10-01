@@ -63,7 +63,7 @@ test('microphone keeps mode and frozen follow-up preference while refreshing fin
  assert(mic.begin(context)and #commands==1 and commands[1].action=='start')
  assert(commands[1].input.followUpQuestions==false)
  state('recording');mic.update(player)
- assert(mic.state=='recording'and feedback[1]=='Listening - press F9 again to finish')
+ assert(mic.state=='recording'and feedback[1]=='Listening - press the same voice chat shortcut again to finish')
  local previous=files['runtime/microphone-command.json']
  assert(mic.finish('private')==nil and files['runtime/microphone-command.json']==previous)
  now=103;assert(mic.finish('group')==context)
@@ -76,7 +76,7 @@ test('microphone keeps mode and frozen follow-up preference while refreshing fin
  assert(mic.received('voice-1')and not mic.context and not mic.targetValid and #commands==2)
  assert(#cancellations==0)
  context=input(false);assert(mic.begin(context));state('recording');mic.update(player)
- assert(feedback[#feedback]=='Listening - press F7 again to finish')
+ assert(feedback[#feedback]=='Listening - press the same voice chat shortcut again to finish')
 `));
 
 test('stale state files cannot start capture and the owned microphone auto-finishes exactly once', () => check(`
