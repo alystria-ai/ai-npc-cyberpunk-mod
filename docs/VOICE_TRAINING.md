@@ -1,5 +1,12 @@
 # Character voice preparation
 
+**October 1 follow-up:** the user chose to continue with reference-based voices
+and defer LoRA. The actual Judy adapter is 107,596,368 bytes (102.61 MiB), including
+audio embedding/output layers; 62 equal-sized adapters would add 6.21 GiB before
+the shared model/runtime. The limited 18.8-minute, 100-step pilot is not proof
+against better-data training. No new dataset/training run was started in this
+follow-up. The production route remains one shared base model with references.
+
 **September 28 decision:** further datasets and training are deferred at the user's request. The live implementation uses the base OmniVoice model with the three existing Johnny/Judy/Panam references. The experiments below are preserved as history; the rejected Judy fine-tune is excluded from production. See [LOCAL_VOICES.md](LOCAL_VOICES.md).
 
 The user prefers spending extra time preparing character voices, including real

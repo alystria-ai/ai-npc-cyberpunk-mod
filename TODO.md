@@ -1,5 +1,23 @@
 # Cyberpunk Convai overhaul
 
+## October 1 — voice selector and wider character coverage
+
+- [x] Rename the voice choices to exactly OmniVoice and Convai; retain OmniVoice
+  as the fresh/reset default. Existing explicit saved choices remain valid.
+- [x] Stop this two-choice row at each end. MCM's normal cyclic navigation made
+  the selected marker move opposite the pressed arrow when it wrapped.
+  Intercept the selector's child event before MCM's host observer; mouse and
+  keyboard paths share the fix. 56 focused checks pass, and the user confirmed
+  the installed control works after CET reload.
+- [x] Keep reference-based cloning after revisiting LoRA/package size. The Judy
+  pilot adapter was 102.6 MiB (62 equivalents would total 6.21 GiB), and that
+  pilot used 191 clips / 18.8 minutes, stopping at step 100 of 250. Its result
+  does not establish that all fine-tuning fails; further training is deferred.
+- [ ] Expand the remaining 58 named character profiles in parallel. Keep the
+  two resident profiles as honest archetypes; do not invent unique biographies.
+  Wave 3 proposals require independent source review and typed identity proof
+  before adoption, including genuine contact/record subjects where no codex exists.
+
 ## Next work — full-cast knowledge and local voice profiles
 
 - [ ] Expand verified knowledge across **all supported characters**, not only

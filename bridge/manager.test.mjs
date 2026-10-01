@@ -453,6 +453,40 @@ const mcmFixture = `
   end
 `;
 
+test('voice selector arrows stay within their displayed direction and use effective drafts', () => {
+  run(`${mcmFixture}
+    assert(invoke('tab:settings').ok)
+    handlers.McmUiSetContentTitle(controller, 'Companion Manager')
+    local selector = {nativeIdentity = 202}
+    local key = 'cyberpunk-convai:manager:voiceProvider'
+    local effective, forwarded = 1, 0
+    nativeApi.getValue = function(id) assert(id == key); return effective end
+    if handlers.McmUiConfigureBase then handlers.McmUiConfigureBase(selector, controller, key) end
+    local wrapped = function(forward)
+      forwarded = forwarded + 1
+      effective = effective + (forward and 1 or -1)
+      if effective > 2 then effective = 1 elseif effective < 1 then effective = 2 end
+    end
+    local emit = function(forward)
+      if handlers.McmUiEmitStep then return handlers.McmUiEmitStep(selector, forward, wrapped) end
+      return wrapped(forward)
+    end
+    emit(false)
+    assert(effective == 1 and forwarded == 0, 'left at OmniVoice must not wrap right')
+    emit(true)
+    assert(effective == 2 and forwarded == 1)
+    emit(true)
+    assert(effective == 2 and forwarded == 1, 'right at Convai must not wrap left')
+    emit(false)
+    assert(effective == 1 and forwarded == 2)
+    assert(row('voiceProvider').defaultValue == 1)
+    assert(row('voiceProvider').elements[1] == 'OmniVoice' and row('voiceProvider').elements[2] == 'Convai')
+    handlers.McmUiConfigureBase(selector, controller, 'another-mod:settings:voiceProvider')
+    emit(false)
+    assert(effective == 2 and forwarded == 3, 'foreign selector behavior must pass through')
+  `);
+});
+
 test('interface language persists atomically, localizes the schema and preserves literal character names and voice choices',()=>{
   run(`${mcmFixture}
     local savedDofile=dofile

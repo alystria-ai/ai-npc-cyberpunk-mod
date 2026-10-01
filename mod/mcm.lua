@@ -11,6 +11,7 @@ local owner, lastSignature, pollAt, searchFrames, snapshotAt = nil, '', 0, 0, 0
 local lastError = ''
 local actionFeedback, memoryActionCommand
 local presentation = {active = false, rows = {}}
+local voiceSelectors = {}
 local localeRevision = -1
 local voicePreview = dofile('voice-preview.lua').new()
 local log = function(message)
@@ -504,8 +505,8 @@ local function schema()
         categories[#categories + 1] = category('voices', 'Voices', {
             setting('voice', 'Voice playback', 'bool', snapshot.settings.voice, true, 'Play voiced replies from your companions.'),
             setting('voiceProvider', 'Companion voices', 'select', snapshot.settings.voiceProvider == 'convai' and 2 or 1, 1,
-                'OmniVoice gives Johnny, Judy and Panam their prepared local voices. Selecting it starts preparing the model immediately. Apply saves your choice; Revert cancels the preview. Convai uses configured online voices and releases the local model after Apply. Other characters always use Convai. Current replies finish with their original voice.',
-                {'OmniVoice + Convai (default)', 'Convai for all characters'}),
+                'OmniVoice uses prepared local character voices. Selecting it starts preparing the model immediately. Convai uses online voices. Apply saves your choice; Revert cancels the preview.',
+                {'OmniVoice', 'Convai'}),
             setting('omniSteps', 'Local voice quality', 'select', snapshot.settings.omniSteps == 16 and 1 or 2, 2,
                 'Applies while OmniVoice is selected. 32 steps gives the preferred quality; 16 steps is faster. One shared model stays loaded until you select Convai or stop the voice service.',
                 {'16 steps · Faster', '32 steps · Higher quality (default)'}),
@@ -626,6 +627,7 @@ function M.install()
         title, subtitle, sidebarTitle, contentTitle, status, statusKind, transientOwner,
         showSidebarSearch, showContentSearch, listSelectionMode, wrapped)
         presentation = {active = false, rows = {}}
+        voiceSelectors = {}
         if contentTitle == ui.t(LABEL) and active() and actionFeedback
             and tostring(status):sub(1, 10) == 'Completed:' then
             status, statusKind = actionFeedback, 0
@@ -642,7 +644,30 @@ function M.install()
             controller = owned and controller or nil, controllerKey = key}
     end)
     Observe('SettingsMainGameController', 'OnUninitialize', function(controller)
-        if ownsPresentation(controller) then presentation = {active = false, rows = {}} end
+        if ownsPresentation(controller) then
+            presentation = {active = false, rows = {}}
+            voiceSelectors = {}
+        end
+    end)
+    ObserveAfter('SettingsSelectorController', 'McmUiConfigureBase', function(controller, host, id)
+        local key = controllerKey(controller)
+        if key then
+            voiceSelectors[key] = id == MOD_KEY .. ':voiceProvider' and controllerKey(host) or nil
+        end
+    end)
+    Override('SettingsSelectorController', 'McmUiEmitStep', function(controller, forward, wrapped)
+        local key = controllerKey(controller)
+        if key and presentation.active and active()
+            and voiceSelectors[key] == presentation.controllerKey and type(api.getValue) == 'function' then
+            local ok, value, err = pcall(api.getValue, MOD_KEY .. ':voiceProvider')
+            if ok and not err and ((forward == false and value == 1) or (forward == true and value == 2)) then
+                -- Stop at the end of this two-choice row. Intercept the child
+                -- before it emits the host event observed by MCM, whose normal
+                -- cyclic navigation would move the marker the opposite way.
+                return
+            end
+        end
+        return wrapped(forward)
     end)
     ObserveAfter('SettingsMainGameController', 'McmUiSetManagedLabelState', function(controller, id, hovered)
         -- Native hover remains visible. After leaving a changed row, only its
@@ -779,6 +804,7 @@ function M.shutdown()
     if api then pcall(api.providers.unregisterProvider, PROVIDER, provider.registrationKey) end
     api = nil
     presentation = {active = false, rows = {}}
+    voiceSelectors = {}
 end
 
 return M
