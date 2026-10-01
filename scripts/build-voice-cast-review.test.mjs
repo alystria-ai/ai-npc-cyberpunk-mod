@@ -4,7 +4,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import { buildVoiceCastReview, escapeHtml, escapeMarkdown, identityProjection, identitySha256, pcmInfo, renderHtml, writeVoiceCastReview } from './Build-VoiceCastReview.mjs';
+import { AUDITION_TEXT, buildVoiceCastReview, escapeHtml, escapeMarkdown, identityProjection, identitySha256, pcmInfo, renderHtml, writeVoiceCastReview } from './Build-VoiceCastReview.mjs';
 
 const digest = (bytes, algorithm = 'sha256') => createHash(algorithm).update(bytes).digest('hex');
 const rosterHash = 'a'.repeat(64);
@@ -96,6 +96,20 @@ async function fixture(t) {
     json(`runtime/voice-cast/${lane}/selection-review.json`, { profiles: [{ key, proposedPrimary: { reference } }] }),
   ]);
   return { root, write, json, key, lane, directory, reference, receipt, manifest, roster, lanes, accepted, wave, sceneData, rawPath };
+}
+
+async function generatedFixture(x) {
+  const directory = 'runtime/voice-cast/auditions/test-run';
+  const run = `${directory}/results.json`;
+  const wave = pcm({ frames: 96000 });
+  const renders = [
+    { key: x.key, referenceSha256: x.receipt.sha256, transcriptSha256: x.receipt.transcriptSha256 },
+    { key: 'judy-alvarez', referenceSha256: x.accepted.sha256, transcriptSha256: digest(Buffer.from(x.accepted.transcript)) },
+  ].map(row => ({ ...row, status: 'generated', sample: `${row.key}.wav`, sha256: digest(wave), durationSeconds: 2, listeningVerified: false, approved: false, generationMs: 1, providerSecret: 'DO-NOT-COPY-GENERATED-SECRET' }));
+  const report = { version: 1, kind: 'generated-voice-auditions', sampleText: AUDITION_TEXT, steps: 32, listeningVerified: false, approved: false, renders, state: 'complete', workerExited: true };
+  for (const row of renders) await x.write(`${directory}/${row.sample}`, wave);
+  await x.json(run, report);
+  return { run, directory, wave, report };
 }
 
 test('all profiles are accounted for; native chain and actual PCM verified without promotion', async t => {
@@ -249,6 +263,123 @@ test('canonical projection matches wrapper key order, exact arrays and absent/nu
   assert.equal(identitySha256(rows), digest(Buffer.from(expected)));
   assert.notEqual(identitySha256(rows), identitySha256([{ ...rows[1], aliases: ['Alias', 'A'] }, rows[0]]));
   assert.throws(() => identityProjection([rows[0], rows[0]]), /duplicated/);
+});
+
+test('existing generated comparisons are paired with exact current originals; no timings or approval inferred', async t => {
+  const x = await fixture(t); const generation = await generatedFixture(x);
+  const result = await buildVoiceCastReview({ projectRoot: x.root, auditionRun: generation.run });
+  assert.equal(result.inventory.counts.generatedComparisonSamples, 2);
+  assert.equal(result.inventory.counts.quarantinedGeneratedSamples, 0);
+  assert.equal(result.inventory.counts.newListeningApprovals, 0);
+  assert.equal(result.inventory.counts.newProfilesPromoted, 0);
+  const sample = result.inventory.profiles[0].generatedComparison;
+  assert.equal(sample.sourceReference, x.reference);
+  assert.equal(sample.referenceSha256, x.receipt.sha256);
+  assert.equal(sample.transcriptSha256, x.receipt.transcriptSha256);
+  assert.equal(sample.pcm.durationSeconds, 2);
+  assert.equal(sample.sourceQualified, true); assert.equal(sample.listeningVerified, false); assert.equal(sample.approved, false);
+  assert.equal(result.inventory.profiles[1].generatedComparison.sourceReference, x.accepted.reference);
+  assert.equal((result.html.match(/class="comparison"/g) ?? []).length, 2);
+  assert.match(result.html, /Source-qualified audition; listening pending/);
+  assert.match(result.html, /Not a benchmark/);
+  assert.doesNotMatch(JSON.stringify(result.inventory), /generationMs|providerSecret|DO-NOT-COPY-GENERATED-SECRET/);
+});
+
+test('missing optional default run does not fail original-reference review', async t => {
+  const x = await fixture(t);
+  const result = await buildVoiceCastReview({ projectRoot: x.root });
+  assert.equal(result.inventory.auditions.status, 'missing');
+  assert.equal(result.inventory.counts.generatedComparisonSamples, 0);
+  assert.equal(result.inventory.counts.verifiedOriginalCandidates, 1);
+  assert.equal(result.inventory.warnings.length, 0);
+});
+
+test('unknown generated profile and mismatched source hashes have no bad audio links', async t => {
+  const x = await fixture(t); const generation = await generatedFixture(x);
+  generation.report.renders[0].key = 'unregistered-character';
+  generation.report.renders[0].sample = 'unregistered-character.wav';
+  await x.json(generation.run, generation.report);
+  let result = await buildVoiceCastReview({ projectRoot: x.root, auditionRun: generation.run });
+  assert.equal(result.inventory.counts.generatedComparisonSamples, 1);
+  assert.equal(result.inventory.counts.quarantinedGeneratedSamples, 1);
+  assert.doesNotMatch(result.html, /unregistered-character\.wav/);
+  generation.report.renders[0].key = x.key; generation.report.renders[0].sample = `${x.key}.wav`;
+  generation.report.renders[0].referenceSha256 = 'c'.repeat(64);
+  await x.json(generation.run, generation.report);
+  result = await buildVoiceCastReview({ projectRoot: x.root, auditionRun: generation.run });
+  assert.equal(result.inventory.profiles[0].generatedComparison.playback, null);
+  assert.match(result.inventory.profiles[0].generatedComparison.errors.join(), /current chosen original/);
+  generation.report.renders[0].referenceSha256 = x.receipt.sha256;
+  generation.report.renders[0].transcriptSha256 = 'd'.repeat(64);
+  await x.json(generation.run, generation.report);
+  result = await buildVoiceCastReview({ projectRoot: x.root, auditionRun: generation.run });
+  assert.equal(result.inventory.profiles[0].generatedComparison.playback, null);
+});
+
+test('a generated sample reassigned to another registered character cannot reuse its source binding', async t => {
+  const x = await fixture(t); const generation = await generatedFixture(x);
+  const borrowed = { ...generation.report.renders[0], key: 'judy-alvarez', sample: 'judy-alvarez.wav' };
+  generation.report.renders = [borrowed];
+  await x.json(generation.run, generation.report);
+  const result = await buildVoiceCastReview({ projectRoot: x.root, auditionRun: generation.run });
+  assert.equal(result.inventory.counts.generatedComparisonSamples, 0);
+  assert.equal(result.inventory.counts.quarantinedGeneratedSamples, 1);
+  const sample = result.inventory.profiles.find(profile => profile.key === 'judy-alvarez').generatedComparison;
+  assert.equal(sample.playback, null);
+  assert.match(sample.errors.join(), /current chosen original/);
+});
+
+test('generated duration and format are measured from PCM, not trusted from the render record', async t => {
+  const x = await fixture(t); const generation = await generatedFixture(x);
+  generation.report.renders[0].durationSeconds = 1.5;
+  await x.json(generation.run, generation.report);
+  let result = await buildVoiceCastReview({ projectRoot: x.root, auditionRun: generation.run });
+  assert.match(result.inventory.profiles[0].generatedComparison.errors.join(), /actual PCM/);
+  generation.report.renders[0].durationSeconds = 2;
+  const bad = Buffer.from(generation.wave); bad.writeUInt16LE(3, 20);
+  generation.report.renders[0].sha256 = digest(bad);
+  await x.write(`${generation.directory}/${x.key}.wav`, bad);
+  await x.json(generation.run, generation.report);
+  result = await buildVoiceCastReview({ projectRoot: x.root, auditionRun: generation.run });
+  assert.equal(result.inventory.profiles[0].generatedComparison.playback, null);
+  assert.match(result.inventory.profiles[0].generatedComparison.errors.join(), /16-bit mono\/stereo PCM/);
+});
+
+test('generated run junctions do not emit external playback links', async t => {
+  const x = await fixture(t); const generation = await generatedFixture(x);
+  const outside = path.join(x.root, 'external-generated-run');
+  await fs.rename(path.join(x.root, generation.directory), outside);
+  try { await fs.symlink(outside, path.join(x.root, generation.directory), process.platform === 'win32' ? 'junction' : 'dir'); }
+  catch (error) { if (['EPERM', 'EACCES'].includes(error.code)) { t.skip('Host does not permit symlinks'); return; } throw error; }
+  const result = await buildVoiceCastReview({ projectRoot: x.root, auditionRun: generation.run });
+  assert.equal(result.inventory.auditions.status, 'invalid');
+  assert.equal(result.inventory.counts.generatedComparisonSamples, 0);
+  assert.match(result.inventory.warnings.map(w => w.issue).join(), /Linked evidence path rejected/);
+});
+
+test('generated traversal, stale WAV and failed/partial samples are quarantined', async t => {
+  const x = await fixture(t); const generation = await generatedFixture(x);
+  await assert.rejects(buildVoiceCastReview({ projectRoot: x.root, auditionRun: 'runtime/voice-cast/auditions/test-run/../../outside/results.json' }), /traversal/);
+  generation.report.renders[0].sample = '../outside.wav';
+  await x.json(generation.run, generation.report);
+  let result = await buildVoiceCastReview({ projectRoot: x.root, auditionRun: generation.run });
+  assert.equal(result.inventory.profiles[0].generatedComparison.playback, null);
+  generation.report.renders[0].sample = `${x.key}.wav`;
+  await x.json(generation.run, generation.report);
+  const stale = Buffer.from(generation.wave); stale[100] ^= 1;
+  await x.write(`${generation.directory}/${x.key}.wav`, stale);
+  result = await buildVoiceCastReview({ projectRoot: x.root, auditionRun: generation.run });
+  assert.match(result.inventory.profiles[0].generatedComparison.errors.join(), /SHA-256 mismatch/);
+  generation.report.renders[0].status = 'failed';
+  await x.json(generation.run, generation.report);
+  result = await buildVoiceCastReview({ projectRoot: x.root, auditionRun: generation.run });
+  assert.match(result.inventory.profiles[0].generatedComparison.errors.join(), /failed, partial/);
+  generation.report.state = 'running';
+  await x.json(generation.run, generation.report);
+  result = await buildVoiceCastReview({ projectRoot: x.root, auditionRun: generation.run });
+  assert.equal(result.inventory.auditions.status, 'invalid');
+  assert.equal(result.inventory.counts.generatedComparisonSamples, 0);
+  assert.equal(result.inventory.profiles[0].generatedComparison, undefined);
 });
 
 test('output junctions are rejected before any external review directory is created', async t => {

@@ -67,3 +67,18 @@ test('proposal explicitly records missing portability, license and hosting proof
   assert(plan.requiredChecks.includes('relocated-clean-machine-without-developer-paths'));
   assert(plan.requiredChecks.includes('native-game-audio-and-ui-acceptance'));
 });
+
+test('file-loaded intrinsic history is an explicit runtime data dependency, separate from raw research assets', () => {
+  const history = runtime.plannedComponents.find(component => component.id === 'intrinsic-history');
+  assert(history);
+  assert.match(history.destination, /\/app\/research\/cyberpunk\/native-character-claims$/);
+  assert.deepEqual(history.sourceFiles, [
+    'research/cyberpunk/native-character-claims/jackie-welles.json',
+    'research/cyberpunk/native-character-claims/johnny-silverhand.json',
+  ]);
+  assert.equal(history.includeRawGameExports, false);
+  assert.equal(history.authorHashEncoding, 'canonical-json-v1');
+  assert.equal(plan.voice.registry.schemaVersion, 2);
+  assert.equal(plan.voice.registry.maxCachedProfiles, 8);
+  assert.equal(plan.voice.registry.sharedModel, true);
+});

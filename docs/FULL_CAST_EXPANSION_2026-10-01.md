@@ -69,6 +69,39 @@ profile/player. The resident dossiers now state that limitation truthfully;
 remembered profile-level dialogue does not establish this pedestrian's history.
 The one-player-ID policy is preserved.
 
+## Intrinsic history and disclosure
+
+Nineteen major characters now have source-qualified public history: 244 selected
+claims and 148 original spoken samples. Compilation checks 10,475 exact native
+pointers and attribution fields. Each claim binds its subject independently of
+the speaker, then verifies typed actor, screenplay, emitted speech event and
+English text where dialogue is used. Codex narrative remains attributed when it
+is speculation. Reviewed internal codex/actor aliases require exact localized
+title ownership and native voice evidence; they do not change roster identity.
+
+Private, conditional and unsupported rows stay out of the universal biography.
+Johnny and Jackie additionally have a bounded private topic layer for manual
+one-to-one text and phone conversations. It uses reviewed canonical author JSON
+pins, retains byte-exact native evidence hashes, freezes audience/profile at
+admission, and rechecks current world/reset ownership. Output is capped at three
+claims and 4,096 UTF-8 bytes. Groups and automatic reactions receive no private
+topic cards. Ambiguous action phrases and current gang-war questions do not
+unlock personal-history material.
+
+Painful topics permit a brief human reaction while honoring the existing
+follow-up setting and V's intent. Default Off does not force a question. Topic
+matching currently covers curated English forms; F7 has no private topic card
+because its recognized transcript arrives after the first response begins.
+Private histories for the other characters remain excluded pending their own
+disclosure-aware selectors. Shared provider memory is not a hard privacy partition.
+
+The adopted public claim/sample sets persist in profile settings and published
+roster receipts. Ordinary rebuilds reject missing evidence or silent removal;
+an explicit adoption cannot accidentally shrink an earlier reviewed character.
+The two initial and seventeen later cloud updates preserved existing mappings,
+voice/model choices and memory configurations. No character was created and no
+synthetic memory was added.
+
 ## Verification and deployment boundaries
 
 The integrated registry, worker, routing, invitation and connection gate passed
@@ -77,6 +110,22 @@ and audition aggregation passed 16. These results cover executable ownership and
 source paths. They do not establish perceived voice quality or live acceptance
 of every character. Final combined verification and deployment are recorded in
 the continuation handoff rather than inferred from these component results.
+
+The combined regression gate passed 1,557 checks with the installed MCM API and
+native-source gate enabled, zero failures/skips. Two extracted production-function
+fixtures needed the new admission-barrier state in their mock environment;
+their reaction ownership tests continue to execute the real bridge code.
+
+After intrinsic history and reviewed aliases were integrated, the final source
+gate passed 1,604 checks with zero failures/skips. The automatic-memory fixture
+now supplies the real empty intrinsic selector while executing the production
+admission function, preserving its no-extra-memory-call assertion.
+
+An isolated worker generated 62 draft auditions at 32 steps, then exited. All
+returned WAVs have valid frames, non-silent signal and no clipped samples.
+These measurements do not establish perceived identity or naturalness, and
+their elapsed times are not gameplay latency benchmarks. No draft was promoted
+to the production registry or inserted into provider conversation memory.
 
 All checkpoints are local Git commits. Private keys, provider IDs, dialogue,
 raw game assets, reference audio and generated auditions remain ignored. No

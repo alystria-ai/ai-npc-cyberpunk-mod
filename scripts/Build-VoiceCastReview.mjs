@@ -21,6 +21,8 @@ const JSON_LIMIT = 64 * 1024 * 1024;
 const WAV_LIMIT = 32 * 1024 * 1024;
 const SERIALIZER = '7ae9c308da2fe003220b55ce4ca9c122b51f0701a67db1618cca3ff4f7ff6738';
 const DEFAULT_INVENTORY = 'runtime/voice-cast-inventory-20261001';
+const DEFAULT_AUDITIONS = 'runtime/voice-cast/auditions/full-cast-20261001/results.json';
+export const AUDITION_TEXT = "Good to see you. Let's take this one step at a time.";
 const ACCEPTED_KEYS = new Set(['johnny-silverhand', 'judy-alvarez', 'panam-palmer']);
 const PROPOSAL_NAMES = [
   'selection-review.json', 'profile-proposals.json', 'selection.json',
@@ -329,7 +331,67 @@ async function acceptedReference(reader, character, outputRelative, config) {
   return result;
 }
 
-export async function buildVoiceCastReview({ projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'), inventoryDirectory = DEFAULT_INVENTORY, outputDirectory = 'runtime/voice-cast/review', now = new Date().toISOString() } = {}) {
+/** Match Generate-VoiceCastAuditions.py without treating selection as approval. */
+function chosenReference(profile) {
+  const accepted = profile.candidates.filter(candidate => candidate.acceptedReference && candidate.playback && !candidate.errors.length);
+  if (profile.status === 'accepted') { check(accepted.length === 1, 'Accepted audition reference is ambiguous'); return accepted[0]; }
+  const candidates = profile.candidates.filter(candidate => candidate.sourceVerified && candidate.playback && !candidate.errors.length);
+  check(candidates.length > 0 && candidates.length <= 6, 'No bounded source-qualified original reference');
+  if (profile.provisional.primary) {
+    const matches = candidates.filter(candidate => candidate.reference === profile.provisional.primary);
+    check(matches.length === 1, 'Current provisional primary is not an exact source-qualified reference');
+    return matches[0];
+  }
+  return [...candidates].sort((left, right) => Math.abs(left.pcm.durationSeconds - 6) - Math.abs(right.pcm.durationSeconds - 6) || (left.reference < right.reference ? -1 : left.reference > right.reference ? 1 : 0))[0];
+}
+
+async function addGeneratedAuditions(reader, profiles, requestedRun, outputRelative, identityFingerprint, warnings) {
+  const requested = requestedRun !== undefined;
+  const run = relativeName(requestedRun ?? DEFAULT_AUDITIONS);
+  check(/^runtime\/voice-cast\/auditions\/[a-z0-9]+(?:-[a-z0-9]+)*\/results\.json$/.test(run), 'Audition input must be one exact results.json in a contained named run');
+  const directory = path.posix.dirname(run);
+  const summary = { status: 'missing', results: run, verifiedSamples: 0, quarantinedSamples: 0, generatedWavBytes: 0, sourceQualified: false, listeningVerified: false, approved: false, benchmark: false, warning: 'Source-qualified audition only; listening pending, not a benchmark, no runtime promotion.' };
+  let file;
+  try {
+    file = await reader.optional(run, directory);
+    if (!file) { if (requested) warnings.push({ lane: 'auditions', issue: 'Requested audition run is missing; no generated links emitted.' }); return summary; }
+    const report = file.json;
+    check(report.version === 1 && report.kind === 'generated-voice-auditions' && report.state === 'complete' && report.workerExited === true, 'Audition run is incomplete or worker exit is unconfirmed');
+    check(report.sampleText === AUDITION_TEXT && [16, 32].includes(report.steps) && report.listeningVerified === false && report.approved === false, 'Audition run text, quality setting or approval boundary mismatch');
+    check(report.identitySha256 === undefined || report.identitySha256 === identityFingerprint, 'Audition canonical identity fingerprint mismatch');
+    check(Array.isArray(report.renders) && report.renders.length > 0 && report.renders.length <= profiles.length, 'Invalid bounded audition render list');
+    const seen = new Set();
+    for (const row of report.renders) { check(KEY.test(row?.key ?? '') && !seen.has(row.key), 'Invalid or duplicate audition profile key'); seen.add(row.key); }
+    summary.status = 'complete'; summary.resultsSha256 = file.sha256;
+    summary.sampleText = report.sampleText; summary.steps = report.steps;
+    for (const row of report.renders) {
+      const comparison = { sourceQualified: false, listeningVerified: false, approved: false, benchmark: false, playback: null, errors: [] };
+      const profile = profiles.find(profile => profile.key === row.key);
+      try {
+        check(profile, 'Generated sample key is not a currently registered character');
+        check(row.status === 'generated' && row.listeningVerified === false && row.approved === false, 'Generated sample is failed, partial or falsely approved');
+        check(row.sample === `${row.key}.wav`, 'Generated sample filename does not match the run/profile');
+        const chosen = chosenReference(profile);
+        check(row.referenceSha256 === chosen.sha256 && row.transcriptSha256 === chosen.transcriptSha256, 'Generated comparison reference or transcript hash differs from the current chosen original');
+        const reference = `${directory}/${relativeName(row.sample)}`;
+        const wave = await reader.checked(reference, row.sha256, directory, WAV_LIMIT);
+        const pcm = pcmInfo(wave.bytes);
+        check(Number.isFinite(row.durationSeconds) && Math.abs(row.durationSeconds - pcm.durationSeconds) <= 1e-6, 'Generated sample duration receipt differs from actual PCM');
+        Object.assign(comparison, { key: row.key, reference, sha256: wave.sha256, playback: playbackHref(reference, outputRelative), pcm, sourceReference: chosen.reference, referenceSha256: chosen.sha256, transcriptSha256: chosen.transcriptSha256, sampleText: report.sampleText, steps: report.steps, sourceQualified: true });
+        summary.verifiedSamples++; summary.generatedWavBytes += pcm.bytes;
+      } catch (error) { comparison.errors.push(error.message); summary.quarantinedSamples++; }
+      if (profile) profile.generatedComparison = comparison;
+      else warnings.push({ lane: 'auditions', issue: 'A generated sample had an unknown registered key; playback withheld.' });
+    }
+    summary.sourceQualified = summary.verifiedSamples > 0;
+  } catch (error) {
+    summary.status = 'invalid'; summary.quarantinedSamples = file?.json?.renders?.length ?? 0;
+    warnings.push({ lane: 'auditions', issue: `${error.message}; no generated links emitted.` });
+  }
+  return summary;
+}
+
+export async function buildVoiceCastReview({ projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'), inventoryDirectory = DEFAULT_INVENTORY, outputDirectory = 'runtime/voice-cast/review', auditionRun, now = new Date().toISOString() } = {}) {
   const root = await fs.realpath(projectRoot);
   const reader = new SnapshotReader(root);
   const inventoryArea = relativeName(inventoryDirectory);
@@ -405,28 +467,40 @@ export async function buildVoiceCastReview({ projectRoot = path.resolve(path.dir
       profiles.push(profile);
     }
   }
+  const auditionSummary = await addGeneratedAuditions(reader, profiles, auditionRun, outputRelative, identityFingerprint, warnings);
   for (const changed of await reader.unchanged()) warnings.push({ lane: changed.split('/')[2], issue: 'Lane progress updated during capture; this report uses the captured version. Rerun to include its newest candidates.' });
   const candidates = profiles.flatMap(profile => profile.candidates);
-  const counts = { profiles: profiles.length, lanes: lanes.lanes.length, acceptedProfiles: profiles.filter(profile => profile.status === 'accepted').length, profilesWithVerifiedCandidates: profiles.filter(profile => profile.status === 'listening_pending').length, verifiedOriginalCandidates: candidates.filter(candidate => candidate.sourceVerified).length, playableOriginalReferences: candidates.filter(candidate => candidate.playback).length, quarantinedCandidates: candidates.filter(candidate => candidate.errors.length).length, unpreparedProfiles: profiles.filter(profile => profile.status === 'unprepared').length, unavailableProfiles: profiles.filter(profile => profile.status === 'unavailable').length, newProfilesPromoted: 0, newListeningApprovals: 0, originalWavBytes: candidates.filter(candidate => candidate.playback).reduce((total, candidate) => total + candidate.pcm.bytes, 0) };
-  const inventory = { schemaVersion: 1, generatedAt: now, scope: 'Current registered character profiles only; original game recordings for offline audition. No synthesis, training, configuration changes or new listening approvals.', sharedModel: { name: 'OmniVoice', modelsPerCharacter: 0, sharedModelInstances: 1, conditioning: 'One short attributed recording and exact transcript per character; bounded cache, not separate neural weights.' }, rosterSha256: rosterHash, rosterSha256Meaning: 'Historical full roster fingerprint retained by source collection receipts; use currentRosterSha256 for the current source file.', ...rosterValidation, counts, verificationBoundary: 'The aggregate rechecks local immutable receipt/source/WAV hashes and native line joins. A decoded waveform or clean metadata is not a listening verdict. Source archive receipts originate in the bounded casting extractor; this report does not re-extract archives.', warnings, profiles, inputSnapshots: [...reader.snapshots.values()].map(({ path, sha256, bytes }) => ({ path, sha256, bytes })) };
+  const counts = { profiles: profiles.length, lanes: lanes.lanes.length, acceptedProfiles: profiles.filter(profile => profile.status === 'accepted').length, profilesWithVerifiedCandidates: profiles.filter(profile => profile.status === 'listening_pending').length, verifiedOriginalCandidates: candidates.filter(candidate => candidate.sourceVerified).length, playableOriginalReferences: candidates.filter(candidate => candidate.playback).length, quarantinedCandidates: candidates.filter(candidate => candidate.errors.length).length, unpreparedProfiles: profiles.filter(profile => profile.status === 'unprepared').length, unavailableProfiles: profiles.filter(profile => profile.status === 'unavailable').length, newProfilesPromoted: 0, newListeningApprovals: 0, generatedComparisonSamples: auditionSummary.verifiedSamples, quarantinedGeneratedSamples: auditionSummary.quarantinedSamples, generatedWavBytes: auditionSummary.generatedWavBytes, originalWavBytes: candidates.filter(candidate => candidate.playback).reduce((total, candidate) => total + candidate.pcm.bytes, 0) };
+  const inventory = { schemaVersion: 1, generatedAt: now, scope: 'Current registered character profiles; original game recordings and optional existing generated comparisons for offline audition. This builder performs no synthesis, training, configuration changes or new listening approvals.', sharedModel: { name: 'OmniVoice', modelsPerCharacter: 0, sharedModelInstances: 1, conditioning: 'One short attributed recording and exact transcript per character; bounded cache, not separate neural weights.' }, rosterSha256: rosterHash, rosterSha256Meaning: 'Historical full roster fingerprint retained by source collection receipts; use currentRosterSha256 for the current source file.', ...rosterValidation, counts, auditions: auditionSummary, verificationBoundary: 'The aggregate rechecks local immutable receipt/source/WAV hashes and native line joins. A decoded waveform or clean metadata is not a listening verdict. Source archive receipts originate in the bounded casting extractor; this report does not re-extract archives.', warnings, profiles, inputSnapshots: [...reader.snapshots.values()].map(({ path, sha256, bytes }) => ({ path, sha256, bytes })) };
   return { inventory, html: renderHtml(inventory), markdown: renderMarkdown(inventory) };
 }
 
 export function renderHtml(inventory) {
   const { counts } = inventory;
   const statuses = { accepted: 'Accepted existing reference', listening_pending: 'Original audio ready for listening', unprepared: 'Unprepared — Convai fallback', unavailable: 'No unique canonical voice — Convai fallback' };
-  const cards = inventory.profiles.map(profile => `<section class="profile" id="${escapeHtml(profile.key)}"><h2>${escapeHtml(profile.name)}</h2><p class="meta">${escapeHtml(profile.lane)} · ${escapeHtml(statuses[profile.status])}</p>${profile.gapReason ? `<p>${escapeHtml(profile.gapReason)}</p>` : ''}${profile.candidates.map(candidate => `<article><h3>${escapeHtml(candidate.role === 'candidate' ? 'Additional candidate' : candidate.role === 'accepted existing' ? 'Accepted existing' : `Provisional ${candidate.role}`)}</h3>${candidate.playback ? `<audio controls preload="none" src="${escapeHtml(candidate.playback)}"></audio><p class="transcript">${escapeHtml(candidate.transcript)}</p><p class="meta">${candidate.pcm.durationSeconds.toFixed(3)} s · ${candidate.pcm.sampleRate} Hz · ${candidate.pcm.channels} channel${candidate.pcm.channels === 1 ? '' : 's'} · original 16-bit PCM<br>${escapeHtml(candidate.listeningStatus)}<br>${escapeHtml(candidate.source.verification)}</p>${candidate.source.scene ? `<details><summary>Source and hash</summary><p>${escapeHtml(candidate.source.actor)} · ${escapeHtml(candidate.source.gameVersion)} · ${escapeHtml(candidate.source.locale)}</p><p>${escapeHtml(candidate.source.scene)}</p><p>${escapeHtml(candidate.source.audio)}</p><code>${escapeHtml(candidate.sha256)}</code></details>` : ''}` : `<p class="warning">Playback withheld: ${escapeHtml(candidate.errors.join('; '))}</p>`}</article>`).join('')}</section>`).join('\n');
+  const original = candidate => candidate.playback ? `<audio controls preload="none" src="${escapeHtml(candidate.playback)}"></audio><p class="transcript">${escapeHtml(candidate.transcript)}</p><p class="meta">${candidate.pcm.durationSeconds.toFixed(3)} s · ${candidate.pcm.sampleRate} Hz · ${candidate.pcm.channels} channel${candidate.pcm.channels === 1 ? '' : 's'} · original 16-bit PCM<br>${escapeHtml(candidate.listeningStatus)}<br>${escapeHtml(candidate.source.verification)}</p>${candidate.source.scene ? `<details><summary>Source and hash</summary><p>${escapeHtml(candidate.source.actor)} · ${escapeHtml(candidate.source.gameVersion)} · ${escapeHtml(candidate.source.locale)}</p><p>${escapeHtml(candidate.source.scene)}</p><p>${escapeHtml(candidate.source.audio)}</p><code>${escapeHtml(candidate.sha256)}</code></details>` : ''}` : `<p class="warning">Playback withheld: ${escapeHtml(candidate.errors.join('; '))}</p>`;
+  const cards = inventory.profiles.map(profile => {
+    const comparison = profile.generatedComparison;
+    let comparisonHtml = ''; let comparedReference;
+    if (comparison?.playback) {
+      comparedReference = comparison.sourceReference;
+      const source = profile.candidates.find(candidate => candidate.reference === comparedReference);
+      comparisonHtml = `<article class="comparison"><div><h3>Original reference used for this audition</h3>${original(source)}</div><div><h3>Generated OmniVoice comparison</h3><audio controls preload="none" src="${escapeHtml(comparison.playback)}"></audio><p class="transcript">${escapeHtml(comparison.sampleText)}</p><p class="meta">${comparison.pcm.durationSeconds.toFixed(3)} s · ${comparison.pcm.sampleRate} Hz · ${comparison.steps} steps<br>Source-qualified audition; listening pending.<br>Not a benchmark. No approval or runtime promotion.</p><details><summary>Generated sample hash</summary><code>${escapeHtml(comparison.sha256)}</code></details></div></article>`;
+    } else if (comparison) comparisonHtml = `<article><h3>Generated comparison unavailable</h3><p class="warning">Playback withheld: ${escapeHtml(comparison.errors.join('; '))}</p></article>`;
+    const candidates = profile.candidates.filter(candidate => candidate.reference !== comparedReference).map(candidate => `<article><h3>${escapeHtml(candidate.role === 'candidate' ? 'Additional candidate' : candidate.role === 'accepted existing' ? 'Accepted existing' : `Provisional ${candidate.role}`)}</h3>${original(candidate)}</article>`).join('');
+    return `<section class="profile" id="${escapeHtml(profile.key)}"><h2>${escapeHtml(profile.name)}</h2><p class="meta">${escapeHtml(profile.lane)} · ${escapeHtml(statuses[profile.status])}</p>${profile.gapReason ? `<p>${escapeHtml(profile.gapReason)}</p>` : ''}${comparisonHtml}${candidates}</section>`;
+  }).join('\n');
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; media-src 'self' file:; img-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"><title>Cyberpunk original voice reference review</title><style>
-:root { color-scheme: dark; font-family: system-ui,sans-serif; background:#101217; color:#e9edf3; } body { max-width:1050px; margin:auto; padding:32px 22px; line-height:1.55; } h1 { margin-bottom:6px; } h2 { font-size:1.35rem; margin:0; } h3 { font-size:1rem; } a { color:#8dd7ef; } .meta { color:#adb8c9; font-size:.88rem; } .summary { background:#1c2330; padding:20px; border-radius:10px; } .toc { display:flex; flex-wrap:wrap; gap:6px 18px; margin:24px 0; } .profile { margin:24px 0; padding:22px; background:#171b23; border:1px solid #343d4d; border-radius:10px; } article { border-top:1px solid #343d4d; margin-top:15px; padding-top:4px; } audio { width:min(100%,580px); } .transcript { font-size:1.08rem; max-width:820px; } details p,code { overflow-wrap:anywhere; } .warning { color:#ffd195; } footer { margin-top:32px; }
-</style></head><body><h1>Original character voice references</h1><p class="meta">Snapshot ${escapeHtml(inventory.generatedAt)} · ${counts.profiles} registered profiles · ${counts.lanes} lanes</p><div class="summary"><strong>${counts.acceptedProfiles} accepted references preserved. ${counts.profilesWithVerifiedCandidates} additional characters have ${counts.verifiedOriginalCandidates} verified original clips.</strong><p>${counts.unpreparedProfiles} unprepared and ${counts.unavailableProfiles} unavailable profiles keep Convai. ${counts.quarantinedCandidates} candidates have playback withheld.</p><p>One shared OmniVoice model; each voice is a short recording plus transcript and cached conditioning. These players contain the original game audio, with no extra processing. Provisional primary/alternate choices are suggestions to audition, not promoted runtime voices.</p><p>Listen for identity, clarity, background voices, complete words and the intended performance. Metadata and a waveform cannot establish those qualities. No new listening approval is inferred here.</p></div><nav class="toc" aria-label="Characters">${inventory.profiles.map(profile => `<a href="#${escapeHtml(profile.key)}">${escapeHtml(profile.name)}</a>`).join('')}</nav>${inventory.warnings.length ? `<details><summary>Snapshot warnings (${inventory.warnings.length})</summary><ul>${inventory.warnings.map(warning => `<li>${escapeHtml(warning.lane)}: ${escapeHtml(warning.issue)}</li>`).join('')}</ul></details>` : ''}${cards}<footer><p>${escapeHtml(inventory.verificationBoundary)}</p><p>This audition file does not alter the game, voice settings or conversation memory. Rebuild with <code>node scripts/Build-VoiceCastReview.mjs</code> after casting lanes finish.</p></footer></body></html>`;
+:root { color-scheme: dark; font-family: system-ui,sans-serif; background:#101217; color:#e9edf3; } body { max-width:1050px; margin:auto; padding:32px 22px; line-height:1.55; } h1 { margin-bottom:6px; } h2 { font-size:1.35rem; margin:0; } h3 { font-size:1rem; } a { color:#8dd7ef; } .meta { color:#adb8c9; font-size:.88rem; } .summary { background:#1c2330; padding:20px; border-radius:10px; } .toc { display:flex; flex-wrap:wrap; gap:6px 18px; margin:24px 0; } .profile { margin:24px 0; padding:22px; background:#171b23; border:1px solid #343d4d; border-radius:10px; } article { border-top:1px solid #343d4d; margin-top:15px; padding-top:4px; } audio { width:min(100%,580px); } .transcript { font-size:1.08rem; max-width:820px; } details p,code { overflow-wrap:anywhere; } .warning { color:#ffd195; } footer { margin-top:32px; } .comparison { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:28px; } @media(max-width:700px) { .comparison { grid-template-columns:1fr; } }
+</style></head><body><h1>Character voice reference comparisons</h1><p class="meta">Snapshot ${escapeHtml(inventory.generatedAt)} · ${counts.profiles} registered profiles · ${counts.lanes} lanes</p><div class="summary"><strong>${counts.acceptedProfiles} accepted references preserved. ${counts.profilesWithVerifiedCandidates} additional characters have ${counts.verifiedOriginalCandidates} verified original clips.</strong><p>${counts.generatedComparisonSamples ?? 0} verified generated comparisons are paired with their source references. Source-qualified auditions, listening pending; not benchmark results and no runtime promotion.</p><p>${counts.unpreparedProfiles} unprepared and ${counts.unavailableProfiles} unavailable profiles keep Convai. ${counts.quarantinedCandidates} originals and ${counts.quarantinedGeneratedSamples ?? 0} comparisons have playback withheld.</p><p>One shared OmniVoice model; each voice is a short recording plus transcript and cached conditioning. Original players contain unchanged game audio; generated players are clearly labeled. Provisional primary/alternate choices are suggestions to audition, not promoted runtime voices.</p><p>Listen for identity, clarity, background voices, complete words and the intended performance. Metadata and a waveform cannot establish those qualities. No new listening approval is inferred here.</p></div><nav class="toc" aria-label="Characters">${inventory.profiles.map(profile => `<a href="#${escapeHtml(profile.key)}">${escapeHtml(profile.name)}</a>`).join('')}</nav>${inventory.warnings.length ? `<details><summary>Snapshot warnings (${inventory.warnings.length})</summary><ul>${inventory.warnings.map(warning => `<li>${escapeHtml(warning.lane)}: ${escapeHtml(warning.issue)}</li>`).join('')}</ul></details>` : ''}${cards}<footer><p>${escapeHtml(inventory.verificationBoundary)}</p><p>This audition file does not alter the game, voice settings or conversation memory. Rebuild with <code>node scripts/Build-VoiceCastReview.mjs</code> after casting lanes finish.</p></footer></body></html>`;
 }
 
 export function renderMarkdown(inventory) {
   const c = inventory.counts;
   const rows = [...new Set(inventory.profiles.map(profile => profile.lane))].map(lane => {
     const profiles = inventory.profiles.filter(profile => profile.lane === lane);
-    return `| ${lane} | ${profiles.length} | ${profiles.filter(p => p.status === 'accepted').length} | ${profiles.filter(p => p.status === 'listening_pending').length} | ${profiles.flatMap(p => p.candidates).filter(candidate => candidate.sourceVerified).length} | ${profiles.filter(p => p.status === 'unprepared').length} | ${profiles.filter(p => p.status === 'unavailable').length} |`;
+    return `| ${lane} | ${profiles.length} | ${profiles.filter(p => p.status === 'accepted').length} | ${profiles.filter(p => p.status === 'listening_pending').length} | ${profiles.flatMap(p => p.candidates).filter(candidate => candidate.sourceVerified).length} | ${profiles.filter(p => p.generatedComparison?.playback).length} | ${profiles.filter(p => p.status === 'unprepared').length} | ${profiles.filter(p => p.status === 'unavailable').length} |`;
   });
   const gaps = inventory.profiles.filter(profile => ['unprepared', 'unavailable'].includes(profile.status)).map(profile => `- **${escapeMarkdown(profile.name)}** (${profile.key}): ${escapeMarkdown(profile.gapReason)}`);
   return `# Wider-cast voice preparation status
@@ -434,6 +508,10 @@ export function renderMarkdown(inventory) {
 Generated from current local lane receipts at ${inventory.generatedAt}. Rebuild with
 \`node scripts/Build-VoiceCastReview.mjs\`; this document is a snapshot, not a
 declaration that incomplete casting work is finished.
+An existing generated run can be selected explicitly with
+\`--auditions runtime/voice-cast/auditions/<run-name>/results.json\`.
+The default local October 1 run is optional; a checkout without it still builds
+the original-reference review.
 
 ## Current evidence
 
@@ -442,11 +520,13 @@ declaration that incomplete casting work is finished.
 - ${c.profilesWithVerifiedCandidates} additional profiles have ${c.verifiedOriginalCandidates} attributed, decoded original clips available for listening.
 - ${c.unpreparedProfiles} unprepared profiles and ${c.unavailableProfiles} profiles without a unique canonical cast voice retain Convai.
 - ${c.quarantinedCandidates} candidates failed aggregate verification; their playback links are withheld.
+- ${c.generatedComparisonSamples} generated comparison samples match their current chosen original reference and exact transcript hashes. ${c.quarantinedGeneratedSamples} comparison links are withheld.
 - ${c.newListeningApprovals} new listening approvals and ${c.newProfilesPromoted} new runtime promotions were made by the aggregate.
 - Playable original WAVs total ${(c.originalWavBytes / 1024 / 1024).toFixed(2)} MiB. This is candidate audition storage, not a per-character model size.
+- Verified generated audition WAVs total ${(c.generatedWavBytes / 1024 / 1024).toFixed(2)} MiB.
 
-| Lane | Profiles | Accepted | With verified candidates | Original clips | Unprepared | Unavailable |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Lane | Profiles | Accepted | With verified candidates | Original clips | Generated comparisons | Unprepared | Unavailable |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 ${rows.join('\n')}
 
 ## Audition artifact and verification
@@ -455,6 +535,10 @@ Open [the offline audition index](../runtime/voice-cast/review/index.html).
 The companion [machine-readable inventory](../runtime/voice-cast/review/inventory.json)
 lists all current profiles, exact transcripts, verified WAV format/duration,
 source receipts, provisional primary/alternate selections and explicit gaps.
+Generated comparisons are paired beside their chosen originals, clearly labeled
+as source-qualified auditions with listening pending. These are not benchmark
+results, listening acceptance or runtime promotions. Generation timing fields are
+intentionally excluded from this comparison report.
 Both artifacts are ignored local research outputs; this tracked document contains
 only preparation status.
 
@@ -487,8 +571,9 @@ add a separately trained model. The three accepted references are preserved.
    or explicitly documented canonical processed speech (for example, Smasher).
 3. Promote only qualified immutable reference descriptors through the coordinator's
    registry; preserve Convai fallback for unprepared/unavailable profiles.
-4. Run bounded conditioning and synthesized listening checks through the single
-   shared worker, without writing synthetic dialogue into conversation memory.
+4. Listen to the existing generated comparisons, then perform any additional
+   bounded conditioning checks through the single shared worker, without writing
+   synthetic dialogue into conversation memory.
 5. Rebuild this report after any lane or selection changes.
 
 ## Current gaps
@@ -528,8 +613,13 @@ export async function writeVoiceCastReview(options = {}) {
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try {
     const args = process.argv.slice(2);
-    check(args.length === 0 || (args.length === 2 && args[0] === '--project'), 'Usage: node scripts/Build-VoiceCastReview.mjs [--project <root>]');
-    const inventory = await writeVoiceCastReview(args.length ? { projectRoot: args[1] } : {});
+    const options = {};
+    for (let at = 0; at < args.length; at += 2) {
+      const property = { '--project': 'projectRoot', '--auditions': 'auditionRun' }[args[at]];
+      check(property && args[at + 1] && !Object.hasOwn(options, property), 'Usage: node scripts/Build-VoiceCastReview.mjs [--project <root>] [--auditions <contained-run/results.json>]');
+      options[property] = args[at + 1];
+    }
+    const inventory = await writeVoiceCastReview(options);
     process.stdout.write(`${JSON.stringify({ counts: inventory.counts, warnings: inventory.warnings.length, index: 'runtime/voice-cast/review/index.html', status: 'docs/VOICE_CAST_STATUS.md' }, null, 2)}\n`);
   } catch (error) { process.stderr.write(`Voice cast review failed: ${error.message}\n`); process.exitCode = 1; }
 }

@@ -21,6 +21,45 @@
 
 ## October 1 — immediate voice preparation and remaining controls
 
+### Full-cast continuation
+
+- [x] Authenticate original reference candidates for 59 additional characters:
+  234 original clips, with the three accepted references preserved. Exact native
+  attribution, English variants and winning archive receipts are retained.
+- [x] Make local voice eligibility data driven, with one shared model, bounded
+  lazy conditioning and preparation before spawn permission. Revalidate pending
+  invitations when provider settings or cached speaker conditioning change.
+- [x] Generate 62 isolated 32-step draft auditions through one GPU worker.
+  No silent/clipped outputs, no production promotions, no synthetic dialogue or
+  memory seeding. Timings are audition observations, not gameplay benchmarks.
+- [ ] Qualify the generated voices by listening, promote suitable references,
+  and preserve Convai for the 17 unresolved or unsuitable cast profiles.
+- [x] Finish the four reviewed quest lanes and freshly authenticate earlier
+  unbound JSON evidence. The combined strict build has 191 rules, 185 mapped
+  outcomes and 5,359 hash-bound pointers, with zero legacy unbound references.
+- [x] Correct generic resident memory wording in source, generated profiles and
+  cloud readback. Their shared profile memory is not per-pedestrian isolation;
+  both existing cloud memory configurations and mappings were preserved.
+- [x] Verify the combined source update: 1,557 checks pass with native source and
+  installed MCM gates enabled, zero failures/skips. Local Git checkpoints retain
+  the changes; source checks do not certify every live companion or voice.
+- [x] Integrate sourced public intrinsic history for 19 major characters:
+  244 claims, 148 original samples, 10,475 pointer/attribution checks. Existing
+  cloud mappings/model/voices/memory settings preserved; no characters created.
+- [x] Add Johnny/Jackie's private topic context for actual private/phone text
+  admissions, current-world guards, default-Off question policy and canonical
+  author pins. Groups and automatic replies receive no private cards.
+- [ ] Extend disclosure-aware private selectors beyond Johnny/Jackie; F7 topic
+  facts remain deferred because recognition arrives after generation starts.
+- [ ] Continue primary-source expansion for the remaining cast, proportional to
+  their supported history. One-off roles do not need invented life stories.
+- [x] Final integrated source gate: 1,604 passed, zero failures/skips, including
+  native source qualification and installed MCM API. Live listening remains a
+  separate qualification for the new voice samples.
+
+See `docs/FULL_CAST_EXPANSION_2026-10-01.md`, `docs/VOICE_CAST_STATUS.md`
+and `docs/CHARACTER_KNOWLEDGE_COVERAGE_2026-10-01.md` for methods and limits.
+
 - [x] Implement Omni model loading/warmup immediately when its MCM selector
   changes, before Apply or a conversation. Supported draft events drive a
   bounded preview lease; routing stays fixed for current replies, Apply reuses

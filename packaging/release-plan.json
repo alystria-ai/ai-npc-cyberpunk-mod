@@ -379,6 +379,18 @@
           "source": "build-generated",
           "selection": "licenses, third-party notices, model terms, hashes and corresponding source inventory",
           "status": "not-complete"
+        },
+        {
+          "id": "intrinsic-history",
+          "destination": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/app/research/cyberpunk/native-character-claims",
+          "sourceFiles": [
+            "research/cyberpunk/native-character-claims/jackie-welles.json",
+            "research/cyberpunk/native-character-claims/johnny-silverhand.json"
+          ],
+          "selection": "only reviewed canonical authored documents loaded by the production bridge",
+          "includeRawGameExports": false,
+          "authorHashEncoding": "canonical-json-v1",
+          "status": "explicit-data-whitelist-and-relocation-check-required"
         }
       ]
     }
@@ -404,6 +416,15 @@
       "packageExistingAudio": false,
       "generateFromUserInstalledGame": true,
       "status": "portable-extraction-and-reference-manifest-required"
+    },
+    "registry": {
+      "schemaVersion": 2,
+      "sharedModel": true,
+      "profileLimit": 128,
+      "preparation": "lazy",
+      "startupProfilesLimit": 3,
+      "maxCachedProfiles": 8,
+      "additionalProfileStatus": "source-qualified auditions; production promotion pending"
     }
   },
   "licenses": [
