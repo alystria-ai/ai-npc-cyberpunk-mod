@@ -371,4 +371,21 @@ export class RealtimeHost {
     })().finally(() => { this.closing = null; });
     return this.closing;
   }
+  async diagnostics() {
+    // Inspect existing pages only: no connection, microphone or conversation.
+    // The browser getter enumerates booleans/counts and excludes all identities,
+    // credentials and dialogue. Never serialize pool keys or SDK objects.
+    const pages = [...this.pool?.entries.values() || []].map(entry => entry.value).slice(0, CONNECTION_LIMIT);
+    return Promise.all(pages.map(async (page, index) => {
+      let timer;
+      try {
+        const value = await Promise.race([
+          page.evaluate(() => window.convaiRealtime.diagnostics()),
+          new Promise((_, reject) => { timer = setTimeout(() => reject(Error('timeout')), 2000); }),
+        ]);
+        return {index, value};
+      } catch { return {index, unavailable: true}; }
+      finally { clearTimeout(timer); }
+    }));
+  }
 }

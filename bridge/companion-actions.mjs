@@ -13,6 +13,10 @@ const token = value => typeof value === 'string' && /^drive-[a-zA-Z0-9_-]{16,80}
 const seats = new Set(['seat_front_right', 'seat_back_left', 'seat_back_right']);
 const keys = (value, expected) => Object.keys(value).length === expected.length && expected.every(key => Object.hasOwn(value, key));
 
+// Legacy semantic actions may omit target. Put the one-use capability in the
+// advertised name too, so such a proposal still identifies its exact request.
+export const chauffeurActionName = offer => token(offer?.token) ? `${CHAUFFEUR_ACTION} ${offer.token}` : null;
+
 export function parseChauffeurOffer(value) {
   if (!object(value) || value.available !== true || !object(value.actor) || !object(value.car)
       || !object(value.waypoint) || !object(value.waypoint.position)) return null;
@@ -75,7 +79,8 @@ export class CompanionActions {
   configFor(input) {
     const pending = this.pending;
     if (!pending || pending.input !== input || !this.current(pending) || pending.accepted) return undefined;
-    return {version: 1, token: pending.packet.actionId, source: pending.packet.source, expiresAt: pending.packet.expiresAt};
+    return {version: 1, token: pending.packet.actionId, source: pending.packet.source, expiresAt: pending.packet.expiresAt,
+      carName: pending.packet.offer.car.name, destinationName: pending.packet.offer.waypoint.name};
   }
   async deliver(message) {
     const pending = this.pending;
@@ -103,7 +108,9 @@ export class CompanionActionWindow {
     this.clear();
     if (!object(offer) || offer.version !== 1 || !token(offer.token)
         || !['private-text', 'private-voice'].includes(offer.source) || !Number.isSafeInteger(offer.expiresAt)
-        || offer.expiresAt <= this.now() || offer.expiresAt - this.now() > CHAUFFEUR_OFFER_TTL_MS) return false;
+        || offer.expiresAt <= this.now() || offer.expiresAt - this.now() > CHAUFFEUR_OFFER_TTL_MS
+        || (offer.carName !== undefined && !string(offer.carName, 160))
+        || (offer.destinationName !== undefined && !string(offer.destinationName, 160))) return false;
     this.pending = {...offer}; return true;
   }
   current() {
@@ -127,8 +134,12 @@ export class CompanionActionWindow {
     const pending = this.current();
     if (!pending || !object(data) || !Array.isArray(data.actions) || data.actions.length !== 1) return null;
     const action = data.actions[0];
-    if (!object(action) || Object.keys(action).length !== 2 || action.name !== CHAUFFEUR_ACTION
-        || action.target !== pending.token) return null;
+    if (!object(action) || !Object.hasOwn(action, 'name')
+        || Object.keys(action).some(key => !['name', 'target'].includes(key))) return null;
+    const boundName = action.name === chauffeurActionName(pending);
+    const targetedName = action.name === CHAUFFEUR_ACTION && action.target === pending.token;
+    if (!boundName && !targetedName) return null;
+    if (boundName && action.target != null && action.target !== '' && action.target !== pending.token) return null;
     this.clear();
     return {version: 1, token: pending.token};
   }
@@ -143,7 +154,8 @@ export async function publishCompanionActionContext(client, context, offer) {
   const participant = client?.room?.localParticipant;
   if (!client?.isBotReady || typeof participant?.publishData !== 'function'
       || typeof participant.sid !== 'string' || !participant.sid) throw Error('Companion action transport unavailable');
-  const action_config = {actions: offer ? [CHAUFFEUR_ACTION] : [], characters: [],
+  if (offer && !chauffeurActionName(offer)) throw Error('Invalid companion action offer');
+  const action_config = {actions: offer ? [chauffeurActionName(offer)] : [], characters: [],
     objects: offer ? [{name: offer.token, description: "V's currently summoned owned car and selected map waypoint, bound to this request only."}] : [],
     current_attention_object: offer?.token ?? ''};
   const data = {...context, run_llm: 'false', action_config, current_attention_object: offer?.token ?? '',

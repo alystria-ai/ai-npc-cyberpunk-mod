@@ -234,6 +234,44 @@ native requests rather than reproducing that pathfinding in Lua. The old AMM
 
 ## Verification
 
+### Conversation action delivery, October 2
+
+The installed driving request reached the identified private bridge and its
+silent runtime `context-update` received a successful acknowledgment. The
+verified provider then emitted one `Drive To Waypoint` action without a target.
+The old parser rejected it, so the native fleet remained idle; the actor's
+look-at controller had not received or blocked a driving command.
+
+Legacy Convai semantic actions permit an omitted target. The bridge now
+advertises a request-specific name (`Drive To Waypoint drive-<nonce>`) and accepts
+a targetless proposal only when that complete name matches the current one-use
+capability. A supplied nonempty target must also match. The previous base name
+plus exact target remains supported. Unknown fields, tool-call projections,
+batches, stale names, expired requests, unrelated participants and unreliable
+delivery cannot authorize driving. The nonce stays in protocol context, with
+an explicit instruction to omit it from speech; game controls retain their
+friendly labels. The frozen native actor/car/route remains the
+authority, independently of any model fields.
+
+The model context includes the car and selected destination labels from that
+frozen offer and states that the route is already ready. It asks for a new map
+selection only when V explicitly requests a different destination. These
+presentation labels cannot change the native coordinates or identity.
+
+PID-bound `runtime/bridge-control.json` diagnostics inspect existing browser
+pages only. They report action eligibility, context acknowledgment, proposal
+counts and matching booleans; they omit credentials, player/provider/session
+identifiers, capabilities and dialogue. No conversation, microphone or game
+action is created by collecting a snapshot.
+
+The ordinary Judy Core readback had an empty saved action list. The documented
+singular `action` update and a bounded plural compatibility check both returned
+success without changing any field in the readback. Neither is treated as a
+successful configuration change. An isolated anonymous connection comparison
+was rejected with HTTP 400 before conversation and therefore provides no
+evidence about action initialization. Runtime protocol evidence and actual
+installed action delivery remain the acceptance criteria.
+
 The October 2 read-only game probe verified the current owned Porsche, actual
 empty seats, managed Judy identity and native selected Quest destination while
 the manual tracker was empty. Both Quest and PlayerTracked destinations use the

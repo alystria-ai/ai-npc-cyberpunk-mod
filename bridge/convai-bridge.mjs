@@ -1070,6 +1070,14 @@ async function pollSettings(checkShutdown = true) {
       controlsObserved = control;
       let command; try { command = JSON.parse(control); } catch {}
       if (checkShutdown && command?.action === 'shutdown' && command.pid === process.pid) void shutdown();
+      if (command?.action === 'diagnostics' && command.pid === process.pid) {
+        const pendingAction = companionActions.pending;
+        await atomic(resolve(stateDirectory, 'bridge-diagnostics.json'), JSON.stringify({version: 1, updated: Date.now(),
+          action: {admitted: !!pendingAction, accepted: pendingAction?.accepted === true,
+            current: !!pendingAction && companionActions.current(pendingAction),
+            profile: pendingAction?.input?.profileKey ?? null},
+          pages: await realtime.diagnostics()}));
+      }
     }
   } finally { settingsPolling = false; }
 }

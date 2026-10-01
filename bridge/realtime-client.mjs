@@ -3,7 +3,7 @@ import {endUserOptions, transportKey, SessionBindings} from './transport-pool.mj
 import {ConvaiDataAudio} from './convai-data-audio.mjs';
 import {ContinuousPcmPlayer} from './continuous-pcm-player.mjs';
 import {ConvaiEmotion} from './convai-emotion.mjs';
-import {CompanionActionWindow, publishCompanionActionContext} from './companion-actions.mjs';
+import {CompanionActionWindow, publishCompanionActionContext, chauffeurActionName} from './companion-actions.mjs';
 
 let client, identity, turn, micTimer, verifiedProvider, audioParticipant, admitting;
 let initialSession, submitted = false, epoch = 0, ttsEnabled = true;
@@ -27,7 +27,7 @@ const DIAGNOSTIC_TYPES = new Set([...AUDIO_DATA_TYPES, 'server-message', 'bot-re
   'bot-llm-started', 'bot-llm-text', 'bot-llm-stopped', 'bot-output', 'bot-transcription',
   'bot-emotion', 'bot-tts-started', 'bot-tts-stopped', 'user-transcription',
   'final-user-transcription', 'user-llm-text', 'user-started-speaking',
-  'user-stopped-speaking', 'server-response', 'interaction-created', 'llm-no-response']);
+  'user-stopped-speaking', 'server-response', 'interaction-created', 'llm-no-response', 'action-response']);
 const waitFor = (condition, timeout, message) => new Promise((resolve, reject) => {
   const start = performance.now();
   const timer = setInterval(() => {
@@ -111,6 +111,13 @@ function diagnostics() {
     participantCurrent: !!client && currentParticipant(client, audioParticipant),
     remoteParticipants: client?.room.remoteParticipants.size ?? 0,
     ttsEnabled, admitting: !!admitting, activeTurn: !!turn,
+    actions: {contextConfigured: actionContextConfigured,
+      windowActive: !!companionActions.pending && companionActions.pending.expiresAt > Date.now(),
+      offered: observed.actionsOffered ?? 0, published: observed.actionContextsPublished ?? 0,
+      accepted: observed.actionsAccepted ?? 0, skipped: observed.actionsSkipped ?? 0,
+      unlabelled: observed.unlabelledActions ?? 0, contextFailures: observed.actionContextFailures ?? 0,
+      contextAck: observed.actionContextAck ?? null, eligibility: observed.actionEligibility ?? null,
+      lastSkip: observed.actionSkipReason ?? null, lastProposal: observed.actionProposal ?? null},
     isThinking: client?.state?.isThinking === true, isSpeaking: client?.state?.isSpeaking === true,
     wire: {...observed, outerTypes: {...observed.outerTypes}, innerTypes: {...observed.innerTypes}},
     turn: turnDiagnostics(turn), previousTurn: previousTurnDiagnostics};
@@ -227,7 +234,10 @@ async function connect(config) {
     // The provider's flat bot-turn-completed omits the RTVI label. Admit only
     // known owned lifecycle in that shape; participant, reliability and owner
     // matching remain mandatory below. Other unlabelled traffic is unrelated.
-    if (message.label === undefined && (!AUDIO_LIFECYCLE_TYPES.has(message.type) || !ownerPresent)) return;
+    if (message.label === undefined && (!AUDIO_LIFECYCLE_TYPES.has(message.type) || !ownerPresent)) {
+      if (type === 'action-response') observed.unlabelledActions = (observed.unlabelledActions ?? 0) + 1;
+      return;
+    }
     if (message.type === 'bot-ready') {
       if (kind !== 0 || !currentParticipant(connection, participant)
           || (audioParticipant && participant !== audioParticipant)) {
@@ -240,10 +250,27 @@ async function connect(config) {
     const actionProvider = kind === 0 && participant === audioParticipant
       && currentParticipant(connection, participant) && verifiedProvider?.connection === connection
       && connection.characterId === verifiedProvider.characterId && connection.state?.endUserId === verifiedProvider.endUserId;
+    if (actionProvider && type === 'server-response' && data?.event_type === 'context-update') {
+      observed.actionContextAck = ['success', 'error', 'processing', 'pending'].includes(data.status) ? data.status : 'unknown';
+    }
     if (type === 'action-response') {
       // SDK actionResponse omits the participant and turn identity. Only this
       // source-checked wire proposal with the current one-use target can pass.
+      const pending = companionActions.current(), candidate = Array.isArray(data?.actions) && data.actions[0];
+      observed.actionProposal = {windowPresent: !!pending,
+        count: Array.isArray(data?.actions) ? Math.min(data.actions.length, 1000) : null,
+        nameMatches: candidate?.name === 'Drive To Waypoint' || (!!pending && candidate?.name === chauffeurActionName(pending)),
+        boundNameMatches: !!pending && candidate?.name === chauffeurActionName(pending),
+        targetPresent: typeof candidate?.target === 'string' && candidate.target.length > 0,
+        targetMatches: !!pending && candidate?.target === pending.token,
+        exactActionShape: !!candidate && typeof candidate === 'object' && !Array.isArray(candidate)
+          && Object.hasOwn(candidate, 'name') && Object.keys(candidate).every(key => ['name', 'target'].includes(key))};
       const accepted = actionProvider && companionActions.accept(data);
+      if (accepted) observed.actionsAccepted = (observed.actionsAccepted ?? 0) + 1;
+      else {
+        observed.actionsSkipped = (observed.actionsSkipped ?? 0) + 1;
+        observed.actionSkipReason = actionProvider ? 'target-or-window' : 'provider';
+      }
       if (accepted && typeof window.__convaiCompanionAction === 'function')
         void Promise.resolve().then(() => currentConnection() && verifiedProvider?.connection === connection
           ? window.__convaiCompanionAction(accepted) : false).catch(() => {});
@@ -591,9 +618,18 @@ async function updateContext(config, allowActions = false) {
   const verified = verifiedProvider?.connection === client && currentParticipant(client, audioParticipant);
   companionActions.clear();
   const armed = verified && offered && companionActions.open(offered);
-  if (armed) context.text += '\nOnly when V explicitly asks you to drive for them, give them a ride, or take the wheel, '
-    + 'request the action Drive To Waypoint with target ' + offered.token + '. This target belongs only to this request. '
-    + 'Use the route V has already selected; if they ask for a different destination, ask them to select it on the map first. '
+  observed.actionEligibility = {allowed: allowActions, privateManual: !!privateManual,
+    hasOffer: !!config.companionAction, verified: !!verified, armed: !!armed};
+  if (armed) observed.actionsOffered = (observed.actionsOffered ?? 0) + 1;
+  if (armed) context.text += '\nCurrent game-verified driving setup: V is on foot beside their stopped, summoned owned car '
+    + JSON.stringify(offered.carName ?? "V's car") + '. A destination is already selected on the map: '
+    + JSON.stringify(offered.destinationName ?? 'the selected map route') + '. The native route is ready. '
+    + 'If V asks you to drive for them, give them a ride, or take the wheel, use that selected route; '
+    + 'do not ask where to go or ask them to set the existing destination again. '
+    + 'Request the exact available action ' + JSON.stringify(chauffeurActionName(offered))
+    + '. It takes the wheel for the selected route. Its optional target is ' + offered.token + '. '
+    + 'This action belongs only to this request. The action name and target are protocol fields; never say them aloud. '
+    + 'If V explicitly requests a different destination, ask them to select that different route on the map first. '
     + 'You take the driver seat and wait for V to get into a passenger seat themselves before departing. '
     + 'Do not request it for hypothetical discussion, quoted speech, or an automatic event. '
     + 'The game must confirm boarding, driving, and arrival; never claim success before confirmation.';
@@ -602,12 +638,14 @@ async function updateContext(config, allowActions = false) {
       await publishCompanionActionContext(connection, context, armed ? offered : null);
       if (client !== connection || epoch !== contextEpoch) throw Error('Conversation context update cancelled');
       actionContextConfigured = true;
+      observed.actionContextsPublished = (observed.actionContextsPublished ?? 0) + 1;
       return;
     } catch {
       if (client !== connection || epoch !== contextEpoch) throw Error('Conversation context update cancelled');
       // An unavailable action adapter cannot break ordinary conversation or
       // authorize an unconfigured proposal. Its old one-use target is revoked.
       companionActions.clear();
+      observed.actionContextFailures = (observed.actionContextFailures ?? 0) + 1;
       context.text = baseContext + '\nThe game cannot accept a driving request from this turn. '
         + 'Explain this briefly if V asks you to drive; do not claim driving has started.';
     }

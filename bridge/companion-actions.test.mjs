@@ -2,9 +2,10 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {parseInput} from './protocol.mjs';
+import {PlayerKnowledge} from './player-knowledge.mjs';
 import {installCompanionActionBinding} from './realtime-host.mjs';
 import {CompanionActions, CompanionActionWindow, parseChauffeurOffer,
-  publishCompanionActionContext, CHAUFFEUR_ACTION} from './companion-actions.mjs';
+  publishCompanionActionContext, CHAUFFEUR_ACTION, chauffeurActionName} from './companion-actions.mjs';
 
 const offer = () => ({available: true, actor: {serial: 3, id: '44ULL', key: 'judy'},
   car: {id: '55ULL', record: 'Vehicle.fixture', name: 'Fixture car'}, passengerSeat: 'seat_front_right',
@@ -77,10 +78,35 @@ test('only an identified current manual private actor gets an action target', as
   assert.equal(broker.configFor({...p.input}), undefined, 'cloned/remapped input cannot borrow the offer');
 });
 
+test('real parsed game input gains its private channel through knowledge preparation before action admission', async () => {
+  const nativeInput = structuredClone(prepared().input); delete nativeInput.channel;
+  const parsed = parseInput(JSON.stringify(nativeInput));
+  assert.equal(parsed.channel, undefined, 'the native request should not fabricate the derived channel');
+  const boundary = {worldToken: 'world-fixture', generation: 2};
+  const guard = {endUserId: 'fixture-user', characterId: 'fixture-character', resetEpoch: 0, characterEpoch: 0};
+  const router = new PlayerKnowledge({
+    playerMemory: {route: () => ({endUserId: guard.endUserId, guard}), isCurrent: value => JSON.stringify(value) === JSON.stringify(guard)},
+    pack: {version: 1, id: 'actions-routing-fixture', revision: 1, gameVersions: ['2.31'], profileKeys: ['judy'],
+      sources: [], evidence: [], factAllowlist: {}, journalAllowlist: {}, rules: []},
+    getBoundary: () => boundary, isWorldCurrent: () => true,
+  });
+  const actual = await router.prepare(parsed, boundary);
+  assert.equal(actual.input.channel, 'private'); assert.equal(actual.route.channel, 'private');
+  assert.equal(actual.route.transport, 'private'); assert.equal(actual.identified, true);
+  assert.deepEqual(actual.input.chauffeurOffer, nativeInput.chauffeurOffer);
+  const {broker} = fixture();
+  const admitted = broker.admit(actual, {source: 'private-text',
+    isCurrent: () => router.current(actual), isCurrentSync: () => router.currentSync(actual)});
+  assert.ok(admitted); assert.ok(broker.configFor(actual.input));
+});
+
 test('delivery reconstructs the frozen native snapshot and consumes a target once', async () => {
   const {broker, options, files} = fixture(), p = prepared();
   const config = broker.admit(p, options);
   p.input.chauffeurOffer.car.id = '999ULL'; p.input.chauffeurOffer.waypoint.position.x = 9000;
+  p.input.chauffeurOffer.car.name = 'Changed car'; p.input.chauffeurOffer.waypoint.name = 'Changed route';
+  assert.equal(broker.configFor(p.input).carName, 'Fixture car');
+  assert.equal(broker.configFor(p.input).destinationName, 'Custom waypoint');
   const message = {version: 1, token: config.token};
   assert.equal(await broker.deliver({...message, action: 'arbitrary'}), false);
   assert.deepEqual(await Promise.all([broker.deliver(message), broker.deliver(message)]), [true, false]);
@@ -139,7 +165,7 @@ test('a deferred admission clear cannot overwrite its delivered action, while ex
   assert.equal(await broker.deliver(message), false);
 });
 
-test('browser proposal requires one exact declared target and expires after terminal or late window', () => {
+test('browser proposal requires one exact request capability and expires after terminal or late window', () => {
   let now = 10000;
   const window = new CompanionActionWindow({now: () => now});
   const config = {version: 1, token: 'drive-abcdefghijklmnop', source: 'private-text', expiresAt: now + 90000};
@@ -157,6 +183,27 @@ test('browser proposal requires one exact declared target and expires after term
   assert.equal(window.accept({actions: [action]}), null);
 });
 
+test('targetless legacy actions are accepted only when their advertised name carries the current one-use token', () => {
+  let now = 10000;
+  const window = new CompanionActionWindow({now: () => now});
+  const current = {version: 1, token: 'drive-abcdefghijklmnop', source: 'private-text', expiresAt: now + 90000};
+  const old = {...current, token: 'drive-stalestalestalestale'};
+  window.open(current);
+  for (const action of [{name: CHAUFFEUR_ACTION}, {name: chauffeurActionName(old)},
+    {name: chauffeurActionName(current), target: old.token},
+    {name: chauffeurActionName(current), kind: 'tool_call'},
+    {name: chauffeurActionName(current), arguments: {} }])
+    assert.equal(window.accept({actions: [action]}), null);
+  assert.deepEqual(window.accept({actions: [{name: chauffeurActionName(current)}]}), {version: 1, token: current.token});
+  assert.equal(window.accept({actions: [{name: chauffeurActionName(current)}]}), null);
+  for (const target of [null, '', current.token]) {
+    window.open(current);
+    assert.deepEqual(window.accept({actions: [{name: chauffeurActionName(current), target}]}), {version: 1, token: current.token});
+  }
+  window.open(current); now += 90001;
+  assert.equal(window.accept({actions: [{name: chauffeurActionName(current)}]}), null);
+});
+
 test('pinned SDK context adapter emits one reliable silent legacy update, and can clear all affordances', async () => {
   const packageInfo = JSON.parse(readFileSync(new URL('../node_modules/@convai/web-sdk/package.json', import.meta.url)));
   assert.equal(packageInfo.version, '1.7.0', 'Review the version-pinned action transport before upgrading the SDK');
@@ -168,7 +215,7 @@ test('pinned SDK context adapter emits one reliable silent legacy update, and ca
   assert.deepEqual(sent[0].options, {reliable: true});
   assert.equal(sent[0].message.data.run_llm, 'false');
   assert.equal(sent[0].message.data.participant_sid, 'local');
-  assert.deepEqual(sent[0].message.data.action_config.actions, [CHAUFFEUR_ACTION]);
+  assert.deepEqual(sent[0].message.data.action_config.actions, [chauffeurActionName(offer)]);
   assert.equal(sent[0].message.data.action_config.objects[0].name, offer.token);
   await publishCompanionActionContext(client, {text: 'Next ordinary request', mode: 'replace'}, null);
   assert.deepEqual(sent[1].message.data.action_config, {actions: [], objects: [], characters: [], current_attention_object: ''});

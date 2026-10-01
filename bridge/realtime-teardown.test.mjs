@@ -8,7 +8,7 @@ import {drainBlendshapes} from './blendshape-capture.mjs';
 import {PcmChunkStream} from './convai-audio-stream.mjs';
 import {ConvaiDataAudio} from './convai-data-audio.mjs';
 import {ConvaiEmotion} from './convai-emotion.mjs';
-import {CompanionActionWindow, publishCompanionActionContext} from './companion-actions.mjs';
+import {CompanionActionWindow, publishCompanionActionContext, chauffeurActionName} from './companion-actions.mjs';
 
 const deferred = () => {
   let resolve;
@@ -25,7 +25,7 @@ const clientSource = readFileSync(new URL('./realtime-client.mjs', import.meta.u
   .replace("import {ConvaiDataAudio} from './convai-data-audio.mjs';", '')
   .replace("import {ContinuousPcmPlayer} from './continuous-pcm-player.mjs';", '')
   .replace("import {ConvaiEmotion} from './convai-emotion.mjs';", '')
-  .replace("import {CompanionActionWindow, publishCompanionActionContext} from './companion-actions.mjs';", '');
+  .replace("import {CompanionActionWindow, publishCompanionActionContext, chauffeurActionName} from './companion-actions.mjs';", '');
 
 // Run the actual host and lease pool. Each page executes the host's browser
 // callbacks against its own window, without launching a browser or SDK network.
@@ -87,7 +87,7 @@ function fixture(t, {disconnectTimeoutMs, realClient = false, onDisconnect, crea
         }
         runInNewContext(clientSource, {ConvaiClient: Client, window: page.window,
           endUserOptions, transportKey, SessionBindings, drainBlendshapes, PcmChunkStream, ConvaiDataAudio, ConvaiEmotion,
-          CompanionActionWindow, publishCompanionActionContext,
+          CompanionActionWindow, publishCompanionActionContext, chauffeurActionName,
           TextDecoder, ArrayBuffer, Uint8Array,
           performance, setTimeout, clearTimeout, setInterval, clearInterval,
           btoa: data => Buffer.from(data, 'binary').toString('base64')});

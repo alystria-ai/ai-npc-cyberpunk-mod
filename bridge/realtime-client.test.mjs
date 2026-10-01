@@ -6,7 +6,7 @@ import {journalContext} from './quest-context.mjs';
 import {endUserOptions, transportKey, SessionBindings} from './transport-pool.mjs';
 import {ConvaiDataAudio} from './convai-data-audio.mjs';
 import {ConvaiEmotion} from './convai-emotion.mjs';
-import {CompanionActionWindow, publishCompanionActionContext} from './companion-actions.mjs';
+import {CompanionActionWindow, publishCompanionActionContext, chauffeurActionName} from './companion-actions.mjs';
 
 const source = readFileSync(new URL('./realtime-client.mjs', import.meta.url), 'utf8')
   .replace("import {ConvaiClient} from '@convai/web-sdk/vanilla';", '')
@@ -14,7 +14,7 @@ const source = readFileSync(new URL('./realtime-client.mjs', import.meta.url), '
   .replace("import {ConvaiDataAudio} from './convai-data-audio.mjs';", '')
   .replace("import {ContinuousPcmPlayer} from './continuous-pcm-player.mjs';", '')
   .replace("import {ConvaiEmotion} from './convai-emotion.mjs';", '')
-  .replace("import {CompanionActionWindow, publishCompanionActionContext} from './companion-actions.mjs';", '');
+  .replace("import {CompanionActionWindow, publishCompanionActionContext, chauffeurActionName} from './companion-actions.mjs';", '');
 const flush = () => new Promise(done => setImmediate(done));
 function manualTimers() {
   let now = 0, nextId = 0;
@@ -87,7 +87,7 @@ function fixture({emitAudio, onCompanionAction, onPublish, allowMic = false, tim
   const window = {__convaiAudioChunk: emitAudio, __convaiCompanionAction: onCompanionAction};
   runInNewContext(source, {ConvaiClient: Client, AudioContext: ForbiddenAudio, AudioWorkletNode: ForbiddenAudio,
     endUserOptions, transportKey, SessionBindings, ConvaiDataAudio, ConvaiEmotion, TextDecoder, TextEncoder,
-    CompanionActionWindow, publishCompanionActionContext,
+    CompanionActionWindow, publishCompanionActionContext, chauffeurActionName,
     ContinuousPcmPlayer: player || ForbiddenAudio,
     window, performance, setTimeout: timers?.setTimeout ?? setTimeout, clearTimeout: timers?.clearTimeout ?? clearTimeout,
     setInterval, clearInterval,
@@ -128,6 +128,49 @@ const chauffeurConfig = (sequence = 1, source = 'private-text') => ({...config, 
 const chauffeurAction = request => wire({type: 'action-response',
   actions: [{name: 'Drive To Waypoint', target: request.companionAction.token}]});
 
+test('an empty provider proposal keeps the driving offer and exposes only anonymous action diagnostics', async () => {
+  const accepted = [], {api, clients, events} = fixture({onCompanionAction: value => accepted.push(value)});
+  const request = chauffeurConfig();
+  request.companionAction.carName = 'Porsche'; request.companionAction.destinationName = 'Custom waypoint';
+  await api.warm(request);
+  const reply = api.reply(request); await flush(); const client = clients[0];
+  const context = events.find(row => row[0] === 'publish')[1].data.text;
+  assert.match(context, /"Porsche"/); assert.match(context, /"Custom waypoint"/);
+  assert.match(context, /do not ask where to go/);
+  client.data(wire({type: 'action-response', actions: []}));
+  let diagnostic = api.diagnostics().actions;
+  assert.equal(diagnostic.windowActive, true); assert.equal(diagnostic.lastProposal.count, 0);
+  client.data(chauffeurAction(request)); await flush();
+  diagnostic = api.diagnostics().actions;
+  assert.equal(accepted.length, 1); assert.equal(diagnostic.lastProposal.targetMatches, true);
+  const redacted = JSON.stringify(diagnostic);
+  for (const value of [request.key, request.characterId, request.endUserId, request.companionAction.token,
+    request.companionAction.carName, request.companionAction.destinationName]) assert.ok(!redacted.includes(value));
+  finalText(client); await reply; await api.close();
+});
+
+test('targetless wire action needs the advertised request name, reliable pinned provider and exact current window', async () => {
+  const accepted = [], {api, clients, events} = fixture({onCompanionAction: value => accepted.push(value)});
+  const first = chauffeurConfig(); await api.warm(first);
+  const reply = api.reply(first); await flush(); const client = clients[0];
+  const proposal = request => wire({type: 'action-response', actions: [{name: chauffeurActionName(request.companionAction)}]});
+  client.data(proposal(first), {kind: 1});
+  client.data(proposal(first), {participant: {identity: client.peer.identity}});
+  client.data(wire({type: 'action-response', actions: [{name: 'Drive To Waypoint'}]}));
+  assert.equal(accepted.length, 0);
+  client.data(proposal(first)); await flush();
+  assert.equal(accepted.length, 1); assert.equal(accepted[0].token, first.companionAction.token);
+  assert.equal(api.diagnostics().actions.lastProposal.boundNameMatches, true);
+  client.data(proposal(first)); assert.equal(accepted.length, 1);
+  finalText(client); await reply;
+  const next = chauffeurConfig(2), second = api.reply(next); await flush();
+  assert.deepEqual(events.filter(row => row[0] === 'publish').at(-1)[1].data.action_config.actions,
+    [chauffeurActionName(next.companionAction)]);
+  client.data(proposal(first)); assert.equal(accepted.length, 1);
+  client.data(proposal(next)); await flush(); assert.equal(accepted.length, 2);
+  finalText(client, 'Next.', 'reply-2'); await second; await api.close();
+});
+
 test('private action uses one silent reliable context update and supports late Omni delivery without reconnect or audio delay', async () => {
   const accepted = [], {api, clients, events} = fixture({onCompanionAction: value => accepted.push(value)});
   const request = chauffeurConfig(); await api.warm(request);
@@ -137,7 +180,7 @@ test('private action uses one silent reliable context update and supports late O
   assert.equal(events[contextIndex][1].type, 'context-update');
   assert.equal(events[contextIndex][1].data.run_llm, 'false');
   assert.equal(events[contextIndex][2].reliable, true);
-  assert.deepEqual(events[contextIndex][1].data.action_config.actions, ['Drive To Waypoint']);
+  assert.deepEqual(events[contextIndex][1].data.action_config.actions, [chauffeurActionName(request.companionAction)]);
   assert.equal(events.filter(row => row[0] === 'message').length, 1);
   finalText(client, 'Let me check the car.');
   const result = await reply;
