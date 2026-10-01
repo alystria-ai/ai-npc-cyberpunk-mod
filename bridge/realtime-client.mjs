@@ -3,6 +3,7 @@ import {endUserOptions, transportKey, SessionBindings} from './transport-pool.mj
 import {ConvaiDataAudio} from './convai-data-audio.mjs';
 import {ContinuousPcmPlayer} from './continuous-pcm-player.mjs';
 import {ConvaiEmotion} from './convai-emotion.mjs';
+import {CompanionActionWindow, publishCompanionActionContext} from './companion-actions.mjs';
 
 let client, identity, turn, micTimer, verifiedProvider, audioParticipant, admitting;
 let initialSession, submitted = false, epoch = 0, ttsEnabled = true;
@@ -11,6 +12,8 @@ let retiredExpressionOwners = [];
 let observed = {}, previousTurnDiagnostics = null;
 let previousContinuous = null;
 const sessions = new SessionBindings();
+const companionActions = new CompanionActionWindow();
+let actionContextConfigured = false;
 // The game owns its 30-second recording finish and supplies fresh context.
 // This later ceiling is cancellation only if that finish never reaches us.
 const MICROPHONE_CANCEL_AFTER_MS = 35000;
@@ -114,6 +117,7 @@ function diagnostics() {
 }
 
 async function close(reason = 'Conversation cancelled') {
+  companionActions.clear(); actionContextConfigured = false;
   const previous = {client, turn};
   const microphones = previous.client ? [...previous.client.room.localParticipant.audioTrackPublications.values()]
     .filter(pub => pub.source === 'microphone' && pub.track) : [];
@@ -233,6 +237,21 @@ async function connect(config) {
       audioParticipant = participant;
       return;
     }
+    const actionProvider = kind === 0 && participant === audioParticipant
+      && currentParticipant(connection, participant) && verifiedProvider?.connection === connection
+      && connection.characterId === verifiedProvider.characterId && connection.state?.endUserId === verifiedProvider.endUserId;
+    if (type === 'action-response') {
+      // SDK actionResponse omits the participant and turn identity. Only this
+      // source-checked wire proposal with the current one-use target can pass.
+      const accepted = actionProvider && companionActions.accept(data);
+      if (accepted && typeof window.__convaiCompanionAction === 'function')
+        void Promise.resolve().then(() => currentConnection() && verifiedProvider?.connection === connection
+          ? window.__convaiCompanionAction(accepted) : false).catch(() => {});
+      return;
+    }
+    if (actionProvider && turn && !turn.error && type === 'bot-llm-started' && !retiredAudioEvent(data))
+      companionActions.observeOwner(data);
+    if (actionProvider && type === 'bot-turn-completed') companionActions.terminal(data);
     if (type === 'bot-emotion') {
       // Never borrow the active request for an ownerless SDK callback. Late
       // owned metadata may affect an already draining continuous utterance,
@@ -269,6 +288,7 @@ async function connect(config) {
     }
     try {
       if (turn.dataAudio.accept(message, {kind, atMs: performance.now() - turn.started})) {
+        if (turn.dataAudio.owner) companionActions.observeOwner(turn.dataAudio.owner);
         observed.acceptedAudioEvents++;
         queueContinuous(turn);
       }
@@ -495,6 +515,7 @@ async function collect(current) {
   }
   finally {
     if (turn === current) {
+      companionActions.finish();
       if (current.emotion.owner) {
         retiredExpressionOwners.push({...current.emotion.owner});
         if (retiredExpressionOwners.length > 32) retiredExpressionOwners.shift();
@@ -509,7 +530,7 @@ async function reply(config) {
   const admission = admitting = {};
   try {
     const timing = await connect(config);
-    updateContext(config);
+    await updateContext(config, true);
     const current = beginTurn(timing, config);
     if (config.reaction) client.sendTriggerMessage(undefined, config.text);
     else client.sendUserTextMessage(config.text);
@@ -538,7 +559,7 @@ async function beginVoice(config) {
   let current;
   try {
     const timing = await connect(config);
-    updateContext(config);
+    await updateContext(config, false);
     const connection = client;
     current = beginTurn(timing, config);
     current.recording = true; current.microphone = true;
@@ -556,12 +577,40 @@ async function beginVoice(config) {
   finally { if (admitting === admission) admitting = null; }
 }
 
-function updateContext(config) {
-  client.updateContext({mode: 'replace', run_llm: 'false',
+async function updateContext(config, allowActions = false) {
+  const connection = client, contextEpoch = epoch;
+  const context = {mode: 'replace', run_llm: 'false',
     text: 'You are speaking to V in Night City. Reply briefly without stage directions. '
       + 'Use only explicitly supplied current-save facts for quest progress and relationships. '
       + 'Any relationship state not explicitly supplied is unknown; do not infer it from character presence or past sessions. '
-      + (config.context || 'This is a private conversation with V.')});
+      + (config.context || 'This is a private conversation with V.')};
+  const baseContext = context.text;
+  const privateManual = allowActions && !config.reaction && !config.freshSession
+    && /^private(?::|$)/.test(config.scope || '') && typeof config.endUserId === 'string';
+  const offered = privateManual && config.companionAction;
+  const verified = verifiedProvider?.connection === client && currentParticipant(client, audioParticipant);
+  companionActions.clear();
+  const armed = verified && offered && companionActions.open(offered);
+  if (armed) context.text += '\nOnly when V explicitly asks you to drive the summoned car to the selected waypoint, '
+    + 'request the action Drive To Waypoint with target ' + offered.token + '. This target belongs only to this request. '
+    + 'Do not request it for hypothetical discussion, quoted speech, or an automatic event. '
+    + 'The game must confirm boarding, driving, and arrival; never claim success before confirmation.';
+  if (armed || actionContextConfigured) {
+    try {
+      await publishCompanionActionContext(connection, context, armed ? offered : null);
+      if (client !== connection || epoch !== contextEpoch) throw Error('Conversation context update cancelled');
+      actionContextConfigured = true;
+      return;
+    } catch {
+      if (client !== connection || epoch !== contextEpoch) throw Error('Conversation context update cancelled');
+      // An unavailable action adapter cannot break ordinary conversation or
+      // authorize an unconfigured proposal. Its old one-use target is revoked.
+      companionActions.clear();
+      context.text = baseContext + '\nThe game cannot accept a driving request from this turn. '
+        + 'Explain this briefly if V asks you to drive; do not claim driving has started.';
+    }
+  }
+  connection.updateContext(context);
 }
 
 async function finishVoice(config) {
@@ -577,7 +626,7 @@ async function finishVoice(config) {
   if (turn !== current || current.epoch !== epoch || !current.recording) throw Error('Microphone finish cancelled');
   // Same leased connection, new verified context. Updating before mute keeps
   // the fresh facts ahead of the end-of-input notification to the service.
-  if (config !== undefined) updateContext(config);
+  if (config !== undefined) await updateContext(config, true);
   try { attachContinuous(current, config?.liveSpeechToken); }
   catch (error) { await close('Microphone playback admission failed'); throw error; }
   current.recording = false;

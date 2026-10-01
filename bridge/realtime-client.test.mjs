@@ -6,13 +6,15 @@ import {journalContext} from './quest-context.mjs';
 import {endUserOptions, transportKey, SessionBindings} from './transport-pool.mjs';
 import {ConvaiDataAudio} from './convai-data-audio.mjs';
 import {ConvaiEmotion} from './convai-emotion.mjs';
+import {CompanionActionWindow, publishCompanionActionContext} from './companion-actions.mjs';
 
 const source = readFileSync(new URL('./realtime-client.mjs', import.meta.url), 'utf8')
   .replace("import {ConvaiClient} from '@convai/web-sdk/vanilla';", '')
   .replace("import {endUserOptions, transportKey, SessionBindings} from './transport-pool.mjs';", '')
   .replace("import {ConvaiDataAudio} from './convai-data-audio.mjs';", '')
   .replace("import {ContinuousPcmPlayer} from './continuous-pcm-player.mjs';", '')
-  .replace("import {ConvaiEmotion} from './convai-emotion.mjs';", '');
+  .replace("import {ConvaiEmotion} from './convai-emotion.mjs';", '')
+  .replace("import {CompanionActionWindow, publishCompanionActionContext} from './companion-actions.mjs';", '');
 const flush = () => new Promise(done => setImmediate(done));
 function manualTimers() {
   let now = 0, nextId = 0;
@@ -27,7 +29,7 @@ function manualTimers() {
     }
   };
 }
-function fixture({emitAudio, allowMic = false, timers, onConnect, onDisconnect, onDisableAudio, botReady = true, player} = {}) {
+function fixture({emitAudio, onCompanionAction, onPublish, allowMic = false, timers, onConnect, onDisconnect, onDisableAudio, botReady = true, player} = {}) {
   const clients = [], events = [];
   class Client {
     constructor(options) {
@@ -39,7 +41,10 @@ function fixture({emitAudio, allowMic = false, timers, onConnect, onDisconnect, 
       this.room = {on: (name, callback) => this.roomHandlers.set(name, callback),
         startAudio: async () => { throw Error('Browser playback must not start'); },
         remoteParticipants: new Map([[this.peer.identity, this.peer]]),
-        localParticipant: {audioTrackPublications: new Map(), unpublishTrack: async () => this.room.localParticipant.audioTrackPublications.clear()}};
+        localParticipant: {sid: 'local-participant', publishData: async (bytes, options) => {
+          events.push(['publish', JSON.parse(new TextDecoder().decode(bytes)), options]);
+          await onPublish?.(this);
+        }, audioTrackPublications: new Map(), unpublishTrack: async () => this.room.localParticipant.audioTrackPublications.clear()}};
       this.audioControls = {disableAudio: async () => {
         if (allowMic) events.push('microphone-disable');
         await onDisableAudio?.(this);
@@ -79,9 +84,10 @@ function fixture({emitAudio, allowMic = false, timers, onConnect, onDisconnect, 
     toggleStt() {}
   }
   class ForbiddenAudio { constructor() { throw Error('Browser audio recapture must not be used'); } }
-  const window = {__convaiAudioChunk: emitAudio};
+  const window = {__convaiAudioChunk: emitAudio, __convaiCompanionAction: onCompanionAction};
   runInNewContext(source, {ConvaiClient: Client, AudioContext: ForbiddenAudio, AudioWorkletNode: ForbiddenAudio,
-    endUserOptions, transportKey, SessionBindings, ConvaiDataAudio, ConvaiEmotion, TextDecoder,
+    endUserOptions, transportKey, SessionBindings, ConvaiDataAudio, ConvaiEmotion, TextDecoder, TextEncoder,
+    CompanionActionWindow, publishCompanionActionContext,
     ContinuousPcmPlayer: player || ForbiddenAudio,
     window, performance, setTimeout: timers?.setTimeout ?? setTimeout, clearTimeout: timers?.clearTimeout ?? clearTimeout,
     setInterval, clearInterval,
@@ -114,6 +120,122 @@ function sendAudio(client, audio = audioFixture()) {
   client.data(audio.faces); client.data(audio.pcm()); client.data(audio.stats); client.data(audio.terminal);
   return audio;
 }
+
+const chauffeurConfig = (sequence = 1, source = 'private-text') => ({...config, scope: 'private:world:fixture',
+  endUserId: 'fixture-user', ttsEnabled: false,
+  companionAction: {version: 1, token: 'drive-' + String(sequence).padStart(20, '0'), source,
+    expiresAt: Date.now() + 89000}});
+const chauffeurAction = request => wire({type: 'action-response',
+  actions: [{name: 'Drive To Waypoint', target: request.companionAction.token}]});
+
+test('private action uses one silent reliable context update and supports late Omni delivery without reconnect or audio delay', async () => {
+  const accepted = [], {api, clients, events} = fixture({onCompanionAction: value => accepted.push(value)});
+  const request = chauffeurConfig(); await api.warm(request);
+  const reply = api.reply(request); await flush();
+  const client = clients[0], contextIndex = events.findIndex(row => row[0] === 'publish');
+  assert.ok(contextIndex >= 0); assert.ok(contextIndex < events.findIndex(row => row[0] === 'message'));
+  assert.equal(events[contextIndex][1].type, 'context-update');
+  assert.equal(events[contextIndex][1].data.run_llm, 'false');
+  assert.equal(events[contextIndex][2].reliable, true);
+  assert.deepEqual(events[contextIndex][1].data.action_config.actions, ['Drive To Waypoint']);
+  assert.equal(events.filter(row => row[0] === 'message').length, 1);
+  finalText(client, 'Let me check the car.');
+  const result = await reply;
+  assert.equal(result.text, 'Let me check the car.'); assert.equal(accepted.length, 0);
+  // Text-only collection is complete; its one-use target still owns this late
+  // independent action event without delaying the user's local speech.
+  client.data(chauffeurAction(request)); client.data(chauffeurAction(request));
+  await flush();
+  assert.equal(accepted.length, 1); assert.equal(accepted[0].token, request.companionAction.token);
+  const second = api.reply(chauffeurConfig(2)); await flush();
+  assert.equal(clients.length, 1, 'ordinary conversation keeps the warmed connection');
+  finalText(client, 'Second reply.', 'reply-2'); await second; await api.close();
+});
+
+test('legacy action rejects missing target, unrelated source, malformed batch and old request target', async () => {
+  const accepted = [], {api, clients} = fixture({onCompanionAction: value => accepted.push(value)});
+  const first = chauffeurConfig(); await api.warm(first);
+  const reply = api.reply(first); await flush(); const client = clients[0];
+  client.data(wire({type: 'action-response', actions: [{name: 'Drive To Waypoint'}]}));
+  client.data(chauffeurAction(first), {kind: 1});
+  client.data(chauffeurAction(first), {participant: {identity: client.peer.identity}});
+  client.data({...chauffeurAction(first), label: 'unrelated'});
+  client.data({type: 'action-response', actions: [{name: 'Drive To Waypoint', target: first.companionAction.token}]});
+  client.data(wire({type: 'action-response', actions: [{name: 'Drive To Waypoint', target: first.companionAction.token,
+    kind: 'tool_call'}]}));
+  client.state.endUserId = 'another-user'; client.data(chauffeurAction(first));
+  client.state.endUserId = first.endUserId;
+  client.characterId = 'another-character'; client.data(chauffeurAction(first));
+  client.characterId = first.characterId;
+  assert.equal(accepted.length, 0); assert.equal(client.handlers.has('actionResponse'), false);
+  finalText(client); await reply;
+  const next = chauffeurConfig(2), second = api.reply(next); await flush();
+  client.data(chauffeurAction(first)); assert.equal(accepted.length, 0);
+  client.data({label: 'rtvi-ai', type: 'action-response', data: chauffeurAction(next).data});
+  await flush();
+  assert.equal(accepted.length, 1); assert.equal(accepted[0].token, next.companionAction.token);
+  finalText(client, 'Second.', 'reply-2'); await second; await api.close();
+});
+
+test('groups, phone, reactions, unpinned Omni and cancelled turns cannot deliver actions', async () => {
+  for (const variant of ['group', 'phone', 'reaction', 'unpinned', 'cancel']) {
+    const accepted = [], request = chauffeurConfig();
+    if (variant === 'group') request.scope = 'group:judy,panam';
+    if (variant === 'phone') request.scope = 'phone:world:fixture';
+    if (variant === 'reaction') request.reaction = {phase: 'after'};
+    const {api, clients} = fixture({botReady: variant !== 'unpinned', onCompanionAction: value => accepted.push(value)});
+    await api.warm(request);
+    const reply = api.reply(request); await flush(); const client = clients[0];
+    if (variant === 'cancel') {
+      const rejected = assert.rejects(reply, /cancelled/); await api.close();
+      client.data(chauffeurAction(request)); await rejected;
+    } else {
+      client.data(chauffeurAction(request)); finalText(client); await reply; await api.close();
+    }
+    assert.equal(accepted.length, 0, variant);
+  }
+});
+
+test('owned terminal closes late proposal admission and next ordinary turn clears advertised affordances', async () => {
+  const accepted = [], {api, clients, events} = fixture({onCompanionAction: value => accepted.push(value)});
+  const request = chauffeurConfig(); await api.warm(request);
+  const reply = api.reply(request); await flush(); const client = clients[0];
+  client.data(wire({type: 'bot-llm-started', response_id: 'owned-response'}));
+  client.data(wire({type: 'bot-turn-completed', response_id: 'owned-response', was_interrupted: false}));
+  finalText(client); await reply; client.data(chauffeurAction(request)); assert.equal(accepted.length, 0);
+  const {companionAction: _, ...ordinary} = request;
+  const second = api.reply(ordinary); await flush();
+  const last = events.filter(row => row[0] === 'publish').at(-1)[1].data;
+  assert.deepEqual(last.action_config.actions, []); assert.deepEqual(last.action_config.objects, []);
+  assert.equal(last.current_attention_object, '');
+  client.data(chauffeurAction(request)); assert.equal(accepted.length, 0);
+  finalText(client, 'Next ordinary turn.', 'reply-2'); await second; await api.close();
+});
+
+test('private voice offers are armed only at the verified finish with refreshed native context', async () => {
+  const accepted = [], {api, clients, events} = fixture({allowMic: true, onCompanionAction: value => accepted.push(value)});
+  const request = chauffeurConfig(1, 'private-voice');
+  await api.beginVoice(request); const client = clients[0];
+  client.data(chauffeurAction(request)); assert.equal(accepted.length, 0);
+  assert.equal(events.some(row => row[0] === 'publish'), false);
+  const finished = api.finishVoice(request); await flush();
+  assert.ok(events.findIndex(row => row[0] === 'publish') < events.indexOf('microphone-disable'));
+  client.data(chauffeurAction(request)); await flush(); assert.equal(accepted.length, 1);
+  finalText(client); await finished; await api.close();
+});
+
+test('a cancelled pending action-context publication cannot send a user turn to a replacement connection', async () => {
+  let release;
+  const gate = new Promise(resolve => { release = resolve; });
+  const {api, clients, events} = fixture({onPublish: () => gate});
+  const request = chauffeurConfig(); await api.warm(request);
+  const reply = api.reply(request), rejected = assert.rejects(reply, /context update cancelled/); await flush();
+  await api.close();
+  await api.warm({...request, characterId: 'replacement'});
+  release(); await rejected;
+  assert.equal(clients.length, 2); assert.equal(events.some(row => row[0] === 'message'), false);
+  await api.close();
+});
 
 test('emotion detection is enabled without changing the voice route or forcing generation mood',async()=>{
   const {api,clients,events}=fixture();await api.warm({...config,ttsEnabled:false});

@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import fengari from 'fengari';
-import {companionModules, flatNavigation} from './companion-fixture.mjs';
+import {companionModules, flatNavigation, flatSpatial} from './companion-fixture.mjs';
 const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
 const source = readFileSync(new URL('../mod/companions.lua', import.meta.url), 'utf8');
 
@@ -34,6 +34,7 @@ test('accepted spawns immediately publish unique identities; last dismissal and 
       GetTargetingSystem=function() return {GetCrosshairData=function()
         return player:GetWorldPosition(),player:GetWorldForward() end} end}
     ${companionModules}
+    ${flatSpatial}
     ${flatNavigation}
     local companions=(function() ${source} end)()
     local changes={}

@@ -112,3 +112,23 @@ test('failed writes and opening timeout cannot leave a recording owner alive', (
  assert(not mic.context and commands[#commands].action=='cancel')
  assert(feedback[#feedback]:find('timed out',1,true))
 `));
+
+test('private action capture follows old-owner cancellation and precedes start, while finish keeps the original offer', () => check(`
+ local order,captures={},0
+ mic.onCancelled=function(context,reason)order[#order+1]='cancel:'..context.requestId..':'..reason end
+ mic.captureActions=function(context)
+  captures=captures+1
+  assert(context.worldKnowledge and context.journal and mic.context==nil)
+  order[#order+1]='capture:'..context.requestId
+  context.chauffeurOffer={available=true,actor={id=context.entity},waypoint={id='original'}}
+ end
+ local first=input();first.requestId='old';assert(mic.begin(first))
+ local second=input();second.requestId='new';assert(mic.begin(second))
+ assert(order[2]=='cancel:old:replaced'and order[3]=='capture:new')
+ assert(commands[#commands].action=='start'and commands[#commands].input.chauffeurOffer.waypoint.id=='original')
+ now=103;assert(mic.finish()==second)
+ assert(captures==2 and commands[#commands].input.chauffeurOffer.waypoint.id=='original')
+ mic.received('new');assert(#order==3,'delivery incorrectly cancelled a late action lease')
+ available=false;assert(not mic.begin(input()))
+ assert(order[#order]=='cancel:voice-1:start-write-failed')
+`));

@@ -59,7 +59,17 @@ function M.begin(context, targetValid)
         context.followUpQuestions = type(M.captureFollowUpQuestions) == 'function' and M.captureFollowUpQuestions() == true
     end
     if not currentOwner() then M.knowledgeOwner = nil; return false end
-    if not command('start', context) then M.knowledgeOwner = nil; return false end
+    -- The old microphone owner has already been cancelled. Capture optional
+    -- gameplay capabilities immediately before the actual start publication.
+    if type(M.captureActions) == 'function' then
+        local captured = pcall(M.captureActions, context)
+        if not captured then context.chauffeurOffer = nil end
+    end
+    if not command('start', context) then
+        M.knowledgeOwner = nil
+        if type(M.onCancelled) == 'function' then M.onCancelled(context, 'start-write-failed') end
+        return false
+    end
     M.context, M.state, M.started = context, 'starting', os.time()
     M.targetValid = targetValid
     return true

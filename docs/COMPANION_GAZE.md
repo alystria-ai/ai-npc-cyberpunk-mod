@@ -109,8 +109,9 @@ knee. Their screenshot showed the upper body rotated against the passenger hand
 pose. Installed `reactionComponent.script:3505-3507` passes `inVehicle=true` for
 mounted actors; `4656-4674` then omits Chest instead of setting its weight to zero.
 The seated request now follows that part list, preserving the accepted standing
-request and the native seat/hand animation. This is a source-backed correction;
-the resulting arm posture still requires the user's visual check.
+request and the native seat/hand animation. After the October 2 CET reload the
+user confirmed: the arm looks natural while she turns her head. This qualifies
+that observed Judy passenger pose, not every vehicle/model combination.
 
 ## Verification boundary
 

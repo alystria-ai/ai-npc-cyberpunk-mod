@@ -60,6 +60,8 @@ function run(body, language = 'en') {
 
 const fixture = `
 local nativeLocaleReads, catalogReads, now = 0, 0, 100
+IsBound=function(id)return id=='cyberpunk_convai_group_voice' or id=='cyberpunk_convai_voice'end
+GetBind=function(id)return id=='cyberpunk_convai_group_voice' and 'Ctrl + H' or 'Alt + J'end
 os.time = function() return now end
 local files, encoded, commands, feedback = {}, {}, {}, {}
 local function copy(value)
@@ -200,7 +202,7 @@ test('English readiness, failures and microphone notices preserve original wordi
   for _, group in ipairs({false, true}) do
     local context = microphoneInput(group); assert(mic.begin(context))
     microphoneState('recording'); mic.update(player)
-    assert(feedback[#feedback] == 'Listening - press ' .. (group and 'F9' or 'F7') .. ' again to finish')
+    assert(feedback[#feedback] == 'Listening - press ' .. (group and 'Ctrl + H' or 'Alt + J') .. ' again to finish')
     mic.cancel()
   end
   assert(mic.begin(microphoneInput(false))); microphoneState('error'); mic.update(player)
@@ -269,7 +271,7 @@ test('French local validation errors remain separate from opaque provider errors
   assert(status.queue.takeNotices()[1].message == 'Préparation impossible pour ' .. actorName .. ' : ' .. raw)
 `, 'fr'));
 
-test('French attachment failures translate only owned fallback reasons and preserve warnings', () => run(`
+test('French attachment failures translate known game reasons and preserve unknown errors and warnings', () => run(`
   local env = makeParty(true); local q = env.queue
   assert(q.invite('known')); assert(q.invite('known')); q.flush()
   env.members[1].state = 'dead'; table.remove(env.members, 2); q.flush()
@@ -282,7 +284,10 @@ test('French attachment failures translate only owned fallback reasons and prese
   local raw = 'That character model is unavailable.'
   local failed = makeParty(true); failed.spawnError = raw
   assert(failed.queue.invite('known')); failed.queue.flush()
-  assert(failed.queue.takeNotices()[1].message == 'Arrivée impossible pour ' .. actorName .. ' : ' .. raw)
+  assert(failed.queue.takeNotices()[1].message == 'Arrivée impossible pour ' .. actorName .. ' : Ce modèle est indisponible.')
+  local unknown = makeParty(true); unknown.spawnError = 'Native error 100% {name}'
+  assert(unknown.queue.invite('known')); unknown.queue.flush()
+  assert(unknown.queue.takeNotices()[1].message == 'Arrivée impossible pour ' .. actorName .. ' : Native error 100% {name}')
   local warned = makeParty(true); warned.assignmentError = raw
   assert(warned.queue.invite('known')); warned.queue.flush()
   assert(warned.queue.message() == actorName .. ': ' .. raw)
@@ -298,7 +303,7 @@ test('French microphone prompts preserve shortcut codes, input text and request 
     microphoneState('recording', 'stale'); mic.update(player)
     assert(mic.state == 'starting')
     microphoneState('recording'); mic.update(player)
-    assert(feedback[#feedback] == 'Écoute — appuyez encore sur ' .. (group and 'F9' or 'F7') .. ' pour terminer')
+    assert(feedback[#feedback] == 'Écoute — appuyez encore sur ' .. (group and 'Ctrl + H' or 'Alt + J') .. ' pour terminer')
     assert(mic.finish(group and 'group' or 'private') == context)
     local command = commands[#commands]
     assert(command.action == 'finish' and command.input.name == actorName)

@@ -19,9 +19,10 @@ const input = {requestId: '1000-1-1ULL', generation: 1, entity: '1ULL', name: 'J
 const missing = () => Object.assign(Error('Heartbeat rename gap'), {code: 'ENOENT'});
 
 function fixture() {
-  const state = {queue: [], reads: 0, delays: [], accepted: [], errors: [],
+  const state = {queue: [], reads: 0, delays: [], accepted: [], errors: [], actionRevocations: 0,
     lease: {requestId: input.requestId, valid: true, updated: Date.now()}};
   const context = vm.createContext({parseInput, inputIdentity, reactionLeaseValid, AbortController,
+    companionActions: {revoke: async () => { state.actionRevocations++; }},
     readLease: async () => {
       state.reads++;
       const value = state.queue.length ? state.queue.shift() : JSON.stringify(state.lease);
@@ -30,7 +31,7 @@ function fixture() {
     },
     record: request => state.accepted.push(request),
     setTimeout: (done, delay) => { state.delays.push(delay); done(); },
-    console: {error: (...args) => state.errors.push(args)}, rawInput: JSON.stringify(input)});
+    console: {error: (...args) => { state.errors.push(args); throw Error(args.join(' ')); }}, rawInput: JSON.stringify(input)});
   vm.runInContext(`
     let polling=false, stopped=false, active=null, observed='', lastAcceptedIdentity='', voiceRouteReservation=false;
     let relationshipRouteReservation=false;
@@ -57,10 +58,12 @@ test('a relationship route reservation preserves an unseen battle input until pa
   api.setRelationshipReservation(true);
   await api.tick();
   assert.equal(state.reads, 0); assert.equal(state.accepted.length, 0);
+  assert.equal(state.actionRevocations, 0);
   assert.equal(api.state().observed, ''); assert.equal(api.state().lastAcceptedIdentity, '');
   api.setRelationshipReservation(false);
   await api.tick();
   assert.equal(state.accepted.length, 1); assert.equal(state.reads, 1);
+  assert.equal(state.actionRevocations, 1);
   assert.equal(api.state().lastAcceptedIdentity, inputIdentity(input));
   assert.deepEqual(state.errors, []);
 });
@@ -100,6 +103,7 @@ test('an unchanged new input retries after exhausted transient lease reads', asy
   assert.equal(state.reads, 4);
   await api.tick();
   assert.equal(state.accepted.length, 1, 'A successfully accepted request must not replay');
+  assert.equal(state.actionRevocations, 1, 'Only the newly accepted input revokes an earlier action');
   assert.deepEqual(state.errors, []);
 });
 
@@ -113,6 +117,7 @@ test('an explicitly cancelled unseen request is not resurrected by a later heart
   await api.tick();
   assert.equal(state.accepted.length, 0);
   assert.equal(state.reads, 1);
+  assert.equal(state.actionRevocations, 0);
 });
 
 test('active reactions survive a short rename gap but fail closed after bounded unreadability', async () => {

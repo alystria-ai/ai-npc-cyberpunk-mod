@@ -82,8 +82,11 @@ feet to simulate walking.
 
 `companion-placement.lua` verifies navigation ground at V, tries a bounded set
 of nearby positions, and requires a short reachable route on the same floor.
-If none qualifies, the invitation reports a reason. Actual attached position is
-checked again before assigning the follower role.
+It also checks the full standing body against native world/vehicle collision
+groups. If none qualifies, the invitation reports a reason. Actual attached
+position and body clearance are checked again before assigning the follower
+role. [Clearance policy and native evidence](COMPANION_CLEARANCE.md) describe
+larger model spacing, safe alternatives and the remaining gameplay checks.
 
 Copies explicitly disable `persistSpawn` and `persistState`, as documented in
 [Codeware's DynamicEntitySpec](https://github.com/psiberx/cp2077-codeware/blob/main/scripts/World/DynamicEntitySpec.reds).

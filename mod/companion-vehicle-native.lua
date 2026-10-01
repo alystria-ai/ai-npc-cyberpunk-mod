@@ -1,6 +1,11 @@
 -- Native boundary for the party vehicle controller. Never called on quest NPCs.
 local placement=dofile('companion-placement.lua')
+local clearance=dofile('companion-clearance.lua')
 local M={}
+function M.useSpatialBudget(value)
+    clearance.useBudget(value)
+    placement.useSpatialBudget(value)
+end
 local TAG='CyberpunkConvaiPartyVehicle'
 local function id(value)
     if not value then return nil end
@@ -90,6 +95,7 @@ local function spawnPoint(primary,ordinal)
             local y=center.y+forward.x*offset[1]+forward.y*offset[2]
             local result
             for _,group in ipairs({'Static','Terrain'}) do
+                if not clearance.take(1) then return nil,nil,true end
                 local hit,trace=spatial:SyncRaycastByCollisionGroup(vector(x,y,origin.z+1.8),
                     vector(x,y,origin.z-2.0),group,false,false)
                 if hit and trace and (not result or trace.position.z>result.position.z) then result=trace end
@@ -101,6 +107,7 @@ local function spawnPoint(primary,ordinal)
         if clear and high-low<0.4 and math.abs(high-origin.z)<1.6 then
             local blocked=false
             for _,group in ipairs({'Static','Dynamic','Terrain','Collider','Destructible','Vehicle','Character'}) do
+                if not clearance.take(1) then return nil,nil,true end
                 if spatial:Overlap(vector(1.8,3.8,1.6),vector(center.x,center.y,high+1.85),
                     Quaternion.ToEulerAngles(rotation),CName.new(group)) then blocked=true; break end
             end
@@ -114,7 +121,8 @@ function M.spawn(choice,player,primary,ordinal)
     if not system or not system:IsReady() then return nil,'Vehicle world is not ready.' end
     local record=TweakDB:GetRecord(choice.record)
     if not record or not record:IsA('gamedataVehicle_Record') then return nil,'Vehicle record unavailable: '..choice.record end
-    local position,rotation=spawnPoint(primary,ordinal)
+    local position,rotation,deferred=spawnPoint(primary,ordinal)
+    if deferred then return nil,nil,true end
     if not position then return nil,rotation end
     local spec=NewObject('DynamicEntitySpec')
     spec.recordID=TweakDBID.new(choice.record)
@@ -286,10 +294,11 @@ function M.recover(entry,player,occupied)
     local behind=1+math.floor((lane-1)/2)*1.2
     local desired=vector(point.x-forward.y*side-forward.x*behind,
         point.y+forward.x*side-forward.y*behind,point.z)
-    local target,reason=placement.find(player,desired,occupied)
+    local target,reason,deferred=placement.find(player,desired,occupied,entry.clearance)
+    if deferred then return nil,nil,true end
     if not target then return false,reason end
     Game.GetTeleportationFacility():Teleport(entry.npc,target,Quaternion.ToEulerAngles(entry.npc:GetWorldOrientation()))
-    occupied[#occupied+1]=target
+    occupied[#occupied+1]={position=target,clearance=entry.clearance}
     return true
 end
 return M

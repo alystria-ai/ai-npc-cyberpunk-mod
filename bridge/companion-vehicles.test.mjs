@@ -6,6 +6,7 @@ const {lua,lauxlib,lualib,to_luastring,to_jsstring}=fengari;
 const controller=readFileSync(new URL('../mod/companion-vehicles.lua',import.meta.url),'utf8');
 const catalog=readFileSync(new URL('../mod/companion-vehicle-catalog.lua',import.meta.url),'utf8');
 const native=readFileSync(new URL('../mod/companion-vehicle-native.lua',import.meta.url),'utf8');
+const clearance=readFileSync(new URL('../mod/companion-clearance.lua',import.meta.url),'utf8');
 function run(code) {
   const state=lauxlib.luaL_newstate(); lualib.luaL_openlibs(state);
   const status=lauxlib.luaL_dostring(state,to_luastring(code));
@@ -281,7 +282,10 @@ test('native command submission preserves an exact cancellable handle even after
 `));
 
 const nativeFixture=`
-  dofile=function() return {} end
+  dofile=function(file)
+    if file=='companion-clearance.lua' then return (function() ${clearance} end)() end
+    return {useSpatialBudget=function() end}
+  end
   local adapter=(function() ${native} end)()
   CName={new=function(v) return v end}; NameToString=function(v) return v end
   EntityID={new=function() return {hash='0ULL'} end}; TweakDBID={new=function(v) return v end}
@@ -330,6 +334,32 @@ const nativeFixture=`
   TweakDB={GetRecord=function() return record end}
   local car={id='owned-car',entityID={hash='owned-car'},entity=entity,system=system,owned=true}
 `;
+
+test('deferred car placement does not spend attempts or change the preferred car',()=>run(`${fixture}
+  party(8)
+  local original=api.spawn
+  api.spawn=function() return nil,nil,true end
+  tick(50)
+  assert(fleet.spawnAttempts==0 and fleet.spawnFailures==0 and #world.spawned==0)
+  assert(fleet.spawnAt==0 and not fleet.error)
+  api.spawn=original
+  tick(100)
+  assert(fleet.phase=='riding' and #world.spawned==2)
+`));
+
+test('deferred ground recovery retains ownership without spending recovery attempts',()=>run(`${fixture}
+  party(1); tick(20)
+  transport.fastTravel(fleet)
+  api.recover=function() return nil,nil,true end
+  world.primary=nil
+  tick(80)
+  local person=fleet.people[1]
+  assert(person.owned and (person.recoverAttempts or 0)==0 and not person.recoverAt)
+  assert(person.phase~='recovery-failed' and not world.resumes[1])
+  api.recover=function() return true end
+  tick(10)
+  assert(world.resumes[1])
+`));
 
 test('native capacity includes live reservations, actual entity slots, and the source Mackinaw exception',()=>run(`${nativeFixture}
   values.occupants.seat_front_left='player'; values.reserved='seat_back_left'

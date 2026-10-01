@@ -2,6 +2,7 @@ import {readFileSync} from 'node:fs';
 
 const behavior = readFileSync(new URL('../mod/companion-behavior.lua', import.meta.url), 'utf8');
 const placement = readFileSync(new URL('../mod/companion-placement.lua', import.meta.url), 'utf8');
+const clearance = readFileSync(new URL('../mod/companion-clearance.lua', import.meta.url), 'utf8');
 const appearance = readFileSync(new URL('../mod/companion-appearance.lua', import.meta.url), 'utf8');
 const spawnRecords = readFileSync(new URL('../mod/companion-records.lua', import.meta.url), 'utf8');
 const space = readFileSync(new URL('../mod/companion-space.lua', import.meta.url), 'utf8');
@@ -11,6 +12,8 @@ const equipment = readFileSync(new URL('../mod/companion-equipment.lua', import.
 const vehicles = readFileSync(new URL('../mod/companion-vehicles.lua', import.meta.url), 'utf8');
 const vehicleNative = readFileSync(new URL('../mod/companion-vehicle-native.lua', import.meta.url), 'utf8');
 const vehicleCatalog = readFileSync(new URL('../mod/companion-vehicle-catalog.lua', import.meta.url), 'utf8');
+const chauffeur = readFileSync(new URL('../mod/companion-chauffeur.lua', import.meta.url), 'utf8');
+const chauffeurNative = readFileSync(new URL('../mod/companion-chauffeur-native.lua', import.meta.url), 'utf8');
 export const companionModules = `
   dofile=function(file)
     if file=='companion-space.lua' then return (function() ${space} end)() end
@@ -23,12 +26,28 @@ export const companionModules = `
       return companionVehicleAdapter and companionVehicleAdapter(native) or native
     end
     if file=='companion-vehicle-catalog.lua' then return (function() ${vehicleCatalog} end)() end
+    if file=='companion-chauffeur.lua' then return (function() ${chauffeur} end)() end
+    if file=='companion-chauffeur-native.lua' then
+      local native=(function() ${chauffeurNative} end)()
+      return companionChauffeurAdapter and companionChauffeurAdapter(native) or native
+    end
     if file=='companion-behavior.lua' then return (function() ${behavior} end)() end
     if file=='companion-placement.lua' then return (function() ${placement} end)() end
+    if file=='companion-clearance.lua' then return (function() ${clearance} end)() end
     if file=='companion-appearance.lua' then return (function() ${appearance} end)() end
     if file=='companion-records.lua' then return (function() ${spawnRecords} end)() end
     error('Unexpected module '..file)
   end
+`;
+
+// Known empty physics world. Obstacle suites replace this with real geometric
+// intersections; an absent/invalid native answer is never presumed empty.
+export const flatSpatial = `
+  EulerAngles={new=function(roll,pitch,yaw) return {roll=roll,pitch=pitch,yaw=yaw} end}
+  Quaternion={
+    BuildFromDirectionVector=function(direction) return {yaw=math.deg(math.atan(-direction.x,direction.y))} end,
+    ToEulerAngles=function(rotation) return {roll=0,pitch=0,yaw=rotation.yaw or 0} end}
+  Game.GetSpatialQueriesSystem=function() return {Overlap=function() return false,{} end} end
 `;
 
 // An open, flat navmesh. Individual placement cases override the native adapter.
@@ -126,6 +145,7 @@ export const companionEngine = `
     GetTargetingSystem=function() return {GetCrosshairData=function() return nil,player.forward end} end,
     CreateEntityReference=function() return {} end}
   NPCPuppet={IsInCombat=function(npc) return npc.combat or false end}
+  ${flatSpatial}
   ${flatNavigation}
   local companions=(function() ${source} end)()
   local function tick(count,focus)

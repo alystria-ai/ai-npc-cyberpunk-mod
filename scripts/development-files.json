@@ -288,6 +288,22 @@
     {
       "source": "mod/companion-vehicle-catalog.lua",
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-vehicle-catalog.lua"
+    },
+    {
+      "source": "mod/gameplay-actions.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/gameplay-actions.lua"
+    },
+    {
+      "source": "mod/companion-chauffeur.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-chauffeur.lua"
+    },
+    {
+      "source": "mod/companion-chauffeur-native.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-chauffeur-native.lua"
+    },
+    {
+      "source": "mod/companion-clearance.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-clearance.lua"
     }
   ],
   "retiredNative": [

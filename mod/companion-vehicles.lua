@@ -2,23 +2,56 @@
 -- Policy is native-free and runs against the same adapter contract in tests.
 local catalog=dofile('companion-vehicle-catalog.lua')
 local M={}
+local stopChauffeurConvoy
 local MAX_ATTEMPTS=3
 local BOARD_TIMEOUT,EXIT_TIMEOUT,ATTACH_TIMEOUT=20,12,12
 local function terminal(state)
     return state=='Success' or state=='Failure' or state=='Cancelled' or state=='Interrupted' or state=='Detached'
 end
 local function safe(fn,...)
-    local ok,a,b=pcall(fn,...)
+    local ok,a,b,c=pcall(fn,...)
     if not ok then return nil,tostring(a) end
-    return a,b
+    return a,b,c
 end
 local function emit(s,event,person)
     if #s.events>=32 then table.remove(s.events,1) end
     s.events[#s.events+1]={at=s.clock,event=event,serial=person and person.entry.serial,generation=s.generation}
 end
-function M.new(api)
+function M.new(api,chauffeurApi)
     return {api=api or dofile('companion-vehicle-native.lua'),clock=0,phase='on-foot',
-        people={},cars={},events={},generation=0,spawnAttempts=0,spawnFailures=0,spawnAt=0}
+        chauffeurApi=chauffeurApi,people={},cars={},events={},generation=0,spawnAttempts=0,spawnFailures=0,spawnAt=0}
+end
+local function chauffeur(s)
+    if not s.chauffeurModule then s.chauffeurModule=dofile('companion-chauffeur.lua') end
+    if not s.chauffeurApi then s.chauffeurApi=dofile('companion-chauffeur-native.lua') end
+    return s.chauffeurModule
+end
+function M.chauffeurOffer(s,player,entry) return chauffeur(s).offer(s,player,entry) end
+function M.queueChauffeur(s,player,entry,expectedOffer)
+    return chauffeur(s).queue(s,player,entry,expectedOffer)
+end
+function M.cancelChauffeur(s,reason)
+    if not s.chauffeur then return false,'There is no companion trip to cancel.' end
+    return chauffeur(s).cancel(s,reason)
+end
+function M.chauffeurSnapshot(s)
+    return s.chauffeurModule and s.chauffeurModule.snapshot(s) or {active=false,phase='idle'}
+end
+function M.chauffeurAutodriveToggled(s,enabled)
+    if s.chauffeur then chauffeur(s).autodriveToggled(s,enabled) end
+end
+function M.chauffeurArrived(s,vehicleId)
+    if s.chauffeur then chauffeur(s).arrived(s,vehicleId) end
+end
+function M.canDismissChauffeurDriver(s,serial)
+    if not s.chauffeur then return true end
+    return chauffeur(s).canDismiss(s,serial)
+end
+function M.prepareChauffeurShutdown(s,reason)
+    if not s.chauffeur then return true end
+    local done,why,receipt=chauffeur(s).prepareShutdown(s,reason)
+    stopChauffeurConvoy(s)
+    return done,why,receipt
 end
 local function releaseCommand(s,holder)
     if not holder.command then return true end
@@ -53,6 +86,7 @@ local function seats(vehicle)
     return list
 end
 local function reserved(s,vehicle,seat,except)
+    if s.chauffeur and s.chauffeur.car.id==vehicle.id and s.chauffeur.passengerSeat==seat then return true end
     for _,person in pairs(s.people) do
         if person~=except and person.vehicle==vehicle and person.seat==seat then return true end
     end
@@ -167,9 +201,10 @@ local function allocate(s,player)
     if #s.cars>=8 then s.error='Party vehicle limit reached.'; return end
     local choice,driver=catalog.choose(queue)
     if s.spawnAttempts>0 then choice=catalog.fallback end
-    s.spawnAttempts=s.spawnAttempts+1
-    s.spawnAt=s.clock+3
-    local car,err=safe(s.api.spawn,choice,player,s.primary,#s.cars+1)
+    local attempts,at=s.spawnAttempts,s.spawnAt
+    s.spawnAttempts=s.spawnAttempts+1; s.spawnAt=s.clock+3
+    local car,err,deferred=safe(s.api.spawn,choice,player,s.primary,#s.cars+1)
+    if deferred then s.spawnAttempts,s.spawnAt=attempts,at; return end
     if not car then s.spawnFailures=s.spawnFailures+1; s.error=err or 'Could not create the next party car.'; return end
     car.owned=true; car.createdAt=s.clock; car.driver=driver.entry.serial; car.ordinal=#s.cars+1
     car.followAttempts=0
@@ -208,7 +243,7 @@ local function board(s,person,hooks,budget)
     local matching=mount and mount.vehicle==car.id and mount.seat==person.seat
     -- Native follower AI can finish a different free passenger seat first.
     -- Adopt only a real seat in this same car, never a driver or a foreign car.
-    if mount and mount.vehicle==car.id and not matching and mount.seat~='seat_front_left'
+    if not person.chauffeur and mount and mount.vehicle==car.id and not matching and mount.seat~='seat_front_left'
         and not reserved(s,car,mount.seat,person) then
         person.seat=mount.seat; matching=true
     end
@@ -316,8 +351,10 @@ local function leave(s,person,player,hooks,budget,recoveryPositions)
     if not mount then
         if s.phase=='recovering' then
             if s.clock<(person.recoverAt or 0) or (person.recoverAttempts or 0)>=MAX_ATTEMPTS then return budget end
+            local attempts,at=person.recoverAttempts,person.recoverAt
             person.recoverAttempts=(person.recoverAttempts or 0)+1; person.recoverAt=s.clock+2
-            local done,err=safe(s.api.recover,person.entry,player,recoveryPositions)
+            local done,err,deferred=safe(s.api.recover,person.entry,player,recoveryPositions)
+            if deferred then person.recoverAttempts,person.recoverAt=attempts,at; return budget end
             if not done then person.phase='recovery-failed'; person.error=err; return budget end
         end
         finish(s,person,hooks); return budget
@@ -340,11 +377,59 @@ local function leave(s,person,player,hooks,budget,recoveryPositions)
     emit(s,'unmount-requested',person)
     return budget-1
 end
+stopChauffeurConvoy=function(s)
+    for _,car in ipairs(s.cars) do
+        if not car.deleteRequested and not car.pendingCommand and releaseCommand(s,car)
+            and not car.braked and (car.brakeAttempts or 0)<MAX_ATTEMPTS and s.clock>=(car.brakeAt or 0) then
+            car.brakeAttempts=(car.brakeAttempts or 0)+1; car.brakeAt=s.clock+2
+            local done,err=safe(s.api.brake,car); car.braked=done==true
+            if err then car.error=err end
+        end
+    end
+end
+local function leaveChauffeurParty(s,player,hooks,skipSerial)
+    local budget=2
+    stopChauffeurConvoy(s)
+    for _,person in ipairs(ordered(s)) do
+        if person.entry.serial~=skipSerial then budget=leave(s,person,player,hooks,budget,{}) end
+    end
+    for _,person in pairs(s.people) do if person.owned then return false end end
+    return true
+end
 function M.update(s,player,entries,dt,hooks)
     s.clock=s.clock+math.max(0,tonumber(dt) or 0)
     hooks=hooks or {}
     if type(hooks.release)~='function' or type(hooks.resumed)~='function' then
         s.error='Vehicle movement handoff callbacks are required.'; return
+    end
+    if s.chauffeur and s.fastTravelPending then
+        chauffeur(s).interrupt(s,'Fast travel cancelled the companion trip.')
+    elseif s.chauffeur then
+        refresh(s)
+        local trip=s.chauffeur
+        local closing=trip.phase=='stopping' or trip.phase=='waiting-for-player-exit' or trip.phase=='exiting-driver'
+        if not closing then
+            acquired(s,entries)
+            allocate(s,player)
+            local budget=1
+            for _,person in ipairs(ordered(s)) do
+                if person.entry.serial~=trip.serial then budget=board(s,person,hooks,budget) end
+            end
+            trip.partyReady=true
+            for _,person in pairs(s.people) do
+                if person.owned and (person.phase~='riding' or person.removing) then trip.partyReady=false end
+            end
+        end
+        chauffeur(s).update(s,player,entries,hooks,{prepare=prepare,board=board,leaveParty=leaveChauffeurParty})
+        if s.chauffeur then
+            if s.chauffeur.phase=='driving' or (s.chauffeur.phase=='starting' and s.chauffeur.partyReady) then
+                local budget=2
+                for _,car in ipairs(s.cars) do budget=follow(s,car,player,budget) end
+            elseif s.chauffeur.phase=='stopping' or s.chauffeur.phase=='waiting-for-player-exit'
+                or s.chauffeur.phase=='exiting-driver' then stopChauffeurConvoy(s) end
+        end
+        cleanup(s)
+        return
     end
     local primary,err=safe(s.api.player,player)
     if err then s.error=err; return end
@@ -395,17 +480,20 @@ end
 -- Call only AFTER the owning companion has been successfully deleted, or when
 -- it detached/died. The native command owner no longer exists in that case.
 function M.remove(s,serial)
+    if s.chauffeur and s.chauffeur.serial==serial then M.cancelChauffeur(s,'The selected companion is unavailable.') end
     if s.people[serial] then s.people[serial]=nil; s.replan=true end
 end
 function M.removing(s,serial)
     if not s.people[serial] then return end
     s.people[serial].removing=true
+    if s.chauffeur then M.cancelChauffeur(s,'The selected companion is leaving.'); return end
     startExit(s,'companion-dismissed')
 end
 function M.fastTravel(s) s.fastTravelPending=true end
 -- Called before native teleportation while owners are still valid. Only IDs,
 -- command identity receipts and ordinary values survive the loading interval.
 function M.suspend(s)
+    if s.chauffeur then chauffeur(s).interrupt(s,'Fast travel cancelled the companion trip.') end
     local receipt={cars={},people={}}
     local function carReceipt(car)
         releaseCommand(s,car)
@@ -451,6 +539,7 @@ function M.abandon(s)
     -- Session teardown cannot query already destroyed native components.
     s.generation=s.generation+1; s.people={}; s.cars={}; s.primary=nil
     s.phase='on-foot'; s.fastTravelPending=nil; s.replan=nil; s.error=nil
+    s.chauffeur=nil; s.lastChauffeur=nil
     s.events={}; s.clock=0
 end
 function M.snapshot(s,serial)
@@ -466,6 +555,7 @@ function M.snapshot(s,serial)
     local cars={}
     for _,car in ipairs(s.cars) do cars[#cars+1]={id=car.id,name=car.name,record=car.record,
         driver=car.driver,following=car.command~=nil,error=car.error,retired=car.retired} end
-    return {phase=s.phase,generation=s.generation,error=s.error,people=rows,cars=cars,events=s.events}
+    return {phase=s.phase,generation=s.generation,error=s.error,people=rows,cars=cars,events=s.events,
+        chauffeur=M.chauffeurSnapshot(s)}
 end
 return M

@@ -74,10 +74,19 @@ export async function installConvaiAudioRoute(page, getOwner) {
 const connectOwner = config => ({characterId: config.characterId,
   endUserId: config.endUserId ?? null, ttsEnabled: config.ttsEnabled !== false});
 
+export async function installCompanionActionBinding(page, {isCurrent, onAction}) {
+  if (typeof onAction !== 'function') return;
+  await page.exposeBinding('__convaiCompanionAction', (source, message) => {
+    if (!isCurrent() || source.page !== page || source.frame !== page.mainFrame() || page.isClosed()) return false;
+    return onAction(message);
+  });
+}
+
 export class RealtimeHost {
-  constructor({disconnectTimeoutMs = 2500} = {}) {
+  constructor({disconnectTimeoutMs = 2500, onCompanionAction} = {}) {
     this.epoch = 0; this.sessions = new SessionBindings(); this.connectOwners = new WeakMap();
     this.disconnects = new WeakMap(); this.disconnectTimeoutMs = disconnectTimeoutMs;
+    this.onCompanionAction = onCompanionAction;
   }
   disconnectPage(page) {
     if (!page || page.isClosed?.()) return Promise.resolve();
@@ -150,6 +159,8 @@ export class RealtimeHost {
       this.pool = new TransportPool({limit: CONNECTION_LIMIT, create: async () => {
         const page = await browser.newPage();
         try {
+          await installCompanionActionBinding(page, {onAction: this.onCompanionAction,
+            isCurrent: () => epoch === this.epoch && this.connectOwners.has(page)});
           await installConvaiAudioRoute(page, () => this.connectOwners.get(page));
           await page.goto(`http://127.0.0.1:${server.address().port}`);
           await page.waitForFunction(() => !!window.convaiRealtime);

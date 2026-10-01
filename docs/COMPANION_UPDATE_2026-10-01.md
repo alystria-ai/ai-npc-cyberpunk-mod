@@ -73,5 +73,24 @@ profiles; the rest use bounded lazy conditioning, at most eight cached profiles.
 
 ## Installed verification
 
-Pending the combined Lua reload and bridge restart. Append concrete observations
-here; do not convert source test results into game acceptance.
+The October 2 combined Lua update was installed with hash-verified rollback
+receipts, the bridge was rebuilt/restarted, and the user reloaded CET. The
+production voice registry contains 75 source-qualified references; the saved
+Convai voice choice was preserved. The memory service reports ready.
+
+The user verified all five relationship controls appear. They also confirmed
+Judy boards the passenger seat. The live vehicle probe exposed a wrong speed
+method despite the initial fixture checks; the adapter now uses the installed
+2.31 `GetLinearVelocity` contract. A follow-up audit corrected empty-seat mount
+metadata and asynchronous car deletion confirmation.
+
+The user confirmed seated head turning, then supplied a screenshot showing the
+torso fighting her resting hand pose. Native vehicle reaction code omits Chest;
+the seated-only correction follows that pattern, and the user confirmed the arm
+looks natural. Standing gaze behavior remains unchanged.
+
+The manager now has a home page, parent Back controls and party-only group
+status, with native white headings/cyan rules. Chauffeur behavior is a separate
+in-progress extension. Spawn and walking clearance against world geometry also
+remain under correction following the user's report; no live driving or full
+collision acceptance is claimed here.

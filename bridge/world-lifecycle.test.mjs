@@ -8,6 +8,8 @@ const source = readFileSync(new URL('../mod/init.lua', import.meta.url), 'utf8')
 const questSource = readFileSync(new URL('../mod/quest-context.lua', import.meta.url), 'utf8');
 const invitationSource = readFileSync(new URL('../mod/invitation-readiness.lua', import.meta.url), 'utf8');
 const partyQueueSource = readFileSync(new URL('../mod/manager-party.lua', import.meta.url), 'utf8');
+const gameplayActionsSource = readFileSync(new URL('../mod/gameplay-actions.lua', import.meta.url), 'utf8');
+const microphoneSource = readFileSync(new URL('../mod/microphone.lua', import.meta.url), 'utf8');
 const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
 
 // Execute the complete adapter and its real tracked-journal collector. Storage,
@@ -169,7 +171,7 @@ Game.GetJournalManager = function() nativeRead('GetJournalManager'); return jour
 
 local function noOp() end
 local members = {}
-local companions = {configure = noOp, connectionProfiles = function()
+local companions = {configure = noOp, beginSpatialFrame = noOp, connectionProfiles = function()
     local result = {}; for _, member in ipairs(members) do if member.profileKey then result[#result + 1] = member.profileKey end end
     return result
 end, list = function() return copy(members) end,
@@ -252,6 +254,7 @@ modules = {
     ['battle-reactions.lua'] = {new = function() return battles end},
     ['loot-reactions.lua'] = {new = function() return loot end}, ['loot-observer.lua'] = lootObserver,
     ['manager-party.lua'] = (function() ${partyQueueSource} end)(), ['mcm-entry.lua'] = {}, ['companion-locomotion.lua'] = {install = noOp},
+    ['gameplay-actions.lua'] = (function() ${gameplayActionsSource} end)(),
     ['composer-input.lua'] = {install = noOp}, ['phone-input.lua'] = {install = noOp},
     ['relationship-state.lua'] = {new = function()
         return {update = function() note('relationship-capture') end,
@@ -321,6 +324,49 @@ local function assertClean()
     for _, message in ipairs(stats.logs) do
         assert(not message:find('update failed', 1, true) and not message:find('observation skipped', 1, true), message)
     end
+end
+local function privateConversation()
+    local actor={GetEntityID=function() return {hash='13ULL'} end,IsNPC=function() return true end,
+        IsAttached=function() return true end,IsDeadNoStatPool=function() return false end,
+        GetWorldPosition=function() return {x=0,y=3,z=0} end,GetBodyType=function() return 'Woman' end,
+        GetRecordID=function() return 'Character.Judy' end,IsCrowd=function() return false end}
+    targeting.GetObjectClosestToCrosshair=function() return actor end
+    companions.identity=function() return 'judy-alvarez','Judy',true end
+    modules['character-catalog.lua'].resolve=function(_,value) return value.managedKey,'Judy' end
+    companions.owns=function() return true end
+    companions.seatedCandidates=function() return {} end
+    player.GetWorldPosition=function() return {x=0,y=0,z=0} end
+    player.ConvaiOpenComposer=function() player.composerOpen=true; return true end
+    player.ConvaiComposerOpen=function() return player.composerOpen==true end
+    player.ConvaiHasSubmission=function() return player.submission~=nil end
+    player.ConvaiTakeSubmission=function() local value=player.submission;player.submission=nil;return value end
+    local offer={available=true,actor={serial=1,id='13ULL',key='judy-alvarez'},
+        car={id='23ULL',record='Vehicle.Test',name='Test car'},waypoint={id='33ULL',name='Map pin',position={x=10,y=20,z=0}},
+        passengerSeat='seat_front_right'}
+    stats.driveOffers,stats.driveCalls=0,{}
+    companions.chauffeurOffer=function(entity)
+        nativeRead('chauffeur offer');assert(entity=='13ULL');stats.driveOffers=stats.driveOffers+1;return copy(offer)
+    end
+    companions.queueChauffeur=function(serial,value,entity)
+        nativeRead('chauffeur queue');stats.driveCalls[#stats.driveCalls+1]={serial=serial,offer=copy(value),entity=entity}
+        return true,'Your companion is preparing to drive.'
+    end
+    companions.chauffeurSnapshot=function() return {active=false,phase='idle'} end
+    return offer
+end
+local function drivePacket(input,source)
+    local world=published()
+    return {version=1,action='drive-to-waypoint',actionId='action:'..input.requestId,
+        requestId=input.requestId,generation=input.generation,entity=input.entity,profileKey=input.profileKey,
+        source=source or 'private-text',worldToken=world.token,worldGeneration=world.generation,
+        createdAt=clock*1000,expiresAt=clock*1000+5000,offer=copy(input.chauffeurOffer)}
+end
+local function submitText()
+    hotkeys.cyberpunk_convai_text()
+    assert(player.composerOpen)
+    player.composerOpen=false;player.submission='Please drive me to the map waypoint.'
+    events.onUpdate(0.1)
+    return json.decode(assert(files['runtime/last-input.json']))
 end
 `;
 
@@ -550,4 +596,88 @@ events.onUpdate(0); assert(context.blocked and #context.actors==1)
 tearingDown=true; before['PlayerPuppet.OnDetach'](); tearingDown=false
 local lastContext=context; events.onUpdate(0)
 assert(context==lastContext and actorSamples==beforeSamples+1)
+`));
+
+test('actual private text admission captures the offer and consumes one delayed action after streaming retires pending', () => run(`
+events.onInit(); events.onUpdate(0); privateConversation()
+hotkeys.cyberpunk_convai_text()
+assert(stats.driveOffers==0 and not convaiGameplayActions.inspect().pending,'composer warmup offered an action')
+player.composerOpen=false;player.submission='Drive me to my pin.';events.onUpdate(0.1)
+local input=json.decode(assert(files['runtime/last-input.json']))
+assert(input.chauffeurOffer and input.worldKnowledge.status=='ready' and stats.driveOffers==1)
+replyFor(input);events.onUpdate(0.1)
+assert(#stats.starts==1 and convaiGameplayActions.inspect().pending,'early reply retired the action lease')
+files['runtime/companion-actions.json']=json.encode(drivePacket(input));events.onUpdate(0.1);events.onUpdate(0.1)
+assert(#stats.driveCalls==1 and stats.driveCalls[1].serial==1 and stats.driveCalls[1].entity=='13ULL')
+assert(not convaiGameplayActions.inspect().pending)
+`));
+
+test('actual new conversation, zero-delta menu, reply deadline and restored world each revoke late driving actions', () => run(`
+events.onInit();events.onUpdate(0);privateConversation()
+local input=submitText();local stale=drivePacket(input)
+hotkeys.cyberpunk_convai_text();player.composerOpen=false
+files['runtime/companion-actions.json']=json.encode(stale);events.onUpdate(0.1)
+assert(#stats.driveCalls==0 and not convaiGameplayActions.inspect().pending)
+input=submitText();stale=drivePacket(input);player.phoneOpen=true;events.onUpdate(0)
+player.phoneOpen=false;files['runtime/companion-actions.json']=json.encode(stale);events.onUpdate(0.1)
+assert(#stats.driveCalls==0)
+input=submitText();clock=clock+90
+files['runtime/companion-actions.json']=json.encode(drivePacket(input));events.onUpdate(0.1)
+assert(#stats.driveCalls==0 and not convaiGameplayActions.inspect().pending,'expired pending action executed')
+input=submitText();stale=drivePacket(input)
+tearingDown=true;after['PlayerSystem.OnGameRestored']();tearingDown=false
+files['runtime/companion-actions.json']=json.encode(stale);events.onUpdate(0.1)
+assert(#stats.driveCalls==0 and not convaiGameplayActions.inspect().pending)
+`));
+
+test('an explicit reply failure takes priority over an action that arrives in the same gameplay update', () => run(`
+events.onInit();events.onUpdate(0);privateConversation()
+local input=submitText()
+files['runtime/reply.json']=json.encode({requestId=input.requestId,generation=input.generation,entity=input.entity,error='Request failed'})
+files['runtime/companion-actions.json']=json.encode(drivePacket(input));events.onUpdate(0.1)
+assert(#stats.driveCalls==0 and not convaiGameplayActions.inspect().pending)
+`));
+
+test('actual private microphone start captures after cancellation and preserves its action through reply delivery', () => run(`
+events.onInit();events.onUpdate(0);privateConversation()
+local nativeMic=(function() ${microphoneSource} end)()
+for _,key in ipairs({'captureKnowledge','currentKnowledgeOwner','captureJournal','captureBattle','captureFollowUpQuestions',
+    'captureActions','onCancelled'})do nativeMic[key]=microphone[key] end
+for _,key in ipairs({'begin','finish','cancel','update','received'})do
+    local operation=nativeMic[key]
+    microphone[key]=function(...)
+        local result=operation(...)
+        for _,field in ipairs({'context','state','knowledgeOwner','targetValid'})do microphone[field]=nativeMic[field] end
+        return result
+    end
+end
+hotkeys.cyberpunk_convai_voice()
+local started=json.decode(assert(files['runtime/microphone-command.json']))
+assert(started.action=='start' and started.input.chauffeurOffer and convaiGameplayActions.inspect().pending)
+hotkeys.cyberpunk_convai_voice()
+local finished=json.decode(files['runtime/microphone-command.json'])
+assert(finished.action=='finish' and finished.input.chauffeurOffer and stats.driveOffers==1)
+replyFor(finished.input);events.onUpdate(0.1)
+assert(not microphone.context and convaiGameplayActions.inspect().pending)
+files['runtime/companion-actions.json']=json.encode(drivePacket(finished.input,'private-voice'));events.onUpdate(0.1)
+assert(#stats.driveCalls==1)
+`));
+
+test('native AutoDrive callbacks observe only an active live trip and detach shutdown performs no native reads', () => run(`
+events.onInit();events.onUpdate(0);privateConversation()
+local arrivals,toggles,prepared=0,0,0
+companions.chauffeurSnapshot=function() return {active=true,phase='driving'} end
+companions.chauffeurArrived=function(id)assert(id=='23ULL');arrivals=arrivals+1 end
+companions.chauffeurAutodriveToggled=function(enabled)assert(enabled==false);toggles=toggles+1 end
+companions.prepareChauffeurShutdown=function()nativeRead('chauffeur shutdown');prepared=prepared+1 end
+local auto={GetAutodriveVehicle=function()nativeRead('autodrive car');return {GetEntityID=function()return {hash='23ULL'}end}end,
+    GetAutodriveEnabled=function()nativeRead('autodrive enabled');return true end}
+before['AutoDriveSystem.OnStopAutoDriveOnDestinationReachedRequest'](auto)
+after['AutoDriveSystem.OnAutodriveToggled'](auto,false)
+assert(arrivals==1 and toggles==1)
+tearingDown=true;before['PlayerPuppet.OnDetach']()
+before['AutoDriveSystem.OnStopAutoDriveOnDestinationReachedRequest'](auto)
+after['AutoDriveSystem.OnAutodriveToggled'](auto,false)
+events.onUpdate(0.1);events.onShutdown();tearingDown=false
+assert(arrivals==1 and toggles==1 and prepared==0)
 `));

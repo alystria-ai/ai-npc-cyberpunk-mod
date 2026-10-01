@@ -4,7 +4,7 @@ import {readFileSync, readdirSync} from 'node:fs';
 import path from 'node:path';
 import fengari from 'fengari';
 import {uiLocaleBootstrap} from './ui-locale-fixture.mjs';
-import {companionModules, companionEngine, flatNavigation} from './companion-fixture.mjs';
+import {companionModules, companionEngine, flatNavigation, flatSpatial} from './companion-fixture.mjs';
 
 const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
 const managerSource = readFileSync(new URL('../mod/manager.lua', import.meta.url), 'utf8');
@@ -472,6 +472,42 @@ const mcmFixture = `
     return result
   end
 `;
+
+test('Current party drive and stop controls defer all game calls until gameplay resumes', () => {
+  run(`${mcmFixture}
+    api.spawn('johnny-silverhand');members[1].state='ready';members[1].entityID='42ULL'
+    local trip={active=false,phase='idle'}
+    local nativeCalls,paused=0,true
+    api.chauffeurSnapshot=function()
+      local result={};for key,value in pairs(trip)do result[key]=value end;return result
+    end
+    api.queueChauffeur=function(serial,offer,entity)
+      assert(not paused and serial==members[1].serial and offer==nil and entity=='42ULL')
+      nativeCalls=nativeCalls+1;trip={active=true,phase='releasing',offer={actor={serial=serial}}}
+      return true,'Your companion is preparing to drive.'
+    end
+    api.cancelChauffeur=function()
+      assert(not paused);nativeCalls=nativeCalls+1;trip.phase='stopping';return true
+    end
+    assert(invoke('tab:party').ok)
+    local id='chauffeur:drive:live:'..members[1].serial
+    assert(row(id)and row(id).value=='Drive to waypoint'and not row(id).disabled)
+    local originalPlayer=Game.GetPlayer
+    Game.GetPlayer=function()error('native player query from a drive action callback')end
+    assert(registered.invokeAction('manager',id,{}).ok and nativeCalls==0)
+    Game.GetPlayer=originalPlayer
+    loaded=registered.loadMod('manager')
+    assert(row('chauffeur:stop').value=='Cancel drive request'and row('chauffeur-state').value=='Drive requested')
+    mcm.update(player,false);assert(nativeCalls==0)
+    paused=false;mcm.update(player,true);assert(nativeCalls==1 and trip.active)
+    loaded=registered.loadMod('manager');assert(row('chauffeur:stop').value=='Stop trip'and row(id).disabled)
+    paused=true;Game.GetPlayer=function()error('native player query from a stop action callback')end
+    assert(registered.invokeAction('manager','chauffeur:stop',{}).ok and nativeCalls==1)
+    Game.GetPlayer=originalPlayer;mcm.update(player,false);assert(nativeCalls==1)
+    paused=false;mcm.update(player,true);assert(nativeCalls==2 and trip.phase=='stopping')
+    assert(invoke('party:back').ok and not row('chauffeur:stop'))
+  `);
+});
 
 test('manager home owns the four destinations and every inner page has one parent Back action', () => {
   run(`${mcmFixture}
@@ -1705,6 +1741,7 @@ const engineFixture = `
   NPCPuppet = {IsInCombat = function() return false end}
   ${companionModules}
   ${flatNavigation}
+  ${flatSpatial}
   local companions = (function() ${companionsSource} end)()
 `;
 

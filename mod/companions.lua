@@ -5,12 +5,30 @@ local space = dofile('companion-space.lua')
 local travel = dofile('companion-travel.lua')
 local actuator = dofile('companion-actuator.lua')
 local placement = dofile('companion-placement.lua')
+local clearance = dofile('companion-clearance.lua')
 local appearance = dofile('companion-appearance.lua')
 local spawnRecords = dofile('companion-records.lua')
 local equipment = dofile('companion-equipment.lua')
 local vehicles = dofile('companion-vehicles.lua')
 local vehicleNative = dofile('companion-vehicle-native.lua')
 local fleet = vehicles.new(vehicleNative)
+local spatialBudget,externalSpatialFrame
+local function spatialFrame()
+    spatialBudget=clearance.newBudget()
+    actuator.useSpatialBudget(spatialBudget)
+    placement.useSpatialBudget(spatialBudget)
+    vehicleNative.useSpatialBudget(spatialBudget)
+    return spatialBudget
+end
+-- The CET owner calls this before draining queued invitations or updating UI.
+-- Standalone/direct update callers receive the same bounded behavior below.
+function M.beginSpatialFrame()
+    externalSpatialFrame=true
+    return spatialFrame()
+end
+function M.spatialQueryUsage()
+    return spatialBudget and {limit=spatialBudget.limit,used=spatialBudget.used,deferred=spatialBudget.deferred}
+end
 
 local records = {
     ['viktor-vektor'] = {id = 'Character.Victor_Vector', name = 'Viktor Vektor'},
@@ -103,7 +121,7 @@ local vehicleHooks = {
             local released,reason=actuator.applyLook(entry.motor,'none')
             if not released then error(reason or 'Waiting for seated attention to release') end
         end
-        entry.motor = actuator.new(entry.npc)
+        entry.motor = actuator.new(entry.npc,entry.clearance)
         entry.equipment = equipment.new(entry.npc)
         entry.person = behavior.new(entry.serial)
         entry.position = nil
@@ -157,6 +175,19 @@ local function formationPosition(player,slot)
     local point=space.offset(space.copy(player:GetWorldPosition()),direction,slots[slot][1],slots[slot][2])
     return copyPosition(point)
 end
+local function occupiedPositions(except)
+    local result={}
+    for _,member in ipairs(entries) do
+        if member~=except then
+            local position
+            if member.state=='ready' and member.npc and member.npc:IsAttached() then
+                position=member.npc:GetWorldPosition()
+            elseif member.state=='spawning' then position=member.spawnPosition end
+            if position then result[#result+1]={position=position,clearance=member.clearance} end
+        end
+    end
+    return result
+end
 
 local function attachFollower(entry, player)
     local npc = entry.system:GetEntity(entry.entityID)
@@ -168,6 +199,9 @@ local function attachFollower(entry, player)
     if math.abs(actual.z-entry.spawnPosition.z) > 0.9 or distance(actual, entry.spawnPosition) > 2.0 then
         return false, 'The game placed this copy away from the verified ground. Invitation cancelled.'
     end
+    local fits,clearanceError,deferred=placement.verify(player,actual,occupiedPositions(entry),entry.clearance)
+    if deferred then return nil,nil,true end
+    if not fits then return false,clearanceError end
     local ai = npc:GetAIControllerComponent()
     if not ai then return false, 'This model has no companion-compatible AI controller.' end
     local current = ai:GetAIRole()
@@ -185,7 +219,7 @@ local function attachFollower(entry, player)
     entry.npc = npc
     entry.role = role
     entry.state = 'ready'
-    entry.motor = actuator.new(npc)
+    entry.motor = actuator.new(npc,entry.clearance)
     entry.equipment = equipment.new(npc)
     entry.person = behavior.new(entry.serial)
     entry.lane = entry.lane or entry.slot
@@ -232,15 +266,9 @@ local function spawnCopy(key, invitation, returning)
         if not freeLane and not lanes[slot] then freeLane = slot; break end
     end
     if not freeSlot then return nil, 'Party is full' end
-    local occupiedPositions = {}
-    for _, member in ipairs(entries) do
-        if member.state == 'ready' and member.npc and member.npc:IsAttached() then
-            occupiedPositions[#occupiedPositions + 1] = member.npc:GetWorldPosition()
-        elseif member.state == 'spawning' then
-            occupiedPositions[#occupiedPositions + 1] = member.spawnPosition
-        end
-    end
-    local spawnPosition, placementError = placement.find(player, formationPosition(player, freeLane), occupiedPositions)
+    local body=returning and returning.clearance or placement.profile(definition,key)
+    local spawnPosition, placementError, deferred = placement.find(player, formationPosition(player, freeLane),occupiedPositions(),body)
+    if deferred then return nil,nil,true end
     if not spawnPosition then return nil, placementError end
     local spawnRecord, recordError, spawnRecordName = spawnRecords.resolve(recordID)
     if not spawnRecord then return nil, recordError end
@@ -271,6 +299,7 @@ local function spawnCopy(key, invitation, returning)
         entityID = entityID, system = system, state = 'spawning',
         requestedAt = os.time(), requestedClock = runtimeClock,
         spawnPosition = copyPosition(spawnPosition),
+        clearance = body,
         person = behavior.new(returning and returning.serial or serial),
         transitRecreated = returning ~= nil,
     }
@@ -328,6 +357,11 @@ end
 function M.dismiss(serialToDismiss)
     for index,entry in ipairs(entries) do
         if entry.serial==serialToDismiss then
+            -- Removing a seated driver can make the native passenger state
+            -- switch V into that seat. Retain the actor and role until the
+            -- chauffeur controller has confirmed the trip cleanup.
+            local allowed,reason=vehicles.canDismissChauffeurDriver(fleet,entry.serial)
+            if not allowed then return false,reason end
             local checked,managed,ours=pcall(function()
                 if not entry.system or not entry.system:IsReady() then error('World is not ready') end
                 local managed=entry.system:IsManaged(entry.entityID)
@@ -531,6 +565,35 @@ end
 
 function M.vehicleSnapshot() return vehicles.snapshot(fleet) end
 
+local function chauffeurEntry(entity,serialToFind)
+    if type(entity)~='string' then return nil end
+    for _,entry in ipairs(entries) do
+        if entry.state=='ready' and tostring(entry.entityID.hash)==entity
+            and (serialToFind==nil or entry.serial==serialToFind) then return entry end
+    end
+end
+
+-- Offers and queue admission run only from gameplay. Menu callers use the
+-- cached snapshot and retain the exact serial/entity pair in their intent.
+function M.chauffeurOffer(entity)
+    local entry=chauffeurEntry(entity)
+    if not entry then return {available=false,reason='Choose a ready companion from your party.'} end
+    return vehicles.chauffeurOffer(fleet,Game.GetPlayer(),entry)
+end
+
+function M.queueChauffeur(serialToDrive,expectedOffer,entity)
+    if type(serialToDrive)~='number' or serialToDrive<=0 then return false,'Choose a ready companion from your party.' end
+    local entry=chauffeurEntry(entity,serialToDrive)
+    if not entry then return false,'That companion is no longer ready to drive.' end
+    return vehicles.queueChauffeur(fleet,Game.GetPlayer(),entry,expectedOffer)
+end
+
+function M.cancelChauffeur(reason) return vehicles.cancelChauffeur(fleet,reason) end
+function M.chauffeurSnapshot() return vehicles.chauffeurSnapshot(fleet) end
+function M.prepareChauffeurShutdown(reason) return vehicles.prepareChauffeurShutdown(fleet,reason) end
+function M.chauffeurAutodriveToggled(enabled) return vehicles.chauffeurAutodriveToggled(fleet,enabled) end
+function M.chauffeurArrived(entity) return vehicles.chauffeurArrived(fleet,entity) end
+
 function M.beginFastTravel()
     if transit then return false end
     local party={}
@@ -555,7 +618,7 @@ function M.beginFastTravel()
             party[#party+1]={serial=entry.serial,key=entry.key,name=entry.name,slot=entry.slot,lane=entry.lane,
                 profileKey=entry.profileKey,profileName=entry.profileName,record=entry.record,
                 modelRecordID=entry.modelRecordID,spawnRecord=entry.spawnRecord,entityID=entry.entityID,
-                state='transit',spawnPosition=space.copy(entry.spawnPosition),
+                state='transit',spawnPosition=space.copy(entry.spawnPosition),clearance=entry.clearance,
                 retiredCommands=commands,
                 transitError=entry.motor and entry.motor.look and 'The previous gaze request could not be released.' or nil}
         end
@@ -592,8 +655,9 @@ local function recoverTransit(player,step)
                     if (entry.spawnAttempts or 0)>=3 then
                         entry.state,entry.error='failed',entry.error or 'This copy could not return after fast travel.'; return
                     end
+                    local created,reason,deferred=spawnCopy(entry.key,{profileKey=entry.profileKey,profileName=entry.profileName},entry)
+                    if deferred then return end
                     entry.spawnAttempts=(entry.spawnAttempts or 0)+1; entry.retryAt=transit.clock+2
-                    local created,reason=spawnCopy(entry.key,{profileKey=entry.profileKey,profileName=entry.profileName},entry)
                     if not created then entry.error=reason end
                     return
                 end
@@ -649,15 +713,17 @@ local function recoverTransit(player,step)
     return false
 end
 
-local function peerYieldPoint(at,others,id)
+local function peerYieldPoint(at,others,id,shape)
     -- V can deliberately come close to inspect a face or talk. That is not a
     -- request to retreat. Only overlapping owned companions need separation;
     -- spawning and all new route destinations still use ordinary clearance.
-    local nearest,gap=nil,0.65
+    local nearest,gap=nil,math.huge
     for _,other in ipairs(others) do
         if other.id~=id and not other.reserved then
+            local required=math.max(.65,(shape and shape.radius or .35)
+                +(other.clearance and other.clearance.radius or .35)-.15)
             local distance=space.distance(at,other.position)
-            if distance<gap then nearest,gap=other.position,distance end
+            if distance<required and distance<gap then nearest,gap=other.position,distance end
         end
     end
     return nearest and space.offset(at,space.bearing(nearest,at),0,0.5) or nil
@@ -682,6 +748,7 @@ local function reassignReversal(order)
 end
 
 function M.update(player,delta,focusEntity)
+    if not externalSpatialFrame then spatialFrame() end
     if not player then return end
     local dt=tonumber(delta) or 0
     elapsed,runtimeClock=elapsed+dt,runtimeClock+dt
@@ -693,7 +760,8 @@ function M.update(player,delta,focusEntity)
     for _,entry in ipairs(entries) do
         if entry.state=='spawning' then
             if entry.system:IsSpawned(entry.entityID) then
-                local ok,result,reason=pcall(attachFollower,entry,player)
+                local ok,result,reason,deferred=pcall(attachFollower,entry,player)
+                if deferred then entry.requestedClock=entry.requestedClock+step end
                 if not ok or result==false then entry.state,entry.error='failed',tostring(ok and reason or result) end
             end
             if entry.state=='spawning' and runtimeClock-entry.requestedClock>12 then
@@ -757,7 +825,7 @@ function M.update(player,delta,focusEntity)
                 order[#order+1]=entry
                 company.people[#company.people+1]={id=tostring(entry.entityID.hash),position=at,
                     phase=entry.person.phase}
-                others[#others+1]={id=tostring(entry.entityID.hash),position=at}
+                others[#others+1]={id=tostring(entry.entityID.hash),position=at,clearance=entry.clearance}
         end
     end
     travel.update(groupFrame,playerPosition,step,company)
@@ -767,7 +835,8 @@ function M.update(player,delta,focusEntity)
         entry.maxPlayerSpeed=math.max(entry.maxPlayerSpeed or 0,groupFrame.rawSpeed)
         if entry.motor.target and entry.motor.kind=='move' and not entry.motor.face
             and not entry.motor.feedback.complete and not entry.motor.feedback.failed then
-            others[#others+1]={id=tostring(entry.entityID.hash),position=space.copy(entry.motor.target),reserved=true}
+            others[#others+1]={id=tostring(entry.entityID.hash),position=space.copy(entry.motor.target),reserved=true,
+                clearance=entry.clearance}
         end
     end
     local budget=2
@@ -782,20 +851,20 @@ function M.update(player,delta,focusEntity)
             local choices=space.candidates(groupFrame,entry.lane)
             local restTarget=choices[1]
             for _,point in ipairs(choices) do
-                if space.clear(point,playerPosition,others,id) then restTarget=point; break end
+                if space.clear(point,playerPosition,others,id,nil,entry.clearance) then restTarget=point; break end
             end
             entry.targetGap=space.distance(entry.position,groupFrame.moving and travelTarget or restTarget)
             local fightingOk,fighting=pcall(function() return NPCPuppet.IsInCombat(entry.npc) end)
             local context={
-                id=id,slot=entry.lane,frame=groupFrame,player=player,
+                id=id,slot=entry.lane,frame=groupFrame,player=player,clearance=entry.clearance,
                 position=entry.position,direction=entry.direction,speed=entry.speed,
                 playerGap=entry.playerGap,targetGap=entry.targetGap,facingError=entry.facingError,
                 selected=id==focusEntity,combat=fightingOk and fighting==true,
                 gazeSettings=gazeSettings,
                 motion=entry.motor.feedback,travelTarget=travelTarget,restTarget=restTarget,
-                comfortable=space.comfortable(entry.position,groupFrame,entry.lane,others,id),
-                nearGroup=space.nearGroup(entry.position,groupFrame,entry.lane,others,id),
-                yieldTarget=peerYieldPoint(entry.position,others,id),others=others,
+                comfortable=space.comfortable(entry.position,groupFrame,entry.lane,others,id,entry.clearance),
+                nearGroup=space.nearGroup(entry.position,groupFrame,entry.lane,others,id,entry.clearance),
+                yieldTarget=peerYieldPoint(entry.position,others,id,entry.clearance),others=others,
             }
             local decision=behavior.decide(entry.person,context,step)
             -- Braking is already a committed stop. Never choose an alternative

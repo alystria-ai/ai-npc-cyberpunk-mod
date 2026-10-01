@@ -181,7 +181,8 @@ end
 local function action(id, label, value, description, callback, enabled, raw)
     actions[id] = callback
     raw = raw or {}
-    if id:match('^invite:') or id:match('^dismiss:') or id:match('^assign%-profile:') or id:match('^memory:select:') then raw.label = true end
+    if id:match('^invite:') or id:match('^dismiss:') or id:match('^chauffeur:drive:')
+        or id:match('^assign%-profile:') or id:match('^memory:select:') then raw.label = true end
     if (id:match('^assign:') and id ~= 'assign:none' and value ~= 'Choose a profile')
         or (id == 'memory:choose' and value ~= 'Choose a character') then raw.value = true end
     if id == 'models:previous' or id == 'models:next' or id == 'memory:previous' or id == 'memory:next' then raw.description = true end
@@ -340,9 +341,23 @@ local function schema()
             'Search a character by name. Each invitation reserves a place and starts preparation immediately. Your party can have up to eight copies, including pending invitations.')
     elseif view == 'party' then
         local message = queue.message()
+        local trip = queue.chauffeur()
         local status = {readonly('party-count', 'Companions', queue.count() .. ' / 8',
             'Includes reserved invitations and current companions. Invited characters prepare while the menu is open, then join when ready after you return to gameplay. Dismissals take effect in gameplay.')}
         if message ~= '' then status[#status + 1] = readonly('feedback', message, '', message) end
+        if trip.active or trip.pending then
+            local tripStates = {releasing = 'Preparing to drive', ['boarding-driver'] = 'Driver boarding',
+                ['boarding-player'] = 'Boarding passenger', ['waiting-for-party'] = 'Waiting for party to board',
+                starting = 'Starting trip', driving = 'Driving',
+                stopping = 'Stopping', ['waiting-for-player-exit'] = 'Waiting for you to step out',
+                ['exiting-driver'] = 'Driver leaving the car'}
+            status[#status + 1] = readonly('chauffeur-state', 'Companion driver',
+                trip.stopPending and 'Stop requested' or (trip.pending and 'Drive requested' or tripStates[trip.phase] or trip.phase),
+                'Summon one of your cars and select a map waypoint. Your companion takes the driver seat and V rides as a passenger.')
+            status[#status + 1] = action('chauffeur:stop', 'Companion driver', trip.pending and 'Cancel drive request' or 'Stop trip',
+                'Stop the trip after returning to gameplay. Wait for the car to stop, then step out before dismissing the driver.',
+                function() return queue.cancelDrive() end, not trip.stopPending)
+        end
         categories[#categories + 1] = category('party-status', 'Your group', status)
         if #party == 0 then rows[#rows + 1] = readonly('empty-party', 'Your party is empty', '', 'Invite someone from Characters or Model browser.') end
         local states = {ready = 'Following', spawning = 'Joining', queued = 'Waiting to join',
@@ -361,11 +376,16 @@ local function schema()
                 or ui.t('{name} · invited copy',{name=member.name})
             rows[#rows + 1] = readonly('state:' .. id, display, states[member.state] or member.state,
                 ui.t(descriptions[member.state] or 'This is a separate, mod-owned companion.')
-                    .. (member.error and ('\n' .. member.error) or ''))
+                    .. (member.error and ('\n' .. ui.t(member.error)) or ''))
             rows[#rows + 1] = action('assign:' .. id, 'Conversation', member.profileName or 'Choose a profile',
                 ui.t('Choose the personality for {name}. The character model stays the same.',{name=display}),
                 function(context) assigning, view = id, 'assignment'; clearSearch(context); return true end,
                 member.state ~= 'leaving' and member.state ~= 'missing')
+            if member.serial then
+                rows[#rows + 1] = action('chauffeur:drive:' .. id, display, 'Drive to waypoint',
+                    'Summon one of your cars, select a map waypoint, then return to gameplay. This companion will drive while V rides as a passenger.',
+                    function() return queue.drive(id) end, member.state == 'ready' and not trip.active and not trip.stopPending)
+            end
             local leaving = member.state == 'leaving'
             rows[#rows + 1] = action('dismiss:' .. id, display,
                 leaving and 'Keep in party' or (member.serial and 'Dismiss' or 'Cancel invitation'),
@@ -779,6 +799,9 @@ function M.update(currentPlayer, worldReady)
         local signature = {queue.message(), tostring(queue.count()), snapshot.localVoice.state or '',
             snapshot.localVoice.provider or '', tostring(snapshot.localVoice.pending),
             tostring(snapshot.localVoice.previewActive), tostring(snapshot.localVoice.preparationOnly)}
+        local trip = queue.chauffeur()
+        signature[#signature + 1] = table.concat({trip.phase or '', tostring(trip.pending), tostring(trip.stopPending),
+            trip.reason or '', trip.error or ''}, '|')
         local memory = snapshot.memory
         if memory.command and memory.command.id == memoryActionCommand then actionFeedback = memory.feedback end
         signature[#signature + 1] = table.concat({memory.state, tostring(memory.talkedToCount), memory.feedback,
@@ -828,9 +851,9 @@ function M.resetSession()
     entry.reset()
 end
 
-function M.shutdown()
+function M.shutdown(worldReady)
     -- onShutdown is a top-level CET lifecycle event, not a native ink callback.
-    fontPresentation.restoreNow()
+    if worldReady ~= false then fontPresentation.restoreNow() end
     queue.bind(nil)
     entry.reset()
     voicePreview.shutdown()

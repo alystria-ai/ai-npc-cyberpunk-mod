@@ -2,6 +2,77 @@
 local requestFile = io.open('runtime/diagnostic-request.txt', 'rb')
 local request = requestFile and requestFile:read('*a') or ''
 if requestFile then requestFile:close() end
+if request:match('^clearance%-read:') then
+    local report = {capturedAt = os.time() * 1000, readOnly = true, stage = 'load'}
+    local ok, err = pcall(function()
+        local run = dofile('runtime/companion-clearance-probe.lua')
+        report.stage = 'vehicle'
+        local definitions = Game.GetAllBlackboardDefs().VehicleSummonData
+        local board = Game.GetBlackboardSystem():Get(definitions)
+        local entityID = board:GetEntityID(definitions.SummonedVehicleEntityID)
+        local car = Game.FindEntityByID(entityID)
+        report.stage = 'geometry'
+        report.result = run(Game.GetPlayer(), car)
+        local candidates = convaiCompanions.conversationCandidates(Game.GetPlayer(), 30)
+        if candidates[1] then
+            report.managed = run(Game.GetPlayer(), nil, {
+                {name = candidates[1].name, point = candidates[1].npc:GetWorldPosition()}})
+        end
+        report.stage = 'encoded'
+    end)
+    report.ok, report.error = ok, not ok and tostring(err) or nil
+    local encoded, raw = pcall(json.encode, report)
+    if not encoded then raw = json.encode({ok = false, stage = 'serialize', error = tostring(raw)}) end
+    local output = assert(io.open('runtime/clearance-read.json', 'wb'))
+    output:write(raw); output:close()
+    return
+end
+if request:match('^chauffeur%-read:') then
+    local report = {capturedAt = os.time() * 1000, readOnly = true, actors = {}}
+    local function mount(value) return value and {vehicle = value.vehicle, seat = value.seat} end
+    local ok, reason = pcall(function()
+        local native = dofile('runtime/chauffeur-native-read.lua')
+        local adapter = dofile('companion-vehicle-native.lua')
+        local player = Game.GetPlayer()
+        local maps = Game.GetMappinSystem()
+        local tracked = maps:GetManuallyTrackedMappinID()
+        local pin = maps:GetMappin(tracked)
+        report.tracked = {id = tostring(tracked), value = tostring(tracked.value), exists = pin ~= nil}
+        if pin then report.tracked.name = pin:GetDisplayName(); report.tracked.variant = tostring(pin:GetVariant()) end
+        local auto = Game.GetScriptableSystemsContainer():Get(CName.new('AutoDriveSystem'))
+        local destinationID = auto:GetAutodriveDestinationMappinID()
+        local destination = auto:GetAutodriveDestination()
+        local destinationPin = maps:GetMappin(destinationID)
+        report.destination = {kind = tostring(auto:GetAutodriveDestinationType()), id = tostring(destinationID.value),
+            position = {x = destination.X or destination.x, y = destination.Y or destination.y, z = destination.Z or destination.z},
+            exists = destinationPin ~= nil}
+        if destinationPin then
+            local pos = destinationPin:GetWorldPosition()
+            report.destination.name, report.destination.tracked = destinationPin:GetDisplayName(), destinationPin:IsPlayerTracked()
+            report.destination.mappinPosition = {x = pos.x, y = pos.y, z = pos.z}
+        end
+        for _, candidate in ipairs(convaiCompanions.conversationCandidates(player, 30)) do
+            local serial
+            for _, row in ipairs(convaiCompanions.list()) do
+                if row.entityID == candidate.entity then serial = row.serial end
+            end
+            local entry = {serial = serial, name = candidate.name, profileKey = candidate.profileKey,
+                entityID = candidate.npc:GetEntityID(), npc = candidate.npc, system = Game.GetDynamicEntitySystem()}
+            local value = native.sample(player, entry, nil, adapter)
+            report.actors[#report.actors + 1] = {name = candidate.name, valid = value.actorValid,
+                calm = value.actorCalm, carValid = value.carValid, summonEnRoute = value.summonEnRoute,
+                playerPassenger = value.playerPassenger, playerCombat = value.playerCombat,
+                playerMount = mount(value.playerMount), driverMount = mount(value.driverMount), waypoint = value.waypoint,
+                car = value.car and {name = value.car.name, record = value.car.record}, auto = value.auto,
+                seating = value.info and {ready = value.info.ready, seats = value.info.seats, speed = value.info.speed}}
+        end
+    end)
+    report.ok, report.error = ok, not ok and tostring(reason) or nil
+    local raw = json.encode(report)
+    local output = assert(io.open('runtime/chauffeur-read.json', 'wb'))
+    output:write(raw); output:close()
+    return
+end
 if request:match('^seated%-head%-probe:') then
     local run = dofile('runtime/seated-head-slot-probe.lua')
     local result = {capturedAt = os.time() * 1000, companions = {}}

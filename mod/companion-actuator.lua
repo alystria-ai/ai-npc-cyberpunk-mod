@@ -1,7 +1,9 @@
 -- Native execution boundary: one owned movement command and one look request.
 -- A completed finite operation is never silently reissued while its feet coast.
 local space=dofile('companion-space.lua')
+local clearance=dofile('companion-clearance.lua')
 local M={}
+function M.useSpatialBudget(value) clearance.useBudget(value) end
 local function vector(p) return Vector4.new(p.x,p.y,p.z or 0,p.w or 1) end
 local function position(p)
     local world=WorldPosition.new(); world:SetVector4(vector(p))
@@ -20,8 +22,8 @@ local function terminal(label)
     local name=stateName(label)
     return name=='Success' or name=='Failure' or name=='Cancelled' or name=='Interrupted'
 end
-function M.new(npc)
-    return {npc=npc,clock=0,issued=false,lookStyle='none',feedback={},commands=0,events={}}
+function M.new(npc,shape)
+    return {npc=npc,clearance=shape,clock=0,issued=false,lookStyle='none',feedback={},commands=0,events={}}
 end
 local function record(s,kind)
     if #s.events>=16 then table.remove(s.events,1) end
@@ -121,7 +123,11 @@ function M.release(s)
     local released=cancel(s)
     local lookReleased,lookError=clearLook(s)
     s.lookError=not lookReleased and lookError or nil
-    if released then s.feedback={}; s.issued=false end
+    if released then
+        s.feedback={}; s.issued=false
+        s.blockedReason,s.blockedHolding,s.routeCheckedAt=nil,nil,nil
+        s.routeProbe,s.candidateIndex,s.clearanceWaiting,s.clearanceHolding=nil,nil,nil,nil
+    end
     return released and lookReleased
 end
 function M.abandon(s)
@@ -131,6 +137,9 @@ function M.abandon(s)
     s.lookStyle,s.lookHeight,s.lookStrength,s.lookSeated='none',nil,nil,nil
     s.lookRemoveRetryAt,s.lookRemoveError=nil,nil
     s.seatedAttention=nil
+    s.blockedReason,s.blockedHolding,s.routeCheckedAt=nil,nil,nil
+    s.sensedPosition,s.motionDirection=nil,nil
+    s.routeProbe,s.candidateIndex,s.clearanceWaiting,s.clearanceHolding=nil,nil,nil,nil
     s.feedback={}; s.issued=false
 end
 function M.ownsTravel(s,command)
@@ -140,6 +149,10 @@ end
 
 function M.sense(s,at,speed,dt)
     s.clock=s.clock+dt
+    if s.sensedPosition and space.ground(s.sensedPosition,at)>0.02 then
+        s.motionDirection=space.bearing(s.sensedPosition,at)
+    elseif speed<0.18 then s.motionDirection=nil end
+    s.sensedPosition=space.copy(at)
     local f={ticket=s.ticket,kind=s.kind,target=s.target and space.copy(s.target),
         age=s.clock-(s.issuedAt or s.clock),stage=s.stage,waiting=not s.issued,
         commands=s.commands,error=s.error}
@@ -167,6 +180,13 @@ function M.sense(s,at,speed,dt)
             f.stalled=f.active and s.clock-s.progress.at>2.8 and speed<0.2
         else s.progress=nil end
     elseif s.failed then f.failed=true; f.error=s.error end
+    if s.blockedReason then
+        -- A safety hold owns the body while the requested walking operation
+        -- reports failure. It must never look like a successful arrival.
+        f.failed,f.complete,f.blocked=true,false,true
+        f.error=s.blockedReason
+    end
+    if s.clearanceWaiting then f.waiting,f.complete,f.failed=true,false,false end
     if s.cancellation then
         f.cancelling=true
         f.error=s.cancellation.error or 'Waiting for native movement cancellation'
@@ -265,34 +285,113 @@ function M.applySeatedLook(s,c,dt)
     return M.applyLook(s,style,c.player,c.gazeSettings,true)
 end
 
+local function routeClear(s,c,target,following)
+    local function reject(reason) s.routeProbe=nil; return false,reason end
+    local probe=s.routeProbe
+    if not probe or probe.following~=following or space.distance(probe.origin,c.position)>.35
+        or space.distance(probe.target,target)>(following and 1.5 or .01) then
+        probe={origin=space.copy(c.position),target=space.copy(target),following=following,at=s.clock}
+        s.routeProbe=probe
+    end
+    if s.clock-probe.at>3 then
+        -- A busy frame can age a partial receipt. Refresh it while held; quota
+        -- pressure is never reported as a geometry/native command failure.
+        s.routeProbe=nil
+        return nil,nil,true
+    end
+    local clear,reason,deferred
+    if not probe.body then
+        clear,reason,deferred=clearance.body(probe.target,s.clearance)
+        if deferred then return nil,nil,true end
+        if not clear then return reject(reason) end
+        probe.body=true
+    end
+    if not probe.legs then
+        local ok,route=pcall(function()
+            return Game.GetAINavigationSystem():CalculatePathForCharacter(vector(probe.origin),vector(probe.target),0.3,s.npc)
+        end)
+        if not ok then return reject('The game could not verify the walking route') end
+        local points=route and route.path
+        local direct=space.distance(probe.origin,probe.target)
+        local allowance=following and math.max(12,direct) or 5
+        local measured,length=pcall(function() return route:CalculateLength() end)
+        if not points or #points==0 or #points>128 or space.distance(points[#points],probe.target)>=0.65
+            or not measured or type(length)~='number' or not (length>=0 and length<direct+allowance) then
+            return reject('No clear navigation route')
+        end
+        local previous=probe.origin
+        local legs,boxes={},1
+        local function leg(point)
+            -- Equal first/last navmesh points need no extra native box.
+            if space.distance(previous,point)>.005 then
+                boxes=boxes+clearance.segmentBoxes(previous,point)
+                legs[#legs+1]={from=space.copy(previous),to=space.copy(point),progress={}}
+            end
+            previous=point
+        end
+        for _,point in ipairs(points) do
+            if not clearance.isPoint(point) then return reject('No clear navigation route') end
+            if not following and math.abs(point.z-probe.origin.z)>1.4 then
+                return reject('The local walking route leaves this floor')
+            end
+            local margin=math.max(.75,(s.clearance and s.clearance.radius or .4)+.35)
+            if not following and c.playerGap>1 and space.segmentDistance(c.frame.position,previous,point)<margin then
+                return reject('The walking route crosses the player')
+            end
+            leg(point)
+        end
+        leg(probe.target)
+        -- A single operation cannot retain an arbitrarily old clearance
+        -- receipt. Larger/denser routes wait for a closer navigable approach.
+        if boxes>64 then return reject('No clear navigation route') end
+        probe.legs,probe.next=legs,1
+    end
+    while probe.next<=#probe.legs do
+        local leg=probe.legs[probe.next]
+        clear,reason,deferred=clearance.segment(leg.from,leg.to,s.clearance,leg.progress)
+        if deferred then return nil,nil,true end
+        if not clear then return reject(reason) end
+        probe.next=probe.next+1
+    end
+    if probe.at<s.clock then
+        -- A resumed route rechecks both actual ends before movement can resume.
+        clear,reason,deferred=clearance.body(c.position,s.clearance)
+        if deferred then return nil,nil,true end
+        if not clear then return reject(reason) end
+        clear,reason,deferred=clearance.body(target,s.clearance)
+        if deferred then return nil,nil,true end
+        if not clear then return reject(reason) end
+        if space.distance(probe.target,target)>.005 then
+            clear,reason,deferred=clearance.segment(probe.target,target,s.clearance)
+            if deferred then return nil,nil,true end
+            if not clear then return reject(reason) end
+        end
+    end
+    s.routeProbe=nil
+    return true
+end
+
 local function validate(s,intent,c)
-    local nav=Game.GetAINavigationSystem()
     local candidates={intent.goal}
     if not intent.face then
         for _,point in ipairs(c.alternatives or {}) do candidates[#candidates+1]=point end
     end
-    for _,desired in ipairs(candidates) do
-        local found=nav:FindPointInSphereForCharacter(vector(desired),0.55,s.npc)
-        if found and found.status==Enum.new('worldNavigationRequestStatus','OK') and found.point then
+    for index=s.candidateIndex or 1,#candidates do
+        local desired=candidates[index]
+        local ok,found=pcall(function()
+            return Game.GetAINavigationSystem():FindPointInSphereForCharacter(vector(desired),0.55,s.npc)
+        end)
+        if ok and found and found.status==Enum.new('worldNavigationRequestStatus','OK') and found.point then
             local p=space.copy(found.point)
             if space.distance(p,desired)<0.8 and math.abs(p.z-c.position.z)<1.2
-                and space.clear(p,c.frame.position,c.others,c.id,intent.face and 0.95 or 0.9) then
-                local route=nav:CalculatePathForCharacter(vector(c.position),vector(p),0.3,s.npc)
-                local points=route and route.path
-                if points and #points>0 and space.distance(points[#points],p)<0.65
-                    and route:CalculateLength()<space.distance(c.position,p)+5 then
-                    local clear=true
-                    for i=2,#points do
-                        if math.abs(points[i].z-c.position.z)>1.4 then clear=false; break end
-                        if c.playerGap>1.0 and space.segmentDistance(c.frame.position,points[i-1],points[i])<0.75 then
-                            clear=false; break
-                        end
-                    end
-                    if clear then return p end
-                end
+                and space.clear(p,c.frame.position,c.others,c.id,intent.face and 0.95 or 0.9,s.clearance) then
+                local clear,reason,deferred=routeClear(s,c,p,false)
+                if deferred then s.candidateIndex=index; return nil,nil,true end
+                if clear then s.candidateIndex=nil; return p end
             end
         end
     end
+    s.candidateIndex=nil
     return nil,'No clear local walking route'
 end
 
@@ -307,6 +406,65 @@ local function submit(s,command)
     record(s,'submit')
     return true
 end
+
+local function keepBlocked(s)
+    if s.blockedHolding and s.command and s.clock-s.issuedAt<35
+        and not terminal(s.feedback.state or '') then return end
+    if not cancel(s) then return end
+    local reason=s.blockedReason
+    local command=NewObject('AIHoldPositionCommand'); command.duration=40
+    s.stage='blocked'
+    if submit(s,command) then s.blockedHolding=true end
+    s.failed,s.error=true,reason
+end
+
+local function block(s,reason)
+    s.routeProbe,s.candidateIndex,s.clearanceWaiting,s.clearanceHolding=nil,nil,nil,nil
+    if not s.blockedReason then
+        s.blockedReason=reason or 'The walking route is obstructed'
+        record(s,'route-rejected')
+    end
+    s.failed,s.error=true,s.blockedReason
+    -- These copies have AIFollowerRole. Releasing our command alone would let
+    -- native autonomous following walk through the rejected route anyway.
+    keepBlocked(s)
+end
+
+local function waitForClearance(s)
+    s.clearanceWaiting=true
+    if s.clearanceHolding and s.command and s.clock-s.issuedAt<35
+        and not terminal(s.feedback.state or '') then return end
+    if not cancel(s) then return end
+    local command=NewObject('AIHoldPositionCommand'); command.duration=40
+    s.stage='clearance-wait'
+    if submit(s,command) then s.clearanceHolding=true; s.issued=false end
+end
+
+local function watchRoute(s,c,canPlan)
+    if not s.command or not s.feedback.active or s.stage=='orient' or s.clearanceWaiting then return false end
+    if s.clock>=(s.clearanceAt or 0) then
+        s.clearanceAt=s.clock+0.2
+        -- Check measured motion as well as the planned path: native avoidance
+        -- and stop animations may stray from the route we accepted.
+        if s.motionDirection and c.speed>0.18 then
+            local distance=math.max(0.75,math.min(5,c.speed*0.65+0.35))
+            local ahead=space.offset(c.position,s.motionDirection,0,distance)
+            local clear,reason,deferred=clearance.segment(c.position,ahead,s.clearance)
+            if deferred then waitForClearance(s); return false end
+            if not clear then block(s,reason); return false end
+        end
+    end
+    if canPlan and s.clock>=(s.routeCheckedAt or 0)+0.8 then
+        s.routeCheckedAt=s.clock
+        local target=s.kind=='follow' and c.frame.position or s.target
+        local clear,reason,deferred=routeClear(s,c,target,s.kind=='follow')
+        if deferred then waitForClearance(s)
+        elseif not clear then block(s,reason) end
+        return true
+    end
+    return false
+end
+
 local function walk(s,intent,c)
     local cmd=NewObject('AIMoveToCommand')
     cmd.movementTarget=position(s.target)
@@ -333,10 +491,23 @@ function M.apply(s,decision,c,canPlan)
     end
     if s.cancellation and not cancel(s) then return false end
     local changed=s.ticket~=intent.ticket
+    if changed and intent.kind=='move' and not canPlan then
+        -- Keep the last owned stance while this member waits its turn in the
+        -- planning budget. An unowned gap would release AIFollowerRole.
+        if not s.command or terminal(s.feedback.state or '') then
+            local command=NewObject('AIHoldPositionCommand'); command.duration=40
+            s.stage='planning-wait'; submit(s,command)
+        elseif not s.blockedReason and (s.kind=='move' or s.kind=='follow') then
+            watchRoute(s,c,false)
+        end
+        return false
+    end
     if changed then
         if not cancel(s) then return false end
         s.ticket,s.kind,s.face=intent.ticket,intent.kind,intent.face
         s.issued,s.failed,s.error,s.stage=false,false,nil,nil
+        s.blockedReason,s.blockedHolding,s.routeCheckedAt,s.clearanceAt=nil,nil,nil,nil
+        s.routeProbe,s.candidateIndex,s.clearanceWaiting,s.clearanceHolding=nil,nil,nil,nil
         s.target=nil
     end
     if intent.kind=='hold' then
@@ -346,10 +517,25 @@ function M.apply(s,decision,c,canPlan)
         s.stage='holding'; submit(s,command); return false
     end
     if intent.kind=='follow' then
+        if s.blockedReason then keepBlocked(s); return false end
+        local planned=watchRoute(s,c,canPlan)
+        if s.blockedReason then return planned end
+        if planned and s.clearanceWaiting then return planned end
         if s.issued and s.feedback.failed then return false end
-        if s.issued and s.feedback.active and (s.gait==intent.gait or s.clock-s.issuedAt<0.9) then return false end
-        if s.issued and s.clock-s.issuedAt<0.65 then return false end
-        if not cancel(s) then return false end
+        if s.issued and s.feedback.active and (s.gait==intent.gait or s.clock-s.issuedAt<0.9) then return planned end
+        if s.issued and s.clock-s.issuedAt<0.65 then return planned end
+        -- Initial following remains prompt for the whole party. Its one route
+        -- check belongs to the operation transition; ongoing checks and gait
+        -- replacements use the shared planning budget.
+        if not canPlan and s.issued then return planned end
+        if not planned then
+            local clear,reason,deferred=routeClear(s,c,c.frame.position,true)
+            s.routeCheckedAt=s.clock
+            if deferred then waitForClearance(s); return canPlan end
+            if not clear then block(s,reason); return canPlan end
+        end
+        if not cancel(s) then return canPlan end
+        s.clearanceWaiting,s.clearanceHolding=nil,nil
         local command=NewObject('AIFollowTargetCommand')
         command.target=c.player
         command.desiredDistance=1.7+math.floor((c.slot-1)/2)*0.3
@@ -357,7 +543,7 @@ function M.apply(s,decision,c,canPlan)
         command.movementType=Enum.new('moveMovementType',intent.gait or 'Run')
         command.matchSpeed=intent.gait=='Walk'
         command.teleport=false; command.stopWhenDestinationReached=false
-        s.gait,s.stage=intent.gait,'following'; submit(s,command); return false
+        s.gait,s.stage=intent.gait,'following'; submit(s,command); return canPlan
     end
     if intent.kind=='turn' then
         if s.issued or s.failed then return false end
@@ -369,22 +555,37 @@ function M.apply(s,decision,c,canPlan)
     end
     if intent.kind~='move' then error('Unknown movement operation '..tostring(intent.kind)) end
 
+    if s.blockedReason then keepBlocked(s); return false end
+    local planned=watchRoute(s,c,canPlan)
+    if s.blockedReason then return planned end
+
     if s.stage=='orient' then
         local error=space.angle(c.direction,space.bearing(c.position,s.target))
-        if (error<25 or s.clock-s.issuedAt>2.2) and cancel(s) then walk(s,intent,c) end
+        if (error<25 or s.clock-s.issuedAt>2.2) and canPlan then
+            -- A parked vehicle may have moved into the route during the turn.
+            local clear,reason,deferred=routeClear(s,c,s.target,false)
+            s.routeCheckedAt=s.clock
+            if deferred then waitForClearance(s)
+            elseif not clear then block(s,reason)
+            elseif cancel(s) then walk(s,intent,c) end
+            return true
+        end
         return false
     end
-    if s.issued and intent.finish then return false end
-    if s.failed then return false end
+    if s.issued and intent.finish then return planned end
+    if s.failed then return planned end
     if s.issued then
         local age=s.clock-s.issuedAt
         local shifted=space.ground(s.target,intent.goal)
-        if age<0.65 or (shifted<1.15 and s.gait==intent.gait and s.feedback.active) then return false end
+        if age<0.65 or (shifted<1.15 and s.gait==intent.gait and s.feedback.active) then return planned end
     end
-    if not canPlan then return false end
-    local target,err=validate(s,intent,c)
-    if not target then s.failed,s.error=true,err; record(s,'route-rejected'); return true end
+    if not canPlan or planned then return planned end
+    local target,err,deferred=validate(s,intent,c)
+    s.routeCheckedAt=s.clock
+    if deferred then waitForClearance(s); return true end
+    if not target then block(s,err); return true end
     if not cancel(s) then return true end
+    s.clearanceWaiting,s.clearanceHolding=nil,nil
     s.target,s.gait=target,intent.gait
     if not s.issued and intent.finish and not intent.face and c.speed<0.18
         and space.ground(c.position,target)>1.0

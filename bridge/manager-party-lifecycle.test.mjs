@@ -7,6 +7,33 @@ import {uiLocaleBootstrap} from './ui-locale-fixture.mjs';
 const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
 const source = readFileSync(new URL('../mod/manager-party.lua', import.meta.url), 'utf8');
 
+test('spatial budget deferral keeps a prepared invitation pending without failure or duplicate preparation', () => {
+  const code = `
+    local api=(function() ${source} end)()
+    local members,attempts,prepares,cancels,spawned={},0,0,0,0
+    local companions={definition=function()return {name='Judy',id='Character.Judy',profileKey='judy-alvarez'}end,
+      list=function()return members end,spawn=function(key)
+        attempts=attempts+1;if attempts<4 then return nil,nil,true end
+        members[1]={serial=1,key=key,name='Judy',state='spawning'};return 1
+      end,setProfile=function()return true end}
+    local readiness={bind=function()return false end,status=function()return {state='ready'}end,
+      prepare=function()prepares=prepares+1;return true end,
+      cancel=function()cancels=cancels+1 end,spawned=function()spawned=spawned+1 end}
+    local queue=api.new(companions,readiness);queue.bind('world')
+    assert(queue.invite('judy-alvarez'))
+    for _=1,3 do
+      queue.flush();assert(queue.count()==1 and #members==0)
+      assert(queue.list()[1].state=='ready-to-join' and #queue.takeNotices()==0)
+    end
+    queue.flush();assert(#members==1 and prepares==1 and cancels==0 and spawned==1)
+    queue.flush();assert(attempts==4 and spawned==1)
+  `;
+  const state=lauxlib.luaL_newstate();lualib.luaL_openlibs(state);
+  const status=lauxlib.luaL_dostring(state,to_luastring(uiLocaleBootstrap+code));
+  const error=status===lua.LUA_OK?'':to_jsstring(lua.lua_tostring(state,-1));
+  lua.lua_close(state);assert.equal(status,lua.LUA_OK,error);
+});
+
 test('death before attachment confirmation retires only that invitation and reports it once', () => {
   const code = `
     local api=(function() ${source} end)()

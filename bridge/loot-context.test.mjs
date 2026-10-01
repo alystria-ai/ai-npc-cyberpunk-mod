@@ -250,9 +250,10 @@ const adapter = bridge.slice(bridge.indexOf('async function reactionCurrent(inpu
   bridge.indexOf('async function processInput(request, prepared) {'));
 function bridgeFixture() {
   const input = automatic(pickup(), Date.now() + 60000);
-  const state = {accepted: [], queue: [], reads: 0, errors: [], delays: [],
+  const state = {accepted: [], queue: [], reads: 0, errors: [], delays: [], actionRevocations: 0,
     lease: {requestId: input.requestId, valid: true, updated: Date.now()}};
   const context = vm.createContext({parseInput, inputIdentity, reactionLeaseValid, AbortController,
+    companionActions: {revoke: async () => { state.actionRevocations++; }},
     rawInput: JSON.stringify(input), record: request => state.accepted.push(request),
     readLease: async () => {
       state.reads++;
@@ -261,7 +262,7 @@ function bridgeFixture() {
       return result;
     },
     setTimeout: (done, delay) => { state.delays.push(delay); done(); },
-    console: {error: (...args) => state.errors.push(args)}});
+    console: {error: (...args) => { state.errors.push(args); throw Error(args.join(' ')); }}});
   vm.runInContext(`
     let polling=false,stopped=false,active=null,observed='',lastAcceptedIdentity='',voiceRouteReservation=false;
     let relationshipRouteReservation=false;
@@ -281,9 +282,11 @@ test('a relationship route reservation leaves a loot request available for the n
   api.setRelationshipReservation(true);
   await api.tick();
   assert.equal(state.accepted.length, 0); assert.equal(state.reads, 0);
+  assert.equal(state.actionRevocations, 0);
   api.setRelationshipReservation(false);
   await api.tick();
   assert.equal(state.accepted.length, 1); assert.equal(state.reads, 1);
+  assert.equal(state.actionRevocations, 1);
   assert.equal(state.accepted[0].input.reaction.kind, 'loot');
   assert.deepEqual(state.errors, []);
 });
@@ -300,6 +303,7 @@ test('the real bridge accepts one valid loot request and cancels its generation 
   state.lease.valid = false;
   await api.tick();
   assert.equal(request.controller.signal.aborted, true);
+  assert.equal(state.actionRevocations, 1, 'Lease polling does not revoke an action again');
   assert.deepEqual(state.errors, []);
 });
 
@@ -317,4 +321,5 @@ test('a new loot request retries transient heartbeat gaps but an explicit cancel
   cancelled.state.lease.valid = true;
   await cancelled.api.tick();
   assert.equal(cancelled.state.accepted.length, 0);
+  assert.equal(cancelled.state.actionRevocations, 0);
 });

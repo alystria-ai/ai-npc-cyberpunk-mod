@@ -11,6 +11,7 @@ const groupSource = source('group-chat');
 const worldSource = source('world-knowledge');
 const historySource = source('journal-history');
 const invitationSource = source('invitation-readiness');
+const gameplayActionsSource = source('gameplay-actions');
 const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
 
 const fixture = `
@@ -21,7 +22,7 @@ end
 local files,encoded,serial,events,hooks,hotkeys={},{},0,{},{},{}
 local hotkeyLabels,logs,playbacks,commands,feedback={},{},{},{},{}
 local allowNative,attached,dead,preGame,paused=false,true,false,false,false
-local nativeCalls,versionReads,factReads,historyReads,saveIdentityReads=0,0,0,0,0
+local nativeCalls,versionReads,factReads,historyReads,saveIdentityReads,actionOfferReads=0,0,0,0,0,0
 local now,gameVersion,factValue,journalVersion=1000,'2.31',1,1
 local collectorReady,afterReady,failPath=true,nil,nil
 local order={}
@@ -107,6 +108,7 @@ local function collectionReady()
  return ready
 end
 local modules={
+ ['gameplay-actions.lua']=(function()${gameplayActionsSource}end)(),
  ['relationship-state.lua']={new=function()return {update=function()end,reset=function()end}end},
  ['invitation-readiness.lua']=(function()${invitationSource}end)(),
  ['knowledge-state.lua']={new=function()
@@ -133,10 +135,11 @@ local modules={
   return (function()${historySource}end)().new(options)
  end},
  ['microphone.lua']=microphone,['group-chat.lua']=group,
- ['companions.lua']={connectionProfiles=function()return{}end,abandon=function()record('companions')end,
+ ['companions.lua']={beginSpatialFrame=noop,connectionProfiles=function()return{}end,abandon=function()record('companions')end,
   dismissAll=function()record('dismiss-all')end,conversationCandidates=function()
    local result={};for _,npc in ipairs(people)do result[#result+1]=person(npc)end;return result
-  end,registerPhoneContacts=noop,update=noop,owns=function()return true end,
+  end,seatedCandidates=function()return{}end,registerPhoneContacts=noop,update=noop,owns=function()return true end,
+  chauffeurOffer=function()actionOfferReads=actionOfferReads+1;return {available=false}end,
   identity=function(npc)return npc.key,npc.name,true end},
  ['subtitles.lua']={configure=noop,install=noop,update=noop,clear=noop,abandon=function()record('subtitles')end},
  ['speech.lua']={clearEntity=noop,update=noop,stop=noop,abandon=function()record('speech')end},
@@ -190,7 +193,9 @@ end
 
 function run(body) {
   const vm = lauxlib.luaL_newstate(); lualib.luaL_openlibs(vm);
-  const result = lauxlib.luaL_dostring(vm, to_luastring(uiLocaleBootstrap + fixture + '\n' + body));
+  const checkedBody = '\nlocal fixtureOk,fixtureError=pcall(function()\n' + body
+    + '\nend)\nif not fixtureOk then error(tostring(fixtureError).."\\nFixture logs:\\n"..table.concat(logs,"\\n"))end';
+  const result = lauxlib.luaL_dostring(vm, to_luastring(uiLocaleBootstrap + fixture + checkedBody));
   const error = result === lua.LUA_OK ? '' : to_jsstring(lua.lua_tostring(vm, -1));
   lua.lua_close(vm); assert.equal(result, lua.LUA_OK, error);
 }
@@ -221,9 +226,11 @@ test('private sends use the fresh Lua world and audience, preserving battle and 
  assert(out.worldKnowledge.audience.profileKeys[1]=='judy-alvarez' and out.worldKnowledge.facts.observed_fact.value==1)
  assert(out.journalHistory.generation==live.generation and out.journalHistory.worldToken==live.token)
  assert(out.battle.status=='ended'and out.loot.batch=='loot-kept'and out.reaction==nil)
+ assert(actionOfferReads==1 and out.chauffeurOffer==nil,'a private send checks the unavailable driving offer')
  factValue=2;now=now+1;runtime.step(0);out.worldKnowledge.facts.observed_fact.value=999
  assert(runtime.send(input('second')))
  assert(stored('runtime/last-input.json').worldKnowledge.facts.observed_fact.value==2)
+ assert(actionOfferReads==2 and not convaiGameplayActions.inspect().pending)
  assert(versionReads==1,'pack was repeatedly configured');assert(saveIdentityReads==0)
 `));
 

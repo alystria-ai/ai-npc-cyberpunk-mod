@@ -24,6 +24,7 @@ convaiLootObserver, convaiLootReactions = lootObserver, loot
 -- player ID; collecting game context never creates or changes that ID.
 local knowledgeAllowed, knowledgeEpoch, knowledgeInvalidated = false, 0, false
 local knowledgeFrame, knowledgeChanged, knowledgeConfigured = nil, false, false
+local gameplayActions
 local relationshipState = dofile('relationship-state.lua').new({
     currentWorld = function() return knowledgeFrame end})
 local knowledgePhoneCapture, knowledgePhoneReceipts = nil, {}
@@ -79,6 +80,7 @@ local function invalidateKnowledge(reason)
     -- No native reads here: teardown must publish unavailable before any actor
     -- cleanup. The local epoch is a cancellation guard, never a save identity.
     local before = knowledgeFrame
+    if gameplayActions then gameplayActions.revoke(reason) end
     knowledgeAllowed, knowledgeFrame, knowledgePhoneCapture = false, nil, nil
     publishWorldSession(before, false, true)
     relationshipState:reset(reason)
@@ -147,6 +149,22 @@ local function attachKnowledge(context)
     context.worldKnowledge, context.journalHistory = captured.worldKnowledge, captured.journalHistory
     return captured.owner
 end
+
+gameplayActions = dofile('gameplay-actions.lua').new({
+    world = function()
+        return {ready = knowledgeAllowed and knowledgeFrame ~= nil and knowledgeFrame.status == 'ready',
+            worldToken = knowledgeFrame and knowledgeFrame.worldToken,
+            generation = knowledgeFrame and knowledgeFrame.generation}
+    end,
+    offer = function(entity) return companions.chauffeurOffer(entity) end,
+    queue = function(serial, offer, entity) return companions.queueChauffeur(serial, offer, entity) end,
+    feedback = function(state, reason)
+        local player = Game.GetPlayer()
+        if player then player:ConvaiPhoneFeedback(ui.t(reason or (state == 'queued'
+            and 'Your companion is preparing to drive.' or 'The driving request could not be queued.'))) end
+    end})
+convaiGameplayActions = gameplayActions
+microphone.captureActions = function(context) return gameplayActions.capture(context, 'private-voice') end
 
 local function capturePhoneBinding()
     local frame = refreshKnowledgeFrame()
@@ -552,7 +570,8 @@ local function voiceTargetValid(npc, context)
     return (pos.x - origin.x)^2 + (pos.y - origin.y)^2 + (pos.z - origin.z)^2 <= 144
 end
 
-microphone.onCancelled = function(context)
+microphone.onCancelled = function(context, reason)
+    gameplayActions.revoke(reason or 'microphone-cancelled', context.requestId)
     if pending and pending.requestId == context.requestId then pending, pendingKnowledgeOwner = nil, nil end
     local round = groupChat.round
     if round and context.group and round.id == context.group.id then groupChat.cancel() end
@@ -596,6 +615,7 @@ local function beginText(groupMode)
             return
         end
         cancelAutomatic('manual-text')
+        gameplayActions.revoke('new-conversation')
         speech.stop('new-conversation')
         microphone.cancel()
         groupChat.cancel()
@@ -650,6 +670,7 @@ local function toggleVoice(groupMode)
         local npc, key, name, body, entity = primary.npc, primary.profileKey, primary.name, primary.bodyType, primary.entity
         generation = generation + 1
         cancelAutomatic('microphone')
+        gameplayActions.revoke('new-conversation')
         microphone.cancel('new-conversation')
         groupChat.cancel()
         warmConversation(participants, key)
@@ -687,11 +708,14 @@ local function sendRequest(context)
     else context.battle = context.battle or battles.capture() end
     local current = knowledgeOwner(refreshKnowledgeFrame())
     if not knowledgeAllowed or current.paused or not sameKnowledgeOwner(owner, current) then return false end
+    if not context.group and not context.reaction then gameplayActions.capture(context, 'private-text') end
     local file = io.open('runtime/last-input.json.tmp', 'wb')
-    if not file then return false end
+    if not file then gameplayActions.revoke('request-write-failed', context.requestId); return false end
     file:write(json.encode(context)); file:close()
     os.remove('runtime/last-input.json')
-    if not os.rename('runtime/last-input.json.tmp', 'runtime/last-input.json') then return false end
+    if not os.rename('runtime/last-input.json.tmp', 'runtime/last-input.json') then
+        gameplayActions.revoke('request-write-failed', context.requestId); return false
+    end
     pending = context
     pendingKnowledgeOwner = owner
     if not context.reaction then focusUntil = os.time() + 90 end
@@ -1034,6 +1058,7 @@ end
 local function openManager()
     local ok, result, reason = pcall(mcm.open)
     if ok and result then
+        gameplayActions.revoke('menu')
         endFocus(Game.GetPlayer())
         focusMode = nil
         focusEntity = nil
@@ -1158,6 +1183,20 @@ registerForEvent('onInit', function()
     phoneChatStyle.install()
     local ok, err = pcall(mcm.install)
     if not ok then log('MCM registration failed: ' .. tostring(err)) end
+    ObserveAfter('AutoDriveSystem', 'OnAutodriveToggled', function(_, enabled)
+        if not worldSuspended and sessionHasState then companions.chauffeurAutodriveToggled(enabled) end
+    end)
+    ObserveBefore('AutoDriveSystem', 'OnStopAutoDriveOnDestinationReachedRequest', function(system)
+        if worldSuspended or not sessionHasState or not companions.chauffeurSnapshot().active then return end
+        -- The original callback disables AutoDrive and clears its car. Capture
+        -- only its exact car while the live controller still owns it.
+        pcall(function()
+            local car = system:GetAutodriveVehicle()
+            if system:GetAutodriveEnabled() and car then
+                companions.chauffeurArrived(tostring(car:GetEntityID().hash))
+            end
+        end)
+    end)
     -- Native FastTravelSystem.PerformFastTravel tests HasFastTravelPoint and
     -- distinct StartingPoint/DestinationPoint before TeleportToNode. Observe
     -- the request BEFORE that call: SetFastTravelStarted is already too late
@@ -1225,6 +1264,10 @@ registerForEvent('onUpdate', function(delta)
     if fastTravelActive and not fastTravelActive.finished and os.time()-fastTravelActive.started>120 then
         fastTravelActive=nil; abandonSession('fast travel timed out')
     end
+    if worldSuspended then return end
+    -- One shared physics budget covers queued spawns, vehicle placement and
+    -- walking queries in this frame, including work flushed by the manager.
+    companions.beginSpatialFrame()
     local menuPlayer = Game.GetPlayer()
     local sessionOk, sessionReady = pcall(function()
         return not worldSuspended and menuPlayer and menuPlayer:IsAttached()
@@ -1243,6 +1286,7 @@ registerForEvent('onUpdate', function(delta)
     -- Autosave freezes the native cursor briefly. Keep the exact owner and
     -- queued native input, but do not capture/send/apply UI changes until ready.
     if knowledgeFrame and knowledgeFrame.status == 'paused' then
+        gameplayActions.revoke('world-paused')
         if type(speech.pauseForWorld) == 'function' then speech.pauseForWorld() end
         return
     end
@@ -1250,6 +1294,7 @@ registerForEvent('onUpdate', function(delta)
         -- A changed lease/branch can happen without an NPC detach (for example
         -- initial bridge activation). Cancel conversation ownership, not actors.
         knowledgeChanged = false
+        gameplayActions.revoke('knowledge-world-changed')
         cancelAutomatic('knowledge-world-changed', true)
         microphone.cancel(); groupChat.cancel(); phoneChat.abandon()
         speech.abandon(); subtitles.abandon()
@@ -1267,7 +1312,7 @@ registerForEvent('onUpdate', function(delta)
     worldReady = worldOk and worldReady
     -- Menu updates can have zero simulation delta. Cancel recording/group work
     -- here, before the slower gameplay poll, so pause cannot submit a late turn.
-    if not worldReady then cancelVoice('menu') end
+    if not worldReady then gameplayActions.revoke('menu'); cancelVoice('menu') end
     -- CET still calls onUpdate while native menus pause the simulation. The
     -- menu adapter needs these frames even when delta is zero; followers don't.
     ui.configure(manager.interfaceLanguage())
@@ -1387,6 +1432,7 @@ registerForEvent('onUpdate', function(delta)
         local currentOwner = knowledgeOwner(refreshKnowledgeFrame())
         if currentOwner.paused then return end
         if pendingKnowledgeOwner and not sameKnowledgeOwner(pendingKnowledgeOwner, currentOwner) then
+            gameplayActions.revoke('knowledge-world-changed', pending.requestId)
             cancelAutomatic('knowledge-world-changed', true)
             pending, pendingKnowledgeOwner = nil, nil
             microphone.cancel(); groupChat.cancel()
@@ -1397,6 +1443,7 @@ registerForEvent('onUpdate', function(delta)
         -- pending while leaving a microphone/group waiting forever. Retire it
         -- before reading replies so a result at/after the deadline stays late.
         local expired = pending
+        gameplayActions.revoke('reply-timeout', expired.requestId)
         if not expired.reaction then player:ConvaiPhoneFeedback(ui.t('No reply arrived. Check that the Convai bridge is running.')) end
         log('Conversation timed out: generation=' .. expired.generation)
         local round = groupChat.round
@@ -1427,6 +1474,7 @@ registerForEvent('onUpdate', function(delta)
                 and reactionCanDeliver(pending, player) then
                 local shown = pcall(function()
                     if reply.error then
+                        gameplayActions.revoke('reply-error', pending.requestId)
                         if not pending.reaction then player:ConvaiPhoneFeedback(reply.error) end
                     else speech.start(pending, reply) end
                 end)
@@ -1452,6 +1500,10 @@ registerForEvent('onUpdate', function(delta)
             end
         end
     end
+    -- Streaming speech can retire pending before its final action arrives.
+    -- The captured lease owns this deadline independently of reply playback.
+    -- Process an explicit reply failure first so it cannot admit an action.
+    gameplayActions.update(worldReady)
     local ok, ready = pcall(function() return player:ConvaiHasSubmission() end)
     if not ok or not ready then
         if active then
@@ -1485,24 +1537,26 @@ registerForEvent('onUpdate', function(delta)
 end)
 
 registerForEvent('onShutdown', function()
+    local liveWorld = not worldSuspended and sessionHasState
+    if liveWorld then pcall(companions.prepareChauffeurShutdown, 'Mod shutdown stopped the trip.') end
     invalidateKnowledge('shutdown')
     cancelAutomatic('shutdown')
     battles.reset()
     loot.reset(); lootObserver.reset(); lastAutomatic = nil
     battleSample, battlePeople = nil, {}
     phoneChat.abandon()
-    mcm.shutdown()
+    mcm.shutdown(liveWorld)
     groupChat.cancel()
     warmConversation(nil, nil)
     microphone.cancel()
-    speech.stop('shutdown')
-    subtitles.clear()
+    if liveWorld then speech.stop('shutdown'); subtitles.clear()
+    else speech.abandon(); subtitles.abandon() end
     active = nil
-    companions.dismissAll()
-    local player = Game.GetPlayer()
+    if liveWorld then companions.dismissAll() else companions.abandon() end
+    local player = liveWorld and Game.GetPlayer() or nil
     if player then pcall(function() player:ConvaiCloseManager() end) end
     manager.reset()
-    endFocus(player)
+    if liveWorld then endFocus(player) else focusedCrowd, releasedCrowd = nil, nil end
     focusMode = nil
     focusEntity = nil
     log('Game adapter shut down')

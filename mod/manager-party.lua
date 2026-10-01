@@ -8,6 +8,7 @@ function M.new(companions, readiness)
     local owner, sequence, joins, leaves = nil, 0, {}, {}
     local attaching, notices = {}, {}
     local feedback = ''
+    local driveIntent, stopIntent, tripFeedback = nil, false, nil
 
     local function report(message, failed)
         feedback = message
@@ -19,6 +20,7 @@ function M.new(companions, readiness)
         if identity ~= owner or changed then
             owner, joins, leaves, feedback = identity, {}, {}, ''
             attaching, notices = {}, {}
+            driveIntent, stopIntent, tripFeedback = nil, false, nil
             return true
         end
         return false
@@ -80,6 +82,39 @@ function M.new(companions, readiness)
         for _, member in ipairs(Q.list()) do if member.id == id then return member end end
     end
 
+    function Q.chauffeur()
+        -- companions.chauffeurSnapshot copies Lua state only. This function is
+        -- safe in the menu's schema and action callbacks.
+        local state = companions.chauffeurSnapshot and companions.chauffeurSnapshot() or {active = false, phase = 'idle'}
+        state.pending, state.stopPending = driveIntent ~= nil, stopIntent
+        state.driverSerial = driveIntent and driveIntent.serial or (state.offer and state.offer.actor and state.offer.actor.serial)
+        return state
+    end
+
+    function Q.drive(id)
+        if not owner then return false, ui.t('Load a save before requesting a driver.') end
+        local member = find(id)
+        if not member or not member.serial or member.state ~= 'ready' or type(member.entityID) ~= 'string' then
+            return false, ui.t('Choose a ready companion from your party.')
+        end
+        local trip = Q.chauffeur()
+        if trip.active or stopIntent then return false, ui.t('Wait for the current trip to finish stopping.') end
+        driveIntent = {serial = member.serial, entity = member.entityID, name = member.name}
+        feedback = ui.t('{name}: driving request queued until you return to gameplay.', {name = member.name})
+        return true, feedback
+    end
+
+    function Q.cancelDrive()
+        local trip, queued = Q.chauffeur(), driveIntent ~= nil
+        driveIntent = nil
+        if trip.active then
+            stopIntent = true
+            feedback = ui.t('The trip will be stopped when you return to gameplay.')
+        elseif queued then feedback = ui.t('Driving request cancelled.')
+        else return false, ui.t('There is no companion trip to cancel.') end
+        return true, feedback
+    end
+
     local function prepare(job)
         if not readiness then return true end
         local called, ok, reason = pcall(readiness.prepare, job)
@@ -121,6 +156,11 @@ function M.new(companions, readiness)
         local member = find(id)
         if not member then return false, ui.t('That copy is no longer in your party.') end
         if member.serial then
+            local trip = Q.chauffeur()
+            if trip.active and trip.driverSerial == member.serial then
+                return false, ui.t('Stop the trip and step out before dismissing your driver.')
+            end
+            if driveIntent and driveIntent.serial == member.serial then driveIntent = nil end
             leaves[member.serial] = true
             if attaching[member.serial] and readiness then readiness.cancel(attaching[member.serial]) end
             feedback = ui.t('{name} will leave when you return to the game.', {name = member.name})
@@ -184,6 +224,29 @@ function M.new(companions, readiness)
     function Q.flush()
         Q.bind(owner)
         if not owner then return end
+        if stopIntent then
+            stopIntent = false
+            local called, ok, reason = pcall(companions.cancelChauffeur, 'Trip cancelled from Companion Manager.')
+            report(called and ok and ui.t('Stopping the trip. Wait for the car to stop before stepping out.')
+                or ui.t(called and reason or 'The driving request could not be cancelled.'), not (called and ok))
+        end
+        if driveIntent then
+            local job = driveIntent
+            driveIntent = nil
+            local called, ok, reason = pcall(companions.queueChauffeur, job.serial, nil, job.entity)
+            report(ui.t(called and reason or (called and ok and 'Your companion is preparing to drive.'
+                or 'The driving request could not be queued.')), not (called and ok))
+        end
+        local trip = Q.chauffeur()
+        local signature = table.concat({trip.phase or '', trip.reason or '', trip.error or ''}, '|')
+        if signature ~= tripFeedback then
+            tripFeedback = signature
+            if trip.phase == 'driving' then report(ui.t('Your companion is driving to the selected waypoint.'))
+            elseif trip.phase == 'waiting-for-player-exit' then
+                report(ui.t('The car has stopped. Step out so your companion can leave the driver seat.'))
+            elseif trip.error then report(ui.t(trip.error), true)
+            elseif trip.reason then report(ui.t(trip.reason), trip.outcome == 'failed') end
+        end
         -- CreateEntity only accepts the request. Keep the original reservation
         -- until attachment succeeds, fails or is explicitly dismissed.
         local live = {}
@@ -200,7 +263,7 @@ function M.new(companions, readiness)
             elseif not member or member.state == 'failed' or member.state == 'missing' or member.state == 'dead' then
                 if readiness then readiness.cancel(job) end
                 report(ui.t('{name} could not join: {reason}', {name = job.name,
-                    reason = member and member.error or ui.t(member and member.state == 'dead'
+                    reason = member and ui.t(member.error) or ui.t(member and member.state == 'dead'
                         and 'The character died before joining.' or 'The character was removed before joining.')}), true)
                 attaching[serial] = nil
             end
@@ -218,8 +281,12 @@ function M.new(companions, readiness)
         for _, job in ipairs(joins) do
             local status = preparation(job)
             if not job.error and (status.state == 'ready' or status.state == 'model-only') then
-                local called, serial, err = pcall(companions.spawn, job.key, job)
-                if called and serial then
+                local called, serial, err, deferred = pcall(companions.spawn, job.key, job)
+                if called and deferred == true then
+                    -- A shared frame budget is scheduling, not an invitation
+                    -- failure. Keep its prepared reservation and retry later.
+                    remaining[#remaining + 1] = job
+                elseif called and serial then
                     local assigned, assignmentError = companions.setProfile(serial, job.profileKey, job.profileName)
                     job.warning = not assigned and tostring(assignmentError) or nil
                     attaching[serial] = job
@@ -229,7 +296,7 @@ function M.new(companions, readiness)
                 else
                     job.error = tostring(called and err or serial)
                     if readiness then readiness.cancel(job) end
-                    report(ui.t('{name} could not join: {reason}', {name = job.name, reason = job.error}), true)
+                    report(ui.t('{name} could not join: {reason}', {name = job.name, reason = ui.t(job.error)}), true)
                     remaining[#remaining + 1] = job
                 end
             else

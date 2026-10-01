@@ -20,14 +20,18 @@ function M.offset(origin,direction,lateral,forward)
     return {x=origin.x-direction.y*lateral+direction.x*forward,
         y=origin.y+direction.x*lateral+direction.y*forward,z=origin.z,w=1}
 end
-function M.clear(point,player,others,id,margin)
-    if M.ground(point,player) < (margin or 1.0) then return false end
+function M.clear(point,player,others,id,margin,shape)
+    local radius=shape and shape.radius or .35
+    if M.ground(point,player) < math.max(margin or 1.0,radius+.5) then return false end
     for _,other in ipairs(others or {}) do
-        if other.id~=id and M.distance(point,other.position)<0.85 then return false end
+        local separation=math.max(.85,radius+(other.clearance and other.clearance.radius or .35)+.1)
+        local vertical=point.z<other.position.z+(other.clearance and other.clearance.height or 2.1)
+            and other.position.z<point.z+(shape and shape.height or 2.1)
+        if other.id~=id and vertical and M.ground(point,other.position)<separation then return false end
     end
     return true
 end
-function M.comfortable(point,frame,slot,others,id)
+function M.comfortable(point,frame,slot,others,id,shape)
     local spec=M.slots[slot]
     local delta={x=point.x-frame.position.x,y=point.y-frame.position.y}
     local side=-frame.direction.y*delta.x+frame.direction.x*delta.y
@@ -36,14 +40,14 @@ function M.comfortable(point,frame,slot,others,id)
         and side*spec[1]>0 and math.abs(side)>0.65
         and math.abs(side)<math.abs(spec[1])+1.35
         and along>spec[2]-1.4 and along<spec[2]+1.6
-        and M.clear(point,frame.position,others,id)
+        and M.clear(point,frame.position,others,id,nil,shape)
 end
-function M.nearGroup(point,frame,slot,others,id)
+function M.nearGroup(point,frame,slot,others,id,shape)
     -- The end of a stop animation may overshoot the preferred side region.
     -- A safe actual stance is better than a backwards correction of one metre.
     return math.abs(point.z-frame.position.z)<1.0
         and M.ground(point,frame.position)<(slot<=2 and 3.5 or 5.5)
-        and M.clear(point,frame.position,others,id)
+        and M.clear(point,frame.position,others,id,nil,shape)
 end
 function M.candidates(frame,slot,origin)
     local spec=M.slots[slot]
