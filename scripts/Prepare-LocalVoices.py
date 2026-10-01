@@ -23,6 +23,9 @@ TOOL_ROOT = ROOT
 spec = importlib.util.spec_from_file_location('resident_voice_validation', ROOT / 'bridge/resident-voice-worker.py')
 validation = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(validation)
+casting_spec = importlib.util.spec_from_file_location('voice_cast_source_validation', TOOL_ROOT / 'scripts/Cast-VoiceReferenceCandidates.py')
+casting = importlib.util.module_from_spec(casting_spec)
+casting_spec.loader.exec_module(casting)
 KEYS = validation.LEGACY_KEYS
 REVISION = validation.MODEL_REVISION
 MAX_MANIFEST_BYTES = 4 * 1024 * 1024
@@ -116,8 +119,10 @@ def _validate_normalized_provenance(key, entry, *, require_review=True):
     require_pointer(line.get('linePointer'), 'screenplay line pointer')
     require_pointer(line.get('eventPointer'), 'dialogue event pointer')
     require_text(line.get('expression'), 'dialogue expression')
-    if line.get('isHolocallSpeaker') is not False:
-        raise ValueError(key + ': phone-filtered dialogue cannot be silently promoted')
+    delivery = casting.source_delivery({'voParams': {
+        'isHolocallSpeaker': line.get('isHolocallSpeaker'),
+        'voExpression': line.get('expression'), 'customVoEvent': line.get('customVoEvent')}},
+        provenance.get('sourceDelivery'))
     if subtitle.get('locstringId') != line_id or subtitle.get('locale') != 'en_us':
         raise ValueError(key + ': subtitle join did not match the native English line')
     if (subtitle.get('transcriptSource') != 'installed-en-us-subtitle'
@@ -146,14 +151,14 @@ def _validate_normalized_provenance(key, entry, *, require_review=True):
                  *(('cleanIntelligible', 'listeningVerified') if require_review else ())):
         if quality.get(flag) is not True:
             raise ValueError(key + ': quality gate did not pass: ' + flag)
-    if quality.get('overlap') is not False or quality.get('clippedSamples') != 0:
+    if require_review and (quality.get('overlap') is not False or quality.get('clippedSamples') != 0):
         raise ValueError(key + ': overlapping/clipped source cannot be silently promoted')
     processing = quality.get('processingPolicy')
-    if processing not in ('ordinary-spoken', 'canonical-processed'):
+    if processing not in ('ordinary-spoken', 'canonical-processed', 'canonical-source-performance'):
         raise ValueError(key + ': source processing policy must be reviewed explicitly')
-    if processing == 'ordinary-spoken' and line['expression'] != 'Vo_Expression_Spoken':
+    if processing == 'ordinary-spoken' and delivery['kind'] != 'ordinary-spoken':
         raise ValueError(key + ': ordinary source is not a spoken dialogue event')
-    if processing == 'canonical-processed':
+    if processing in ('canonical-processed', 'canonical-source-performance'):
         require_text(quality.get('processingReason'), 'canonical processed-voice decision')
     return {'reference': descriptor.get('reference'), 'sha256': descriptor.get('sha256'),
             'transcript': descriptor['transcript'], 'status': 'ready',
@@ -199,12 +204,9 @@ def validate_provenance(key, entry, *, require_review=True):
                 raise ValueError(key + ': installed subtitle variant disagrees with the exact transcript')
         if quality.get('sha256') != descriptor['sha256'] or quality.get('nonSilent') is not True:
             raise ValueError(key + ': original decoded PCM quality receipt disagrees with the reference')
-        if (not isinstance(params, dict) or type(params.get('isHolocallSpeaker')) not in (bool, int)
-                or params['isHolocallSpeaker'] not in (False, 0)):
-            raise ValueError(key + ': source dialogue has unresolved holocall processing')
+        delivery = casting.source_delivery(event, provenance.get('sourceDelivery'))
         if quality.get('processingPolicy') == 'ordinary-spoken':
-            custom_event = params.get('customVoEvent')
-            if not isinstance(custom_event, dict) or custom_event.get('$value') not in ('None', ''):
+            if delivery['kind'] != 'ordinary-spoken':
                 raise ValueError(key + ': ordinary source has unresolved custom voice processing')
         if audio.get('processing') != 'Original vgmstream PCM decode only; no gain/EQ/denoise/resample/trim/concat':
             raise ValueError(key + ': original unprocessed PCM receipt is required')
@@ -216,7 +218,9 @@ def validate_provenance(key, entry, *, require_review=True):
              'binarySha256': scene['rawSha256'], 'jsonSha256': scene['jsonSha256'], 'actorPointer': actor['pointer'],
              'actorId': actor['id'], 'actorName': actor['name'], 'voicetagId': actor['voicetagId']},
           'nativeLine': {'speakerId': line['speakerId'], 'locstringId': line['locstringId'], 'linePointer': line['pointer'],
-             'eventPointer': event['pointer'], 'expression': params['voExpression'], 'isHolocallSpeaker': False},
+             'eventPointer': event['pointer'], 'expression': params['voExpression'],
+             'isHolocallSpeaker': delivery['isHolocallSpeaker'], 'customVoEvent': delivery['customVoEvent']},
+          'sourceDelivery': delivery,
           'subtitle': {'locstringId': line['locstringId'], 'locale': subtitle['locale'], 'transcriptSource': 'installed-en-us-subtitle',
              'transcriptSha256': subtitle['transcriptSha256'], 'transcriptAgreement': True, 'depotPath': source['depotPath'],
              'archive': source['archive'], 'entrySha1': source['archiveEntrySha1'], 'binarySha256': source['sha256'],
@@ -252,14 +256,12 @@ def verify_provenance_sources(root, key, entry, roster_inventory, *, index_hashe
         current = next((item for item in current if item.get('key') == key), None) if isinstance(current, list) else None
         if current is None or any(current.get(field, []) != character.get(field, []) for field in ('key', 'name', 'aliases', 'records')):
             raise ValueError(key + ': current canonical character identity changed')
-    spec = importlib.util.spec_from_file_location('voice_cast_offline_validation', ROOT / 'scripts/Cast-VoiceReferenceCandidates.py')
-    casting = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(casting)
     actor, line, subtitle, audio = (provenance[name] for name in ('nativeActor', 'nativeLine', 'subtitle', 'audio'))
     candidate = {'key': key, 'stringId': line['locstringId'], 'wemPath': audio['depotPath'], 'genderVariant': audio['genderVariant'],
                  'scene': actor['scene'], 'actor': {name: actor[name] for name in ('pointer', 'id', 'name', 'voicetagId', 'identityProof')},
                  'line': {name: line[name] for name in ('pointer', 'itemId', 'speakerId', 'locstringId')},
-                 'event': {'pointer': line['event']['pointer']}, 'english': subtitle}
+                 'event': {'pointer': line['event']['pointer']}, 'english': subtitle,
+                 'sourceDelivery': provenance.get('sourceDelivery')}
     for value in [actor['scene'][name] for name in ('rawPath', 'jsonPath', 'manifestPath')]:
         evidence_file(root, value)
     if actor['identityProof'].get('kind') == 'quest_acquisition':
@@ -391,7 +393,7 @@ def source_qualified_plan(root, inventory):
     spec = importlib.util.spec_from_file_location('voice_source_activation', TOOL_ROOT / 'scripts/Generate-VoiceCastAuditions.py')
     sources = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(sources)
-    plan = sources.plan_auditions(root, inventory)
+    plan = sources.plan_auditions(root, inventory, source_only=True)
     require_accepted_source_profiles(plan)
     return sources, plan
 
@@ -414,12 +416,18 @@ def build_source_qualified_config(root, sources, plan):
             # anyone listened to the cloned output or accepted its similarity.
             descriptor.update(qualificationStatus='source-qualified', listeningVerified=False,
                               sourceReceipt=row['receipt'], sourceReceiptSha256=row['receiptSha256'])
+            if row.get('sourceDelivery'):
+                descriptor['sourceDelivery'] = copy.deepcopy(row['sourceDelivery'])
         voices[row['key']] = descriptor
+        source_evidence = {}
+        if not row.get('acceptedExisting'):
+            source_evidence = {'sourceReceipt': row['receipt'], 'sourceReceiptSha256': row['receiptSha256']}
+            if row.get('sourceDelivery'):
+                source_evidence['sourceDelivery'] = copy.deepcopy(row['sourceDelivery'])
         selections.append({'key': row['key'], 'reference': descriptor['reference'], 'sha256': descriptor['sha256'],
                            'transcriptSha256': sha256_text(descriptor['transcript']), 'copiedOriginal': copied,
                            'acceptedExisting': bool(row.get('acceptedExisting')), 'qualificationStatus': 'source-qualified',
-                           **({'sourceReceipt': row['receipt'], 'sourceReceiptSha256': row['receiptSha256']}
-                              if not row.get('acceptedExisting') else {})})
+                           **source_evidence})
     for row in plan['unprepared']:
         voices[row['key']] = {'status': 'unprepared'}
     config = {'version': 2, 'provider': 'hybrid', 'engine': 'omnivoice', 'steps': 32,

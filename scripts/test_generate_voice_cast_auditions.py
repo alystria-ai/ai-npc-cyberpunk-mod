@@ -70,6 +70,52 @@ class AuditionTests(fixtures.PreparationConfig):
         self.assertEqual((self.root / 'runtime/local-voices.json').read_bytes(), before_config)
         self.assertEqual(receipt.read_bytes(), before_receipt)
 
+    def test_source_only_accepts_original_phone_performance_without_quality_verdict(self):
+        _, inventory, path, receipt_path = self.aggregate()
+        receipt = json.loads(receipt_path.read_text('utf-8'))
+        proof = receipt['provenance']
+        source = self.root / receipt['reference']
+        with wave.open(str(source), 'wb') as wav:
+            wav.setnchannels(1); wav.setsampwidth(2); wav.setframerate(8000)
+            wav.writeframes(b'\x00\x01' * (8000 * 19))
+        receipt['sha256'] = audition.digest(source)
+        proof['quality'].update(sha256=receipt['sha256'], frames=8000 * 19, durationSeconds=19,
+                                clippedSamples=2)
+        for field in ('cleanIntelligible', 'overlap', 'processingPolicy'):
+            proof['quality'].pop(field, None)
+        params = proof['nativeLine']['event']['voParams']
+        params.update(isHolocallSpeaker=1, voExpression='Vo_Expression_Phone')
+        delivery = {'kind': 'canonical-phone-performance', 'isHolocallSpeaker': True,
+                    'voExpression': 'Vo_Expression_Phone', 'customVoEvent': 'None',
+                    'waveformProcessingAssessed': False, 'reason': 'Authentic original phone performance.'}
+        proof['sourceDelivery'] = delivery
+        scene = proof['nativeActor']['scene']
+        scene_path = self.root / scene['jsonPath']
+        document = json.loads(scene_path.read_text('utf-8'))
+        document['Data']['RootChunk']['events'][0]['voParams'] = params
+        scene_path.write_text(json.dumps(document), encoding='utf-8')
+        scene['jsonSha256'] = audition.digest(scene_path)
+        attestation = proof['nativeActor']['serializationVerification']
+        attestation['cachedJsonSha256'] = scene['jsonSha256']
+        attestation['dataSha256'] = audition.prepare.sha256_text(json.dumps(document['Data'], ensure_ascii=False, sort_keys=True, separators=(',', ':')))
+        receipt_path.write_text(json.dumps(receipt), encoding='utf-8')
+        candidate = next(row for row in inventory['profiles'] if row['key'] == 'alex')['candidates'][0]
+        candidate.update(sha256=receipt['sha256'], receiptSha256=audition.digest(receipt_path))
+        path.write_text(json.dumps(inventory), encoding='utf-8')
+        audition_plan = audition.plan_auditions(self.root, path)
+        self.assertIn('alex', [row['key'] for row in audition_plan['unprepared']])
+        config, activation = audition.prepare.write_source_qualified_activation(self.root, path)
+        self.assertEqual(config['voices']['alex']['sourceDelivery'], delivery)
+        self.assertFalse(config['voices']['alex']['listeningVerified'])
+        self.assertEqual(activation['localProfiles'], 4)
+        self.assertNotIn('cleanIntelligible', json.loads(receipt_path.read_text('utf-8'))['provenance']['quality'])
+        proof['sourceDelivery']['isHolocallSpeaker'] = False
+        receipt_path.write_text(json.dumps(receipt), encoding='utf-8')
+        candidate['receiptSha256'] = audition.digest(receipt_path)
+        path.write_text(json.dumps(inventory), encoding='utf-8')
+        plan = audition.plan_auditions(self.root, path, source_only=True)
+        self.assertIn('alex', [row['key'] for row in plan['unprepared']])
+
     def test_draft_copies_original_exactly_and_uses_no_production_approvals(self):
         legacy, _, path, receipt = self.aggregate()
         plan = audition.plan_auditions(self.root, path)

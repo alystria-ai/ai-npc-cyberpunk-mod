@@ -174,6 +174,35 @@ class CastingTests(unittest.TestCase):
         self.f.candidate["actor"]["name"] = "An unrelated speaker"
         with self.assertRaisesRegex(ValueError, "joins"): self.run_cast()
 
+    def test_native_delivery_requires_explicit_exact_qualification(self):
+        event = {"voParams": {"isHolocallSpeaker": 1, "voExpression": "Vo_Expression_Phone",
+                              "customVoEvent": {"$value": "vo_q305_bunker_screen"}}}
+        with self.assertRaisesRegex(ValueError, "sourceDelivery"):
+            cast.source_delivery(event)
+        delivery = {"kind": "canonical-custom-performance", "isHolocallSpeaker": True,
+                    "voExpression": "Vo_Expression_Phone", "customVoEvent": "vo_q305_bunker_screen",
+                    "waveformProcessingAssessed": False, "reason": "Authentic distress recording; native delivery retained."}
+        self.assertEqual(cast.source_delivery(event, delivery), delivery)
+        for field, value in (("kind", "ordinary-spoken"), ("isHolocallSpeaker", False),
+                             ("customVoEvent", "None"), ("waveformProcessingAssessed", True)):
+            with self.subTest(field=field), self.assertRaisesRegex(ValueError, "sourceDelivery"):
+                cast.source_delivery(event, {**delivery, field: value})
+
+    def test_ordinary_delivery_does_not_invent_audible_cleanliness(self):
+        result = self.run_cast()["candidates"][0]["nativeReceipt"]["sourceDelivery"]
+        self.assertEqual(result["kind"], "ordinary-spoken")
+        self.assertFalse(result["waveformProcessingAssessed"])
+        self.assertNotIn("cleanIntelligible", result)
+
+    def test_reviewed_source_scope_cannot_transfer_to_another_actor_or_scene(self):
+        proof = self.f.candidate['actor']['identityProof']
+        proof['sourceScope'] = {'actorPointer': self.f.candidate['actor']['pointer'], 'nativeVoice': '17',
+                               'sceneRawSha256': self.f.scene['rawSha256'], 'sceneJsonSha256': self.f.scene['jsonSha256']}
+        self.run_cast()
+        proof['sourceScope']['sceneJsonSha256'] = '0' * 64
+        with self.assertRaisesRegex(ValueError, 'source scope'):
+            self.run_cast()
+
     def test_path_escape_and_cross_lane(self):
         for path in (self.project.parent / "escape", self.project / "runtime/voice-cast/other-lane", self.project / "runtime/voice-cast/test-lane/child"):
             with self.assertRaises(ValueError): self.run_cast(output=path)

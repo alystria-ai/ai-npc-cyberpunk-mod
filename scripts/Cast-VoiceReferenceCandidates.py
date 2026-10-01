@@ -18,6 +18,9 @@ Input schema (all paths relative to project unless absolute and contained):
        # recordPointer, recordValue matching a canonical roster record}},
     line: {pointer, itemId, speakerId, locstringId},
     event: {pointer},
+    # Required for a Phone/GlobalTV/custom-event canonical performance:
+    sourceDelivery: {kind, isHolocallSpeaker, voExpression, customVoEvent,
+                     waveformProcessingAssessed: false, reason},
     english: {descriptorPointer, payloadPointer,
               variant: 'femaleVariant'|'maleVariant', transcript, transcriptSha256}}]
 
@@ -38,6 +41,9 @@ Original WEM/decoded PCM are preserved, resumable and never overwritten. Each ca
 identity/discovery/nativeActor/nativeLine/subtitle/audio/quality provenance,
 separate attribution/transcript/listening flags and status 'decoded_verified'.
 No listening approval, profile promotion, model inference or cloud calls occur.
+Native event delivery is recorded independently of audible waveform processing.
+An explicitly source-qualified Phone/GlobalTV/custom-event performance preserves
+its actual event metadata and never becomes an ordinary clean reference.
 --dry-run validates local receipts and queries the index, but creates no paths,
 locks or subprocesses and does not read/decompress archives. Its status is only
 'attributed_receipt_validated', never 'decoded_verified'.
@@ -391,6 +397,11 @@ class LaneLock(CpuSlots):
 def validate_identity(actor, proof, roster, document, project, scene=None, actor_pointer=None):
     if not isinstance(proof, dict) or proof.get("canonicalKey") != roster["key"]:
         raise ValueError("Canonical actor identity proof is missing or mismatched")
+    scope = proof.get("sourceScope")
+    if scope is not None and (not isinstance(scope, dict) or scene is None or scope != {
+            "actorPointer": actor_pointer, "nativeVoice": ident(actor["voicetagId"]["id"]),
+            "sceneRawSha256": scene["rawSha256"], "sceneJsonSha256": scene["jsonSha256"]}):
+        raise ValueError("Reviewed identity source scope does not match this exact scene actor")
     kind = proof.get("kind")
     actor_name = actor["actorName"]
     if kind == "exact_actor":
@@ -507,6 +518,49 @@ def community_entry_receipt(source, entry_pointer, roster, project, expected_ent
             "gap": "Scene NodeRef to this community template has no authenticated native world edge"}
 
 
+def source_delivery(event, supplied=None):
+    """Describe the native event, without inferring the WEM's audible filtering.
+
+    Nonordinary canonical performances need an explicit source qualification.
+    Original PCM and attribution checks apply unchanged to every delivery kind.
+    """
+    params = event.get("voParams", {})
+    holo = params.get("isHolocallSpeaker")
+    if type(holo) not in (bool, int) or holo not in (0, 1):
+        raise ValueError("Native holocall metadata is missing or invalid")
+    expression = params.get("voExpression")
+    if expression not in {"Vo_Expression_Spoken", "Vo_Expression_Phone", "Vo_Expression_GlobalTV"}:
+        raise ValueError("Unsupported native dialogue delivery")
+    custom = params.get("customVoEvent")
+    custom = custom.get("$value", "None") if isinstance(custom, dict) else custom
+    custom = "None" if custom in (None, "None", "", "0") else custom
+    if not isinstance(custom, str) or not custom.strip() or len(custom) > 400:
+        raise ValueError("Native custom voice event is invalid")
+    if custom != "None":
+        kind = "canonical-custom-performance"
+    elif expression == "Vo_Expression_GlobalTV":
+        kind = "canonical-media-performance"
+    elif expression == "Vo_Expression_Phone" or holo:
+        kind = "canonical-phone-performance"
+    elif expression == "Vo_Expression_Spoken":
+        kind = "ordinary-spoken"
+    else:
+        raise ValueError("Unsupported native dialogue delivery")
+    observed = {"kind": kind, "isHolocallSpeaker": bool(holo),
+                "voExpression": expression, "customVoEvent": custom,
+                "waveformProcessingAssessed": False}
+    if supplied is None:
+        if kind != "ordinary-spoken":
+            raise ValueError("Nonordinary reference requires explicit sourceDelivery qualification")
+        return {**observed, "reason": "Native ordinary spoken event; original waveform processing is not assessed."}
+    if (not isinstance(supplied, dict) or any(supplied.get(k) != v or
+            type(supplied.get(k)) is not type(v) for k, v in observed.items())
+            or not isinstance(supplied.get("reason"), str) or not supplied["reason"].strip()
+            or len(supplied["reason"]) > 2000):
+        raise ValueError("sourceDelivery does not exactly describe the native event")
+    return {**observed, "reason": supplied["reason"]}
+
+
 def validate_native(candidate, roster, project):
     scene = candidate["scene"]
     document = validate_native_source(scene, project)
@@ -531,12 +585,7 @@ def validate_native(candidate, roster, project):
             or ident(l["locstringId"]) != loc_id or loc_id != candidate["stringId"]):
         raise ValueError("Native actor/speaker/item/event/localization joins do not agree")
     identity_verification = validate_identity(actor, a["identityProof"], roster, document, project, scene, a["pointer"])
-    vo = event.get("voParams", {})
-    custom = vo.get("customVoEvent", {})
-    custom = custom.get("$value", "None") if isinstance(custom, dict) else custom
-    if (vo.get("isHolocallSpeaker") not in {0, False} or vo.get("voExpression") != "Vo_Expression_Spoken"
-            or custom not in {None, "None", "", "0"}):
-        raise ValueError("Reference must be ordinary native spoken dialogue without a holocall/custom voice event")
+    delivery = source_delivery(event, candidate.get("sourceDelivery"))
     english = candidate["english"]
     descriptor = pointer(document, english["descriptorPointer"])
     payload = pointer(document, english["payloadPointer"])
@@ -562,7 +611,8 @@ def validate_native(candidate, roster, project):
             or wem_parts[1] != {"female": "f", "male": "m"}[candidate["genderVariant"]]):
         raise ValueError("WEM English path/gender/localization suffix does not match native reference")
     return {"scene": scene, "actor": {**a, "identityVerification": identity_verification}, "line": l, "event": {"pointer": candidate["event"]["pointer"], **event},
-            "english": {**english, "vpeIndex": vpe, "variantId": ident(descriptor["variantId"]["ruid"]), "locale": "en_us"}}
+            "english": {**english, "vpeIndex": vpe, "variantId": ident(descriptor["variantId"]["ruid"]), "locale": "en_us"},
+            "sourceDelivery": delivery}
 
 
 def indexed_subtitles(db, string_id):
@@ -769,7 +819,9 @@ def decode_candidate(candidate, roster, project, out, archives, oodle, tools, re
                 or saved.get("transcript") != text
                 or saved["provenance"]["nativeActor"]["scene"] != native["scene"]
                 or saved["provenance"]["audio"]["sha256"] != audio_source["sha256"]
-                or saved["provenance"]["audio"]["genderVariant"] != candidate["genderVariant"]):
+                or saved["provenance"]["audio"]["genderVariant"] != candidate["genderVariant"]
+                or source_delivery(saved["provenance"]["nativeLine"]["event"],
+                                   saved["provenance"].get("sourceDelivery")) != native["sourceDelivery"]):
             raise ValueError("Existing original candidate has different immutable provenance")
         checked_hash(directory / "source.wem", audio_source["sha256"], "Existing original WEM")
         checked_hash(directory / "reference.wav", saved["sha256"], "Existing original WAV")
@@ -801,6 +853,7 @@ def decode_candidate(candidate, roster, project, out, archives, oodle, tools, re
                   "discovery": candidate.get("discovery", {"inputSha256": receipt["inputSha256"]}),
                   "nativeActor": {"scene": native["scene"], "serializationVerification": serialization, **native["actor"]},
                   "nativeLine": {**native["line"], "event": native["event"]},
+                  "sourceDelivery": native["sourceDelivery"],
                   "subtitle": {**native["english"], "sources": subtitle_sources, "indexSha256": digest(db_path), "indexPath": db_path.relative_to(project).as_posix()},
                   "audio": {**audio_source, "genderVariant": candidate["genderVariant"],
                             "wemPath": (directory / "source.wem").relative_to(project).as_posix(),

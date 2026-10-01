@@ -112,6 +112,10 @@ function canonicalRecord(value, character, expected) {
 
 function verifyIdentity(proof, actorData, actor, character, document, scene) {
   check(proof?.canonicalKey === character.key, 'Native identity canonical key mismatch');
+  if (proof.sourceScope !== undefined) {
+    const expected = { actorPointer: actor.pointer, nativeVoice: actor.voicetagId, sceneRawSha256: scene.rawSha256, sceneJsonSha256: scene.jsonSha256 };
+    check(proof.sourceScope && Object.keys(proof.sourceScope).length === 4 && Object.entries(expected).every(([key, value]) => proof.sourceScope[key] === value), 'Reviewed identity source scope differs from this exact scene actor');
+  }
   if (proof.kind === 'exact_actor') {
     const aliases = [character.name, ...(character.aliases ?? [])].map(normalized);
     check(aliases.includes(normalized(actor.name)), 'Native actor is not a canonical roster alias');
@@ -220,6 +224,23 @@ function playbackHref(relative, outputRelative) {
   return slash(path.relative(outputRelative, relative)).split('/').map(part => part === '..' ? part : encodeURIComponent(part)).join('/');
 }
 
+export function verifySourceDelivery(event, supplied) {
+  const params = event?.voParams;
+  check(params && [0, 1, false, true].includes(params.isHolocallSpeaker), 'Invalid native holocall metadata');
+  check(['Vo_Expression_Spoken', 'Vo_Expression_Phone', 'Vo_Expression_GlobalTV'].includes(params.voExpression), 'Unsupported native dialogue delivery');
+  const rawCustom = nativeValue(params.customVoEvent);
+  const custom = [undefined, null, '', 'None', '0'].includes(rawCustom) ? 'None' : rawCustom;
+  check(boundedText(custom, 400) && custom.trim(), 'Invalid native custom voice event');
+  const kind = custom !== 'None' ? 'canonical-custom-performance' : params.voExpression === 'Vo_Expression_GlobalTV' ? 'canonical-media-performance' : params.voExpression === 'Vo_Expression_Phone' || params.isHolocallSpeaker ? 'canonical-phone-performance' : 'ordinary-spoken';
+  const observed = { kind, isHolocallSpeaker: Boolean(params.isHolocallSpeaker), voExpression: params.voExpression, customVoEvent: custom, waveformProcessingAssessed: false };
+  if (supplied === undefined || supplied === null) {
+    check(kind === 'ordinary-spoken', 'Nonordinary reference requires explicit sourceDelivery qualification');
+    return { ...observed, reason: 'Native ordinary spoken event; original waveform processing is not assessed.' };
+  }
+  check(Object.entries(observed).every(([key, value]) => supplied[key] === value) && boundedText(supplied.reason, 2000) && supplied.reason.trim(), 'sourceDelivery does not exactly describe the native event');
+  return { ...observed, reason: supplied.reason };
+}
+
 async function validateSource(reader, receipt, rosterHash, character) {
   const proof = receipt.provenance;
   check(proof?.rosterSha256 === rosterHash && proof.locale === 'en_us', 'Receipt roster or locale mismatch');
@@ -242,6 +263,7 @@ async function validateSource(reader, receipt, rosterHash, character) {
   verifyIdentity(actor.identityProof, actorData, actor, character, serialized.json, scene);
   check(String(lineData.itemId?.id) === line.itemId && String(lineData.speaker?.id) === actor.id && line.speakerId === actor.id && String(lineData.locstringId?.ruid) === receipt.stringId && line.locstringId === receipt.stringId, 'Native speaker/line pointer mismatch');
   check(eventData.$type === 'scnDialogLineEvent' && String(eventData.screenplayLineId?.id) === line.itemId && same(eventData.voParams, line.event.voParams), 'Native dialogue event mismatch');
+  const sourceDelivery = verifySourceDelivery(eventData, proof.sourceDelivery);
   check(subtitle?.locale === 'en_us' && subtitle.transcript === receipt.transcript && subtitle.transcriptSha256 === receipt.transcriptSha256 && Array.isArray(subtitle.sources) && subtitle.sources.length > 0, 'Subtitle receipt mismatch');
   const descriptor = pointerAt(serialized.json, subtitle.descriptorPointer);
   const payload = pointerAt(serialized.json, subtitle.payloadPointer);
@@ -257,7 +279,7 @@ async function validateSource(reader, receipt, rosterHash, character) {
   check(wem.sha1 === audio.archiveEntrySha1 && wem.bytes.toString('ascii', 0, 4) === 'RIFF', 'Original WEM receipt mismatch');
   const match = audio.depotPath?.match(/_([fm])_([a-f0-9]+)\.wem$/i);
   check(match && BigInt(`0x${match[2]}`).toString() === receipt.stringId && ({ f: 'female', m: 'male' }[match[1].toLowerCase()]) === audio.genderVariant && ({ female: 'femaleVariant', male: 'maleVariant' }[audio.genderVariant]) === subtitle.variant, 'Native line / WEM / gender variant mismatch');
-  return { actor: actor.name, scene: scene.depotPath, audio: audio.depotPath, gameVersion: proof.gameVersion, locale: proof.locale, processing: 'Original decoded PCM; no additional processing', verification: 'Bound source files, actor/line/English subtitle/WEM receipts rechecked. Installed archives were not re-extracted by this report.' };
+  return { actor: actor.name, scene: scene.depotPath, audio: audio.depotPath, gameVersion: proof.gameVersion, locale: proof.locale, sourceDelivery, processing: 'Original decoded PCM; no additional processing', verification: 'Bound source files, actor/line/English subtitle/WEM receipts rechecked. Installed archives were not re-extracted by this report.' };
 }
 
 async function verifyCandidate(reader, row, lane, rosterHash, outputRelative, character) {
@@ -283,7 +305,7 @@ async function verifyCandidate(reader, row, lane, rosterHash, outputRelative, ch
     const source = await validateSource(reader, receipt, rosterHash, character);
     Object.assign(result, { reference: relative, playback: playbackHref(relative, outputRelative), transcript: row.transcript, sha256: wave.sha256, transcriptSha256: row.transcriptSha256, receiptSha256: receiptFile.sha256, stringId: row.stringId, pcm, source, sourceVerified: true });
     // This builder has no mechanism to upgrade an unapproved listening verdict.
-    result.listeningStatus = receipt.listeningVerified === true ? 'Declared by prior review; aggregate does not promote' : 'Pending original-audio listening';
+    result.listeningStatus = receipt.listeningVerified === true ? 'Declared by prior review; aggregate does not promote' : 'Listening not performed; source qualification only';
   } catch (error) { result.errors.push(error.message); }
   return result;
 }
@@ -477,8 +499,9 @@ export async function buildVoiceCastReview({ projectRoot = path.resolve(path.dir
 
 export function renderHtml(inventory) {
   const { counts } = inventory;
-  const statuses = { accepted: 'Accepted existing reference', listening_pending: 'Original audio ready for listening', unprepared: 'Unprepared — Convai fallback', unavailable: 'No unique canonical voice — Convai fallback' };
-  const original = candidate => candidate.playback ? `<audio controls preload="none" src="${escapeHtml(candidate.playback)}"></audio><p class="transcript">${escapeHtml(candidate.transcript)}</p><p class="meta">${candidate.pcm.durationSeconds.toFixed(3)} s · ${candidate.pcm.sampleRate} Hz · ${candidate.pcm.channels} channel${candidate.pcm.channels === 1 ? '' : 's'} · original 16-bit PCM<br>${escapeHtml(candidate.listeningStatus)}<br>${escapeHtml(candidate.source.verification)}</p>${candidate.source.scene ? `<details><summary>Source and hash</summary><p>${escapeHtml(candidate.source.actor)} · ${escapeHtml(candidate.source.gameVersion)} · ${escapeHtml(candidate.source.locale)}</p><p>${escapeHtml(candidate.source.scene)}</p><p>${escapeHtml(candidate.source.audio)}</p><code>${escapeHtml(candidate.sha256)}</code></details>` : ''}` : `<p class="warning">Playback withheld: ${escapeHtml(candidate.errors.join('; '))}</p>`;
+  const statuses = { accepted: 'Accepted existing reference', listening_pending: 'Source-qualified original reference', unprepared: 'Unprepared — Convai fallback', unavailable: 'No unique canonical voice — Convai fallback' };
+  const deliveryLabel = candidate => candidate.source.sourceDelivery ? `<br>Native delivery: ${escapeHtml(candidate.source.sourceDelivery.kind)} · ${escapeHtml(candidate.source.sourceDelivery.voExpression)} · holocall ${candidate.source.sourceDelivery.isHolocallSpeaker ? 'yes' : 'no'} · custom event ${escapeHtml(candidate.source.sourceDelivery.customVoEvent)}. Audible processing not assessed.` : '';
+  const original = candidate => candidate.playback ? `<audio controls preload="none" src="${escapeHtml(candidate.playback)}"></audio><p class="transcript">${escapeHtml(candidate.transcript)}</p><p class="meta">${candidate.pcm.durationSeconds.toFixed(3)} s · ${candidate.pcm.sampleRate} Hz · ${candidate.pcm.channels} channel${candidate.pcm.channels === 1 ? '' : 's'} · original 16-bit PCM<br>${escapeHtml(candidate.listeningStatus)}${deliveryLabel(candidate)}<br>${escapeHtml(candidate.source.verification)}</p>${candidate.source.scene ? `<details><summary>Source and hash</summary><p>${escapeHtml(candidate.source.actor)} · ${escapeHtml(candidate.source.gameVersion)} · ${escapeHtml(candidate.source.locale)}</p><p>${escapeHtml(candidate.source.scene)}</p><p>${escapeHtml(candidate.source.audio)}</p><code>${escapeHtml(candidate.sha256)}</code></details>` : ''}` : `<p class="warning">Playback withheld: ${escapeHtml(candidate.errors.join('; '))}</p>`;
   const cards = inventory.profiles.map(profile => {
     const comparison = profile.generatedComparison;
     let comparisonHtml = ''; let comparedReference;
@@ -517,7 +540,7 @@ the original-reference review.
 
 - ${c.profiles} registered profiles across ${c.lanes} lanes.
 - ${c.acceptedProfiles} accepted Johnny/Judy/Panam references preserved and hash-checked.
-- ${c.profilesWithVerifiedCandidates} additional profiles have ${c.verifiedOriginalCandidates} attributed, decoded original clips available for listening.
+- ${c.profilesWithVerifiedCandidates} additional profiles have ${c.verifiedOriginalCandidates} attributed, decoded original clips available for source-qualified preparation.
 - ${c.unpreparedProfiles} unprepared profiles and ${c.unavailableProfiles} profiles without a unique canonical cast voice retain Convai.
 - ${c.quarantinedCandidates} candidates failed aggregate verification; their playback links are withheld.
 - ${c.generatedComparisonSamples} generated comparison samples match their current chosen original reference and exact transcript hashes. ${c.quarantinedGeneratedSamples} comparison links are withheld.
@@ -536,7 +559,7 @@ The companion [machine-readable inventory](../runtime/voice-cast/review/inventor
 lists all current profiles, exact transcripts, verified WAV format/duration,
 source receipts, provisional primary/alternate selections and explicit gaps.
 Generated comparisons are paired beside their chosen originals, clearly labeled
-as source-qualified auditions with listening pending. These are not benchmark
+as source-qualified auditions without a listening verdict. These are not benchmark
 results, listening acceptance or runtime promotions. Generation timing fields are
 intentionally excluded from this comparison report.
 Both artifacts are ignored local research outputs; this tracked document contains
@@ -556,9 +579,11 @@ ${inventory.verificationBoundary}
 
 The original PCM is linked without gain, EQ, denoising, resampling, trimming or
 concatenation. No synthesis, GPU job, cloud call, game/save change or configuration
-write is performed by the aggregate. A candidate remains pending until an actual
-audible review qualifies intelligibility, identity, overlap and delivery. This is
-not an approval gate for unrelated knowledge or runtime work.
+write is performed by the aggregate. Source-qualified preparation does not require
+listening or a perceived-quality verdict. Native Phone, GlobalTV and custom-event
+performances retain explicit delivery metadata; those flags do not establish
+whether a WEM contains audible processing. Intelligibility, similarity and overlap
+are not inferred from source qualification.
 
 ## Shared model and remaining work
 
@@ -566,19 +591,16 @@ All characters use one pinned OmniVoice model. A profile contributes a short
 attributed reference, its exact text and bounded cached conditioning; it does not
 add a separately trained model. The three accepted references are preserved.
 
-1. Finish missing native identity/acquisition joins and targeted scene discovery.
-2. Listen to original primary/alternate candidates; choose canonical clean speech
-   or explicitly documented canonical processed speech (for example, Smasher).
-3. Promote only qualified immutable reference descriptors through the coordinator's
-   registry; preserve Convai fallback for unprepared/unavailable profiles.
-4. Listen to the existing generated comparisons, then perform any additional
-   bounded conditioning checks through the single shared worker, without writing
-   synthetic dialogue into conversation memory.
-5. Rebuild this report after any lane or selection changes.
+1. Keep the explicit source gaps and preserve Convai fallback for those profiles.
+2. Prepare exact original descriptors with the source-qualified activation command;
+   the identity, transcript, hash and supported PCM bounds remain required.
+3. Activate the staged registry through the coordinator. Listening is optional and
+   no listening approval or clean-waveform claim is manufactured during preparation.
+4. Rebuild this report after any lane or selection changes.
 
 ## Current gaps
 
-${gaps.length ? gaps.join('\n') : 'No source preparation gaps remain; audible review and controlled promotion still remain.'}
+${gaps.length ? gaps.join('\n') : 'No source preparation gaps remain.'}
 ${inventory.warnings.length ? `\n## Snapshot warnings\n\n${inventory.warnings.map(w => `- ${escapeMarkdown(w.lane)}: ${escapeMarkdown(w.issue)}`).join('\n')}\n` : ''}`;
 }
 

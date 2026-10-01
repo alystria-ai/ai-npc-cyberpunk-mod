@@ -4,11 +4,22 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import { AUDITION_TEXT, buildVoiceCastReview, escapeHtml, escapeMarkdown, identityProjection, identitySha256, pcmInfo, renderHtml, writeVoiceCastReview } from './Build-VoiceCastReview.mjs';
+import { AUDITION_TEXT, buildVoiceCastReview, escapeHtml, escapeMarkdown, identityProjection, identitySha256, pcmInfo, renderHtml, verifySourceDelivery, writeVoiceCastReview } from './Build-VoiceCastReview.mjs';
 
 const digest = (bytes, algorithm = 'sha256') => createHash(algorithm).update(bytes).digest('hex');
 const rosterHash = 'a'.repeat(64);
 const serializerHash = '7ae9c308da2fe003220b55ce4ca9c122b51f0701a67db1618cca3ff4f7ff6738';
+
+test('phone and media metadata need an exact source qualification without waveform claims', () => {
+  for (const [expression, holo, kind] of [['Vo_Expression_Phone', 1, 'canonical-phone-performance'], ['Vo_Expression_GlobalTV', 0, 'canonical-media-performance']]) {
+    const event = { voParams: { voExpression: expression, isHolocallSpeaker: holo } };
+    assert.throws(() => verifySourceDelivery(event), /sourceDelivery/);
+    const delivery = { kind, isHolocallSpeaker: Boolean(holo), voExpression: expression, customVoEvent: 'None', waveformProcessingAssessed: false, reason: 'Authentic source performance.' };
+    assert.deepEqual(verifySourceDelivery(event, delivery), delivery);
+    assert.throws(() => verifySourceDelivery(event, { ...delivery, kind: 'ordinary-spoken' }), /sourceDelivery/);
+    assert.throws(() => verifySourceDelivery(event, { ...delivery, waveformProcessingAssessed: true }), /sourceDelivery/);
+  }
+});
 
 function pcm({ frames = 144000, sampleRate = 48000, channels = 1 } = {}) {
   const bytes = Buffer.alloc(44 + frames * channels * 2);

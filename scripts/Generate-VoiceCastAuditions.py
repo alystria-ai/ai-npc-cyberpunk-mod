@@ -91,7 +91,7 @@ def selected_candidate(profile):
     return candidates[0], 'Deterministic technical audition choice; no primary/listening approval was supplied.'
 
 
-def qualify_source(root, key, candidate, inventory, index_hashes):
+def qualify_source(root, key, candidate, inventory, index_hashes, *, source_only=False):
     source = runtime_path(root, candidate.get('reference', ''), 'runtime/voice-cast', must_exist=True)
     if not 44 <= source.stat().st_size <= validation.MAX_REFERENCE_BYTES:
         raise ValueError('Original WAV exceeded supported byte limits')
@@ -110,10 +110,13 @@ def qualify_source(root, key, candidate, inventory, index_hashes):
     proof = receipt.get('provenance', {})
     quality = proof.get('quality', {})
     duration = quality.get('durationSeconds')
-    if (quality.get('nonSilent') is not True or quality.get('clippedSamples') != 0
-            or quality.get('originalPcm') is not True or not isinstance(duration, (int, float))
-            or not 3 <= duration <= 12 or len(receipt['transcript'].split()) < 5
-            or quality.get('rejected') is True or quality.get('overlap') is True):
+    if (quality.get('nonSilent') is not True or quality.get('originalPcm') is not True
+            or not isinstance(duration, (int, float)) or isinstance(duration, bool)
+            or not 0 < duration <= validation.MAX_REFERENCE_SECONDS):
+        raise ValueError('Original reference exceeds the supported PCM/conditioning bounds')
+    if not source_only and (quality.get('clippedSamples') != 0 or not 3 <= duration <= 12
+            or len(receipt['transcript'].split()) < 5 or quality.get('rejected') is True
+            or quality.get('overlap') is True):
         raise ValueError('Original reference did not pass the bounded source-quality gates')
     descriptor = {name: receipt[name] for name in ('reference', 'sha256', 'transcript', 'transcriptSha256')}
     # Candidate WAVs live in their lane; the worker uses the later unchanged copy
@@ -126,11 +129,16 @@ def qualify_source(root, key, candidate, inventory, index_hashes):
         if len(wav.readframes(wav.getnframes())) != wav.getnframes() * wav.getnchannels() * wav.getsampwidth():
             raise ValueError('Original PCM is truncated')
     entry = {'key': key, 'approved': False, 'reference': descriptor, 'provenance': copy.deepcopy(proof)}
+    delivery = prepare.casting.source_delivery(proof['nativeLine']['event'], proof.get('sourceDelivery'))
     policy = entry['provenance']['quality'].get('processingPolicy')
-    if policy is None:
+    if source_only:
+        policy = 'ordinary-spoken' if delivery['kind'] == 'ordinary-spoken' else 'canonical-source-performance'
+        entry['provenance']['quality']['processingReason'] = delivery['reason']
+    elif policy is None:
         policy = 'canonical-processed' if key == 'adam-smasher' else 'ordinary-spoken'
     entry['provenance']['quality']['processingPolicy'] = policy
-    entry['provenance']['quality']['overlap'] = quality.get('overlap', False)
+    if not source_only:
+        entry['provenance']['quality']['overlap'] = quality.get('overlap', False)
     if policy == 'canonical-processed':
         entry['provenance']['quality'].setdefault('processingReason', 'Canonical cyborg source performance, pending generated-voice listening review.')
     prepare.validate_provenance(key, entry, require_review=False)
@@ -141,10 +149,11 @@ def qualify_source(root, key, candidate, inventory, index_hashes):
     return {'key': key, 'source': str(source.relative_to(root)).replace('\\', '/'), 'descriptor': descriptor,
             'receipt': str(receipt_path.relative_to(root)).replace('\\', '/'), 'receiptSha256': candidate['receiptSha256'],
             'sourceQualified': True, 'listeningVerified': False, 'approved': False,
+            'sourceDelivery': delivery,
             'referenceSha256': descriptor['sha256'], 'transcriptSha256': descriptor['transcriptSha256']}
 
 
-def plan_auditions(root, inventory_path, *, keys=None, max_profiles=MAX_PROFILES):
+def plan_auditions(root, inventory_path, *, keys=None, max_profiles=MAX_PROFILES, source_only=False):
     if type(max_profiles) is not int or not 1 <= max_profiles <= MAX_PROFILES:
         raise ValueError('Audition profile limit must be between1 and79')
     path = runtime_path(root, inventory_path, 'runtime/voice-cast/review', must_exist=True)
@@ -185,7 +194,7 @@ def plan_auditions(root, inventory_path, *, keys=None, max_profiles=MAX_PROFILES
                        'selection': 'Previously accepted original descriptor; unchanged.'}
             else:
                 candidate, reason = selected_candidate(profile)
-                row = qualify_source(root, key, candidate, inventory, index_hashes)
+                row = qualify_source(root, key, candidate, inventory, index_hashes, source_only=source_only)
                 row['selection'] = reason
             selected.append(row)
         except (ValueError, OSError, KeyError, TypeError) as error:
@@ -196,7 +205,8 @@ def plan_auditions(root, inventory_path, *, keys=None, max_profiles=MAX_PROFILES
         raise ValueError('Qualified profile count exceeded the requested generation bound')
     if digest(path) != inventory_digest or digest(legacy_path) != legacy_digest:
         raise ValueError('Audition source inventory changed during qualification; rebuild the plan')
-    return {'version': 1, 'kind': 'offline-source-audition-plan', 'warning': WARNING,
+    return {'version': 1, 'kind': 'offline-source-qualification-plan' if source_only else 'offline-source-audition-plan',
+            'warning': 'Source qualification only; listening and perceived quality were not assessed.' if source_only else WARNING,
             'inventory': str(path.relative_to(root)).replace('\\', '/'), 'inventorySha256': inventory_digest,
             'sampleText': AUDITION_TEXT, 'steps': 32, 'selected': selected, 'unprepared': rejected,
             'legacyModel': {name: legacy[name] for name in ('model', 'revision')},
