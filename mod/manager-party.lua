@@ -11,9 +11,9 @@ function M.new(companions, readiness)
     local stopIntent, tripFeedback = false, nil
     local preparationId
 
-    local function report(message, failed)
+    local function report(message, failed, invitationId)
         feedback = message
-        notices[#notices + 1] = {message = message, failed = failed == true}
+        notices[#notices + 1] = {message = message, failed = failed == true, invitationId = invitationId}
     end
 
     function Q.bind(identity)
@@ -50,12 +50,12 @@ function M.new(companions, readiness)
         return state
     end
 
-    function Q.preparationFeedback()
+    function Q.preparationFeedback(id)
         Q.bind(owner)
         -- This reads a pending invitation only. Progress does not flush the
         -- world queue or consume the notices delivered after gameplay resumes.
         for _, job in ipairs(joins) do
-            if job.id == preparationId then
+            if job.id == (id or preparationId) then
                 local status = preparation(job)
                 local text = '{name}: preparing memory...'
                 if status.state == 'connecting' then text = '{name}: connecting...'
@@ -64,9 +64,30 @@ function M.new(companions, readiness)
                 elseif status.state == 'error' then
                     text = '{name}: preparation failed. Cancel and invite again.'
                 end
-                return {id = job.id, revision = job.revision, state = status.state,
+                return {id = job.id, revision = job.revision, name = job.name, state = status.state,
                     message = ui.t(text, {name = job.name}), failed = status.state == 'error',
                     signature = table.concat({job.id, tostring(job.revision), status.state}, '|')}
+            end
+        end
+        return nil
+    end
+
+    function Q.invitationFeedback(id)
+        if not id then return nil end
+        local pending = Q.preparationFeedback(id)
+        if pending then return pending end
+        -- A ready invitation can spawn on the first gameplay frame. Report its
+        -- current joining stage instead of replaying paused preparation text.
+        -- Attachment completion/failure is delivered by the existing notices.
+        for serial, job in pairs(attaching) do
+            if job.id == id and not leaves[serial] then
+                for _, member in ipairs(companions.list()) do
+                    if member.serial == serial and member.state == 'spawning' then
+                        return {id = job.id, revision = job.revision, name = job.name, state = 'joining',
+                            message = ui.t('{name} is joining your party.', {name = job.name}), failed = false,
+                            signature = table.concat({job.id, tostring(job.revision), 'joining'}, '|')}
+                    end
+                end
             end
         end
         return nil
@@ -151,13 +172,14 @@ function M.new(companions, readiness)
         preparationId = job.id
         local ok, reason = prepare(job)
         if not ok then
-            report(ui.t('{name} could not prepare: {reason}', {name = job.name, reason = reason}), true)
-            return false, feedback
+            job.preparationError = job.error
+            report(ui.t('{name} could not prepare: {reason}', {name = job.name, reason = reason}), true, job.id)
+            return false, feedback, id
         end
         feedback = readiness and ui.t(job.profileKey and '{name} is preparing memory and conversation.'
             or '{name} is ready to join when you return to the game.', {name = job.name})
             or ui.t('{name} will join when you return to the game.', {name = job.name})
-        return true, feedback
+        return true, feedback, id
     end
 
     function Q.dismiss(id)
@@ -300,13 +322,13 @@ function M.new(companions, readiness)
                 else
                     job.error = tostring(called and err or serial)
                     if readiness then readiness.cancel(job) end
-                    report(ui.t('{name} could not join: {reason}', {name = job.name, reason = ui.t(job.error)}), true)
+                    report(ui.t('{name} could not join: {reason}', {name = job.name, reason = ui.t(job.error)}), true, job.id)
                     remaining[#remaining + 1] = job
                 end
             else
                 if status.state == 'error' and job.preparationError ~= status.error then
                     job.preparationError = status.error
-                    report(ui.t('{name} could not prepare: {reason}', {name = job.name, reason = tostring(status.error)}), true)
+                    report(ui.t('{name} could not prepare: {reason}', {name = job.name, reason = tostring(status.error)}), true, job.id)
                 elseif status.state ~= 'error' then job.preparationError = nil end
                 remaining[#remaining + 1] = job
             end

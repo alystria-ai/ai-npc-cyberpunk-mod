@@ -917,6 +917,147 @@ const managerBannerFixture = `
   local function tick() clock = clock + 1; mcm.update(player, false) end
 `;
 
+const managerPopupFixture = `
+  local popupClock, nativeCallback, popups = 1000, false, {}
+  os.time = function() return popupClock end
+  function player:ConvaiPhoneFeedback(message)
+    assert(not nativeCallback, 'manager action callback posted a native popup')
+    popups[#popups + 1] = message
+  end
+  local function popupTick(worldReady)
+    popupClock = popupClock + 1
+    mcm.update(player, worldReady == true)
+  end
+`;
+
+test('manager invitations use the phone native popup channel for each current preparation stage', () => {
+  run(`${mcmFixture}${invitationFixture}${managerPopupFixture}
+    assert(invoke('tab:characters').ok)
+    nativeCallback = true; assert(invoke('invite:johnny-silverhand').ok); nativeCallback = false
+    assert(#popups == 0, 'invitation posted a popup inside its native action callback')
+    popupTick(false)
+    assert(#popups == 1 and popups[1] == 'Johnny Silverhand: preparing memory...')
+    for _ = 1, 5 do popupTick(false) end
+    assert(#popups == 1, 'same ticket/revision/state repeated its popup')
+    readiness.receipts['queued:1'] = {state = 'connecting'}; popupTick(false)
+    assert(#popups == 2 and popups[2] == 'Johnny Silverhand: connecting...')
+    readiness.receipts['queued:1'] = {state = 'ready'}; popupTick(false)
+    assert(#popups == 3 and popups[3] == 'Johnny Silverhand is ready to join when you return to the game.')
+    assert(#spawned == 0)
+    popupTick(true)
+    assert(#popups == 4 and popups[4] == 'Johnny Silverhand is joining your party.')
+    popupTick(true); assert(#popups == 4)
+    members[1].state = 'ready'; popupTick(true)
+    assert(#popups == 5 and popups[5] == 'Johnny Silverhand joined your group.')
+    for _ = 1, 5 do popupTick(true) end
+    assert(#popups == 5, 'obsolete preparation followed the joined notification')
+  `);
+});
+
+test('leaving the manager replays only the current unresolved stage and keeps phone invitations independent', () => {
+  run(`${mcmFixture}${invitationFixture}${managerPopupFixture}
+    assert(invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok)
+    popupTick(false)
+    readiness.receipts['queued:1'] = {state = 'connecting'}
+    -- Resume inside the same clock second: do not reuse the paused memory sample.
+    mcm.update(player, true)
+    assert(#popups == 2 and popups[2] == 'Johnny Silverhand: connecting...')
+    popupTick(true); assert(#popups == 2)
+    assert(invoke('characters:back').ok and invoke('tab:settings').ok and invoke('memory').ok)
+    assert(invoke('memory:choose').ok and invoke('memory:select:johnny-silverhand').ok)
+    readiness.receipts['queued:1'] = {state = 'error', error = 'Private detail'}; popupTick(false)
+    assert(#popups == 3 and popups[3] == 'Johnny Silverhand: preparation failed. Cancel and invite again.',
+      'an unrelated footer action disabled the in-world notification')
+    assert(party.dismiss('queued:1')); popupTick(true)
+    assert(#popups == 3, 'cancelled progress replayed on returning to gameplay')
+    assert(party.invite('person-1')); popupTick(false)
+    readiness.receipts['queued:2'] = {state = 'connecting'}; popupTick(false)
+    assert(#popups == 3, 'manager added duplicate popups for a phone-owned invitation')
+  `);
+});
+
+test('manager popup identities distinguish duplicate copies and profile revisions then expire on world reset', () => {
+  run(`${mcmFixture}${invitationFixture}${managerPopupFixture}
+    assert(invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok); popupTick(false)
+    assert(invoke('invite:johnny-silverhand').ok); popupTick(false)
+    assert(#popups == 2 and popups[1] == popups[2], 'new copy was deduplicated by its display text')
+    assert(party.dismiss('queued:2')); popupTick(false)
+    readiness.receipts['queued:1'] = {state = 'connecting'}; popupTick(false)
+    assert(#popups == 2, 'removing the latest copy revived an older progress popup')
+    assert(invoke('characters:back').ok and invoke('tab:party').ok and invoke('assign:queued:1').ok)
+    nativeCallback = true; assert(invoke('assign-profile:person-2').ok); nativeCallback = false
+    popupTick(false)
+    assert(#popups == 3 and popups[3] == 'Johnny Silverhand: preparing memory...', 'profile revision was not announced')
+    mcm.resetSession(); popupTick(true)
+    assert(#popups == 3 and #spawned == 0, 'world reset retained a stale popup or invitation')
+  `);
+});
+
+test('a preparation popup hidden by the menu gets one gameplay presentation per stage', () => {
+  run(`${mcmFixture}${invitationFixture}${managerPopupFixture}
+    assert(invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok); popupTick(false)
+    mcm.update(player, true)
+    assert(#popups == 2 and popups[1] == popups[2] and popups[2] == 'Johnny Silverhand: preparing memory...')
+    for _ = 1, 3 do popupTick(true); popupTick(false) end
+    popupTick(true); assert(#popups == 2, 'reopening the menu repeated a stage already shown in gameplay')
+    readiness.receipts['queued:1'] = {state = 'error', error = 'Bridge unavailable'}; popupTick(false)
+    assert(#popups == 3)
+    popupTick(true)
+    assert(#popups == 4 and popups[4] == 'Johnny Silverhand could not prepare: Bridge unavailable',
+      'the existing failure notice was duplicated by a second preparation failure')
+    for _ = 1, 3 do popupTick(true) end
+    assert(#popups == 4)
+  `);
+});
+
+test('an already joined manager invitation cannot replay preparation when the game resumes', () => {
+  run(`${mcmFixture}${invitationFixture}${managerPopupFixture}
+    assert(invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok); popupTick(false)
+    readiness.receipts['queued:1'] = {state = 'ready'}
+    party.flush(); members[1].state = 'ready'
+    mcm.update(player, true)
+    assert(#popups == 2 and popups[2] == 'Johnny Silverhand joined your group.')
+    for _ = 1, 5 do popupTick(true) end
+    assert(#popups == 2)
+  `);
+});
+
+test('a deferred world spawn presents the joining stage only once before attachment', () => {
+  run(`${mcmFixture}${invitationFixture}${managerPopupFixture}
+    assert(invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok); popupTick(false)
+    readiness.receipts['queued:1'] = {state = 'ready'}
+    local originalSpawn, attempts = api.spawn, 0
+    api.spawn = function(key)
+      attempts = attempts + 1
+      if attempts < 3 then return nil, nil, true end
+      return originalSpawn(key)
+    end
+    popupTick(true)
+    assert(#spawned == 0 and #popups == 2 and popups[2] == 'Johnny Silverhand is joining your party.')
+    popupTick(true); popupTick(true)
+    assert(attempts == 3 and #spawned == 1 and #popups == 2,
+      'admitting the deferred spawn repeated the same joining notification')
+    members[1].state = 'ready'; popupTick(true)
+    assert(#popups == 3 and popups[3] == 'Johnny Silverhand joined your group.')
+  `);
+});
+
+test('an immediate preparation failure posts one gameplay failure notice outside the callback', () => {
+  run(`${mcmFixture}${invitationFixture}${managerPopupFixture}
+    readiness.prepare = function() return false, 'Bridge unavailable' end
+    assert(invoke('tab:characters').ok)
+    nativeCallback = true; assert(not invoke('invite:johnny-silverhand').ok); nativeCallback = false
+    assert(#popups == 0)
+    popupTick(false)
+    assert(#popups == 1 and popups[1] == 'Johnny Silverhand: preparation failed. Cancel and invite again.')
+    popupTick(true)
+    assert(#popups == 2 and popups[2] == 'Johnny Silverhand could not prepare: Bridge unavailable',
+      'first gameplay flush repeated the same failure notice')
+    for _ = 1, 3 do popupTick(true) end
+    assert(#popups == 2 and #spawned == 0)
+  `);
+});
+
 test('manager invitation banner follows paused preparation without reloading drafts or showing party blocks', () => {
   run(`${mcmFixture}${invitationFixture}${managerBannerFixture}
     assert(invoke('tab:characters').ok and invoke('invite:johnny-silverhand').ok)

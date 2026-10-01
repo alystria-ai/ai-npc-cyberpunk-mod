@@ -94,6 +94,26 @@ The regression harness covers those paused transitions, rebuilds, cancellation,
 native errors, memory results, foreign pages and detached controllers. Live
 notification visibility still needs the installed game check.
 
+Manager invitations also post the game's blue neutral warning notifications,
+using the same `PlayerPuppet.ConvaiPhoneFeedback` method as phone invitations.
+That native method calls `SetWarningMessage(message, SimpleMessageType.Neutral)`;
+the manager does not create a new HUD widget. These popups track the latest
+manager-requested copy independently of the footer and other manager actions.
+Direct phone invitations keep their existing notification path.
+
+Each ticket, profile revision and preparation stage is posted once while paused.
+Because the menu may hide native notifications, the first gameplay frame samples
+the current state again and presents it once there. It retains no stage backlog.
+A ticket already spawning reports **joining**, and completed attachment uses the
+existing **joined your group** notice. Cancelled, removed and reset tickets cannot
+replay preparation messages. Native calls run only from top-level update; same-
+frame failure/progress notices for one ticket are combined without duplicates.
+The popup tests cover menu return within the same clock second, copy/revision
+deduplication, immediate and asynchronous failure notices, cancellation, phone
+ownership and already joined tickets. A world spawn deferred by the shared
+query budget keeps the same joining notification when admission later succeeds.
+Their visibility in the running game remains the live acceptance gate.
+
 ## Native section and option styling — October 2
 
 Companion Manager uses one left edge. Section names bind to the native white

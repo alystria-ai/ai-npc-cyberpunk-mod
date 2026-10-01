@@ -1,5 +1,5 @@
 -- MCM API v2 provider. Every control is rendered by the installed native
--- settings framework. No ImGui panel, HUD popup or copied MCM implementation.
+-- settings framework. No ImGui panel or copied MCM implementation.
 local M = {}
 local ui = (convaiUiLocale or dofile('ui-locale.lua'))
 local PROVIDER, MOD, LABEL = 'cyberpunk-convai', 'manager', 'Companion Manager'
@@ -12,6 +12,7 @@ local lastError = ''
 local actionFeedback, memoryActionCommand
 local preparationTarget, preparationStatus, preparationActionFeedback
 local preparationAt = 0
+local preparationPopup
 local presentation = {active = false, rows = {}}
 local voiceSelectors = {}
 local localeRevision = -1
@@ -297,6 +298,26 @@ local function updatePreparationBanner()
         presentation.statusText, presentation.preparationSignature = text, signature
     end
     presentation.preparationApplied = current ~= nil
+end
+
+local function samplePreparationPopup(now, worldReady)
+    local tracking = preparationPopup
+    if not tracking then return nil end
+    if now < tracking.nextAt and tracking.worldReady == worldReady then return nil end
+    tracking.nextAt, tracking.worldReady = now + 1, worldReady
+    local current = queue.invitationFeedback(tracking.id)
+    if not current then preparationPopup = nil; return nil end
+    -- Native warning notifications can be hidden behind a paused menu. Keep
+    -- only the current snapshot and announce it once again in gameplay, never
+    -- a backlog of memory/connecting stages that may already be obsolete.
+    if worldReady and (current.state == 'ready' or current.state == 'model-only') then
+        current.state = 'joining'
+        current.signature = table.concat({current.id, tostring(current.revision), 'joining'}, '|')
+        current.message = ui.t('{name} is joining your party.', {name = current.name})
+    end
+    if current.signature == tracking.shown
+        and (not worldReady or current.signature == tracking.shownInGameplay) then return nil end
+    return current
 end
 
 local function memorySettings(snapshot)
@@ -629,11 +650,16 @@ function M.configure(domain, companions, queueFactory, entryFactory, readiness)
         invokeAction = function(id, actionId, context)
             if id ~= MOD or not actions[actionId] then return {ok = false, error = ui.t('Reopen the manager; that action is no longer available.')} end
             local assignmentTarget = assigning
-            local ok, reason = actions[actionId](context)
+            local ok, reason, invitationId = actions[actionId](context)
             actionFeedback = ok == true and ui.t(reason) or nil
             preparationActionFeedback = false
             local pendingAssignment = assignmentTarget and not assignmentTarget:match('^live:')
                 and (actionId:match('^assign%-profile:') or actionId == 'assign:none')
+            if actionId:match('^invite:') and type(invitationId) == 'string' then
+                preparationPopup = {id = invitationId, nextAt = 0}
+            elseif ok == true and pendingAssignment then
+                preparationPopup = {id = assignmentTarget, nextAt = 0}
+            end
             if ok == true and (actionId:match('^invite:') or pendingAssignment) then
                 preparationTarget = actionId:match('^invite:') and true or assignmentTarget
                 preparationStatus, preparationAt, preparationActionFeedback = nil, 0, true
@@ -804,20 +830,19 @@ end
 
 function M.update(currentPlayer, worldReady)
     local currentOwner = identity(currentPlayer)
+    local messages, notifiedInvitations = {}, {}
     if currentOwner ~= owner then
         owner = currentOwner; queue.bind(owner); lastSignature = ''; refreshQueued = true
         if preparationActionFeedback then actionFeedback = nil end
         preparationTarget, preparationStatus, preparationActionFeedback = nil, nil, false
+        preparationPopup = nil
     end
     if worldReady then
         queue.flush()
-        local messages = {}
         for _, notice in ipairs(queue.takeNotices()) do
             log(notice.message)
             messages[#messages + 1] = notice.message
-        end
-        if #messages > 0 then
-            pcall(function() currentPlayer:ConvaiPhoneFeedback(table.concat(messages, '\n')) end)
+            if notice.invitationId then notifiedInvitations[notice.invitationId] = true end
         end
     end
     entry.update()
@@ -829,6 +854,17 @@ function M.update(currentPlayer, worldReady)
     if now >= preparationAt then
         preparationAt = now + 1
         samplePreparationFeedback()
+    end
+    local progress = samplePreparationPopup(now, worldReady == true)
+    if progress and not notifiedInvitations[progress.id] then messages[#messages + 1] = progress.message end
+    if #messages > 0 and currentPlayer then
+        -- The same native neutral warning channel used by phone invitations.
+        -- Calls happen only here in top-level update, never inside MCM hooks.
+        local sent = pcall(function() currentPlayer:ConvaiPhoneFeedback(table.concat(messages, '\n')) end)
+        if sent and progress and preparationPopup and preparationPopup.id == progress.id then
+            preparationPopup.shown = progress.signature
+            if worldReady then preparationPopup.shownInGameplay = progress.signature end
+        end
     end
     if now >= pollAt then pollAt = now + 1; M.install() end
     -- Read MCM's supported effective draft values from top-level update. The
@@ -907,6 +943,7 @@ function M.resetSession()
     actionFeedback = nil
     memoryActionCommand = nil
     preparationTarget, preparationStatus, preparationActionFeedback, preparationAt = nil, nil, false, 0
+    preparationPopup = nil
     owner, lastSignature, refreshQueued = nil, '', true
     presentation = {active = false, rows = {}}
     fontPresentation.reset()
@@ -920,6 +957,7 @@ function M.shutdown(worldReady)
     queue.bind(nil)
     if preparationActionFeedback then actionFeedback = nil end
     preparationTarget, preparationStatus, preparationActionFeedback, preparationAt = nil, nil, false, 0
+    preparationPopup = nil
     entry.reset()
     voicePreview.shutdown()
     if api then pcall(api.providers.unregisterProvider, PROVIDER, provider.registrationKey) end
