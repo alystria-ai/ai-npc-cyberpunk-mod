@@ -483,4 +483,10 @@ return {
     ["You did not board the car, so the trip was cancelled."] = "車に乗らなかったため、ドライブをキャンセルしました。",
     ["You moved away from the car. The trip was cancelled."] = "車から離れたため、ドライブをキャンセルしました。",
     ["Your companion is ready. Get in the passenger seat to start the trip."] = "コンパニオンの準備ができました。乗客席に座ってドライブを開始してください。",
+    ["Step out of the driver seat so your companion can get in."] = "コンパニオンが乗車できるよう、運転席から降りてください。",
+    ["The driver seat was not released, so the trip was cancelled."] = "運転席が空かなかったため、ドライブをキャンセルしました。",
+    ["The car is now in use. The companion trip was cancelled."] = "車が使用中になったため、コンパニオンとのドライブをキャンセルしました。",
+    ["Waiting for your companion to settle before boarding."] = "コンパニオンの動きが落ち着いてから乗車できるよう待っています。",
+    ["Waiting for the native vehicle transition to finish."] = "ゲーム側の車両状態の切り替えが完了するのを待っています。",
+    ["Step out and wait for the previous driver cleanup to finish."] = "車から降りて、前の運転手の後処理が完了するまで待ってください。",
 }

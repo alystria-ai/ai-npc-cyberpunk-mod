@@ -483,4 +483,10 @@ return {
     ["You did not board the car, so the trip was cancelled."] = "你未上車，因此行程已取消。",
     ["You moved away from the car. The trip was cancelled."] = "你已遠離汽車。行程已取消。",
     ["Your companion is ready. Get in the passenger seat to start the trip."] = "夥伴已準備好。請坐上乘客座位以開始行程。",
+    ["Step out of the driver seat so your companion can get in."] = "請離開駕駛座，好讓夥伴上車。",
+    ["The driver seat was not released, so the trip was cancelled."] = "駕駛座未騰出，因此行程已取消。",
+    ["The car is now in use. The companion trip was cancelled."] = "汽車現已被使用。夥伴駕駛行程已取消。",
+    ["Waiting for your companion to settle before boarding."] = "正在等待夥伴結束移動後再上車。",
+    ["Waiting for the native vehicle transition to finish."] = "正在等待遊戲完成車輛狀態切換。",
+    ["Step out and wait for the previous driver cleanup to finish."] = "請下車，等待上一位駕駛的退出流程完成。",
 }

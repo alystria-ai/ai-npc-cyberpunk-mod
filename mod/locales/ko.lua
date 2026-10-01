@@ -483,4 +483,10 @@ return {
     ["You did not board the car, so the trip was cancelled."] = "차에 타지 않아 주행이 취소되었습니다.",
     ["You moved away from the car. The trip was cancelled."] = "차에서 멀어져 주행이 취소되었습니다.",
     ["Your companion is ready. Get in the passenger seat to start the trip."] = "동료가 준비되었습니다. 주행을 시작하려면 승객 좌석에 타세요.",
+    ["Step out of the driver seat so your companion can get in."] = "동료가 탈 수 있도록 운전석에서 내리세요.",
+    ["The driver seat was not released, so the trip was cancelled."] = "운전석이 비워지지 않아 주행이 취소되었습니다.",
+    ["The car is now in use. The companion trip was cancelled."] = "차가 사용 중이어서 동료 주행이 취소되었습니다.",
+    ["Waiting for your companion to settle before boarding."] = "동료가 움직임을 마친 후 탑승할 수 있도록 기다리는 중입니다.",
+    ["Waiting for the native vehicle transition to finish."] = "게임의 차량 상태 전환이 끝나기를 기다리는 중입니다.",
+    ["Step out and wait for the previous driver cleanup to finish."] = "차에서 내려 이전 운전자의 해제 처리가 끝날 때까지 기다리세요.",
 }

@@ -1170,6 +1170,12 @@ local function abandonSession(reason,preserveTransit)
 end
 
 registerForEvent('onInit', function()
+    -- Disk receipts grant only interrupted cleanup authority. Native unique
+    -- tags are checked later in gameplay; no party/save restoration occurs.
+    if type(companions.initReloadCleanup)=='function' then
+        local ok,error=pcall(companions.initReloadCleanup)
+        if not ok then log('Interrupted driver cleanup initialization failed: '..tostring(error)) end
+    end
     subtitles.install()
     lootObserver.configure({captureContext = captureLootContext})
     lootObserver.install()
@@ -1538,7 +1544,11 @@ end)
 
 registerForEvent('onShutdown', function()
     local liveWorld = not worldSuspended and sessionHasState
-    if liveWorld then pcall(companions.prepareChauffeurShutdown, 'Mod shutdown stopped the trip.') end
+    if liveWorld then
+        local ok,done,reason=pcall(companions.prepareChauffeurShutdown,'Mod shutdown stopped the trip.')
+        if not ok then log('Interrupted driver cleanup capture failed: '..tostring(done))
+        elseif not done then log('Interrupted driver cleanup pending: '..tostring(reason)) end
+    end
     invalidateKnowledge('shutdown')
     cancelAutomatic('shutdown')
     battles.reset()

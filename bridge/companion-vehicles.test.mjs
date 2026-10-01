@@ -281,6 +281,21 @@ test('native command submission preserves an exact cancellable handle even after
   saved.state='Cancelled'; assert(adapter.cancel(operation))
 `));
 
+test('native animated boarding reports its real high-level-state blockers without overriding them',()=>run(`
+  dofile=function() return {} end
+  local adapter=(function() ${native} end)()
+  Enum={new=function(_,value) return value end}
+  local npc={hls='Relaxed',GetHighLevelStateFromBlackboard=function(self) return self.hls end}
+  NPCPuppet={IsInCombat=function(value) return value.combat==true end}
+  assert(adapter.canBoard({npc=npc}))
+  npc.hls='Alerted'; local calm,reason=adapter.canBoard({npc=npc})
+  assert(not calm and reason=='Waiting for your companion to settle before boarding.' and npc.hls=='Alerted')
+  npc.hls='Combat'; assert(not adapter.canBoard({npc=npc}))
+  npc.hls='Relaxed'; npc.combat=true; calm,reason=adapter.canBoard({npc=npc})
+  assert(not calm and reason=='Waiting for combat to finish before boarding.')
+  npc.combat=false; assert(adapter.canBoard({npc=npc}))
+`));
+
 const nativeFixture=`
   dofile=function(file)
     if file=='companion-clearance.lua' then return (function() ${clearance} end)() end

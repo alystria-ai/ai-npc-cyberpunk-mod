@@ -35,7 +35,16 @@ passenger seat are unavailable to the ordinary allocator.
 
 Only the selected driver is acquired and boarded while V is on foot. Other
 companions retain their ordinary collision-aware walking owner, and no overflow
-cars are created during this wait. The driver waits for V to enter a passenger
+cars are created during this wait. Acquisition retires the exact walking and
+standing-look owner immediately, even if an equipment cancellation still needs
+time. Both releases must complete before the fleet submits one animated
+`AIMountCommand` for the driver slot. The native mount owns navigation around
+the car, its door entry point and entry animation; there is no intermediate
+social-turn or seat-centre walking target. New seated attention is admitted only
+after a completed native mount. An existing seated look can still be removed
+during an exit or cancellation, including delayed removal retries.
+
+The driver waits for V to enter a passenger
 seat through normal gameplay. The mod never mounts, unmounts, teleports or
 switches seats for V. After observing V's actual passenger mounting and native
 `Passenger` state, the fleet acquires the remaining companions and allocates
@@ -123,6 +132,7 @@ executes from a command that reached a terminal state.
 | --- | --- |
 | Releasing | Existing walking and equipment commands release; 12-second deadline |
 | Boarding driver | Animated exact driver mount plus terminal command; 25-second deadline |
+| Waiting for driver seat | V temporarily chose the driver slot in a stopped car during approach; retire the exact NPC mount, keep the same trip, and allow 45 seconds total to vacate and release the native reservation |
 | Waiting for player | Driver is seated; observe V boarding manually into a valid passenger seat; up to five minutes while V remains within 40 m |
 | Waiting for party | V is in an observed passenger seat and native `Passenger` state; all assigned actors seated, with a 75-second party deadline |
 | Starting | Ordinary `EnableAutoDriveRequest`, once; observe native enabled state for this exact car/destination within 5 seconds |
@@ -159,9 +169,33 @@ The current internal reservation changes only after actual player occupancy
 is confirmed. If an NPC has an uncommitted reservation for that seat, its exact
 mount command must retire before the NPC is reassigned. The original action
 offer remains immutable; `snapshot.passengerSeat` reports the current observed
-seat. Choosing the driver seat cancels chauffeur intent and yields to V after
-the companion vacates that slot. No player exit, reseat, or automatic driving
-request is issued during that handoff.
+seat. Briefly choosing the driver seat while the companion is still approaching
+a stopped car pauses preparation. The exact NPC mount is cancelled and its
+confirmed retirement and a free native driver reservation are required before
+resubmitting the same animated entry. Cancellation does not spend a failed
+boarding attempt. The 45-second grace is cumulative across repeated accidental
+entries in this trip; it does not create a new generation or rewrite the public
+offer. V can then enter any available supported passenger slot manually.
+
+The blue instruction to vacate the driver seat is shown only while V is actually
+in that slot. Once V is outside or in a passenger slot, any pending cancellation
+or door reservation is reported as waiting for the native vehicle transition.
+Existing per-trip feedback deduplication keeps repeated frames silent.
+
+V starting to drive, beginning another AutoDrive activity, or choosing the
+driver slot after the companion has completed entry cancels chauffeur intent
+and yields. No player exit, reseat, or automatic driving request is issued
+during that handoff. Preparation never acquires borrowed-car braking rights;
+only this trip's own pending or active AutoDrive lease permits a shutdown brake.
+
+`AIMountCommand` remains the direct native boarding path. Its `isInstant=false`,
+`allowFailsafeTeleport=false` and `ignoreHLS=false` are preserved. The installed
+native approach rejects an Alerted non-prevention actor, independently of
+`ignoreHLS`; the current request gate also rejects Alerted/Combat. The adapter
+reports that native blocker and waits within the boarding deadline, rather than
+changing the NPC's high-level state or forcing an instant seat entry. This is a
+source-supported diagnostic and not a claim that Alerted caused the reported
+live halfway stop.
 
 ## Required application hooks
 
@@ -231,6 +265,8 @@ The vendored GitHub script snapshot is 2.3 and lacks several 2.31 changes.
 | `core/systems/autoDriveSystem.script:116-141`, `core/systems/mappinSystem.script:34` | `PlayerTracked` and `Quest` are explicit native destination types; resolve `GetAutodriveDestinationMappinID()` with `GetMappin`, and use the current native `GetAutodriveDestination()` point |
 | `cyberpunk/ai/commands/aiDriveCommandHandler.script:220-250` | Native AutoDrive reads its initial destination, then submits `DriveToPointAutonomousUpdate` whenever `GetAutodriveDestination()` changes; endpoint changes are part of the native route lifecycle |
 | `core/systems/mountingFacility.script:44-78` | Exact mounting info, request and native mount signatures |
+| `cyberpunk/ai/commands/aiVehicleBehaviorDelegate.script:14-34,58-78,151-161` | `AIMountCommand` forwards the exact MountEventData and invokes the native mount callback; Alerted/Combat request checks honor `ignoreHLS` |
+| `cyberpunk/ai/Tasks/aiVehicle.script:229-233,259-269,295-313` | Animated approach separately rejects Alerted non-prevention NPCs, fails after three seconds of another occupant in the requested slot, and reserves/opens the actual door entry point |
 | `cyberpunk/player/psm/vehicleTransition.script:873-911` | V in front-right automatically switches to an available driver seat after 0.2 seconds; keep driver until V exits |
 | `core/gameplay/vehicles.script:104-105` | `ForceBrakesUntilStoppedOrFor(Float, optional callback)` |
 | `core/data/tweakDBRecords.script:9771`, `core/ui/uiTextUtils.script:3` | Vehicle `DisplayName()` returns `CName`; `GetLocalizedTextByKey(CName)` resolves it. CET uses `Game.GetLocalizedTextByKey`, with record-ID fallback on cosmetic lookup failure. Blackboard definitions use the established `Game.GetAllBlackboardDefs()` binding. |

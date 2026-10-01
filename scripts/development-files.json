@@ -302,6 +302,10 @@
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-chauffeur-native.lua"
     },
     {
+      "source": "mod/companion-reload-cleanup.lua",
+      "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-reload-cleanup.lua"
+    },
+    {
       "source": "mod/companion-clearance.lua",
       "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-clearance.lua"
     }

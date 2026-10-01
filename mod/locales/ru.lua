@@ -483,4 +483,10 @@ return {
     ["You did not board the car, so the trip was cancelled."] = "Вы не сели в машину, поэтому поездка отменена.",
     ["You moved away from the car. The trip was cancelled."] = "Вы отошли от машины. Поездка отменена.",
     ["Your companion is ready. Get in the passenger seat to start the trip."] = "Напарник готов. Сядьте на пассажирское место, чтобы начать поездку.",
+    ["Step out of the driver seat so your companion can get in."] = "Покиньте водительское место, чтобы напарник мог сесть в машину.",
+    ["The driver seat was not released, so the trip was cancelled."] = "Водительское место не было освобождено, поэтому поездка отменена.",
+    ["The car is now in use. The companion trip was cancelled."] = "Машина теперь используется. Поездка с напарником отменена.",
+    ["Waiting for your companion to settle before boarding."] = "Ожидание, пока напарник завершит движение перед посадкой.",
+    ["Waiting for the native vehicle transition to finish."] = "Ожидается завершение смены состояния машины в игре.",
+    ["Step out and wait for the previous driver cleanup to finish."] = "Выйдите и дождитесь завершения освобождения предыдущего водителя.",
 }

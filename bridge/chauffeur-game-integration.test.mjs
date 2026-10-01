@@ -6,6 +6,7 @@ import {companionEngine} from './companion-fixture.mjs';
 import {uiLocaleBootstrap} from './ui-locale-fixture.mjs';
 
 const partySource = readFileSync(new URL('../mod/manager-party.lua', import.meta.url), 'utf8');
+const companionSource = readFileSync(new URL('../mod/companions.lua', import.meta.url), 'utf8');
 const {lua, lauxlib, lualib, to_luastring, to_jsstring} = fengari;
 const setup = `
 local reads,paused=0,false
@@ -69,6 +70,81 @@ assert(not companions.prepareChauffeurShutdown('test shutdown'))
 assert(not companions.dismissAll())
 local before=reads
 companions.abandon();assert(#companions.list()==0 and not companions.chauffeurSnapshot().active and reads==before)
+`));
+
+test('explicit legacy cleanup handoff removes only a proved old driver without restoring the party or changing V seats',()=>run(`
+local actor=spawn();local beforeSequence=sequence
+companions.abandon();assert(#companions.list()==0)
+function actor:GetRecordID()return 'Character.Test' end
+function player:GetEntityID()return {hash='1000ULL'}end
+function player:IsDeadNoStatPool()return false end
+function player:IsInCombat()return false end
+function system:IsTagged(entity,tag)
+ local value=entities[tonumber(entity.hash)]
+ if not value then return false end
+ for _,actual in ipairs(value.spec.tags)do if actual==tag then return true end end
+ return false
+end
+function system:AssignTag(entity,tag)table.insert(entities[tonumber(entity.hash)].spec.tags,tag)end
+function system:GetTaggedIDs(tag)
+ local out={};for _,value in pairs(entities)do if self:IsTagged(value.id,tag)then out[#out+1]=value.id end end
+ return out
+end
+local actorMounted,playerAboard=true,true
+local carEntity={IsAttached=function()return true end,IsVehicle=function()return true end,
+ IsPlayerVehicle=function()return true end,GetEntityID=function()return {hash='3001ULL'}end,
+ GetRecordID=function()return 'Vehicle.Test' end,IsPlayerDriver=function()return false end,
+ IsDestroyed=function()return false end,GetRecord=function()return {Type=function()return {Type=function()return 'Car' end}end}end}
+Game.FindEntityByID=function(native)assert(native.hash=='3001ULL');return carEntity end
+Game.GetWorkspotSystem=function()return {IsActorInWorkspot=function()return actorMounted end}end
+Game.GetSceneSystem=function()return {GetScriptInterface=function()return {
+ IsEntityInScene=function()return false end,IsEntityInDialogue=function()return false end}end}end
+Game.GetScriptableSystemsContainer=function()return {Get=function()return {
+ GetAutodriveVehicle=function()return nil end,GetAutodriveEnabled=function()return false end}end}end
+local unmounts,removed=0,0
+companionVehicleAdapter=function(api)
+ api.mounting=function(entry)
+  if entry.npc==actor and actorMounted then return {vehicle='3001ULL',parent={hash='3001ULL'},seat='seat_front_left'}end
+  if entry.npc==player and playerAboard then return {vehicle='3001ULL',parent={hash='3001ULL'},seat='seat_front_right'}end
+ end
+ api.inspect=function()return {ready=true,speed=0,playerMounted=playerAboard,seats={}}end
+ api.mount=function(entry,car,seat,exit)
+  assert(entry.npc==actor and car.id=='3001ULL' and seat=='seat_front_left' and exit)
+  unmounts=unmounts+1;actorMounted=false
+  local command=NewObject('AIUnmountCommand');entry.npc.ai:SendCommand(command);command.state='Success'
+  return {handle=command,owner=entry.npc,ai=entry.npc.ai}
+ end
+ return api
+end
+-- Create the new module instance, representing the party-empty CET instance.
+local files,values,nextJson={},{},0
+local function clone(value)
+ if type(value)~='table' then return value end
+ local out={};for k,c in pairs(value)do out[k]=clone(c)end;return out
+end
+json={encode=function(v)nextJson=nextJson+1;local text='cleanup-'..nextJson;values[text]=clone(v);return text end,
+ decode=function(raw)return clone(assert(values[raw]))end}
+io={open=function(path,mode)
+ if mode=='rb' then if not files[path]then return nil end
+  return {read=function(_,count)return files[path]:sub(1,count)end,close=function()return true end}
+ end
+ return {write=function(_,v)files[path]=v;return true end,close=function()return true end}
+end}
+os.rename=function(a,b)files[b]=files[a];files[a]=nil;return true end
+os.remove=function(path)files[path]=nil;return true end
+companions=(function() ${companionSource} end)()
+companions.onBeforeRemove=function(entity)assert(entity==tostring(actor.id.hash));removed=removed+1 end
+companions.initReloadCleanup()
+assert(companions.captureInterruptedDriver(actor))
+assert(companions.reloadCleanupSnapshot().active and #companions.list()==0)
+companions.update(player,.5);companions.update(player,.5)
+assert(actorMounted and unmounts==0 and removed==0 and playerAboard)
+playerAboard=false
+companions.update(player,.5);assert(unmounts==1 and removed==0)
+companions.update(player,.5)
+assert(removed==1 and not system:IsManaged(actor.id) and #companions.list()==0)
+assert(sequence==beforeSequence and companions.reloadCleanupSnapshot().phase=='complete')
+assert(not companions.vehicleSnapshot().reloadCleanup.active and not companions.chauffeurSnapshot().active)
 `));
 
 test('manager exposes only an active-trip stop intent, defers cancellation until flush, and protects the driver', () => run(`

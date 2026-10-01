@@ -4,6 +4,7 @@ local M={}
 local RELEASE_TIMEOUT,BOARD_TIMEOUT,START_TIMEOUT=12,25,5
 local STOP_TIMEOUT,PARTY_TIMEOUT,TRIP_TIMEOUT,STALL_TIMEOUT=15,75,1800,35
 local PLAYER_WAIT_TIMEOUT,PLAYER_WAIT_DISTANCE=300,40
+local DRIVER_SEAT_GRACE=45
 local passengerSeats={'seat_front_right','seat_back_left','seat_back_right'}
 local function copy(value)
     if type(value)~='table' then return value end
@@ -40,7 +41,11 @@ local function seat(info,name)
 end
 local function free(info,name) local row=seat(info,name); return row and not row.occupant and not row.reserved end
 local function preparation(phase)
-    return phase=='releasing' or phase=='boarding-driver' or phase=='waiting-for-player' or phase=='waiting-for-party'
+    return phase=='releasing' or phase=='boarding-driver' or phase=='waiting-for-driver-seat'
+        or phase=='waiting-for-player' or phase=='waiting-for-party'
+end
+local function approaching(phase)
+    return phase=='releasing' or phase=='boarding-driver' or phase=='waiting-for-driver-seat'
 end
 local function offer(s,player,entry)
     local sample,err=safe(s.chauffeurApi.sample,player,entry,nil,s.api)
@@ -165,6 +170,7 @@ local function binding(c,sample,requirePassenger)
     c.waypoint.position=copy(sample.waypoint.position)
     local pm=sample.playerMount
     if pm and (pm.vehicle~=c.car.id or (pm.seat~=c.passengerSeat
+        and not (approaching(c.phase) and pm.seat=='seat_front_left')
         and not (preparation(c.phase) and c.passengerYieldPending))) then return false,'V changed seats or vehicles.' end
     if requirePassenger and (not pm or not sample.playerPassenger) then return false,'V left the passenger seat.' end
     return true
@@ -211,11 +217,35 @@ function M.update(s,player,entries,hooks,ops)
         c.car.entity=sample.car.entity; c.car.info=sample.info
     end
     if person then person.mount=sample.driverMount end
+    -- Transport acquired the selected actor at queue admission. Retire its
+    -- exact foot/look/equipment owners even if a route or seat race changes
+    -- the phase before the ordinary releasing branch can run. A foreign or
+    -- detached actor is never serviced through this handoff.
+    local prepared=person and present and not person.removing and sample.actorValid
+        and ops.prepare(s,person,hooks)
     local takingOver=sample.playerMount and sample.playerMount.vehicle==c.car.id
         and sample.playerMount.seat=='seat_front_left'
-    if takingOver then
+    local stopped=sample.info.ready and sample.info.speed<=0.5 and not sample.info.scene
+    local driverGrace=approaching(c.phase) and not c.nativeOwned and not c.enablePending
+        and not sample.auto.enabled and stopped
+    if takingOver and driverGrace then
+        -- People can choose the wrong door while their friend is approaching.
+        -- Yield the exact NPC mount and wait; an accidental stopped-car entry
+        -- is not a new request, nor permission to move V to another seat.
+        if not c.driverSeatWaitStarted then
+            c.driverSeatWaitStarted=s.clock
+            c.driverSeatWaitUsed=0
+        end
+        if c.phase~='waiting-for-driver-seat' then
+            c.driverSeatWaitAt=s.clock
+            phase(s,'waiting-for-driver-seat')
+        end
+    elseif takingOver then
         c.yieldToPlayer=true
         stop(s,'You are driving. The companion trip was cancelled.','taken-over')
+    end
+    if preparation(c.phase) and sample.auto.enabled then
+        stop(s,'Another AutoDrive activity took control.','cancelled')
     end
     if (c.phase=='driving' and not sample.auto.enabled)
         or (c.nativeEndObserved and (c.phase=='driving' or c.phase=='starting')) then
@@ -229,7 +259,7 @@ function M.update(s,player,entries,hooks,ops)
     elseif c.phase~='stopping' and c.phase~='waiting-for-player-exit' and c.phase~='exiting-driver' then
         local ok,reason=binding(c,sample,c.phase=='waiting-for-party' or c.phase=='starting' or c.phase=='driving')
         if not ok then stop(s,reason,'cancelled') end
-        if c.phase~='releasing' and c.phase~='boarding-driver' and not driverSeated(c,sample) then
+        if not approaching(c.phase) and not driverSeated(c,sample) then
             stop(s,'The companion left the driver seat.','cancelled')
         end
         if preparation(c.phase) and not sample.playerMount and sample.info.ready
@@ -239,12 +269,29 @@ function M.update(s,player,entries,hooks,ops)
     end
     local age=s.clock-c.phaseAt
     if c.phase=='releasing' then
-        if ops.prepare(s,person,hooks) then phase(s,'boarding-driver')
+        if prepared then phase(s,'boarding-driver')
         elseif age>RELEASE_TIMEOUT then stop(s,'Walking commands did not release in time.','failed') end
     elseif c.phase=='boarding-driver' then
         ops.board(s,person,hooks,1)
         if person.phase=='riding' and driverSeated(c,sample) then phase(s,'waiting-for-player')
         elseif age>BOARD_TIMEOUT then stop(s,'The companion could not finish entering the driver seat.','failed') end
+    elseif c.phase=='waiting-for-driver-seat' then
+        local released=ops.pauseDriver(s,person,hooks)
+        local used=(c.driverSeatWaitUsed or 0)+s.clock-(c.driverSeatWaitAt or s.clock)
+        local driverSeat=seat(sample.info,'seat_front_left')
+        if used>=DRIVER_SEAT_GRACE then
+            stop(s,'The driver seat was not released, so the trip was cancelled.','cancelled')
+        elseif not takingOver and (not stopped or sample.auto.enabled) then
+            -- A moving/foreign AutoDrive car is no longer a preparation pause.
+            -- The stop path retains ownership without braking another owner.
+            stop(s,'The car is now in use. The companion trip was cancelled.','cancelled')
+        elseif not takingOver and released and driverSeat and not driverSeat.occupant and not driverSeat.reserved then
+            c.driverSeatWaitUsed=used; c.driverSeatWaitAt=nil; c.error=nil
+            phase(s,'boarding-driver')
+        else
+            c.error=takingOver and 'Step out of the driver seat so your companion can get in.'
+                or 'Waiting for the native vehicle transition to finish.'
+        end
     elseif c.phase=='waiting-for-player' then
         local pm=sample.playerMount
         if pm and pm.vehicle==c.car.id and pm.seat==c.passengerSeat and sample.playerPassenger
@@ -300,10 +347,20 @@ function M.update(s,player,entries,hooks,ops)
     if c.phase=='stopping' then
         local ownsNative=c.nativeOwned or c.enablePending
         local other=sample.auto.enabled and (not ownsNative or sample.auto.vehicleId~=c.car.id or sample.auto.delamain)
-        if other then c.error='Waiting for the other AutoDrive activity to finish.'; return end
         local pm=sample.playerMount
         local takeover=pm and pm.vehicle==c.car.id and pm.seat=='seat_front_left'
-        if not takeover and sample.info.ready and (sample.info.speed>0.5 or ownsNative)
+        if other and c.yieldToPlayer and takeover then
+            -- V started another native driving activity during preparation.
+            -- Retire only the NPC request and yield, without touching that
+            -- activity, steering/braking V, or recreating chauffeur intent.
+            if ops.yieldToPlayer(s,player,hooks) then
+                s.lastChauffeur=M.snapshot(s); s.lastChauffeur.active=false; s.lastChauffeur.phase='taken-over'
+                s.chauffeur=nil
+            else c.error='Waiting for the companion to release the driver seat.' end
+            return
+        end
+        if other then c.error='Waiting for the other AutoDrive activity to finish.'; return end
+        if not takeover and ownsNative and sample.info.ready
             and c.brakeAttempts<3 and s.clock>=(c.brakeAt or 0) then
             c.brakeAttempts=c.brakeAttempts+1; c.brakeAt=s.clock+4
             local done,why=safe(s.chauffeurApi.brake,c.car); if not done then c.error=why end
@@ -371,6 +428,9 @@ function M.snapshot(s)
         reason=c.reason,error=c.error,outcome=c.outcome,observed=copy(c.observed),
         enablePending=c.enablePending==true,nativeOwned=c.nativeOwned==true,
         passengerSeat=c.passengerSeat,partyReady=c.partyReady==true,
+        driverSeatWaitUsed=(c.driverSeatWaitUsed or 0)+(c.driverSeatWaitAt and s.clock-c.driverSeatWaitAt or 0),
+        driverSeatWaitRemaining=c.driverSeatWaitStarted and math.max(0,DRIVER_SEAT_GRACE
+            -(c.driverSeatWaitUsed or 0)-(c.driverSeatWaitAt and s.clock-c.driverSeatWaitAt or 0)) or nil,
         stopAttempts=c.stopAttempts,brakeAttempts=c.brakeAttempts}
 end
 return M

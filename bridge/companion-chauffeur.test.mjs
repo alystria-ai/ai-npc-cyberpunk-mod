@@ -62,6 +62,7 @@ function api.mount(value,vehicle,seat,exit)
 end
 function api.commandState(command) world.commandReads=(world.commandReads or 0)+1; return command.state end
 function api.cancel(command)
+  command.cancels=(command.cancels or 0)+1
   if world.cancelBlocked then return false end
   command.state='Cancelled'; return true
 end
@@ -441,6 +442,113 @@ tick()
 assert(not fleet.chauffeur and phase()=='taken-over' and world.enables==0 and world.disables==0 and world.brakes==0)
 assert(world.mounts.player.seat=='seat_front_left' and world.playerMounts==0 and world.unmounts==0)
 assert(world.resumes==1 and transport.canDismissChauffeurDriver(fleet,1))
+`));
+test('a stopped accidental player driver-seat entry before approach preserves the request and resumes after V vacates',()=>run(`
+local offer=transport.chauffeurOffer(fleet,player,entry)
+assert(queue(offer)); local generation=fleet.generation
+actual('player','seat_front_left'); tick(20)
+assert(phase()=='waiting-for-driver-seat' and transport.owns(fleet,1))
+assert(world.releases==1 and world.mountsRequested==0 and world.enables==0)
+assert(not transport.allowsSeatedAttention(fleet,1))
+assert(world.brakes==0 and world.disables==0 and world.playerMounts==0 and world.unmounts==0)
+actual('player',nil); tick(10)
+assert(phase()=='waiting-for-player' and world.mounts[1].seat=='seat_front_left')
+assert(fleet.generation==generation and fleet.chauffeur.offer.passengerSeat==offer.passengerSeat)
+assert(world.mountsRequested==1 and transport.allowsSeatedAttention(fleet,1))
+boardManually(); assert(phase()=='driving' and world.enables==1 and world.playerMounts==0)
+`));
+test('player driver-seat grace cancels only the in-flight NPC mount and waits for confirmed retirement before resubmission',()=>run(`
+world.delayDriver=true; assert(queue()); tick(5)
+local first=world.commands[1]; assert(first and first.state=='Executing')
+assert(not transport.allowsSeatedAttention(fleet,1))
+world.cancelBlocked=true; actual('player','seat_front_left'); tick(4)
+assert(phase()=='waiting-for-driver-seat' and fleet.people[1].command==first)
+assert(world.mountsRequested==1 and not world.mounts[1] and world.enables==0)
+actual('player','seat_front_right'); tick(4)
+assert(phase()=='waiting-for-driver-seat' and world.mountsRequested==1)
+world.cancelBlocked=false; world.delayDriver=false; tick(15)
+assert(first.state=='Cancelled' and world.mountsRequested==2 and fleet.people[1].attempts==1)
+assert(phase()=='driving' and world.enables==1 and world.playerMounts==0)
+assert(world.brakes==0 and world.disables==0 and world.unmounts==0)
+`));
+test('native driver reservation must disappear after cancellation before a fresh direct mount is sent',()=>run(`
+world.delayDriver=true; assert(queue()); tick(5)
+local first=world.commands[1]
+actual('player','seat_front_left'); tick(3)
+assert(first.state=='Cancelled' and world.mountsRequested==1)
+actual('player',nil); car.info.seats[1].reserved=true; tick(15)
+assert(phase()=='waiting-for-driver-seat' and world.mountsRequested==1)
+car.info.seats[1].reserved=false; world.delayDriver=false; tick(10)
+assert(phase()=='waiting-for-player' and world.mountsRequested==2)
+assert(world.brakes==0 and world.enables==0 and world.playerMounts==0)
+`));
+test('an alternate passenger seat entered during driver-seat grace is preserved while the original driver intent resumes',()=>run(`
+world.delayDriver=true; assert(queue()); tick(5)
+actual('player','seat_front_left'); tick(3)
+actual('player','seat_back_left'); world.delayDriver=false; tick(15)
+assert(phase()=='driving' and world.enableSeat=='seat_back_left' and world.mountsRequested==2)
+assert(fleet.chauffeur.offer.passengerSeat=='seat_front_right' and fleet.chauffeur.passengerSeat=='seat_back_left')
+assert(world.playerMounts==0 and world.brakes==0 and world.disables==0 and world.unmounts==0)
+`));
+test('driver-seat grace has one cumulative budget across repeated accidental entries and never moves V',()=>run(`
+world.delayDriver=true; assert(queue()); tick(5)
+local generation=fleet.generation
+actual('player','seat_front_left'); tick(25,1)
+assert(phase()=='waiting-for-driver-seat')
+local remaining=transport.chauffeurSnapshot(fleet).driverSeatWaitRemaining
+assert(remaining>19 and remaining<22)
+actual('player',nil); tick(3)
+assert(phase()=='boarding-driver' and world.mountsRequested==2)
+actual('player','seat_front_left'); tick(25,1)
+assert(phase()=='waiting-for-player-exit')
+assert(world.mountsRequested==2 and world.enables==0 and world.brakes==0 and world.disables==0)
+assert(world.mounts.player.seat=='seat_front_left' and world.playerMounts==0 and fleet.generation==generation)
+actual('player',nil); tick(12)
+assert(not fleet.chauffeur and world.resumes==1 and world.unmounts==0)
+`));
+test('starting to drive during preparation yields the exact request without braking or restoring intent',()=>run(`
+world.delayDriver=true; assert(queue()); tick(5)
+local first=world.commands[1]
+actual('player','seat_front_left'); tick(3)
+assert(phase()=='waiting-for-driver-seat' and first.state=='Cancelled')
+car.info.speed=10; tick()
+assert(not fleet.chauffeur and phase()=='taken-over')
+assert(world.brakes==0 and world.disables==0 and world.enables==0 and world.playerMounts==0)
+assert(world.mounts.player.seat=='seat_front_left' and world.unmounts==0 and world.resumes==1)
+`));
+test('foreign AutoDrive during driver-seat grace is yielded without cancelling, braking or replacing it',()=>run(`
+world.delayDriver=true; assert(queue()); tick(5)
+local first=world.commands[1]
+actual('player','seat_front_left'); tick(3)
+world.auto.enabled=true; world.auto.vehicleId=car.id; tick()
+assert(not fleet.chauffeur and phase()=='taken-over' and first.state=='Cancelled')
+assert(world.auto.enabled and world.brakes==0 and world.disables==0 and world.enables==0)
+assert(world.mounts.player.seat=='seat_front_left' and world.playerMounts==0 and world.unmounts==0)
+`));
+test('foreign AutoDrive after V leaves the driver seat retires the pending approach without resubmitting a mount',()=>run(`
+world.delayDriver=true; assert(queue()); tick(5)
+local first=world.commands[1]
+actual('player','seat_front_left'); tick(3)
+actual('player','seat_front_right'); world.auto.enabled=true; world.auto.vehicleId=car.id; tick(3)
+assert(phase()=='stopping' and first.state=='Cancelled' and world.mountsRequested==1)
+assert(world.auto.enabled and world.brakes==0 and world.disables==0 and world.enables==0)
+assert(world.playerMounts==0 and world.unmounts==0)
+`));
+test('route identity still governs a stopped driver-seat pause, and changed routes never resume the old intent',()=>run(`
+world.delayDriver=true; assert(queue()); tick(5)
+actual('player','seat_front_left'); tick(3)
+world.waypoint.id='new-route'; tick(6)
+assert(phase()=='waiting-for-player-exit' and world.enables==0 and world.mountsRequested==1)
+actual('player',nil); tick(10)
+assert(not fleet.chauffeur and world.brakes==0 and world.disables==0 and world.resumes==1)
+`));
+test('a route or seat race before the first preparation update still releases the exact foot owner',()=>run(`
+assert(queue()); actual('player','seat_front_left'); world.waypoint.id='new-route'; tick()
+assert(world.releases==1 and world.mountsRequested==0 and world.enables==0)
+assert(phase()=='waiting-for-player-exit' and transport.owns(fleet,1))
+assert(world.brakes==0 and world.disables==0 and world.playerMounts==0 and world.unmounts==0)
+actual('player',nil); tick(10)
+assert(not fleet.chauffeur and world.resumes==1)
 `));
 test('V taking the driver seat during owned AutoDrive disables that trip without braking against V',()=>run(`
 driving(); actual(entry,nil); actual('player','seat_front_left'); car.info.speed=10

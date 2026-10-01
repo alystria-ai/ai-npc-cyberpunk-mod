@@ -483,4 +483,10 @@ return {
     ["You did not board the car, so the trip was cancelled."] = "Você não entrou no carro, então a viagem foi cancelada.",
     ["You moved away from the car. The trip was cancelled."] = "Você se afastou do carro. A viagem foi cancelada.",
     ["Your companion is ready. Get in the passenger seat to start the trip."] = "Seu companheiro está pronto. Sente-se no banco de passageiro para iniciar a viagem.",
+    ["Step out of the driver seat so your companion can get in."] = "Saia do banco do motorista para que seu companheiro possa entrar.",
+    ["The driver seat was not released, so the trip was cancelled."] = "O banco do motorista não foi liberado, então a viagem foi cancelada.",
+    ["The car is now in use. The companion trip was cancelled."] = "O carro agora está em uso. A viagem com o companheiro foi cancelada.",
+    ["Waiting for your companion to settle before boarding."] = "Aguardando seu companheiro se estabilizar antes de embarcar.",
+    ["Waiting for the native vehicle transition to finish."] = "Aguardando o jogo concluir a transição do veículo.",
+    ["Step out and wait for the previous driver cleanup to finish."] = "Saia do carro e espere a liberação do motorista anterior ser concluída.",
 }

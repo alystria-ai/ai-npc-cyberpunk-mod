@@ -165,7 +165,17 @@ function M.mount(entry,vehicle,seat,unmount)
     return command(entry.npc:GetAIControllerComponent(),cmd:Copy(),entry.npc)
 end
 function M.canBoard(entry)
-    return not NPCPuppet.IsInCombat(entry.npc)
+    if NPCPuppet.IsInCombat(entry.npc) then return false,'Waiting for combat to finish before boarding.' end
+    -- Installed 2.31 ApproachVehicleDecorator refuses Alerted even when the
+    -- puppet is not in combat. Repeated AIMount submissions cannot bypass it.
+    -- Keep the exact animated command owner and wait for the native state to
+    -- settle, rather than forcing a lower HLS or teleporting into the slot.
+    local hls=entry.npc:GetHighLevelStateFromBlackboard()
+    if hls==Enum.new('gamedataNPCHighLevelState','Alerted')
+        or hls==Enum.new('gamedataNPCHighLevelState','Combat') then
+        return false,'Waiting for your companion to settle before boarding.'
+    end
+    return true
 end
 local function stateName(value)
     local label=tostring(value)

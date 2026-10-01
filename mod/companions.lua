@@ -12,6 +12,22 @@ local equipment = dofile('companion-equipment.lua')
 local vehicles = dofile('companion-vehicles.lua')
 local vehicleNative = dofile('companion-vehicle-native.lua')
 local fleet = vehicles.new(vehicleNative)
+local reloadCleanupModule,reloadCleanup
+local function cleanupOwner()
+    if not reloadCleanup then
+        reloadCleanupModule=reloadCleanupModule or dofile('companion-reload-cleanup.lua')
+        reloadCleanup=reloadCleanupModule.new(nil,vehicleNative,dofile('companion-chauffeur-native.lua'),
+            function(entity) if M.onBeforeRemove then pcall(M.onBeforeRemove,entity) end end)
+    end
+    return reloadCleanup
+end
+function M.initReloadCleanup()
+    reloadCleanupModule=reloadCleanupModule or dofile('companion-reload-cleanup.lua')
+    reloadCleanupModule.load(cleanupOwner())
+end
+function M.reloadCleanupSnapshot()
+    return reloadCleanup and reloadCleanupModule.snapshot(reloadCleanup) or {active=false,phase='idle'}
+end
 local spatialBudget,externalSpatialFrame
 local function spatialFrame()
     spatialBudget=clearance.newBudget()
@@ -111,8 +127,12 @@ local transit
 local vehicleHooks = {
     release = function(entry)
         equipment.release(entry.equipment)
-        if entry.equipment and entry.equipment.phase ~= 'released' then return false end
-        return not entry.motor or actuator.release(entry.motor)
+        -- Release standing movement/gaze in this same handoff even when the
+        -- equipment cancellation needs another frame. Mount owns feet/body
+        -- only after BOTH independent controllers have actually released.
+        local motorReleased=not entry.motor or actuator.release(entry.motor)
+        local equipmentReleased=not entry.equipment or entry.equipment.phase=='released'
+        return motorReleased and equipmentReleased
     end,
     resumed = function(entry)
         -- A failed gaze removal must keep its old owner alive until retry.
@@ -561,9 +581,14 @@ function M.abandon(preserveTransit)
     elapsed,runtimeClock,commandCursor=0,0,0
     groupFrame=nil
     vehicles.abandon(fleet)
+    if reloadCleanup then reloadCleanupModule.abandon(reloadCleanup) end
 end
 
-function M.vehicleSnapshot() return vehicles.snapshot(fleet) end
+function M.vehicleSnapshot()
+    local value=vehicles.snapshot(fleet)
+    value.reloadCleanup=M.reloadCleanupSnapshot()
+    return value
+end
 
 local function chauffeurEntry(entity,serialToFind)
     if type(entity)~='string' then return nil end
@@ -576,12 +601,16 @@ end
 -- Offers and queue admission run only from gameplay. Menu callers use the
 -- cached snapshot and retain the exact serial/entity pair in their intent.
 function M.chauffeurOffer(entity)
+    if M.reloadCleanupSnapshot().active then
+        return {available=false,reason='Step out and wait for the previous driver cleanup to finish.'}
+    end
     local entry=chauffeurEntry(entity)
     if not entry then return {available=false,reason='Choose a ready companion from your party.'} end
     return vehicles.chauffeurOffer(fleet,Game.GetPlayer(),entry)
 end
 
 function M.queueChauffeur(serialToDrive,expectedOffer,entity)
+    if M.reloadCleanupSnapshot().active then return false,'Step out and wait for the previous driver cleanup to finish.' end
     if type(serialToDrive)~='number' or serialToDrive<=0 then return false,'Choose a ready companion from your party.' end
     local entry=chauffeurEntry(entity,serialToDrive)
     if not entry then return false,'That companion is no longer ready to drive.' end
@@ -590,7 +619,27 @@ end
 
 function M.cancelChauffeur(reason) return vehicles.cancelChauffeur(fleet,reason) end
 function M.chauffeurSnapshot() return vehicles.chauffeurSnapshot(fleet) end
-function M.prepareChauffeurShutdown(reason) return vehicles.prepareChauffeurShutdown(fleet,reason) end
+function M.prepareChauffeurShutdown(reason)
+    local trip=fleet.chauffeur
+    local done,why,receipt=vehicles.prepareChauffeurShutdown(fleet,reason)
+    if not done and trip then
+        local owner=cleanupOwner()
+        if not owner.receipt then
+            local person=fleet.people[trip.serial]
+            local captured,error=reloadCleanupModule.capture(owner,Game.GetPlayer(),trip.entry,trip.car,
+                person and person.command)
+            if not captured then why=tostring(why)..' Cleanup receipt: '..tostring(error) end
+        end
+    end
+    return done,why,receipt
+end
+-- An explicit diagnostic can hand off a legacy seated copy only after CURRENT
+-- native ownership proof. It never adds the actor to entries or a trip owner.
+function M.captureInterruptedDriver(npc)
+    if M.owns(npc) then return false,'This driver still belongs to the current companion controller. Stop the trip normally.' end
+    local owner=cleanupOwner()
+    return reloadCleanupModule.captureSeated(owner,Game.GetPlayer(),npc)
+end
 function M.chauffeurAutodriveToggled(enabled) return vehicles.chauffeurAutodriveToggled(fleet,enabled) end
 function M.chauffeurArrived(entity) return vehicles.chauffeurArrived(fleet,entity) end
 
@@ -751,6 +800,7 @@ function M.update(player,delta,focusEntity)
     if not externalSpatialFrame then spatialFrame() end
     if not player then return end
     local dt=tonumber(delta) or 0
+    if reloadCleanup then reloadCleanupModule.update(reloadCleanup,player,dt,true) end
     elapsed,runtimeClock=elapsed+dt,runtimeClock+dt
     if elapsed<0.1 then return end
     local step=elapsed; elapsed=0
@@ -802,8 +852,13 @@ function M.update(player,delta,focusEntity)
     -- native cancellation/empty-seat confirmation after walking has no frame.
     vehicles.update(fleet,player,ready,step,vehicleHooks)
     for _,entry in ipairs(ready) do
-        if vehicles.owns(fleet,entry.serial) then
+        if vehicles.allowsSeatedAttention(fleet,entry.serial) then
             seatedAttention(entry,player,focusEntity,gazeSettings,step)
+        elseif vehicles.owns(fleet,entry.serial) then
+            -- Entry/exit owns the body. Retire only an existing exact look and
+            -- advance its removal retry clock; never admit a new seated gaze.
+            actuator.applySeatedLook(entry.motor,{ready=false,selected=false,player=player,
+                gazeSettings=gazeSettings,reason='Transport owns vehicle entry'},step)
         end
     end
     if not groupFrame then return end

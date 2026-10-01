@@ -10,7 +10,7 @@ import path from 'node:path';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const files = [
   'mod/mcm.lua', 'mod/manager.lua', 'mod/manager-party.lua', 'mod/init.lua',
-  'mod/companions.lua', 'mod/companion-vehicles.lua', 'mod/companion-chauffeur.lua',
+  'mod/companions.lua', 'mod/companion-vehicles.lua', 'mod/companion-vehicle-native.lua', 'mod/companion-chauffeur.lua',
   'mod/companion-chauffeur-native.lua', 'mod/gameplay-actions.lua',
   'mod/companion-clearance.lua', 'mod/companion-placement.lua',
   'mod/phone-chat.lua', 'mod/phone-chat-style.lua', 'mod/phone-input.lua',
@@ -231,6 +231,12 @@ const reviewed = {
     'The car, seats or destination changed before departure.', 'Another AutoDrive journey has control.',
     'Pending departure lost its vehicle binding.', 'V or a scene has taken vehicle control.',
     'Fast travel cancelled the companion trip.', 'The selected companion is unavailable.',
+    'Step out of the driver seat so your companion can get in.',
+    'The driver seat was not released, so the trip was cancelled.',
+    'The car is now in use. The companion trip was cancelled.',
+    'Waiting for your companion to settle before boarding.',
+    'Waiting for the native vehicle transition to finish.',
+    'Step out and wait for the previous driver cleanup to finish.',
   ],
   'phone.chat': [
     'Conversation interrupted. Your message is in the draft.', 'Waiting for the conversation service.',

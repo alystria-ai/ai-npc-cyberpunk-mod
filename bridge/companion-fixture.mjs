@@ -14,6 +14,7 @@ const vehicleNative = readFileSync(new URL('../mod/companion-vehicle-native.lua'
 const vehicleCatalog = readFileSync(new URL('../mod/companion-vehicle-catalog.lua', import.meta.url), 'utf8');
 const chauffeur = readFileSync(new URL('../mod/companion-chauffeur.lua', import.meta.url), 'utf8');
 const chauffeurNative = readFileSync(new URL('../mod/companion-chauffeur-native.lua', import.meta.url), 'utf8');
+const reloadCleanup = readFileSync(new URL('../mod/companion-reload-cleanup.lua', import.meta.url), 'utf8');
 export const companionModules = `
   dofile=function(file)
     if file=='companion-space.lua' then return (function() ${space} end)() end
@@ -31,6 +32,7 @@ export const companionModules = `
       local native=(function() ${chauffeurNative} end)()
       return companionChauffeurAdapter and companionChauffeurAdapter(native) or native
     end
+    if file=='companion-reload-cleanup.lua' then return (function() ${reloadCleanup} end)() end
     if file=='companion-behavior.lua' then return (function() ${behavior} end)() end
     if file=='companion-placement.lua' then return (function() ${placement} end)() end
     if file=='companion-clearance.lua' then return (function() ${clearance} end)() end
@@ -124,6 +126,7 @@ export const companionEngine = `
     function npc:IsA(kind) return kind=='NPCPuppet' end
     function npc:IsCrowd() return false end
     function npc:IsDeadNoStatPool() return false end
+    function npc:GetHighLevelStateFromBlackboard() return self.hls or 'Relaxed' end
     function npc:GetWorldPosition() return self.pos end
     function npc:GetWorldForward() return self.forward end
     function npc:GetWorldOrientation() return {} end

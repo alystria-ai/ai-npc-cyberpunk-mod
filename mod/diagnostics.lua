@@ -148,6 +148,49 @@ if request:match('^companion%-systems:') then
     output:write(json.encode(report)); output:close()
     return
 end
+if request:match('^legacy%-driver%-cleanup:') then
+    -- Explicit local handoff of a currently proved native mod copy. This
+    -- records cleanup authority only; it neither drives nor moves the player.
+    local report = {capturedAt = os.time() * 1000, cleanupOnly = true, candidates = 0}
+    local ok, reason = pcall(function()
+        local player = Game.GetPlayer()
+        assert(player and player:IsAttached() and not player:IsDeadNoStatPool(), 'Player unavailable')
+        assert(not Game.GetSystemRequestsHandler():IsGamePaused(), 'Game is paused')
+        local system = Game.GetDynamicEntitySystem()
+        assert(system and system:IsReady(), 'Dynamic world unavailable')
+        local transport = dofile('companion-vehicle-native.lua')
+        local definitions = Game.GetAllBlackboardDefs().VehicleSummonData
+        local carID = Game.GetBlackboardSystem():Get(definitions):GetEntityID(definitions.SummonedVehicleEntityID)
+        local car = Game.FindEntityByID(carID)
+        assert(car and car:IsAttached() and car:IsVehicle() and car:IsPlayerVehicle()
+            and car:GetDistanceToPlayerSquared() <= 400, 'Summoned owned car unavailable nearby')
+        local ids = system:GetTaggedIDs(CName.new('CyberpunkConvaiCompanion'))
+        assert(type(ids) == 'table' and #ids <= 64, 'Companion enumeration unavailable')
+        local selected
+        for _, id in ipairs(ids) do
+            if system:IsManaged(id) and system:IsTagged(id, CName.new('CyberpunkConvaiCompanion')) then
+                local npc = system:GetEntity(id)
+                if npc and npc:IsAttached() and npc:IsA('NPCPuppet') and not convaiCompanions.owns(npc) then
+                    local mount = transport.mounting({npc = npc})
+                    if mount and mount.vehicle == tostring(carID.hash) and mount.seat == 'seat_front_left' then
+                        report.candidates = report.candidates + 1
+                        selected = npc
+                    end
+                end
+            end
+        end
+        assert(report.candidates == 1, 'No single interrupted mod driver found')
+        local cleanup = dofile('companion-reload-cleanup.lua')
+        local owner = cleanup.new(nil, transport, dofile('companion-chauffeur-native.lua'))
+        local accepted, error = cleanup.captureSeated(owner, player, selected)
+        assert(accepted, tostring(error))
+        report.accepted, report.state = true, cleanup.snapshot(owner)
+    end)
+    report.ok, report.error = ok, not ok and tostring(reason) or nil
+    local output = assert(io.open('runtime/legacy-driver-cleanup.json', 'wb'))
+    output:write(json.encode(report)); output:close()
+    return
+end
 if request:match('^record%-name%-probe:') then
     local report = {version = 1, readOnly = true, capturedAt = os.time() * 1000,
         record = 'Character.mq015_seller', properties = {}}

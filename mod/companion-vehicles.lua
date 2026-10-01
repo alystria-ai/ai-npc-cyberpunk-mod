@@ -265,7 +265,16 @@ local function board(s,person,hooks,budget)
             if not releaseCommand(s,person) then return budget end
             person.retryAt=s.clock+3; person.phase='boarding-retry'
             person.error=err or 'Boarding did not reach the reserved seat.'
-        else return budget end
+        else
+            -- AIMount owns the approach, door and entry animation. Sampling
+            -- the same native blocker helps explain a paused approach without
+            -- layering a second walk/facing command over it.
+            if s.api.canBoard then
+                local calm,reason=safe(s.api.canBoard,person.entry)
+                person.error=not calm and (reason or 'Waiting for combat to finish before boarding.') or err
+            else person.error=err end
+            return budget
+        end
     end
     if person.attempts>=MAX_ATTEMPTS then person.phase='boarding-failed'; return budget end
     if s.clock<(person.retryAt or 0) or budget<=0 or car.info.speed>0.8 or car.info.scene then return budget end
@@ -288,6 +297,31 @@ local function board(s,person,hooks,budget)
     if not command then person.retryAt=s.clock+3 end
     emit(s,'mount-requested',person)
     return budget-1
+end
+local function pauseChauffeurDriver(s,person,hooks)
+    -- V temporarily claimed the slot. Cancel only this fleet's exact native
+    -- receipt and retain transport ownership until that cancellation is known.
+    -- No stop/hold, seat-centre move, passenger mount or player input is sent.
+    local released=prepare(s,person,hooks)
+    if person.command and not person.driverPauseRefund then
+        person.driverPauseRefund=true
+    end
+    if not releaseCommand(s,person) then return false end
+    if not released then return false end
+    local mount,known=observeMount(s,person)
+    if not known then return false end
+    if mount then
+        person.error='Waiting for the native vehicle transition to finish.'
+        return false
+    end
+    if person.driverPauseRefund then
+        person.attempts=math.max(0,person.attempts-1)
+        person.driverPauseRefund=nil
+    end
+    person.phase='waiting-for-driver-seat'
+    person.vehicle=s.chauffeur.car; person.seat='seat_front_left'
+    person.retryAt=nil; person.error=nil
+    return true
 end
 local function follow(s,car,player,budget)
     if car==s.primary or car.retired or not car.info or not car.info.ready or car.info.playerMounted then return budget end
@@ -404,7 +438,8 @@ end
 local function protectChauffeurPassenger(s,player)
     local trip=s.chauffeur
     trip.passengerYieldPending=false
-    if trip.phase~='releasing' and trip.phase~='boarding-driver' and trip.phase~='waiting-for-player'
+    if trip.phase~='releasing' and trip.phase~='boarding-driver' and trip.phase~='waiting-for-driver-seat'
+        and trip.phase~='waiting-for-player'
         and trip.phase~='waiting-for-party' then return end
     local mount,err=safe(s.api.mounting,{npc=player})
     if err then trip.passengerYieldPending=true; return end
@@ -497,6 +532,7 @@ function M.update(s,player,entries,dt,hooks)
             if trip.passengerYieldPending then trip.partyReady=false end
         end
         chauffeur(s).update(s,player,entries,hooks,{prepare=prepare,board=board,
+            pauseDriver=pauseChauffeurDriver,
             leaveParty=leaveChauffeurParty,yieldToPlayer=yieldChauffeurToPlayer})
         if s.chauffeur then
             if s.chauffeur.phase=='driving' or (s.chauffeur.phase=='starting' and s.chauffeur.partyReady) then
@@ -558,6 +594,11 @@ function M.update(s,player,entries,dt,hooks)
 end
 function M.owns(s,serial)
     return s.people[serial] and s.people[serial].owned==true or false
+end
+function M.allowsSeatedAttention(s,serial)
+    local person=s.people[serial]
+    return person and person.owned==true and person.phase=='riding'
+        and not person.command and not person.error or false
 end
 -- Call only AFTER the owning companion has been successfully deleted, or when
 -- it detached/died. The native command owner no longer exists in that case.
