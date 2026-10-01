@@ -20,20 +20,44 @@ end
 local function board()
     return Game.GetBlackboardSystem():Get(Game.GetAllBlackboardDefs().UIGameData)
 end
+local function ownedController(controller)
+    if not M.line or M.mode ~= 'overhead' or not M.widgetToken or not controller then return false end
+    local ok, owned = pcall(function()
+        return NameToString(controller:GetRootWidget():GetName()) == M.widgetToken
+            and tostring(controller:GetOwnerID().hash) == M.entity
+    end)
+    return ok and owned
+end
+local function concealOwnedRoot()
+    if ownedController(M.controller) then
+        pcall(function() M.controller:GetRootWidget():SetVisible(false) end)
+    end
+end
 local function restorePlacement()
     local placement = M.placement
     M.placement = nil
     if placement then
         pcall(function()
             local offset = placement.offset
+            if placement.slots then
+                placement.projection:SetSlotComponentName(CName.new(placement.slots.component))
+                placement.projection:SetSlotName(CName.new(placement.slots.slot))
+                placement.projection:SetSlotFallbackName(CName.new(placement.slots.fallback))
+            end
             placement.projection:SetFixedWorldOffset(Vector4.new(offset.x, offset.y, offset.z, offset.w))
         end)
     end
 end
 local function hideLine()
     local line = M.line
+    -- HideDialogLine is a delayed blackboard callback. Restoring the native
+    -- offset while its old root is still visible makes the caption jump up
+    -- just before removal, so conceal our exact root first.
+    concealOwnedRoot()
     restorePlacement()
     M.line, M.controller, M.widgetToken = nil, nil, nil
+    M.projectionReady, M.pendingProjection = nil, nil
+    M.rootVisibility = nil
     if line then
         pcall(function()
             board():SetVariant(Game.GetAllBlackboardDefs().UIGameData.HideDialogLine,
@@ -60,6 +84,22 @@ function M.abandon()
     M.line, M.controller, M.widgetToken, M.actor, M.entity, M.playerID = nil, nil, nil, nil, nil, nil
     M.pages, M.timed, M.speaker, M.page, M.remaining, M.mode = nil, nil, nil, nil, nil, nil
     M.placement = nil
+    M.anchor, M.projectionReady, M.pendingProjection, M.rootVisibility = nil, nil, nil, nil
+end
+
+local function headAnchor(actor)
+    local ok, component = pcall(function()
+        local slot = actor:GetSlotComponent()
+        if not slot then return nil end
+        -- CET exposes the native out transform as a second return value.
+        -- The Head slot follows animation, including a seated passenger.
+        local found, transform = slot:GetSlotTransform(CName.new('Head'))
+        if not found or not transform then return nil end
+        local name = NameToString(slot:GetName())
+        if type(name) ~= 'string' or name == '' then return nil end
+        return name
+    end)
+    return ok and component and {component = component, slot = 'Head'} or nil
 end
 function M.clear()
     hideLine()
@@ -108,16 +148,7 @@ function M.split(text, style)
     return pages
 end
 
-local function showPage()
-    if M.actor and not validActor(M.actor, M.entity) then M.clear(); return false end
-    hideLine()
-    local text = M.pages[M.page]
-    M.serial = M.serial + 1
-    local line = scnDialogLineData.new()
-    line.id = CRUID(0x436F6E760000 + M.serial)
-    line.type = M.mode == 'overhead' and scnDialogLineType.OverHead or scnDialogLineType.OwnerlessRegular
-    if M.mode == 'overhead' then line.speaker = M.actor end
-    line.speakerName, line.text, line.isPersistent = M.speaker, text, false
+local function pageDuration(text)
     local words, characters = 0, 0
     for _ in text:gmatch('%S+') do words = words + 1 end
     for _ in text:gmatch(UTF8) do characters = characters + 1 end
@@ -125,7 +156,58 @@ local function showPage()
     -- needs its own character-based budget; audio always uses playback time.
     local reading = M.mode == 'overhead' and math.max(words / 2.8, characters / 10) + 0.8
         or math.max(words / 2.8, #text / 36) + 1.2
-    line.duration = M.timed and M.timed.duration + 1 or math.max(M.mode == 'overhead' and 2 or 3.5, math.min(12, reading))
+    return M.timed and M.timed.duration + 1 or math.max(M.mode == 'overhead' and 2 or 3.5, math.min(12, reading))
+end
+
+local function updateOwnedText(controller, text)
+    if not ownedController(controller) then return false end
+    local ok, problem = pcall(function()
+        -- The 2.31 chatter controller's plain-text branch writes these refs.
+        -- Calling SetLineData again also resets its entity projection and
+        -- switches text back to a speech bubble; update only the owned text.
+        local normal, wide = controller.m_text_normal, controller.m_text_wide
+        local normalContainer, wideContainer = controller.m_container_normal, controller.m_container_wide
+        if not inkWidgetRef.IsValid(normal) or not inkWidgetRef.IsValid(wide)
+            or not inkWidgetRef.IsValid(normalContainer) or not inkWidgetRef.IsValid(wideContainer) then
+            error('Owned chatter text references are unavailable')
+        end
+        local characters = 0
+        for _ in text:gmatch(UTF8) do characters = characters + 1 end
+        local isWide = characters >= 110
+        inkTextRef.SetText(normal, text)
+        inkTextRef.SetText(wide, text)
+        inkWidgetRef.SetVisible(normal, not isWide)
+        inkWidgetRef.SetVisible(wide, isWide)
+        inkWidgetRef.SetVisible(normalContainer, not isWide)
+        inkWidgetRef.SetVisible(wideContainer, isWide)
+    end)
+    if not ok then M.renderUpdateError = tostring(problem); return false end
+    if M.rendered then M.rendered.text = text end
+    M.textUpdates = (M.textUpdates or 0) + 1
+    return true
+end
+
+local function showPage()
+    if M.actor and not validActor(M.actor, M.entity) then M.clear(); return false end
+    local text = M.pages[M.page]
+    local duration = pageDuration(text)
+    if M.mode == 'overhead' and M.line then
+        if not M.controller or updateOwnedText(M.controller, text) then
+            -- One projected root/CRUID owns the complete overhead utterance.
+            -- Before async spawn finishes, its first receipt reconciles this
+            -- latest text rather than scheduling a second projected widget.
+            M.line.text, M.line.duration, M.remaining = text, duration, duration
+            return true
+        end
+    end
+    hideLine()
+    M.serial = M.serial + 1
+    local line = scnDialogLineData.new()
+    line.id = CRUID(0x436F6E760000 + M.serial)
+    line.type = M.mode == 'overhead' and scnDialogLineType.OverHead or scnDialogLineType.OwnerlessRegular
+    if M.mode == 'overhead' then line.speaker = M.actor end
+    line.speakerName, line.text, line.isPersistent = M.speaker, text, false
+    line.duration = duration
     M.line, M.remaining = line, line.duration
     board():SetVariant(Game.GetAllBlackboardDefs().UIGameData.ShowDialogLine,
         ToVariant({line}, 'array:scnDialogLineData'), true)
@@ -146,6 +228,7 @@ local function prepare(speaker, text, actor, expected)
         if not M.actor then M.mode, M.fallback = 'dialogue', 'speaker-unavailable'
         elseif not ok or visible ~= true then M.mode, M.fallback = 'dialogue', 'native-overheads-disabled' end
     end
+    if M.mode == 'overhead' then M.anchor = headAnchor(M.actor) end
     M.pages = M.split(text, M.mode)
     if #M.pages == 0 then M.abandon(); return false end
     M.playerID, M.speaker, M.page = identity(Game.GetPlayer()), speaker, 1
@@ -178,7 +261,7 @@ function M.reviseTimed(text, duration, position)
     if not M.enabled() or (M.actor and not validActor(M.actor, M.entity)) then M.clear(); return false end
     local pages = M.split(text, M.mode)
     if #pages == 0 then return false end
-    local oldText, oldDuration, oldPage = M.pages[M.page], M.timed.duration, M.page
+    local oldText, oldPage = M.pages[M.page], M.page
     local weights, total = {}, 0
     for index, page in ipairs(pages) do
         for _ in page:gmatch(UTF8) do total = total + 1 end
@@ -191,7 +274,10 @@ function M.reviseTimed(text, duration, position)
     M.page = math.max(math.min(oldPage, #pages), target)
     M.pages, M.timed = pages, {duration = duration, weights = weights, total = total,
         position = math.min(position, duration), pageFloor = M.page}
-    if not M.line or pages[M.page] ~= oldText or M.page ~= oldPage or oldDuration ~= duration then return showPage() end
+    if not M.line or pages[M.page] ~= oldText or M.page ~= oldPage then return showPage() end
+    -- A PCM duration estimate is not a new caption. Its local timing changes,
+    -- but its text/widget/anchor remain untouched while the voice continues.
+    M.line.duration = duration + 1
     return true
 end
 function M.syncTimed(position)
@@ -219,14 +305,29 @@ function M.update(delta)
 end
 
 function M.install()
-    if M.hooksVersion == 5 then return true end
+    if M.hooksVersion == 6 then return true end
     if type(ObserveAfter) ~= 'function' then return false end
+    local guardsProjection = type(Override) == 'function'
     ObserveAfter('ChatterLineLogicController', 'SetLineData', function(controller, line)
         local named, rootName = pcall(function() return NameToString(controller:GetRootWidget():GetName()) end)
+        local current = M.line and M.mode == 'overhead' and tostring(line.id) == tostring(M.line.id)
         if named and (M.widgetToken == rootName or (M.placement and M.placement.token == rootName)) then
-            restorePlacement(); M.widgetToken = nil
+            if current and ownedController(controller) then
+                -- Native settings/HUD refresh can present the same line again.
+                -- It does not own a new projection or need a new root token.
+                M.controller = controller
+                if line.text ~= M.line.text then updateOwnedText(controller, M.line.text) end
+                return
+            end
+            restorePlacement()
+            -- SetLineData can recycle an owned widget for native dialogue.
+            -- Its root must regain the visibility it had before our first
+            -- projection, even if we were still waiting for that projection.
+            pcall(function() controller:GetRootWidget():SetVisible(M.rootVisibility ~= false) end)
+            M.controller, M.widgetToken, M.projectionReady, M.pendingProjection = nil, nil, nil, nil
+            M.rootVisibility = nil
         end
-        if not M.line or M.mode ~= 'overhead' or tostring(line.id) ~= tostring(M.line.id) then return end
+        if not current then return end
         local ok, result = pcall(function()
             return {id = tostring(line.id), entity = tostring(controller:GetOwnerID().hash),
                 renderer = 'native-overhead', text = line.text, projection = controller:GetProjection() ~= nil}
@@ -240,45 +341,111 @@ function M.install()
             -- recreated on another root. A retired native root stays retired.
             M.renderSerial = (M.renderSerial or 0) + 1
             local token = 'convai_subtitle_' .. tostring(line.id):gsub('[^%w_]', '_') .. '_' .. M.renderSerial
-            local marked = pcall(function() controller:GetRootWidget():SetName(CName.new(token)) end)
-            if marked then M.widgetToken, M.rendered.widgetToken = token, token end
+            concealOwnedRoot()
+            restorePlacement()
+            local marked = pcall(function()
+                local root = controller:GetRootWidget()
+                M.rootVisibility = root:IsVisible()
+                root:SetName(CName.new(token))
+                if guardsProjection then root:SetVisible(false) end
+            end)
+            if not marked then return end
+            M.controller, M.widgetToken, M.rendered.widgetToken = controller, token, token
+            M.projectionReady, M.pendingProjection = false, guardsProjection and true or nil
             local adjusted, offset = pcall(function()
                 local projection = controller:GetProjection()
-                restorePlacement()
                 local original = projection:GetFixedWorldOffset()
                 M.placement = {projection = projection, token = token,
                     offset = {x = original.x, y = original.y, z = original.z, w = original.w}}
-                -- The native NPC chatter anchor adds 30 cm above its UI slot.
-                -- Keep 15 cm of headroom: the earlier 5 cm sat too low.
-                projection:SetFixedWorldOffset(Vector4.new(0, 0, 0.15, 0))
+                local anchored = false
+                if M.anchor then
+                    local read, slots = pcall(function()
+                        return {component = NameToString(projection:GetSlotComponentName()),
+                            slot = NameToString(projection:GetSlotName()),
+                            fallback = NameToString(projection:GetSlotFallbackName())}
+                    end)
+                    if read then
+                        M.placement.slots = slots
+                        local set = pcall(function()
+                            projection:SetSlotComponentName(CName.new(M.anchor.component))
+                            projection:SetSlotName(CName.new(M.anchor.slot))
+                            projection:SetSlotFallbackName(CName.new(M.anchor.slot))
+                        end)
+                        if set then anchored = true
+                        else
+                            -- A partially supported binding must not leave a
+                            -- head slot on the wrong component. Restore all of
+                            -- it before retaining the native UI-slot fallback.
+                            restorePlacement()
+                            M.placement = {projection = projection, token = token,
+                                offset = {x = original.x, y = original.y, z = original.z, w = original.w}}
+                        end
+                    end
+                end
+                -- A verified Head slot is at the animated head centre, so its
+                -- 25 cm offset clears the crown. Native UI-slot fallback keeps
+                -- the previously accepted 15 cm headroom.
+                projection:SetFixedWorldOffset(Vector4.new(0, 0, anchored and 0.25 or 0.15, 0))
+                M.rendered.anchor = anchored and 'head' or 'native-ui-slot'
                 return projection:GetFixedWorldOffset().z
             end)
             M.rendered.worldOffsetZ = adjusted and offset or nil
             M.rendered.placementError = not adjusted and tostring(offset) or nil
+            if line.text ~= M.line.text then updateOwnedText(controller, M.line.text) end
         end
     end)
     -- Other crowd chatter can be closer to screen centre. Keep this exact
     -- owned line readable; every other controller retains the native behavior.
-    if type(Override) == 'function' then
+    if guardsProjection then
         Override('ChatterLineLogicController', 'IsBubble', function(controller, target, wrapped)
-            if M.line and M.mode == 'overhead' and M.widgetToken then
-                local ok, name = pcall(function() return NameToString(controller:GetRootWidget():GetName()) end)
-                if ok and name == M.widgetToken then
-                    M.bubbleOverrides = (M.bubbleOverrides or 0) + 1
-                    return false
-                end
+            if ownedController(controller) then
+                M.bubbleOverrides = (M.bubbleOverrides or 0) + 1
+                return false
             end
             return wrapped(target)
         end)
+        Override('ChatterLineLogicController', 'UpdateProjection', function(controller, target, owner, wrapped)
+            if not ownedController(controller) then return wrapped(target, owner) end
+            local ok, visible = pcall(function()
+                -- Native chatter raises matching nameplate text by 30 screen
+                -- pixels as aim changes. Our head-anchored caption already has
+                -- clearance, so that unrelated UI transition cannot move it.
+                controller:SetNameplateVisibility(false)
+                local projection = controller:GetProjection()
+                local point = projection.currentPosition
+                -- CET's native vector wrappers commonly expose lowercase
+                -- coordinates; redscript's Vector2 fields are uppercase.
+                local read, x, y = pcall(function() return point.x, point.y end)
+                if not read or not finite(x) or not finite(y) then x, y = point.X, point.Y end
+                return projection:IsInScreen() and finite(x) and finite(y)
+            end)
+            if not ok or not visible then
+                concealOwnedRoot()
+                return
+            end
+            local result = wrapped(target, owner)
+            if M.pendingProjection then
+                -- RegisterScreenProjection can supply one cached position from
+                -- before the head slot/offset was configured. Suppress exactly
+                -- that first update; later native projection ticks track normally.
+                M.pendingProjection = nil
+                concealOwnedRoot()
+            else
+                pcall(function() controller:GetRootWidget():SetVisible(true) end)
+                M.projectionReady = true
+            end
+            return result
+        end)
     end
-    M.hooksInstalled, M.hooksVersion = true, 5
+    M.hooksInstalled, M.hooksVersion = true, 6
     return true
 end
 function M.status()
     return {active = M.line ~= nil, serial = M.serial, page = M.page, pages = M.pages and #M.pages or 0,
         mode = M.mode, requestedStyle = M.requestedStyle, fallback = M.fallback, entity = M.entity,
         timed = M.timed ~= nil, position = M.timed and M.timed.position, rendered = M.rendered,
-        bubbleOverrides = M.bubbleOverrides or 0}
+        bubbleOverrides = M.bubbleOverrides or 0, projectionReady = M.projectionReady == true,
+        textUpdates = M.textUpdates or 0, renderUpdateError = M.renderUpdateError}
 end
 
 -- Legacy live entry points keep the normal HUD when no exact actor is given.

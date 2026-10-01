@@ -1,6 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import {join} from 'node:path';
 import fengari from 'fengari';
 
 const source = readFileSync(new URL('../mod/subtitles.lua', import.meta.url), 'utf8');
@@ -60,6 +61,9 @@ ToVariant=function(value,kind)return {value=value,kind=kind}end
 CName={new=function(value)return {value=value}end}
 NameToString=function(value)return type(value)=='table' and value.value or value end
 Vector4={new=function(x,y,z,w)return {x=x,y=y,z=z,w=w}end}
+inkWidgetRef={IsValid=function(ref)native();return type(ref)=='table' and ref.valid~=false end,
+ SetVisible=function(ref,value)native();assert(ref and ref.valid~=false);ref.visible=value end}
+inkTextRef={SetText=function(ref,text)native();assert(ref and ref.valid~=false);ref.text=text end}
 Enum={new=function(class,name)
  if class=='scnDialogLineType' then return scnDialogLineType[name]end
  return class..':'..name
@@ -87,18 +91,31 @@ local function countWords(value)
  local count=0;for _ in value:gmatch('%S+')do count=count+1 end;return count
 end
 local function surface(entity,name)
- return {entity=entity,projection=true,root={name=name or 'native-chatter-root'},
-  offset={x=0,y=0,z=.3,w=0},heightAttempts=0,heightWrites=0}
+ return {entity=entity,projection=true,root={name=name or 'native-chatter-root',visible=true,visibilityWrites={}},
+  offset={x=0,y=0,z=.3,w=0},heightAttempts=0,heightWrites=0,
+  slots={component='UI_Slots',slot='UI_Interaction',fallback='UI_Subtitles'},slotWrites=0,
+  point={X=600,Y=300},inScreen=true,nameplateVisible=true,
+  refs={normal={visible=true},wide={visible=false},normalContainer={visible=true},wideContainer={visible=false}}}
 end
 -- CET can materialize a different Lua wrapper at each callback. The native
 -- widget's data persists, but neither the controller nor root wrapper compares
 -- equal to one returned by an earlier call.
 local function wrapController(state)
- return {GetOwnerID=function()
+ return {m_text_normal=state.refs.normal,m_text_wide=state.refs.wide,
+  m_container_normal=state.refs.normalContainer,m_container_wide=state.refs.wideContainer,
+  SetNameplateVisibility=function(_,visible)native();state.nameplateVisible=visible end,
+  GetOwnerID=function()
   native();assert(not state.brokenOwner,'Native owner expired');return {hash=state.entity}
  end,GetProjection=function()
   native();if state.projection then
-   return {SetFixedWorldOffset=function(_,offset)
+   return {currentPosition=state.point,IsInScreen=function()native();return state.inScreen end,
+    GetSlotComponentName=function()native();return CName.new(state.slots.component)end,
+    GetSlotName=function()native();return CName.new(state.slots.slot)end,
+    GetSlotFallbackName=function()native();return CName.new(state.slots.fallback)end,
+    SetSlotComponentName=function(_,value)native();state.slotWrites=state.slotWrites+1;state.slots.component=NameToString(value)end,
+    SetSlotName=function(_,value)native();assert(not state.brokenSlots);state.slotWrites=state.slotWrites+1;state.slots.slot=NameToString(value)end,
+    SetSlotFallbackName=function(_,value)native();state.slotWrites=state.slotWrites+1;state.slots.fallback=NameToString(value)end,
+    SetFixedWorldOffset=function(_,offset)
     native();state.heightAttempts=state.heightAttempts+1
     assert(not state.brokenPlacement,'Projection does not support placement')
     state.heightWrites=state.heightWrites+1
@@ -108,7 +125,12 @@ local function wrapController(state)
  end,GetRootWidget=function()
   native();assert(not state.brokenRoot,'Native widget expired')
   return {GetName=function()native();return CName.new(state.root.name)end,
-   SetName=function(_,value)native();state.root.name=NameToString(value)end}
+   SetName=function(_,value)native();state.root.name=NameToString(value)end,
+   IsVisible=function()native();return state.root.visible end,
+   SetVisible=function(_,visible)
+    native();state.root.visible=visible
+    state.root.visibilityWrites[#state.root.visibilityWrites+1]={visible=visible,z=state.offset.z}
+   end}
  end}
 end
 local function plain(value)
@@ -183,10 +205,10 @@ m.beginTimed('Judy',first..second,8,judy,'201ULL');m.syncTimed(5)
 assert(m.page==2 and shown()[#shown()].text==second)
 local count=#shown();local old=shown()[count].id
 assert(m.reviseTimed(first..second..third,12,5))
-assert(#shown()==count+1 and shown()[#shown()].text==second and m.page==2)
-assert(hidden()[#hidden()]==old)
-m.syncTimed(5.1);assert(m.page==2 and #shown()==count+1)
-assert(m.reviseTimed(first..second..third,12,5.2));assert(#shown()==count+1)
+assert(#shown()==count and shown()[#shown()].text==second and m.page==2)
+assert(#hidden()==count-1 and m.line.id==old,'Duration-only changes must not replay the native caption')
+m.syncTimed(5.1);assert(m.page==2 and #shown()==count)
+assert(m.reviseTimed(first..second..third,12,5.2));assert(#shown()==count)
 m.syncTimed(11);assert(m.page==3 and shown()[#shown()].text==third)
 assert(m.status().mode=='dialogue' and m.entity=='201ULL' and settingsWrites==0)
 `));
@@ -196,7 +218,7 @@ local initial='Night City looks different up here.'
 m.beginTimed('Judy',initial,8,judy,'201ULL')
 local text=initial..' The lights stretch out beyond the skyline.'
 assert(m.reviseTimed(text,10,2))
-assert(m.page==1 and #m.pages==1 and shown()[#shown()].text==text)
+assert(m.page==1 and #m.pages==1 and m.line.text==text and #shown()==1)
 local count=#shown();local old=shown()[count].id
 for _,args in ipairs({{'',10,2},{text,0,2},{text,121,2},{text,10,-1}})do
  assert(not m.reviseTimed(args[1],args[2],args[3]))
@@ -271,7 +293,7 @@ m.update(3.4);assert(m.line~=nil)
 m.update(.2);assert(m.line==nil)
 `));
 
-test('timed phrases advance only with the audio cursor and clear only the prior owned CRUID', () => run(setup + `
+test('timed overhead pages advance only with the cursor and retain one CRUID until cleanup', () => run(setup + `
 local text='Night City always looks different from up here, with all those lights stretching out beyond the skyline. Keep close and watch the next dark corner.'
 m.beginTimed('Judy',text,10,judy,'201ULL')
 local first=shown()[1];assert(first and first.type==scnDialogLineType.OverHead)
@@ -280,11 +302,11 @@ assert(#shown()==1 and #hidden()==0,'Elapsed wall time must not advance a voiced
 menu=true;m.update(120);menu=false
 assert(#shown()==1 and #hidden()==0)
 m.syncTimed(9.99)
-local lines=shown();assert(#lines==2 and lines[2].text~=first.text)
-assert(lines[2].speaker==judy and lines[2].id~=first.id)
-assert(#hidden()==1 and hidden()[1]==first.id)
-m.syncTimed(9.99);assert(#shown()==2 and #hidden()==1)
-m.clear();assert(#hidden()==2 and hidden()[2]==lines[2].id)
+assert(#shown()==1 and m.line.text~=first.text and m.page==2)
+assert(m.line.speaker==judy and m.line.id==first.id)
+assert(#hidden()==0)
+m.syncTimed(9.99);assert(#shown()==1 and #hidden()==0)
+m.clear();assert(#hidden()==1 and hidden()[1]==first.id)
 assert(m.line==nil and m.timed==nil)
 `));
 
@@ -315,22 +337,21 @@ world=true;m.show('Judy','A new session.',judyCopy,'202ULL')
 assert(#shown()==2 and shown()[2].speaker==judyCopy)
 `));
 
-test('non-voiced pages preserve actor and speaker through owned-line replacement and pause with menus', () => run(setup + `
+test('non-voiced overhead paging preserves one actor and owned line and pauses with menus', () => run(setup + `
 m.show('Judy','Night City always looks different from up here, with all those lights stretching out beyond the skyline. Keep close and watch the next dark corner.',judy,'201ULL')
 local first=shown()[1]
 menu=true;m.update(100);assert(#shown()==1 and #hidden()==0)
 menu=false;m.update(100)
-local second=shown()[2]
-assert(second and second.id~=first.id and second.speaker==judy and second.speakerName=='Judy')
-assert(#hidden()==1 and hidden()[1]==first.id)
+assert(m.line.text~=first.text and m.line.id==first.id and m.line.speaker==judy and m.line.speakerName=='Judy')
+assert(#shown()==1 and #hidden()==0)
 m.update(100)
-assert(#shown()==2 and #hidden()==2 and hidden()[2]==second.id)
+assert(#shown()==1 and #hidden()==1 and hidden()[1]==first.id)
 assert(m.line==nil and m.actor==nil and m.entity==nil)
 `));
 
 test('native root ownership survives distinct controller and widget wrappers without affecting foreign captions', () => run(setup + `
 assert(registrations==0 and overrideRegistrations==0)
-assert(m.install());assert(m.install());assert(registrations==1 and overrideRegistrations==1)
+assert(m.install());assert(m.install());assert(registrations==1 and overrideRegistrations==2)
 local after=afterHooks['ChatterLineLogicController.SetLineData']
 local bubble=overrides['ChatterLineLogicController.IsBubble']
 assert(after and bubble)
@@ -474,3 +495,192 @@ assert(#shown()==1 and #hidden()==0 and bubble(wrapController(owned),{},function
 after(wrapController(foreign),{id='native-line',text='A native caption'})
 assert(foreign.heightAttempts==0 and foreign.offset.z==.3)
 `));
+
+test('overhead transcript growth and paging update one projected root without resetting placement or visibility', () => run(setup + `
+m.install()
+local after=afterHooks['ChatterLineLogicController.SetLineData']
+local root=surface('201ULL')
+m.beginTimed('Judy','A short initial sentence.',8,judy,'201ULL')
+local id=m.line.id
+after(wrapController(root),shown()[1])
+local token,writes=root.root.name,root.heightWrites
+root.root.visible=true;m.projectionReady=true;m.pendingProjection=nil
+local visibleWrites=#root.root.visibilityWrites
+local text='Night City always looks different from up here, with all those lights stretching out beyond the skyline. Keep close and watch the next dark corner.'
+assert(m.reviseTimed(text,12,2))
+assert(#shown()==1 and #hidden()==0 and m.line.id==id and m.page==1)
+assert(root.refs.normal.text==m.pages[1] and root.refs.wide.text==m.pages[1])
+assert(root.root.name==token and root.heightWrites==writes and #root.root.visibilityWrites==visibleWrites)
+assert(root.root.visible and m.projectionReady and not m.pendingProjection)
+m.syncTimed(11.9)
+assert(m.page==2 and root.refs.normal.text==m.pages[2] and m.line.id==id)
+assert(#shown()==1 and #hidden()==0 and root.heightWrites==writes)
+local updates=m.textUpdates
+assert(m.reviseTimed(text,13,11.9))
+assert(m.textUpdates==updates and root.heightWrites==writes,'A final duration cannot re-render the same text')
+m.clear()
+assert(#hidden()==1 and hidden()[1]==id and not root.root.visible)
+`));
+
+test('a transcript revised before async spawn completes reconciles its newest page on the first receipt', () => run(setup + `
+m.install()
+local after=afterHooks['ChatterLineLogicController.SetLineData']
+local root=surface('201ULL')
+m.beginTimed('Judy','An early transcript.',8,judy,'201ULL')
+local original=shown()[1]
+assert(m.reviseTimed('An early transcript. Now its complete sentence has arrived.',10,2))
+assert(#shown()==1 and #hidden()==0 and m.line.id==original.id)
+after(wrapController(root),original)
+assert(root.refs.normal.text==m.line.text and root.refs.normal.text~=original.text)
+assert(m.status().rendered.text==m.line.text and m.textUpdates==1)
+local writes,token=root.heightWrites,root.root.name
+after(wrapController(root),m.line)
+assert(root.heightWrites==writes and root.root.name==token,'Duplicate receipt must not replace an owned projection')
+`));
+
+test('cleanup conceals the exact root before restoring its native offset and delayed blackboard removal', () => run(setup + `
+m.install()
+local own,foreign=surface('201ULL'),surface('999ULL')
+m.show('Judy','A caption that is about to end.',judy,'201ULL')
+afterHooks['ChatterLineLogicController.SetLineData'](wrapController(own),m.line)
+own.root.visible=true
+local id=m.line.id
+m.clear()
+assert(not own.root.visible and own.offset.z==.3)
+local conceal=own.root.visibilityWrites[#own.root.visibilityWrites]
+assert(conceal.visible==false and conceal.z==.15,'The old anchor must be hidden before it moves back up')
+assert(hidden()[1]==id and foreign.root.visible and foreign.heightWrites==0)
+`));
+
+test('the first cached projection stays hidden and nameplate transitions cannot shift an owned caption', () => run(setup + `
+m.install()
+local after=afterHooks['ChatterLineLogicController.SetLineData']
+local project=overrides['ChatterLineLogicController.UpdateProjection']
+local own,foreign=surface('201ULL'),surface('999ULL')
+local calls=0
+local function projectNative(state)
+ return function(target,owner)
+  assert(target=='target' and owner=='game-controller')
+  calls=calls+1
+  state.marginTop=state.point.Y-(state.nameplateVisible and 30 or 0)
+  return 'native-result'
+ end
+end
+assert(project(wrapController(foreign),'target','game-controller',projectNative(foreign))=='native-result')
+assert(foreign.marginTop==270 and foreign.root.visible and foreign.nameplateVisible)
+m.show('Judy','A stable projected caption.',judy,'201ULL')
+after(wrapController(own),m.line)
+assert(not own.root.visible and not m.projectionReady)
+project(wrapController(own),'target','game-controller',projectNative(own))
+assert(not own.root.visible and not m.projectionReady,'Initial cached UI slot must never flash near the head')
+own.point.Y=220
+project(wrapController(own),'target','game-controller',projectNative(own))
+assert(own.root.visible and m.projectionReady and own.marginTop==220)
+for _,visible in ipairs({true,false,true,false})do
+ own.nameplateVisible=visible
+ project(wrapController(own),'target','game-controller',projectNative(own))
+ assert(own.marginTop==220 and own.root.visible,'Nameplate visibility must not add a 30-pixel jump')
+end
+own.point={x=600,y=220}
+project(wrapController(own),'target','game-controller',function(target,owner)
+ assert(target=='target' and owner=='game-controller')
+ calls=calls+1;own.marginTop=own.point.y
+end)
+assert(own.root.visible and own.marginTop==220,'Native lowercase vector wrappers must be accepted')
+own.point={X=600,Y=220}
+local before=calls
+own.point.Y=0/0;project(wrapController(own),'target','game-controller',projectNative(own))
+assert(not own.root.visible and calls==before,'Invalid coordinates cannot display or move the owned root')
+own.point.Y=220;own.inScreen=false
+project(wrapController(own),'target','game-controller',projectNative(own))
+assert(not own.root.visible and calls==before)
+own.inScreen=true;project(wrapController(own),'target','game-controller',projectNative(own))
+assert(own.root.visible and own.marginTop==220)
+`));
+
+test('standing and seated head slots use native animated projection and restore the full original slot binding', () => run(setup + `
+m.install()
+local foundCalls=0
+for _,height in ipairs({1.6,.669})do
+ judy.GetSlotComponent=function()
+  native();return {GetSlotTransform=function(_,slot,...)
+   native();assert(NameToString(slot)=='Head' and select('#',...)==0,'CET takes exactly one input')
+   foundCalls=foundCalls+1;return true,{headZ=height}
+  end,GetName=function()native();return CName.new('Item_Attachment_Slot')end}
+ end
+ local root=surface('201ULL')
+ m.show('Judy','Same clearance in either pose.',judy,'201ULL')
+ afterHooks['ChatterLineLogicController.SetLineData'](wrapController(root),m.line)
+ assert(root.slots.component=='Item_Attachment_Slot' and root.slots.slot=='Head' and root.slots.fallback=='Head')
+ assert(root.offset.z==.25 and m.status().rendered.anchor=='head')
+ m.clear()
+ assert(root.slots.component=='UI_Slots' and root.slots.slot=='UI_Interaction' and root.slots.fallback=='UI_Subtitles')
+ assert(root.offset.z==.3 and not root.root.visible)
+end
+assert(foundCalls==2 and settingsWrites==0)
+judy.GetSlotComponent=function()return {GetSlotTransform=function()return false,nil end}end
+local fallback=surface('201ULL')
+m.show('Judy','A rig with no Head slot retains native anchoring.',judy,'201ULL')
+afterHooks['ChatterLineLogicController.SetLineData'](wrapController(fallback),m.line)
+assert(fallback.slots.component=='UI_Slots' and fallback.slotWrites==0 and fallback.offset.z==.15)
+assert(m.status().rendered.anchor=='native-ui-slot')
+`));
+
+test('foreign root reuse restores native visibility and failed owned text bindings safely replace only the caption', () => run(setup + `
+m.install()
+local after=afterHooks['ChatterLineLogicController.SetLineData']
+local root=surface('201ULL')
+m.beginTimed('Judy','A first sentence.',8,judy,'201ULL')
+after(wrapController(root),m.line)
+assert(not root.root.visible)
+after(wrapController(root),{id='native-dialogue',text='Native chatter on the reused widget'})
+assert(root.root.visible and root.offset.z==.3 and m.controller==nil)
+assert(overrides['ChatterLineLogicController.UpdateProjection'](wrapController(root),1,2,function(a,b)
+ assert(a==1 and b==2);return 'foreign'
+end)=='foreign')
+m.clear()
+local broken=surface('201ULL')
+m.beginTimed('Judy','A new sentence.',8,judy,'201ULL')
+local id=m.line.id
+after(wrapController(broken),m.line)
+broken.refs.wide.valid=false
+assert(m.reviseTimed('A new sentence with more text.',10,2))
+assert(m.line.id~=id and #shown()==3 and hidden()[#hidden()]==id)
+assert(m.renderUpdateError:find('unavailable') and not broken.root.visible and broken.offset.z==.3)
+`));
+
+test('a missing projection override API retains native caption visibility rather than leaving a hidden root', () => run(setup + `
+Override=nil
+assert(m.install() and registrations==1 and overrideRegistrations==0)
+local root=surface('201ULL')
+m.show('Judy','Native placement remains usable.',judy,'201ULL')
+afterHooks['ChatterLineLogicController.SetLineData'](wrapController(root),m.line)
+assert(root.root.visible and root.offset.z==.15 and m.widgetToken~=nil and not m.pendingProjection)
+m.clear();assert(not root.root.visible and root.offset.z==.3)
+`));
+
+test('installed 2.31 native sources support animated head projection and owned plain-text update refs', {
+  skip: process.env.CYBERPUNK_NATIVE_SOURCE_CHECK !== '1',
+}, () => {
+  const root = process.env.CYBERPUNK_GAME_ROOT ?? 'E:\\SteamLibrary\\steamapps\\common\\Cyberpunk 2077';
+  const base = join(root, 'tools', 'redmod', 'scripts');
+  const chatter = readFileSync(join(base, 'cyberpunk', 'UI', 'subtitles', 'chattersControllers.script'), 'utf8');
+  const subtitles = readFileSync(join(base, 'cyberpunk', 'UI', 'subtitles', 'baseSubtitlesControllers.script'), 'utf8');
+  const sample = readFileSync(join(base, 'samples', 'ink', 'sampleUIControllers.script'), 'utf8');
+  const projection = readFileSync(join(base, 'core', 'ui', 'screenProjection.script'), 'utf8');
+  assert.match(sample, /slotComponentName\s*=\s*'Item_Attachment_Slot'/);
+  assert.match(sample, /slotName\s*=\s*'Head'/);
+  for (const property of ['m_text_normal', 'm_text_wide', 'm_container_normal', 'm_container_wide']) {
+    assert.match(chatter, new RegExp(`private editable var ${property}\\s*:`));
+  }
+  assert.match(chatter, /inkTextRef\.SetText\( m_text_normal, lineData\.text \)/);
+  assert.match(chatter, /inkTextRef\.SetText\( m_text_wide, lineData\.text \)/);
+  assert.match(chatter, /m_projection\.SetEntity\( lineData\.speaker \)/);
+  assert.match(chatter, /inkWidgetRef\.SetVisible\( m_TextContainer, false \)/);
+  assert.match(chatter, /margin\.top -= 30\.0/);
+  assert.match(chatter, /public function SetNameplateVisibility\( isVisible : Bool \)/);
+  assert.match(subtitles, /RegisterDelayedListenerVariant\( GetAllBlackboardDefs\(\)\.UIGameData\.HideDialogLine/);
+  for (const method of ['GetSlotComponentName', 'SetSlotComponentName', 'GetSlotName', 'SetSlotName', 'GetSlotFallbackName', 'SetSlotFallbackName']) {
+    assert.match(projection, new RegExp(`function ${method}\\(`));
+  }
+});
