@@ -1,9 +1,13 @@
 import {spawn} from 'node:child_process';
+import {createHash} from 'node:crypto';
 import {resolve} from 'node:path';
 import {inspectWav} from './speech-audio.mjs';
 import {abortable, throwIfCancelled, cancelled} from './transport-pool.mjs';
+import {createVoiceProfileRegistry, LEGACY_LOCAL_VOICE_KEYS} from './voice-profile-registry.mjs';
 
-export const LOCAL_VOICE_KEYS = Object.freeze(['johnny-silverhand', 'judy-alvarez', 'panam-palmer']);
+// Historical accepted-reference fixture/packaging list. Eligibility is always
+// read from the validated registry, never from this compatibility export.
+export const LOCAL_VOICE_KEYS = LEGACY_LOCAL_VOICE_KEYS;
 export const voiceSteps = value => value === 16 ? 16 : 32;
 export const VOICE_WORKER_LIMITS = Object.freeze({startupMs: 180_000, renderMs: 120_000,
   exitGraceMs: 10_000, exitConfirmationMs: 5_000});
@@ -11,16 +15,13 @@ export const VOICE_WORKER_LIMITS = Object.freeze({startupMs: 180_000, renderMs: 
 export class ResidentVoice {
   constructor(config = {}, {project, configPath, spawnImpl = spawn, onState = () => {}, onLog = () => {},
     setTimer = setTimeout, clearTimer = clearTimeout} = {}) {
-    if (!['convai', 'hybrid'].includes(config.provider || 'convai')) throw Error('Unknown local speech provider');
-    if (config.provider === 'hybrid' && (config.engine !== 'omnivoice'
-        || LOCAL_VOICE_KEYS.some(key => !config.voices?.[key])
-        || Object.keys(config.voices).some(key => !LOCAL_VOICE_KEYS.includes(key)))) {
-      throw Error('Local voices must map Johnny, Judy and Panam to OmniVoice');
-    }
-    Object.assign(this, {config, project, configPath, spawnImpl, onState, onLog, setTimer, clearTimer});
+    this.registry = createVoiceProfileRegistry(config);
+    Object.assign(this, {config: Object.freeze({...config, voices: this.registry.profiles,
+      preparation: this.registry.preparation}), project, configPath, spawnImpl, onState, onLog, setTimer, clearTimer});
     this.steps = voiceSteps(config.steps); this.tail = Promise.resolve();
     this.sequence = 0; this.pending = new Map(); this.state = this.enabled ? 'stopped' : 'disabled';
     this.loaded = false; this.details = {};
+    this.prepared = new Set(); this.available = new Set(this.registry.keys);
   }
   schedule(callback, delay) {
     const timer = this.setTimer(callback, delay); timer?.unref?.(); return timer;
@@ -53,9 +54,11 @@ export class ResidentVoice {
       }, VOICE_WORKER_LIMITS.exitConfirmationMs);
     }, VOICE_WORKER_LIMITS.exitGraceMs);
   }
-  get enabled() { return this.config.provider === 'hybrid'; }
-  hasProfile(key) { return LOCAL_VOICE_KEYS.includes(key) && !!this.config.voices?.[key]; }
+  get enabled() { return this.config.provider === 'hybrid' && this.registry.keys.length > 0; }
+  get profileKeys() { return this.registry.keys.filter(key => this.available.has(key)); }
+  hasProfile(key) { return this.registry.has(key) && this.available.has(key); }
   usesProfile(key) { return this.enabled && this.hasProfile(key); }
+  profileReady(key) { return this.loaded && this.hasProfile(key) && this.prepared.has(key); }
   setSteps(value) {
     const next = voiceSteps(value), changed = next !== this.steps;
     this.steps = next;
@@ -67,7 +70,7 @@ export class ResidentVoice {
     try {
       Promise.resolve(this.onState({version: 1, state, steps: this.steps, engine: 'omnivoice',
         provider: this.enabled ? 'hybrid' : 'convai', bridgePid: process.pid, workerPid: this.child?.pid,
-        profiles: this.enabled ? [...LOCAL_VOICE_KEYS] : [], resident: this.loaded,
+        profiles: this.enabled ? this.profileKeys : [], preparedProfiles: [...this.prepared], resident: this.loaded,
         updated: Date.now(), ...this.details, ...extra})).catch(() => {});
     } catch { /* Diagnostic writes must not interrupt GPU work. */ }
   }
@@ -108,7 +111,7 @@ export class ResidentVoice {
       child.once('close', code => {
         this.clearPhase(); this.clearTimer(this.exitTimer); this.clearTimer(this.exitConfirmation);
         this.exitTimer = this.exitConfirmation = null;
-        this.child = null; this.loaded = false;
+        this.child = null; this.loaded = false; this.prepared.clear();
         this.details = {...this.details, cudaAllocatedMiB: 0, cudaReservedMiB: 0};
         const error = this.failure || (this.closing ? cancelled('Local speech stopped') : Error(`Local voice worker exited (${code})`));
         this.rejectReady?.(error);
@@ -124,15 +127,33 @@ export class ResidentVoice {
   }
   receive(frame) {
     if (frame.op === 'state') {
-      if (!['loading', 'warming'].includes(frame.state)) throw Error('Invalid local voice state');
+      if (!['loading', 'warming'].includes(frame.state)
+          || (frame.state === 'warming' && !this.registry.has(frame.profile))) throw Error('Invalid local voice state');
       if (!this.closing) this.publish(frame.state, {profile: frame.profile});
       return;
     }
     if (frame.op === 'ready') {
+      if (this.loaded || this.pending.size) throw Error('Unexpected local voice readiness');
+      const version = frame.protocolVersion ?? 1;
+      const profiles = frame.profiles;
+      const prepared = version === 1 ? profiles : frame.preparedProfiles;
       if (!frame.device?.startsWith('cuda') || frame.dtype !== 'torch.float16' || frame.runtime !== 'pytorch'
-          || frame.tensorrt !== false || LOCAL_VOICE_KEYS.some(key => !frame.profiles?.includes(key))) {
+          || frame.tensorrt !== false || ![1, 2].includes(version)
+          || !this.validProfiles(profiles) || !this.validProfiles(prepared, this.registry.preparation.maxCachedProfiles)
+          || prepared.some(key => !profiles.includes(key))
+          || (version === 2 && (!frame.referenceHashes || typeof frame.referenceHashes !== 'object'
+            || Array.isArray(frame.referenceHashes) || Object.keys(frame.referenceHashes).length !== profiles.length
+            || profiles.some(key => frame.referenceHashes[key] !== this.registry.profiles[key].sha256)))
+          || (version === 2 && (!frame.transcriptHashes || typeof frame.transcriptHashes !== 'object'
+            || Array.isArray(frame.transcriptHashes) || Object.keys(frame.transcriptHashes).length !== profiles.length
+            || profiles.some(key => frame.transcriptHashes[key] !== createHash('sha256')
+              .update(this.registry.profiles[key].transcript, 'utf8').digest('hex'))))
+          || (version === 1 && (this.registry.preparation.mode !== 'eager'
+            || profiles.length !== this.registry.keys.length))
+          || (version === 2 && this.registry.preparation.startupProfiles.some(key => profiles.includes(key) && !prepared.includes(key)))) {
         throw Error('Local voice worker did not warm all profiles on CUDA');
       }
+      this.protocolVersion = version; this.available = new Set(profiles); this.prepared = new Set(prepared);
       this.loaded = true;
       this.clearPhase();
       this.details = {device: frame.device, dtype: frame.dtype, runtime: frame.runtime,
@@ -148,8 +169,33 @@ export class ResidentVoice {
     const request = this.pending.get(frame.id);
     // A timed-out physical render can finish while the worker drains EOF.
     // Its caller has already failed; the late WAV must never be published.
-    if (!request && this.failure && ['audio', 'error'].includes(frame.op)) return;
-    if (!request || !['audio', 'error'].includes(frame.op)) throw Error('Unexpected local speech response');
+    if (!request && this.failure && ['audio', 'prepared', 'error'].includes(frame.op)) return;
+    if (!request || !['audio', 'prepared', 'error'].includes(frame.op)
+        || (frame.op !== 'error' && frame.op !== (request.kind === 'prepare' ? 'prepared' : 'audio'))) {
+      throw Error('Unexpected local speech response');
+    }
+    if (frame.op !== 'error' && (frame.profile !== request.profile
+        || (request.kind !== 'prepare' && frame.steps !== request.steps))) {
+      this.pending.delete(frame.id); this.clearPhase();
+      if (!this.closing) this.publish('ready');
+      request.reject(Error('Local speech identity changed'));
+      if (this.closing || this.failure) this.awaitExit();
+      return;
+    }
+    if (this.protocolVersion === 2) {
+      if (frame.op === 'error' && frame.preparedProfiles === undefined) {
+        // A generic failure cannot attest which prompts survived. A later
+        // Invite prepares again rather than trusting stale cache readiness.
+        this.prepared.clear();
+      } else {
+        if (!this.validProfiles(frame.preparedProfiles, this.registry.preparation.maxCachedProfiles)
+            || frame.preparedProfiles.some(key => !this.available.has(key))
+            || (frame.op !== 'error' && !frame.preparedProfiles.includes(request.profile))) {
+          throw Error('Invalid prepared local voice profiles');
+        }
+        this.prepared = new Set(frame.preparedProfiles);
+      }
+    }
     this.pending.delete(frame.id);
     this.clearPhase();
     for (const key of ['cudaAllocatedMiB', 'cudaReservedMiB', 'cudaPeakReservedMiB']) {
@@ -160,11 +206,49 @@ export class ResidentVoice {
       this.details.cudaGraph = frame.cudaGraph;
     }
     if (!this.closing) this.publish('ready');
-    if (frame.op === 'error') request.reject(Error('Local voice could not generate this reply'));
-    else if (frame.profile !== request.profile || frame.steps !== request.steps) {
-      request.reject(Error('Local speech identity changed'));
-    } else request.resolve(frame);
+    if (frame.op === 'error') request.reject(Error(request.kind === 'prepare'
+      ? 'Local voice could not prepare this character' : 'Local voice could not generate this reply'));
+    else request.resolve(frame);
     if (this.closing || this.failure) this.awaitExit();
+  }
+  validProfiles(value, maximum = this.registry.keys.length) {
+    return Array.isArray(value) && value.length <= maximum && new Set(value).size === value.length
+      && value.every(key => this.registry.has(key));
+  }
+  command(kind, profile, payload = {}) {
+    const id = ++this.sequence;
+    this.publish(kind === 'prepare' ? 'warming' : 'speaking', {profile});
+    return new Promise((resolveFrame, reject) => {
+      this.pending.set(id, {resolve: resolveFrame, reject, kind, profile, ...payload});
+      this.phaseDeadline(kind === 'prepare' ? 'preparation' : 'generation', VOICE_WORKER_LIMITS.renderMs);
+      this.child.stdin.write(JSON.stringify({op: kind === 'prepare' ? 'prepare' : 'synthesize', id, profile, ...payload}) + '\n', error => {
+        if (error) this.fail(error);
+      });
+    });
+  }
+  async ensurePrepared(profile, signal) {
+    throwIfCancelled(signal);
+    if (this.closing || this.failure) throw this.failure || cancelled();
+    await this.start();
+    throwIfCancelled(signal);
+    if (this.closing || this.failure) throw this.failure || cancelled();
+    if (!this.hasProfile(profile)) throw Error('This character uses its Convai voice');
+    if (!this.prepared.has(profile)) {
+      if (this.protocolVersion !== 2) throw Error('Local voice worker cannot prepare this character');
+      await this.command('prepare', profile);
+      throwIfCancelled(signal);
+      if (this.closing || this.failure) throw this.failure || cancelled();
+    }
+  }
+  prepareProfile(profile, {signal} = {}) {
+    if (!this.usesProfile(profile)) return Promise.resolve({provider: 'convai', ready: true,
+      reason: this.registry.has(profile) ? 'unavailable' : this.registry.status(profile)});
+    const operation = this.tail.then(async () => {
+      await this.ensurePrepared(profile, signal);
+      return {provider: 'omnivoice', ready: this.profileReady(profile), profile};
+    });
+    this.tail = operation.catch(() => {});
+    return abortable(operation, signal);
   }
   fail(error) {
     this.failure ||= error;
@@ -184,20 +268,9 @@ export class ResidentVoice {
     if (chosenSteps !== undefined && ![16, 32].includes(chosenSteps)) return Promise.reject(Error('Invalid voice quality'));
     const steps = chosenSteps ?? this.steps, queued = performance.now();
     const operation = this.tail.then(async () => {
-      throwIfCancelled(signal);
-      if (this.closing || this.failure) throw this.failure || cancelled();
-      await this.start();
-      throwIfCancelled(signal);
-      if (this.closing || this.failure) throw this.failure || cancelled();
-      const started = performance.now(), id = ++this.sequence;
-      this.publish('speaking', {profile});
-      const frame = await new Promise((resolveAudio, reject) => {
-        this.pending.set(id, {resolve: resolveAudio, reject, profile, steps});
-        this.phaseDeadline('generation', VOICE_WORKER_LIMITS.renderMs);
-        this.child.stdin.write(JSON.stringify({op: 'synthesize', id, profile, text, steps}) + '\n', error => {
-          if (error) this.fail(error);
-        });
-      });
+      await this.ensurePrepared(profile, signal);
+      const started = performance.now();
+      const frame = await this.command('synthesize', profile, {text, steps});
       throwIfCancelled(signal);
       if (this.closing || this.failure) throw this.failure || cancelled();
       const bytes = Buffer.from(frame.audio, 'base64'), wav = inspectWav(bytes);

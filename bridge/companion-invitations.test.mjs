@@ -21,7 +21,7 @@ async function until(predicate) {
   while (!predicate()) { if (Date.now() > deadline) throw Error('Expected event was not reached'); await flush(); }
 }
 
-function fixture(t, {memory: actualMemory} = {}) {
+function fixture(t, {memory: actualMemory, prepareVoice, voiceCurrent} = {}) {
   let time = 100000, world = {worldToken: 'world-1', generation: 1}, allowed = true;
   const memoryCalls = [], warmCalls = [], refreshes = [], retentions = [], publications = [], acknowledgements = [], live = new Map();
   const memoryGates = new Map(), warmGates = new Map(), epochs = new Map();
@@ -95,6 +95,8 @@ function fixture(t, {memory: actualMemory} = {}) {
   const connections = new PartyConnections({host, configFor, now: () => time,
     isKnown: key => Object.hasOwn(ids, key), canWarm: () => allowed});
   const invitations = new CompanionInvitations({memory, connections, now: () => time, currentWorld: () => world,
+    ...(prepareVoice ? {prepareVoice} : {}),
+    ...(voiceCurrent ? {voiceCurrent} : {}),
     isKnown: key => Object.hasOwn(ids, key), publish: async (value, options) => {
       assert.equal(options.isCurrentSync(), true); publications.push(value); return true;
     }});
@@ -190,6 +192,95 @@ test('duplicate copies share preparation and hand the retained page to the party
   assert.equal(reply.page, page); assert.equal(reply.timing.pageReused, true);
   assert.equal(f.enables.length, 1); assert.equal(f.refreshes.length, 0); assert.equal(f.memory.status().talkedToCount, 1);
   f.connections.ingest({updated: f.now(), profiles: []}); await f.connections.maintain(); assert.equal(f.live.size, 0);
+});
+
+test('speaker conditioning gates both copies and connection startup without blocking polling', async t => {
+  const gate = deferred(), calls = [];
+  const f = fixture(t, {prepareVoice: async (profile, options) => {
+    calls.push({profile, ...options}); await abortable(gate.promise, options.signal);
+    return {provider: 'omnivoice', ready: true, profile};
+  }});
+  f.ingest([ticket('queued:1'), ticket('queued:2')]); await until(() => calls.length === 1);
+  assert.equal(calls[0].profile, 'judy'); assert.equal(f.warmCalls.length, 0);
+  assert.deepEqual(f.connections.invitations, []);
+  assert.ok((await f.invitations.poll()).invitations.every(row => row.state !== 'ready'));
+  f.tick(240); gate.resolve(); await until(() => f.invitations.snapshot().invitations.every(row => row.state === 'ready'));
+  assert.equal(calls.length, 1); assert.equal(f.warmCalls.length, 1);
+  assert.equal(f.invitations.diagnostic().invitations[0].voiceMs, 240);
+  assert.equal(f.invitations.diagnostic().invitations[0].voiceProvider, 'omnivoice');
+});
+
+test('voice failures and wrong-speaker receipts never grant spawn permission or warm a page', async t => {
+  for (const result of [{provider:'omnivoice', ready:true, profile:'panam'},
+    {provider:'omnivoice', ready:false, profile:'judy'}, {provider:'unknown',ready:true}, null]) {
+    const f = fixture(t, {prepareVoice: async () => result});
+    f.ingest([ticket()]); await until(() => f.invitations.snapshot().invitations[0].state === 'error');
+    assert.match(f.invitations.snapshot().invitations[0].error, /Voice preparation/);
+    assert.equal(f.warmCalls.length, 0); assert.deepEqual(f.connections.invitations, []);
+  }
+});
+
+test('cancel or world replacement during voice preparation fences late completion', async t => {
+  for (const replaceWorld of [false, true]) {
+    const gate = deferred(), calls = [];
+    const f = fixture(t, {prepareVoice: async (profile, options) => {
+      calls.push(options); await gate.promise; return {provider:'omnivoice',ready:true,profile};
+    }});
+    f.ingest([ticket()]); await until(() => calls.length === 1);
+    if (replaceWorld) { f.world({worldToken:'replacement-world',generation:2}); await f.invitations.poll(); }
+    else f.ingest([]);
+    assert.equal(calls[0].signal.aborted, true); gate.resolve(); await flush(); await flush();
+    assert.deepEqual(f.invitations.snapshot().invitations, []); assert.equal(f.warmCalls.length, 0);
+  }
+});
+
+test('model-only invitation skips voice work and explicit remote receipt can become ready', async t => {
+  const calls = [];
+  const f = fixture(t, {prepareVoice: async profile => { calls.push(profile); return {provider:'convai',ready:true}; }});
+  f.ingest([ticket('model-only', undefined), ticket('conversation')]);
+  await until(() => f.invitations.snapshot().invitations.every(row => row.state === 'ready'));
+  assert.deepEqual(calls, ['judy']); assert.equal(f.warmCalls.length, 1);
+});
+
+test('a pending spawn loses readiness immediately after conditioning eviction and prepares again', async t => {
+  let conditioned = true, calls = 0;
+  const reconditioning = deferred();
+  const f = fixture(t, {voiceCurrent: () => conditioned,
+    prepareVoice: async profile => {
+      if (++calls > 1) { await reconditioning.promise; conditioned = true; }
+      return {provider:'omnivoice',ready:true,profile};
+    }});
+  f.ingest([ticket()]); await until(() => f.invitations.snapshot().invitations[0].state === 'ready');
+  conditioned = false;
+  assert.equal(f.invitations.snapshot().invitations[0].state, 'connecting');
+  await f.invitations.poll(); await until(() => calls === 2);
+  assert.notEqual(f.invitations.snapshot().invitations[0].state, 'ready');
+  f.tick(501); reconditioning.resolve(); await until(() => f.invitations.snapshot().invitations[0].state === 'ready');
+  assert.equal(calls, 2);
+});
+
+test('already-spawned copies do not thrash the bounded conditioning cache when another voice evicts them', async t => {
+  let conditioned = true, calls = 0;
+  const f = fixture(t, {voiceCurrent: () => conditioned, prepareVoice: async profile => {
+    calls++; return {provider:'omnivoice',ready:true,profile};
+  }});
+  f.ingest([ticket()]); await until(() => f.invitations.snapshot().invitations[0].state === 'ready');
+  f.ingest([ticket('queued:1', 'judy', {phase:'spawned'})]); conditioned = false;
+  await f.invitations.poll(); assert.equal(calls, 1);
+  assert.equal(f.invitations.snapshot().invitations[0].state, 'ready');
+});
+
+test('a provider-driven connection replacement is retried instead of permanently failing the ticket', async t => {
+  let calls = 0;
+  const f = fixture(t);
+  f.connections.warmInvitation = async () => {
+    if (++calls === 1) throw Object.assign(Error('controlled route replacement'), {code:'INVITATION_CONNECTION_REPLACED'});
+    return {present:true,ready:true,busy:false};
+  };
+  f.ingest([ticket()]); await until(() => calls === 1); await flush();
+  assert.equal(f.invitations.snapshot().invitations[0].state, 'connecting');
+  await f.poll(501); await until(() => f.invitations.snapshot().invitations[0].state === 'ready');
+  assert.equal(calls, 2);
 });
 
 test('a verified memory cache cannot hide failed retirement of a busy pre-enable page', async t => {

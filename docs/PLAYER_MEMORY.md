@@ -7,8 +7,8 @@ character and every conversation channel uses that ID. Loading another save,
 reloading CET, restarting the bridge, and either Forget action retain it.
 
 Selecting **Invite** prepares the character's verified mod-owned memory
-configuration, then warms its connection. The NPC appears only after both steps
-complete. Preparation enables and checks the profile's memory settings; it
+configuration, prepares its selected voice, then warms its connection. The NPC
+appears only after those steps complete. Preparation enables and checks the profile's memory settings; it
 does not create saved memories or add the character to the contacted registry.
 Characters build provider memory naturally from actual conversations. The
 first player message records contact and reuses the prepared verification, so

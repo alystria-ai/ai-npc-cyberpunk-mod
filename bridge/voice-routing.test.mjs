@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {runInNewContext} from 'node:vm';
 import {silentWav} from './speech-audio.mjs';
+import {VoiceSelection} from './voice-selection.mjs';
+import {abortable, throwIfCancelled} from './transport-pool.mjs';
 
 // Execute the production routing/publication functions. These checks catch a
 // future shared batching path accidentally processing remote Convai speech.
@@ -11,13 +13,14 @@ const section = (start, end) => source.slice(source.indexOf(start), source.index
 const code = section('async function synthesizeReply(', 'async function synthesizePhrase(')
   + section('function continuousSpeech(', 'async function respond(')
   + section('async function respond(', 'const micPath =');
-function fixture({local = false, available = true, audioFailure = false, continuous = false} = {}) {
+function fixture({local = false, available = true, audioFailure = false, continuous = false, voiceSelection} = {}) {
   const calls = [], publications = [];
   const remote = {text: 'A complete reply. With two sentences.', sessionID: 'test-session',
     audio: silentWav().toString('base64'), faces: [{at: 0, values: [0.2]}],
     facesFormat: 'arkit61', facesTimebase: 'audio-seconds', timing: {audioRoute: 'convai-data-only'}};
+  const selectedVoice = voiceSelection ?? {usesProfile: () => local, steps: 32};
   const sandbox = {remote, calls, publications, runtime: 'test-runtime', replyPath: 'reply.json',
-    localVoice: {usesProfile: () => local, steps: 32},
+    localVoice: selectedVoice,
     splitSpeechText: text => { calls.push('split'); return ['A complete reply.', 'With two sentences.']; },
     synthesizePhrase: async (profile, text) => { calls.push('local:' + text); return {audio: 'local-wav', timing: {voiceProvider: 'omni'}}; },
     throwIfCancelled: () => {}, audioReady: async () => available,
@@ -28,7 +31,7 @@ function fixture({local = false, available = true, audioFailure = false, continu
         this.options = {token: this.token, onFrame: () => calls.push('live-frame')}; }
       async fail() { calls.push('live-failed'); }
     },
-    realtimeConfig: input => ({profileKey: input.profileKey, text: input.text, ttsEnabled: !local}),
+    realtimeConfig: input => ({profileKey: input.profileKey, text: input.text, ttsEnabled: !selectedVoice.usesProfile(input.profileKey)}),
     realtime: {reply: async (config, options) => {
       calls.push(['send', config]);
       if (options?.liveSpeech) {
@@ -141,4 +144,159 @@ test('continuous provider completion without game playback drain cannot be calle
   await assert.rejects(f.api.publishResult(f.input, f.profile,
     {...result, liveDelivery: {...result.liveDelivery, ended: false}}, current), /did not finish/);
   assert.equal(f.publications.length, 0); assert.equal(f.realtimeSessions.size, 0);
+});
+
+test('the validated wider registry selects Omni only for the matching reference; unprepared cast stays continuous Convai', async () => {
+  const voices = new VoiceSelection({version: 2, provider: 'hybrid', engine: 'omnivoice', voices: {
+    alex: {reference: 'runtime/voice-references/alex.wav', sha256: 'a'.repeat(64), transcript: 'Hello.'},
+    'blue-moon': {status: 'unprepared'},
+  }}, {factory() { throw Error('routing checks must not run GPU inference'); }});
+  const local = fixture({voiceSelection: voices, continuous: true});
+  local.input.profileKey = 'alex'; local.profile.key = 'alex';
+  const reply = await local.api.respond(local.input, local.profile);
+  assert.equal(local.calls[0][1].ttsEnabled, false);
+  assert.equal(reply.streamPlan.steps, 32); assert.equal(local.calls.includes('live-frame'), false);
+
+  const remote = fixture({voiceSelection: voices, continuous: true});
+  remote.input.profileKey = 'blue-moon'; remote.profile.key = 'blue-moon';
+  const response = await remote.api.respond(remote.input, remote.profile, {current: async () => true});
+  assert.equal(remote.calls.find(value => Array.isArray(value) && value[0] === 'send')[1].ttsEnabled, true);
+  assert.equal(response.continuous, true); assert.equal(remote.calls.includes('split'), false);
+  assert.equal(response.streamPlan, undefined);
+  assert.equal(remote.calls.filter(value => Array.isArray(value) && value[0] === 'send').length, 1);
+});
+
+const turn = () => new Promise(resolve => setImmediate(resolve));
+const deferred = () => { let resolve; const promise = new Promise(done => { resolve = done; }); return {resolve, promise}; };
+function invitationVoiceFixture({reconfigure = async () => {}, prepare} = {}) {
+  const changes = [], calls = [], local = new Set(['alex']);
+  const localVoice = {routeRevision: 0, consumeRouteChanges: () => changes.splice(0),
+    usesProfile: profile => local.has(profile), profileReady: profile => local.has(profile),
+    prepareProfile: async (profile, options) => {
+      calls.push(['prepare', profile]);
+      return prepare ? prepare(profile, options) : local.has(profile)
+        ? {provider: 'omnivoice', ready: true, profile} : {provider: 'convai', ready: true, reason: 'selected'};
+    }};
+  const sandbox = {localVoice, abortable, throwIfCancelled, stopped: false, active: null, streaming: 0,
+    polling: false, micPolling: false, mic: {current: null}, prefetchPolling: false, memoryQuiescing: 0,
+    connections: {reconfigure: async keys => { calls.push(['reconfigure', [...keys]]); return reconfigure(keys); }}};
+  runInNewContext(section('let voiceRouteSync =', 'const invitations =')
+    + section('async function pollMicrophone(', 'async function tick(')
+    + section('async function tick(', 'async function pollPrefetch(')
+    + ';globalThis.api={syncVoiceRoutes,prepareInvitedVoice,voiceBoundaryBusy,invitedVoiceCurrent,tick,pollMicrophone,'
+    + 'reserved:()=>voiceRouteReservation,queued:()=>voiceRoutePending.size,waiters:()=>voiceRouteWaiters.size};', sandbox);
+  return {...sandbox, context: sandbox, local, changes, calls, mark(keys) { localVoice.routeRevision++; changes.push(...keys); }};
+}
+
+test('voice preparation holds Invite readiness until the affected connection pages are reconciled', async () => {
+  const held = deferred(), f = invitationVoiceFixture({reconfigure: () => held.promise});
+  f.mark(['alex']); let ready = false;
+  const preparation = f.api.prepareInvitedVoice('alex').then(receipt => { ready = true; return receipt; });
+  await turn(); assert.equal(ready, false);
+  assert.deepEqual(f.calls, [['prepare', 'alex'], ['reconfigure', ['alex']]]);
+  held.resolve(); const receipt = await preparation;
+  assert.equal(receipt.provider, 'omnivoice'); assert.equal(receipt.profile, 'alex'); assert.equal(receipt.ready, true);
+});
+
+test('a newer route revision is retained while an older page reconciliation finishes', async () => {
+  const held = deferred(); let count = 0;
+  const f = invitationVoiceFixture({reconfigure: () => ++count === 1 ? held.promise : Promise.resolve()});
+  f.mark(['alex']); const first = f.api.syncVoiceRoutes(); await turn();
+  f.mark(['alex', 'judy-alvarez']); const second = f.api.syncVoiceRoutes();
+  held.resolve(); await first; await second;
+  assert.deepEqual(f.calls, [['reconfigure', ['alex']], ['reconfigure', ['alex', 'judy-alvarez']]]);
+});
+
+test('failed page reconciliation keeps dynamic affected keys for retry and never submits dialogue', async () => {
+  let failed = false;
+  const f = invitationVoiceFixture({reconfigure: async () => { if (!failed) { failed = true; throw Error('temporary page failure'); } }});
+  f.mark(['alex']); await assert.rejects(f.api.syncVoiceRoutes(), /temporary page failure/);
+  await f.api.syncVoiceRoutes();
+  assert.deepEqual(f.calls, [['reconfigure', ['alex']], ['reconfigure', ['alex']]]);
+});
+
+test('Invite rechecks provider after page retirement without publishing a stale local-ready receipt', async () => {
+  const held = deferred(), f = invitationVoiceFixture({reconfigure: () => held.promise});
+  f.mark(['alex']); const preparation = f.api.prepareInvitedVoice('alex'); await turn();
+  f.local.delete('alex'); f.mark(['alex']); held.resolve();
+  const receipt = await preparation;
+  assert.equal(receipt.provider, 'convai'); assert.equal(receipt.ready, true);
+  assert.equal(f.calls.filter(call => call[0] === 'prepare').length, 2);
+});
+
+test('cancelling Invite releases its caller while the shared connection reconciliation remains serialized', async () => {
+  const held = deferred(), f = invitationVoiceFixture({reconfigure: () => held.promise}), controller = new AbortController();
+  f.mark(['alex']); const preparation = f.api.prepareInvitedVoice('alex', {signal: controller.signal}); await turn();
+  const rejected = assert.rejects(preparation, /cancelled/); controller.abort(); await rejected;
+  held.resolve(); await f.api.syncVoiceRoutes();
+  assert.equal(f.calls.filter(call => call[0] === 'prepare').length, 1);
+});
+
+test('invalid preparation receipts and bridge shutdown cannot authorize a spawn connection', async () => {
+  for (const receipt of [undefined, {provider: 'omnivoice', ready: false, profile: 'alex'},
+    {provider: 'omnivoice', ready: true, profile: 'judy-alvarez'}, {provider: 'other', ready: true}]) {
+    const f = invitationVoiceFixture({prepare: async () => receipt});
+    await assert.rejects(f.api.prepareInvitedVoice('alex'), /readiness could not be verified/);
+    assert.equal(f.calls.filter(call => call[0] === 'reconfigure').length, 0);
+  }
+  const f = invitationVoiceFixture(); f.context.stopped = true;
+  await assert.rejects(f.api.prepareInvitedVoice('alex'), /closed/);
+});
+
+test('the routing boundary includes text, phrase, microphone and input/context ownership', () => {
+  const f = invitationVoiceFixture();
+  assert.equal(f.api.voiceBoundaryBusy(), false);
+  for (const key of ['active', 'streaming', 'polling', 'micPolling', 'prefetchPolling', 'memoryQuiescing']) {
+    const previous = f.context[key]; f.context[key] = true;
+    assert.equal(f.api.voiceBoundaryBusy(), true, key); f.context[key] = previous;
+  }
+  f.context.mic.current = {}; assert.equal(f.api.voiceBoundaryBusy(), true);
+  f.context.mic.current = null; assert.equal(f.api.voiceBoundaryBusy(), false);
+});
+
+test('a failed idle reconciliation defers retry throughout a new active turn and releases Invite on the next idle poll', async () => {
+  let first = true;
+  const f = invitationVoiceFixture({reconfigure: async () => { if (first) { first = false; throw Error('page unavailable'); } }});
+  f.mark(['alex']); await assert.rejects(f.api.syncVoiceRoutes(), /page unavailable/);
+  f.context.active = {input: {profileKey: 'alex'}};
+  await f.api.syncVoiceRoutes(); assert.equal(f.calls.length, 1, 'active turn prevents the retry from touching its page');
+  let ready = false;
+  const preparation = f.api.prepareInvitedVoice('alex').then(value => { ready = true; return value; });
+  await turn(); assert.equal(ready, false); assert.equal(f.api.waiters(), 1);
+  assert.equal(f.calls.filter(call => call[0] === 'reconfigure').length, 1);
+  f.context.active = null; await f.api.syncVoiceRoutes();
+  assert.equal((await preparation).provider, 'omnivoice'); assert.equal(f.api.queued(), 0);
+  assert.equal(f.api.reserved(), false); assert.equal(f.api.waiters(), 0);
+});
+
+test('the synchronous routing reservation blocks actual text and microphone entry functions until page settlement', async () => {
+  const held = deferred(), f = invitationVoiceFixture({reconfigure: () => held.promise});
+  f.mark(['alex']); const sync = f.api.syncVoiceRoutes();
+  assert.equal(f.api.reserved(), true, 'reservation exists before the first asynchronous page callback');
+  // Execute the production entry functions with no filesystem/provider mocks.
+  // If they pass the admission guard they will fail on their first native IO.
+  await f.api.tick(); await f.api.pollMicrophone();
+  assert.equal(f.context.polling, false); assert.equal(f.context.micPolling, false);
+  held.resolve(); await sync; assert.equal(f.api.reserved(), false);
+});
+
+test('cancelling a busy Invite removes its deferred page waiter while keeping the global retry', async () => {
+  const f = invitationVoiceFixture(), controller = new AbortController();
+  f.context.active = {}; f.mark(['alex']);
+  const preparation = f.api.prepareInvitedVoice('alex', {signal: controller.signal}); await turn();
+  assert.equal(f.api.waiters(), 1);
+  const rejected = assert.rejects(preparation, /cancelled/); controller.abort(); await rejected;
+  assert.equal(f.api.waiters(), 0); assert.equal(f.api.queued(), 1);
+  f.context.active = null; await f.api.syncVoiceRoutes();
+  assert.equal(f.api.queued(), 0);
+});
+
+test('stored Invite voice receipts are invalid during pending selection, page reconciliation or cache eviction', async () => {
+  const f = invitationVoiceFixture(), receipt = {provider: 'omnivoice', ready: true, profile: 'alex'};
+  assert.equal(f.api.invitedVoiceCurrent('alex', receipt), true);
+  f.localVoice.pending = true; assert.equal(f.api.invitedVoiceCurrent('alex', receipt), false);
+  f.localVoice.pending = false; f.localVoice.availabilityPending = true;
+  assert.equal(f.api.invitedVoiceCurrent('alex', receipt), false); f.localVoice.availabilityPending = false;
+  f.localVoice.profileReady = () => false; assert.equal(f.api.invitedVoiceCurrent('alex', receipt), false);
+  f.local.delete('alex'); assert.equal(f.api.invitedVoiceCurrent('alex', {provider: 'convai', ready: true}), true);
 });

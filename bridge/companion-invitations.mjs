@@ -17,6 +17,7 @@ const ERRORS = Object.freeze({
   revision: 'This invitation changed. Invite the copy again.',
   memory: 'Memory preparation could not be verified. Choose a profile or cancel the invitation.',
   guard: 'The player memory changed. Invite the copy again.',
+  voice: 'Voice preparation could not become ready. Cancel the invitation or choose another voice provider.',
   connection: 'The companion connection could not become ready. Choose a profile or cancel the invitation.',
   capacity: 'The party has no free conversation connection.'
 });
@@ -41,8 +42,10 @@ export function parseCompanionInvitations(value, now = Date.now(), staleMs = 650
 // preparation. No invitation records contact or sends a conversation turn.
 export class CompanionInvitations {
   constructor({memory, connections, currentWorld, isKnown, isCurrentGuard = guard => memory.isCurrent(guard),
+    prepareVoice = async () => ({provider: 'convai', ready: true}),
+    voiceCurrent = () => true,
     publish = async () => {}, now = Date.now, staleMs = 6500, bridgePid = process.pid}) {
-    Object.assign(this, {memory, connections, currentWorld, isKnown, isCurrentGuard, publish, now, staleMs, bridgePid});
+    Object.assign(this, {memory, connections, currentWorld, isKnown, isCurrentGuard, prepareVoice, voiceCurrent, publish, now, staleMs, bridgePid});
     this.rows = new Map(); this.lanes = new Map(); this.retired = new Map();
     this.owner = this.request = null; this.epoch = this.version = 0; this.stopped = false;
     this.reservations = []; this.retention = Promise.resolve(); this.publication = null; this.lastClear = null;
@@ -152,6 +155,19 @@ export class CompanionInvitations {
       && sameWorld(lane.owner, this.owner) && this.isCurrentGuard(lane.guard) === true; }
     catch { return false; }
   }
+  voiceValid(lane) {
+    try { return !!lane.voiceReceipt && this.voiceCurrent(lane.profileKey, lane.voiceReceipt) === true; }
+    catch { return false; }
+  }
+  waitingToSpawn(lane) {
+    return [...this.rows.values()].some(row => row.lane === lane && row.phase === 'preparing');
+  }
+  refreshVoice(lane) {
+    if (!this.current(lane) || lane.preparing || lane.state === 'error') return;
+    lane.prepared = false; lane.voiceReceipt = null; lane.state = 'memory'; this.touch();
+    void this.syncReservations().catch(() => {});
+    this.prepare(lane);
+  }
   fail(lane, error) {
     if (this.lanes.get(lane.profileKey) !== lane || lane.controller.signal.aborted) return;
     lane.state = 'error'; lane.error = error; lane.controller.abort(); this.touch();
@@ -173,12 +189,25 @@ export class CompanionInvitations {
     return this.retention;
   }
   prepare(lane) {
+    lane.stage = 'memory';
     lane.preparing = (async () => {
       try {
         const prepared = await this.memory.prepareCharacter({profileKey: lane.profileKey,
           guard: lane.guard, signal: lane.controller.signal});
         if (!this.current(lane)) return;
         if (prepared?.memoryEnabled !== true || !sameGuard(prepared.guard, lane.guard)) throw Error('Unverified preparation');
+        lane.memoryReadyAt = this.now(); lane.memoryMs = this.now() - lane.startedAt;
+        // The model and exact speaker conditioning must finish before a world
+        // copy can spawn. Copies of one profile share this cancellable flight.
+        // Preparing a voice never creates a dialogue turn or records contact.
+        lane.stage = 'voice';
+        const voice = await abortable(this.prepareVoice(lane.profileKey,
+          {signal: lane.controller.signal}), lane.controller.signal);
+        if (!this.current(lane)) return;
+        if (voice?.ready !== true || !['convai', 'omnivoice'].includes(voice.provider)
+            || (voice.provider === 'omnivoice' && voice.profile !== lane.profileKey)) throw Error('Unverified voice preparation');
+        lane.voiceReadyAt = this.now(); lane.voiceMs = this.now() - lane.memoryReadyAt;
+        lane.voiceProvider = voice.provider; lane.voiceReceipt = Object.freeze({...voice}); lane.stage = 'connection';
         // A cancelled shared enable can finish after its original caller has
         // gone away. The memory owner keeps that retirement obligation until
         // a current caller proves disposal. Re-read it here: another caller
@@ -190,12 +219,12 @@ export class CompanionInvitations {
           await this.memory.acknowledgeConnectionRefresh({profileKey: lane.profileKey, guard: lane.guard});
           if (!this.current(lane)) return;
         }
-        lane.memoryReadyAt = this.now(); lane.memoryMs = this.now() - lane.startedAt;
         lane.prepared = true; lane.state = 'connecting'; this.touch();
         await abortable(this.syncReservations(), lane.controller.signal);
         if (this.current(lane)) this.warm(lane);
       } catch {
-        if (this.current(lane)) this.fail(lane, lane.prepared ? ERRORS.connection : ERRORS.memory);
+        if (this.current(lane)) this.fail(lane, lane.stage === 'voice' ? ERRORS.voice
+          : lane.stage === 'connection' || lane.prepared ? ERRORS.connection : ERRORS.memory);
       } finally { lane.preparing = null; }
     })();
   }
@@ -208,7 +237,14 @@ export class CompanionInvitations {
         const status = await this.connections.warmInvitation(lane.profileKey, {signal: lane.controller.signal});
         if (!this.current(lane)) return;
         this.acceptReadiness(lane, status);
-      } catch { if (this.current(lane)) this.fail(lane, ERRORS.connection); }
+      } catch (error) {
+        if (this.current(lane)) {
+          if (error?.code === 'INVITATION_CONNECTION_REPLACED' || !this.voiceValid(lane)) {
+            lane.state = 'connecting'; this.touch();
+            if (!this.voiceValid(lane) && this.waitingToSpawn(lane)) this.refreshVoice(lane);
+          } else this.fail(lane, ERRORS.connection);
+        }
+      }
       finally { lane.warming = null; }
     })();
   }
@@ -217,12 +253,19 @@ export class CompanionInvitations {
     const state = ready ? 'ready' : 'connecting';
     if (state !== lane.state) { lane.state = state; this.touch(); }
     if (ready) {
-      lane.readyAt ??= this.now(); lane.warmMs ??= this.now() - lane.memoryReadyAt;
+      lane.readyAt ??= this.now(); lane.warmMs ??= this.now() - (lane.voiceReadyAt ?? lane.memoryReadyAt);
       lane.verifiedAt = this.now();
     }
   }
   async probe(lane) {
-    if (!this.current(lane) || lane.state !== 'ready') return;
+    if (!this.current(lane) || !['ready', 'connecting'].includes(lane.state)) return;
+    // A pending ticket is a promise about preparation before world appearance.
+    // Already-spawned copies use bounded lazy reconditioning at speech time;
+    // eagerly restoring every evicted active voice would thrash the LRU.
+    if (this.waitingToSpawn(lane) && lane.voiceReceipt && !this.voiceValid(lane)) {
+      this.refreshVoice(lane); return;
+    }
+    if (lane.state !== 'ready') return;
     const pending = (async () => {
       try {
         const status = await this.connections.invitationReadiness(lane.profileKey);
@@ -254,6 +297,7 @@ export class CompanionInvitations {
         const lane = row.lane;
         let state = lane?.state ?? row.state, error = lane?.error ?? row.error;
         if (lane && !this.currentGuard(lane) && state !== 'error') { state = 'error'; error = ERRORS.guard; }
+        if (lane && row.phase === 'preparing' && state === 'ready' && !this.voiceValid(lane)) state = 'connecting';
         return {id: row.id, revision: row.revision, modelKey: row.modelKey,
           ...(row.profileKey !== undefined ? {profileKey: row.profileKey} : {}), state,
           ...(state === 'error' ? {error} : {})};
@@ -282,6 +326,7 @@ export class CompanionInvitations {
         const lane = row.lane;
         return {id: row.id, revision: row.revision, state: this.snapshot().invitations.find(value => value.id === row.id)?.state ?? 'error',
           startedAt: row.startedAt, memoryReadyAt: lane?.memoryReadyAt, memoryMs: lane?.memoryMs,
+          voiceReadyAt: lane?.voiceReadyAt, voiceMs: lane?.voiceMs, voiceProvider: lane?.voiceProvider,
           readyAt: lane?.readyAt ?? row.readyAt, warmMs: lane?.warmMs};
       })};
   }

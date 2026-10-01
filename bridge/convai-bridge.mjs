@@ -14,10 +14,9 @@ import {conversationScope} from './group-context.mjs';
 import {conversationContext} from './quest-context.mjs';
 import {battleTrigger, reactionLeaseValid} from './battle-context.mjs';
 import {GroupPrefetch, inputIdentity, validatePrefetch, parsePrewarm} from './group-prefetch.mjs';
-import {throwIfCancelled} from './transport-pool.mjs';
+import {abortable, throwIfCancelled} from './transport-pool.mjs';
 import {PartyConnections, parsePartyConnections} from './party-connections.mjs';
 import {CompanionInvitations} from './companion-invitations.mjs';
-import {LOCAL_VOICE_KEYS} from './resident-voice.mjs';
 import {VoiceSelection} from './voice-selection.mjs';
 import {VoicePreviewLease} from './voice-preview.mjs';
 import {PhoneChat, parsePhoneState} from './phone-chat.mjs';
@@ -228,7 +227,87 @@ const connections = new PartyConnections({host: realtime,
     return connectionMetricsWriting;
   },
 });
+let voiceRouteSync = Promise.resolve();
+const voiceRoutePending = new Map();
+let voiceRouteReservation = false;
+const voiceRouteWaiters = new Set();
+function voiceBoundaryBusy() {
+  return !!(active || streaming || polling || micPolling || mic.current || prefetchPolling || memoryQuiescing);
+}
+function settleVoiceRouteWaiters(error) {
+  if (!error && voiceRoutePending.size) return;
+  for (const waiter of voiceRouteWaiters) error ? waiter.reject(error) : waiter.resolve();
+  voiceRouteWaiters.clear();
+}
+function syncVoiceRoutes({wait = false, signal} = {}) {
+  throwIfCancelled(signal);
+  if (stopped) return Promise.reject(Error('Voice service is closed'));
+  for (const profile of localVoice.consumeRouteChanges()) voiceRoutePending.set(profile, localVoice.routeRevision);
+  if (voiceRouteReservation) return abortable(voiceRouteSync, signal);
+  if (!voiceRoutePending.size) { settleVoiceRouteWaiters(); return Promise.resolve(); }
+  if (voiceBoundaryBusy()) {
+    // Settings polling must remain free to retry after the current turn. Only
+    // a background Invite waits for this event-driven page settlement.
+    if (!wait) return Promise.resolve();
+    let waiter;
+    const pending = new Promise((resolve, reject) => { waiter = {resolve, reject}; voiceRouteWaiters.add(waiter); });
+    return abortable(pending, signal).finally(() => voiceRouteWaiters.delete(waiter));
+  }
+  // Reserve synchronously before the first await. New text/microphone input
+  // retains its IPC file and is admitted after this phase releases ownership.
+  voiceRouteReservation = true;
+  const operation = (async () => {
+    try {
+      while (voiceRoutePending.size) {
+        if (stopped) throw Error('Voice service is closed');
+        const changes = [...voiceRoutePending];
+        // Reconnect only affected TTS pages, retaining committed memory/session
+        // identities. New revisions remain queued while this reservation drains.
+        await connections.reconfigure(changes.map(([profile]) => profile));
+        for (const [profile, revision] of changes) {
+          if (voiceRoutePending.get(profile) === revision) voiceRoutePending.delete(profile);
+        }
+      }
+      settleVoiceRouteWaiters();
+    } catch (error) {
+      settleVoiceRouteWaiters(error); throw error;
+    } finally { voiceRouteReservation = false; }
+  })();
+  // Observe failures even if a cancelled invitation no longer awaits this job.
+  operation.catch(() => {});
+  voiceRouteSync = operation;
+  return abortable(operation, signal);
+}
+function invitedVoiceCurrent(profile, receipt) {
+  if (stopped || receipt?.ready !== true || localVoice.pending || localVoice.availabilityPending
+      || voiceRouteReservation || voiceRoutePending.size) return false;
+  if (receipt.provider === 'convai') return !localVoice.usesProfile(profile);
+  return receipt.provider === 'omnivoice' && receipt.profile === profile
+    && localVoice.usesProfile(profile) && localVoice.profileReady(profile);
+}
+async function prepareInvitedVoice(profile, {signal} = {}) {
+  for (;;) {
+    throwIfCancelled(signal);
+    if (stopped) throw Error('Voice service is closed');
+    const receipt = await localVoice.prepareProfile(profile, {signal});
+    if (receipt?.ready !== true || !['convai', 'omnivoice'].includes(receipt.provider)
+        || (receipt.provider === 'omnivoice' && receipt.profile !== profile)) {
+      throw Error('Local voice readiness could not be verified');
+    }
+    await abortable(syncVoiceRoutes({wait: true, signal}), signal);
+    throwIfCancelled(signal);
+    if (stopped) throw Error('Voice service is closed');
+    // A settings change can commit while page retirement is awaiting its host.
+    // Recheck the actual route before authorizing this invitation's connection.
+    if (receipt.provider === 'omnivoice') {
+      if (!localVoice.usesProfile(profile) || !localVoice.profileReady(profile)) continue;
+    } else if (localVoice.usesProfile(profile)) continue;
+    return receipt;
+  }
+}
 const invitations = new CompanionInvitations({memory: playerMemory, connections,
+  prepareVoice: prepareInvitedVoice,
+  voiceCurrent: invitedVoiceCurrent,
   currentWorld: currentBoundary,
   isKnown: profile => Object.hasOwn(ids, profile),
   isCurrentGuard: guard => playerMemory.isCurrent(guard),
@@ -539,7 +618,7 @@ async function admitPlayerConversation(prepared, {signal} = {}) {
 }
 
 async function pollMicrophone() {
-  if (micPolling || stopped) return;
+  if (micPolling || stopped || voiceRouteReservation) return;
   micPolling = true;
   try {
     const raw = await readFile(micPath, 'utf8').catch(() => '');
@@ -621,7 +700,7 @@ async function reactionCurrent(input) {
 }
 
 async function tick() {
-  if (polling || stopped) return;
+  if (polling || stopped || voiceRouteReservation) return;
   polling = true;
   try {
     const reactionRequest = active;
@@ -758,6 +837,9 @@ async function pollPrefetch() {
     // fresh reservation on that frame; expiry/world guards still fail closed.
     if (parsePartyConnections(partySnapshot)) invitations.ingest(invitationRequest);
     await invitations.poll();
+    // Keep invitation/world leases fresh during page reconciliation; composer
+    // warmup and speculative turns resume after the reservation finishes.
+    if (voiceRouteReservation) return;
     await connections.maintain();
     if (partyWasFresh && connections.stale) {
       prefetch.invalidate(); active?.controller.abort(); await mic.cancel(); await realtime.close();
@@ -891,13 +973,12 @@ async function pollSettings(checkShutdown = true) {
     // A transient rename/partial settings write must not reset the selected quality.
     const raw = await readFile(resolve(runtime, 'settings.json'), 'utf8').catch(() => '');
     let settings; try { settings = JSON.parse(raw); } catch {}
-    const previousProvider = localVoice.provider;
     // Every phrase of an accepted turn keeps its original provider and quality.
     // Microphone startup and input polling also own a boundary before `active`.
-    if (localVoice.update(settings, preview, active || streaming || polling || micPolling || mic.current || prefetchPolling)) {
+    if (localVoice.update(settings, preview, voiceBoundaryBusy())) {
       prefetch.invalidate(); prefetchObserved = '';
-      if (localVoice.provider !== previousProvider) await connections.reconfigure(LOCAL_VOICE_KEYS);
     }
+    await syncVoiceRoutes();
     if (Date.now() - lastVoiceHeartbeat >= 5000) {
       lastVoiceHeartbeat = Date.now(); localVoice.publish(localVoice.state);
     }
@@ -927,12 +1008,14 @@ const memoryTimer = setInterval(() => { void memoryControl.poll().catch(error =>
 async function shutdown() {
   if (stopped) return;
   stopped = true; active?.controller.abort(); prefetch.invalidate();
+  settleVoiceRouteWaiters(Error('Voice service is closed'));
   phone.close(); clearInterval(phoneTimer);
   phoneKnowledge.clear();
   clearInterval(knowledgeTimer);
   clearInterval(memoryTimer);
   clearInterval(timer); clearInterval(micTimer); clearInterval(prefetchTimer); clearInterval(settingsTimer);
   await invitations.clear('service-stopped');
+  await voiceRouteSync.catch(() => {});
   await Promise.allSettled([localVoice.close(), mic.cancel(), connections.clear()]);
   await Promise.allSettled([realtime.close(), phoneRealtime.close()]);
   await memoryControl.close(); await playerMemory.close();

@@ -1,4 +1,5 @@
-import {ResidentVoice, LOCAL_VOICE_KEYS, voiceSteps} from './resident-voice.mjs';
+import {ResidentVoice, voiceSteps} from './resident-voice.mjs';
+import {createVoiceProfileRegistry} from './voice-profile-registry.mjs';
 import {abortable, throwIfCancelled} from './transport-pool.mjs';
 
 // Routing changes commit only at a conversation boundary. Model preparation
@@ -6,22 +7,55 @@ import {abortable, throwIfCancelled} from './transport-pool.mjs';
 // Retiring CUDA work completes through EOF before a replacement may start.
 export class VoiceSelection {
   constructor(config = {}, options = {}) {
-    this.config = config; this.options = options;
+    this.registry = createVoiceProfileRegistry(config);
+    this.config = Object.freeze({...config, voices: Object.freeze({...this.registry.profiles,
+      ...Object.fromEntries(Object.entries(this.registry.unavailable).map(([key, status]) => [key, Object.freeze({status})]))}),
+      preparation: this.registry.preparation});
+    this.options = options;
     this.factory = options.factory || ((settings, hooks) => new ResidentVoice(settings, hooks));
-    this.configured = config.provider === 'hybrid';
+    this.configured = config.provider === 'hybrid' && this.registry.keys.length > 0;
     this.provider = this.requestedProvider = 'hybrid';
     this.steps = this.requestedSteps = voiceSteps(config.steps);
     this.retiring = Promise.resolve(); this.releasing = false;
     this.state = this.configured ? 'stopped' : 'disabled'; this.details = {};
+    this.availability = new Set(this.registry.keys); this.verifiedAvailability = null;
+    this.routeRevision = 0; this.routeChanges = new Set(); this.routingWaiters = new Set();
   }
-  usesProfile(key) { return this.provider === 'hybrid' && this.configured && LOCAL_VOICE_KEYS.includes(key); }
+  get profileKeys() { return this.registry.keys; }
+  hasProfile(key) { return this.registry.has(key) && this.availability.has(key); }
+  usesProfile(key) { return this.provider === 'hybrid' && this.configured && this.hasProfile(key); }
+  profileReady(key) { return this.usesProfile(key) && this.client?.profileReady(key) === true; }
   request(settings) {
     if (['hybrid', 'convai'].includes(settings?.voiceProvider)) this.requestedProvider = settings.voiceProvider;
     if ([16, 32].includes(settings?.omniSteps)) this.requestedSteps = settings.omniSteps;
   }
   get pending() { return this.provider !== this.requestedProvider || this.steps !== this.requestedSteps; }
+  get availabilityPending() { return !!this.verifiedAvailability
+    && (this.availability.size !== this.verifiedAvailability.size
+      || [...this.availability].some(key => !this.verifiedAvailability.has(key))); }
+  consumeRouteChanges() { const value = [...this.routeChanges].sort(); this.routeChanges.clear(); return value; }
+  stageAvailability(client) {
+    if (this.client !== client || this.closed || !client.loaded) return;
+    this.verifiedAvailability = new Set(this.profileKeys.filter(key => client.hasProfile(key)));
+  }
+  routingSettled({signal} = {}) {
+    throwIfCancelled(signal);
+    if (this.closed) return Promise.reject(Error('Voice service is closed'));
+    if (!this.pending && !this.availabilityPending) return Promise.resolve();
+    let waiter;
+    const pending = new Promise((resolve, reject) => { waiter = {resolve, reject}; this.routingWaiters.add(waiter); });
+    return abortable(pending, signal).finally(() => this.routingWaiters.delete(waiter));
+  }
+  settleRouting() {
+    if (this.pending || this.availabilityPending) return;
+    for (const waiter of this.routingWaiters) waiter.resolve();
+    this.routingWaiters.clear();
+  }
   get wantsLocal() {
-    return this.configured && !this.closed && (this.provider === 'hybrid'
+    // Provisional configured profiles keep initial warmup intact. Once an idle
+    // commit proves every reference unavailable, residency serves no local
+    // route; release it without creating an automatic replacement loop.
+    return this.configured && this.availability.size > 0 && !this.closed && (this.provider === 'hybrid'
       || this.requestedProvider === 'hybrid' || this.preview?.provider === 'hybrid');
   }
   setPreview(preview) {
@@ -55,18 +89,30 @@ export class VoiceSelection {
     const value = {...this.details, version: 1, state, provider: this.provider,
       requestedProvider: this.requestedProvider, pending: this.pending, steps: this.steps,
       requestedSteps: this.requestedSteps, configured: this.configured, bridgePid: process.pid,
+      configuredProfiles: this.profileKeys,
+      availabilityPending: this.availabilityPending, routeRevision: this.routeRevision,
+      routedProfiles: this.provider === 'hybrid' ? [...this.availability].sort() : [],
       previewActive: !!this.preview, previewProvider: this.preview?.provider,
       preparationOnly: this.provider === 'convai' && this.wantsLocal,
       updated: Date.now(), ...extra};
     try { Promise.resolve(this.options.onState?.(value)).catch(() => {}); } catch {}
   }
   applyWhenIdle(busy) {
-    if (!this.pending || this.closed) return false;
+    if (this.closed) return false;
+    if (!this.pending && !this.availabilityPending) { this.settleRouting(); return false; }
     if (busy) { this.reconcile(); this.publish(); return false; }
+    const previous = new Set(this.profileKeys.filter(key => this.usesProfile(key)));
     this.provider = this.requestedProvider; this.steps = this.requestedSteps;
+    if (this.verifiedAvailability) this.availability = new Set(this.verifiedAvailability);
+    const changedRoutes = this.profileKeys.filter(key => previous.has(key) !== this.usesProfile(key));
+    if (changedRoutes.length) {
+      this.routeRevision++;
+      for (const key of changedRoutes) this.routeChanges.add(key);
+    }
     this.client?.setSteps(this.steps);
     this.reconcile();
     this.publish();
+    this.settleRouting();
     return true;
   }
   start() {
@@ -79,6 +125,7 @@ export class VoiceSelection {
     let client;
     client = this.client = this.factory(this.config, {...this.options, onState: value => {
       if (this.client !== client || this.closed) return;
+      if (value.state === 'ready') this.stageAvailability(client);
       this.details = value; this.publish(value.state);
     }});
     client.setSteps(this.provider === 'hybrid' ? this.steps
@@ -87,6 +134,7 @@ export class VoiceSelection {
     this.starting = this.retiring.then(async () => {
       if (this.client !== client || this.closed) return;
       await client.start();
+      this.stageAvailability(client);
     });
     this.starting.catch(() => {});
     return this.starting;
@@ -120,9 +168,52 @@ export class VoiceSelection {
     if (!client || !this.usesProfile(profile)) throw Error('Voice selection changed before synthesis');
     return client.synthesize(profile, text, {...options, steps: options.steps ?? this.steps});
   }
+  async prepareProfile(profile, options = {}) {
+    const remote = reason => ({provider: 'convai', ready: true, reason});
+    for (;;) {
+      throwIfCancelled(options.signal);
+      if (this.closed) throw Error('Voice service is closed');
+      await this.routingSettled(options);
+      throwIfCancelled(options.signal);
+      if (this.closed) throw Error('Voice service is closed');
+      if (this.provider === 'convai') return remote('selected');
+      if (!this.configured || !this.registry.has(profile)) return remote(this.registry.status(profile));
+      try { await abortable(this.start(), options.signal); }
+      catch (error) {
+        throwIfCancelled(options.signal);
+        if (!this.closed && this.provider === 'convai') return remote('selected');
+        throw error;
+      }
+      throwIfCancelled(options.signal);
+      // A ready worker can discover a vanished reference during an owned turn.
+      // The flight waits for the normal idle commit; no polling loop is held.
+      await this.routingSettled(options);
+      if (this.closed) throw Error('Voice service is closed');
+      if (this.provider === 'convai') return remote('selected');
+      if (!this.hasProfile(profile)) return remote('unavailable');
+      const client = this.client;
+      if (!client?.loaded) continue;
+      let receipt;
+      try { receipt = await client.prepareProfile(profile, options); }
+      catch (error) {
+        throwIfCancelled(options.signal);
+        if (!this.closed && this.provider === 'convai') return remote('selected');
+        throw error;
+      }
+      throwIfCancelled(options.signal);
+      await this.routingSettled(options);
+      if (this.closed) throw Error('Voice service is closed');
+      if (this.provider === 'convai') return remote('selected');
+      if (this.client !== client) continue;
+      if (!this.hasProfile(profile)) return remote('unavailable');
+      return receipt;
+    }
+  }
   close() {
     if (this.closed) return this.retiring;
     this.closed = true; this.preview = null;
+    for (const waiter of this.routingWaiters) waiter.reject(Error('Voice service is closed'));
+    this.routingWaiters.clear();
     return this.retire();
   }
 }

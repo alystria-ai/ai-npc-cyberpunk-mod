@@ -1,14 +1,17 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {EventEmitter} from 'node:events';
+import {createHash} from 'node:crypto';
 import {PassThrough, Writable} from 'node:stream';
 import {ResidentVoice, LOCAL_VOICE_KEYS, VOICE_WORKER_LIMITS} from './resident-voice.mjs';
 import {silentWav} from './speech-audio.mjs';
 
 const config = {provider: 'hybrid', engine: 'omnivoice',
-  voices: Object.fromEntries(LOCAL_VOICE_KEYS.map(key => [key, {reference: key}]))};
+  voices: Object.fromEntries(LOCAL_VOICE_KEYS.map(key => [key, {
+    reference: `runtime/voice-references/${key}.wav`, sha256: 'a'.repeat(64), transcript: 'Ready when you are, V.',
+  }]))};
 const tick = () => new Promise(done => setImmediate(done));
-function harness({autoReady = true, timers} = {}) {
+function harness({autoReady = true, timers, settings = config, protocolVersion = 1} = {}) {
   const states = [], requests = []; let starts = 0;
   const child = new EventEmitter();
   child.kills = 0; child.kill = () => { child.kills++; return true; };
@@ -17,10 +20,16 @@ function harness({autoReady = true, timers} = {}) {
     requests.push(JSON.parse(chunk.toString())); done();
   }});
   const send = frame => child.stdout.write(JSON.stringify(frame) + '\n');
-  const ready = (extra = {}) => send({op: 'ready', profiles: LOCAL_VOICE_KEYS, device: 'cuda:0',
+  const ready = (extra = {}) => send({op: 'ready', profiles: Object.entries(settings.voices)
+    .filter(([, value]) => !value.status || value.status === 'ready').map(([key]) => key),
+    ...(protocolVersion === 2 ? {protocolVersion, preparedProfiles: settings.preparation?.startupProfiles ?? LOCAL_VOICE_KEYS,
+      referenceHashes: Object.fromEntries(Object.entries(settings.voices).filter(([, value]) => !value.status || value.status === 'ready')
+        .map(([key, value]) => [key, value.sha256])),
+      transcriptHashes: Object.fromEntries(Object.entries(settings.voices).filter(([, value]) => !value.status || value.status === 'ready')
+        .map(([key, value]) => [key, createHash('sha256').update(value.transcript, 'utf8').digest('hex')]))} : {}), device: 'cuda:0',
     dtype: 'torch.float16', runtime: 'pytorch', tensorrt: false, compiled: false,
     cudaAllocatedMiB: 1800, cudaReservedMiB: 2208, ...extra});
-  const client = new ResidentVoice(config, {project: process.cwd(), configPath: 'local-config.json',
+  const client = new ResidentVoice(settings, {project: process.cwd(), configPath: 'local-config.json',
     ...(timers ? {setTimer: timers.set, clearTimer: timers.clear} : {}),
     onState: state => states.push(state), spawnImpl: (exe, args, options) => {
       starts++; assert.equal(options.windowsHide, true); assert.deepEqual(options.stdio, ['pipe', 'pipe', 'pipe']);
@@ -29,9 +38,12 @@ function harness({autoReady = true, timers} = {}) {
   const finish = code => child.emit('close', code ?? 0);
   const reply = (index, extra = {}) => {
     const request = requests[index]; assert.ok(request);
-    send({...request, op: 'audio', audio: silentWav().toString('base64'), generationMs: 1400, ...extra});
+    send({...request, op: request.op === 'prepare' ? 'prepared' : 'audio',
+      ...(protocolVersion === 2 ? {preparedProfiles: [...new Set([...client.prepared, request.profile])]
+        .slice(-client.registry.preparation.maxCachedProfiles)} : {}),
+      audio: silentWav().toString('base64'), generationMs: 1400, ...extra});
   };
-  return {client, child, states, requests, ready, reply, finish, starts: () => starts};
+  return {client, child, states, requests, ready, reply, finish, send, starts: () => starts};
 }
 
 function clock() {
@@ -49,7 +61,7 @@ function clock() {
     }};
 }
 
-test('only Johnny, Judy and Panam use local speech; an absent configuration preserves Convai', async () => {
+test('configured legacy references use local speech; absent or malformed references never borrow a voice', async () => {
   const off = new ResidentVoice({}, {spawnImpl() { throw Error('must not start'); }});
   await off.start(); assert.equal(off.state, 'disabled'); assert.equal(off.usesProfile('judy-alvarez'), false);
   const {client, starts} = harness();
@@ -57,7 +69,7 @@ test('only Johnny, Judy and Panam use local speech; an absent configuration pres
   assert.equal(client.usesProfile('alex'), false); assert.equal(client.usesProfile('blue-moon'), false);
   await assert.rejects(client.synthesize('alex', 'Hi'), /Convai voice/);
   assert.equal(starts(), 0);
-  assert.throws(() => new ResidentVoice({...config, voices: {...config.voices, alex: {}}}), /must map/);
+  assert.throws(() => new ResidentVoice({...config, version: 2, voices: {...config.voices, alex: {}}}), /Invalid local voice reference/);
 });
 
 test('one FP16 CUDA worker warms all references, stays resident, and changes steps without reloading', async () => {
@@ -201,4 +213,116 @@ test('missing process-exit confirmation rejects close rather than claiming CUDA 
   await closed; assert.equal(h.child.kills, 1); assert.equal(h.client.loaded, true);
   assert.equal(h.client.child, h.child); assert.equal(h.client.state, 'error');
   assert.equal(timers.size(), 0); h.finish();
+});
+
+const widerConfig = (extra = {}) => ({...config, version: 2,
+  voices: {...config.voices, ...Object.fromEntries(['alex', 'blue-moon', 'iris', 'river-ward', 'kerry-eurodyne', 'rogue-amendiares']
+    .map(key => [key, {reference: `runtime/voice-references/${key}.wav`, sha256: 'b'.repeat(64), transcript: 'Hello, V.'}])),
+    unavailable: {status: 'unavailable'}, unprepared: {status: 'unprepared'}},
+  preparation: {mode: 'lazy', startupProfiles: LOCAL_VOICE_KEYS, maxCachedProfiles: 8}, ...extra});
+
+test('v2 widens configured voices without warming the cast at startup; Invite prepares just one profile', async () => {
+  const h = harness({settings: widerConfig(), protocolVersion: 2});
+  await h.client.start();
+  assert.equal(h.client.usesProfile('alex'), true);
+  assert.equal(h.client.profileReady('alex'), false);
+  assert.deepEqual([...h.client.prepared].sort(), [...LOCAL_VOICE_KEYS].sort());
+  for (const key of ['unavailable', 'unprepared', 'not-registered']) {
+    assert.equal(h.client.usesProfile(key), false);
+    assert.deepEqual(await h.client.prepareProfile(key), {provider: 'convai', ready: true,
+      reason: key === 'not-registered' ? 'missing' : key});
+  }
+  const prepared = h.client.prepareProfile('alex'); await tick();
+  assert.deepEqual(h.requests[0], {op: 'prepare', id: 1, profile: 'alex'});
+  assert.equal(h.states.at(-1).state, 'warming'); h.reply(0);
+  assert.deepEqual(await prepared, {provider: 'omnivoice', ready: true, profile: 'alex'});
+  await h.client.prepareProfile('alex'); assert.equal(h.requests.length, 1);
+  const audio = h.client.synthesize('alex', 'A new speaker.'); await tick();
+  assert.equal(h.requests[1].op, 'synthesize'); assert.equal(h.requests[1].steps, 32);
+  h.reply(1); await audio;
+  assert.equal(h.starts(), 1);
+  const closed = h.client.close(); h.finish(); await closed;
+});
+
+test('prepare/render share physical ownership, with immediate caller cancellation and no GPU overlap', async () => {
+  const h = harness({settings: widerConfig(), protocolVersion: 2}), controller = new AbortController();
+  const first = h.client.prepareProfile('alex', {signal: controller.signal}); await tick();
+  const rejected = assert.rejects(first, /cancelled/); controller.abort(); await rejected;
+  const next = h.client.synthesize('blue-moon', 'Next speaker.'); await tick();
+  assert.equal(h.requests.length, 1, 'cancelled physical preparation still owns GPU');
+  h.reply(0); await tick();
+  assert.equal(h.requests[1].op, 'prepare'); assert.equal(h.requests[1].profile, 'blue-moon');
+  h.reply(1); await tick();
+  assert.equal(h.requests[2].op, 'synthesize'); h.reply(2); await next;
+  const closed = h.client.close(); h.finish(); await closed;
+});
+
+test('preparation cancellation before execution skips work, while eviction requires a fresh preparation', async () => {
+  const h = harness({settings: widerConfig(), protocolVersion: 2}), queued = new AbortController();
+  const first = h.client.prepareProfile('alex'); await tick();
+  const second = h.client.prepareProfile('blue-moon', {signal: queued.signal});
+  const rejected = assert.rejects(second, /cancelled/); queued.abort(); await rejected;
+  h.reply(0); await first; await tick(); assert.equal(h.requests.length, 1);
+  const third = h.client.synthesize('iris', 'Replace oldest cached prompt.'); await tick();
+  h.reply(1, {preparedProfiles: ['iris']}); await tick();
+  assert.equal(h.client.profileReady('alex'), false);
+  h.reply(2, {preparedProfiles: ['iris']}); await third;
+  const prepared = h.client.prepareProfile('alex'); await tick();
+  assert.equal(h.requests[3].op, 'prepare'); h.reply(3); await prepared;
+  const closed = h.client.close(); h.finish(); await closed;
+});
+
+test('missing ready reference is an explicit remote route before any dialogue is submitted', async () => {
+  const h = harness({settings: widerConfig(), protocolVersion: 2, autoReady: false});
+  const starting = h.client.start();
+  const profiles = Object.keys(config.voices);
+  h.ready({profiles, preparedProfiles: profiles,
+    referenceHashes: Object.fromEntries(profiles.map(key => [key, config.voices[key].sha256])),
+    transcriptHashes: Object.fromEntries(profiles.map(key => [key, createHash('sha256').update(config.voices[key].transcript).digest('hex')]))});
+  await starting;
+  assert.equal(h.client.usesProfile('alex'), false);
+  const ready = await h.client.prepareProfile('alex');
+  assert.equal(ready.provider, 'convai'); assert.equal(h.requests.length, 0);
+  const closed = h.client.close(); h.finish(); await closed;
+});
+
+test('lazy registry rejects a legacy worker, unverified hashes and duplicate/foreign readiness entries', async () => {
+  for (const [protocolVersion, extra] of [[1, {}], [2, {referenceHashes: {}}], [2, {transcriptHashes: {}}],
+    [2, {preparedProfiles: ['alex', 'alex']}], [2, {profiles: ['not-configured'], preparedProfiles: []}]]) {
+    const h = harness({settings: widerConfig(), protocolVersion, autoReady: false});
+    const failed = assert.rejects(h.client.start(), /did not warm/);
+    h.ready(extra); await failed; assert.equal(h.child.stdin.writableEnded, true); h.finish(1);
+  }
+});
+
+test('prepared identity/cache attestations must match the caller and cannot overrun the bounded cache', async () => {
+  for (const extra of [{profile: 'iris'}, {preparedProfiles: ['iris']},
+    {preparedProfiles: ['alex', 'alex']}, {preparedProfiles: [...Object.keys(widerConfig().voices)].filter(key => !['unavailable', 'unprepared'].includes(key))}]) {
+    const h = harness({settings: widerConfig(), protocolVersion: 2});
+    const first = h.client.prepareProfile('alex'); await tick();
+    const rejected = assert.rejects(first, /identity changed|Invalid prepared/); h.reply(0, extra); await rejected;
+    const closed = h.client.close(); h.finish(); await closed;
+  }
+});
+
+test('preparation failure never synthesizes dialogue or borrows another voice, and can be retried locally', async () => {
+  const h = harness({settings: widerConfig(), protocolVersion: 2});
+  const first = h.client.prepareProfile('alex'); await tick();
+  const failed = assert.rejects(first, /could not prepare/);
+  h.send({op: 'error', id: h.requests[0].id}); await failed;
+  assert.equal(h.client.profileReady('alex'), false); assert.equal(h.requests.length, 1);
+  const retry = h.client.prepareProfile('alex'); await tick(); h.reply(1); await retry;
+  assert.equal(h.starts(), 1);
+  const closed = h.client.close(); h.finish(); await closed;
+});
+
+test('preparation timeout/close keeps the same bounded process retirement and discards late preparation', async () => {
+  const timers = clock(), h = harness({settings: widerConfig(), protocolVersion: 2, timers});
+  const first = h.client.prepareProfile('alex'); await tick();
+  const rejected = assert.rejects(first, /preparation timed out/);
+  timers.advance(VOICE_WORKER_LIMITS.renderMs); await rejected;
+  h.reply(0); assert.equal(h.client.state, 'error'); assert.equal(h.client.profileReady('alex'), false);
+  const closed = h.client.close(); timers.advance(VOICE_WORKER_LIMITS.exitGraceMs);
+  assert.equal(h.child.kills, 1); h.finish(); await closed;
+  assert.equal(h.client.loaded, false); assert.equal(timers.size(), 0);
 });

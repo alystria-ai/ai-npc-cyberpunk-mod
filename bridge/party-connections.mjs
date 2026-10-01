@@ -207,7 +207,8 @@ export class PartyConnections {
     if (!entry) throw Error('The invitation has no retained private connection');
     const status = await this.invitationReadiness(profile);
     throwIfCancelled(signal);
-    if (this.entries.get(entry.identity) !== entry) throw Error('The invitation connection was replaced');
+    if (this.entries.get(entry.identity) !== entry) throw Object.assign(Error('The invitation connection was replaced'),
+      {code: 'INVITATION_CONNECTION_REPLACED'});
     if (this.retiring.has(profile)) return {...status, ready: false, gated: true};
     if (status.present && status.ready && !status.busy) return status;
     if (status.busy) return status;
@@ -219,7 +220,8 @@ export class PartyConnections {
     if (!pending) return {...status, ready: false, gated: true, retryAt: entry.retryAt};
     await abortable(pending, signal);
     throwIfCancelled(signal);
-    if (this.entries.get(entry.identity) !== entry) throw Error('The invitation connection was replaced');
+    if (this.entries.get(entry.identity) !== entry) throw Object.assign(Error('The invitation connection was replaced'),
+      {code: 'INVITATION_CONNECTION_REPLACED'});
     if (entry.state !== 'ready') throw entry.error || Error('The companion connection did not become ready');
     return this.invitationReadiness(profile);
   }
