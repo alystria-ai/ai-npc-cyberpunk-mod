@@ -15,6 +15,7 @@ function run(code) {
 const setup = `
 local world, enabled, overheads, menu, style = true, true, true, false, 'overhead'
 local nativeReads, settingsWrites, registrations, overrideRegistrations, clock = 0, 0, 0, 0, 1000
+local uninternedRootNames=false
 local events, afterHooks, overrides = {}, {}, {}
 os.time=function()return clock end
 local function native()
@@ -58,8 +59,13 @@ scnDialogLineData={new=function()native();return {}end}
 scnDialogLineType={OwnerlessRegular='ownerless-regular',OverHead='overhead'}
 CRUID=function(value)return 'owned-'..tostring(value)end
 ToVariant=function(value,kind)return {value=value,kind=kind}end
-CName={new=function(value)return {value=value}end}
-NameToString=function(value)return type(value)=='table' and value.value or value end
+local cnameValue={__eq=function(a,b)return a.value==b.value end}
+CName={new=function(value)return setmetatable({value=value},cnameValue)end}
+NameToString=function(value)
+ local text=type(value)=='table' and value.value or value
+ if uninternedRootNames and type(text)=='string' and text:match('^convai_subtitle_')then return ''end
+ return text
+end
 Vector4={new=function(x,y,z,w)return {x=x,y=y,z=z,w=w}end}
 inkWidgetRef={IsValid=function(ref)native();return type(ref)=='table' and ref.valid~=false end,
  SetVisible=function(ref,value)native();assert(ref and ref.valid~=false);ref.visible=value end}
@@ -95,7 +101,8 @@ local function surface(entity,name)
   offset={x=0,y=0,z=.3,w=0},heightAttempts=0,heightWrites=0,
   slots={component='UI_Slots',slot='UI_Interaction',fallback='UI_Subtitles'},slotWrites=0,
   point={X=600,Y=300},inScreen=true,nameplateVisible=true,
-  refs={normal={visible=true},wide={visible=false},normalContainer={visible=true},wideContainer={visible=false}}}
+  refs={normal={visible=true},wide={visible=false},normalContainer={visible=true},wideContainer={visible=false},
+    textContainer={visible=false},speechBubble={visible=true}}}
 end
 -- CET can materialize a different Lua wrapper at each callback. The native
 -- widget's data persists, but neither the controller nor root wrapper compares
@@ -103,6 +110,8 @@ end
 local function wrapController(state)
  return {m_text_normal=state.refs.normal,m_text_wide=state.refs.wide,
   m_container_normal=state.refs.normalContainer,m_container_wide=state.refs.wideContainer,
+  m_TextContainer=state.refs.textContainer,m_speachBubble=state.refs.speechBubble,
+  IsVisible=function()native();return state.nativeVisible~=false end,
   SetNameplateVisibility=function(_,visible)native();state.nameplateVisible=visible end,
   GetOwnerID=function()
   native();assert(not state.brokenOwner,'Native owner expired');return {hash=state.entity}
@@ -125,7 +134,7 @@ local function wrapController(state)
  end,GetRootWidget=function()
   native();assert(not state.brokenRoot,'Native widget expired')
   return {GetName=function()native();return CName.new(state.root.name)end,
-   SetName=function(_,value)native();state.root.name=NameToString(value)end,
+   SetName=function(_,value)native();state.root.name=type(value)=='table' and value.value or value end,
    IsVisible=function()native();return state.root.visible end,
    SetVisible=function(_,visible)
     native();state.root.visible=visible
@@ -574,6 +583,9 @@ assert(not own.root.visible and not m.projectionReady)
 project(wrapController(own),'target','game-controller',projectNative(own))
 assert(not own.root.visible and not m.projectionReady,'Initial cached UI slot must never flash near the head')
 own.point.Y=220
+m.update(.016)
+assert(not own.root.visible and not m.projectionReady,'Callback and Lua update in one frame cannot skip the guard')
+m.update(.016)
 project(wrapController(own),'target','game-controller',projectNative(own))
 assert(own.root.visible and m.projectionReady and own.marginTop==220)
 for _,visible in ipairs({true,false,true,false})do
@@ -589,11 +601,11 @@ end)
 assert(own.root.visible and own.marginTop==220,'Native lowercase vector wrappers must be accepted')
 own.point={X=600,Y=220}
 local before=calls
-own.point.Y=0/0;project(wrapController(own),'target','game-controller',projectNative(own))
-assert(not own.root.visible and calls==before,'Invalid coordinates cannot display or move the owned root')
+own.point.Y=0/0;project(wrapController(own),'target','game-controller',function()calls=calls+1 end)
+assert(own.root.visible and not own.refs.textContainer.visible and calls==before+1,'Invalid coordinates hide owned text without blocking native projection')
 own.point.Y=220;own.inScreen=false
 project(wrapController(own),'target','game-controller',projectNative(own))
-assert(not own.root.visible and calls==before)
+assert(own.root.visible and not own.refs.textContainer.visible and calls==before+2)
 own.inScreen=true;project(wrapController(own),'target','game-controller',projectNative(own))
 assert(own.root.visible and own.marginTop==220)
 `));
@@ -649,14 +661,111 @@ assert(m.line.id~=id and #shown()==3 and hidden()[#hidden()]==id)
 assert(m.renderUpdateError:find('unavailable') and not broken.root.visible and broken.offset.z==.3)
 `));
 
-test('a missing projection override API retains native caption visibility rather than leaving a hidden root', () => run(setup + `
+test('a missing projection override API still reveals the admitted caption through the regular frame path', () => run(setup + `
 Override=nil
 assert(m.install() and registrations==1 and overrideRegistrations==0)
 local root=surface('201ULL')
 m.show('Judy','Native placement remains usable.',judy,'201ULL')
 afterHooks['ChatterLineLogicController.SetLineData'](wrapController(root),m.line)
-assert(root.root.visible and root.offset.z==.15 and m.widgetToken~=nil and not m.pendingProjection)
+assert(not root.root.visible and root.offset.z==.15 and m.widgetToken~=nil and m.pendingProjection)
+m.update(.016);assert(not root.root.visible)
+m.update(.016);assert(root.root.visible and not m.pendingProjection and m.projectionReady)
+assert(root.refs.textContainer.visible and not root.refs.speechBubble.visible)
 m.clear();assert(not root.root.visible and root.offset.z==.3)
+`));
+
+test('dynamic native names retain exact ownership even when NameToString has no interned text', () => run(setup + `
+uninternedRootNames=true
+m.install()
+local own,foreign=surface('201ULL'),surface('201ULL','convai_subtitle_other_root')
+m.beginTimed('Judy','A reply in progress.',8,judy,'201ULL')
+local id=m.line.id
+afterHooks['ChatterLineLogicController.SetLineData'](wrapController(own),m.line)
+local nativeName=wrapController(own):GetRootWidget():GetName()
+assert(NameToString(nativeName)=='' and NameToString(CName.new(m.widgetToken))=='')
+assert(nativeName==CName.new(m.widgetToken),'Native value identity must survive absent text lookup')
+assert(own.root.name==m.widgetToken and not own.root.visible)
+local bubble=overrides['ChatterLineLogicController.IsBubble']
+assert(bubble(wrapController(own),{},function()return true end)==false)
+assert(bubble(wrapController(foreign),{},function()return true end)==true,'Two unresolved names are not the same native value')
+assert(foreign.root.visible and foreign.heightWrites==0)
+m.update(.016);m.update(.016)
+assert(own.root.visible and m.projectionReady and own.refs.textContainer.visible and not own.refs.speechBubble.visible)
+assert(m.reviseTimed('A reply in progress. More of the same utterance arrives.',10,2))
+assert(#shown()==1 and #hidden()==0 and m.line.id==id and own.refs.normal.text==m.line.text)
+m.clear()
+assert(not own.root.visible and own.offset.z==.3 and hidden()[1]==id)
+assert(foreign.root.visible and foreign.heightWrites==0)
+`));
+
+test('regular frames reveal and clip timed captions even when registered native projection hooks never run', () => run(setup + `
+m.install()
+local own=surface('201ULL')
+m.beginTimed('Judy','The live utterance keeps its own projected text.',8,judy,'201ULL')
+afterHooks['ChatterLineLogicController.SetLineData'](wrapController(own),m.line)
+assert(overrides['ChatterLineLogicController.UpdateProjection']~=nil and not own.root.visible)
+-- API registration alone does not prove that a native call will reach it.
+-- Exercise only the real regular update path, including its timed early return.
+m.update(.016);assert(not own.root.visible and m.pendingProjection)
+m.update(.016);assert(own.root.visible and m.projectionReady and not m.pendingProjection)
+assert(m.projectionFrames==2 and not m.projectionCallbacks and not m.bubbleOverrides)
+assert(own.refs.textContainer.visible and not own.refs.speechBubble.visible)
+local id=m.line.id
+own.inScreen=false;m.update(.016);assert(own.root.visible and not own.refs.textContainer.visible)
+own.inScreen=true;own.nativeVisible=false;m.update(.016);assert(own.root.visible and not own.refs.textContainer.visible,'Native distance visibility still applies')
+own.nativeVisible=true;m.update(.016);assert(own.root.visible)
+assert(m.line.id==id and #shown()==1 and #hidden()==0)
+local beforeReads,beforeWrites=nativeReads,#own.root.visibilityWrites
+world=false;m.abandon();m.update(.016)
+assert(nativeReads==beforeReads and #own.root.visibilityWrites==beforeWrites,'Unload cannot reveal an old root')
+`));
+
+test('same-frame projection callbacks cannot shorten settling and an unretained name cannot hide a foreign root', () => run(setup + `
+m.install()
+local own=surface('201ULL')
+m.beginTimed('Judy','A stable first projected frame.',8,judy,'201ULL')
+afterHooks['ChatterLineLogicController.SetLineData'](wrapController(own),m.line)
+local project=overrides['ChatterLineLogicController.UpdateProjection']
+local function wrapped()return true end
+for _=1,8 do project(wrapController(own),{}, {},wrapped)end
+assert(not own.root.visible and m.pendingProjection)
+m.update(.016)
+for _=1,8 do project(wrapController(own),{}, {},wrapped)end
+assert(not own.root.visible and m.pendingProjection,'Repeated callbacks in frame one cannot expose cached placement')
+m.update(.016);assert(own.root.visible and not m.pendingProjection)
+m.clear()
+local foreign=surface('201ULL')
+local controller=wrapController(foreign)
+controller.GetRootWidget=function()
+ local root=wrapController(foreign):GetRootWidget()
+ root.SetName=function()native()end -- a silent binding failure does not retain the name
+ return root
+end
+m.show('Judy','Native fallback after failed name ownership.',judy,'201ULL')
+afterHooks['ChatterLineLogicController.SetLineData'](controller,m.line)
+assert(foreign.root.visible and foreign.heightWrites==0 and m.controller==nil)
+assert(m.status().rendered.ownershipError:find('did not retain'))
+m.update(.016);m.update(.016)
+assert(foreign.root.visible and foreign.heightWrites==0,'The frame fallback needs exact native root ownership')
+`));
+
+test('initial readiness cannot deadlock a hidden root and owned full text stays clipped outside native visibility', () => run(setup + `
+m.install()
+local own=surface('201ULL')
+own.inScreen=false;own.point={X=0,Y=768}
+m.beginTimed('Judy','The native projection can initialize while its text is hidden.',8,judy,'201ULL')
+afterHooks['ChatterLineLogicController.SetLineData'](wrapController(own),m.line)
+assert(not own.root.visible and m.pendingProjection)
+m.update(.016);assert(not own.root.visible)
+m.update(.016)
+assert(own.root.visible and not m.pendingProjection and not m.projectionReady,'Guard must release even without projection readiness')
+assert(not own.refs.textContainer.visible and not own.refs.speechBubble.visible,'Offscreen text cannot expand at the viewport edge')
+own.inScreen=true;own.point={X=400,Y=250}
+m.update(.016)
+assert(own.root.visible and m.projectionReady and own.refs.textContainer.visible and not own.refs.speechBubble.visible)
+own.point={};m.update(.016)
+assert(own.root.visible and not own.refs.textContainer.visible and not m.projectionReady)
+m.clear();assert(not own.root.visible)
 `));
 
 test('installed 2.31 native sources support animated head projection and owned plain-text update refs', {

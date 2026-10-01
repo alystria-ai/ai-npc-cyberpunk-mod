@@ -101,11 +101,24 @@ if request:match('^companion%-systems:') then
             preGame = Game.GetSystemRequestsHandler():IsPreGame(),
             menu = Game.GetBlackboardSystem():Get(definitions.UI_System):GetBool(definitions.UI_System.IsInMenu),
             composerOpen = player and player:ConvaiComposerOpen() or false}
+        local facility = Game.GetMountingFacility()
+        local slot = NewObject('gamemountingMountingSlotId')
+        local playerID = player:GetEntityID()
+        local byObject = facility:GetMountingInfoSingleWithObjects(player)
+        local byID = facility:GetMountingInfoSingleWithIds(playerID, EntityID.new(), slot)
+        local function receipt(info)
+            return {childMatches = info and tostring(info.childId.hash) == tostring(playerID.hash) or false,
+                parentPresent = info and not tostring(info.parentId.hash):match('^0+[uUlL]*$') or false,
+                seat = info and NameToString(info.slotId.id)}
+        end
+        report.freshPlayerMount = {state = tostring(PlayerPuppet.GetCurrentVehicleState(player)),
+            anyMount = facility:IsMountedToAnything(playerID), byObject = receipt(byObject), byID = receipt(byID)}
         local vehicle = player and adapter.player(player)
         report.playerVehicle = vehicle ~= nil
         if vehicle then
             local info = adapter.inspect(vehicle)
             report.nativeVehicle = {ready = info.ready, speed = info.speed, invalid = info.invalid, seats = info.seats}
+            report.freshPlayerMount.carPlayerMounted = info.playerMounted
         end
         for _, candidate in ipairs(convaiCompanions.conversationCandidates(player, 30)) do
             report.expressions[#report.expressions + 1] = {
@@ -267,6 +280,35 @@ end
 if request:match('^overhead%-state:') then
     local report = {request = request, controllers = {}, rendered = convaiOverheadProbe and convaiOverheadProbe.rendered,
         adapter = convaiSubtitles and convaiSubtitles.status and convaiSubtitles.status()}
+    local observed, live = pcall(function()
+        local subtitles = convaiSubtitles
+        if not subtitles or not subtitles.controller then return {controller = false} end
+        local controller = subtitles.controller
+        local root = controller:GetRootWidget()
+        local projection = controller:GetProjection()
+        local point = projection and projection.currentPosition
+        local projected = projection and projection:GetEntity()
+        local rootName = root:GetName()
+        local expectedName = subtitles.widgetToken and CName.new(subtitles.widgetToken)
+        local state = {controller = true, rootVisible = root:IsVisible(),
+            originalRootVisible = subtitles.rootVisibility,
+            tokenMatches = NameToString(rootName) == subtitles.widgetToken,
+            rootNameText = NameToString(rootName), rootNameValue = tostring(rootName),
+            expectedNameText = expectedName and NameToString(expectedName), expectedNameValue = tostring(expectedName),
+            nativeNameMatches = expectedName ~= nil and rootName == expectedName,
+            ownerMatches = tostring(controller:GetOwnerID().hash) == subtitles.entity,
+            projectionMatches = projected and tostring(projected:GetEntityID().hash) == subtitles.entity or false,
+            inScreen = projection and projection:IsInScreen() or false,
+            x = point and (point.x or point.X), y = point and (point.y or point.Y),
+            pendingProjection = subtitles.pendingProjection == true}
+        for _, name in ipairs({'m_TextContainer', 'm_speachBubble'}) do
+            local ok, visible = pcall(function() return inkWidgetRef.IsVisible(controller[name]) end)
+            state[name .. 'Available'] = ok
+            if ok then state[name] = visible end
+        end
+        return state
+    end)
+    report.live = observed and live or {available = false}
     local ok, err = pcall(function()
         for _, layer in ipairs(Game.GetInkSystem():GetLayers()) do
             for _, controller in ipairs(layer:GetGameControllers()) do

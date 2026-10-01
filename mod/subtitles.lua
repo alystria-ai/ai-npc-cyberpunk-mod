@@ -20,10 +20,17 @@ end
 local function board()
     return Game.GetBlackboardSystem():Get(Game.GetAllBlackboardDefs().UIGameData)
 end
+local function sameToken(name, token)
+    if type(token) ~= 'string' then return false end
+    -- CName.new hashes a string but does not intern it in the game's name
+    -- pool. NameToString can therefore be empty for our perfectly valid name.
+    -- Native CName equality compares the complete hash, across CET wrappers.
+    return name == CName.new(token)
+end
 local function ownedController(controller)
     if not M.line or M.mode ~= 'overhead' or not M.widgetToken or not controller then return false end
     local ok, owned = pcall(function()
-        return NameToString(controller:GetRootWidget():GetName()) == M.widgetToken
+        return sameToken(controller:GetRootWidget():GetName(), M.widgetToken)
             and tostring(controller:GetOwnerID().hash) == M.entity
     end)
     return ok and owned
@@ -32,6 +39,47 @@ local function concealOwnedRoot()
     if ownedController(M.controller) then
         pcall(function() M.controller:GetRootWidget():SetVisible(false) end)
     end
+end
+local function projectionVisible(controller)
+    local ok, visible = pcall(function()
+        controller:SetNameplateVisibility(false)
+        local projection = controller:GetProjection()
+        local point = projection.currentPosition
+        -- CET native vector wrappers and redscript Vector2 expose different
+        -- coordinate spellings. Neither text lookup nor coercion is needed.
+        local read, x, y = pcall(function() return point.x, point.y end)
+        if not read or not finite(x) or not finite(y) then x, y = point.X, point.Y end
+        return projection:IsInScreen() and finite(x) and finite(y)
+            and controller:IsVisible(controller:GetOwnerID()) == true
+    end)
+    if not ok then M.projectionError = tostring(visible); return false end
+    return visible
+end
+local function settleProjection(controller, visible)
+    if not ownedController(controller) then return end
+    if M.pendingProjection and (M.frameSerial or 0) < (M.revealAfterFrame or 0) then
+        concealOwnedRoot()
+        return
+    end
+    -- Readiness cannot be the condition for releasing a hidden root: opaque
+    -- native projection code may itself stop ticking while that root is hidden.
+    -- Restore its original visibility after the bounded initialization guard.
+    local shown = pcall(function()
+        local root, wanted = controller:GetRootWidget(), M.rootVisibility ~= false
+        if root:IsVisible() ~= wanted then root:SetVisible(wanted) end
+    end)
+    if not shown then return end
+    -- A missing internal hook must never keep an admitted root hidden. The
+    -- normal Lua frame path calls this too, and can expand just our own refs.
+    local ok, problem = pcall(function()
+        local text, bubble = controller.m_TextContainer, controller.m_speachBubble
+        if inkWidgetRef.IsValid(text) and inkWidgetRef.IsValid(bubble) then
+            inkWidgetRef.SetVisible(text, visible)
+            inkWidgetRef.SetVisible(bubble, false)
+        end
+    end)
+    if not ok then M.renderVisibilityError = tostring(problem) end
+    M.pendingProjection, M.projectionReady = nil, visible == true
 end
 local function restorePlacement()
     local placement = M.placement
@@ -57,6 +105,7 @@ local function hideLine()
     restorePlacement()
     M.line, M.controller, M.widgetToken = nil, nil, nil
     M.projectionReady, M.pendingProjection = nil, nil
+    M.revealAfterFrame = nil
     M.rootVisibility = nil
     if line then
         pcall(function()
@@ -85,6 +134,7 @@ function M.abandon()
     M.pages, M.timed, M.speaker, M.page, M.remaining, M.mode = nil, nil, nil, nil, nil, nil
     M.placement = nil
     M.anchor, M.projectionReady, M.pendingProjection, M.rootVisibility = nil, nil, nil, nil
+    M.revealAfterFrame = nil
 end
 
 local function headAnchor(actor)
@@ -290,10 +340,15 @@ function M.syncTimed(position)
     if target ~= M.page then M.page = target; showPage() end
 end
 function M.update(delta)
+    M.frameSerial = (M.frameSerial or 0) + 1
     if not M.line then return end
     local ok, player = pcall(function() return Game.GetPlayer() end)
     if not ok or not player or (M.playerID and identity(player) ~= M.playerID) then M.abandon(); return end
     if not M.enabled() or (M.actor and not validActor(M.actor, M.entity)) then M.clear(); return end
+    if ownedController(M.controller) then
+        M.projectionFrames = (M.projectionFrames or 0) + 1
+        settleProjection(M.controller, projectionVisible(M.controller))
+    end
     if M.timed then return end
     local defs = Game.GetAllBlackboardDefs()
     if Game.GetBlackboardSystem():Get(defs.UI_System):GetBool(defs.UI_System.IsInMenu) then return end
@@ -305,13 +360,13 @@ function M.update(delta)
 end
 
 function M.install()
-    if M.hooksVersion == 6 then return true end
+    if M.hooksVersion == 7 then return true end
     if type(ObserveAfter) ~= 'function' then return false end
     local guardsProjection = type(Override) == 'function'
     ObserveAfter('ChatterLineLogicController', 'SetLineData', function(controller, line)
-        local named, rootName = pcall(function() return NameToString(controller:GetRootWidget():GetName()) end)
+        local named, rootName = pcall(function() return controller:GetRootWidget():GetName() end)
         local current = M.line and M.mode == 'overhead' and tostring(line.id) == tostring(M.line.id)
-        if named and (M.widgetToken == rootName or (M.placement and M.placement.token == rootName)) then
+        if named and (sameToken(rootName, M.widgetToken) or (M.placement and sameToken(rootName, M.placement.token))) then
             if current and ownedController(controller) then
                 -- Native settings/HUD refresh can present the same line again.
                 -- It does not own a new projection or need a new root token.
@@ -326,6 +381,7 @@ function M.install()
             pcall(function() controller:GetRootWidget():SetVisible(M.rootVisibility ~= false) end)
             M.controller, M.widgetToken, M.projectionReady, M.pendingProjection = nil, nil, nil, nil
             M.rootVisibility = nil
+            M.revealAfterFrame = nil
         end
         if not current then return end
         local ok, result = pcall(function()
@@ -343,15 +399,23 @@ function M.install()
             local token = 'convai_subtitle_' .. tostring(line.id):gsub('[^%w_]', '_') .. '_' .. M.renderSerial
             concealOwnedRoot()
             restorePlacement()
-            local marked = pcall(function()
+            local marked, claimed = pcall(function()
                 local root = controller:GetRootWidget()
                 M.rootVisibility = root:IsVisible()
                 root:SetName(CName.new(token))
-                if guardsProjection then root:SetVisible(false) end
+                if not sameToken(root:GetName(), token) then return false end
+                root:SetVisible(false)
+                return true
             end)
-            if not marked then return end
+            if not marked or not claimed then
+                M.rendered.ownershipError = not marked and tostring(claimed) or 'Native root did not retain its owned name'
+                return
+            end
             M.controller, M.widgetToken, M.rendered.widgetToken = controller, token, token
-            M.projectionReady, M.pendingProjection = false, guardsProjection and true or nil
+            M.projectionReady, M.pendingProjection = false, true
+            -- Two regular frame ticks allow projection/layout to refresh even
+            -- when a native callback and Lua update occur in the same frame.
+            M.revealAfterFrame = (M.frameSerial or 0) + 2
             local adjusted, offset = pcall(function()
                 local projection = controller:GetProjection()
                 local original = projection:GetFixedWorldOffset()
@@ -406,38 +470,16 @@ function M.install()
         end)
         Override('ChatterLineLogicController', 'UpdateProjection', function(controller, target, owner, wrapped)
             if not ownedController(controller) then return wrapped(target, owner) end
-            local ok, visible = pcall(function()
-                -- Native chatter raises matching nameplate text by 30 screen
-                -- pixels as aim changes. Our head-anchored caption already has
-                -- clearance, so that unrelated UI transition cannot move it.
-                controller:SetNameplateVisibility(false)
-                local projection = controller:GetProjection()
-                local point = projection.currentPosition
-                -- CET's native vector wrappers commonly expose lowercase
-                -- coordinates; redscript's Vector2 fields are uppercase.
-                local read, x, y = pcall(function() return point.x, point.y end)
-                if not read or not finite(x) or not finite(y) then x, y = point.X, point.Y end
-                return projection:IsInScreen() and finite(x) and finite(y)
-            end)
-            if not ok or not visible then
-                concealOwnedRoot()
-                return
-            end
+            M.projectionCallbacks = (M.projectionCallbacks or 0) + 1
+            local visible = projectionVisible(controller)
+            -- Native projection/viewport work must run even while initial
+            -- coordinates are unavailable or the speaker is outside the view.
             local result = wrapped(target, owner)
-            if M.pendingProjection then
-                -- RegisterScreenProjection can supply one cached position from
-                -- before the head slot/offset was configured. Suppress exactly
-                -- that first update; later native projection ticks track normally.
-                M.pendingProjection = nil
-                concealOwnedRoot()
-            else
-                pcall(function() controller:GetRootWidget():SetVisible(true) end)
-                M.projectionReady = true
-            end
+            settleProjection(controller, visible)
             return result
         end)
     end
-    M.hooksInstalled, M.hooksVersion = true, 6
+    M.hooksInstalled, M.hooksVersion = true, 7
     return true
 end
 function M.status()
@@ -445,7 +487,9 @@ function M.status()
         mode = M.mode, requestedStyle = M.requestedStyle, fallback = M.fallback, entity = M.entity,
         timed = M.timed ~= nil, position = M.timed and M.timed.position, rendered = M.rendered,
         bubbleOverrides = M.bubbleOverrides or 0, projectionReady = M.projectionReady == true,
-        textUpdates = M.textUpdates or 0, renderUpdateError = M.renderUpdateError}
+        projectionCallbacks = M.projectionCallbacks or 0, projectionFrames = M.projectionFrames or 0,
+        textUpdates = M.textUpdates or 0, renderUpdateError = M.renderUpdateError,
+        projectionError = M.projectionError, renderVisibilityError = M.renderVisibilityError}
 end
 
 -- Legacy live entry points keep the normal HUD when no exact actor is given.

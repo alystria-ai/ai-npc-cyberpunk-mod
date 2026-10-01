@@ -912,3 +912,49 @@ survived returning to Auto. The temporary test modal, draft and installed
 diagnostic hook were cleaned up. The user asked to end additional UI polishing
 and preserve native blinking. Accepted eyes/lip sync/UI are no longer calibration
 tasks; broader device/controller qualification stays a release concern.
+
+## October 2: conversation actions, native values and overhead captions
+
+Three installed failures exposed boundaries that integer-only fixtures and
+source signatures did not qualify:
+
+- Convai's legacy driving proposal omitted its optional target. A request-bound
+  nonce is now part of the advertised action name; only the current exact name
+  or the base action with its exact target can authorize the frozen native
+  offer. The provider, participant, reliability, expiry and one-use checks stay
+  in place. Live counters confirmed actual targetless delivery and publication.
+- CET's own JSON round trip changed all three native waypoint coordinates.
+  Native capture now freezes the bounded wire representation before sending
+  it. Exact receipt equality remains, and the fleet rechecks fresh native
+  actor/car/seat/route state. Fractional-coordinate regressions accompany the
+  read-only installed round-trip receipt.
+- A selected route's native road endpoint changed by hundreds of metres when
+  V boarded, while its Quest mappin identity stayed the same. The route lease
+  must distinguish selected destination identity from the engine's computed
+  road endpoint. Manual pins keep their original marker location; Quest
+  objectives may move. Departure and arrival still require actual native
+  execution evidence.
+
+The first overhead-stability patch reused one caption, avoided duration-only
+recreation, and concealed the exact root before delayed cleanup. Its initial
+visibility guard introduced a live regression: a dynamic `CName.new` widget
+name had equal native hashes but no interned text. `NameToString` returned an
+empty string, so text-based ownership failed and the caption stayed hidden.
+The installed active preview proved native equality while the text comparison
+failed. Native CName equality and a bounded frame-driven reveal are the
+appropriate correction; namespace text must not be assumed to be interned.
+
+Development method: trace each transfer boundary using enumerated counters and
+matching booleans, then make one bounded native/read-only experiment. Keep
+credentials, player/provider/session IDs and conversation text out of diagnostic
+output. Separate parser acceptance, file publication, native queue admission,
+mount animation completion, AutoDrive enablement, and visible/audible output.
+Inspect lifetime ownership in the installed version before changing it; chatter
+duration is not a plain-text expiry timer in the inspected 2.31 script route.
+
+Local commits and hash-verified install receipts retain rollback points.
+Combine Lua changes for CET reloads and reserve game restarts for native startup
+code. A compiled or green source test is never the installed motion/visibility
+acceptance gate. These new driving and caption checks remain open until the
+running game confirms them; see the detailed chauffeur/subtitle documents and
+ignored local TODO for the current evidence.
