@@ -172,7 +172,7 @@ test('seated attention changes only the owned look after a stable mount and yiel
   assert(not motor.look,'A single delayed frame was mistaken for two stable seat observations')
   seatTick(3); assert(not motor.look,'Look started during seat settling')
   seatTick(4); local first=motor.look
-  assert(first and first.parts[1].weight==0.18 and first.parts[2].weight==0 and countLooks()==1)
+  assert(first and first.parts[1].weight==0.18 and #first.parts==1 and countLooks()==1)
   seatTick(20); assert(motor.look==first and #npc.ai.commands==0)
   seated.seat='seat_front_left'; seatTick()
   assert(not motor.look and motor.seatedAttention.reason=='Driver watches the road')

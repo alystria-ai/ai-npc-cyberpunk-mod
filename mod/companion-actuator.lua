@@ -74,7 +74,7 @@ local function clearLook(s)
         end
     end
     s.look,s.lookStyle=nil,'none'
-    s.lookHeight,s.lookStrength=nil,nil
+    s.lookHeight,s.lookStrength,s.lookSeated=nil,nil,nil
     s.lookRemoveRetryAt,s.lookRemoveError=nil,nil
     return true
 end
@@ -128,7 +128,7 @@ function M.abandon(s)
     s.command,s.npc,s.look=nil,nil,nil
     s.cancellation=nil
     s.suspendedHold=nil
-    s.lookStyle,s.lookHeight,s.lookStrength='none',nil,nil
+    s.lookStyle,s.lookHeight,s.lookStrength,s.lookSeated='none',nil,nil,nil
     s.lookRemoveRetryAt,s.lookRemoveError=nil,nil
     s.seatedAttention=nil
     s.feedback={}; s.issued=false
@@ -178,11 +178,13 @@ end
 local function bounded(value,low,high,fallback)
     return type(value)=='number' and value==value and value>=low and value<=high and value or fallback
 end
-local function look(s,style,player,settings)
+local function look(s,style,player,settings,seated)
+    seated=seated==true
     local height=bounded(settings and settings.eyeContactHeight,-0.10,0.10,0)
     local strength=bounded(settings and settings.headFollowStrength,0,1.5,1)
     if style=='none' and not s.look then return end
-    if style~='none' and s.look and s.lookStyle==style and s.lookHeight==height and s.lookStrength==strength then return end
+    if style~='none' and s.look and s.lookStyle==style and s.lookHeight==height
+        and s.lookStrength==strength and s.lookSeated==seated then return end
     if style=='none' then
         local cleared,err=clearLook(s)
         if not cleared then error(err) end
@@ -204,10 +206,18 @@ local function look(s,style,player,settings)
     event.request.limits.hardLimitDegrees=style=='full' and 120 or 100
     event.request.limits.backLimitDegrees=120
     event.request.limits.hardLimitDistance=5
-    local head,chest=LookAtPartRequest.new(),LookAtPartRequest.new()
+    local head=LookAtPartRequest.new()
     head.partName,head.weight,head.suppress,head.mode=CName.new('Head'),(style=='full' and 0.18 or 0.05)*strength,1,0
-    chest.partName,chest.weight,chest.suppress,chest.mode=CName.new('Chest'),0,0,0
-    event:SetAdditionalPartsArray({head,chest})
+    local parts={head}
+    -- Native 2.31 ActivateReactionLookAt(inVehicle=true) omits Chest. A part's
+    -- zero stiffness still admits it into the solver and can rotate the torso
+    -- against the passenger animation's hand-on-knee constraints.
+    if not seated then
+        local chest=LookAtPartRequest.new()
+        chest.partName,chest.weight,chest.suppress,chest.mode=CName.new('Chest'),0,0,0
+        parts[#parts+1]=chest
+    end
+    event:SetAdditionalPartsArray(parts)
     local cleared,err=clearLook(s)
     if not cleared then error(err) end
     -- Claim before QueueEvent: a native exception may follow its side effect.
@@ -215,14 +225,14 @@ local function look(s,style,player,settings)
     s.look=event
     local accepted=s.npc:QueueEvent(event)
     if accepted==false then error('Native look request refused') end
-    s.lookStyle,s.lookHeight,s.lookStrength=style,height,strength
+    s.lookStyle,s.lookHeight,s.lookStrength,s.lookSeated=style,height,strength,seated
 end
 
 -- This boundary cannot sense, cancel or issue any native locomotion command.
 -- Vehicle seating owns the body while the same exact look owner follows V.
-function M.applyLook(s,style,player,settings)
+function M.applyLook(s,style,player,settings,seated)
     if style~='none' and s.clock<(s.lookRetryAt or 0) then return false,s.lookError end
-    local ok,err=pcall(look,s,style,player,settings)
+    local ok,err=pcall(look,s,style,player,settings,seated)
     s.lookError=not ok and tostring(err) or nil
     if not ok then s.lookRetryAt=s.clock+3 end
     return ok,s.lookError
@@ -252,7 +262,7 @@ function M.applySeatedLook(s,c,dt)
     attention.reason=style=='full' and 'Attend with eyes and head while seated'
         or (ready and attention.stableFor>=0.5 and 'No selected seated attention' or reason)
     attention.speed=c.speed
-    return M.applyLook(s,style,c.player,c.gazeSettings)
+    return M.applyLook(s,style,c.player,c.gazeSettings,true)
 end
 
 local function validate(s,intent,c)

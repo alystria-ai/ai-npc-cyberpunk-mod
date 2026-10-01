@@ -11,8 +11,9 @@ Companion Manager → Settings → Companion behavior contains two native select
 
 Gentle retains the accepted focused head weight `0.18` and side-glance weight
 `0.05`. Less multiplies those by `0.5`; More by `1.5`, bounded at `0.27` and
-`0.075`. Eyes only sets the additional head weight to zero. Chest weight remains
-zero in every mode. The selected companion can still make the existing single
+`0.075`. Eyes only sets the additional head weight to zero. Standing requests retain
+their accepted zero-weight Chest entry; seated requests omit Chest entirely.
+The selected companion can still make the existing single
 body turn and small attention step while on foot. Seated attention uses only
 the eyes and head; the vehicle controller owns body movement.
 
@@ -77,7 +78,7 @@ can then attend to V after the companion's mount command has finished, its
 actual vehicle and seat match the controller, and V is actually mounted in a
 different seat of that same car. V must be in the native `Driving` or
 `Passenger` state. The same seat must remain eligible for half a second before
-the selected companion gets the existing full eye/head request. The actuator
+the selected companion gets a full eye/head request without a Chest part. The actuator
 never senses, cancels, or submits a locomotion command in this seated path.
 
 Combat, boarding, exit/scene transitions, mount loss, a different car, focus
@@ -102,6 +103,14 @@ and returns both success and the transform. Judy's sampled head was about
 That probe verifies the native geometry call, not visual head-turn acceptance.
 The local readback is retained in
 `runtime/verification/seated-head-slot-live-20261002.json`.
+
+The user subsequently confirmed the head turn but reported a hand stuck to the
+knee. Their screenshot showed the upper body rotated against the passenger hand
+pose. Installed `reactionComponent.script:3505-3507` passes `inVehicle=true` for
+mounted actors; `4656-4674` then omits Chest instead of setting its weight to zero.
+The seated request now follows that part list, preserving the accepted standing
+request and the native seat/hand animation. This is a source-backed correction;
+the resulting arm posture still requires the user's visual check.
 
 ## Verification boundary
 

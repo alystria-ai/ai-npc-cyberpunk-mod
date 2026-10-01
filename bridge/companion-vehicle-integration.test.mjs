@@ -130,7 +130,7 @@ local npc=spawn(); local serial=companions.list()[1].serial
 selected=primary; update(12,npc.id.hash)
 assert(row(serial).transport.phase=='riding' and mounts[npc.id.hash])
 local look=next(npc.looks)
-assert(look and look.parts[1].weight==0.18 and look.parts[2].weight==0,'Seated passenger did not look at V')
+assert(look and look.parts[1].weight==0.18 and #look.parts==1,'Seated passenger did not use a head-only look')
 local commands=#npc.ai.commands
 npc.ai.GetCommandState=function() error('Seated attention queried a walking command') end
 npc.ai.SendCommand=function() error('Seated attention submitted a walking command') end
@@ -139,7 +139,7 @@ assert(next(npc.looks)==look and #npc.ai.commands==commands and not row(serial).
 companions.gazeSettings=function() return {eyeContactHeight=0.05,headFollowStrength=0.5} end
 update(2,npc.id.hash)
 local adjusted=next(npc.looks)
-assert(adjusted and adjusted~=look and not npc.looks[look] and adjusted.parts[2].weight==0)
+assert(adjusted and adjusted~=look and not npc.looks[look] and #adjusted.parts==1)
 assert(adjusted.targetPositionProvider.worldOffset.z==0.05 and #npc.ai.commands==commands)
 update(2); assert(not next(npc.looks))
 `));
