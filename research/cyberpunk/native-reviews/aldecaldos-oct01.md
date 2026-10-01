@@ -4,7 +4,7 @@
 
 This is a source review of installed Cyberpunk 2077 **2.31**. Six outcomes were added to `../native-rules/aldecaldos.json` (revision 2), replacing their six `unmapped` placeholders. The lane now has **22 source-verified rules and 100 unmapped outcomes**, with 122 narrative outcome links in total. None is live-qualified by this pass. No game action, save mutation, conversation, memory write, API request, install or commit was performed.
 
-The user is restarting Codex. Research and extraction stopped at this checkpoint. The read-only per-pack verifier passed: **122 rules, 30 evidence records, 53 referenced native files**. New-rule resolver scenarios described below still require execution by the integrating agent. This source verification does not substitute for those tests or for current-save observations.
+The restart checkpoint has now received independent semantic and executable review. The read-only per-pack verifier passed: **122 rules, 30 evidence records, 53 referenced native files**. The independent gate in `../../../bridge/native-aldecaldos-expansion.test.mjs` passed **23 tests, zero failures and zero skips** with `CYBERPUNK_NATIVE_SOURCE_CHECK=1`. That includes the current-save resolver scenarios, independently recomputed binary/JSON hashes for all **281 new reference pointers across 18 native files**, native socket semantics, all indexed choice writers, and shipped base-plus-EP1 reference closure. The six additions are ready for merged review; none was installed or live-qualified by this lane.
 
 Only the lane JSON and this new review are intended tracked changes. Helpers, raw native resources, localized dialogue joins and audit receipts remain in the ignored task folders:
 
@@ -34,7 +34,7 @@ The complete winning quest/phase/journal inventory and graph/fact/journal indexe
 
 Every new reference carries **both source binary SHA-256 and exported JSON SHA-256**, plus an exact RFC 6901 pointer. Typed targets and selected fact-write values are checked by the pack verifier. The verifier currently recomputes binary hashes and pointer/type/expected fields; the additional JSON digests are recorded for independent checking and are not claimed as checked by that existing CLI.
 
-The writer sweep inspected `index/facts.jsonl` plus every currently exported `scene-evidence/*/index/facts.jsonl`. There are eight assignments for the six newly allowlisted facts:
+The writer sweep inspected `index/facts.jsonl` plus every currently exported `scene-evidence/*/index/facts.jsonl`. The independent gate repeated that sweep, deduplicating identical source/pointer exports and checking their assignment semantics. There are eight assignments for the six newly allowlisted facts:
 
 | Fact | Production assignment | Other indexed assignment |
 | --- | --- | --- |
@@ -45,11 +45,11 @@ The writer sweep inspected `index/facts.jsonl` plus every currently exported `sc
 | `sq004_saul_like` | farmhouse scene node 823, additive +1 | None in reviewed indexes |
 | `sq004_panam_flirted_farm` | farmhouse scene node 2657, exact 1 | None in reviewed indexes |
 
-No indexed reset, opposite assignment or EP1 initializer writes these six selected receipts. This is explicitly bounded to the complete quest inventory and exported scene corpus: it is not a claim that every scene or script-generated writer in the game was exported. No absent or zero fact selects an opposite outcome. Debug resources are recorded as alternate writers, not treated as production events. The independent journal guards require a revealed reached stage and prevent using the choice fact alone as full-event proof.
+No indexed reset, opposite assignment or EP1 initializer writes these six selected receipts. This is explicitly bounded to the complete quest inventory and exported scene corpus: it is not a claim that every scene or script-generated writer in the game was exported. In particular, the shipped root's embedded chicken-test menu references external, unexported `base\quest\test\cp77_chicken_test.scene`; its possible debug/initializer writes are outside this audit. The positive rules apply to normal gameplay history established by the captured receipts, and do not certify a save against arbitrary debug modifications. No absent or zero fact selects an opposite outcome. Debug resources are recorded as alternate writers, not treated as production events. The independent journal guards require a revealed reached stage and prevent using the choice fact alone as full-event proof.
 
 ### Release entry and initialization
 
-The existing `al-native.release-entry` retains the shipped `cyberpunk2077.gamedef` → `cyberpunk2077.quest` → main phase evidence. New `al-native.oct01-ghost-production-entry` adds the production act-1 phase references and normal progression. Act-1's ordinary q101 phase (node 2) exits to XOR167 → hub158 → q103 node15 `In1`. Other debug entry sockets are not used to establish the new events.
+The existing `al-native.release-entry` retains the shipped `cyberpunk2077.gamedef` → `cyberpunk2077.quest` → main phase evidence. The independent review also read the shipped `ep1.gamedef`, which schedules both `base\quest\cyberpunk2077.quest` and `ep1\quest\ep1.quest`, and traversed their combined exported resource-reference closure. Neither of the two indexed test presets appears in that combined closure. This is reference ancestry, not proof that every referenced branch executes. New `al-native.oct01-ghost-production-entry` adds the production act-1 phase references and normal progression. Act-1's ordinary q101 phase (node 2) exits to XOR167 → hub158 → q103 node15 `In1`. Other debug entry sockets are not used to establish the new events.
 
 The act-1 loaded-history predicates are explicitly inspected: node173 tests `q104_done >= 1`; node174 tests `q103_done >= 1`; node176 tests `ep1_standalone >= 1`; node177 waits for the revealed Songbird-hook objective to succeed. They resume or skip whole arcs rather than writing any of these six choice facts. These gates do not justify claiming a particular human selected a branch. Rules describe only history positively established by the current captured save.
 
@@ -71,7 +71,7 @@ Nash refusal remains unmapped. The explicit refusing dialogue exits `go_roadhous
 
 Bar choice10 option0 offers one room. Section12 explicitly describes **twin beds**, then choice407 either accepts that arrangement or flirts further. The shared routes converge on section410, where Panam books one room with twin beds. This is not evidence of sex.
 
-The room-follow objective succeeds only when the room-arrival inputs join at **AND1256**, which drives journal node42 through input ordinal3 (**Succeeded**). Node42 activates the upstairs sleep objective1137. Sleep choice1141 leads to goodnight section1144, cinematic tier858, delay856, Panam reactivation861, and the additive shared-room receipt at2775. The rule requires both the positive receipt and revealed room-follow success. The completed flirt flag is not required because the separate-beds-only choice also takes this path.
+The room-follow objective succeeds when the player-inside-room trigger25 and Panam's `q103_bar_room` SpawnSet activation1020 join at **AND1256**, which drives journal node42 through input ordinal3 (**Succeeded**). The SpawnSet activation is not an independent position condition proving Panam physically arrived. Node42 activates the upstairs sleep objective1137. Sleep choice1141 leads to goodnight section1144, cinematic tier858, delay856, Panam reactivation861, and the additive shared-room receipt at2775. The rule requires both the positive receipt and revealed room-follow success. The completed flirt flag is not required because the separate-beds-only choice also takes this path.
 
 ### Motel flirting
 
@@ -114,7 +114,7 @@ The ignored `localization-audit.json` records the exact scene pointer, variant I
 
 The queried AV-crash and Mitch scene receipts are not enough by themselves to enable the much broader remaining Wartime outcomes. `q104_av_crashed` is written around the vehicle going behind a hill; completed participant knowledge and stage gates still need their own complete review. The Mitch scene's completion cannot simply stand in for all casualty disclosures, V-versus-Panam rescue routes, or pilot information. Those outcomes remain unmapped. Neither later camp membership nor a spawned companion substitutes for witnessing them.
 
-## Integration checks completed and still required
+## Independent integration gate
 
 Completed before checkpoint:
 
@@ -123,18 +123,25 @@ Completed before checkpoint:
 - Verified the complete per-pack schema, reference binary hashes, exact pointers, expected types and selected fact values with `node research/cyberpunk/scripts/review_native_rules.mjs verify research/cyberpunk/native-rules/aldecaldos.json`.
 - Recorded all selected fact writers and their set/add semantics in ignored `writer-audit.json`; both test writers were checked against the shipped-root reference closure.
 
-**Required resolver scenarios not yet executed because of the restart request:**
+The independent reviewer executed the following resolver scenarios rather than accepting authoring assertions. They use offline current-save fixtures and do not modify the game, contact an API or seed memory:
 
-1. For each of the six new rules, supply its positive fact and its exact revealed succeeded journal guard. Only the intended topic/outcome should be selected for an allowed speaker. Use wholly offline fixtures; do not change the game or create a memory/API conversation.
-2. Remove the choice fact, mark it unknown, supply absent/ambiguous zero, remove the journal observation, hide the journal entry, mark the stage active/failed, and give it another quest key. Every such incomplete case must suppress that rule. No refused/no-romance alternative may appear.
-3. Provide both farmhouse stance receipts with a completed Riders guard. Both stance outcomes must be suppressed as contradictory, including when testing one allowed speaker at a time.
-4. Show that shared-room and motel-flirt facts can coexist without suppressing each other; room sharing alone must not imply flirting. An accepted Nash proposal with an active rather than succeeded fight objective must not imply completed assistance.
-5. Private/phone Panam contexts may receive the motel and farmhouse flirt records; group contexts must suppress them even when Panam is in the group. Saul, Mitch and Dakota must never receive those private records.
-6. A Panam/Saul group may discuss the farmhouse policy outcome. A Panam/Saul/Mitch group must suppress it because the entire audience is not known to have heard that conversation. Mitch/Dakota alone must receive no new memories from these six additions.
-7. Unknown save identity may still produce correctly scoped dynamic context but must produce no eligible long-term-memory candidate under the existing resolver. Missing prior-save observations must never reuse a previous call's successful result.
-8. Independently recompute new references' recorded JSON digests, then build/review the combined generated pack in the root lane. The per-pack CLI does not currently enforce the extra JSON hash field itself.
+1. Each positive fact plus its exact revealed succeeded stage selects only the intended topic/outcome for an allowed speaker; the selected memory candidate preserves both captured fact and journal evidence.
+2. Missing/unknown/absent facts, ambiguous and explicit zero, negative or wrong exact values, missing/hidden/active/failed journals, another quest identity and another selector suppress the rule. No refused/no-romance alternative appears. Additive counters still qualify when greater than one; exact flags do not.
+3. Simultaneous positive farmhouse stance receipts suppress both outcomes before private, phone or group audience filtering, including a group with an unauthorized listener.
+4. Shared-room and motel-flirt receipts coexist as distinct facets without conflict. Room sharing alone does not imply flirting. An accepted Nash proposal with an active fight objective does not qualify as completed assistance.
+5. Private/phone Panam contexts receive the four Panam-only records. Every other authored clan profile and every group context suppresses those records, including a group containing only Panam.
+6. A Panam/Saul group may discuss either nonconflicting farmhouse policy outcome. Adding any of the other five authored clan members suppresses it for either speaker because the entire audience is not known to have heard the exchange. Mitch/Dakota alone receive neither stance.
+7. Unknown/session-only identity retains correctly scoped dynamic context but produces no eligible long-term-memory candidate. A fresh capture with missing observations never reuses a previous successful call, and string-shaped fact values are rejected.
+8. Exact binary and exported JSON digests, typed pointers, expected write fields, reconstructed native journal hierarchy/class, production sockets and indexed writer values all pass. The separate per-pack CLI still does not enforce the extra JSON hash field; the new source gate does.
 
-These checks are the remaining integration gate. No package build or live install was performed by this lane.
+Run the complete source gate with PowerShell:
+
+```powershell
+$env:CYBERPUNK_NATIVE_SOURCE_CHECK = '1'
+node --test bridge/native-aldecaldos-expansion.test.mjs
+```
+
+The 18 resolver/schema tests run without private native resources on a fresh checkout; the five source-integrity tests require the explicit environment flag and ignored native cache. The parent still owns combined-pack strict verification, shared generated outputs and any runtime rollout. No package build or live install was performed by this lane. No production-rule defect was found; the independent review corrected the physical-arrival wording and made the external debug-scene limitation explicit.
 
 ## New-reference hash index
 

@@ -1,7 +1,7 @@
 {
   "version": 1,
   "id": "cyberpunk-native-arasaka-heist",
-  "revision": 1,
+  "revision": 2,
   "gameVersions": [
     "2.31"
   ],
@@ -73,96 +73,112 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
+        "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
         "assetSha256": "273bc29a9cc23f202771fb4fe2f23234f7b7c81923ead6ef83df274438ef6393",
         "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/49/Data/questNode/Data/type/Data",
-        "expectedType": "questSetVar_NodeType"
+        "expectedType": "questSetVar_NodeType",
+        "jsonSha256": "3cb8ad6570816d688b123f1f98bd63c8f84c5ae3d7ddcbbff3a3345565019713"
       },
       "nativeRefs": [
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
           "assetSha256": "273bc29a9cc23f202771fb4fe2f23234f7b7c81923ead6ef83df274438ef6393",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data",
-          "expectedType": "scnChoiceNode"
+          "expectedType": "scnChoiceNode",
+          "jsonSha256": "3cb8ad6570816d688b123f1f98bd63c8f84c5ae3d7ddcbbff3a3345565019713"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
           "assetSha256": "273bc29a9cc23f202771fb4fe2f23234f7b7c81923ead6ef83df274438ef6393",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/64/Data",
-          "expectedType": "scnChoiceNode"
+          "expectedType": "scnChoiceNode",
+          "jsonSha256": "3cb8ad6570816d688b123f1f98bd63c8f84c5ae3d7ddcbbff3a3345565019713"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
           "assetSha256": "273bc29a9cc23f202771fb4fe2f23234f7b7c81923ead6ef83df274438ef6393",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/42/Data",
-          "expectedType": "scnHubNode"
+          "expectedType": "scnHubNode",
+          "jsonSha256": "3cb8ad6570816d688b123f1f98bd63c8f84c5ae3d7ddcbbff3a3345565019713"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
           "assetSha256": "273bc29a9cc23f202771fb4fe2f23234f7b7c81923ead6ef83df274438ef6393",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/20/Data",
-          "expectedType": "scnSectionNode"
+          "expectedType": "scnSectionNode",
+          "jsonSha256": "3cb8ad6570816d688b123f1f98bd63c8f84c5ae3d7ddcbbff3a3345565019713"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
           "assetSha256": "273bc29a9cc23f202771fb4fe2f23234f7b7c81923ead6ef83df274438ef6393",
           "jsonPointer": "/Data/RootChunk/locStore/vpEntries/256",
-          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+          "jsonSha256": "3cb8ad6570816d688b123f1f98bd63c8f84c5ae3d7ddcbbff3a3345565019713"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
           "assetSha256": "273bc29a9cc23f202771fb4fe2f23234f7b7c81923ead6ef83df274438ef6393",
           "jsonPointer": "/Data/RootChunk/locStore/vdEntries/257",
-          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+          "jsonSha256": "3cb8ad6570816d688b123f1f98bd63c8f84c5ae3d7ddcbbff3a3345565019713"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
           "assetSha256": "273bc29a9cc23f202771fb4fe2f23234f7b7c81923ead6ef83df274438ef6393",
           "jsonPointer": "/Data/RootChunk/locStore/vpEntries/94",
-          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+          "jsonSha256": "3cb8ad6570816d688b123f1f98bd63c8f84c5ae3d7ddcbbff3a3345565019713"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
           "assetSha256": "273bc29a9cc23f202771fb4fe2f23234f7b7c81923ead6ef83df274438ef6393",
           "jsonPointer": "/Data/RootChunk/locStore/vdEntries/313",
-          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+          "jsonSha256": "3cb8ad6570816d688b123f1f98bd63c8f84c5ae3d7ddcbbff3a3345565019713"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
           "assetSha256": "273bc29a9cc23f202771fb4fe2f23234f7b7c81923ead6ef83df274438ef6393",
           "jsonPointer": "/Data/RootChunk/actors/1",
-          "expectedType": "scnActorDef"
+          "expectedType": "scnActorDef",
+          "jsonSha256": "3cb8ad6570816d688b123f1f98bd63c8f84c5ae3d7ddcbbff3a3345565019713"
         },
         {
-          "jsonPath": "scene-evidence/release-root/raw/base/base/quest/cyberpunk2077.gamedef.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/cyberpunk2077.gamedef.json",
           "assetSha256": "3bc1e3a75a1ba9dc582b8c7736a758899001cd15424ed79e1654de8b8ca41bbd",
-          "jsonPointer": "/Data/RootChunk/mainQuests/0/Data/questFile"
+          "jsonPointer": "/Data/RootChunk/mainQuests/0/Data/questFile",
+          "jsonSha256": "81ab7343ff56d630f2b9d1997d9edf18385be73bf70f0dd06ceb4a237c445bd3"
         },
         {
-          "jsonPath": "raw/base/base/quest/cyberpunk2077.quest.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/cyberpunk2077.quest.json",
           "assetSha256": "b14f15d20e6723b97cf4afe260546c5c6e93c84856c47372fbbb8377b640f449",
-          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data/phaseResource"
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data/phaseResource",
+          "jsonSha256": "f6062cd37e4e3db326cd9ed3b278973e85a43016a13972f08c97ff1aa9bb1bed"
         },
         {
-          "jsonPath": "raw/base/base/quest/cyberpunk2077.questphase.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/cyberpunk2077.questphase.json",
           "assetSha256": "78d8afd0784575216b090f003610ca973be9d1781bab948c9e4dc12006d750b2",
-          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data/phaseResource"
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data/phaseResource",
+          "jsonSha256": "2db111fa7a3bdc26d38dca7954ae0b8adfbb5a5636e9c382120b2f4f5f2febd5"
         },
         {
-          "jsonPath": "raw/base/base/quest/main_quests/prologue/prologue.questphase.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/prologue/prologue.questphase.json",
           "assetSha256": "cd8da62bb121d4910018f3775a8dde0e926f215a974251ce61dee5bd77c78bf8",
-          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseResource"
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseResource",
+          "jsonSha256": "df3bd3dbf92ad3c69393aeafc6bcaed74a4ef889c0dcd90194212c952ec615e7"
         },
         {
-          "jsonPath": "raw/base/base/quest/main_quests/prologue/q003/q003.questphase.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/prologue/q003/q003.questphase.json",
           "assetSha256": "17381eca9d97f8b47626d6901084b0db5c5c7f5ebe79567b950436a7188b1f07",
-          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseResource"
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseResource",
+          "jsonSha256": "18befc6f0d615d9ba048c27024ad2943c65b2d17d823a3839506636ea8fa6a56"
         },
         {
-          "jsonPath": "raw/base/base/quest/main_quests/prologue/q003/phases/q003_militech.questphase.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/prologue/q003/phases/q003_militech.questphase.json",
           "assetSha256": "6db153a9e0c739e9e50d240cbfa1e04e86c7181b41d9811863babc2d7dc86d97",
           "jsonPointer": "/Data/RootChunk/graph/Data/nodes/7/Data",
-          "expectedType": "questSceneNodeDefinition"
+          "expectedType": "questSceneNodeDefinition",
+          "jsonSha256": "81b86a76a061de1a027944261a3181780356ef6542d520e6a34c17f1944f6bef"
         }
       ]
     },
@@ -175,102 +191,119 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
+        "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
         "assetSha256": "273bc29a9cc23f202771fb4fe2f23234f7b7c81923ead6ef83df274438ef6393",
         "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/48/Data/questNode/Data/type/Data",
-        "expectedType": "questSetVar_NodeType"
+        "expectedType": "questSetVar_NodeType",
+        "jsonSha256": "3cb8ad6570816d688b123f1f98bd63c8f84c5ae3d7ddcbbff3a3345565019713"
       },
       "nativeRefs": [
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
           "assetSha256": "273bc29a9cc23f202771fb4fe2f23234f7b7c81923ead6ef83df274438ef6393",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/47/Data",
-          "expectedType": "scnSectionNode"
+          "expectedType": "scnSectionNode",
+          "jsonSha256": "3cb8ad6570816d688b123f1f98bd63c8f84c5ae3d7ddcbbff3a3345565019713"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
           "assetSha256": "273bc29a9cc23f202771fb4fe2f23234f7b7c81923ead6ef83df274438ef6393",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data",
-          "expectedType": "scnChoiceNode"
+          "expectedType": "scnChoiceNode",
+          "jsonSha256": "3cb8ad6570816d688b123f1f98bd63c8f84c5ae3d7ddcbbff3a3345565019713"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
           "assetSha256": "273bc29a9cc23f202771fb4fe2f23234f7b7c81923ead6ef83df274438ef6393",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/64/Data",
-          "expectedType": "scnChoiceNode"
+          "expectedType": "scnChoiceNode",
+          "jsonSha256": "3cb8ad6570816d688b123f1f98bd63c8f84c5ae3d7ddcbbff3a3345565019713"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
           "assetSha256": "273bc29a9cc23f202771fb4fe2f23234f7b7c81923ead6ef83df274438ef6393",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/91/Data",
-          "expectedType": "scnQuestNode"
+          "expectedType": "scnQuestNode",
+          "jsonSha256": "3cb8ad6570816d688b123f1f98bd63c8f84c5ae3d7ddcbbff3a3345565019713"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
           "assetSha256": "273bc29a9cc23f202771fb4fe2f23234f7b7c81923ead6ef83df274438ef6393",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/214/Data",
-          "expectedType": "scnHubNode"
+          "expectedType": "scnHubNode",
+          "jsonSha256": "3cb8ad6570816d688b123f1f98bd63c8f84c5ae3d7ddcbbff3a3345565019713"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
           "assetSha256": "273bc29a9cc23f202771fb4fe2f23234f7b7c81923ead6ef83df274438ef6393",
           "jsonPointer": "/Data/RootChunk/locStore/vpEntries/264",
-          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+          "jsonSha256": "3cb8ad6570816d688b123f1f98bd63c8f84c5ae3d7ddcbbff3a3345565019713"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
           "assetSha256": "273bc29a9cc23f202771fb4fe2f23234f7b7c81923ead6ef83df274438ef6393",
           "jsonPointer": "/Data/RootChunk/locStore/vdEntries/291",
-          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+          "jsonSha256": "3cb8ad6570816d688b123f1f98bd63c8f84c5ae3d7ddcbbff3a3345565019713"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
           "assetSha256": "273bc29a9cc23f202771fb4fe2f23234f7b7c81923ead6ef83df274438ef6393",
           "jsonPointer": "/Data/RootChunk/locStore/vpEntries/329",
-          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+          "jsonSha256": "3cb8ad6570816d688b123f1f98bd63c8f84c5ae3d7ddcbbff3a3345565019713"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
           "assetSha256": "273bc29a9cc23f202771fb4fe2f23234f7b7c81923ead6ef83df274438ef6393",
           "jsonPointer": "/Data/RootChunk/locStore/vdEntries/320",
-          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+          "jsonSha256": "3cb8ad6570816d688b123f1f98bd63c8f84c5ae3d7ddcbbff3a3345565019713"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_01a_militech.scene.json",
           "assetSha256": "273bc29a9cc23f202771fb4fe2f23234f7b7c81923ead6ef83df274438ef6393",
           "jsonPointer": "/Data/RootChunk/actors/1",
-          "expectedType": "scnActorDef"
+          "expectedType": "scnActorDef",
+          "jsonSha256": "3cb8ad6570816d688b123f1f98bd63c8f84c5ae3d7ddcbbff3a3345565019713"
         },
         {
-          "jsonPath": "scene-evidence/release-root/raw/base/base/quest/cyberpunk2077.gamedef.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/cyberpunk2077.gamedef.json",
           "assetSha256": "3bc1e3a75a1ba9dc582b8c7736a758899001cd15424ed79e1654de8b8ca41bbd",
-          "jsonPointer": "/Data/RootChunk/mainQuests/0/Data/questFile"
+          "jsonPointer": "/Data/RootChunk/mainQuests/0/Data/questFile",
+          "jsonSha256": "81ab7343ff56d630f2b9d1997d9edf18385be73bf70f0dd06ceb4a237c445bd3"
         },
         {
-          "jsonPath": "raw/base/base/quest/cyberpunk2077.quest.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/cyberpunk2077.quest.json",
           "assetSha256": "b14f15d20e6723b97cf4afe260546c5c6e93c84856c47372fbbb8377b640f449",
-          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data/phaseResource"
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data/phaseResource",
+          "jsonSha256": "f6062cd37e4e3db326cd9ed3b278973e85a43016a13972f08c97ff1aa9bb1bed"
         },
         {
-          "jsonPath": "raw/base/base/quest/cyberpunk2077.questphase.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/cyberpunk2077.questphase.json",
           "assetSha256": "78d8afd0784575216b090f003610ca973be9d1781bab948c9e4dc12006d750b2",
-          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data/phaseResource"
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data/phaseResource",
+          "jsonSha256": "2db111fa7a3bdc26d38dca7954ae0b8adfbb5a5636e9c382120b2f4f5f2febd5"
         },
         {
-          "jsonPath": "raw/base/base/quest/main_quests/prologue/prologue.questphase.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/prologue/prologue.questphase.json",
           "assetSha256": "cd8da62bb121d4910018f3775a8dde0e926f215a974251ce61dee5bd77c78bf8",
-          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseResource"
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseResource",
+          "jsonSha256": "df3bd3dbf92ad3c69393aeafc6bcaed74a4ef889c0dcd90194212c952ec615e7"
         },
         {
-          "jsonPath": "raw/base/base/quest/main_quests/prologue/q003/q003.questphase.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/prologue/q003/q003.questphase.json",
           "assetSha256": "17381eca9d97f8b47626d6901084b0db5c5c7f5ebe79567b950436a7188b1f07",
-          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseResource"
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseResource",
+          "jsonSha256": "18befc6f0d615d9ba048c27024ad2943c65b2d17d823a3839506636ea8fa6a56"
         },
         {
-          "jsonPath": "raw/base/base/quest/main_quests/prologue/q003/phases/q003_militech.questphase.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/prologue/q003/phases/q003_militech.questphase.json",
           "assetSha256": "6db153a9e0c739e9e50d240cbfa1e04e86c7181b41d9811863babc2d7dc86d97",
           "jsonPointer": "/Data/RootChunk/graph/Data/nodes/7/Data",
-          "expectedType": "questSceneNodeDefinition"
+          "expectedType": "questSceneNodeDefinition",
+          "jsonSha256": "81b86a76a061de1a027944261a3181780356ef6542d520e6a34c17f1944f6bef"
         }
       ]
     },
@@ -283,126 +316,147 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_08_stout.scene.json",
+        "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_08_stout.scene.json",
         "assetSha256": "a96bcf1f8dafc993697631faaf9c1908986bb928a2db425766bdd6e5f9839184",
         "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/142/Data/questNode/Data/type/Data",
-        "expectedType": "questSetVar_NodeType"
+        "expectedType": "questSetVar_NodeType",
+        "jsonSha256": "d3d0dba624423b4673c9589e1772dc8fdf31f359cbe3fffb6006606f42684ee7"
       },
       "nativeRefs": [
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_08_stout.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_08_stout.scene.json",
           "assetSha256": "a96bcf1f8dafc993697631faaf9c1908986bb928a2db425766bdd6e5f9839184",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/1/Data",
-          "expectedType": "scnQuestNode"
+          "expectedType": "scnQuestNode",
+          "jsonSha256": "d3d0dba624423b4673c9589e1772dc8fdf31f359cbe3fffb6006606f42684ee7"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_08_stout.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_08_stout.scene.json",
           "assetSha256": "a96bcf1f8dafc993697631faaf9c1908986bb928a2db425766bdd6e5f9839184",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/47/Data",
-          "expectedType": "scnQuestNode"
+          "expectedType": "scnQuestNode",
+          "jsonSha256": "d3d0dba624423b4673c9589e1772dc8fdf31f359cbe3fffb6006606f42684ee7"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_08_stout.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_08_stout.scene.json",
           "assetSha256": "a96bcf1f8dafc993697631faaf9c1908986bb928a2db425766bdd6e5f9839184",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/109/Data",
-          "expectedType": "scnQuestNode"
+          "expectedType": "scnQuestNode",
+          "jsonSha256": "d3d0dba624423b4673c9589e1772dc8fdf31f359cbe3fffb6006606f42684ee7"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_08_stout.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_08_stout.scene.json",
           "assetSha256": "a96bcf1f8dafc993697631faaf9c1908986bb928a2db425766bdd6e5f9839184",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/105/Data",
-          "expectedType": "scnQuestNode"
+          "expectedType": "scnQuestNode",
+          "jsonSha256": "d3d0dba624423b4673c9589e1772dc8fdf31f359cbe3fffb6006606f42684ee7"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_08_stout.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_08_stout.scene.json",
           "assetSha256": "a96bcf1f8dafc993697631faaf9c1908986bb928a2db425766bdd6e5f9839184",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/57/Data",
-          "expectedType": "scnSectionNode"
+          "expectedType": "scnSectionNode",
+          "jsonSha256": "d3d0dba624423b4673c9589e1772dc8fdf31f359cbe3fffb6006606f42684ee7"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_08_stout.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_08_stout.scene.json",
           "assetSha256": "a96bcf1f8dafc993697631faaf9c1908986bb928a2db425766bdd6e5f9839184",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/45/Data",
-          "expectedType": "scnQuestNode"
+          "expectedType": "scnQuestNode",
+          "jsonSha256": "d3d0dba624423b4673c9589e1772dc8fdf31f359cbe3fffb6006606f42684ee7"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_08_stout.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_08_stout.scene.json",
           "assetSha256": "a96bcf1f8dafc993697631faaf9c1908986bb928a2db425766bdd6e5f9839184",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/44/Data",
-          "expectedType": "scnQuestNode"
+          "expectedType": "scnQuestNode",
+          "jsonSha256": "d3d0dba624423b4673c9589e1772dc8fdf31f359cbe3fffb6006606f42684ee7"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_08_stout.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_08_stout.scene.json",
           "assetSha256": "a96bcf1f8dafc993697631faaf9c1908986bb928a2db425766bdd6e5f9839184",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/111/Data",
-          "expectedType": "scnQuestNode"
+          "expectedType": "scnQuestNode",
+          "jsonSha256": "d3d0dba624423b4673c9589e1772dc8fdf31f359cbe3fffb6006606f42684ee7"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_08_stout.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_08_stout.scene.json",
           "assetSha256": "a96bcf1f8dafc993697631faaf9c1908986bb928a2db425766bdd6e5f9839184",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/56/Data",
-          "expectedType": "scnQuestNode"
+          "expectedType": "scnQuestNode",
+          "jsonSha256": "d3d0dba624423b4673c9589e1772dc8fdf31f359cbe3fffb6006606f42684ee7"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_08_stout.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_08_stout.scene.json",
           "assetSha256": "a96bcf1f8dafc993697631faaf9c1908986bb928a2db425766bdd6e5f9839184",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/141/Data",
-          "expectedType": "scnQuestNode"
+          "expectedType": "scnQuestNode",
+          "jsonSha256": "d3d0dba624423b4673c9589e1772dc8fdf31f359cbe3fffb6006606f42684ee7"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_08_stout.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_08_stout.scene.json",
           "assetSha256": "a96bcf1f8dafc993697631faaf9c1908986bb928a2db425766bdd6e5f9839184",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data",
-          "expectedType": "scnQuestNode"
+          "expectedType": "scnQuestNode",
+          "jsonSha256": "d3d0dba624423b4673c9589e1772dc8fdf31f359cbe3fffb6006606f42684ee7"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_08_stout.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_08_stout.scene.json",
           "assetSha256": "a96bcf1f8dafc993697631faaf9c1908986bb928a2db425766bdd6e5f9839184",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/58/Data",
-          "expectedType": "scnQuestNode"
+          "expectedType": "scnQuestNode",
+          "jsonSha256": "d3d0dba624423b4673c9589e1772dc8fdf31f359cbe3fffb6006606f42684ee7"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_08_stout.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_08_stout.scene.json",
           "assetSha256": "a96bcf1f8dafc993697631faaf9c1908986bb928a2db425766bdd6e5f9839184",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/78/Data",
-          "expectedType": "scnQuestNode"
+          "expectedType": "scnQuestNode",
+          "jsonSha256": "d3d0dba624423b4673c9589e1772dc8fdf31f359cbe3fffb6006606f42684ee7"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_08_stout.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/prologue/q003/scenes/q003_08_stout.scene.json",
           "assetSha256": "a96bcf1f8dafc993697631faaf9c1908986bb928a2db425766bdd6e5f9839184",
           "jsonPointer": "/Data/RootChunk/actors/0",
-          "expectedType": "scnActorDef"
+          "expectedType": "scnActorDef",
+          "jsonSha256": "d3d0dba624423b4673c9589e1772dc8fdf31f359cbe3fffb6006606f42684ee7"
         },
         {
-          "jsonPath": "scene-evidence/release-root/raw/base/base/quest/cyberpunk2077.gamedef.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/cyberpunk2077.gamedef.json",
           "assetSha256": "3bc1e3a75a1ba9dc582b8c7736a758899001cd15424ed79e1654de8b8ca41bbd",
-          "jsonPointer": "/Data/RootChunk/mainQuests/0/Data/questFile"
+          "jsonPointer": "/Data/RootChunk/mainQuests/0/Data/questFile",
+          "jsonSha256": "81ab7343ff56d630f2b9d1997d9edf18385be73bf70f0dd06ceb4a237c445bd3"
         },
         {
-          "jsonPath": "raw/base/base/quest/cyberpunk2077.quest.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/cyberpunk2077.quest.json",
           "assetSha256": "b14f15d20e6723b97cf4afe260546c5c6e93c84856c47372fbbb8377b640f449",
-          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data/phaseResource"
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data/phaseResource",
+          "jsonSha256": "f6062cd37e4e3db326cd9ed3b278973e85a43016a13972f08c97ff1aa9bb1bed"
         },
         {
-          "jsonPath": "raw/base/base/quest/cyberpunk2077.questphase.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/cyberpunk2077.questphase.json",
           "assetSha256": "78d8afd0784575216b090f003610ca973be9d1781bab948c9e4dc12006d750b2",
-          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/7/Data/phaseGraph/Data/nodes/2/Data/phaseResource"
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/7/Data/phaseGraph/Data/nodes/2/Data/phaseResource",
+          "jsonSha256": "2db111fa7a3bdc26d38dca7954ae0b8adfbb5a5636e9c382120b2f4f5f2febd5"
         },
         {
-          "jsonPath": "raw/base/base/quest/additional_game_elements.questphase.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/additional_game_elements.questphase.json",
           "assetSha256": "c67fb292f88384f3f31e8242fc374e8b7afe5553588333c61f6eaec2c1e0b7eb",
-          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data/phaseResource"
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data/phaseResource",
+          "jsonSha256": "0ca32d18f1ddcff7ca52e149664880c9e8e9dca6197cb6f899dd59ec8c80544e"
         },
         {
-          "jsonPath": "raw/base/base/quest/persistent_content.questphase.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/persistent_content.questphase.json",
           "assetSha256": "7e702dfe44e84719576d6bed8d87f3bda383e308cb45c85fe34de9cc4ca62189",
-          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/3/Data/phaseGraph/Data/nodes/2/Data/phaseGraph/Data/nodes/1/Data/phaseResource"
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/3/Data/phaseGraph/Data/nodes/2/Data/phaseGraph/Data/nodes/1/Data/phaseResource",
+          "jsonSha256": "ba3adb64e8091a46a5a7c62b04b68d8fc1a90815449368ef9ab8288e1ba58b55"
         },
         {
-          "jsonPath": "raw/base/base/quest/main_quests/prologue/q003/phases/q003_stout.questphase.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/prologue/q003/phases/q003_stout.questphase.json",
           "assetSha256": "15c36254f3dcdf65064d6dd50de2d88f1d3f4c2e9a3ff90e2cdd3af3046e0293",
           "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data",
-          "expectedType": "questSceneNodeDefinition"
+          "expectedType": "questSceneNodeDefinition",
+          "jsonSha256": "73a02492b76cc15cbeaa914146019b178efb9317d4b9c4391b944cdfb011a74b"
         }
       ]
     },
@@ -415,143 +469,167 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
+        "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
         "assetSha256": "42ad02dacfb0b208a5d41f13d9a59b4c6c532a69dd67eb56c3d473483d92e903",
         "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/51/Data/questNode/Data/type/Data",
-        "expectedType": "questSetVar_NodeType"
+        "expectedType": "questSetVar_NodeType",
+        "jsonSha256": "96d35d466e22e2bcb26549fa4575b10fd55d4f84a7c87674418361cc8dba28c5"
       },
       "nativeRefs": [
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
           "assetSha256": "42ad02dacfb0b208a5d41f13d9a59b4c6c532a69dd67eb56c3d473483d92e903",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/479/Data",
-          "expectedType": "scnHubNode"
+          "expectedType": "scnHubNode",
+          "jsonSha256": "96d35d466e22e2bcb26549fa4575b10fd55d4f84a7c87674418361cc8dba28c5"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
           "assetSha256": "42ad02dacfb0b208a5d41f13d9a59b4c6c532a69dd67eb56c3d473483d92e903",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data",
-          "expectedType": "scnChoiceNode"
+          "expectedType": "scnChoiceNode",
+          "jsonSha256": "96d35d466e22e2bcb26549fa4575b10fd55d4f84a7c87674418361cc8dba28c5"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
           "assetSha256": "42ad02dacfb0b208a5d41f13d9a59b4c6c532a69dd67eb56c3d473483d92e903",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/40/Data",
-          "expectedType": "scnSectionNode"
+          "expectedType": "scnSectionNode",
+          "jsonSha256": "96d35d466e22e2bcb26549fa4575b10fd55d4f84a7c87674418361cc8dba28c5"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
           "assetSha256": "42ad02dacfb0b208a5d41f13d9a59b4c6c532a69dd67eb56c3d473483d92e903",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/31/Data/questNode/Data/type/Data",
-          "expectedType": "questSetVar_NodeType"
+          "expectedType": "questSetVar_NodeType",
+          "jsonSha256": "96d35d466e22e2bcb26549fa4575b10fd55d4f84a7c87674418361cc8dba28c5"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
           "assetSha256": "42ad02dacfb0b208a5d41f13d9a59b4c6c532a69dd67eb56c3d473483d92e903",
           "jsonPointer": "/Data/RootChunk/locStore/vpEntries/597",
-          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+          "jsonSha256": "96d35d466e22e2bcb26549fa4575b10fd55d4f84a7c87674418361cc8dba28c5"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
           "assetSha256": "42ad02dacfb0b208a5d41f13d9a59b4c6c532a69dd67eb56c3d473483d92e903",
           "jsonPointer": "/Data/RootChunk/locStore/vdEntries/539",
-          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+          "jsonSha256": "96d35d466e22e2bcb26549fa4575b10fd55d4f84a7c87674418361cc8dba28c5"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
           "assetSha256": "42ad02dacfb0b208a5d41f13d9a59b4c6c532a69dd67eb56c3d473483d92e903",
           "jsonPointer": "/Data/RootChunk/locStore/vpEntries/88",
-          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+          "jsonSha256": "96d35d466e22e2bcb26549fa4575b10fd55d4f84a7c87674418361cc8dba28c5"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
           "assetSha256": "42ad02dacfb0b208a5d41f13d9a59b4c6c532a69dd67eb56c3d473483d92e903",
           "jsonPointer": "/Data/RootChunk/locStore/vdEntries/537",
-          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+          "jsonSha256": "96d35d466e22e2bcb26549fa4575b10fd55d4f84a7c87674418361cc8dba28c5"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
           "assetSha256": "42ad02dacfb0b208a5d41f13d9a59b4c6c532a69dd67eb56c3d473483d92e903",
           "jsonPointer": "/Data/RootChunk/locStore/vpEntries/94",
-          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+          "jsonSha256": "96d35d466e22e2bcb26549fa4575b10fd55d4f84a7c87674418361cc8dba28c5"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
           "assetSha256": "42ad02dacfb0b208a5d41f13d9a59b4c6c532a69dd67eb56c3d473483d92e903",
           "jsonPointer": "/Data/RootChunk/locStore/vdEntries/538",
-          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+          "jsonSha256": "96d35d466e22e2bcb26549fa4575b10fd55d4f84a7c87674418361cc8dba28c5"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
           "assetSha256": "42ad02dacfb0b208a5d41f13d9a59b4c6c532a69dd67eb56c3d473483d92e903",
           "jsonPointer": "/Data/RootChunk/actors/1",
-          "expectedType": "scnActorDef"
+          "expectedType": "scnActorDef",
+          "jsonSha256": "96d35d466e22e2bcb26549fa4575b10fd55d4f84a7c87674418361cc8dba28c5"
         },
         {
-          "jsonPath": "scene-evidence/release-root/raw/base/base/quest/cyberpunk2077.gamedef.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/cyberpunk2077.gamedef.json",
           "assetSha256": "3bc1e3a75a1ba9dc582b8c7736a758899001cd15424ed79e1654de8b8ca41bbd",
-          "jsonPointer": "/Data/RootChunk/mainQuests/0/Data/questFile"
+          "jsonPointer": "/Data/RootChunk/mainQuests/0/Data/questFile",
+          "jsonSha256": "81ab7343ff56d630f2b9d1997d9edf18385be73bf70f0dd06ceb4a237c445bd3"
         },
         {
-          "jsonPath": "raw/base/base/quest/cyberpunk2077.quest.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/cyberpunk2077.quest.json",
           "assetSha256": "b14f15d20e6723b97cf4afe260546c5c6e93c84856c47372fbbb8377b640f449",
-          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data/phaseResource"
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data/phaseResource",
+          "jsonSha256": "f6062cd37e4e3db326cd9ed3b278973e85a43016a13972f08c97ff1aa9bb1bed"
         },
         {
-          "jsonPath": "raw/base/base/quest/cyberpunk2077.questphase.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/cyberpunk2077.questphase.json",
           "assetSha256": "78d8afd0784575216b090f003610ca973be9d1781bab948c9e4dc12006d750b2",
-          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseResource"
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseResource",
+          "jsonSha256": "2db111fa7a3bdc26d38dca7954ae0b8adfbb5a5636e9c382120b2f4f5f2febd5"
         },
         {
-          "jsonPath": "raw/base/base/quest/main_quests/part1/act_1.questphase.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/part1/act_1.questphase.json",
           "assetSha256": "3259983b6e1a5e1127fc580d34d1b3f2c53619e4db09047791603a785c10c661",
-          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseResource"
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseResource",
+          "jsonSha256": "f049585f6a32b8a52ea4a010ad82e36c92e521057df671bec023a64e54927eb7"
         },
         {
-          "jsonPath": "raw/base/base/quest/main_quests/part1/q110/q110.questphase.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/part1/q110/q110.questphase.json",
           "assetSha256": "c8f21cc79aeaf6ce0420fbb2b225d364e77fe796ee4734db9b0ffd279d1c68a0",
-          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/8/Data/phaseResource"
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/8/Data/phaseResource",
+          "jsonSha256": "0cab663c8b42a18cf4e9daf29f180ee6884d2c223bf1e3cda3df6208ac962b03"
         },
         {
-          "jsonPath": "raw/base/base/quest/main_quests/part1/q110/phases/q110_06_mall.questphase.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/part1/q110/phases/q110_06_mall.questphase.json",
           "assetSha256": "c97a8f683205bbcab4561fdee61796dc31570c32a46c4e59e14af222609babc0",
-          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseResource"
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseResource",
+          "jsonSha256": "dd1590ab6359ca0a2623daa80a165f711f53094ca7114ddbbef359c47a12eac7"
         },
         {
-          "jsonPath": "raw/base/base/quest/main_quests/part1/q110/phases/q110_06_inside_mall.questphase.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/part1/q110/phases/q110_06_inside_mall.questphase.json",
           "assetSha256": "c86f1e77f8d348d6ee32f65f9aecaef2d63044c2cdfb08262494dbc698f8993e",
           "jsonPointer": "/Data/RootChunk/graph/Data/nodes/26/Data/phaseGraph/Data/nodes/2/Data",
-          "expectedType": "questSceneNodeDefinition"
+          "expectedType": "questSceneNodeDefinition",
+          "jsonSha256": "4fdfba8a649d7de20755352d04d2e890d52eaded944e6b1348469da979c35c71"
         },
         {
-          "jsonPath": "raw/base/base/quest/main_quests/part1/q110/phases/q110_06_inside_mall.questphase.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/part1/q110/phases/q110_06_inside_mall.questphase.json",
           "assetSha256": "c86f1e77f8d348d6ee32f65f9aecaef2d63044c2cdfb08262494dbc698f8993e",
           "jsonPointer": "/Data/RootChunk/graph/Data/nodes/26/Data/phaseGraph/Data/nodes/0/Data",
-          "expectedType": "questInputNodeDefinition"
+          "expectedType": "questInputNodeDefinition",
+          "jsonSha256": "4fdfba8a649d7de20755352d04d2e890d52eaded944e6b1348469da979c35c71"
         },
         {
-          "jsonPath": "raw/base/base/quest/main_quests/part1/q110/phases/q110_06_inside_mall.questphase.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/part1/q110/phases/q110_06_inside_mall.questphase.json",
           "assetSha256": "c86f1e77f8d348d6ee32f65f9aecaef2d63044c2cdfb08262494dbc698f8993e",
           "jsonPointer": "/Data/RootChunk/graph/Data/nodes/26/Data/phaseGraph/Data/nodes/11/Data",
-          "expectedType": "questGameManagerNodeDefinition"
+          "expectedType": "questGameManagerNodeDefinition",
+          "jsonSha256": "4fdfba8a649d7de20755352d04d2e890d52eaded944e6b1348469da979c35c71"
         },
         {
-          "jsonPath": "raw/base/base/quest/minor_quests/mq055/mq055.quest.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/minor_quests/mq055/mq055.quest.json",
           "assetSha256": "e240ece14eba3138d2fc1500895b8866a02f0bfa0c69b5b10faf59c92ce08a86",
           "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/47/Data/type/Data",
-          "expectedType": "questSetVar_NodeType"
+          "expectedType": "questSetVar_NodeType",
+          "jsonSha256": "5ecf0809f00493bcfda24c5bd7d06a09f552b2e2211a822636e1d9cdfbaa16f4"
         },
         {
-          "jsonPath": "raw/ep1/ep1/quest/ep1.questphase.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/ep1/ep1/quest/ep1.questphase.json",
           "assetSha256": "f8049a61235f36685b50d60da0e78b3de7640bc6f324e14b77d7601fdf0e9c57",
           "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/17/Data/phaseGraph/Data/nodes/47/Data/type/Data",
-          "expectedType": "questSetVar_NodeType"
+          "expectedType": "questSetVar_NodeType",
+          "jsonSha256": "09491792440e29d013efee266fd3ccb3c4c6f6f33fb1d502e3787499fd5da230"
         },
         {
-          "jsonPath": "raw/ep1/ep1/quest/ep1.questphase.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/ep1/ep1/quest/ep1.questphase.json",
           "assetSha256": "f8049a61235f36685b50d60da0e78b3de7640bc6f324e14b77d7601fdf0e9c57",
           "jsonPointer": "/Data/RootChunk/graph/Data/nodes/10/Data/phaseGraph/Data/nodes/51/Data/type/Data",
-          "expectedType": "questSetVar_NodeType"
+          "expectedType": "questSetVar_NodeType",
+          "jsonSha256": "09491792440e29d013efee266fd3ccb3c4c6f6f33fb1d502e3787499fd5da230"
         }
       ]
     },
@@ -564,131 +642,153 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
+        "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
         "assetSha256": "42ad02dacfb0b208a5d41f13d9a59b4c6c532a69dd67eb56c3d473483d92e903",
         "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/67/Data/questNode/Data/type/Data",
-        "expectedType": "questSetVar_NodeType"
+        "expectedType": "questSetVar_NodeType",
+        "jsonSha256": "96d35d466e22e2bcb26549fa4575b10fd55d4f84a7c87674418361cc8dba28c5"
       },
       "nativeRefs": [
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
           "assetSha256": "42ad02dacfb0b208a5d41f13d9a59b4c6c532a69dd67eb56c3d473483d92e903",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/223/Data",
-          "expectedType": "scnSectionNode"
+          "expectedType": "scnSectionNode",
+          "jsonSha256": "96d35d466e22e2bcb26549fa4575b10fd55d4f84a7c87674418361cc8dba28c5"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
           "assetSha256": "42ad02dacfb0b208a5d41f13d9a59b4c6c532a69dd67eb56c3d473483d92e903",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/222/Data",
-          "expectedType": "scnChoiceNode"
+          "expectedType": "scnChoiceNode",
+          "jsonSha256": "96d35d466e22e2bcb26549fa4575b10fd55d4f84a7c87674418361cc8dba28c5"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
           "assetSha256": "42ad02dacfb0b208a5d41f13d9a59b4c6c532a69dd67eb56c3d473483d92e903",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/110/Data",
-          "expectedType": "scnSectionNode"
+          "expectedType": "scnSectionNode",
+          "jsonSha256": "96d35d466e22e2bcb26549fa4575b10fd55d4f84a7c87674418361cc8dba28c5"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
           "assetSha256": "42ad02dacfb0b208a5d41f13d9a59b4c6c532a69dd67eb56c3d473483d92e903",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/111/Data",
-          "expectedType": "scnChoiceNode"
+          "expectedType": "scnChoiceNode",
+          "jsonSha256": "96d35d466e22e2bcb26549fa4575b10fd55d4f84a7c87674418361cc8dba28c5"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
           "assetSha256": "42ad02dacfb0b208a5d41f13d9a59b4c6c532a69dd67eb56c3d473483d92e903",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/55/Data",
-          "expectedType": "scnSectionNode"
+          "expectedType": "scnSectionNode",
+          "jsonSha256": "96d35d466e22e2bcb26549fa4575b10fd55d4f84a7c87674418361cc8dba28c5"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
           "assetSha256": "42ad02dacfb0b208a5d41f13d9a59b4c6c532a69dd67eb56c3d473483d92e903",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/56/Data",
-          "expectedType": "scnChoiceNode"
+          "expectedType": "scnChoiceNode",
+          "jsonSha256": "96d35d466e22e2bcb26549fa4575b10fd55d4f84a7c87674418361cc8dba28c5"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
           "assetSha256": "42ad02dacfb0b208a5d41f13d9a59b4c6c532a69dd67eb56c3d473483d92e903",
           "jsonPointer": "/Data/RootChunk/locStore/vpEntries/163",
-          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+          "jsonSha256": "96d35d466e22e2bcb26549fa4575b10fd55d4f84a7c87674418361cc8dba28c5"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
           "assetSha256": "42ad02dacfb0b208a5d41f13d9a59b4c6c532a69dd67eb56c3d473483d92e903",
           "jsonPointer": "/Data/RootChunk/locStore/vdEntries/550",
-          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+          "jsonSha256": "96d35d466e22e2bcb26549fa4575b10fd55d4f84a7c87674418361cc8dba28c5"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
           "assetSha256": "42ad02dacfb0b208a5d41f13d9a59b4c6c532a69dd67eb56c3d473483d92e903",
           "jsonPointer": "/Data/RootChunk/locStore/vpEntries/484",
-          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+          "jsonSha256": "96d35d466e22e2bcb26549fa4575b10fd55d4f84a7c87674418361cc8dba28c5"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
           "assetSha256": "42ad02dacfb0b208a5d41f13d9a59b4c6c532a69dd67eb56c3d473483d92e903",
           "jsonPointer": "/Data/RootChunk/locStore/vdEntries/656",
-          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+          "jsonSha256": "96d35d466e22e2bcb26549fa4575b10fd55d4f84a7c87674418361cc8dba28c5"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
           "assetSha256": "42ad02dacfb0b208a5d41f13d9a59b4c6c532a69dd67eb56c3d473483d92e903",
           "jsonPointer": "/Data/RootChunk/locStore/vpEntries/699",
-          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+          "jsonSha256": "96d35d466e22e2bcb26549fa4575b10fd55d4f84a7c87674418361cc8dba28c5"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/part1/q110/scenes/q110_08a_agent.scene.json",
           "assetSha256": "42ad02dacfb0b208a5d41f13d9a59b4c6c532a69dd67eb56c3d473483d92e903",
           "jsonPointer": "/Data/RootChunk/locStore/vdEntries/702",
-          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+          "jsonSha256": "96d35d466e22e2bcb26549fa4575b10fd55d4f84a7c87674418361cc8dba28c5"
         },
         {
-          "jsonPath": "scene-evidence/release-root/raw/base/base/quest/cyberpunk2077.gamedef.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/cyberpunk2077.gamedef.json",
           "assetSha256": "3bc1e3a75a1ba9dc582b8c7736a758899001cd15424ed79e1654de8b8ca41bbd",
-          "jsonPointer": "/Data/RootChunk/mainQuests/0/Data/questFile"
+          "jsonPointer": "/Data/RootChunk/mainQuests/0/Data/questFile",
+          "jsonSha256": "81ab7343ff56d630f2b9d1997d9edf18385be73bf70f0dd06ceb4a237c445bd3"
         },
         {
-          "jsonPath": "raw/base/base/quest/cyberpunk2077.quest.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/cyberpunk2077.quest.json",
           "assetSha256": "b14f15d20e6723b97cf4afe260546c5c6e93c84856c47372fbbb8377b640f449",
-          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data/phaseResource"
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data/phaseResource",
+          "jsonSha256": "f6062cd37e4e3db326cd9ed3b278973e85a43016a13972f08c97ff1aa9bb1bed"
         },
         {
-          "jsonPath": "raw/base/base/quest/cyberpunk2077.questphase.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/cyberpunk2077.questphase.json",
           "assetSha256": "78d8afd0784575216b090f003610ca973be9d1781bab948c9e4dc12006d750b2",
-          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseResource"
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseResource",
+          "jsonSha256": "2db111fa7a3bdc26d38dca7954ae0b8adfbb5a5636e9c382120b2f4f5f2febd5"
         },
         {
-          "jsonPath": "raw/base/base/quest/main_quests/part1/act_1.questphase.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/part1/act_1.questphase.json",
           "assetSha256": "3259983b6e1a5e1127fc580d34d1b3f2c53619e4db09047791603a785c10c661",
-          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseResource"
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseResource",
+          "jsonSha256": "f049585f6a32b8a52ea4a010ad82e36c92e521057df671bec023a64e54927eb7"
         },
         {
-          "jsonPath": "raw/base/base/quest/main_quests/part1/q110/q110.questphase.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/part1/q110/q110.questphase.json",
           "assetSha256": "c8f21cc79aeaf6ce0420fbb2b225d364e77fe796ee4734db9b0ffd279d1c68a0",
-          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/8/Data/phaseResource"
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/8/Data/phaseResource",
+          "jsonSha256": "0cab663c8b42a18cf4e9daf29f180ee6884d2c223bf1e3cda3df6208ac962b03"
         },
         {
-          "jsonPath": "raw/base/base/quest/main_quests/part1/q110/phases/q110_06_mall.questphase.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/part1/q110/phases/q110_06_mall.questphase.json",
           "assetSha256": "c97a8f683205bbcab4561fdee61796dc31570c32a46c4e59e14af222609babc0",
-          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseResource"
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseResource",
+          "jsonSha256": "dd1590ab6359ca0a2623daa80a165f711f53094ca7114ddbbef359c47a12eac7"
         },
         {
-          "jsonPath": "raw/base/base/quest/main_quests/part1/q110/phases/q110_06_inside_mall.questphase.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/part1/q110/phases/q110_06_inside_mall.questphase.json",
           "assetSha256": "c86f1e77f8d348d6ee32f65f9aecaef2d63044c2cdfb08262494dbc698f8993e",
           "jsonPointer": "/Data/RootChunk/graph/Data/nodes/26/Data/phaseGraph/Data/nodes/2/Data",
-          "expectedType": "questSceneNodeDefinition"
+          "expectedType": "questSceneNodeDefinition",
+          "jsonSha256": "4fdfba8a649d7de20755352d04d2e890d52eaded944e6b1348469da979c35c71"
         },
         {
-          "jsonPath": "raw/base/base/quest/main_quests/part1/q110/phases/q110_06_inside_mall.questphase.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/part1/q110/phases/q110_06_inside_mall.questphase.json",
           "assetSha256": "c86f1e77f8d348d6ee32f65f9aecaef2d63044c2cdfb08262494dbc698f8993e",
           "jsonPointer": "/Data/RootChunk/graph/Data/nodes/26/Data/phaseGraph/Data/nodes/0/Data",
-          "expectedType": "questInputNodeDefinition"
+          "expectedType": "questInputNodeDefinition",
+          "jsonSha256": "4fdfba8a649d7de20755352d04d2e890d52eaded944e6b1348469da979c35c71"
         },
         {
-          "jsonPath": "raw/base/base/quest/main_quests/part1/q110/phases/q110_06_inside_mall.questphase.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/part1/q110/phases/q110_06_inside_mall.questphase.json",
           "assetSha256": "c86f1e77f8d348d6ee32f65f9aecaef2d63044c2cdfb08262494dbc698f8993e",
           "jsonPointer": "/Data/RootChunk/graph/Data/nodes/26/Data/phaseGraph/Data/nodes/11/Data",
-          "expectedType": "questGameManagerNodeDefinition"
+          "expectedType": "questGameManagerNodeDefinition",
+          "jsonSha256": "4fdfba8a649d7de20755352d04d2e890d52eaded944e6b1348469da979c35c71"
         }
       ]
     },
@@ -701,120 +801,140 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_14_alt.scene.json",
+        "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/part1/q110/scenes/q110_14_alt.scene.json",
         "assetSha256": "e9f18b5a26beb061f6e8822b76b53f310867c90218e59eed181ab211bce3398f",
         "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/52/Data/questNode/Data/type/Data",
-        "expectedType": "questSetVar_NodeType"
+        "expectedType": "questSetVar_NodeType",
+        "jsonSha256": "92eb29cc761419d4217372f6fe8f270f8195ac9fa3a27a4c835588c4eb2faeb3"
       },
       "nativeRefs": [
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_14_alt.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/part1/q110/scenes/q110_14_alt.scene.json",
           "assetSha256": "e9f18b5a26beb061f6e8822b76b53f310867c90218e59eed181ab211bce3398f",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/50/Data",
-          "expectedType": "scnSectionNode"
+          "expectedType": "scnSectionNode",
+          "jsonSha256": "92eb29cc761419d4217372f6fe8f270f8195ac9fa3a27a4c835588c4eb2faeb3"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_14_alt.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/part1/q110/scenes/q110_14_alt.scene.json",
           "assetSha256": "e9f18b5a26beb061f6e8822b76b53f310867c90218e59eed181ab211bce3398f",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/53/Data",
-          "expectedType": "scnQuestNode"
+          "expectedType": "scnQuestNode",
+          "jsonSha256": "92eb29cc761419d4217372f6fe8f270f8195ac9fa3a27a4c835588c4eb2faeb3"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_14_alt.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/part1/q110/scenes/q110_14_alt.scene.json",
           "assetSha256": "e9f18b5a26beb061f6e8822b76b53f310867c90218e59eed181ab211bce3398f",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/3/Data",
-          "expectedType": "scnSectionNode"
+          "expectedType": "scnSectionNode",
+          "jsonSha256": "92eb29cc761419d4217372f6fe8f270f8195ac9fa3a27a4c835588c4eb2faeb3"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_14_alt.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/part1/q110/scenes/q110_14_alt.scene.json",
           "assetSha256": "e9f18b5a26beb061f6e8822b76b53f310867c90218e59eed181ab211bce3398f",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/4/Data",
-          "expectedType": "scnSectionNode"
+          "expectedType": "scnSectionNode",
+          "jsonSha256": "92eb29cc761419d4217372f6fe8f270f8195ac9fa3a27a4c835588c4eb2faeb3"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_14_alt.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/part1/q110/scenes/q110_14_alt.scene.json",
           "assetSha256": "e9f18b5a26beb061f6e8822b76b53f310867c90218e59eed181ab211bce3398f",
           "jsonPointer": "/Data/RootChunk/locStore/vpEntries/333",
-          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+          "jsonSha256": "92eb29cc761419d4217372f6fe8f270f8195ac9fa3a27a4c835588c4eb2faeb3"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_14_alt.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/part1/q110/scenes/q110_14_alt.scene.json",
           "assetSha256": "e9f18b5a26beb061f6e8822b76b53f310867c90218e59eed181ab211bce3398f",
           "jsonPointer": "/Data/RootChunk/locStore/vdEntries/483",
-          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+          "jsonSha256": "92eb29cc761419d4217372f6fe8f270f8195ac9fa3a27a4c835588c4eb2faeb3"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_14_alt.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/part1/q110/scenes/q110_14_alt.scene.json",
           "assetSha256": "e9f18b5a26beb061f6e8822b76b53f310867c90218e59eed181ab211bce3398f",
           "jsonPointer": "/Data/RootChunk/locStore/vpEntries/340",
-          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+          "jsonSha256": "92eb29cc761419d4217372f6fe8f270f8195ac9fa3a27a4c835588c4eb2faeb3"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_14_alt.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/part1/q110/scenes/q110_14_alt.scene.json",
           "assetSha256": "e9f18b5a26beb061f6e8822b76b53f310867c90218e59eed181ab211bce3398f",
           "jsonPointer": "/Data/RootChunk/locStore/vdEntries/485",
-          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+          "jsonSha256": "92eb29cc761419d4217372f6fe8f270f8195ac9fa3a27a4c835588c4eb2faeb3"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_14_alt.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/part1/q110/scenes/q110_14_alt.scene.json",
           "assetSha256": "e9f18b5a26beb061f6e8822b76b53f310867c90218e59eed181ab211bce3398f",
           "jsonPointer": "/Data/RootChunk/actors/0",
-          "expectedType": "scnActorDef"
+          "expectedType": "scnActorDef",
+          "jsonSha256": "92eb29cc761419d4217372f6fe8f270f8195ac9fa3a27a4c835588c4eb2faeb3"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/part1/q110/scenes/q110_14_alt.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/part1/q110/scenes/q110_14_alt.scene.json",
           "assetSha256": "e9f18b5a26beb061f6e8822b76b53f310867c90218e59eed181ab211bce3398f",
           "jsonPointer": "/Data/RootChunk/actors/1",
-          "expectedType": "scnActorDef"
+          "expectedType": "scnActorDef",
+          "jsonSha256": "92eb29cc761419d4217372f6fe8f270f8195ac9fa3a27a4c835588c4eb2faeb3"
         },
         {
-          "jsonPath": "scene-evidence/release-root/raw/base/base/quest/cyberpunk2077.gamedef.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/cyberpunk2077.gamedef.json",
           "assetSha256": "3bc1e3a75a1ba9dc582b8c7736a758899001cd15424ed79e1654de8b8ca41bbd",
-          "jsonPointer": "/Data/RootChunk/mainQuests/0/Data/questFile"
+          "jsonPointer": "/Data/RootChunk/mainQuests/0/Data/questFile",
+          "jsonSha256": "81ab7343ff56d630f2b9d1997d9edf18385be73bf70f0dd06ceb4a237c445bd3"
         },
         {
-          "jsonPath": "raw/base/base/quest/cyberpunk2077.quest.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/cyberpunk2077.quest.json",
           "assetSha256": "b14f15d20e6723b97cf4afe260546c5c6e93c84856c47372fbbb8377b640f449",
-          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data/phaseResource"
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data/phaseResource",
+          "jsonSha256": "f6062cd37e4e3db326cd9ed3b278973e85a43016a13972f08c97ff1aa9bb1bed"
         },
         {
-          "jsonPath": "raw/base/base/quest/cyberpunk2077.questphase.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/cyberpunk2077.questphase.json",
           "assetSha256": "78d8afd0784575216b090f003610ca973be9d1781bab948c9e4dc12006d750b2",
-          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseResource"
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseResource",
+          "jsonSha256": "2db111fa7a3bdc26d38dca7954ae0b8adfbb5a5636e9c382120b2f4f5f2febd5"
         },
         {
-          "jsonPath": "raw/base/base/quest/main_quests/part1/act_1.questphase.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/part1/act_1.questphase.json",
           "assetSha256": "3259983b6e1a5e1127fc580d34d1b3f2c53619e4db09047791603a785c10c661",
-          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/17/Data/phaseResource"
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/17/Data/phaseResource",
+          "jsonSha256": "f049585f6a32b8a52ea4a010ad82e36c92e521057df671bec023a64e54927eb7"
         },
         {
-          "jsonPath": "raw/base/base/quest/main_quests/part1/q110/q110b.questphase.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/part1/q110/q110b.questphase.json",
           "assetSha256": "ece2c94dab2e65f76abb765dcb8d228d49753bf75b86917006b35677cc1b6ce4",
-          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseResource"
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseResource",
+          "jsonSha256": "4497ff27cdbcf4f193da31230a1060b7ffccc855dbdc45a635f6025b1fd9744e"
         },
         {
-          "jsonPath": "raw/base/base/quest/main_quests/part1/q110/phases/q110_11_alt.questphase.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/part1/q110/phases/q110_11_alt.questphase.json",
           "assetSha256": "45a27b85e0bb41c31cdbebfdacd35df2a3a0d486ea6532d7e0f96dddb2fcee86",
           "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data",
-          "expectedType": "questSceneNodeDefinition"
+          "expectedType": "questSceneNodeDefinition",
+          "jsonSha256": "6f2e2e8c002f55ccd906f3f8963ed445ca56e10f32b9620c173dc20bc51c32bc"
         },
         {
-          "jsonPath": "raw/base/base/quest/minor_quests/mq055/mq055.quest.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/minor_quests/mq055/mq055.quest.json",
           "assetSha256": "e240ece14eba3138d2fc1500895b8866a02f0bfa0c69b5b10faf59c92ce08a86",
           "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/phaseGraph/Data/nodes/74/Data/type/Data",
-          "expectedType": "questSetVar_NodeType"
+          "expectedType": "questSetVar_NodeType",
+          "jsonSha256": "5ecf0809f00493bcfda24c5bd7d06a09f552b2e2211a822636e1d9cdfbaa16f4"
         },
         {
-          "jsonPath": "raw/ep1/ep1/quest/ep1.questphase.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/ep1/ep1/quest/ep1.questphase.json",
           "assetSha256": "f8049a61235f36685b50d60da0e78b3de7640bc6f324e14b77d7601fdf0e9c57",
           "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/17/Data/phaseGraph/Data/nodes/78/Data/type/Data",
-          "expectedType": "questSetVar_NodeType"
+          "expectedType": "questSetVar_NodeType",
+          "jsonSha256": "09491792440e29d013efee266fd3ccb3c4c6f6f33fb1d502e3787499fd5da230"
         },
         {
-          "jsonPath": "raw/ep1/ep1/quest/ep1.questphase.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/ep1/ep1/quest/ep1.questphase.json",
           "assetSha256": "f8049a61235f36685b50d60da0e78b3de7640bc6f324e14b77d7601fdf0e9c57",
           "jsonPointer": "/Data/RootChunk/graph/Data/nodes/10/Data/phaseGraph/Data/nodes/95/Data/type/Data",
-          "expectedType": "questSetVar_NodeType"
+          "expectedType": "questSetVar_NodeType",
+          "jsonSha256": "09491792440e29d013efee266fd3ccb3c4c6f6f33fb1d502e3787499fd5da230"
         }
       ]
     },
@@ -827,85 +947,99 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/epilogue/q201/scenes/q201_07_cabin_day_30.scene.json",
+        "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/epilogue/q201/scenes/q201_07_cabin_day_30.scene.json",
         "assetSha256": "33bbd8b3fdaf99bd4ccb92ba6380a2ddd481b3b6b037588a93b3cb39b4d0e87c",
         "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/84/Data/questNode/Data/type/Data",
-        "expectedType": "questSetVar_NodeType"
+        "expectedType": "questSetVar_NodeType",
+        "jsonSha256": "0754741fadd1c342934513b354703eb3182e6cc7ba59d44a5b019b08cb974ac1"
       },
       "nativeRefs": [
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/epilogue/q201/scenes/q201_08_cabin_day_30_takemura.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/epilogue/q201/scenes/q201_08_cabin_day_30_takemura.scene.json",
           "assetSha256": "5d75485510d52645b29f26614e542fad4bddf810566e83fd909b160fdec292bd",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/84/Data/questNode/Data/type/Data",
-          "expectedType": "questSetVar_NodeType"
+          "expectedType": "questSetVar_NodeType",
+          "jsonSha256": "a1d6f3824f0ae31816a06e083195bf1086b3754abb2e174f1bac24a09df9ad5c"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/epilogue/q201/scenes/q201_07_cabin_day_30.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/epilogue/q201/scenes/q201_07_cabin_day_30.scene.json",
           "assetSha256": "33bbd8b3fdaf99bd4ccb92ba6380a2ddd481b3b6b037588a93b3cb39b4d0e87c",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/40/Data",
-          "expectedType": "scnChoiceNode"
+          "expectedType": "scnChoiceNode",
+          "jsonSha256": "0754741fadd1c342934513b354703eb3182e6cc7ba59d44a5b019b08cb974ac1"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/epilogue/q201/scenes/q201_08_cabin_day_30_takemura.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/epilogue/q201/scenes/q201_08_cabin_day_30_takemura.scene.json",
           "assetSha256": "5d75485510d52645b29f26614e542fad4bddf810566e83fd909b160fdec292bd",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/61/Data",
-          "expectedType": "scnChoiceNode"
+          "expectedType": "scnChoiceNode",
+          "jsonSha256": "a1d6f3824f0ae31816a06e083195bf1086b3754abb2e174f1bac24a09df9ad5c"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/epilogue/q201/scenes/q201_07_cabin_day_30.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/epilogue/q201/scenes/q201_07_cabin_day_30.scene.json",
           "assetSha256": "33bbd8b3fdaf99bd4ccb92ba6380a2ddd481b3b6b037588a93b3cb39b4d0e87c",
           "jsonPointer": "/Data/RootChunk/locStore/vpEntries/474",
-          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+          "jsonSha256": "0754741fadd1c342934513b354703eb3182e6cc7ba59d44a5b019b08cb974ac1"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/epilogue/q201/scenes/q201_07_cabin_day_30.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/epilogue/q201/scenes/q201_07_cabin_day_30.scene.json",
           "assetSha256": "33bbd8b3fdaf99bd4ccb92ba6380a2ddd481b3b6b037588a93b3cb39b4d0e87c",
           "jsonPointer": "/Data/RootChunk/locStore/vdEntries/460",
-          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+          "jsonSha256": "0754741fadd1c342934513b354703eb3182e6cc7ba59d44a5b019b08cb974ac1"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/epilogue/q201/scenes/q201_08_cabin_day_30_takemura.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/epilogue/q201/scenes/q201_08_cabin_day_30_takemura.scene.json",
           "assetSha256": "5d75485510d52645b29f26614e542fad4bddf810566e83fd909b160fdec292bd",
           "jsonPointer": "/Data/RootChunk/locStore/vpEntries/469",
-          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+          "jsonSha256": "a1d6f3824f0ae31816a06e083195bf1086b3754abb2e174f1bac24a09df9ad5c"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/epilogue/q201/scenes/q201_08_cabin_day_30_takemura.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/epilogue/q201/scenes/q201_08_cabin_day_30_takemura.scene.json",
           "assetSha256": "5d75485510d52645b29f26614e542fad4bddf810566e83fd909b160fdec292bd",
           "jsonPointer": "/Data/RootChunk/locStore/vdEntries/452",
-          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+          "jsonSha256": "a1d6f3824f0ae31816a06e083195bf1086b3754abb2e174f1bac24a09df9ad5c"
         },
         {
-          "jsonPath": "scene-evidence/release-root/raw/base/base/quest/cyberpunk2077.gamedef.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/cyberpunk2077.gamedef.json",
           "assetSha256": "3bc1e3a75a1ba9dc582b8c7736a758899001cd15424ed79e1654de8b8ca41bbd",
-          "jsonPointer": "/Data/RootChunk/mainQuests/0/Data/questFile"
+          "jsonPointer": "/Data/RootChunk/mainQuests/0/Data/questFile",
+          "jsonSha256": "81ab7343ff56d630f2b9d1997d9edf18385be73bf70f0dd06ceb4a237c445bd3"
         },
         {
-          "jsonPath": "raw/base/base/quest/cyberpunk2077.quest.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/cyberpunk2077.quest.json",
           "assetSha256": "b14f15d20e6723b97cf4afe260546c5c6e93c84856c47372fbbb8377b640f449",
-          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data/phaseResource"
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data/phaseResource",
+          "jsonSha256": "f6062cd37e4e3db326cd9ed3b278973e85a43016a13972f08c97ff1aa9bb1bed"
         },
         {
-          "jsonPath": "raw/base/base/quest/cyberpunk2077.questphase.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/cyberpunk2077.questphase.json",
           "assetSha256": "78d8afd0784575216b090f003610ca973be9d1781bab948c9e4dc12006d750b2",
-          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseResource"
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseResource",
+          "jsonSha256": "2db111fa7a3bdc26d38dca7954ae0b8adfbb5a5636e9c382120b2f4f5f2febd5"
         },
         {
-          "jsonPath": "raw/base/base/quest/main_quests/epilogue/epilogue.questphase.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/epilogue/epilogue.questphase.json",
           "assetSha256": "14d13d2633772dde34b8e29308f148bd34b3f10ad3af72407d89e891a0036caa",
-          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/0/Data/phaseResource"
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/0/Data/phaseResource",
+          "jsonSha256": "f2c8d38976db3c63bc3fdb9d975f7ffbd9669650365991a87f4373b1ed9decb8"
         },
         {
-          "jsonPath": "raw/base/base/quest/main_quests/epilogue/q201/q201_heir.questphase.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/epilogue/q201/q201_heir.questphase.json",
           "assetSha256": "49f6ec39f8a5c064e6949085bd08226dea1f4226b69e91d4881948065bf1de43",
           "jsonPointer": "/Data/RootChunk/graph/Data/nodes/11/Data/phaseGraph/Data/nodes/2/Data",
-          "expectedType": "questSceneNodeDefinition"
+          "expectedType": "questSceneNodeDefinition",
+          "jsonSha256": "c59e4e5b90380cc3ab29e394e4d3e9811fb58777e75cc8beb73692719e3513b2"
         },
         {
-          "jsonPath": "raw/base/base/quest/main_quests/epilogue/q201/q201_heir.questphase.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/epilogue/q201/q201_heir.questphase.json",
           "assetSha256": "49f6ec39f8a5c064e6949085bd08226dea1f4226b69e91d4881948065bf1de43",
           "jsonPointer": "/Data/RootChunk/graph/Data/nodes/11/Data/phaseGraph/Data/nodes/12/Data",
-          "expectedType": "questSceneNodeDefinition"
+          "expectedType": "questSceneNodeDefinition",
+          "jsonSha256": "c59e4e5b90380cc3ab29e394e4d3e9811fb58777e75cc8beb73692719e3513b2"
         }
       ]
     },
@@ -918,85 +1052,99 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/epilogue/q201/scenes/q201_07_cabin_day_30.scene.json",
+        "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/epilogue/q201/scenes/q201_07_cabin_day_30.scene.json",
         "assetSha256": "33bbd8b3fdaf99bd4ccb92ba6380a2ddd481b3b6b037588a93b3cb39b4d0e87c",
         "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/85/Data/questNode/Data/type/Data",
-        "expectedType": "questSetVar_NodeType"
+        "expectedType": "questSetVar_NodeType",
+        "jsonSha256": "0754741fadd1c342934513b354703eb3182e6cc7ba59d44a5b019b08cb974ac1"
       },
       "nativeRefs": [
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/epilogue/q201/scenes/q201_08_cabin_day_30_takemura.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/epilogue/q201/scenes/q201_08_cabin_day_30_takemura.scene.json",
           "assetSha256": "5d75485510d52645b29f26614e542fad4bddf810566e83fd909b160fdec292bd",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/85/Data/questNode/Data/type/Data",
-          "expectedType": "questSetVar_NodeType"
+          "expectedType": "questSetVar_NodeType",
+          "jsonSha256": "a1d6f3824f0ae31816a06e083195bf1086b3754abb2e174f1bac24a09df9ad5c"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/epilogue/q201/scenes/q201_07_cabin_day_30.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/epilogue/q201/scenes/q201_07_cabin_day_30.scene.json",
           "assetSha256": "33bbd8b3fdaf99bd4ccb92ba6380a2ddd481b3b6b037588a93b3cb39b4d0e87c",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/40/Data",
-          "expectedType": "scnChoiceNode"
+          "expectedType": "scnChoiceNode",
+          "jsonSha256": "0754741fadd1c342934513b354703eb3182e6cc7ba59d44a5b019b08cb974ac1"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/epilogue/q201/scenes/q201_08_cabin_day_30_takemura.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/epilogue/q201/scenes/q201_08_cabin_day_30_takemura.scene.json",
           "assetSha256": "5d75485510d52645b29f26614e542fad4bddf810566e83fd909b160fdec292bd",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/61/Data",
-          "expectedType": "scnChoiceNode"
+          "expectedType": "scnChoiceNode",
+          "jsonSha256": "a1d6f3824f0ae31816a06e083195bf1086b3754abb2e174f1bac24a09df9ad5c"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/epilogue/q201/scenes/q201_07_cabin_day_30.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/epilogue/q201/scenes/q201_07_cabin_day_30.scene.json",
           "assetSha256": "33bbd8b3fdaf99bd4ccb92ba6380a2ddd481b3b6b037588a93b3cb39b4d0e87c",
           "jsonPointer": "/Data/RootChunk/locStore/vpEntries/478",
-          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+          "jsonSha256": "0754741fadd1c342934513b354703eb3182e6cc7ba59d44a5b019b08cb974ac1"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/epilogue/q201/scenes/q201_07_cabin_day_30.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/epilogue/q201/scenes/q201_07_cabin_day_30.scene.json",
           "assetSha256": "33bbd8b3fdaf99bd4ccb92ba6380a2ddd481b3b6b037588a93b3cb39b4d0e87c",
           "jsonPointer": "/Data/RootChunk/locStore/vdEntries/461",
-          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+          "jsonSha256": "0754741fadd1c342934513b354703eb3182e6cc7ba59d44a5b019b08cb974ac1"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/epilogue/q201/scenes/q201_08_cabin_day_30_takemura.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/epilogue/q201/scenes/q201_08_cabin_day_30_takemura.scene.json",
           "assetSha256": "5d75485510d52645b29f26614e542fad4bddf810566e83fd909b160fdec292bd",
           "jsonPointer": "/Data/RootChunk/locStore/vpEntries/473",
-          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry"
+          "expectedType": "scnlocLocStoreEmbeddedVariantPayloadEntry",
+          "jsonSha256": "a1d6f3824f0ae31816a06e083195bf1086b3754abb2e174f1bac24a09df9ad5c"
         },
         {
-          "jsonPath": "scene-evidence/arasaka-heist/raw/base/base/quest/main_quests/epilogue/q201/scenes/q201_08_cabin_day_30_takemura.scene.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/epilogue/q201/scenes/q201_08_cabin_day_30_takemura.scene.json",
           "assetSha256": "5d75485510d52645b29f26614e542fad4bddf810566e83fd909b160fdec292bd",
           "jsonPointer": "/Data/RootChunk/locStore/vdEntries/453",
-          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry"
+          "expectedType": "scnlocLocStoreEmbeddedVariantDescriptorEntry",
+          "jsonSha256": "a1d6f3824f0ae31816a06e083195bf1086b3754abb2e174f1bac24a09df9ad5c"
         },
         {
-          "jsonPath": "scene-evidence/release-root/raw/base/base/quest/cyberpunk2077.gamedef.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/cyberpunk2077.gamedef.json",
           "assetSha256": "3bc1e3a75a1ba9dc582b8c7736a758899001cd15424ed79e1654de8b8ca41bbd",
-          "jsonPointer": "/Data/RootChunk/mainQuests/0/Data/questFile"
+          "jsonPointer": "/Data/RootChunk/mainQuests/0/Data/questFile",
+          "jsonSha256": "81ab7343ff56d630f2b9d1997d9edf18385be73bf70f0dd06ceb4a237c445bd3"
         },
         {
-          "jsonPath": "raw/base/base/quest/cyberpunk2077.quest.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/cyberpunk2077.quest.json",
           "assetSha256": "b14f15d20e6723b97cf4afe260546c5c6e93c84856c47372fbbb8377b640f449",
-          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data/phaseResource"
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data/phaseResource",
+          "jsonSha256": "f6062cd37e4e3db326cd9ed3b278973e85a43016a13972f08c97ff1aa9bb1bed"
         },
         {
-          "jsonPath": "raw/base/base/quest/cyberpunk2077.questphase.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/cyberpunk2077.questphase.json",
           "assetSha256": "78d8afd0784575216b090f003610ca973be9d1781bab948c9e4dc12006d750b2",
-          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseResource"
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseResource",
+          "jsonSha256": "2db111fa7a3bdc26d38dca7954ae0b8adfbb5a5636e9c382120b2f4f5f2febd5"
         },
         {
-          "jsonPath": "raw/base/base/quest/main_quests/epilogue/epilogue.questphase.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/epilogue/epilogue.questphase.json",
           "assetSha256": "14d13d2633772dde34b8e29308f148bd34b3f10ad3af72407d89e891a0036caa",
-          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/0/Data/phaseResource"
+          "jsonPointer": "/Data/RootChunk/graph/Data/nodes/0/Data/phaseResource",
+          "jsonSha256": "f2c8d38976db3c63bc3fdb9d975f7ffbd9669650365991a87f4373b1ed9decb8"
         },
         {
-          "jsonPath": "raw/base/base/quest/main_quests/epilogue/q201/q201_heir.questphase.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/epilogue/q201/q201_heir.questphase.json",
           "assetSha256": "49f6ec39f8a5c064e6949085bd08226dea1f4226b69e91d4881948065bf1de43",
           "jsonPointer": "/Data/RootChunk/graph/Data/nodes/11/Data/phaseGraph/Data/nodes/2/Data",
-          "expectedType": "questSceneNodeDefinition"
+          "expectedType": "questSceneNodeDefinition",
+          "jsonSha256": "c59e4e5b90380cc3ab29e394e4d3e9811fb58777e75cc8beb73692719e3513b2"
         },
         {
-          "jsonPath": "raw/base/base/quest/main_quests/epilogue/q201/q201_heir.questphase.json",
+          "jsonPath": "scene-evidence/arasaka-heist-authenticated-oct01/raw/base/base/quest/main_quests/epilogue/q201/q201_heir.questphase.json",
           "assetSha256": "49f6ec39f8a5c064e6949085bd08226dea1f4226b69e91d4881948065bf1de43",
           "jsonPointer": "/Data/RootChunk/graph/Data/nodes/11/Data/phaseGraph/Data/nodes/12/Data",
-          "expectedType": "questSceneNodeDefinition"
+          "expectedType": "questSceneNodeDefinition",
+          "jsonSha256": "c59e4e5b90380cc3ab29e394e4d3e9811fb58777e75cc8beb73692719e3513b2"
         }
       ]
     }

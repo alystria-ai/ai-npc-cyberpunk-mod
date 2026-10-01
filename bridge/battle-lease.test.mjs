@@ -32,7 +32,7 @@ function fixture() {
     setTimeout: (done, delay) => { state.delays.push(delay); done(); },
     console: {error: (...args) => state.errors.push(args)}, rawInput: JSON.stringify(input)});
   vm.runInContext(`
-    let polling=false, stopped=false, active=null, observed='', lastAcceptedIdentity='';
+    let polling=false, stopped=false, active=null, observed='', lastAcceptedIdentity='', voiceRouteReservation=false;
     const inputPath='input', runtime='runtime', resolve=(...parts)=>parts.join('/');
     const stat=async()=>({mtimeMs:1,size:rawInput.length});
     const readFile=async path=>path===inputPath ? rawInput : readLease();

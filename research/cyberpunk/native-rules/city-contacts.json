@@ -1,7 +1,7 @@
 {
   "version": 1,
   "id": "city-contacts-reviewed-native",
-  "revision": 1,
+  "revision": 2,
   "gameVersions": [
     "2.31"
   ],
@@ -744,10 +744,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/open_world/street_stories/heywood/vista_del_rey/sts_hey_rey_09/phases/sts_hey_rey_09_combat.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/open_world/street_stories/heywood/vista_del_rey/sts_hey_rey_09/phases/sts_hey_rey_09_combat.questphase.json",
         "assetSha256": "7aab22f2feb43d63ae975d08e5707e596d4b9dd0d9d1cbf3060a5f6071021d39",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data/phaseGraph/Data/nodes/1/Data/phaseGraph/Data/nodes/4/Data/type/Data",
-        "expectedType": "questSetVar_NodeType"
+        "expectedType": "questSetVar_NodeType",
+        "jsonSha256": "1b0edf2a708780a0c6b3eecef88ca6f04109e71417ad23cb537a30efb56a7411"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "7aab22f2feb43d63ae975d08e5707e596d4b9dd0d9d1cbf3060a5f6071021d39",
@@ -763,10 +764,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/open_world/street_stories/heywood/vista_del_rey/sts_hey_rey_09/phases/sts_hey_rey_09_combat.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/open_world/street_stories/heywood/vista_del_rey/sts_hey_rey_09/phases/sts_hey_rey_09_combat.questphase.json",
         "assetSha256": "7aab22f2feb43d63ae975d08e5707e596d4b9dd0d9d1cbf3060a5f6071021d39",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data/phaseGraph/Data/nodes/1/Data/phaseGraph/Data/nodes/2/Data/type/Data",
-        "expectedType": "questSetVar_NodeType"
+        "expectedType": "questSetVar_NodeType",
+        "jsonSha256": "1b0edf2a708780a0c6b3eecef88ca6f04109e71417ad23cb537a30efb56a7411"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "7aab22f2feb43d63ae975d08e5707e596d4b9dd0d9d1cbf3060a5f6071021d39",
@@ -782,10 +784,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/open_world/street_stories/heywood/vista_del_rey/sts_hey_rey_09/phases/sts_hey_rey_09_combat.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/open_world/street_stories/heywood/vista_del_rey/sts_hey_rey_09/phases/sts_hey_rey_09_combat.questphase.json",
         "assetSha256": "7aab22f2feb43d63ae975d08e5707e596d4b9dd0d9d1cbf3060a5f6071021d39",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data/phaseGraph/Data/nodes/1/Data/phaseGraph/Data/nodes/8/Data/type/Data",
-        "expectedType": "questSetVar_NodeType"
+        "expectedType": "questSetVar_NodeType",
+        "jsonSha256": "1b0edf2a708780a0c6b3eecef88ca6f04109e71417ad23cb537a30efb56a7411"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "7aab22f2feb43d63ae975d08e5707e596d4b9dd0d9d1cbf3060a5f6071021d39",
@@ -801,10 +804,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/open_world/street_stories/heywood/vista_del_rey/sts_hey_rey_09/phases/sts_hey_rey_09_combat.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/open_world/street_stories/heywood/vista_del_rey/sts_hey_rey_09/phases/sts_hey_rey_09_combat.questphase.json",
         "assetSha256": "7aab22f2feb43d63ae975d08e5707e596d4b9dd0d9d1cbf3060a5f6071021d39",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data/phaseGraph/Data/nodes/1/Data/phaseGraph/Data/nodes/6/Data",
-        "expectedType": "questPauseConditionNodeDefinition"
+        "expectedType": "questPauseConditionNodeDefinition",
+        "jsonSha256": "1b0edf2a708780a0c6b3eecef88ca6f04109e71417ad23cb537a30efb56a7411"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "7aab22f2feb43d63ae975d08e5707e596d4b9dd0d9d1cbf3060a5f6071021d39",
@@ -820,10 +824,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/open_world/street_stories/heywood/vista_del_rey/sts_hey_rey_09/phases/sts_hey_rey_09_combat.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/open_world/street_stories/heywood/vista_del_rey/sts_hey_rey_09/phases/sts_hey_rey_09_combat.questphase.json",
         "assetSha256": "7aab22f2feb43d63ae975d08e5707e596d4b9dd0d9d1cbf3060a5f6071021d39",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data/phaseGraph/Data/nodes/1/Data/phaseGraph/Data/nodes/7/Data",
-        "expectedType": "questConditionNodeDefinition"
+        "expectedType": "questConditionNodeDefinition",
+        "jsonSha256": "1b0edf2a708780a0c6b3eecef88ca6f04109e71417ad23cb537a30efb56a7411"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "7aab22f2feb43d63ae975d08e5707e596d4b9dd0d9d1cbf3060a5f6071021d39",
@@ -839,10 +844,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/open_world/street_stories/heywood/vista_del_rey/sts_hey_rey_09/phases/sts_hey_rey_09_combat.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/open_world/street_stories/heywood/vista_del_rey/sts_hey_rey_09/phases/sts_hey_rey_09_combat.questphase.json",
         "assetSha256": "7aab22f2feb43d63ae975d08e5707e596d4b9dd0d9d1cbf3060a5f6071021d39",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/1/Data/phaseGraph/Data/nodes/1/Data/phaseGraph/Data/nodes/11/Data",
-        "expectedType": "questInteractiveObjectManagerNodeDefinition"
+        "expectedType": "questInteractiveObjectManagerNodeDefinition",
+        "jsonSha256": "1b0edf2a708780a0c6b3eecef88ca6f04109e71417ad23cb537a30efb56a7411"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "7aab22f2feb43d63ae975d08e5707e596d4b9dd0d9d1cbf3060a5f6071021d39",
@@ -858,9 +864,10 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "scene-evidence/city-contacts-extra/raw/base/base/open_world/street_stories/heywood/vista_del_rey/sts_hey_rey_09/scenes/sts_hey_rey_09_04_tobias.scene.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/open_world/street_stories/heywood/vista_del_rey/sts_hey_rey_09/scenes/sts_hey_rey_09_04_tobias.scene.json",
         "assetSha256": "de518cad7837988270c5a1ad9a4c786edf38b55f15ad4baee0337d0990b784e5",
-        "jsonPointer": "/Data/RootChunk/actors"
+        "jsonPointer": "/Data/RootChunk/actors",
+        "jsonSha256": "07210ffd96d34e2b5fca98980fdeb0ea2019baa8fc59d9ff66f907b280d534f7"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "de518cad7837988270c5a1ad9a4c786edf38b55f15ad4baee0337d0990b784e5",
@@ -876,10 +883,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "scene-evidence/city-contacts-extra/raw/base/base/open_world/street_stories/heywood/vista_del_rey/sts_hey_rey_09/scenes/sts_hey_rey_09_04_tobias.scene.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/open_world/street_stories/heywood/vista_del_rey/sts_hey_rey_09/scenes/sts_hey_rey_09_04_tobias.scene.json",
         "assetSha256": "de518cad7837988270c5a1ad9a4c786edf38b55f15ad4baee0337d0990b784e5",
         "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/16/Data",
-        "expectedType": "scnQuestNode"
+        "expectedType": "scnQuestNode",
+        "jsonSha256": "07210ffd96d34e2b5fca98980fdeb0ea2019baa8fc59d9ff66f907b280d534f7"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "de518cad7837988270c5a1ad9a4c786edf38b55f15ad4baee0337d0990b784e5",
@@ -895,9 +903,10 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_japantown.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_japantown.questphase.json",
         "assetSha256": "eb02c3f6381d54332883383b9e55d22ac2b8f5af33ff1401e0d653b74783fc5f",
-        "jsonPointer": "/Data/RootChunk/inplacePhases/7"
+        "jsonPointer": "/Data/RootChunk/inplacePhases/7",
+        "jsonSha256": "27530d1bee3ae15dc06562df6ba387323d40a91dd592ccc61440e590ddda7599"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "eb02c3f6381d54332883383b9e55d22ac2b8f5af33ff1401e0d653b74783fc5f",
@@ -913,9 +922,10 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/open_world/street_stories/heywood/vista_del_rey/sts_hey_rey_09/phases/sts_hey_rey_09.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/open_world/street_stories/heywood/vista_del_rey/sts_hey_rey_09/phases/sts_hey_rey_09.questphase.json",
         "assetSha256": "934f06ef11ba2b6666ea5b57a8aa46bd0327b8f77d01324c94e2a4c8958f50f0",
-        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseResource"
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseResource",
+        "jsonSha256": "a728f07938de8fa5d512a43d2a73ae6704fd8c7c0ccebafde7ea1c22a0c5f546"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "934f06ef11ba2b6666ea5b57a8aa46bd0327b8f77d01324c94e2a4c8958f50f0",
@@ -931,9 +941,10 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/open_world/street_stories/heywood/vista_del_rey/sts_hey_vista_del_rey.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/open_world/street_stories/heywood/vista_del_rey/sts_hey_vista_del_rey.questphase.json",
         "assetSha256": "75e3ce4df464e2ac04c6f73bd15e1c8e781510fa11fdcdb1a17d7b03943b10c4",
-        "jsonPointer": "/Data/RootChunk/inplacePhases/11"
+        "jsonPointer": "/Data/RootChunk/inplacePhases/11",
+        "jsonSha256": "3a6bcc430682e4a96d92e59254db40df5e9f5fe00c8372cb0594d21368270d05"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "75e3ce4df464e2ac04c6f73bd15e1c8e781510fa11fdcdb1a17d7b03943b10c4",
@@ -949,10 +960,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/open_world/street_stories/heywood/vista_del_rey/sts_hey_rey_09/phases/sts_hey_rey_09_openworld.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/open_world/street_stories/heywood/vista_del_rey/sts_hey_rey_09/phases/sts_hey_rey_09_openworld.questphase.json",
         "assetSha256": "97ae886129b4abcfe598efead79e7a70ead3412a09b070d581837ef293ac038c",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/38/Data/type/Data",
-        "expectedType": "questSetVar_NodeType"
+        "expectedType": "questSetVar_NodeType",
+        "jsonSha256": "05227b8a7c984930f89a97c764a9c75919caaef68a953bc820aed3192504d98d"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "97ae886129b4abcfe598efead79e7a70ead3412a09b070d581837ef293ac038c",
@@ -968,10 +980,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/open_world/street_stories/heywood/vista_del_rey/sts_hey_rey_09/phases/sts_hey_rey_09_openworld.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/open_world/street_stories/heywood/vista_del_rey/sts_hey_rey_09/phases/sts_hey_rey_09_openworld.questphase.json",
         "assetSha256": "97ae886129b4abcfe598efead79e7a70ead3412a09b070d581837ef293ac038c",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/11/Data",
-        "expectedType": "questPauseConditionNodeDefinition"
+        "expectedType": "questPauseConditionNodeDefinition",
+        "jsonSha256": "05227b8a7c984930f89a97c764a9c75919caaef68a953bc820aed3192504d98d"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "97ae886129b4abcfe598efead79e7a70ead3412a09b070d581837ef293ac038c",
@@ -987,10 +1000,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/open_world/street_stories/heywood/vista_del_rey/sts_hey_rey_09/phases/sts_hey_rey_09_openworld.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/open_world/street_stories/heywood/vista_del_rey/sts_hey_rey_09/phases/sts_hey_rey_09_openworld.questphase.json",
         "assetSha256": "97ae886129b4abcfe598efead79e7a70ead3412a09b070d581837ef293ac038c",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/9/Data",
-        "expectedType": "questJournalNodeDefinition"
+        "expectedType": "questJournalNodeDefinition",
+        "jsonSha256": "05227b8a7c984930f89a97c764a9c75919caaef68a953bc820aed3192504d98d"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "97ae886129b4abcfe598efead79e7a70ead3412a09b070d581837ef293ac038c",
@@ -1006,10 +1020,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/open_world/street_stories/heywood/vista_del_rey/sts_hey_rey_09/phases/sts_hey_rey_09_openworld.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/open_world/street_stories/heywood/vista_del_rey/sts_hey_rey_09/phases/sts_hey_rey_09_openworld.questphase.json",
         "assetSha256": "97ae886129b4abcfe598efead79e7a70ead3412a09b070d581837ef293ac038c",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/17/Data",
-        "expectedType": "questPauseConditionNodeDefinition"
+        "expectedType": "questPauseConditionNodeDefinition",
+        "jsonSha256": "05227b8a7c984930f89a97c764a9c75919caaef68a953bc820aed3192504d98d"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "97ae886129b4abcfe598efead79e7a70ead3412a09b070d581837ef293ac038c",
@@ -1025,10 +1040,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/open_world/street_stories/heywood/vista_del_rey/sts_hey_rey_09/phases/sts_hey_rey_09_openworld.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/open_world/street_stories/heywood/vista_del_rey/sts_hey_rey_09/phases/sts_hey_rey_09_openworld.questphase.json",
         "assetSha256": "97ae886129b4abcfe598efead79e7a70ead3412a09b070d581837ef293ac038c",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/10/Data",
-        "expectedType": "questJournalNodeDefinition"
+        "expectedType": "questJournalNodeDefinition",
+        "jsonSha256": "05227b8a7c984930f89a97c764a9c75919caaef68a953bc820aed3192504d98d"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "97ae886129b4abcfe598efead79e7a70ead3412a09b070d581837ef293ac038c",
@@ -1044,9 +1060,10 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_japantown.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_japantown.questphase.json",
         "assetSha256": "eb02c3f6381d54332883383b9e55d22ac2b8f5af33ff1401e0d653b74783fc5f",
-        "jsonPointer": "/Data/RootChunk/inplacePhases/18"
+        "jsonPointer": "/Data/RootChunk/inplacePhases/18",
+        "jsonSha256": "27530d1bee3ae15dc06562df6ba387323d40a91dd592ccc61440e590ddda7599"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "eb02c3f6381d54332883383b9e55d22ac2b8f5af33ff1401e0d653b74783fc5f",
@@ -1062,9 +1079,10 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/open_world/street_stories/heywood/vista_del_rey/sts_hey_rey_09/phases/sts_hey_rey_09.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/open_world/street_stories/heywood/vista_del_rey/sts_hey_rey_09/phases/sts_hey_rey_09.questphase.json",
         "assetSha256": "934f06ef11ba2b6666ea5b57a8aa46bd0327b8f77d01324c94e2a4c8958f50f0",
-        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseResource"
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseResource",
+        "jsonSha256": "a728f07938de8fa5d512a43d2a73ae6704fd8c7c0ccebafde7ea1c22a0c5f546"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "934f06ef11ba2b6666ea5b57a8aa46bd0327b8f77d01324c94e2a4c8958f50f0",
@@ -1080,9 +1098,10 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/open_world/street_stories/heywood/vista_del_rey/sts_hey_vista_del_rey.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/open_world/street_stories/heywood/vista_del_rey/sts_hey_vista_del_rey.questphase.json",
         "assetSha256": "75e3ce4df464e2ac04c6f73bd15e1c8e781510fa11fdcdb1a17d7b03943b10c4",
-        "jsonPointer": "/Data/RootChunk/inplacePhases/1"
+        "jsonPointer": "/Data/RootChunk/inplacePhases/1",
+        "jsonSha256": "3a6bcc430682e4a96d92e59254db40df5e9f5fe00c8372cb0594d21368270d05"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "75e3ce4df464e2ac04c6f73bd15e1c8e781510fa11fdcdb1a17d7b03943b10c4",
@@ -1098,10 +1117,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "scene-evidence/city-contacts/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_05/scenes/sts_wbr_jpn_05_ren_cheng.scene.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_05/scenes/sts_wbr_jpn_05_ren_cheng.scene.json",
         "assetSha256": "62c1735c551152615aa1e0ec441149d57e143ed0670f90e7c88e3a79e84d5e77",
         "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data/questNode/Data/type/Data",
-        "expectedType": "questSetVar_NodeType"
+        "expectedType": "questSetVar_NodeType",
+        "jsonSha256": "0d08eaab6a3a21f413a321566ccb13b9302adceca8584f88cba9aba3ede2f47c"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "62c1735c551152615aa1e0ec441149d57e143ed0670f90e7c88e3a79e84d5e77",
@@ -1117,10 +1137,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "scene-evidence/city-contacts/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_05/scenes/sts_wbr_jpn_05_ren_cheng.scene.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_05/scenes/sts_wbr_jpn_05_ren_cheng.scene.json",
         "assetSha256": "62c1735c551152615aa1e0ec441149d57e143ed0670f90e7c88e3a79e84d5e77",
         "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/8/Data",
-        "expectedType": "scnSectionNode"
+        "expectedType": "scnSectionNode",
+        "jsonSha256": "0d08eaab6a3a21f413a321566ccb13b9302adceca8584f88cba9aba3ede2f47c"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "62c1735c551152615aa1e0ec441149d57e143ed0670f90e7c88e3a79e84d5e77",
@@ -1136,10 +1157,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "scene-evidence/city-contacts/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_05/scenes/sts_wbr_jpn_05_ren_cheng.scene.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_05/scenes/sts_wbr_jpn_05_ren_cheng.scene.json",
         "assetSha256": "62c1735c551152615aa1e0ec441149d57e143ed0670f90e7c88e3a79e84d5e77",
         "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/5/Data",
-        "expectedType": "scnQuestNode"
+        "expectedType": "scnQuestNode",
+        "jsonSha256": "0d08eaab6a3a21f413a321566ccb13b9302adceca8584f88cba9aba3ede2f47c"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "62c1735c551152615aa1e0ec441149d57e143ed0670f90e7c88e3a79e84d5e77",
@@ -1155,9 +1177,10 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "scene-evidence/city-contacts/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_05/scenes/sts_wbr_jpn_05_ren_cheng.scene.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_05/scenes/sts_wbr_jpn_05_ren_cheng.scene.json",
         "assetSha256": "62c1735c551152615aa1e0ec441149d57e143ed0670f90e7c88e3a79e84d5e77",
-        "jsonPointer": "/Data/RootChunk/actors"
+        "jsonPointer": "/Data/RootChunk/actors",
+        "jsonSha256": "0d08eaab6a3a21f413a321566ccb13b9302adceca8584f88cba9aba3ede2f47c"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "62c1735c551152615aa1e0ec441149d57e143ed0670f90e7c88e3a79e84d5e77",
@@ -1173,9 +1196,10 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_05/phases/sts_wbr_jpn_05_openworld.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/open_world/street_stories/westbrook/japantown/sts_wbr_jpn_05/phases/sts_wbr_jpn_05_openworld.questphase.json",
         "assetSha256": "1bea660559e0cf9aa9fc4071ae26a02f39218ff7533b2ad216de9af1e5888e57",
-        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/1/Data/phaseGraph/Data/nodes/1/Data/phaseGraph/Data/nodes/1/Data/sceneFile"
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/1/Data/phaseGraph/Data/nodes/1/Data/phaseGraph/Data/nodes/1/Data/sceneFile",
+        "jsonSha256": "22dca3497d50f235dc946a1b06edd9a77b54a30e670d6ad6a3f528ecd4fff133"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "1bea660559e0cf9aa9fc4071ae26a02f39218ff7533b2ad216de9af1e5888e57",
@@ -1191,10 +1215,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/phases/sts_bls_ina_06_ow.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/phases/sts_bls_ina_06_ow.questphase.json",
         "assetSha256": "aab1417681cd56664e9f7f52d64e2bfbf18cf0b72f9c8ce515bf85953f57b9d4",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/31/Data/phaseGraph/Data/nodes/12/Data/type/Data",
-        "expectedType": "questSetVar_NodeType"
+        "expectedType": "questSetVar_NodeType",
+        "jsonSha256": "f5d291975b6dedc18a991bfab8279f8d9a5d56b0647a7339158aa9c27c68eb38"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "aab1417681cd56664e9f7f52d64e2bfbf18cf0b72f9c8ce515bf85953f57b9d4",
@@ -1210,10 +1235,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/phases/sts_bls_ina_06_ow.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/phases/sts_bls_ina_06_ow.questphase.json",
         "assetSha256": "aab1417681cd56664e9f7f52d64e2bfbf18cf0b72f9c8ce515bf85953f57b9d4",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/72/Data/type/Data",
-        "expectedType": "questSetVar_NodeType"
+        "expectedType": "questSetVar_NodeType",
+        "jsonSha256": "f5d291975b6dedc18a991bfab8279f8d9a5d56b0647a7339158aa9c27c68eb38"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "aab1417681cd56664e9f7f52d64e2bfbf18cf0b72f9c8ce515bf85953f57b9d4",
@@ -1229,10 +1255,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/phases/sts_bls_ina_06_ow.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/phases/sts_bls_ina_06_ow.questphase.json",
         "assetSha256": "aab1417681cd56664e9f7f52d64e2bfbf18cf0b72f9c8ce515bf85953f57b9d4",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/88/Data/type/Data",
-        "expectedType": "questSetVar_NodeType"
+        "expectedType": "questSetVar_NodeType",
+        "jsonSha256": "f5d291975b6dedc18a991bfab8279f8d9a5d56b0647a7339158aa9c27c68eb38"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "aab1417681cd56664e9f7f52d64e2bfbf18cf0b72f9c8ce515bf85953f57b9d4",
@@ -1248,10 +1275,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/phases/sts_bls_ina_06_ow.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/phases/sts_bls_ina_06_ow.questphase.json",
         "assetSha256": "aab1417681cd56664e9f7f52d64e2bfbf18cf0b72f9c8ce515bf85953f57b9d4",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/31/Data/phaseGraph/Data/nodes/21/Data",
-        "expectedType": "questPauseConditionNodeDefinition"
+        "expectedType": "questPauseConditionNodeDefinition",
+        "jsonSha256": "f5d291975b6dedc18a991bfab8279f8d9a5d56b0647a7339158aa9c27c68eb38"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "aab1417681cd56664e9f7f52d64e2bfbf18cf0b72f9c8ce515bf85953f57b9d4",
@@ -1267,10 +1295,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/phases/sts_bls_ina_06_ow.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/phases/sts_bls_ina_06_ow.questphase.json",
         "assetSha256": "aab1417681cd56664e9f7f52d64e2bfbf18cf0b72f9c8ce515bf85953f57b9d4",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/31/Data/phaseGraph/Data/nodes/8/Data",
-        "expectedType": "questJournalNodeDefinition"
+        "expectedType": "questJournalNodeDefinition",
+        "jsonSha256": "f5d291975b6dedc18a991bfab8279f8d9a5d56b0647a7339158aa9c27c68eb38"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "aab1417681cd56664e9f7f52d64e2bfbf18cf0b72f9c8ce515bf85953f57b9d4",
@@ -1286,10 +1315,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/phases/sts_bls_ina_06_ow.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/phases/sts_bls_ina_06_ow.questphase.json",
         "assetSha256": "aab1417681cd56664e9f7f52d64e2bfbf18cf0b72f9c8ce515bf85953f57b9d4",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/31/Data/phaseGraph/Data/nodes/11/Data",
-        "expectedType": "questVehicleNodeDefinition"
+        "expectedType": "questVehicleNodeDefinition",
+        "jsonSha256": "f5d291975b6dedc18a991bfab8279f8d9a5d56b0647a7339158aa9c27c68eb38"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "aab1417681cd56664e9f7f52d64e2bfbf18cf0b72f9c8ce515bf85953f57b9d4",
@@ -1305,10 +1335,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/phases/sts_bls_ina_06_ow.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/phases/sts_bls_ina_06_ow.questphase.json",
         "assetSha256": "aab1417681cd56664e9f7f52d64e2bfbf18cf0b72f9c8ce515bf85953f57b9d4",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/31/Data/phaseGraph/Data/nodes/12/Data",
-        "expectedType": "questFactsDBManagerNodeDefinition"
+        "expectedType": "questFactsDBManagerNodeDefinition",
+        "jsonSha256": "f5d291975b6dedc18a991bfab8279f8d9a5d56b0647a7339158aa9c27c68eb38"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "aab1417681cd56664e9f7f52d64e2bfbf18cf0b72f9c8ce515bf85953f57b9d4",
@@ -1324,10 +1355,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/phases/sts_bls_ina_06_ow.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/phases/sts_bls_ina_06_ow.questphase.json",
         "assetSha256": "aab1417681cd56664e9f7f52d64e2bfbf18cf0b72f9c8ce515bf85953f57b9d4",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/31/Data/phaseGraph/Data/nodes/19/Data",
-        "expectedType": "questJournalNodeDefinition"
+        "expectedType": "questJournalNodeDefinition",
+        "jsonSha256": "f5d291975b6dedc18a991bfab8279f8d9a5d56b0647a7339158aa9c27c68eb38"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "aab1417681cd56664e9f7f52d64e2bfbf18cf0b72f9c8ce515bf85953f57b9d4",
@@ -1343,9 +1375,10 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/phases/sts_bls_ina_06.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/phases/sts_bls_ina_06.questphase.json",
         "assetSha256": "d7c1648aa092c5caa5cab9bb1aaf4317d503c038a4c8c5296972ddd558cff69d",
-        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseResource"
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseResource",
+        "jsonSha256": "0168e33f0cfda27b384ef2b201283b75b2170375b70eb820fdd199190f2f672b"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "d7c1648aa092c5caa5cab9bb1aaf4317d503c038a4c8c5296972ddd558cff69d",
@@ -1361,9 +1394,10 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_inland_avenue.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_inland_avenue.questphase.json",
         "assetSha256": "e215e4341352aa7460fdaca790e8cc2062525c48406aa29d03e794d644e2b05d",
-        "jsonPointer": "/Data/RootChunk/inplacePhases/23"
+        "jsonPointer": "/Data/RootChunk/inplacePhases/23",
+        "jsonSha256": "1c9d0f47faee5cb9a927fb42e6927314593b7800e2b63dd00fb85fd7efbbe337"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "e215e4341352aa7460fdaca790e8cc2062525c48406aa29d03e794d644e2b05d",
@@ -1379,10 +1413,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/phases/sts_bls_ina_06_ow.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/phases/sts_bls_ina_06_ow.questphase.json",
         "assetSha256": "aab1417681cd56664e9f7f52d64e2bfbf18cf0b72f9c8ce515bf85953f57b9d4",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/74/Data",
-        "expectedType": "questJournalNodeDefinition"
+        "expectedType": "questJournalNodeDefinition",
+        "jsonSha256": "f5d291975b6dedc18a991bfab8279f8d9a5d56b0647a7339158aa9c27c68eb38"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "aab1417681cd56664e9f7f52d64e2bfbf18cf0b72f9c8ce515bf85953f57b9d4",
@@ -1398,10 +1433,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/phases/sts_bls_ina_06_ow.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/phases/sts_bls_ina_06_ow.questphase.json",
         "assetSha256": "aab1417681cd56664e9f7f52d64e2bfbf18cf0b72f9c8ce515bf85953f57b9d4",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/75/Data",
-        "expectedType": "questJournalNodeDefinition"
+        "expectedType": "questJournalNodeDefinition",
+        "jsonSha256": "f5d291975b6dedc18a991bfab8279f8d9a5d56b0647a7339158aa9c27c68eb38"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "aab1417681cd56664e9f7f52d64e2bfbf18cf0b72f9c8ce515bf85953f57b9d4",
@@ -1417,10 +1453,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/phases/sts_bls_ina_06_ow.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/phases/sts_bls_ina_06_ow.questphase.json",
         "assetSha256": "aab1417681cd56664e9f7f52d64e2bfbf18cf0b72f9c8ce515bf85953f57b9d4",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/72/Data",
-        "expectedType": "questFactsDBManagerNodeDefinition"
+        "expectedType": "questFactsDBManagerNodeDefinition",
+        "jsonSha256": "f5d291975b6dedc18a991bfab8279f8d9a5d56b0647a7339158aa9c27c68eb38"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "aab1417681cd56664e9f7f52d64e2bfbf18cf0b72f9c8ce515bf85953f57b9d4",
@@ -1436,10 +1473,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/phases/sts_bls_ina_06_ow.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/phases/sts_bls_ina_06_ow.questphase.json",
         "assetSha256": "aab1417681cd56664e9f7f52d64e2bfbf18cf0b72f9c8ce515bf85953f57b9d4",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/91/Data",
-        "expectedType": "questDeletionMarkerNodeDefinition"
+        "expectedType": "questDeletionMarkerNodeDefinition",
+        "jsonSha256": "f5d291975b6dedc18a991bfab8279f8d9a5d56b0647a7339158aa9c27c68eb38"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "aab1417681cd56664e9f7f52d64e2bfbf18cf0b72f9c8ce515bf85953f57b9d4",
@@ -1455,10 +1493,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/phases/sts_bls_ina_06_ow.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/phases/sts_bls_ina_06_ow.questphase.json",
         "assetSha256": "aab1417681cd56664e9f7f52d64e2bfbf18cf0b72f9c8ce515bf85953f57b9d4",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/89/Data",
-        "expectedType": "questGameManagerNodeDefinition"
+        "expectedType": "questGameManagerNodeDefinition",
+        "jsonSha256": "f5d291975b6dedc18a991bfab8279f8d9a5d56b0647a7339158aa9c27c68eb38"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "aab1417681cd56664e9f7f52d64e2bfbf18cf0b72f9c8ce515bf85953f57b9d4",
@@ -1474,10 +1513,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/phases/sts_bls_ina_06_ow.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/open_world/street_stories/badlands/inland_avenue/sts_bls_ina_06/phases/sts_bls_ina_06_ow.questphase.json",
         "assetSha256": "aab1417681cd56664e9f7f52d64e2bfbf18cf0b72f9c8ce515bf85953f57b9d4",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/88/Data",
-        "expectedType": "questFactsDBManagerNodeDefinition"
+        "expectedType": "questFactsDBManagerNodeDefinition",
+        "jsonSha256": "f5d291975b6dedc18a991bfab8279f8d9a5d56b0647a7339158aa9c27c68eb38"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "aab1417681cd56664e9f7f52d64e2bfbf18cf0b72f9c8ce515bf85953f57b9d4",
@@ -1493,10 +1533,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/open_world/street_stories/heywood/glenn/sts_hey_gle_06/phase/sts_hey_gle_06_openworld.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/open_world/street_stories/heywood/glenn/sts_hey_gle_06/phase/sts_hey_gle_06_openworld.questphase.json",
         "assetSha256": "69a6ff212abe79974c51fa651ca2d7fda71c460a49cd7489a77d6f664b186297",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseGraph/Data/nodes/30/Data/type/Data",
-        "expectedType": "questSetVar_NodeType"
+        "expectedType": "questSetVar_NodeType",
+        "jsonSha256": "12217aeff3da7987ca375c92b5c2597b06a501b2b109e689086cb2254937d722"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "69a6ff212abe79974c51fa651ca2d7fda71c460a49cd7489a77d6f664b186297",
@@ -1512,10 +1553,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/open_world/street_stories/heywood/glenn/sts_hey_gle_06/phase/sts_hey_gle_06_bugfixing.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/open_world/street_stories/heywood/glenn/sts_hey_gle_06/phase/sts_hey_gle_06_bugfixing.questphase.json",
         "assetSha256": "8bd6b017d5a2c7dec45ebaef0252268f56ed0bf83083a681dbb82f74d0521076",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/2/Data/type/Data",
-        "expectedType": "questSetVar_NodeType"
+        "expectedType": "questSetVar_NodeType",
+        "jsonSha256": "ff2eac5fd74df25420d5620730e2ee37784b269d05b39911342788a13dc7b3f0"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "8bd6b017d5a2c7dec45ebaef0252268f56ed0bf83083a681dbb82f74d0521076",
@@ -1531,10 +1573,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/quest/minor_quests/mq044/mq044.quest.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/minor_quests/mq044/mq044.quest.json",
         "assetSha256": "a938204a1291a66d104934bcce1655559ac8569b1b2d7e6e6f30cc8d74c8967c",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/type/Data",
-        "expectedType": "questSetVar_NodeType"
+        "expectedType": "questSetVar_NodeType",
+        "jsonSha256": "7c5e50ff9cc729a8868a840d9ea7974943d87c585d73c022942f67f4ca4258c2"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "a938204a1291a66d104934bcce1655559ac8569b1b2d7e6e6f30cc8d74c8967c",
@@ -1550,10 +1593,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/open_world/street_stories/heywood/glenn/sts_hey_gle_06/phase/sts_hey_gle_06_openworld.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/open_world/street_stories/heywood/glenn/sts_hey_gle_06/phase/sts_hey_gle_06_openworld.questphase.json",
         "assetSha256": "69a6ff212abe79974c51fa651ca2d7fda71c460a49cd7489a77d6f664b186297",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseGraph/Data/nodes/18/Data",
-        "expectedType": "questConditionNodeDefinition"
+        "expectedType": "questConditionNodeDefinition",
+        "jsonSha256": "12217aeff3da7987ca375c92b5c2597b06a501b2b109e689086cb2254937d722"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "69a6ff212abe79974c51fa651ca2d7fda71c460a49cd7489a77d6f664b186297",
@@ -1569,10 +1613,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/open_world/street_stories/heywood/glenn/sts_hey_gle_06/phase/sts_hey_gle_06_openworld.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/open_world/street_stories/heywood/glenn/sts_hey_gle_06/phase/sts_hey_gle_06_openworld.questphase.json",
         "assetSha256": "69a6ff212abe79974c51fa651ca2d7fda71c460a49cd7489a77d6f664b186297",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseGraph/Data/nodes/5/Data",
-        "expectedType": "questRewardManagerNodeDefinition"
+        "expectedType": "questRewardManagerNodeDefinition",
+        "jsonSha256": "12217aeff3da7987ca375c92b5c2597b06a501b2b109e689086cb2254937d722"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "69a6ff212abe79974c51fa651ca2d7fda71c460a49cd7489a77d6f664b186297",
@@ -1588,10 +1633,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/open_world/street_stories/heywood/glenn/sts_hey_gle_06/phase/sts_hey_gle_06_openworld.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/open_world/street_stories/heywood/glenn/sts_hey_gle_06/phase/sts_hey_gle_06_openworld.questphase.json",
         "assetSha256": "69a6ff212abe79974c51fa651ca2d7fda71c460a49cd7489a77d6f664b186297",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseGraph/Data/nodes/30/Data",
-        "expectedType": "questFactsDBManagerNodeDefinition"
+        "expectedType": "questFactsDBManagerNodeDefinition",
+        "jsonSha256": "12217aeff3da7987ca375c92b5c2597b06a501b2b109e689086cb2254937d722"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "69a6ff212abe79974c51fa651ca2d7fda71c460a49cd7489a77d6f664b186297",
@@ -1607,10 +1653,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/open_world/street_stories/heywood/glenn/sts_hey_gle_06/phase/sts_hey_gle_06_bugfixing.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/open_world/street_stories/heywood/glenn/sts_hey_gle_06/phase/sts_hey_gle_06_bugfixing.questphase.json",
         "assetSha256": "8bd6b017d5a2c7dec45ebaef0252268f56ed0bf83083a681dbb82f74d0521076",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/3/Data",
-        "expectedType": "questPauseConditionNodeDefinition"
+        "expectedType": "questPauseConditionNodeDefinition",
+        "jsonSha256": "ff2eac5fd74df25420d5620730e2ee37784b269d05b39911342788a13dc7b3f0"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "8bd6b017d5a2c7dec45ebaef0252268f56ed0bf83083a681dbb82f74d0521076",
@@ -1626,9 +1673,10 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/open_world/street_stories/heywood/glenn/sts_hey_gle_06/phase/sts_hey_gle_06_phase.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/open_world/street_stories/heywood/glenn/sts_hey_gle_06/phase/sts_hey_gle_06_phase.questphase.json",
         "assetSha256": "79149e0c68fb33d9a23eeb14706ef77e591ab4117f2093b741ce932ad0861a5a",
-        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseResource"
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseResource",
+        "jsonSha256": "aa436544a0e4b83fda1e8a0d4e4b7464f645c32122a81f3577b860f6ddf180a2"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "79149e0c68fb33d9a23eeb14706ef77e591ab4117f2093b741ce932ad0861a5a",
@@ -1644,9 +1692,10 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/open_world/street_stories/heywood/glenn/sts_hey_gle_06/phase/sts_hey_gle_06.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/open_world/street_stories/heywood/glenn/sts_hey_gle_06/phase/sts_hey_gle_06.questphase.json",
         "assetSha256": "f7d52ce4e9e223db2463dfd5b5f4174d2311f8261c818e9706cbf1db2eac1e4b",
-        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseResource"
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseResource",
+        "jsonSha256": "abcc0be8bf6883eb21c343484b39eafc0ef172c2b3ff167841902a2b73361fe6"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "f7d52ce4e9e223db2463dfd5b5f4174d2311f8261c818e9706cbf1db2eac1e4b",
@@ -1662,9 +1711,10 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/open_world/street_stories/heywood/glenn/sts_hey_glenn.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/open_world/street_stories/heywood/glenn/sts_hey_glenn.questphase.json",
         "assetSha256": "0a93e8220aad39d7f021da939ae49e42c812a145a5566cc4754a84861fc169bc",
-        "jsonPointer": "/Data/RootChunk/inplacePhases/11"
+        "jsonPointer": "/Data/RootChunk/inplacePhases/11",
+        "jsonSha256": "af1eee069c93892822a95d9f5ff6773bc5bf72c13fc53da11c42f3deefe97771"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "0a93e8220aad39d7f021da939ae49e42c812a145a5566cc4754a84861fc169bc",
@@ -1680,10 +1730,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/ep1/base/journal/cooked_journal.journal.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
         "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
         "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/78/Data/entries/1/Data/entries/0/Data",
-        "expectedType": "gameJournalPhoneMessage"
+        "expectedType": "gameJournalPhoneMessage",
+        "jsonSha256": "2849614f40fad84fea3d19543dedf8e1855f23d5fc567286aad9ac7c1a4332a7"
       },
       "archiveSHA256": "1edf706261947fb0a80a130e6ce05e75706a1738c032c3e545d49774c7d27ddf",
       "resourceSHA256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
@@ -1699,10 +1750,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/quest/minor_quests/mq044/phases/mq044_main.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/minor_quests/mq044/phases/mq044_main.questphase.json",
         "assetSha256": "9052b6c50d124db621aa6ea272b32bdbadac3141686af99fb37d19409762a6f4",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseGraph/Data/nodes/3/Data",
-        "expectedType": "questConditionNodeDefinition"
+        "expectedType": "questConditionNodeDefinition",
+        "jsonSha256": "5f8acc8874477b8d078e7678fb2d2a9e7ac507e573fff6e0fd95f6797a960daf"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "9052b6c50d124db621aa6ea272b32bdbadac3141686af99fb37d19409762a6f4",
@@ -1718,10 +1770,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/quest/minor_quests/mq044/phases/mq044_main.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/minor_quests/mq044/phases/mq044_main.questphase.json",
         "assetSha256": "9052b6c50d124db621aa6ea272b32bdbadac3141686af99fb37d19409762a6f4",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseGraph/Data/nodes/23/Data",
-        "expectedType": "questJournalNodeDefinition"
+        "expectedType": "questJournalNodeDefinition",
+        "jsonSha256": "5f8acc8874477b8d078e7678fb2d2a9e7ac507e573fff6e0fd95f6797a960daf"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "9052b6c50d124db621aa6ea272b32bdbadac3141686af99fb37d19409762a6f4",
@@ -1737,9 +1790,10 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/quest/minor_quests/mq044/phases/mq044.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/minor_quests/mq044/phases/mq044.questphase.json",
         "assetSha256": "29f515c252c0ca442ff7bd598899907c2015e8b54db6797fa7ed1ac0a19d4fe5",
-        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseResource"
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/phaseResource",
+        "jsonSha256": "7918028e08ccfeb6fc0a9399e637a73256433b0c7d217c8d047e57ba8dfc932c"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "29f515c252c0ca442ff7bd598899907c2015e8b54db6797fa7ed1ac0a19d4fe5",
@@ -1755,10 +1809,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/quest/minor_quests/mq044/phases/mq044_main.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/minor_quests/mq044/phases/mq044_main.questphase.json",
         "assetSha256": "9052b6c50d124db621aa6ea272b32bdbadac3141686af99fb37d19409762a6f4",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/12/Data/type/Data",
-        "expectedType": "questSetVar_NodeType"
+        "expectedType": "questSetVar_NodeType",
+        "jsonSha256": "5f8acc8874477b8d078e7678fb2d2a9e7ac507e573fff6e0fd95f6797a960daf"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "9052b6c50d124db621aa6ea272b32bdbadac3141686af99fb37d19409762a6f4",
@@ -1774,10 +1829,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/ep1/base/journal/cooked_journal.journal.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
         "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
         "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/78/Data/entries/1/Data/entries/1/Data",
-        "expectedType": "gameJournalPhoneMessage"
+        "expectedType": "gameJournalPhoneMessage",
+        "jsonSha256": "2849614f40fad84fea3d19543dedf8e1855f23d5fc567286aad9ac7c1a4332a7"
       },
       "archiveSHA256": "1edf706261947fb0a80a130e6ce05e75706a1738c032c3e545d49774c7d27ddf",
       "resourceSHA256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
@@ -1793,10 +1849,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/quest/minor_quests/mq044/phases/mq044_main.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/minor_quests/mq044/phases/mq044_main.questphase.json",
         "assetSha256": "9052b6c50d124db621aa6ea272b32bdbadac3141686af99fb37d19409762a6f4",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/9/Data",
-        "expectedType": "questPauseConditionNodeDefinition"
+        "expectedType": "questPauseConditionNodeDefinition",
+        "jsonSha256": "5f8acc8874477b8d078e7678fb2d2a9e7ac507e573fff6e0fd95f6797a960daf"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "9052b6c50d124db621aa6ea272b32bdbadac3141686af99fb37d19409762a6f4",
@@ -1812,10 +1869,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/quest/minor_quests/mq044/phases/mq044_main.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/minor_quests/mq044/phases/mq044_main.questphase.json",
         "assetSha256": "9052b6c50d124db621aa6ea272b32bdbadac3141686af99fb37d19409762a6f4",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/10/Data",
-        "expectedType": "questJournalNodeDefinition"
+        "expectedType": "questJournalNodeDefinition",
+        "jsonSha256": "5f8acc8874477b8d078e7678fb2d2a9e7ac507e573fff6e0fd95f6797a960daf"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "9052b6c50d124db621aa6ea272b32bdbadac3141686af99fb37d19409762a6f4",
@@ -1831,10 +1889,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/quest/minor_quests/mq044/phases/mq044_main.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/minor_quests/mq044/phases/mq044_main.questphase.json",
         "assetSha256": "9052b6c50d124db621aa6ea272b32bdbadac3141686af99fb37d19409762a6f4",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/17/Data",
-        "expectedType": "questConditionNodeDefinition"
+        "expectedType": "questConditionNodeDefinition",
+        "jsonSha256": "5f8acc8874477b8d078e7678fb2d2a9e7ac507e573fff6e0fd95f6797a960daf"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "9052b6c50d124db621aa6ea272b32bdbadac3141686af99fb37d19409762a6f4",
@@ -1850,10 +1909,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/quest/minor_quests/mq044/phases/mq044_main.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/minor_quests/mq044/phases/mq044_main.questphase.json",
         "assetSha256": "9052b6c50d124db621aa6ea272b32bdbadac3141686af99fb37d19409762a6f4",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/15/Data",
-        "expectedType": "questJournalNodeDefinition"
+        "expectedType": "questJournalNodeDefinition",
+        "jsonSha256": "5f8acc8874477b8d078e7678fb2d2a9e7ac507e573fff6e0fd95f6797a960daf"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "9052b6c50d124db621aa6ea272b32bdbadac3141686af99fb37d19409762a6f4",
@@ -1869,10 +1929,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/quest/minor_quests/mq044/phases/mq044_main.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/minor_quests/mq044/phases/mq044_main.questphase.json",
         "assetSha256": "9052b6c50d124db621aa6ea272b32bdbadac3141686af99fb37d19409762a6f4",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/11/Data",
-        "expectedType": "questJournalNodeDefinition"
+        "expectedType": "questJournalNodeDefinition",
+        "jsonSha256": "5f8acc8874477b8d078e7678fb2d2a9e7ac507e573fff6e0fd95f6797a960daf"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "9052b6c50d124db621aa6ea272b32bdbadac3141686af99fb37d19409762a6f4",
@@ -1888,10 +1949,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/quest/minor_quests/mq044/phases/mq044_main.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/minor_quests/mq044/phases/mq044_main.questphase.json",
         "assetSha256": "9052b6c50d124db621aa6ea272b32bdbadac3141686af99fb37d19409762a6f4",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/23/Data",
-        "expectedType": "questCharacterManagerNodeDefinition"
+        "expectedType": "questCharacterManagerNodeDefinition",
+        "jsonSha256": "5f8acc8874477b8d078e7678fb2d2a9e7ac507e573fff6e0fd95f6797a960daf"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "9052b6c50d124db621aa6ea272b32bdbadac3141686af99fb37d19409762a6f4",
@@ -1907,10 +1969,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/quest/minor_quests/mq044/phases/mq044_main.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/minor_quests/mq044/phases/mq044_main.questphase.json",
         "assetSha256": "9052b6c50d124db621aa6ea272b32bdbadac3141686af99fb37d19409762a6f4",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/12/Data",
-        "expectedType": "questFactsDBManagerNodeDefinition"
+        "expectedType": "questFactsDBManagerNodeDefinition",
+        "jsonSha256": "5f8acc8874477b8d078e7678fb2d2a9e7ac507e573fff6e0fd95f6797a960daf"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "9052b6c50d124db621aa6ea272b32bdbadac3141686af99fb37d19409762a6f4",
@@ -1926,10 +1989,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/quest/minor_quests/mq044/phases/mq044_main.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/minor_quests/mq044/phases/mq044_main.questphase.json",
         "assetSha256": "9052b6c50d124db621aa6ea272b32bdbadac3141686af99fb37d19409762a6f4",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data/phaseGraph/Data/nodes/20/Data",
-        "expectedType": "questVehicleNodeDefinition"
+        "expectedType": "questVehicleNodeDefinition",
+        "jsonSha256": "5f8acc8874477b8d078e7678fb2d2a9e7ac507e573fff6e0fd95f6797a960daf"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "9052b6c50d124db621aa6ea272b32bdbadac3141686af99fb37d19409762a6f4",
@@ -1945,10 +2009,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "scene-evidence/city-contacts/raw/base/base/quest/minor_quests/mq019/scenes/mq019_05_holocall.scene.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/minor_quests/mq019/scenes/mq019_05_holocall.scene.json",
         "assetSha256": "344cddc2a7606266d9874fff5cfeffa7cf0085f95f0fd356681144fb17d5ea36",
         "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/26/Data/questNode/Data/type/Data",
-        "expectedType": "questSetVar_NodeType"
+        "expectedType": "questSetVar_NodeType",
+        "jsonSha256": "a1691dd2d64949724aa110d2e0b062056fe3ec4cb0a6b3c011e76a7f7d35bf4d"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "344cddc2a7606266d9874fff5cfeffa7cf0085f95f0fd356681144fb17d5ea36",
@@ -1964,10 +2029,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "scene-evidence/city-contacts/raw/base/base/quest/minor_quests/mq019/scenes/mq019_05_holocall.scene.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/minor_quests/mq019/scenes/mq019_05_holocall.scene.json",
         "assetSha256": "344cddc2a7606266d9874fff5cfeffa7cf0085f95f0fd356681144fb17d5ea36",
         "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/14/Data",
-        "expectedType": "scnChoiceNode"
+        "expectedType": "scnChoiceNode",
+        "jsonSha256": "a1691dd2d64949724aa110d2e0b062056fe3ec4cb0a6b3c011e76a7f7d35bf4d"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "344cddc2a7606266d9874fff5cfeffa7cf0085f95f0fd356681144fb17d5ea36",
@@ -1983,10 +2049,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "scene-evidence/city-contacts/raw/base/base/quest/minor_quests/mq019/scenes/mq019_05_holocall.scene.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/minor_quests/mq019/scenes/mq019_05_holocall.scene.json",
         "assetSha256": "344cddc2a7606266d9874fff5cfeffa7cf0085f95f0fd356681144fb17d5ea36",
         "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/7/Data",
-        "expectedType": "scnQuestNode"
+        "expectedType": "scnQuestNode",
+        "jsonSha256": "a1691dd2d64949724aa110d2e0b062056fe3ec4cb0a6b3c011e76a7f7d35bf4d"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "344cddc2a7606266d9874fff5cfeffa7cf0085f95f0fd356681144fb17d5ea36",
@@ -2002,10 +2069,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "scene-evidence/city-contacts/raw/base/base/quest/minor_quests/mq019/scenes/mq019_05_holocall.scene.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/minor_quests/mq019/scenes/mq019_05_holocall.scene.json",
         "assetSha256": "344cddc2a7606266d9874fff5cfeffa7cf0085f95f0fd356681144fb17d5ea36",
         "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/21/Data",
-        "expectedType": "scnSectionNode"
+        "expectedType": "scnSectionNode",
+        "jsonSha256": "a1691dd2d64949724aa110d2e0b062056fe3ec4cb0a6b3c011e76a7f7d35bf4d"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "344cddc2a7606266d9874fff5cfeffa7cf0085f95f0fd356681144fb17d5ea36",
@@ -2021,10 +2089,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "scene-evidence/city-contacts/raw/base/base/quest/minor_quests/mq019/scenes/mq019_05_holocall.scene.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/minor_quests/mq019/scenes/mq019_05_holocall.scene.json",
         "assetSha256": "344cddc2a7606266d9874fff5cfeffa7cf0085f95f0fd356681144fb17d5ea36",
         "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/26/Data",
-        "expectedType": "scnQuestNode"
+        "expectedType": "scnQuestNode",
+        "jsonSha256": "a1691dd2d64949724aa110d2e0b062056fe3ec4cb0a6b3c011e76a7f7d35bf4d"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "344cddc2a7606266d9874fff5cfeffa7cf0085f95f0fd356681144fb17d5ea36",
@@ -2040,9 +2109,10 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "scene-evidence/city-contacts/raw/base/base/quest/minor_quests/mq019/scenes/mq019_05_holocall.scene.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/minor_quests/mq019/scenes/mq019_05_holocall.scene.json",
         "assetSha256": "344cddc2a7606266d9874fff5cfeffa7cf0085f95f0fd356681144fb17d5ea36",
-        "jsonPointer": "/Data/RootChunk/actors"
+        "jsonPointer": "/Data/RootChunk/actors",
+        "jsonSha256": "a1691dd2d64949724aa110d2e0b062056fe3ec4cb0a6b3c011e76a7f7d35bf4d"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "344cddc2a7606266d9874fff5cfeffa7cf0085f95f0fd356681144fb17d5ea36",
@@ -2058,9 +2128,10 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/quest/minor_quests/mq019/phases/mq019_05_holocall.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/minor_quests/mq019/phases/mq019_05_holocall.questphase.json",
         "assetSha256": "c2820a006f1ad56dc8da01ee9ff2a8e18825d377127fc9ee8f490aafca38ea0d",
-        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/sceneFile"
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data/sceneFile",
+        "jsonSha256": "b72ff7468fe2ea60999f287f40f636ae8351493fef38fb5731d0e937a4cbf8a6"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "c2820a006f1ad56dc8da01ee9ff2a8e18825d377127fc9ee8f490aafca38ea0d",
@@ -2076,9 +2147,10 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/quest/minor_quests/mq019/phases/mq019_05_holocall.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/minor_quests/mq019/phases/mq019_05_holocall.questphase.json",
         "assetSha256": "c2820a006f1ad56dc8da01ee9ff2a8e18825d377127fc9ee8f490aafca38ea0d",
-        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/11/Data/sceneFile"
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/11/Data/sceneFile",
+        "jsonSha256": "b72ff7468fe2ea60999f287f40f636ae8351493fef38fb5731d0e937a4cbf8a6"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "c2820a006f1ad56dc8da01ee9ff2a8e18825d377127fc9ee8f490aafca38ea0d",
@@ -2094,10 +2166,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "scene-evidence/city-contacts/raw/base/base/quest/minor_quests/mq019/scenes/mq019_05_holocall.scene.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/minor_quests/mq019/scenes/mq019_05_holocall.scene.json",
         "assetSha256": "344cddc2a7606266d9874fff5cfeffa7cf0085f95f0fd356681144fb17d5ea36",
         "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/25/Data/questNode/Data/type/Data",
-        "expectedType": "questSetVar_NodeType"
+        "expectedType": "questSetVar_NodeType",
+        "jsonSha256": "a1691dd2d64949724aa110d2e0b062056fe3ec4cb0a6b3c011e76a7f7d35bf4d"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "344cddc2a7606266d9874fff5cfeffa7cf0085f95f0fd356681144fb17d5ea36",
@@ -2113,10 +2186,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "scene-evidence/city-contacts/raw/base/base/quest/minor_quests/mq019/scenes/mq019_05_holocall.scene.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/minor_quests/mq019/scenes/mq019_05_holocall.scene.json",
         "assetSha256": "344cddc2a7606266d9874fff5cfeffa7cf0085f95f0fd356681144fb17d5ea36",
         "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/18/Data",
-        "expectedType": "scnSectionNode"
+        "expectedType": "scnSectionNode",
+        "jsonSha256": "a1691dd2d64949724aa110d2e0b062056fe3ec4cb0a6b3c011e76a7f7d35bf4d"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "344cddc2a7606266d9874fff5cfeffa7cf0085f95f0fd356681144fb17d5ea36",
@@ -2132,10 +2206,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "scene-evidence/city-contacts/raw/base/base/quest/minor_quests/mq019/scenes/mq019_05_holocall.scene.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/minor_quests/mq019/scenes/mq019_05_holocall.scene.json",
         "assetSha256": "344cddc2a7606266d9874fff5cfeffa7cf0085f95f0fd356681144fb17d5ea36",
         "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/25/Data",
-        "expectedType": "scnQuestNode"
+        "expectedType": "scnQuestNode",
+        "jsonSha256": "a1691dd2d64949724aa110d2e0b062056fe3ec4cb0a6b3c011e76a7f7d35bf4d"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "344cddc2a7606266d9874fff5cfeffa7cf0085f95f0fd356681144fb17d5ea36",
@@ -2151,10 +2226,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "scene-evidence/city-contacts/raw/base/base/quest/minor_quests/mq019/scenes/mq019_04_manager.scene.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/minor_quests/mq019/scenes/mq019_04_manager.scene.json",
         "assetSha256": "1e614ec8620123f5e4a79be4c4585edb903fe3b8c06c1b602300c738ca873bf8",
         "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/29/Data/questNode/Data/type/Data",
-        "expectedType": "questSetVar_NodeType"
+        "expectedType": "questSetVar_NodeType",
+        "jsonSha256": "0ed2033de14625909cfcf804bc7dfaacaaf1a98b3aa59d6c97966609b6f586c3"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "1e614ec8620123f5e4a79be4c4585edb903fe3b8c06c1b602300c738ca873bf8",
@@ -2170,10 +2246,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "scene-evidence/city-contacts/raw/base/base/quest/minor_quests/mq019/scenes/mq019_04_manager.scene.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/minor_quests/mq019/scenes/mq019_04_manager.scene.json",
         "assetSha256": "1e614ec8620123f5e4a79be4c4585edb903fe3b8c06c1b602300c738ca873bf8",
         "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/27/Data",
-        "expectedType": "scnSectionNode"
+        "expectedType": "scnSectionNode",
+        "jsonSha256": "0ed2033de14625909cfcf804bc7dfaacaaf1a98b3aa59d6c97966609b6f586c3"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "1e614ec8620123f5e4a79be4c4585edb903fe3b8c06c1b602300c738ca873bf8",
@@ -2189,10 +2266,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "scene-evidence/city-contacts/raw/base/base/quest/minor_quests/mq019/scenes/mq019_04_manager.scene.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/minor_quests/mq019/scenes/mq019_04_manager.scene.json",
         "assetSha256": "1e614ec8620123f5e4a79be4c4585edb903fe3b8c06c1b602300c738ca873bf8",
         "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/29/Data",
-        "expectedType": "scnQuestNode"
+        "expectedType": "scnQuestNode",
+        "jsonSha256": "0ed2033de14625909cfcf804bc7dfaacaaf1a98b3aa59d6c97966609b6f586c3"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "1e614ec8620123f5e4a79be4c4585edb903fe3b8c06c1b602300c738ca873bf8",
@@ -2208,9 +2286,10 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "scene-evidence/city-contacts/raw/base/base/quest/minor_quests/mq019/scenes/mq019_04_manager.scene.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/minor_quests/mq019/scenes/mq019_04_manager.scene.json",
         "assetSha256": "1e614ec8620123f5e4a79be4c4585edb903fe3b8c06c1b602300c738ca873bf8",
-        "jsonPointer": "/Data/RootChunk/actors"
+        "jsonPointer": "/Data/RootChunk/actors",
+        "jsonSha256": "0ed2033de14625909cfcf804bc7dfaacaaf1a98b3aa59d6c97966609b6f586c3"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "1e614ec8620123f5e4a79be4c4585edb903fe3b8c06c1b602300c738ca873bf8",
@@ -2226,9 +2305,10 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/quest/minor_quests/mq019/phases/mq019_03_night_club.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/minor_quests/mq019/phases/mq019_03_night_club.questphase.json",
         "assetSha256": "b6d0b3bc5d20aed94ff42c14d02bda326046fd19b0f34b0dd2fdd2757cbdef2b",
-        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/10/Data/sceneFile"
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/10/Data/sceneFile",
+        "jsonSha256": "4574c5f9282035b4729217629701eafa9546a7dc653c7f2694abbce50edff2f8"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "b6d0b3bc5d20aed94ff42c14d02bda326046fd19b0f34b0dd2fdd2757cbdef2b",
@@ -2244,9 +2324,10 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/quest/minor_quests/mq019/phases/mq019_03_night_club.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/minor_quests/mq019/phases/mq019_03_night_club.questphase.json",
         "assetSha256": "b6d0b3bc5d20aed94ff42c14d02bda326046fd19b0f34b0dd2fdd2757cbdef2b",
-        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/15/Data/phaseGraph/Data/nodes/7/Data/sceneFile"
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/15/Data/phaseGraph/Data/nodes/7/Data/sceneFile",
+        "jsonSha256": "4574c5f9282035b4729217629701eafa9546a7dc653c7f2694abbce50edff2f8"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "b6d0b3bc5d20aed94ff42c14d02bda326046fd19b0f34b0dd2fdd2757cbdef2b",
@@ -2262,9 +2343,10 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/quest/minor_quests/mq019/phases/mq019_03_night_club.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/minor_quests/mq019/phases/mq019_03_night_club.questphase.json",
         "assetSha256": "b6d0b3bc5d20aed94ff42c14d02bda326046fd19b0f34b0dd2fdd2757cbdef2b",
-        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/17/Data/phaseGraph/Data/nodes/2/Data/sceneFile"
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/17/Data/phaseGraph/Data/nodes/2/Data/sceneFile",
+        "jsonSha256": "4574c5f9282035b4729217629701eafa9546a7dc653c7f2694abbce50edff2f8"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "b6d0b3bc5d20aed94ff42c14d02bda326046fd19b0f34b0dd2fdd2757cbdef2b",
@@ -2280,10 +2362,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/ep1/base/journal/cooked_journal.journal.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
         "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
         "jsonPointer": "/Data/RootChunk/entry/Data/entries/0/Data/entries/4/Data/entries/53/Data/entries/4/Data/entries/3/Data",
-        "expectedType": "gameJournalQuestObjective"
+        "expectedType": "gameJournalQuestObjective",
+        "jsonSha256": "2849614f40fad84fea3d19543dedf8e1855f23d5fc567286aad9ac7c1a4332a7"
       },
       "archiveSHA256": "1edf706261947fb0a80a130e6ce05e75706a1738c032c3e545d49774c7d27ddf",
       "resourceSHA256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
@@ -2299,10 +2382,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/quest/minor_quests/mq019/phases/mq019_06_finale.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/minor_quests/mq019/phases/mq019_06_finale.questphase.json",
         "assetSha256": "93b5a4551d079de3dd881495f9ac5abf4cc050a5736d55f760a90d8309768c89",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/12/Data/phaseGraph/Data/nodes/3/Data",
-        "expectedType": "questPauseConditionNodeDefinition"
+        "expectedType": "questPauseConditionNodeDefinition",
+        "jsonSha256": "65d88b2aee0986c54927ed9675c611b6f33cd81daf592cf086163b1e2e78c2a5"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "93b5a4551d079de3dd881495f9ac5abf4cc050a5736d55f760a90d8309768c89",
@@ -2318,10 +2402,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/quest/minor_quests/mq019/phases/mq019_06_finale.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/minor_quests/mq019/phases/mq019_06_finale.questphase.json",
         "assetSha256": "93b5a4551d079de3dd881495f9ac5abf4cc050a5736d55f760a90d8309768c89",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/12/Data/phaseGraph/Data/nodes/6/Data",
-        "expectedType": "questCutControlNodeDefinition"
+        "expectedType": "questCutControlNodeDefinition",
+        "jsonSha256": "65d88b2aee0986c54927ed9675c611b6f33cd81daf592cf086163b1e2e78c2a5"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "93b5a4551d079de3dd881495f9ac5abf4cc050a5736d55f760a90d8309768c89",
@@ -2337,10 +2422,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/quest/minor_quests/mq019/phases/mq019_06_finale.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/minor_quests/mq019/phases/mq019_06_finale.questphase.json",
         "assetSha256": "93b5a4551d079de3dd881495f9ac5abf4cc050a5736d55f760a90d8309768c89",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/12/Data/phaseGraph/Data/nodes/2/Data",
-        "expectedType": "questJournalNodeDefinition"
+        "expectedType": "questJournalNodeDefinition",
+        "jsonSha256": "65d88b2aee0986c54927ed9675c611b6f33cd81daf592cf086163b1e2e78c2a5"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "93b5a4551d079de3dd881495f9ac5abf4cc050a5736d55f760a90d8309768c89",
@@ -2356,9 +2442,10 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "scene-evidence/city-contacts/raw/base/base/quest/minor_quests/mq019/scenes/mq019_06_finale.scene.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/minor_quests/mq019/scenes/mq019_06_finale.scene.json",
         "assetSha256": "1ebcb660189727f33e5838d8e5a7db6f9e53db7571d2d3169c9e21f3067509ed",
-        "jsonPointer": "/Data/RootChunk/actors"
+        "jsonPointer": "/Data/RootChunk/actors",
+        "jsonSha256": "28e1bfa37857012f1133a5c54496abe6317a050d81e2aa7acf89eedc552c0efb"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "1ebcb660189727f33e5838d8e5a7db6f9e53db7571d2d3169c9e21f3067509ed",
@@ -2374,9 +2461,10 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/quest/minor_quests/mq019/mq019_paparazzi.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/minor_quests/mq019/mq019_paparazzi.questphase.json",
         "assetSha256": "40a773b35a6e7208844d1bf6cf9364598a66baf026a93a2507b9e1501b40f69c",
-        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/7/Data/phaseResource"
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/7/Data/phaseResource",
+        "jsonSha256": "3008e9f48d7222bad7cd01c9cbe65f41b85944074281cf1073ab1c5053f8717e"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "40a773b35a6e7208844d1bf6cf9364598a66baf026a93a2507b9e1501b40f69c",
@@ -2392,10 +2480,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/quest/side_quests/sq023/phases/sq023_aftermath.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/side_quests/sq023/phases/sq023_aftermath.questphase.json",
         "assetSha256": "9609765b166cef922046c63e06a08ffa56f48ec34162a971c1b7928b8c8ea8e2",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/14/Data/type/Data",
-        "expectedType": "questSetVar_NodeType"
+        "expectedType": "questSetVar_NodeType",
+        "jsonSha256": "241464692a680a719fb4e8ff3f59194e9907912a507e34a5ee2d48f755063313"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "9609765b166cef922046c63e06a08ffa56f48ec34162a971c1b7928b8c8ea8e2",
@@ -2411,10 +2500,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "scene-evidence/city-contacts-extra/raw/base/base/quest/side_quests/sq023/scenes/sq023_03_call.scene.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/side_quests/sq023/scenes/sq023_03_call.scene.json",
         "assetSha256": "0b25faef10053fb1f070081734d0f5f3f0d7676b09eaaeec6835056c6dbb6d34",
         "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/54/Data/questNode/Data/type/Data",
-        "expectedType": "questSetVar_NodeType"
+        "expectedType": "questSetVar_NodeType",
+        "jsonSha256": "5d68eb946dab63f6917939e1a4fd86df7112d6e7084ad3272590d1ccd829a2be"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "0b25faef10053fb1f070081734d0f5f3f0d7676b09eaaeec6835056c6dbb6d34",
@@ -2430,10 +2520,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "scene-evidence/city-contacts-extra/raw/base/base/quest/side_quests/sq023/scenes/sq023_03_call.scene.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/side_quests/sq023/scenes/sq023_03_call.scene.json",
         "assetSha256": "0b25faef10053fb1f070081734d0f5f3f0d7676b09eaaeec6835056c6dbb6d34",
         "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/52/Data",
-        "expectedType": "scnSectionNode"
+        "expectedType": "scnSectionNode",
+        "jsonSha256": "5d68eb946dab63f6917939e1a4fd86df7112d6e7084ad3272590d1ccd829a2be"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "0b25faef10053fb1f070081734d0f5f3f0d7676b09eaaeec6835056c6dbb6d34",
@@ -2449,10 +2540,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "scene-evidence/city-contacts-extra/raw/base/base/quest/side_quests/sq023/scenes/sq023_03_call.scene.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/side_quests/sq023/scenes/sq023_03_call.scene.json",
         "assetSha256": "0b25faef10053fb1f070081734d0f5f3f0d7676b09eaaeec6835056c6dbb6d34",
         "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/54/Data",
-        "expectedType": "scnQuestNode"
+        "expectedType": "scnQuestNode",
+        "jsonSha256": "5d68eb946dab63f6917939e1a4fd86df7112d6e7084ad3272590d1ccd829a2be"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "0b25faef10053fb1f070081734d0f5f3f0d7676b09eaaeec6835056c6dbb6d34",
@@ -2468,9 +2560,10 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "scene-evidence/city-contacts-extra/raw/base/base/quest/side_quests/sq023/scenes/sq023_03_call.scene.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/side_quests/sq023/scenes/sq023_03_call.scene.json",
         "assetSha256": "0b25faef10053fb1f070081734d0f5f3f0d7676b09eaaeec6835056c6dbb6d34",
-        "jsonPointer": "/Data/RootChunk/actors"
+        "jsonPointer": "/Data/RootChunk/actors",
+        "jsonSha256": "5d68eb946dab63f6917939e1a4fd86df7112d6e7084ad3272590d1ccd829a2be"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "0b25faef10053fb1f070081734d0f5f3f0d7676b09eaaeec6835056c6dbb6d34",
@@ -2486,10 +2579,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/quest/side_quests/sq023/phases/sq023_aftermath.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/side_quests/sq023/phases/sq023_aftermath.questphase.json",
         "assetSha256": "9609765b166cef922046c63e06a08ffa56f48ec34162a971c1b7928b8c8ea8e2",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/11/Data",
-        "expectedType": "questConditionNodeDefinition"
+        "expectedType": "questConditionNodeDefinition",
+        "jsonSha256": "241464692a680a719fb4e8ff3f59194e9907912a507e34a5ee2d48f755063313"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "9609765b166cef922046c63e06a08ffa56f48ec34162a971c1b7928b8c8ea8e2",
@@ -2505,10 +2599,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/quest/side_quests/sq023/phases/sq023_aftermath.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/side_quests/sq023/phases/sq023_aftermath.questphase.json",
         "assetSha256": "9609765b166cef922046c63e06a08ffa56f48ec34162a971c1b7928b8c8ea8e2",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/12/Data",
-        "expectedType": "questJournalNodeDefinition"
+        "expectedType": "questJournalNodeDefinition",
+        "jsonSha256": "241464692a680a719fb4e8ff3f59194e9907912a507e34a5ee2d48f755063313"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "9609765b166cef922046c63e06a08ffa56f48ec34162a971c1b7928b8c8ea8e2",
@@ -2524,10 +2619,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/quest/side_quests/sq023/phases/sq023_aftermath.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/side_quests/sq023/phases/sq023_aftermath.questphase.json",
         "assetSha256": "9609765b166cef922046c63e06a08ffa56f48ec34162a971c1b7928b8c8ea8e2",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/14/Data",
-        "expectedType": "questFactsDBManagerNodeDefinition"
+        "expectedType": "questFactsDBManagerNodeDefinition",
+        "jsonSha256": "241464692a680a719fb4e8ff3f59194e9907912a507e34a5ee2d48f755063313"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "9609765b166cef922046c63e06a08ffa56f48ec34162a971c1b7928b8c8ea8e2",
@@ -2543,10 +2639,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/quest/side_quests/sq023/phases/sq023_cleanup_aftermath.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/side_quests/sq023/phases/sq023_cleanup_aftermath.questphase.json",
         "assetSha256": "d2a4e78afc9e9b48fd94ecba894bbd25135252d5919476425942993c71e80402",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data",
-        "expectedType": "questConditionNodeDefinition"
+        "expectedType": "questConditionNodeDefinition",
+        "jsonSha256": "75b81733f44047daccbd63e6432406c2de5f8fb37473885a508783bf7f307166"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "d2a4e78afc9e9b48fd94ecba894bbd25135252d5919476425942993c71e80402",
@@ -2562,10 +2659,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/quest/side_quests/sq023/phases/sq023_cleanup_aftermath.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/side_quests/sq023/phases/sq023_cleanup_aftermath.questphase.json",
         "assetSha256": "d2a4e78afc9e9b48fd94ecba894bbd25135252d5919476425942993c71e80402",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data",
-        "expectedType": "questRewardManagerNodeDefinition"
+        "expectedType": "questRewardManagerNodeDefinition",
+        "jsonSha256": "75b81733f44047daccbd63e6432406c2de5f8fb37473885a508783bf7f307166"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "d2a4e78afc9e9b48fd94ecba894bbd25135252d5919476425942993c71e80402",
@@ -2581,9 +2679,10 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/quest/side_quests/sq023/sq023.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/side_quests/sq023/sq023.questphase.json",
         "assetSha256": "a6d280f82a394701aebe7d5f325c46dadd50dd00e304f53addfe0e2cbc15ea40",
-        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/10/Data/phaseResource"
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/10/Data/phaseResource",
+        "jsonSha256": "dca801822aab6747b6f3a242a1401047d358751184fb277e1b292e2e8ebb371c"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "a6d280f82a394701aebe7d5f325c46dadd50dd00e304f53addfe0e2cbc15ea40",
@@ -2599,10 +2698,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/quest/side_quests/sq023/phases/sq023_aftermath.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/side_quests/sq023/phases/sq023_aftermath.questphase.json",
         "assetSha256": "9609765b166cef922046c63e06a08ffa56f48ec34162a971c1b7928b8c8ea8e2",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/15/Data/type/Data",
-        "expectedType": "questSetVar_NodeType"
+        "expectedType": "questSetVar_NodeType",
+        "jsonSha256": "241464692a680a719fb4e8ff3f59194e9907912a507e34a5ee2d48f755063313"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "9609765b166cef922046c63e06a08ffa56f48ec34162a971c1b7928b8c8ea8e2",
@@ -2618,10 +2718,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "scene-evidence/city-contacts-extra/raw/base/base/quest/side_quests/sq023/scenes/sq023_03_call.scene.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/side_quests/sq023/scenes/sq023_03_call.scene.json",
         "assetSha256": "0b25faef10053fb1f070081734d0f5f3f0d7676b09eaaeec6835056c6dbb6d34",
         "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/55/Data/questNode/Data/type/Data",
-        "expectedType": "questSetVar_NodeType"
+        "expectedType": "questSetVar_NodeType",
+        "jsonSha256": "5d68eb946dab63f6917939e1a4fd86df7112d6e7084ad3272590d1ccd829a2be"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "0b25faef10053fb1f070081734d0f5f3f0d7676b09eaaeec6835056c6dbb6d34",
@@ -2637,10 +2738,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "scene-evidence/city-contacts-extra/raw/base/base/quest/side_quests/sq023/scenes/sq023_03_call.scene.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/side_quests/sq023/scenes/sq023_03_call.scene.json",
         "assetSha256": "0b25faef10053fb1f070081734d0f5f3f0d7676b09eaaeec6835056c6dbb6d34",
         "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/53/Data",
-        "expectedType": "scnSectionNode"
+        "expectedType": "scnSectionNode",
+        "jsonSha256": "5d68eb946dab63f6917939e1a4fd86df7112d6e7084ad3272590d1ccd829a2be"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "0b25faef10053fb1f070081734d0f5f3f0d7676b09eaaeec6835056c6dbb6d34",
@@ -2656,10 +2758,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "scene-evidence/city-contacts-extra/raw/base/base/quest/side_quests/sq023/scenes/sq023_03_call.scene.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/side_quests/sq023/scenes/sq023_03_call.scene.json",
         "assetSha256": "0b25faef10053fb1f070081734d0f5f3f0d7676b09eaaeec6835056c6dbb6d34",
         "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/55/Data",
-        "expectedType": "scnQuestNode"
+        "expectedType": "scnQuestNode",
+        "jsonSha256": "5d68eb946dab63f6917939e1a4fd86df7112d6e7084ad3272590d1ccd829a2be"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "0b25faef10053fb1f070081734d0f5f3f0d7676b09eaaeec6835056c6dbb6d34",
@@ -2675,10 +2778,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/quest/side_quests/sq023/phases/sq023_aftermath.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/side_quests/sq023/phases/sq023_aftermath.questphase.json",
         "assetSha256": "9609765b166cef922046c63e06a08ffa56f48ec34162a971c1b7928b8c8ea8e2",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/13/Data",
-        "expectedType": "questJournalNodeDefinition"
+        "expectedType": "questJournalNodeDefinition",
+        "jsonSha256": "241464692a680a719fb4e8ff3f59194e9907912a507e34a5ee2d48f755063313"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "9609765b166cef922046c63e06a08ffa56f48ec34162a971c1b7928b8c8ea8e2",
@@ -2694,10 +2798,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/quest/side_quests/sq023/phases/sq023_aftermath.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/side_quests/sq023/phases/sq023_aftermath.questphase.json",
         "assetSha256": "9609765b166cef922046c63e06a08ffa56f48ec34162a971c1b7928b8c8ea8e2",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/15/Data",
-        "expectedType": "questFactsDBManagerNodeDefinition"
+        "expectedType": "questFactsDBManagerNodeDefinition",
+        "jsonSha256": "241464692a680a719fb4e8ff3f59194e9907912a507e34a5ee2d48f755063313"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "9609765b166cef922046c63e06a08ffa56f48ec34162a971c1b7928b8c8ea8e2",
@@ -2713,10 +2818,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/quest/side_quests/sq023/phases/sq023_cleanup_aftermath.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/side_quests/sq023/phases/sq023_cleanup_aftermath.questphase.json",
         "assetSha256": "d2a4e78afc9e9b48fd94ecba894bbd25135252d5919476425942993c71e80402",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/6/Data",
-        "expectedType": "questConditionNodeDefinition"
+        "expectedType": "questConditionNodeDefinition",
+        "jsonSha256": "75b81733f44047daccbd63e6432406c2de5f8fb37473885a508783bf7f307166"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "d2a4e78afc9e9b48fd94ecba894bbd25135252d5919476425942993c71e80402",
@@ -2732,10 +2838,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/quest/side_quests/sq023/phases/sq023_cleanup_aftermath.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/side_quests/sq023/phases/sq023_cleanup_aftermath.questphase.json",
         "assetSha256": "d2a4e78afc9e9b48fd94ecba894bbd25135252d5919476425942993c71e80402",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/7/Data",
-        "expectedType": "questRewardManagerNodeDefinition"
+        "expectedType": "questRewardManagerNodeDefinition",
+        "jsonSha256": "75b81733f44047daccbd63e6432406c2de5f8fb37473885a508783bf7f307166"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "d2a4e78afc9e9b48fd94ecba894bbd25135252d5919476425942993c71e80402",
@@ -2751,10 +2858,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/ep1/base/journal/cooked_journal.journal.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/ep1/base/journal/cooked_journal.journal.json",
         "assetSha256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
         "jsonPointer": "/Data/RootChunk/entry/Data/entries/3/Data/entries/122/Data/entries/0/Data/entries/1/Data",
-        "expectedType": "gameJournalPhoneMessage"
+        "expectedType": "gameJournalPhoneMessage",
+        "jsonSha256": "2849614f40fad84fea3d19543dedf8e1855f23d5fc567286aad9ac7c1a4332a7"
       },
       "archiveSHA256": "1edf706261947fb0a80a130e6ce05e75706a1738c032c3e545d49774c7d27ddf",
       "resourceSHA256": "55b6e39e338a1b3c116af074b00cfb9d5745f7d495f59541f8ea49d0b182832b",
@@ -2770,10 +2878,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/quest/minor_quests/mq028/phases/mq028_finished.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/minor_quests/mq028/phases/mq028_finished.questphase.json",
         "assetSha256": "4fb3577781b29b986eb748f7a0736d9511d468e51a830563ae8faa1cd54c678a",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/3/Data",
-        "expectedType": "questConditionNodeDefinition"
+        "expectedType": "questConditionNodeDefinition",
+        "jsonSha256": "cdbfc09d271f5777f5f76de9b5610371055c45bd816afb1122fa829b5c6bbad1"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "4fb3577781b29b986eb748f7a0736d9511d468e51a830563ae8faa1cd54c678a",
@@ -2789,10 +2898,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/quest/minor_quests/mq028/phases/mq028_finished.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/minor_quests/mq028/phases/mq028_finished.questphase.json",
         "assetSha256": "4fb3577781b29b986eb748f7a0736d9511d468e51a830563ae8faa1cd54c678a",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/5/Data",
-        "expectedType": "questJournalNodeDefinition"
+        "expectedType": "questJournalNodeDefinition",
+        "jsonSha256": "cdbfc09d271f5777f5f76de9b5610371055c45bd816afb1122fa829b5c6bbad1"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "4fb3577781b29b986eb748f7a0736d9511d468e51a830563ae8faa1cd54c678a",
@@ -2808,10 +2918,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/quest/minor_quests/mq028/phases/mq028_finished.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/minor_quests/mq028/phases/mq028_finished.questphase.json",
         "assetSha256": "4fb3577781b29b986eb748f7a0736d9511d468e51a830563ae8faa1cd54c678a",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/7/Data",
-        "expectedType": "questJournalNodeDefinition"
+        "expectedType": "questJournalNodeDefinition",
+        "jsonSha256": "cdbfc09d271f5777f5f76de9b5610371055c45bd816afb1122fa829b5c6bbad1"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "4fb3577781b29b986eb748f7a0736d9511d468e51a830563ae8faa1cd54c678a",
@@ -2827,9 +2938,10 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "scene-evidence/city-contacts/raw/base/base/quest/minor_quests/mq028/scenes/mq028_02_park.scene.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/minor_quests/mq028/scenes/mq028_02_park.scene.json",
         "assetSha256": "39eef1db6bdcb81edbca3a6ee954e550f64147f0dedfa70b2d5fa6f17c322b7e",
-        "jsonPointer": "/Data/RootChunk/actors"
+        "jsonPointer": "/Data/RootChunk/actors",
+        "jsonSha256": "3eb3070f77721e6075181f21de9ffabe6c668d0a72bc6792d3d94d3c97663850"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "39eef1db6bdcb81edbca3a6ee954e550f64147f0dedfa70b2d5fa6f17c322b7e",
@@ -2845,9 +2957,10 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/quest/persistent_content.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/persistent_content.questphase.json",
         "assetSha256": "7e702dfe44e84719576d6bed8d87f3bda383e308cb45c85fe34de9cc4ca62189",
-        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/1/Data/phaseGraph/Data/nodes/7/Data/phaseResource"
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/1/Data/phaseGraph/Data/nodes/7/Data/phaseResource",
+        "jsonSha256": "fa46a090b0be19b0d11289f5d80baf30db99e4afe80644853e0480725bc67f13"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "7e702dfe44e84719576d6bed8d87f3bda383e308cb45c85fe34de9cc4ca62189",
@@ -2863,10 +2976,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "scene-evidence/city-contacts/raw/base/base/quest/minor_quests/mq028/scenes/mq028_02_park.scene.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/minor_quests/mq028/scenes/mq028_02_park.scene.json",
         "assetSha256": "39eef1db6bdcb81edbca3a6ee954e550f64147f0dedfa70b2d5fa6f17c322b7e",
         "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/297/Data/questNode/Data/type/Data",
-        "expectedType": "questSetVar_NodeType"
+        "expectedType": "questSetVar_NodeType",
+        "jsonSha256": "3eb3070f77721e6075181f21de9ffabe6c668d0a72bc6792d3d94d3c97663850"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "39eef1db6bdcb81edbca3a6ee954e550f64147f0dedfa70b2d5fa6f17c322b7e",
@@ -2882,10 +2996,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "scene-evidence/city-contacts/raw/base/base/quest/minor_quests/mq028/scenes/mq028_02_park.scene.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/minor_quests/mq028/scenes/mq028_02_park.scene.json",
         "assetSha256": "39eef1db6bdcb81edbca3a6ee954e550f64147f0dedfa70b2d5fa6f17c322b7e",
         "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/35/Data",
-        "expectedType": "scnQuestNode"
+        "expectedType": "scnQuestNode",
+        "jsonSha256": "3eb3070f77721e6075181f21de9ffabe6c668d0a72bc6792d3d94d3c97663850"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "39eef1db6bdcb81edbca3a6ee954e550f64147f0dedfa70b2d5fa6f17c322b7e",
@@ -2901,10 +3016,11 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "scene-evidence/city-contacts/raw/base/base/quest/minor_quests/mq028/scenes/mq028_02_park.scene.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/minor_quests/mq028/scenes/mq028_02_park.scene.json",
         "assetSha256": "39eef1db6bdcb81edbca3a6ee954e550f64147f0dedfa70b2d5fa6f17c322b7e",
         "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/297/Data",
-        "expectedType": "scnQuestNode"
+        "expectedType": "scnQuestNode",
+        "jsonSha256": "3eb3070f77721e6075181f21de9ffabe6c668d0a72bc6792d3d94d3c97663850"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "39eef1db6bdcb81edbca3a6ee954e550f64147f0dedfa70b2d5fa6f17c322b7e",
@@ -2920,9 +3036,10 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/quest/minor_quests/mq028/phases/mq028_02_park.questphase.json",
+        "jsonPath": "scene-evidence/city-contacts-authenticated-oct01/raw/base/base/quest/minor_quests/mq028/phases/mq028_02_park.questphase.json",
         "assetSha256": "b51cb923b0fc15336e88b0ef365cf24f516535c9aae921f33b6960ff12c8a8c7",
-        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/sceneFile"
+        "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data/sceneFile",
+        "jsonSha256": "5c362106d4fd1d399b19264bf68ba0963829ea6d71d936a5d05a0f5e620d3bf0"
       },
       "archiveSHA256": "a2c6ea7b8bb0dceb671d04c702c41824c29e5e1ee518490a42850dac12524dab",
       "resourceSHA256": "b51cb923b0fc15336e88b0ef365cf24f516535c9aae921f33b6960ff12c8a8c7",

@@ -1,7 +1,7 @@
 {
   "version": 1,
   "id": "cyberpunk-native-core-arcs",
-  "revision": 1,
+  "revision": 2,
   "gameVersions": [
     "2.31"
   ],
@@ -208,7 +208,7 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq030/scenes/sq030_11_morning.scene.json",
+        "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq030/scenes/sq030_11_morning.scene.json",
         "assetSha256": "cafeac069c24f55df7199d97f656d721c0298fefcae45c44386a3bfd2231a1d3",
         "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/41/Data/questNode/Data/type/Data",
         "expectedType": "questSetVar_NodeType",
@@ -216,64 +216,73 @@
           "/factName": "sq030_11_romance",
           "/value": 1,
           "/setExactValue": 1
-        }
+        },
+        "jsonSha256": "c797aed631aceab57dd4975be02e413c07de4c2e8387fc93e81033670621aa9a"
       },
       "nativeRefs": [
         {
-          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq030/scenes/sq030_11_morning.scene.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq030/scenes/sq030_11_morning.scene.json",
           "assetSha256": "cafeac069c24f55df7199d97f656d721c0298fefcae45c44386a3bfd2231a1d3",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/14/Data",
           "expectedType": "scnChoiceNode",
           "expected": {
             "/nodeId/id": 115,
             "/options/0/screenplayOptionId/id": 258
-          }
+          },
+          "jsonSha256": "c797aed631aceab57dd4975be02e413c07de4c2e8387fc93e81033670621aa9a"
         },
         {
-          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq030/scenes/sq030_11_morning.scene.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq030/scenes/sq030_11_morning.scene.json",
           "assetSha256": "cafeac069c24f55df7199d97f656d721c0298fefcae45c44386a3bfd2231a1d3",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/14/Data/outputSockets/0/destinations/0",
-          "expectedType": "scnInputSocketId"
+          "expectedType": "scnInputSocketId",
+          "jsonSha256": "c797aed631aceab57dd4975be02e413c07de4c2e8387fc93e81033670621aa9a"
         },
         {
-          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq030/scenes/sq030_11_morning.scene.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq030/scenes/sq030_11_morning.scene.json",
           "assetSha256": "cafeac069c24f55df7199d97f656d721c0298fefcae45c44386a3bfd2231a1d3",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/16/Data",
           "expectedType": "scnSectionNode",
           "expected": {
             "/nodeId/id": 119
-          }
+          },
+          "jsonSha256": "c797aed631aceab57dd4975be02e413c07de4c2e8387fc93e81033670621aa9a"
         },
         {
-          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq030/scenes/sq030_11_morning.scene.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq030/scenes/sq030_11_morning.scene.json",
           "assetSha256": "cafeac069c24f55df7199d97f656d721c0298fefcae45c44386a3bfd2231a1d3",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/16/Data/outputSockets/0/destinations/0",
-          "expectedType": "scnInputSocketId"
+          "expectedType": "scnInputSocketId",
+          "jsonSha256": "c797aed631aceab57dd4975be02e413c07de4c2e8387fc93e81033670621aa9a"
         },
         {
-          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq030/scenes/sq030_11_morning.scene.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq030/scenes/sq030_11_morning.scene.json",
           "assetSha256": "cafeac069c24f55df7199d97f656d721c0298fefcae45c44386a3bfd2231a1d3",
-          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/286"
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/286",
+          "jsonSha256": "c797aed631aceab57dd4975be02e413c07de4c2e8387fc93e81033670621aa9a"
         },
         {
-          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq030/scenes/sq030_11_morning.scene.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq030/scenes/sq030_11_morning.scene.json",
           "assetSha256": "cafeac069c24f55df7199d97f656d721c0298fefcae45c44386a3bfd2231a1d3",
-          "jsonPointer": "/Data/RootChunk/actors/0"
+          "jsonPointer": "/Data/RootChunk/actors/0",
+          "jsonSha256": "c797aed631aceab57dd4975be02e413c07de4c2e8387fc93e81033670621aa9a"
         },
         {
-          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq030/scenes/sq030_11_morning.scene.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq030/scenes/sq030_11_morning.scene.json",
           "assetSha256": "cafeac069c24f55df7199d97f656d721c0298fefcae45c44386a3bfd2231a1d3",
-          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/42/Data/questNode/Data/condition/Data/type/Data"
+          "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/42/Data/questNode/Data/condition/Data/type/Data",
+          "jsonSha256": "c797aed631aceab57dd4975be02e413c07de4c2e8387fc93e81033670621aa9a"
         },
         {
-          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq030/scenes/sq030_11_morning.scene.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq030/scenes/sq030_11_morning.scene.json",
           "assetSha256": "cafeac069c24f55df7199d97f656d721c0298fefcae45c44386a3bfd2231a1d3",
           "jsonPointer": "/Data/RootChunk/exitPoints/1",
           "expectedType": "scnExitPoint",
           "expected": {
             "/name/$value": "romance",
             "/nodeId/id": 43
-          }
+          },
+          "jsonSha256": "c797aed631aceab57dd4975be02e413c07de4c2e8387fc93e81033670621aa9a"
         }
       ],
       "review": {
@@ -290,7 +299,7 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
+        "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
         "assetSha256": "418976828c6f86bf6a67621a5af9e71a30ffe24283b1111084ad344ba72096dd",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/25/Data/type/Data",
         "expectedType": "questSetVar_NodeType",
@@ -298,24 +307,27 @@
           "/factName": "sq030_judy_lover",
           "/value": 1,
           "/setExactValue": 1
-        }
+        },
+        "jsonSha256": "e6fb879b2865c7e13621c35de75d9f3055a0c73a6b560e2f34098541be5276e8"
       },
       "nativeRefs": [
         {
-          "jsonPath": "raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
           "assetSha256": "418976828c6f86bf6a67621a5af9e71a30ffe24283b1111084ad344ba72096dd",
           "jsonPointer": "/Data/RootChunk/graph/Data/nodes/16/Data",
           "expectedType": "questSceneNodeDefinition",
           "expected": {
             "/id": 52,
             "/sceneFile/DepotPath/$value": "base\\quest\\side_quests\\sq030\\scenes\\sq030_11_morning.scene"
-          }
+          },
+          "jsonSha256": "e6fb879b2865c7e13621c35de75d9f3055a0c73a6b560e2f34098541be5276e8"
         },
         {
-          "jsonPath": "raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
           "assetSha256": "418976828c6f86bf6a67621a5af9e71a30ffe24283b1111084ad344ba72096dd",
           "jsonPointer": "/Data/RootChunk/graph/Data/nodes/16/Data/sockets/5/Data/connections/0/Data",
-          "expectedType": "graphGraphConnectionDefinition"
+          "expectedType": "graphGraphConnectionDefinition",
+          "jsonSha256": "e6fb879b2865c7e13621c35de75d9f3055a0c73a6b560e2f34098541be5276e8"
         }
       ],
       "review": {
@@ -331,7 +343,7 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
+        "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
         "assetSha256": "418976828c6f86bf6a67621a5af9e71a30ffe24283b1111084ad344ba72096dd",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/47/Data/type/Data",
         "expectedType": "questSetVar_NodeType",
@@ -339,89 +351,102 @@
           "/factName": "sq030_romance",
           "/value": 1,
           "/setExactValue": 1
-        }
+        },
+        "jsonSha256": "e6fb879b2865c7e13621c35de75d9f3055a0c73a6b560e2f34098541be5276e8"
       },
       "nativeRefs": [
         {
-          "jsonPath": "raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
           "assetSha256": "418976828c6f86bf6a67621a5af9e71a30ffe24283b1111084ad344ba72096dd",
           "jsonPointer": "/Data/RootChunk/graph/Data/nodes/16/Data/sockets/5/Data/connections/0/Data",
-          "expectedType": "graphGraphConnectionDefinition"
+          "expectedType": "graphGraphConnectionDefinition",
+          "jsonSha256": "e6fb879b2865c7e13621c35de75d9f3055a0c73a6b560e2f34098541be5276e8"
         },
         {
-          "jsonPath": "raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
           "assetSha256": "418976828c6f86bf6a67621a5af9e71a30ffe24283b1111084ad344ba72096dd",
           "jsonPointer": "/Data/RootChunk/graph/Data/nodes/20/Data/sockets/1/Data/connections/0/Data",
-          "expectedType": "graphGraphConnectionDefinition"
+          "expectedType": "graphGraphConnectionDefinition",
+          "jsonSha256": "e6fb879b2865c7e13621c35de75d9f3055a0c73a6b560e2f34098541be5276e8"
         },
         {
-          "jsonPath": "raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
           "assetSha256": "418976828c6f86bf6a67621a5af9e71a30ffe24283b1111084ad344ba72096dd",
           "jsonPointer": "/Data/RootChunk/graph/Data/nodes/20/Data/sockets/3/Data/connections/0/Data",
-          "expectedType": "graphGraphConnectionDefinition"
+          "expectedType": "graphGraphConnectionDefinition",
+          "jsonSha256": "e6fb879b2865c7e13621c35de75d9f3055a0c73a6b560e2f34098541be5276e8"
         },
         {
-          "jsonPath": "raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
           "assetSha256": "418976828c6f86bf6a67621a5af9e71a30ffe24283b1111084ad344ba72096dd",
           "jsonPointer": "/Data/RootChunk/graph/Data/nodes/21/Data/sockets/5/Data/connections/0/Data",
-          "expectedType": "graphGraphConnectionDefinition"
+          "expectedType": "graphGraphConnectionDefinition",
+          "jsonSha256": "e6fb879b2865c7e13621c35de75d9f3055a0c73a6b560e2f34098541be5276e8"
         },
         {
-          "jsonPath": "raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
           "assetSha256": "418976828c6f86bf6a67621a5af9e71a30ffe24283b1111084ad344ba72096dd",
           "jsonPointer": "/Data/RootChunk/graph/Data/nodes/122/Data/sockets/2/Data/connections/0/Data",
-          "expectedType": "graphGraphConnectionDefinition"
+          "expectedType": "graphGraphConnectionDefinition",
+          "jsonSha256": "e6fb879b2865c7e13621c35de75d9f3055a0c73a6b560e2f34098541be5276e8"
         },
         {
-          "jsonPath": "raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
           "assetSha256": "418976828c6f86bf6a67621a5af9e71a30ffe24283b1111084ad344ba72096dd",
           "jsonPointer": "/Data/RootChunk/graph/Data/nodes/123/Data/sockets/1/Data/connections/0/Data",
-          "expectedType": "graphGraphConnectionDefinition"
+          "expectedType": "graphGraphConnectionDefinition",
+          "jsonSha256": "e6fb879b2865c7e13621c35de75d9f3055a0c73a6b560e2f34098541be5276e8"
         },
         {
-          "jsonPath": "raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
           "assetSha256": "418976828c6f86bf6a67621a5af9e71a30ffe24283b1111084ad344ba72096dd",
           "jsonPointer": "/Data/RootChunk/graph/Data/nodes/120/Data/sockets/1/Data/connections/0/Data",
-          "expectedType": "graphGraphConnectionDefinition"
+          "expectedType": "graphGraphConnectionDefinition",
+          "jsonSha256": "e6fb879b2865c7e13621c35de75d9f3055a0c73a6b560e2f34098541be5276e8"
         },
         {
-          "jsonPath": "raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
           "assetSha256": "418976828c6f86bf6a67621a5af9e71a30ffe24283b1111084ad344ba72096dd",
           "jsonPointer": "/Data/RootChunk/graph/Data/nodes/28/Data/sockets/1/Data/connections/0/Data",
-          "expectedType": "graphGraphConnectionDefinition"
+          "expectedType": "graphGraphConnectionDefinition",
+          "jsonSha256": "e6fb879b2865c7e13621c35de75d9f3055a0c73a6b560e2f34098541be5276e8"
         },
         {
-          "jsonPath": "raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
           "assetSha256": "418976828c6f86bf6a67621a5af9e71a30ffe24283b1111084ad344ba72096dd",
           "jsonPointer": "/Data/RootChunk/graph/Data/nodes/28/Data/sockets/2/Data/connections/0/Data",
-          "expectedType": "graphGraphConnectionDefinition"
+          "expectedType": "graphGraphConnectionDefinition",
+          "jsonSha256": "e6fb879b2865c7e13621c35de75d9f3055a0c73a6b560e2f34098541be5276e8"
         },
         {
-          "jsonPath": "raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
           "assetSha256": "418976828c6f86bf6a67621a5af9e71a30ffe24283b1111084ad344ba72096dd",
           "jsonPointer": "/Data/RootChunk/graph/Data/nodes/20/Data",
           "expectedType": "questLogicalAndNodeDefinition",
           "expected": {
             "/id": 63
-          }
+          },
+          "jsonSha256": "e6fb879b2865c7e13621c35de75d9f3055a0c73a6b560e2f34098541be5276e8"
         },
         {
-          "jsonPath": "raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
           "assetSha256": "418976828c6f86bf6a67621a5af9e71a30ffe24283b1111084ad344ba72096dd",
           "jsonPointer": "/Data/RootChunk/graph/Data/nodes/21/Data",
           "expectedType": "questJournalNodeDefinition",
           "expected": {
             "/id": 64
-          }
+          },
+          "jsonSha256": "e6fb879b2865c7e13621c35de75d9f3055a0c73a6b560e2f34098541be5276e8"
         },
         {
-          "jsonPath": "raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
           "assetSha256": "418976828c6f86bf6a67621a5af9e71a30ffe24283b1111084ad344ba72096dd",
           "jsonPointer": "/Data/RootChunk/graph/Data/nodes/18/Data",
           "expectedType": "questJournalNodeDefinition",
           "expected": {
             "/id": 60
-          }
+          },
+          "jsonSha256": "e6fb879b2865c7e13621c35de75d9f3055a0c73a6b560e2f34098541be5276e8"
         }
       ],
       "review": {
@@ -437,7 +462,7 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
+        "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
         "assetSha256": "418976828c6f86bf6a67621a5af9e71a30ffe24283b1111084ad344ba72096dd",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/46/Data/type/Data",
         "expectedType": "questSetVar_NodeType",
@@ -445,98 +470,112 @@
           "/factName": "sq030_friendship",
           "/value": 1,
           "/setExactValue": 1
-        }
+        },
+        "jsonSha256": "e6fb879b2865c7e13621c35de75d9f3055a0c73a6b560e2f34098541be5276e8"
       },
       "nativeRefs": [
         {
-          "jsonPath": "raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
           "assetSha256": "418976828c6f86bf6a67621a5af9e71a30ffe24283b1111084ad344ba72096dd",
           "jsonPointer": "/Data/RootChunk/graph/Data/nodes/16/Data/sockets/4/Data/connections/0/Data",
-          "expectedType": "graphGraphConnectionDefinition"
+          "expectedType": "graphGraphConnectionDefinition",
+          "jsonSha256": "e6fb879b2865c7e13621c35de75d9f3055a0c73a6b560e2f34098541be5276e8"
         },
         {
-          "jsonPath": "raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
           "assetSha256": "418976828c6f86bf6a67621a5af9e71a30ffe24283b1111084ad344ba72096dd",
           "jsonPointer": "/Data/RootChunk/graph/Data/nodes/19/Data/sockets/3/Data/connections/0/Data",
-          "expectedType": "graphGraphConnectionDefinition"
+          "expectedType": "graphGraphConnectionDefinition",
+          "jsonSha256": "e6fb879b2865c7e13621c35de75d9f3055a0c73a6b560e2f34098541be5276e8"
         },
         {
-          "jsonPath": "raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
           "assetSha256": "418976828c6f86bf6a67621a5af9e71a30ffe24283b1111084ad344ba72096dd",
           "jsonPointer": "/Data/RootChunk/graph/Data/nodes/24/Data/sockets/5/Data/connections/0/Data",
-          "expectedType": "graphGraphConnectionDefinition"
+          "expectedType": "graphGraphConnectionDefinition",
+          "jsonSha256": "e6fb879b2865c7e13621c35de75d9f3055a0c73a6b560e2f34098541be5276e8"
         },
         {
-          "jsonPath": "raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
           "assetSha256": "418976828c6f86bf6a67621a5af9e71a30ffe24283b1111084ad344ba72096dd",
           "jsonPointer": "/Data/RootChunk/graph/Data/nodes/124/Data/sockets/2/Data/connections/0/Data",
-          "expectedType": "graphGraphConnectionDefinition"
+          "expectedType": "graphGraphConnectionDefinition",
+          "jsonSha256": "e6fb879b2865c7e13621c35de75d9f3055a0c73a6b560e2f34098541be5276e8"
         },
         {
-          "jsonPath": "raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
           "assetSha256": "418976828c6f86bf6a67621a5af9e71a30ffe24283b1111084ad344ba72096dd",
           "jsonPointer": "/Data/RootChunk/graph/Data/nodes/125/Data/sockets/1/Data/connections/0/Data",
-          "expectedType": "graphGraphConnectionDefinition"
+          "expectedType": "graphGraphConnectionDefinition",
+          "jsonSha256": "e6fb879b2865c7e13621c35de75d9f3055a0c73a6b560e2f34098541be5276e8"
         },
         {
-          "jsonPath": "raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
           "assetSha256": "418976828c6f86bf6a67621a5af9e71a30ffe24283b1111084ad344ba72096dd",
           "jsonPointer": "/Data/RootChunk/graph/Data/nodes/119/Data/sockets/1/Data/connections/0/Data",
-          "expectedType": "graphGraphConnectionDefinition"
+          "expectedType": "graphGraphConnectionDefinition",
+          "jsonSha256": "e6fb879b2865c7e13621c35de75d9f3055a0c73a6b560e2f34098541be5276e8"
         },
         {
-          "jsonPath": "raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
           "assetSha256": "418976828c6f86bf6a67621a5af9e71a30ffe24283b1111084ad344ba72096dd",
           "jsonPointer": "/Data/RootChunk/graph/Data/nodes/27/Data/sockets/1/Data/connections/0/Data",
-          "expectedType": "graphGraphConnectionDefinition"
+          "expectedType": "graphGraphConnectionDefinition",
+          "jsonSha256": "e6fb879b2865c7e13621c35de75d9f3055a0c73a6b560e2f34098541be5276e8"
         },
         {
-          "jsonPath": "raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
           "assetSha256": "418976828c6f86bf6a67621a5af9e71a30ffe24283b1111084ad344ba72096dd",
           "jsonPointer": "/Data/RootChunk/graph/Data/nodes/27/Data/sockets/2/Data/connections/0/Data",
-          "expectedType": "graphGraphConnectionDefinition"
+          "expectedType": "graphGraphConnectionDefinition",
+          "jsonSha256": "e6fb879b2865c7e13621c35de75d9f3055a0c73a6b560e2f34098541be5276e8"
         },
         {
-          "jsonPath": "raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
           "assetSha256": "418976828c6f86bf6a67621a5af9e71a30ffe24283b1111084ad344ba72096dd",
           "jsonPointer": "/Data/RootChunk/graph/Data/nodes/19/Data",
           "expectedType": "questLogicalAndNodeDefinition",
           "expected": {
             "/id": 62
-          }
+          },
+          "jsonSha256": "e6fb879b2865c7e13621c35de75d9f3055a0c73a6b560e2f34098541be5276e8"
         },
         {
-          "jsonPath": "raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
           "assetSha256": "418976828c6f86bf6a67621a5af9e71a30ffe24283b1111084ad344ba72096dd",
           "jsonPointer": "/Data/RootChunk/graph/Data/nodes/24/Data",
           "expectedType": "questJournalNodeDefinition",
           "expected": {
             "/id": 76
-          }
+          },
+          "jsonSha256": "e6fb879b2865c7e13621c35de75d9f3055a0c73a6b560e2f34098541be5276e8"
         },
         {
-          "jsonPath": "raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq030/phases/sq030_hut.questphase.json",
           "assetSha256": "418976828c6f86bf6a67621a5af9e71a30ffe24283b1111084ad344ba72096dd",
           "jsonPointer": "/Data/RootChunk/graph/Data/nodes/16/Data",
           "expectedType": "questSceneNodeDefinition",
           "expected": {
             "/sceneFile/DepotPath/$value": "base\\quest\\side_quests\\sq030\\scenes\\sq030_11_morning.scene"
-          }
+          },
+          "jsonSha256": "e6fb879b2865c7e13621c35de75d9f3055a0c73a6b560e2f34098541be5276e8"
         },
         {
-          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq030/scenes/sq030_11_morning.scene.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq030/scenes/sq030_11_morning.scene.json",
           "assetSha256": "cafeac069c24f55df7199d97f656d721c0298fefcae45c44386a3bfd2231a1d3",
           "jsonPointer": "/Data/RootChunk/exitPoints/0",
           "expectedType": "scnExitPoint",
           "expected": {
             "/name/$value": "friendship",
             "/nodeId/id": 2
-          }
+          },
+          "jsonSha256": "c797aed631aceab57dd4975be02e413c07de4c2e8387fc93e81033670621aa9a"
         },
         {
-          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq030/scenes/sq030_11_morning.scene.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq030/scenes/sq030_11_morning.scene.json",
           "assetSha256": "cafeac069c24f55df7199d97f656d721c0298fefcae45c44386a3bfd2231a1d3",
-          "jsonPointer": "/Data/RootChunk/actors/0"
+          "jsonPointer": "/Data/RootChunk/actors/0",
+          "jsonSha256": "c797aed631aceab57dd4975be02e413c07de4c2e8387fc93e81033670621aa9a"
         }
       ],
       "review": {
@@ -552,7 +591,7 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+        "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
         "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
         "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/213/Data/questNode/Data/type/Data",
         "expectedType": "questSetVar_NodeType",
@@ -560,298 +599,346 @@
           "/factName": "sq032_johnny_friend",
           "/value": 1,
           "/setExactValue": 0
-        }
+        },
+        "jsonSha256": "c3e7a9a6157b0ff6591b1dca96ce7220e819501dc58d7aa37fd8f612d4cdbfc1"
       },
       "nativeRefs": [
         {
-          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
           "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/42/Data",
           "expectedType": "scnChoiceNode",
           "expected": {
             "/nodeId/id": 624,
             "/options/0/screenplayOptionId/id": 5634
-          }
+          },
+          "jsonSha256": "c3e7a9a6157b0ff6591b1dca96ce7220e819501dc58d7aa37fd8f612d4cdbfc1"
         },
         {
-          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
           "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/42/Data/outputSockets/0/destinations/0",
-          "expectedType": "scnInputSocketId"
+          "expectedType": "scnInputSocketId",
+          "jsonSha256": "c3e7a9a6157b0ff6591b1dca96ce7220e819501dc58d7aa37fd8f612d4cdbfc1"
         },
         {
-          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
           "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data",
           "expectedType": "scnSectionNode",
           "expected": {
             "/nodeId/id": 626
-          }
+          },
+          "jsonSha256": "c3e7a9a6157b0ff6591b1dca96ce7220e819501dc58d7aa37fd8f612d4cdbfc1"
         },
         {
-          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
           "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/43/Data/outputSockets/0/destinations/0",
-          "expectedType": "scnInputSocketId"
+          "expectedType": "scnInputSocketId",
+          "jsonSha256": "c3e7a9a6157b0ff6591b1dca96ce7220e819501dc58d7aa37fd8f612d4cdbfc1"
         },
         {
-          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
           "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
-          "jsonPointer": "/Data/RootChunk/screenplayStore/options/22"
+          "jsonPointer": "/Data/RootChunk/screenplayStore/options/22",
+          "jsonSha256": "c3e7a9a6157b0ff6591b1dca96ce7220e819501dc58d7aa37fd8f612d4cdbfc1"
         },
         {
-          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
           "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
-          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/56"
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/56",
+          "jsonSha256": "c3e7a9a6157b0ff6591b1dca96ce7220e819501dc58d7aa37fd8f612d4cdbfc1"
         },
         {
-          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
           "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
-          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/57"
+          "jsonPointer": "/Data/RootChunk/screenplayStore/lines/57",
+          "jsonSha256": "c3e7a9a6157b0ff6591b1dca96ce7220e819501dc58d7aa37fd8f612d4cdbfc1"
         },
         {
-          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
           "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
-          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/552"
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/552",
+          "jsonSha256": "c3e7a9a6157b0ff6591b1dca96ce7220e819501dc58d7aa37fd8f612d4cdbfc1"
         },
         {
-          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
           "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
-          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/182"
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/182",
+          "jsonSha256": "c3e7a9a6157b0ff6591b1dca96ce7220e819501dc58d7aa37fd8f612d4cdbfc1"
         },
         {
-          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
           "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
-          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/185"
+          "jsonPointer": "/Data/RootChunk/locStore/vpEntries/185",
+          "jsonSha256": "c3e7a9a6157b0ff6591b1dca96ce7220e819501dc58d7aa37fd8f612d4cdbfc1"
         },
         {
-          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
           "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
-          "jsonPointer": "/Data/RootChunk/actors/0"
+          "jsonPointer": "/Data/RootChunk/actors/0",
+          "jsonSha256": "c3e7a9a6157b0ff6591b1dca96ce7220e819501dc58d7aa37fd8f612d4cdbfc1"
         },
         {
-          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
           "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
           "jsonPointer": "/Data/RootChunk/entryPoints/4",
           "expectedType": "scnEntryPoint",
           "expected": {
             "/nodeId/id": 91,
             "/name/$value": "sq031_05_grave_in"
-          }
+          },
+          "jsonSha256": "c3e7a9a6157b0ff6591b1dca96ce7220e819501dc58d7aa37fd8f612d4cdbfc1"
         },
         {
-          "jsonPath": "raw/base/base/quest/side_quests/sq031/phases/sq031_grave.questphase.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq031/phases/sq031_grave.questphase.json",
           "assetSha256": "48c7015905b43466259cc0df8dfb00e3c62effc81187573f3406d8b543e3f2b0",
           "jsonPointer": "/Data/RootChunk/graph/Data/nodes/2/Data",
           "expectedType": "questSceneNodeDefinition",
           "expected": {
             "/id": 142,
             "/sceneFile/DepotPath/$value": "base\\quest\\side_quests\\sq031\\scenes\\sq031_05_grave.scene"
-          }
+          },
+          "jsonSha256": "775f9a3fd5e7d9ac264c3715cf4b5471f58ce7f9755586e8f25905979761e2f1"
         },
         {
-          "jsonPath": "raw/base/base/quest/side_quests/sq031/phases/sq031_grave.questphase.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq031/phases/sq031_grave.questphase.json",
           "assetSha256": "48c7015905b43466259cc0df8dfb00e3c62effc81187573f3406d8b543e3f2b0",
           "jsonPointer": "/Data/RootChunk/graph/Data/nodes/0/Data/sockets/1/Data/connections/0/Data",
-          "expectedType": "graphGraphConnectionDefinition"
+          "expectedType": "graphGraphConnectionDefinition",
+          "jsonSha256": "775f9a3fd5e7d9ac264c3715cf4b5471f58ce7f9755586e8f25905979761e2f1"
         },
         {
-          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
           "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/1/Data/outputSockets/0/destinations/1",
-          "expectedType": "scnInputSocketId"
+          "expectedType": "scnInputSocketId",
+          "jsonSha256": "c3e7a9a6157b0ff6591b1dca96ce7220e819501dc58d7aa37fd8f612d4cdbfc1"
         },
         {
-          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
           "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/260/Data/outputSockets/0/destinations/0",
-          "expectedType": "scnInputSocketId"
+          "expectedType": "scnInputSocketId",
+          "jsonSha256": "c3e7a9a6157b0ff6591b1dca96ce7220e819501dc58d7aa37fd8f612d4cdbfc1"
         },
         {
-          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
           "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/219/Data/outputSockets/0/destinations/0",
-          "expectedType": "scnInputSocketId"
+          "expectedType": "scnInputSocketId",
+          "jsonSha256": "c3e7a9a6157b0ff6591b1dca96ce7220e819501dc58d7aa37fd8f612d4cdbfc1"
         },
         {
-          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
           "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/211/Data/outputSockets/0/destinations/0",
-          "expectedType": "scnInputSocketId"
+          "expectedType": "scnInputSocketId",
+          "jsonSha256": "c3e7a9a6157b0ff6591b1dca96ce7220e819501dc58d7aa37fd8f612d4cdbfc1"
         },
         {
-          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
           "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/165/Data/outputSockets/0/destinations/2",
-          "expectedType": "scnInputSocketId"
+          "expectedType": "scnInputSocketId",
+          "jsonSha256": "c3e7a9a6157b0ff6591b1dca96ce7220e819501dc58d7aa37fd8f612d4cdbfc1"
         },
         {
-          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
           "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/214/Data/outputSockets/1/destinations/0",
-          "expectedType": "scnInputSocketId"
+          "expectedType": "scnInputSocketId",
+          "jsonSha256": "c3e7a9a6157b0ff6591b1dca96ce7220e819501dc58d7aa37fd8f612d4cdbfc1"
         },
         {
-          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
           "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/110/Data/outputSockets/0/destinations/0",
-          "expectedType": "scnInputSocketId"
+          "expectedType": "scnInputSocketId",
+          "jsonSha256": "c3e7a9a6157b0ff6591b1dca96ce7220e819501dc58d7aa37fd8f612d4cdbfc1"
         },
         {
-          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
           "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/99/Data/outputSockets/1/destinations/0",
-          "expectedType": "scnInputSocketId"
+          "expectedType": "scnInputSocketId",
+          "jsonSha256": "c3e7a9a6157b0ff6591b1dca96ce7220e819501dc58d7aa37fd8f612d4cdbfc1"
         },
         {
-          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
           "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/2/Data/outputSockets/0/destinations/0",
-          "expectedType": "scnInputSocketId"
+          "expectedType": "scnInputSocketId",
+          "jsonSha256": "c3e7a9a6157b0ff6591b1dca96ce7220e819501dc58d7aa37fd8f612d4cdbfc1"
         },
         {
-          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
           "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/100/Data/outputSockets/0/destinations/0",
-          "expectedType": "scnInputSocketId"
+          "expectedType": "scnInputSocketId",
+          "jsonSha256": "c3e7a9a6157b0ff6591b1dca96ce7220e819501dc58d7aa37fd8f612d4cdbfc1"
         },
         {
-          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
           "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/105/Data/outputSockets/0/destinations/0",
-          "expectedType": "scnInputSocketId"
+          "expectedType": "scnInputSocketId",
+          "jsonSha256": "c3e7a9a6157b0ff6591b1dca96ce7220e819501dc58d7aa37fd8f612d4cdbfc1"
         },
         {
-          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
           "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/164/Data/outputSockets/0/destinations/0",
-          "expectedType": "scnInputSocketId"
+          "expectedType": "scnInputSocketId",
+          "jsonSha256": "c3e7a9a6157b0ff6591b1dca96ce7220e819501dc58d7aa37fd8f612d4cdbfc1"
         },
         {
-          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
           "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/111/Data/outputSockets/0/destinations/0",
-          "expectedType": "scnInputSocketId"
+          "expectedType": "scnInputSocketId",
+          "jsonSha256": "c3e7a9a6157b0ff6591b1dca96ce7220e819501dc58d7aa37fd8f612d4cdbfc1"
         },
         {
-          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
           "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/15/Data/outputSockets/0/destinations/0",
-          "expectedType": "scnInputSocketId"
+          "expectedType": "scnInputSocketId",
+          "jsonSha256": "c3e7a9a6157b0ff6591b1dca96ce7220e819501dc58d7aa37fd8f612d4cdbfc1"
         },
         {
-          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
           "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/16/Data/outputSockets/0/destinations/0",
-          "expectedType": "scnInputSocketId"
+          "expectedType": "scnInputSocketId",
+          "jsonSha256": "c3e7a9a6157b0ff6591b1dca96ce7220e819501dc58d7aa37fd8f612d4cdbfc1"
         },
         {
-          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
           "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/11/Data/outputSockets/2/destinations/0",
-          "expectedType": "scnInputSocketId"
+          "expectedType": "scnInputSocketId",
+          "jsonSha256": "c3e7a9a6157b0ff6591b1dca96ce7220e819501dc58d7aa37fd8f612d4cdbfc1"
         },
         {
-          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
           "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/12/Data/outputSockets/0/destinations/0",
-          "expectedType": "scnInputSocketId"
+          "expectedType": "scnInputSocketId",
+          "jsonSha256": "c3e7a9a6157b0ff6591b1dca96ce7220e819501dc58d7aa37fd8f612d4cdbfc1"
         },
         {
-          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
           "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/82/Data/outputSockets/2/destinations/0",
-          "expectedType": "scnInputSocketId"
+          "expectedType": "scnInputSocketId",
+          "jsonSha256": "c3e7a9a6157b0ff6591b1dca96ce7220e819501dc58d7aa37fd8f612d4cdbfc1"
         },
         {
-          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
           "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/13/Data/outputSockets/2/destinations/0",
-          "expectedType": "scnInputSocketId"
+          "expectedType": "scnInputSocketId",
+          "jsonSha256": "c3e7a9a6157b0ff6591b1dca96ce7220e819501dc58d7aa37fd8f612d4cdbfc1"
         },
         {
-          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
           "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/171/Data/outputSockets/0/destinations/0",
-          "expectedType": "scnInputSocketId"
+          "expectedType": "scnInputSocketId",
+          "jsonSha256": "c3e7a9a6157b0ff6591b1dca96ce7220e819501dc58d7aa37fd8f612d4cdbfc1"
         },
         {
-          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
           "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/17/Data/outputSockets/3/destinations/0",
-          "expectedType": "scnInputSocketId"
+          "expectedType": "scnInputSocketId",
+          "jsonSha256": "c3e7a9a6157b0ff6591b1dca96ce7220e819501dc58d7aa37fd8f612d4cdbfc1"
         },
         {
-          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
           "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/21/Data/outputSockets/0/destinations/0",
-          "expectedType": "scnInputSocketId"
+          "expectedType": "scnInputSocketId",
+          "jsonSha256": "c3e7a9a6157b0ff6591b1dca96ce7220e819501dc58d7aa37fd8f612d4cdbfc1"
         },
         {
-          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
           "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/227/Data/outputSockets/0/destinations/0",
-          "expectedType": "scnInputSocketId"
+          "expectedType": "scnInputSocketId",
+          "jsonSha256": "c3e7a9a6157b0ff6591b1dca96ce7220e819501dc58d7aa37fd8f612d4cdbfc1"
         },
         {
-          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
           "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/172/Data/outputSockets/0/destinations/0",
-          "expectedType": "scnInputSocketId"
+          "expectedType": "scnInputSocketId",
+          "jsonSha256": "c3e7a9a6157b0ff6591b1dca96ce7220e819501dc58d7aa37fd8f612d4cdbfc1"
         },
         {
-          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
           "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/25/Data/outputSockets/0/destinations/0",
-          "expectedType": "scnInputSocketId"
+          "expectedType": "scnInputSocketId",
+          "jsonSha256": "c3e7a9a6157b0ff6591b1dca96ce7220e819501dc58d7aa37fd8f612d4cdbfc1"
         },
         {
-          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
           "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/84/Data/outputSockets/1/destinations/0",
-          "expectedType": "scnInputSocketId"
+          "expectedType": "scnInputSocketId",
+          "jsonSha256": "c3e7a9a6157b0ff6591b1dca96ce7220e819501dc58d7aa37fd8f612d4cdbfc1"
         },
         {
-          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
           "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/83/Data/outputSockets/0/destinations/0",
-          "expectedType": "scnInputSocketId"
+          "expectedType": "scnInputSocketId",
+          "jsonSha256": "c3e7a9a6157b0ff6591b1dca96ce7220e819501dc58d7aa37fd8f612d4cdbfc1"
         },
         {
-          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
           "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/30/Data/outputSockets/0/destinations/0",
-          "expectedType": "scnInputSocketId"
+          "expectedType": "scnInputSocketId",
+          "jsonSha256": "c3e7a9a6157b0ff6591b1dca96ce7220e819501dc58d7aa37fd8f612d4cdbfc1"
         },
         {
-          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
           "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/31/Data/outputSockets/0/destinations/0",
-          "expectedType": "scnInputSocketId"
+          "expectedType": "scnInputSocketId",
+          "jsonSha256": "c3e7a9a6157b0ff6591b1dca96ce7220e819501dc58d7aa37fd8f612d4cdbfc1"
         },
         {
-          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
           "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/94/Data/outputSockets/0/destinations/0",
-          "expectedType": "scnInputSocketId"
+          "expectedType": "scnInputSocketId",
+          "jsonSha256": "c3e7a9a6157b0ff6591b1dca96ce7220e819501dc58d7aa37fd8f612d4cdbfc1"
         },
         {
-          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
           "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/37/Data/outputSockets/0/destinations/0",
-          "expectedType": "scnInputSocketId"
+          "expectedType": "scnInputSocketId",
+          "jsonSha256": "c3e7a9a6157b0ff6591b1dca96ce7220e819501dc58d7aa37fd8f612d4cdbfc1"
         },
         {
-          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
           "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/38/Data/outputSockets/0/destinations/0",
-          "expectedType": "scnInputSocketId"
+          "expectedType": "scnInputSocketId",
+          "jsonSha256": "c3e7a9a6157b0ff6591b1dca96ce7220e819501dc58d7aa37fd8f612d4cdbfc1"
         },
         {
-          "jsonPath": "scene-evidence/core-relationships/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
+          "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/side_quests/sq031/scenes/sq031_05_grave.scene.json",
           "assetSha256": "9425bde9137417b96a9a6f42f9b534f5197be0e2ec5203ecb7546af15ad5d5de",
           "jsonPointer": "/Data/RootChunk/sceneGraph/Data/graph/40/Data/outputSockets/0/destinations/0",
-          "expectedType": "scnInputSocketId"
+          "expectedType": "scnInputSocketId",
+          "jsonSha256": "c3e7a9a6157b0ff6591b1dca96ce7220e819501dc58d7aa37fd8f612d4cdbfc1"
         }
       ],
       "review": {
@@ -904,7 +991,7 @@
         "2.31"
       ],
       "native": {
-        "jsonPath": "raw/base/base/quest/cyberpunk2077_metajournal.questphase.json",
+        "jsonPath": "scene-evidence/core-arcs-authenticated-oct01/raw/base/base/quest/cyberpunk2077_metajournal.questphase.json",
         "assetSha256": "cbdb6489fde970b753c9d63a62e292176647b3486b9055d83073511492d8fe7f",
         "jsonPointer": "/Data/RootChunk/graph/Data/nodes/4/Data/phaseGraph/Data/nodes/6/Data/condition/Data/type/Data",
         "expectedType": "questVarComparison_ConditionType",
@@ -912,7 +999,8 @@
           "/factName": "sq032_johnny_friend",
           "/comparisonType": "GreaterOrEqual",
           "/value": 1
-        }
+        },
+        "jsonSha256": "877e8d9fe8e1948cd8adf9c16354ff409895f789697638cda880a3766c530a6d"
       },
       "nativeRefs": [],
       "review": {

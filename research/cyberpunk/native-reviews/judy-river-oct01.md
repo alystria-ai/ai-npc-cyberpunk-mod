@@ -1,23 +1,32 @@
-# Judy / River lane: October 1 research checkpoint
+# Judy / River lane: October 1 source expansion
 
 Date: 2026-10-01. Installed Cyberpunk 2077 2.31.
 
 ## Status
 
-**Paused for the user's Codex restart. Four disabled proposals are saved; no executable rule was added.** The existing `native-rules/judy-river.json` remains unchanged, with its 16 previously reviewed rules. Its baseline SHA-256 is `16ef1c25e918eeb11467f95f781b44608600f6400bcf25d4d5867861b4181a6c`.
+**Four additions are now source-verified in revision2 of `native-rules/judy-river.json`; root integration review is pending.** This lane has20 rules. Its prior16 rules are structurally unchanged. Baseline SHA-256: `16ef1c25e918eeb11467f95f781b44608600f6400bcf25d4d5867861b4181a6c`; completed lane SHA-256: `de0a496412c822cf2892c400821b9f1a532e93ec363dd3c849a7552df2aa4186`.
 
-This is a research checkpoint, not a claim of runtime or live-save qualification. No game state, cloud profile, conversation, player identity, or Convai memory was changed. The previous lane review remains authoritative for the already qualified outcomes. Judy romance/friendship rules in `core-arcs.json` were checked and excluded from this batch to avoid duplicate coverage.
+This is source qualification, not runtime or live-save acceptance. Shared generated outputs were not written and nothing was installed or sent to Convai. No game state, cloud profile, conversation, player identity, or memory was changed. Judy romance/friendship rules in `core-arcs.json` are excluded to avoid duplicate coverage.
 
-## Proposed coverage
+## Final guards added after the restart
 
-| Proposed rule | New narrative link | Required positive observation | Knowledge boundary |
+- **Overnight:** the breakfast SMS activates before the wake sequence. The executable rule now also requires revealed `quests/side_quest/sq026_03_pizza/01_pizza_night/stay_night`, class `gameJournalQuestObjective`, Succeeded. This fixes the initial proposal's ordering gap. Unique chain:2384 ->2072 ->2073 ->2078 ->2662 ->2099 ->2081 ->2080 ->2084 ->wake2086 ->2096 input ordinal3, mapped to Succeeded. The wake section lasts9733ms; its timed workspot branch does not return to2096. The final text excludes accepting the Clouds plan, romance, eating breakfast and Johnny disclosure.
+- **Dive:** `sq030_09_pier_done` is shared by a hut/sex test shortcut. The executable rule now additionally requires `sq030_lake_exploration>=1`. A fresh scene exposes the sole indexed positive increment2521 after mandatory underwater collapse2318. Completed pier alone, or positive lake history with unfinished pier, is suppressed.
+- **Disasterpiece:** exact-path indexing returns eight questJournal references, of which five only track the quest. The three actual state writers are rescue98 and two EP1 initialization/repair nodes setting Succeeded. Keep the independent positive `q105_03_done` fact: completed journal state alone can be manufactured by initialization.
+- **Burial:** delivered SMS is reported as Judy's message to V. It does not assert V read it or chose a particular support reply.
+
+The following earlier checkpoint sections retain the originally proposed routes and anchors. Where their provisional predicates differ, the final guards above and the serialized rules are authoritative.
+
+## Executable coverage
+
+| Rule | New narrative link | Required positive observation | Knowledge boundary |
 | --- | --- | --- | --- |
 | `jr-native.disasterpiece-evelyn-extracted` | `judy-river.disasterpiece.recovery/extracted` | `q105_03_done=1` and the specific Disasterpiece quest journal Succeeded | Judy participated; no medical recovery or later survival is inferred. |
 | `jr-native.both-evelyn-burial-received` | `judy-river.both.evelyn-death/death-confirmed` | Revealed `contacts/judy/sq026_01_burial/02_judy_msg_burial` | Judy sent V the burial report. Does not establish V's support choices. |
-| `jr-native.revolution-overnight` | `judy-river.revolution.overnight/stayed` | Revealed `contacts/judy/sq026_03_sleepover/03_judy_msg_breakfast` | Judy's overnight care and morning message; no romance or breakfast consumption is implied. |
-| `jr-native.pyramid-dive-completed` | `judy-river.pyramid.visit/completed` | `sq030_09_pier_done=1` | Shared dive and safe return; no romance, overnight choice, or optional disclosure is inferred. |
+| `jr-native.revolution-overnight` | `judy-river.revolution.overnight/stayed` | Revealed breakfast SMS **and stay_night objective Succeeded** | Judy's completed overnight care and morning message; no planning agreement, romance, breakfast consumption or Johnny disclosure is implied. |
+| `jr-native.pyramid-dive-completed` | `judy-river.pyramid.visit/completed` | `sq030_lake_exploration>=1` **and** `sq030_09_pier_done=1` | Shared dive and safe return; no romance, overnight choice, or optional disclosure is inferred. |
 
-If independently approved, these add **four distinct researched outcomes**, taking this lane from 16 to 20 enabled outcomes. Current executable coverage remains 16. All four proposals limit speakers to Judy, with private/phone recipients V and Judy. Evelyn is unresponsive during the rescue, so assigning her knowledge of everything Judy and V did would be unjustified. River, Sandra and minor participants were not padded into this batch.
+These add **four distinct researched outcomes**, taking this lane from16 to20 source-verified rules. All four restrict speakers to Judy, with private/phone recipients V and Judy. Group disclosure receipts cannot widen them. Evelyn is unresponsive during the rescue, so assigning her knowledge of everything Judy and V did would be unjustified. River, Sandra and minor participants were not padded into this batch.
 
 ## Native traces already inspected
 
@@ -82,13 +91,41 @@ The reference-closure chains establish production asset references only. They do
 - Binary SHA-256: `418976828c6f86bf6a67621a5af9e71a30ffe24283b1111084ad344ba72096dd`
 - Fresh JSON SHA-256: `f1accee12cb1d12d519096103d2c5313549d8ea13c0a3d1a01cd5f258899eaf5`
 
-## Remaining before enabling
+## Final release/writer/async review
 
-1. Complete the alternate-writer/initializer audit for the two facts, three journal selectors, repair nodes and scene/test inputs. The bounded main and currently exported scene fact indexes found one positive writer per proposed fact. This is not a claim that every unexported scene has been searched.
-2. Finish reviewing saved production routes, especially asynchronous scene outputs, so completion cannot precede the intended event. Preserve the distinction between real normal input and exposed test/checkpoint input.
-3. Add the exact cooked Disasterpiece journal pointer to final executable evidence. Its row is already saved in `runtime/judy-expansion-oct01/rescue-journal.jsonl`.
-4. Independently review statements and recipient knowledge; then append final source/evidence/allowlist/rule entries to the existing lane pack without altering its valid 16 rules.
-5. Run per-pack schema/native-evidence verification and focused pure resolver checks for missing/zero facts, unrevealed messages, wrong recipients, unknown game version, cumulative rescue/death history, and the separate completion gate.
-6. Root must assess collector integration for `gameJournalQuest` and `gameJournalPhoneMessage`. Both classes exist in prior packs, but this research did not exercise the new aliases in the live collector. Do not weaken the predicate if a selector is unsupported.
+The fresh normal `ep1/quest/ep1.gamedef` schedules `base/quest/cyberpunk2077.quest`. The previously cited base reference ancestry then reaches these production phases. This is authored release inclusion, not a claim of runtime execution.
 
-There are **no owned workers or probes running** at this checkpoint. Extraction/serialization commands exited before the pause instruction. Nothing was installed, sent to Convai, or committed by this subagent.
+Extraction's Leave2070 branches to departure2206 and parallel workspot/door cleanup. Departure completion ->fade2409 ->leave-objective2018 Succeeded ->1889 ->3878 ->end611. Parallel3935/3760/3850 branches have no route to that end. Production phase6 invokes start/start_combat; exposed get_up and Start6 scene entries are unconnected there.
+
+Burial test input8 bypasses normal content/location checks. Outer Txt_burial108 enters that test socket, but its parent sidequests socket is unconnected. A real repair145 ->cut146 cancels delay67 and starts burial117 In1. Cinematic-bugfix phase25 checks the repair flag, `sq026_01_done>=1`, and greeting Inactive. That still delivers Judy's authored report; it cannot establish human support choices. Exact q204 reference is a condition, not another writer. Burial bulk21 disables choices, not the report.
+
+Overnight's placeholder2 entry jumps into1665 but is unconnected at production scene22. Section1665 timed outputs3/4 launch only workspots; concurrent fade2068 output4331 resets the camera and never returns to SMS. Every incoming edge in the post-breakfast wake chain is unique. Objective2096's sole incoming is wake2086 regular end ->ordinal3 Succeeded. Exact objective path indexes find no other individual writer; reviewed ancestor bulk updates set Active quests Failed rather than manufacturing Succeeded objectives.
+
+Normal sq030 In1 follows setup11 ->dam12 ->lake13 ->hut14 exploration. The separate standalone `sq030.quest` exposes a chicken-test scene into hut/test/sex input24; it has no indexed caller and is outside the released reference closure. Its shortcuts are not reconstructed as player choices.
+
+Fresh lake scene `sq030_06_lake_exploration.scene` proves a positive invariant. Section2318 plays the11.2-second `q030__idle_swim__heart_attack__01` on performer1793, mapped to `#player`/V. Completion socket(0,0) ->5699 ->2521 (increment lake history) ->4413 ->2524 ->2526 ->1954 ->3196 ->4206 ->Terminating End1/1260. Timed3454/5724/4540 branches dead-end. Removing2318 or any terminal-chain node prevents End1; every scene entry reaching End1 passes the collapse and increment. Lake phase exploration then feeds hut/pier. Existing pier recovery section1244 supplies Judy's authored account of lifting V out; it does not prove the optional recap was selected.
+
+Across31 current facts indexes, the lake/pier keys have three occurrences: one lake increment, one exact pier assignment and one pier comparison. No initializer/reset or alternate writer was observed. The q105 fact similarly has one exact positive assignment. This covers the indexed4573 native quest/phase/journal artifacts plus bounded scene indexes; it does **not** claim every unexported scene, console edit or external mod was searched.
+
+## Final receipts and executed scenarios
+
+- Strict direct `verifyNativeEvidence` import passed: **156 exact pointers across32 artifacts**, four valid narrative links, zero errors, zero legacy/unbound JSON pointers. The original21 fresh exports and14 selected English joins remain included. Full receipt: `runtime/judy-expansion-oct01/final-native-verify.json`. The shared build CLI was not run.
+- New fresh manifests: `cache/game/scene-evidence/judy-release-final-oct01`, `judy-writers-final-oct01`, `judy-dive-final-oct01`, `judy-lake-final-oct01`. Existing/current installed archive-entry SHA1 and raw SHA256 were checked before serialization; JSON hashes were recorded before final citation. Full32-artifact hash table: `runtime/judy-expansion-oct01/final-artifact-hashes.md`. Every cited hash/pointer also lives in the source pack.
+- `review_native_rules.mjs verify native-rules/judy-river.json` passed:20 rules,20 evidence entries,67 native JSON files including prior rules.
+- `node --test bridge/native-judy-expansion.test.mjs`: **12 passed**, zero failures/skips. Real resolver scenarios include positive private/phone routes, missing/zero, unfinished/failed/wrong quest stages, unrevealed receipts, breakfast-before-wake, pier-test shortcut, refusal/shared-disclosure ambiguity, cumulative rescue/death, wrong speaker/group privacy, contradictory outcomes, unknown version and fresh rollback capture.
+- Existing collector supports the exact-path `gameJournalQuest`, `gameJournalQuestObjective` and `gameJournalPhoneMessage` selectors and requires their parent-reveal checks. Actual new alias behavior in a live save remains unverified.
+
+| Fresh final anchor | Binary SHA-256 | Recorded JSON SHA-256 |
+| --- | --- | --- |
+| Released EP1 gamedef | `30b735c237ea2344b3f667752b4f98fdbbe1283808594a51693cfa61aebc6579` | `4f24cc027024d390ac5972c8cec8a49b6a3f800820b95aaff4b93c6810b4fa40` |
+| Lake-collapse scene | `f59a872ccaad8c49877b928a433b469902155a33d5aff79891ba1bd953f1d9ff` | `25e45e00cdb3b229e936463eac80e3ef763fe53a7a99d3a2fda901d5dc6d11e7` |
+
+Dive removal/caller checks: `cache/game/scene-evidence/judy-dive-final-oct01/review.json`. Disasterpiece operation/socket receipts: `runtime/judy-expansion-oct01/disasterpiece-journal-states.json`.
+
+## Root integration remaining
+
+1. Independently review the final source semantics, actor/recipient restrictions and combined wake/dive gates.
+2. Merge stable lane parts, run strict global provenance/coverage and integration gates, then decide on runtime rollout.
+3. Verify the new aliases against actual live saves without changing game facts or weakening unknown predicates.
+
+There are **no owned workers or probes running**. Extraction/serialization commands and both read-only route subagents finished. Nothing was installed, sent to Convai, or committed by this lane.
