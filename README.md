@@ -25,6 +25,7 @@ The catalog currently contains **79 conversation profiles**: 77 named characters
 - Search installed character models through **Model browser**, including characters outside the phone catalog. A model can follow without an AI profile, or use a profile you assign separately.
 - Companions walk beside V, run to catch up, settle into loose positions, and respond to direct attention without reforming the whole group around camera turns. Close eye contact does not make a settled companion back away.
 - Native combat AI, post-combat holstering, and moving green companion markers on the minimap.
+- Summoned Johnny uses the game's solid appearance, including while seated and viewed up close. His story apparition remains separate.
 - Passenger boarding and seated eye/head attention. The vehicle controller also includes overflow carpooling and fast-travel recovery; their wider gameplay checks are still pending.
 
 Selecting **Invite** reserves a place and immediately prepares memory configuration, the selected voice, and the conversation connection. A talking companion appears only after preparation succeeds and you return to gameplay. Progress reports the current preparation stage. This setup does not send an invented conversation or seed memories.

@@ -54,6 +54,54 @@ test('owned ghost copies become visible before ready without altering other enti
     'visibility failure must not be reported as a ready companion')
 `));
 
+test('a managed phantom copy uses its native solid appearance mapping once', () => run(`${fixture}
+  companions.spawn('judy-alvarez')
+  local npc=entities[1]; local queued={}
+  local ghost={enabled=true,params={blendableAppearanceMatches={
+    {blendable='another_outfit',notBlendable='another_solid'},
+    {blendable='silverhand_default',notBlendable='silverhand_riot__not_blendable'}}},
+    IsA=function(_,kind) return kind=='gamePhantomEntityComponent' end,
+    Toggle=function(self,on) self.enabled=on end, IsEnabled=function(self) return self.enabled end}
+  npc.components={ghost}
+  npc.GetCurrentAppearanceName=function() return 'silverhand_default' end
+  npc.ScheduleAppearanceChange=function(_,name)
+    assert(not ghost.enabled,'phantom controller must be disabled before appearance is queued')
+    queued[#queued+1]=name
+  end
+  tick(); tick(5,npc.id.hash)
+  assert(#queued==1 and queued[1]=='silverhand_riot__not_blendable')
+  assert(companions.list()[1].state=='ready')
+`));
+
+test('unknown or already solid phantom outfits keep their chosen appearance', () => run(`${fixture}
+  for _,current in ipairs({'custom_outfit','silverhand_riot__not_blendable'}) do
+    companions.spawn('judy-alvarez')
+    local npc=entities[sequence]
+    npc.components={{enabled=true,params={blendableAppearanceMatches={
+      {blendable='silverhand_default',notBlendable='silverhand_riot__not_blendable'}}},
+      IsA=function(_,kind) return kind=='gamePhantomEntityComponent' end,
+      Toggle=function(self,on) self.enabled=on end, IsEnabled=function(self) return self.enabled end}}
+    npc.GetCurrentAppearanceName=function() return current end
+    npc.ScheduleAppearanceChange=function() error('unmapped outfit was replaced') end
+    tick()
+  end
+  assert(#companions.list()==2)
+`));
+
+test('conflicting physical appearance mappings fail before mutating a copy', () => run(`${fixture}
+  companions.spawn('judy-alvarez')
+  local npc=entities[1];local changes=0
+  npc.components={{params={blendableAppearanceMatches={
+    {blendable='ghost',notBlendable='solid_one'},
+    {blendable='ghost',notBlendable='solid_two'}}},
+    IsA=function(_,kind) return kind=='gamePhantomEntityComponent' end,
+    Toggle=function() changes=changes+1 end}}
+  npc.GetCurrentAppearanceName=function() return 'ghost' end
+  npc.ScheduleAppearanceChange=function() changes=changes+1 end
+  companions.update(player,0.5)
+  assert(changes==0 and companions.list()[1].state=='failed' and entities[1]==nil)
+`));
+
 test('post-run rejoin uses path facing, including after a conversation step', () => run(`${fixture}
   local npc=spawn(); tick(4,npc.id.hash)
   player.pos=Vector4.new(0,8); tick(1); tick(3)

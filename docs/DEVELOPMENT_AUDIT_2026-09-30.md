@@ -996,4 +996,35 @@ groups. The target selector now includes verified owned on-foot copies omitted
 by the native query, retains torso and close-face Head aim, and checks visibility
 through the shared query budget. Ordinary native and same-car seated selection
 retain their existing behavior. Source regressions and native input measurements
-precede activation; live private-chat acceptance is the next check.
+precede activation. The resumed live test accepted private chat, driver-seat
+boarding, and actual vehicle movement with the managed Johnny copy.
+
+## October 2: Johnny's seated hologram material
+
+The driver became blue and speckled when V looked toward him. A bounded
+read-only camera/state trace showed that the managed copy's phantom component
+remained disabled and its appearance remained `silverhand_default`. The ambient
+car scene was inactive; both the canonical Johnny reference and the scene's
+typed `a_thepassenger_Johnny` reference resolved to no actor. The earlier
+ambient-passenger overlap is a separate problem.
+
+The live phantom component explicitly maps `silverhand_default` to
+`silverhand_riot__not_blendable`. Applying that mapping to the exact owned copy
+removed the hologram speckling in same-view game-window captures. The user also
+confirmed that looking away and back no longer turns him into a hologram.
+Disabling the controller alone had left the blendable materials active.
+
+Spawn preparation now reads the attached template's mapping, disables its
+phantom controllers, and queues the matching solid appearance once. It leaves
+unmapped and already solid outfits alone; conflicting mappings fail before any
+appearance mutation. Shared records and original story actors are not targets.
+The 29 focused behavior/record checks cover this contract. The current copy has
+rendered before/after evidence; a fresh spawn after the combined Lua reload is
+the remaining activation check.
+
+Method: distinguish entity ownership, controller enablement, current appearance,
+and rendered materials rather than treating all four as one visibility flag.
+Use one reversible native change on the measured copy, inspect the actual game
+window, and keep the correction at spawn preparation rather than enforcing an
+appearance every frame. Temporary state readers are bounded and restored after
+the investigation.
