@@ -35,6 +35,17 @@ EMA 0.999, effective batch 64 and a 2,000-update pilot cap. Further training is
 judged from held-out performance and free-running speech, with raw/EMA kept
 separate. A completed run can legitimately produce no eligible improvement.
 
+The loader samples uniformly by recording. In the proposed 2,815-clip pool,
+Johnny, Judy and Panam account for 45.75% of clip draws and about 44.86% of
+target frames. Equal sampling by character would replay singleton recordings
+roughly 38 times more often, so the first pilot keeps the existing sampler and
+adds recording variety. The final admitted pool still depends on wording review.
+
+Both sampler and EOS heads remain trainable for that first pilot. A later
+controlled comparison could freeze only `flow_net`, matching upstream
+`freeze_head`; that option does not freeze EOS. Such a run would need explicit
+enforcement in this wrapper, which bypasses the upstream training entry point.
+
 ## Corrected padding interpretation
 
 Raw files contain roughly 300 ms of exact silence at each edge. The actual
