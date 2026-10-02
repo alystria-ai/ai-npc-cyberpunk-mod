@@ -250,8 +250,26 @@ old player-clear prefix cannot be reused after V steps into that path.
 
 Source cases reproduce both a sub-1.5-metre V move and a native route change with
 the same V/side goal, plus continued real crossing and query-quota deferral. The
-player margin and the accepted camera/glance behavior remain unchanged. The
-new refresh still requires the live post-trip acceptance check.
+player margin and the accepted camera/glance behavior remain unchanged. After
+reloading this correction, the user confirmed post-trip following works, with
+a lingering pause beside the car. A read-only audit found no fixed five-second
+post-exit delay. The native exit/workspot handoff took 2.095 seconds; the later
+settled interval cannot be diagnosed without V's movement onset. The next
+capture compares transport release, V's departure, route admission and actual
+NPC movement before changing any timing or clearance guard.
+
+The subsequent 90-second capture separated those stages. The native exit took
+2.121 seconds. While V moved at about 3.8 m/s, destination changes repeatedly
+reset the detour to candidate 2 of 16. The search progressed after V stopped,
+then executed 34- and 30-waypoint routes at a forced walking pace. A later
+short-leg height rejection retained no recovery geometry. Johnny coasted
+0.615 metres horizontally and 0.176 metres vertically, leaving a fresh native
+projection only 0.198 metres above his feet, but the old rejection still held
+him 13.33 metres away. Camera direction remained stable and no local social
+interaction was recorded. Read-only executable replays reproduced search
+starvation, distant forced walking and the stale post-coast hold. The repair
+preserves a local obstacle escape while V moves, revalidates the distant goal,
+restores catch-up pace and records recoverable height-check failures.
 
 ### September 30: close face inspection
 

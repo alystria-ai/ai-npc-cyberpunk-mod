@@ -131,6 +131,18 @@ entry, driving and a changed waypoint. The same owned command remained
 Executing while destination/drive revision advanced from 1 to 2. The custom
 marker disappeared on arrival, and Johnny exited; the trace then exposed a
 parked-car navigation obstruction that prevented following. Arrival-marker
-classification and post-exit recovery fixes require their combined live check.
+classification and post-exit recovery fixes were installed together. After the
+cached player-clearance correction, the user confirmed that Johnny follows
+again after exiting, with an extra pause beside the car. The observed native
+exit-to-walking handoff took 2.095 seconds. The remaining pause needs a trace
+of V's departure before it can be attributed to the movement controller;
+the native exit/workspot guard remains in place. The subsequent complete-trip
+trace confirmed arrival classification: the transaction reached
+`completed` with reason `Destination reached. Step out when ready.` That same
+repeat exposed detour search starvation while V walked away, forced walking on
+a distant catch-up route and a stale short-leg height rejection after coasting.
+Those walking repairs are in progress; the camera peek did not rotate the
+formation. Evidence: `runtime/verification/johnny-exit-timing-20261003.json`,
+its systems snapshot and `johnny-nav-origin-20261003.json`.
 Overflow convoys, cancellation, reload and fast-travel cleanup remain separate
 acceptance cases. Automated fixtures do not establish the game's route quality.
