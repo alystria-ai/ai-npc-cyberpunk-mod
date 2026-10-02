@@ -60,6 +60,11 @@ encoder context/phase. Those derivatives remain experiments, not adopted data.
   weights/reference/config hashes. Use listening for likeness and pacing.
 - Authenticate actor, scene, localization, WEM and WAV provenance; verify actual
   wording, clipping, levels, duplicate recordings and historical exclusions.
+- Forced alignment places the supplied text on audio; it does not independently
+  verify that text. The original training ledgers retained no free-ASR wording
+  evidence. A separate GPU audit is prepared for 2,743 train, 94 development and
+  76 protected test recordings. Its disagreements require review and remain
+  uncertain rather than automatically becoming subtitle corrections.
 - Keep unseen-scene development separate from new utterances in previously seen
   scenes. Preserve the original 94-clip regression panel and report coverage gaps.
 - Bind staged audio, manifests, word spans and history ledgers before GPU
@@ -68,6 +73,11 @@ encoder context/phase. Those derivatives remain experiments, not adopted data.
 - Synchronize distributed stop and I/O decisions; report planned versus reached
   speech checks and explicit candidate availability. Preserve the current model
   when checks reject a candidate.
+- Check cloud source size before submission. The first wording-audit request
+  returned HTTP 400 with a 1,123,873-byte script; the response message was not
+  retained, so the suspected size limit is not a confirmed rejection cause.
+  Preserve the attempted payload and unknown outcome; do not repeat its Save.
+  A local audit can use the same frozen audio and ASR weights independently.
 
 The live-game student benchmark measured first PCM at **135 ms mean** across
 five warm calls (127–148 ms), CPU FP32/two threads, zero VRAM and 1.68 GiB peak
