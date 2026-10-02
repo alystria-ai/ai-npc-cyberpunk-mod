@@ -15,6 +15,50 @@ public class ConvaiFaceService extends ScriptableService {
     GameInstance.GetCallbackSystem()
       .RegisterCallback(n"Entity/Initialize", this, n"OnCompanionInitialize")
       .AddTarget(DynamicEntityTarget.Tag(n"CyberpunkConvaiCompanion"));
+    // DynamicEntityTarget is a lifecycle-event filter, not a builder filter.
+    // The extraction callback repeats ownership using the builder request ID
+    // before touching any newly extracted component instance.
+    GameInstance.GetCallbackSystem()
+      .RegisterCallback(n"Entity/Extract", this, n"OnCompanionExtract");
+  }
+
+  private cb func OnCompanionExtract(event: ref<EntityBuilderEvent>) {
+    let builder = event.GetEntityBuilder();
+    let dynamic = GameInstance.GetDynamicEntitySystem();
+    if !IsDefined(builder) || !IsDefined(dynamic)
+      || !dynamic.IsTagged(builder.GetEntityID(), n"CyberpunkConvaiCompanion") { return; };
+    // These wrappers expose this builder's extracted component clones, not
+    // shared .ent/.app definitions. They also cover appearance-only rebuilds.
+    let npc = dynamic.GetEntity(builder.GetEntityID()) as NPCPuppet;
+    if builder.HasEntity() {
+      let template = builder.GetTemplate();
+      if !IsDefined(npc) { npc = template.GetEntity() as NPCPuppet; };
+      this.PrepareExtractedComponents(template.GetComponents(), npc);
+    };
+    if builder.HasAppearance() {
+      this.PrepareExtractedComponents(builder.GetAppearance().GetComponents(), npc);
+    };
+    let appearances = builder.GetCustomAppearances();
+    let i = 0;
+    while i < ArraySize(appearances) {
+      this.PrepareExtractedComponents(appearances[i].GetComponents(), npc);
+      i += 1;
+    };
+  }
+
+  private func PrepareExtractedComponents(components: array<ref<IComponent>>, npc: ref<NPCPuppet>) -> Void {
+    let i = 0;
+    while i < ArraySize(components) {
+      let face = components[i] as AnimatedComponent;
+      if IsDefined(face) && Equals(face.GetName(), n"face_rig") {
+        let status = this.PrepareFaceComponent(face);
+        if IsDefined(npc) {
+          npc.ConvaiFacePrepared(StrBeginsWith(status, "prepared:"), status,
+            ResRef.ToString(ResourceRef.GetPath(face.graph)));
+        };
+      };
+      i += 1;
+    };
   }
 
   private cb func OnCompanionInitialize(event: ref<EntityLifecycleEvent>) {
@@ -26,39 +70,45 @@ public class ConvaiFaceService extends ScriptableService {
     if !IsDefined(dynamic) || !dynamic.IsTagged(npc.GetEntityID(), n"CyberpunkConvaiCompanion") { return; };
     npc.ConvaiFacePrepared(false, "initializing");
     let face = npc.FindComponentByName(n"face_rig") as AnimatedComponent;
+    let status = this.PrepareFaceComponent(face);
+    let graphPath = "";
+    if IsDefined(face) { graphPath = ResRef.ToString(ResourceRef.GetPath(face.graph)); };
+    npc.ConvaiFacePrepared(StrBeginsWith(status, "prepared:"), status, graphPath);
+  }
+
+  private func PrepareFaceComponent(face: ref<AnimatedComponent>) -> String {
     if !IsDefined(face) {
-      npc.ConvaiFacePrepared(false, "no-face-rig");
-      return;
+      return "no-face-rig";
     };
     let original = ResRef.ToString(ResourceRef.GetPath(face.graph));
     let rig = ResourceRef.GetResource(face.rig) as animRig;
     if !IsDefined(rig) {
-      npc.ConvaiFacePrepared(false, "rig-not-loaded");
-      return;
+      return "rig-not-loaded";
     };
     let tracks = ConvaiFaceAssets.RequiredTracks();
     let t = 0;
     while t < ArraySize(tracks) {
       if !ArrayContains(rig.trackNames, tracks[t]) {
-        npc.ConvaiFacePrepared(false, "unsupported-rig");
-        return;
+        return "unsupported-rig";
       };
       t += 1;
     };
     let i = 0;
     while i < ArraySize(this.m_names) {
-      if Equals(original, "base\\animations\\facial\\_facial_graphs\\" + this.m_names[i] + ".animgraph") {
+      let preparedPath = "cyberpunk_convai\\facial\\" + this.m_names[i] + ".animgraph";
+      if Equals(original, preparedPath)
+        || Equals(original, "base\\animations\\facial\\_facial_graphs\\" + this.m_names[i] + ".animgraph") {
         if !ResourceRef.IsLoaded(this.m_graphs[i]) || ResourceRef.IsFailed(this.m_graphs[i]) {
-          npc.ConvaiFacePrepared(false, "speech-graph-not-loaded");
-          return;
+          return "speech-graph-not-loaded";
         };
-        face.graph = this.m_graphs[i];
-        npc.ConvaiFacePrepared(true, "prepared:" + this.m_names[i]);
-        return;
+        // Initialize can follow an already prepared extraction. Do not rewrite
+        // that instance or modify the loaded graph resource itself.
+        if !Equals(original, preparedPath) { face.graph = this.m_graphs[i]; };
+        return "prepared:" + this.m_names[i];
       };
       i += 1;
     };
-    npc.ConvaiFacePrepared(false, "unsupported-graph:" + original);
+    return "unsupported-graph:" + original;
   }
 }
 
@@ -69,10 +119,14 @@ private let m_convaiFacePrepared: Bool;
 private let m_convaiFaceStatus: String;
 
 @addMethod(NPCPuppet)
-public final func ConvaiFacePrepared(ready: Bool, status: String) -> Void {
+public final func ConvaiFacePrepared(ready: Bool, status: String, opt graphPath: String) -> Void {
   this.m_convaiFacePrepared = ready;
   this.m_convaiFaceStatus = status;
+  this.m_convaiFaceGraphPath = ready ? graphPath : "";
 }
+
+@addField(NPCPuppet)
+private let m_convaiFaceGraphPath: String;
 
 @addMethod(NPCPuppet)
 public final func ConvaiFaceStatus() -> String {
@@ -81,7 +135,15 @@ public final func ConvaiFaceStatus() -> String {
 
 @addMethod(NPCPuppet)
 public final func ConvaiFaceReady() -> Bool {
-  return this.m_convaiFacePrepared && this.IsAttached() && !this.IsDeadNoStatPool();
+  if !this.m_convaiFacePrepared || !this.IsAttached() || this.IsDeadNoStatPool()
+    || Equals(this.m_convaiFaceGraphPath, "") { return false; };
+  let dynamic = GameInstance.GetDynamicEntitySystem();
+  if !IsDefined(dynamic) || !dynamic.IsTagged(this.GetEntityID(), n"CyberpunkConvaiCompanion") { return false; };
+  // Appearance changes can replace face_rig after the first initialization.
+  // A previously prepared flag never certifies the replacement component.
+  let face = this.FindComponentByName(n"face_rig") as AnimatedComponent;
+  return IsDefined(face) && ResourceRef.IsLoaded(face.graph) && !ResourceRef.IsFailed(face.graph)
+    && Equals(ResRef.ToString(ResourceRef.GetPath(face.graph)), this.m_convaiFaceGraphPath);
 }
 
 @addMethod(NPCPuppet)

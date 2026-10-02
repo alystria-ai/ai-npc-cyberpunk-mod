@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 import {extendFacialGraph, inspectGraph, schema, featureSource} from '../scripts/Build-FacialGraphs.mjs';
 
 const name = value => ({$type: 'CName', $storage: 'string', $value: value});
+const nativeFace = readFileSync(new URL('../r6/scripts/CyberpunkConvai/Face.reds', import.meta.url), 'utf8');
 function fixture() {
   return {Header: {}, Data: {RootChunk: {$type: 'animAnimGraph',
     rootNode: {HandleRefId: '0'}, animFeatures: [{name: name('Eyes'), className: name('AnimFeature_LookAt')}],
@@ -52,4 +53,52 @@ test('rejects invalid handle graphs before producing a native resource', () => {
 test('native feature fields and graph declarations share the same schema', () => {
   const source = readFileSync(new URL('../r6/scripts/CyberpunkConvai/FaceFeature.reds', import.meta.url), 'utf8');
   assert.equal(source.replace(/\r\n/g, '\n'), featureSource());
+});
+
+// Native execution still requires the isolated redscript compiler and the
+// in-game graph/capture check. These contracts protect the supported lifecycle
+// seams and ownership/resource boundaries; they do not prove visible motion.
+test('new appearance component clones are prepared during extraction behind the dynamic companion tag', () => {
+  assert.match(nativeFace, /RegisterCallback\(n"Entity\/Extract", this, n"OnCompanionExtract"\)/);
+  assert.match(nativeFace, /RegisterCallback\(n"Entity\/Initialize", this, n"OnCompanionInitialize"\)/);
+  assert.doesNotMatch(nativeFace, /RegisterCallback\(n"Entity\/(?:Attach|AfterAttach|Reassemble)"/);
+  const extract = nativeFace.slice(nativeFace.indexOf('private cb func OnCompanionExtract'),
+    nativeFace.indexOf('private func PrepareExtractedComponents'));
+  const gate = extract.indexOf('dynamic.IsTagged(builder.GetEntityID(), n"CyberpunkConvaiCompanion")');
+  assert(gate >= 0 && gate < extract.indexOf('PrepareExtractedComponents('));
+  assert.match(extract, /template\.GetComponents\(\)/);
+  assert.match(extract, /builder\.GetAppearance\(\)\.GetComponents\(\)/);
+  assert.match(extract, /builder\.GetCustomAppearances\(\)/);
+  assert.match(extract, /appearances\[i\]\.GetComponents\(\)/);
+  assert.doesNotMatch(extract, /GetDefinition\(|GetResource\(/, 'shared template/appearance definitions are never edited');
+  const prepare = nativeFace.slice(nativeFace.indexOf('private func PrepareExtractedComponents'),
+    nativeFace.indexOf('private cb func OnCompanionInitialize'));
+  assert.match(prepare, /components\[i\] as AnimatedComponent/);
+  assert.match(prepare, /Equals\(face\.GetName\(\), n"face_rig"\)/);
+});
+
+test('initialization recognizes already prepared graphs without layering or modifying the shared solver', () => {
+  const prepare = nativeFace.slice(nativeFace.indexOf('private func PrepareFaceComponent'),
+    nativeFace.indexOf('@addField(NPCPuppet)'));
+  assert.match(prepare, /Equals\(original, preparedPath\)/);
+  assert.match(prepare, /if !Equals\(original, preparedPath\) \{ face\.graph = this\.m_graphs\[i\]; \}/);
+  assert.match(prepare, /ArrayContains\(rig\.trackNames, tracks\[t\]\)/);
+  assert.match(prepare, /ResourceRef\.IsLoaded\(this\.m_graphs\[i\]\)/);
+  assert.match(prepare, /ResourceRef\.IsFailed\(this\.m_graphs\[i\]\)/);
+  assert.doesNotMatch(prepare, /GetResource\(face\.graph\)|nodesToInit|animFeatures/);
+});
+
+test('latched preparation alone cannot pass readiness after face_rig graph replacement', () => {
+  const ready = nativeFace.slice(nativeFace.indexOf('public final func ConvaiFaceReady()'),
+    nativeFace.indexOf('public final func ConvaiFaceApply('));
+  assert.match(ready, /this\.m_convaiFacePrepared/);
+  assert.match(ready, /this\.IsAttached\(\)/);
+  assert.match(ready, /this\.IsDeadNoStatPool\(\)/);
+  assert.match(ready, /dynamic\.IsTagged\(this\.GetEntityID\(\), n"CyberpunkConvaiCompanion"\)/);
+  assert.match(ready, /this\.FindComponentByName\(n"face_rig"\) as AnimatedComponent/);
+  assert.match(ready, /ResourceRef\.IsLoaded\(face\.graph\)/);
+  assert.match(ready, /ResourceRef\.IsFailed\(face\.graph\)/);
+  assert.match(ready, /Equals\(ResRef\.ToString\(ResourceRef\.GetPath\(face\.graph\)\), this\.m_convaiFaceGraphPath\)/);
+  const fields = [...nativeFace.matchAll(/@addField\(NPCPuppet\)\s*private let (\w+): ([^;]+);/g)];
+  assert(fields.every(([, , type]) => ['Bool', 'String'].includes(type)), 'no actor/component/resource handle is retained on the puppet');
 });

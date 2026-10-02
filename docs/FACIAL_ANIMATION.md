@@ -1,6 +1,41 @@
 # Native facial animation
 
-## Current status — September 29
+## October 2: facial graph lifetime across appearance changes
+
+Johnny's seated reply delivered 186 facial applications and a reset, but the
+read-only component receipt showed the original `man_average_sermo` graph:
+274 nodes and no `ConvaiFace` inputs. His physical appearance change had replaced
+the prepared face component. A latched readiness flag made accepted feature
+events look successful even though that graph could not consume the feature.
+
+The service now prepares the tagged companion's newly extracted template,
+appearance and custom-appearance component instances through `Entity/Extract`.
+It uses the builder request's entity ID for the dynamic-tag guard and never
+edits shared `.ent`/`.app` definitions. The existing `Entity/Initialize` callback
+remains the initial-spawn fallback and recognizes an already prepared graph.
+No attach-time repair of a running animation graph is performed.
+
+`ConvaiFaceReady()` also checks the current `face_rig` graph's load/failure state
+and exact prepared path. Replacing it can no longer leave the old flag sufficient
+for accepting facial frames. The service retains no actor/component handles,
+and speech and expressions still share one writer.
+
+The isolated native compilation and 74 focused facial/expression checks pass.
+The new lifecycle still needs the fresh-Johnny game check: inspect the active
+mod graph after the physical appearance loads, then capture a seated voiced
+reply and its reset. Compilation and frame counts alone do not confirm motion.
+Codeware's pinned [builder wrappers](https://github.com/psiberx/cp2077-codeware/blob/v1.20.5/src/App/Entity/EntityBuilderWrapper.hpp)
+expose the extracted component instances used by this preparation.
+
+Independent review of the installed Johnny assets places `face_rig` in each
+relevant `.app` appearance, with obligatory graph/rig dependencies. Official
+Codeware 1.20.5 source confirms that this extraction seam exposes builder-local
+component results before aggregation and initialization. This qualifies the
+chosen seam for the reported replacement; arbitrary engine reuse of a
+template-only component remains outside that source proof. The live request
+ID/tag and prepared graph still need the restart check.
+
+## Historical status — September 29
 
 **Native layer installed September 29 at 03:40 IST; Judy's visible jaw test passed.
 Speech timing is installed live; the user confirmed speech movement/reset but
@@ -70,6 +105,8 @@ route successfully.
   validates the rig's required tracks and the exact source graph, and substitutes
   the prepared graph before native initialization. Unsupported/missing resources
   leave the original face intact and report a status.
+- Appearance rebuilds use the `Entity/Extract` builder seam described above;
+  readiness validates the actual active component rather than its previous flag.
 - `FaceFeature.reds` is generated from the same schema. The native apply/reset
   methods require a prepared, attached, living, tagged companion.
 - `face-probe.lua` runs only when requested through diagnostics. It submits two
