@@ -1,4 +1,4 @@
-"""Small, offline generated-speech diagnostics during student distillation.
+"""Offline generated-speech diagnostics for student distillation and teachers.
 
 The fixed Johnny/Judy/Panam references are conditioning/probe inputs, not the
 heldout training split. ASR is an imperfect diagnostic of omitted words; these
@@ -116,7 +116,8 @@ def sample_diagnostics(record: dict[str, Any], audio: dict[str, Any]) -> dict[st
         errors.append("unexpected_wave_subtype")
     if duration > MAX_SECONDS + .1:
         errors.append("audio_exceeds_generation_bound")
-    return {**record, "finite": finite, "measured_duration_seconds": duration if math.isfinite(duration) else None,
+    edges = {key: audio[key] for key in ("low_energy_prefix_seconds", "low_energy_suffix_seconds", "edge_energy_threshold_dbfs", "edge_window_seconds") if key in audio}
+    return {**record, **edges, "finite": finite, "measured_duration_seconds": duration if math.isfinite(duration) else None,
             "eos_natural": natural, "eos_evidence": "inferred_from_official_generator_exit",
             "premature_stop_suspected": premature, "audio_error": errors or None}
 
@@ -133,10 +134,20 @@ def _state_digest(module: Any, stop: Any) -> str:
     return digest.hexdigest()
 
 
-def _weights_receipt(model: Any, stop: Any, weight_kind: str) -> dict[str, Any]:
+def _weights_receipt(model: Any, stop: Any, weight_kind: str, *, role: str = "student") -> dict[str, Any]:
     if weight_kind not in ("raw", "ema"):
         raise ValueError("rollout_weight_kind must be raw or ema")
     teacher = getattr(model, "distill_teacher", None)
+    if role == "teacher":
+        if teacher is not None:
+            raise ValueError("A teacher rollout cannot disguise a distilled student")
+        return {"weights": weight_kind, "role": role, "ema_applied_by_helper": False,
+                "weight_kind_declared_by_caller": True,
+                "flow_lm_state_sha256": _state_digest(model.flow_lm, stop),
+                "trainable_heads": {name: any(p.requires_grad for p in getattr(model.flow_lm, name).parameters())
+                                    for name in ("flow_net", "out_eos")}}
+    if role != "student":
+        raise ValueError("Rollout role must be teacher or student")
     if teacher is None:
         raise ValueError("The student rollout requires its frozen distillation teacher")
     heads = {}
@@ -173,8 +184,21 @@ def _inspect_audio(path: Path) -> dict[str, Any]:
     import sphn
 
     pcm, sample_rate = sphn.read(str(path))
-    return {"finite": bool(np.isfinite(pcm).all()), "duration_seconds": pcm.shape[-1] / sample_rate,
-            "sample_rate": sample_rate, "wave_subtype": sf.info(str(path)).subtype}
+    result = {"finite": bool(np.isfinite(pcm).all()), "duration_seconds": pcm.shape[-1] / sample_rate,
+              "sample_rate": sample_rate, "wave_subtype": sf.info(str(path)).subtype}
+    if result["finite"] and pcm.shape[-1]:
+        # Descriptive energy edges, not a VAD or an instruction to crop audio.
+        window = max(1, round(sample_rate * .02))
+        mono = np.asarray(pcm).reshape(-1, pcm.shape[-1])
+        rms = [float(np.sqrt(np.mean(mono[:, offset:offset + window] ** 2)))
+               for offset in range(0, pcm.shape[-1], window)]
+        active = [i for i, value in enumerate(rms) if value > 10 ** (-55 / 20)]
+        leading = min(pcm.shape[-1], active[0] * window) if active else pcm.shape[-1]
+        trailing = max(0, pcm.shape[-1] - min(pcm.shape[-1], (active[-1] + 1) * window)) if active else pcm.shape[-1]
+        result.update(low_energy_prefix_seconds=leading / sample_rate,
+                      low_energy_suffix_seconds=trailing / sample_rate,
+                      edge_energy_threshold_dbfs=-55, edge_window_seconds=.02)
+    return result
 
 
 def _load_ctc(spec: Any) -> tuple[Any, Any]:
@@ -203,8 +227,9 @@ def _transcribe(path: Path, duration: float, processor: Any, ctc: Any, torch: An
         return str(processor.batch_decode(logits.argmax(dim=-1))[0]).strip()
 
 
-def evaluate_rollout(spec: Any, model: Any, mimi: Any, device: Any, step: int, stop: Any) -> dict[str, Any]:
-    """Generate and transcribe a bounded CFG1 student probe on rank zero.
+def evaluate_rollout(spec: Any, model: Any, mimi: Any, device: Any, step: int, stop: Any,
+                     *, role: str = "student", label_prefix: str | None = None) -> dict[str, Any]:
+    """Generate bounded CFG1 student or CFG2 teacher probes on rank zero.
 
     All train/eval flags (including individually frozen/eval children), CPU and
     current CUDA/Python/model RNG, NumPy RNG, and Torch CPU thread count are
@@ -216,17 +241,24 @@ def evaluate_rollout(spec: Any, model: Any, mimi: Any, device: Any, step: int, s
 
     if isinstance(step, bool) or not isinstance(step, int) or step < 0:
         raise ValueError("Rollout step must be a nonnegative integer")
+    if role not in ("student", "teacher"):
+        raise ValueError("Rollout role must be teacher or student")
+    if label_prefix is not None and (role != "teacher" or label_prefix != "teacher-comparison-anchor"):
+        raise ValueError("Only the explicit teacher comparison anchor has a separate label prefix")
+    cfg = 2.0 if role == "teacher" else 1.0
+    decode_steps = runner.sample_decode_steps(spec.option("sample_decode_steps", 1))
     weight_kind = str(spec.option("rollout_weight_kind", "raw"))
     if weight_kind not in ("raw", "ema"):
         raise ValueError("rollout_weight_kind must be raw or ema")
-    label = f"rollout-step{step:06d}-{weight_kind}"
+    prefix = (label_prefix + "-") if label_prefix else "teacher-" if role == "teacher" else ""
+    label = f"{prefix}rollout-step{step:06d}-{weight_kind}"
     folder = spec.output / "comparisons" / label
     folder.mkdir(parents=True, exist_ok=True)
     started = time.monotonic()
     receipt: dict[str, Any] = {
         "schema": SCHEMA, "input_identity": spec.identity, "source_revision": runner.PINNED_REVISION,
         "source_digest": spec.raw.get("source_digest"),
-        "step": step, "label": label, "status": "running", "cfg": 1.0, "weights": weight_kind,
+        "step": step, "label": label, "status": "running", "cfg": cfg, "weights": weight_kind,
         "max_audio_seconds": MAX_SECONDS, "postprocessing": "none", "wave_subtype": "FLOAT",
         "asr_device": "cpu", "asr_threads": 2, "local_assets_only": True,
         "asr_tentative": True, "asr_notice": ASR_NOTICE, "listening_qualified": False,
@@ -240,7 +272,7 @@ def evaluate_rollout(spec: Any, model: Any, mimi: Any, device: Any, step: int, s
     try:
         if stop.requested():
             raise _Stopped()
-        receipt.update(_weights_receipt(model, stop, weight_kind))
+        receipt.update(_weights_receipt(model, stop, weight_kind, **({"role": role} if role == "teacher" else {})))
         selected = choose_references(runner.references(spec))
         expected = {(item["id"], index): text for item in selected for index, text in enumerate(item["texts"])}
         receipt["expected_samples"] = len(expected)
@@ -250,14 +282,17 @@ def evaluate_rollout(spec: Any, model: Any, mimi: Any, device: Any, step: int, s
         runner.atomic_json(manifest, {"references": selected})
         probe = replace(spec, raw={**spec.raw, "reference_manifest": str(manifest), "sample_max_seconds": MAX_SECONDS})
         identity = {key: receipt[key] for key in ("input_identity", "step", "weights", "flow_lm_state_sha256", "reference_manifest_sha256")}
-        identity.update(reference_ids=receipt["reference_ids"], cfg=1, max_seconds=MAX_SECONDS,
+        identity.update(reference_ids=receipt["reference_ids"], cfg=cfg if role == "teacher" else 1, max_seconds=MAX_SECONDS,
                         sample_seed=spec.option("sample_seed", 1337), sample_temperature=spec.option("sample_temperature", .3))
+        if decode_steps != 1:
+            identity["sample_decode_steps"] = decode_steps
+        receipt["decode_steps"] = decode_steps
         selection = hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest()
         receipt["selection_identity"] = selection
         mimi.eval()
         generation_error = None
         try:
-            generated = runner.generate_samples(probe, model, mimi, device, label, 1.0, stop,
+            generated = runner.generate_samples(probe, model, mimi, device, label, cfg, stop,
                                                 selection_identity=selection, limit_references=3)
             if not generated:
                 raise _Stopped()
@@ -366,7 +401,7 @@ def evaluate_rollout(spec: Any, model: Any, mimi: Any, device: Any, step: int, s
     runner.atomic_json(folder / "transcripts.json", {"selection_identity": receipt.get("selection_identity"),
         "asr_tentative": True, "asr_notice": ASR_NOTICE, "samples": receipt["samples"]})
     runner.atomic_json(folder / "metrics.json", receipt)
-    print(json.dumps({"event": "student_rollout", "step": step, "label": label,
+    print(json.dumps({"event": "teacher_rollout" if role == "teacher" else "student_rollout", "step": step, "label": label,
         "status": receipt["status"], "weights": receipt.get("weights"), "wer": aggregate["wer"],
         "deletion_rate": aggregate["deletion_rate"], "capped": aggregate["capped_samples"],
         "premature_suspected": aggregate["premature_stop_suspected_samples"],

@@ -127,7 +127,7 @@ class RolloutTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "differs"):
                 rollout._weights_receipt(model, Stop(), "raw")
 
-    def evaluation_fixture(self, root):
+    def evaluation_fixture(self, root, role="student"):
         reference = root / "reference.wav"
         reference.write_bytes(b"fixture-reference")
         manifest = root / "references.json"
@@ -138,6 +138,10 @@ class RolloutTests(unittest.TestCase):
         spec = Spec(root / "spec.json", {"reference_manifest": str(manifest), "align_model_dir": str(align)},
                     root, root / "source", root / "out", "a" * 64, {})
         model, mimi = self.models()
+        if role == "teacher":
+            model.distill_teacher = None
+            model.flow_lm.flow_net.trainable = True
+            model.flow_lm.out_eos.trainable = True
         stop = Stop()
         torch = SimpleNamespace(threads=7)
         torch.get_num_threads = lambda: torch.threads
@@ -147,7 +151,7 @@ class RolloutTests(unittest.TestCase):
         numpy.random.set_state = lambda value: setattr(numpy.random, "state", value)
 
         def generate(probe, actual_model, actual_mimi, device, label, cfg, actual_stop, **kwargs):
-            self.assertEqual((cfg, kwargs["limit_references"], probe.option("sample_max_seconds", None)), (1, 3, 30))
+            self.assertEqual((cfg, kwargs["limit_references"], probe.option("sample_max_seconds", None)), (2 if role == "teacher" else 1, 3, 30))
             selected = json.loads(probe.asset("reference_manifest").read_text())["references"]
             self.assertEqual([item["id"] for item in selected], ["johnny", "judy", "panam"])
             actual_model.eval()
@@ -167,10 +171,10 @@ class RolloutTests(unittest.TestCase):
 
         return spec, model, mimi, stop, torch, numpy, generate
 
-    def run_stubbed(self, root, transcript="exact", generation_error=False, cancelled_asr=False, cancelled_generation=False, weight_kind="raw"):
-        spec, model, mimi, stop, torch, numpy, generate = self.evaluation_fixture(root)
+    def run_stubbed(self, root, transcript="exact", generation_error=False, cancelled_asr=False, cancelled_generation=False, weight_kind="raw", role="student"):
+        spec, model, mimi, stop, torch, numpy, generate = self.evaluation_fixture(root, role)
         spec.raw["rollout_weight_kind"] = weight_kind
-        original_modes = [(module, module.training) for module in (*model.modules(), *mimi.modules(), *model.distill_teacher.modules())]
+        original_modes = [(module, module.training) for module in (*model.modules(), *mimi.modules(), *(model.distill_teacher.modules() if model.distill_teacher else ()))]
 
         def interrupted_generate(*args, **kwargs):
             generate(*args, **kwargs)
@@ -191,14 +195,14 @@ class RolloutTests(unittest.TestCase):
              patch.object(rollout, "_inspect_audio", return_value={"finite": True, "duration_seconds": 2, "wave_subtype": "FLOAT"}), \
              patch.object(rollout, "_load_ctc", return_value=(object(), object())), \
              patch.object(rollout, "_transcribe", side_effect=transcribe):
-            receipt = rollout.evaluate_rollout(spec, model, mimi, SimpleNamespace(type="cuda"), 500, stop)
+            receipt = rollout.evaluate_rollout(spec, model, mimi, SimpleNamespace(type="cuda"), 500, stop, role=role)
         capture.assert_called_once_with(torch, model)
         restore.assert_called_once_with(torch, model, {"fixture": "exact-rng"})
         self.assertEqual([(module, module.training) for module, _ in original_modes], original_modes)
         self.assertEqual(numpy.random.state, "original-numpy")
         self.assertEqual(torch.threads, 7)
         self.assertEqual(json.loads(spec.asset("reference_manifest").read_text())["references"][0]["id"], "aaron")
-        saved = json.loads((spec.output / f"comparisons/rollout-step000500-{weight_kind}/metrics.json").read_text())
+        saved = json.loads((spec.output / f"comparisons/{'teacher-' if role == 'teacher' else ''}rollout-step000500-{weight_kind}/metrics.json").read_text())
         self.assertEqual(saved, receipt)
         self.assertFalse(receipt["quality_acceptance"])
         return receipt
@@ -210,6 +214,15 @@ class RolloutTests(unittest.TestCase):
         self.assertEqual(receipt["aggregate"]["transcribed_samples"], 3)
         self.assertEqual(receipt["score"], 0)
         self.assertFalse(receipt["diagnostic_failure"])
+
+    def test_teacher_generates_cfg2_and_keeps_separate_weight_evidence(self):
+        with tempfile.TemporaryDirectory() as directory:
+            receipt = self.run_stubbed(Path(directory), role="teacher", weight_kind="ema")
+        self.assertEqual(receipt["cfg"], 2)
+        self.assertEqual(receipt["role"], "teacher")
+        self.assertEqual(receipt["label"], "teacher-rollout-step000500-ema")
+        self.assertTrue(receipt["trainable_heads"]["out_eos"])
+        self.assertFalse(receipt["quality_acceptance"])
 
     def test_missing_word_result_is_recorded_without_canceling_training(self):
         with tempfile.TemporaryDirectory() as directory:

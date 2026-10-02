@@ -241,6 +241,103 @@ for frozen training targets and listening references. Pass `--student-only`
 to the CPU comparison to load only the student, and optionally `--teacher-audio`
 with an existing accepted recording; no teacher model is required at runtime.
 
+### Teacher improvement candidates
+
+The user accepted the corrected six-layer EMA student at update 6,000. That
+export remains unchanged. The subsequent student-refinement notebook was
+cancelled at the user's request; current work improves the teacher as a training
+target and listening reference.
+
+The original teacher stopped at update 2,000 after development plateaued;
+accepted EMA was update 1,200. Training loss kept falling while its fixed
+development objective worsened. Repeating the last checkpoint with the same
+recipe is not evidence of better voice likeness. The proposed improvement
+warm-starts the accepted EMA with a **fresh optimizer**, half learning rate
+(`1e-5`, constant), 250-step warm-up, EMA `0.999`, effective batch 64 and a
+2,000-update cap. Upstream source, LSD sampler, Mimi, tokenizer and frozen
+latent calibration remain pinned. Training alone does not approve a candidate.
+The user's fixed-weight listening choice is the **current adapted April teacher
+at update 1,200 with two LSD decoder steps**, CFG2 and temperature 0.3. That
+setting is used for this new run's step-zero baseline and all quality probes;
+its old one-step speech metrics are not substituted. September remains a
+separately prepared comparison, not this run's initializer. A released model's
+unknown training update is never relabelled as this project's update 1,200.
+The new starting model's step-zero learning baseline is distinct from the
+accepted 1,200-update comparison. That old control is overlaid only once at
+step zero for regression/speech measurements. Weights, buffers, modes, gradient
+flags and RNG are restored in `finally`; fresh FlowLM streaming/conditioning
+states are created for each utterance. Codec and calibration equality are required.
+This selected run initializes and compares the same accepted weights, so it
+does not perform an unnecessary second overlay/model evaluation.
+
+Corpus changes are separately versioned and verified. The raw WAVs have roughly
+300 ms zero edges, but all 2,743 original aligned training examples use interior
+word-gap cuts. Leading zeros were conditioning-only and observed tails were
+already excluded. The raw edge duration is not proof of supervised silence or
+a latency defect. The reviewed baseline therefore keeps **native raw WAVs** and
+upstream interior word-gap windows, including the last-word-plus-0.2-second
+target tail. Its bundle states `derivativePolicy: native_raw_upstream_word_cuts`.
+Zero-only 0/40/80 ms guard variants remain separate codec experiments. They are
+not adopted as blanket training edits or described as an audible minimum.
+Original WAVs, reference recordings and historical tests stay unchanged; no
+denoise, gain, pitch, or output-audio trimming is used.
+Every new training row must requalify an interior word gap at least one second
+from the window start with the upstream **raw-duration** reserve of one second.
+The later last-word-plus-0.2-second crop can leave a shorter actual target;
+qualification records that duration and floor-frame last-word coverage honestly.
+Short authentic utterances without such a gap remain full-speech listening
+probes or reference candidates. They do not enter objective validation through
+the loader's overlapping fallback.
+
+`teacher_quality_policy: macro_speaker_cfg2_old_dev_v1` uses three declared
+development panels:
+
+- **Tier A:** never-trained utterances from unused training scenes. Every voice
+  contributes equally to the primary macro objective.
+- **Tier B:** never-trained utterances within previously seen scenes. It has its
+  own macro regression score and explicitly does not demonstrate scene-independent
+  generalization. Recording, WEM, PCM, transcript and history exclusions still apply.
+- **Original development:** the same 94 clips and their original ID order. It is
+  a separate regression panel against the accepted anchor's new-run step zero.
+
+Only the documented available speakers are declared; missing independent
+coverage is reported. No old training clip becomes an unseen validation clip.
+The new manifests, corpus receipt, actor allowlists and anchor export are hashed
+into the new run identity. Cheap metadata gates run before model allocation.
+The staged receipt also verifies actual manifest/audio/ledger bytes. Its semantic
+history, original-development content, wording and floor-frame admission proof
+must come from the independently audited native corpus package. Forced word
+alignment alone is not independent transcript agreement. Unreviewed integrity
+counters are not a launch qualification, and the original 2,743-row wording audit
+remains a separate gate before the improved-teacher job is assembled/submitted.
+
+Teacher speech checks are scheduled with CFG2 and the declared decode-step setting at new-run updates
+0/500/1,000/1,500/2,000. Johnny, Judy and Panam each have their own original
+quote plus five common probe sentences. Raw and EMA WAVs and exact weight-state
+receipts are retained separately. Student speech remains CFG1 with its original
+frozen-head checks. The pinned LSD sampler now receives actual one/two/four-step
+settings, with the executed count in WAV receipts and nondefault counts in the
+run/probe identity. Default one-step student behavior remains unchanged. Sampling
+screens are comparisons of fixed weights, not evidence of additional training.
+Receipts distinguish scheduled, reached and completed checkpoints. Early
+plateau, owner stop or a deadline can leave later checks unreached; the reason
+is reported rather than claiming every scheduled probe executed.
+
+An EMA candidate needs primary macro improvement, at most 3% regression in both
+monitor panels, and complete, finite, naturally terminated speech with no increase
+in tentative ASR omissions versus the anchor. ASR, development loss and low-energy
+edge timings do not establish voice likeness or naturalness. The bounded
+`quality-best.pt` candidate needs listening; it never falls back to a latent-only
+best, automatically replaces the current student, or becomes a production teacher
+provider. Whole teacher weights are not duplicated at every audio probe.
+If no eligible candidate is produced, completed evaluation explicitly reports
+`candidate_available: false` and `no_eligible_teacher_candidate`.
+
+`--mode teacher-only` prepares, trains and evaluates the teacher without starting
+student training. A hard 3.5-hour session bound and a conservative 7.25 GPU-hour
+preflight allowance protect the private job. A genuinely better teacher can later
+be used for a separately authorized distillation from the accepted student.
+
 A separate CPU experiment kept the accepted teacher's CFG2 and original
 reference. Supported dynamic INT8 reduced full generation from 15.82 to
 10.02 seconds on two CPU threads, with resident RAM falling from 2.11 to
