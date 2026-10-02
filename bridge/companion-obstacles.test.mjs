@@ -504,3 +504,85 @@ test('unchanged repeated native leg failures stop after three attempts until a r
   for i=1,30 do update(.1) if active(npc,'AIMoveToCommand')[1] then break end end
   assert(active(npc,'AIMoveToCommand')[1] and not state.blockedReason,'real geometry change never released the wait')
 `));
+
+test('a small V displacement invalidates a cached player crossing without changing the movement ticket',()=>run(walking+solids+`
+  decision.operation.goal=Vector4.new(0,6)
+  player.pos=Vector4.new(0,3); context.frame.position=player.pos; context.playerGap=3
+  update()
+  assert(state.blockedReason and state.lastRejection.stage=='player')
+  local ticket=state.ticket
+  player.pos=Vector4.new(.9,3); context.frame.position=player.pos
+  for i=1,20 do update(.1) if last(npc,'AIMoveToCommand') then break end end
+  assert(last(npc,'AIMoveToCommand'),'a sub-1.5-metre player move left a stale crossing hold')
+  assert(state.ticket==ticket and not state.blockedReason)
+`));
+
+test('an unchanged player and side goal resume after native routing changes to a player-clear path',()=>run(walking+solids+`
+  player.pos=Vector4.new(0,3); context.frame.position=player.pos; context.playerGap=3
+  decision.operation.goal=Vector4.new(2,6)
+  local nav=Game.GetAINavigationSystem(); local straight=nav.CalculatePathForCharacter
+  local blocked,reads=true,0
+  nav.CalculatePathForCharacter=function(self,origin,destination)
+    reads=reads+1
+    if blocked then
+      return {path={origin,Vector4.new(0,3),destination},CalculateLength=function() return 7 end}
+    end
+    return straight(self,origin,destination)
+  end
+  Game.GetAINavigationSystem=function() return nav end
+  update(); assert(state.blockedReason and state.lastRejection.stage=='player')
+  local ticket=state.ticket; blocked=false
+  for i=1,25 do update(.1) if last(npc,'AIMoveToCommand') then break end end
+  assert(last(npc,'AIMoveToCommand'),'a changed native route never invalidated the player rejection')
+  assert(reads>=2 and state.ticket==ticket and not state.blockedReason)
+`));
+
+test('an unchanged real player crossing retains its exact hold with bounded periodic verification',()=>run(walking+solids+`
+  player.pos=Vector4.new(0,3); context.frame.position=player.pos; context.playerGap=3
+  local nav=Game.GetAINavigationSystem(); local calculate=nav.CalculatePathForCharacter; local reads=0
+  nav.CalculatePathForCharacter=function(self,...)
+    reads=reads+1; return calculate(self,...)
+  end
+  Game.GetAINavigationSystem=function() return nav end
+  update(); local held=active(npc)[1]; local ticket=state.ticket
+  for i=1,50 do update(.1) end
+  assert(active(npc)[1]==held and #npc.ai.commands==1 and state.ticket==ticket)
+  assert(reads>=4 and reads<=7,'player-crossing verification was absent or ran every frame')
+  assert(state.lastRejection.playerPosition.y==3 and state.lastRejection.distance<state.lastRejection.margin)
+  assert(state.blockedReason and not last(npc,'AIMoveToCommand') and not last(npc,'AIFollowTargetCommand'))
+`));
+
+test('quota-deferred player revalidation preserves the safety hold until fresh route checks finish',()=>run(walking+solids+`
+  player.pos=Vector4.new(0,3); context.frame.position=player.pos; context.playerGap=3
+  decision.operation.goal=Vector4.new(2,6)
+  local nav=Game.GetAINavigationSystem(); local straight=nav.CalculatePathForCharacter; local blocked=true
+  nav.CalculatePathForCharacter=function(self,origin,destination)
+    if blocked then return {path={origin,Vector4.new(0,3),destination},CalculateLength=function() return 7 end} end
+    return straight(self,origin,destination)
+  end
+  Game.GetAINavigationSystem=function() return nav end
+  update(); local held=active(npc)[1]; local ticket=state.ticket; blocked=false
+  local helper=dofile('companion-clearance.lua')
+  for i=1,15 do
+    local budget=helper.newBudget(); budget.used=budget.limit; motor.useSpatialBudget(budget)
+    update(.1)
+    assert(active(npc)[1]==held and #npc.ai.commands==1)
+  end
+  assert(state.clearanceWaiting and state.blockedContext.playerChecking)
+  for i=1,10 do
+    motor.useSpatialBudget(helper.newBudget()); update(.1)
+    if last(npc,'AIMoveToCommand') then break end
+  end
+  assert(last(npc,'AIMoveToCommand') and state.ticket==ticket and not state.blockedReason)
+`));
+
+test('a projected side stance occupied by V uses the same refreshable player geometry type',()=>run(walking+solids+`
+  decision.operation.goal=Vector4.new(0,6)
+  player.pos=Vector4.new(.85,6); context.frame.position=player.pos; context.playerGap=6
+  update()
+  assert(state.lastRejection.stage=='player','a V-occupied endpoint was cached as a non-refreshable stance')
+  local ticket=state.ticket
+  player.pos=Vector4.new(1.2,6); context.frame.position=player.pos
+  for i=1,15 do update(.1) if last(npc,'AIMoveToCommand') then break end end
+  assert(last(npc,'AIMoveToCommand') and state.ticket==ticket and not state.blockedReason)
+`));

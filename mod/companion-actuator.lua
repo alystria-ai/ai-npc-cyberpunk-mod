@@ -317,8 +317,10 @@ local function routeClear(s,c,target,following)
     end
     local probe=s.routeProbe
     if not probe or probe.following~=following or space.distance(probe.origin,c.position)>.02
+        or not probe.playerPosition or space.distance(probe.playerPosition,c.frame.position)>.02
         or space.distance(probe.target,target)>(following and 1.5 or .01) then
-        probe={origin=space.copy(c.position),target=space.copy(target),following=following,at=s.clock}
+        probe={origin=space.copy(c.position),target=space.copy(target),following=following,at=s.clock,
+            playerPosition=space.copy(c.frame.position)}
         s.routeProbe=probe
     end
     if s.clock-probe.at>3 then
@@ -357,14 +359,17 @@ local function routeClear(s,c,target,following)
             end
             previous=point
         end
-        for _,point in ipairs(points) do
+        for index,point in ipairs(points) do
             if not clearance.isPoint(point) then return reject('No clear navigation route') end
             if not following and math.abs(point.z-probe.origin.z)>1.4 then
                 return reject('The local walking route leaves this floor')
             end
             local margin=math.max(.75,(s.clearance and s.clearance.radius or .4)+.35)
-            if c.playerGap>1 and space.segmentDistance(c.frame.position,previous,point)<margin then
-                return reject('The walking route crosses the player','player')
+            local playerDistance=space.segmentDistance(c.frame.position,previous,point)
+            if c.playerGap>1 and playerDistance<margin then
+                return reject('The walking route crosses the player','player',
+                    {playerPosition=space.copy(c.frame.position),from=space.copy(previous),to=space.copy(point),
+                    distance=playerDistance,margin=margin,navPoint=index})
             end
             leg(point)
         end
@@ -439,8 +444,15 @@ local function validate(s,intent,c)
                 if deferred then s.candidateIndex=index; return nil,nil,true end
                 if clear then s.candidateIndex=nil; return p,nil,nil,route end
             else
-                s.lastRejection={stage='stance',origin=space.copy(c.position),target=space.copy(desired),
-                    at=s.clock,ticket=s.ticket}
+                local margin=math.max(intent.face and .95 or .9,(s.clearance and s.clearance.radius or .4)+.5)
+                local playerDistance=space.ground(p,c.frame.position)
+                local playerBlocked=space.distance(p,desired)<.8 and math.abs(p.z-c.position.z)<1.2
+                    and playerDistance<margin
+                s.lastRejection={stage=playerBlocked and 'player' or 'stance',
+                    origin=space.copy(c.position),target=space.copy(desired),at=s.clock,ticket=s.ticket,
+                    playerPosition=playerBlocked and space.copy(c.frame.position) or nil,
+                    to=playerBlocked and space.copy(p) or nil,distance=playerBlocked and playerDistance or nil,
+                    margin=playerBlocked and margin or nil}
             end
         else
             s.lastRejection={stage='navigation',unavailable=not ok,
@@ -518,7 +530,8 @@ local function block(s,reason,c,target,following)
     if c and target and not s.blockedContext then
         local rejection=s.lastRejection
         s.blockedContext={origin=space.copy(c.position),target=space.copy(target),following=following,
-            rejection=rejection,rejections={},nextCheck=s.clock+1,index=1}
+            rejection=rejection,rejections={},nextCheck=s.clock+1,index=1,
+            playerPosition=space.copy(c.frame.position),nextPlayerCheck=s.clock+1}
         if rejection and rejection.nativeLegFailure then
             s.nativeLegFailures=(s.nativeLegFailures or 0)+1
             s.blockedContext.retryAt=s.clock+math.min(6,s.nativeLegFailures*2)
@@ -596,6 +609,41 @@ local function blockedRoute(s,intent,c,canPlan)
         unblocked(s); return true
     end
     local search=s.detourSearch
+    if not search and held.rejection and held.rejection.stage=='player' then
+        if space.distance(held.playerPosition,c.frame.position)>.02 then
+            -- A player crossing is geometry owned by V, not by the side goal.
+            -- Small V moves can clear it without shifting that frozen goal by
+            -- 1.5 m. Keep the exact hold and ticket until fresh admission.
+            s.nativeLegFailures=0
+            unblocked(s); return true
+        end
+        if not held.playerChecking and s.clock<held.nextPlayerCheck then return false end
+        local clear,reason,deferred
+        if intent.kind=='move' then
+            local target
+            target,reason,deferred=validate(s,intent,c)
+            clear=target~=nil
+        else clear,reason,deferred=routeClear(s,c,desired,true) end
+        if deferred then
+            held.playerChecking=true; s.clearanceWaiting=true
+            return true
+        end
+        held.playerChecking,s.clearanceWaiting=nil,nil
+        held.nextPlayerCheck=s.clock+1
+        if clear then unblocked(s); return true end
+        local rejection=s.lastRejection
+        if rejection and rejection.stage=='player' then
+            -- Native navigation itself may change while V and the goal stay
+            -- still. Reverify at most once per second, preserving the hold.
+            held.rejection,held.playerPosition=rejection,space.copy(c.frame.position)
+        else
+            -- A current physics/availability failure has its own recovery
+            -- policy; do not keep labeling that new rejection as a V crossing.
+            s.blockedContext=nil
+            block(s,reason,c,desired,held.following)
+        end
+        return true
+    end
     if not search then
         if held.rejection and held.rejection.nativeLegFailure and (s.nativeLegFailures or 0)<3 then
             if s.clock<held.retryAt then return false end

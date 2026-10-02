@@ -971,7 +971,8 @@ function M.update(player,delta,focusEntity)
             local decision=behavior.decide(entry.person,context,step)
             -- Braking is already a committed stop. Never choose an alternative
             -- behind the actor if its original stop point becomes unavailable.
-            if decision.phase=='approach' then context.alternatives=choices end
+            if decision.phase=='approach' or decision.phase=='obstructed'
+                and entry.person.obstructedPhase=='approach' then context.alternatives=choices end
             -- Admission requires stopped feet. Once admitted, a small native
             -- holster root motion is allowed; player departure or a new walking
             -- decision still ends the handoff immediately.

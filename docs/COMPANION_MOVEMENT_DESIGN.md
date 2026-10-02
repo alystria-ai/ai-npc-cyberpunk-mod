@@ -226,6 +226,33 @@ completion; and the accepted glance/local-interaction/coasting behaviors.
 These checks establish controller decisions and simulated clearance. Actual
 rendered gait and the user's post-chauffeur route still need the live check.
 
+#### Refreshing a cached player-crossing rejection
+
+The subsequent live test identified a different stale receipt. Johnny's current
+13-leg side-approach paths stayed at least 1.5487 metres from V, and the radial
+stand-off path stayed at least 1.7000 metres away. The live V point and controller
+frame matched. The retained rejection was an earlier `player` crossing against
+the unchanged 0.75-metre guard, rather than a current car or player obstruction.
+That rejection had no physical box for the geometry-change poll, so a side goal
+moving less than 1.5 metres could remain held indefinitely.
+
+Player rejections now carry the checked player position, offending native leg,
+distance and margin. A player displacement over 0.02 metres invalidates that
+receipt even if the frozen side goal is unchanged. While both remain still,
+the same operation ticket reverifies native projection/navigation and complete
+body clearance at most once per second. Continued crossings retain the exact
+hold; quota exhaustion continues the typed pending verification without issuing
+movement. Only a completely verified clear route releases the rejection, and
+normal admission checks still precede the replacement native command. A new
+physics or availability failure transfers to its corresponding guarded recovery
+policy. Partial route receipts also invalidate when V changes position, so an
+old player-clear prefix cannot be reused after V steps into that path.
+
+Source cases reproduce both a sub-1.5-metre V move and a native route change with
+the same V/side goal, plus continued real crossing and query-quota deferral. The
+player margin and the accepted camera/glance behavior remain unchanged. The
+new refresh still requires the live post-trip acceptance check.
+
 ### September 30: close face inspection
 
 The user requested that a companion stay put when V approaches her face. The
