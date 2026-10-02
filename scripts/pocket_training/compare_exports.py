@@ -107,15 +107,19 @@ def make_plan(args: argparse.Namespace) -> dict[str, Any]:
     actual_digest = source_digest(source)
     if actual_digest != PINNED_SOURCE_DIGEST:
         raise ValueError("Local Pocket source differs from the pinned official source")
-    exports = [inspect_export(args.teacher_export, "teacher"),
-               inspect_export(args.student_export, "student", getattr(args, "student_weight_kind", "ema"))]
-    if exports[0]["input_identity"] != exports[1]["input_identity"]:
+    student_only = bool(getattr(args, "student_only", False))
+    exports = ([] if student_only else [inspect_export(args.teacher_export, "teacher")])
+    exports.append(inspect_export(args.student_export, "student", getattr(args, "student_weight_kind", "ema")))
+    if len(exports) == 2 and exports[0]["input_identity"] != exports[1]["input_identity"]:
         raise ValueError("Teacher and student belong to different training inputs")
     if args.expected_input_identity and exports[0]["input_identity"] != args.expected_input_identity:
         raise ValueError("Exports do not match the requested training run")
     for path in (args.reference, args.original, args.omni32):
         if not path.resolve().is_file():
             raise FileNotFoundError(f"Required local audio is missing: {path}")
+    teacher_audio = getattr(args, "teacher_audio", None)
+    if teacher_audio and not teacher_audio.resolve().is_file():
+        raise FileNotFoundError(f"Required teacher recording is missing: {teacher_audio}")
     return {
         "schema": 1, "status": "planned", "device": "cpu", "gpu_vram_bytes": 0,
         "source": str(source), "source_revision": PINNED_REVISION,
@@ -125,6 +129,8 @@ def make_plan(args: argparse.Namespace) -> dict[str, Any]:
         "max_audio_seconds": args.max_audio_seconds,
         "worker_timeout_seconds": args.worker_timeout,
         "public_student_stream": args.public_student_stream,
+        "student_only": student_only,
+        "teacher_audio": str(teacher_audio.resolve()) if teacher_audio else None,
         "reference": str(args.reference.resolve()),
         "reference_sha256": sha256_file(args.reference),
         "original": str(args.original.resolve()), "omni32": str(args.omni32.resolve()),
@@ -363,10 +369,15 @@ def suite(plan: dict[str, Any], entry: Path) -> dict[str, Any]:
         shutil.copyfile(plan[field], destination)
         result["reference_samples"].append({"role": field, "audio": str(destination),
                                              "sha256": sha256_file(destination)})
+    if plan.get("teacher_audio"):
+        destination = listen / "reference-Johnny-accepted-teacher.wav"
+        shutil.copyfile(plan["teacher_audio"], destination)
+        result["reference_samples"].append({"role": "accepted_teacher", "audio": str(destination),
+                                          "sha256": sha256_file(destination)})
     atomic_json(output / "comparison.json", result)
     specs = [(model, "official_training") for model in plan["models"]]
     if plan["public_student_stream"]:
-        specs.append((plan["models"][1], "public_student_stream"))
+        specs.append((next(model for model in plan["models"] if model["role"] == "student"), "public_student_stream"))
     try:
         for number, (model, sampler) in enumerate(specs, 2):
             folder = output / f"{model['role']}-{sampler}"
@@ -398,6 +409,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--teacher-export", type=Path)
     parser.add_argument("--student-export", type=Path)
     parser.add_argument("--student-weight-kind", choices=("ema", "raw"), default="ema")
+    parser.add_argument("--student-only", action="store_true", help="Load and benchmark only the student")
+    parser.add_argument("--teacher-audio", type=Path, help="Copy an existing accepted teacher recording as a listening reference")
     parser.add_argument("--expected-input-identity")
     parser.add_argument("--source", type=Path, default=ROOT / "vendor/pocket-tts-training/source")
     parser.add_argument("--reference", type=Path,
@@ -416,8 +429,8 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if args.worker_request:
         return worker(args.worker_request)
-    if not args.teacher_export or not args.student_export or not args.output:
-        parser.error("--teacher-export, --student-export and --output are required")
+    if not args.student_export or not args.output or (not args.student_only and not args.teacher_export):
+        parser.error("--student-export and --output are required; --teacher-export is required unless --student-only")
     if not 1 <= args.threads <= 8 or not 0 <= args.warm_runs <= 5:
         parser.error("threads must be 1..8 and warm-runs 0..5")
     if not 5 <= args.max_audio_seconds <= 60 or not 60 <= args.worker_timeout <= 1800:

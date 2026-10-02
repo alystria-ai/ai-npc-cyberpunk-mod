@@ -236,6 +236,11 @@ and missing EOS. Speech candidates are retained separately from the best
 teacher-forced MSE checkpoint, and exports record which weights actually won.
 These automated checks do not establish voice likeness; listening is required.
 
+The intended runtime target is the six-layer student. The teacher is retained
+for frozen training targets and listening references. Pass `--student-only`
+to the CPU comparison to load only the student, and optionally `--teacher-audio`
+with an existing accepted recording; no teacher model is required at runtime.
+
 A separate CPU experiment kept the accepted teacher's CFG2 and original
 reference. Supported dynamic INT8 reduced full generation from 15.82 to
 10.02 seconds on two CPU threads, with resident RAM falling from 2.11 to

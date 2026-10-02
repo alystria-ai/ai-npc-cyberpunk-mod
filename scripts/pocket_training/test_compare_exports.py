@@ -61,6 +61,29 @@ class ExportComparisonTests(unittest.TestCase):
         self.assertEqual(before, {path: path.read_bytes() for path in before})
         self.assertFalse(Path(plan["output"]).exists())
 
+    def test_student_only_never_loads_or_requires_a_teacher_export(self) -> None:
+        args = self.args()
+        args.student_only = True
+        args.public_student_stream = True
+        args.teacher_export = self.root / "teacher-is-not-a-runtime-dependency"
+        args.teacher_audio = self.audio
+        with patch("pocket_training.compare_exports.source_digest", return_value=PINNED_SOURCE_DIGEST):
+            plan = make_plan(args)
+        self.assertEqual([model["role"] for model in plan["models"]], ["student"])
+        executed = []
+        def worker(_entry, request_path, folder, _threads, _timeout):
+            request = json.loads(request_path.read_text())
+            self.assertEqual(request["model"]["role"], "student")
+            executed.append(request["sampler"])
+            Path(request["sample"]).write_bytes(b"student-audio-fixture")
+            atomic_json(folder / "measurements.json", {"status": "completed", "role": "student"})
+        with patch("pocket_training.compare_exports.relocate_export", return_value={"config":"student.yaml"}), \
+             patch("pocket_training.compare_exports.run_worker", side_effect=worker):
+            result = suite(plan, self.root / "entry.py")
+        self.assertEqual(result["status"], "completed")
+        self.assertEqual(executed, ["official_training", "public_student_stream"])
+        self.assertEqual((Path(plan["output"])/"listen/reference-Johnny-accepted-teacher.wav").read_bytes(), self.audio.read_bytes())
+
     def test_tampered_weights_fail_before_load(self) -> None:
         (self.exports["teacher"] / "model.safetensors").write_bytes(b"tampered")
         with self.assertRaisesRegex(ValueError, "selected-checkpoint receipt"):
