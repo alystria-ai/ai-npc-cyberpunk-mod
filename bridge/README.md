@@ -1,31 +1,60 @@
 # Conversation runtime
 
-The CET adapter writes requests into the installed mod's `runtime` directory. The hidden Node bridge uses the project's ignored Convai key and character mapping. It starts no microphone capture until an explicit F7 (private) or F9 (group) command. Live microphone testing remains user-deferred; see `docs/GROUP_VOICE.md`.
+The CET adapter exchanges requests and receipts through the installed mod's `runtime` directory. A hidden Node bridge uses the project's ignored Convai key, account mappings, and persistent player-memory state. The source repository still needs a prepared development environment; see the [main README](../README.md) and [packaging plan](../docs/PACKAGING.md).
 
-## Connections and turns
+Microphone capture starts only through an explicit **talk by voice** or **group voice chat** action. CET bindings are assigned by the player; the runtime reads current bindings for hints and does not impose function keys. Live microphone acceptance remains deferred. See [group voice](../docs/GROUP_VOICE.md).
 
-- Accepted companion spawns publish a party snapshot immediately, before entity attachment. Duplicate copies share a profile; dismissal, failed spawning, death and game loss remove identities that are no longer present. A two-second heartbeat keeps the bridge informed.
-- Each present identity keeps a private connection. Up to three additional connections prepare the current group audience. The eight-slot party therefore needs at most eleven pages in one hidden browser. Connection setup is staggered, with retry cooldowns and silent keepalive checks.
-- Private conversations and each distinct group audience use separate sessions. Opening a composer prioritizes the actual selected audience; closing it preserves the party's private connections.
-- Only the addressed character appears in the composer heading. F8 schedules that character first and at most two different nearby identities. A duplicate copy cannot become an extra speaker.
-- The next speaker’s connection can warm while the current speaker is heard. Production player-identified sessions never generate speculative replies because the SDK cannot roll back a cancelled turn. Prepared output is adopted only when the submitted request exactly matches its identity, audience and delivered dialogue.
-- A changed audience, superseding request, cancelled round, failed native playback or lost game heartbeat invalidates obsolete preparation. Speculative replies never directly publish audio or captions.
+## Invitations, connections, and turns
 
-## Playback and evidence
+- Selecting Invite starts verification of memory configuration, selected voice preparation, and connection warm-up before actor creation. A fresh readiness receipt and resumed gameplay authorize the spawn. Preparation creates no synthetic dialogue or saved memory.
+- Duplicate copies share their profile's prepared private connection. Dismissal, failed spawning, death, and world loss retire identities that no longer belong to the party. A heartbeat keeps the bridge informed.
+- Each present identity keeps a private connection. Up to three additional connections prepare the exact group audience; an eight-copy party needs at most eleven pages in the hidden browser. Setup is staggered, with retry cooldowns and silent keepalive checks.
+- Private, phone, and exact group audiences have separate transient sessions while retaining one persistent player identity. Separate sessions do not promise separate provider memories for the same player/character.
+- Group mode schedules the addressed character first, followed by at most two different nearby identities. Only the addressed name appears in the composer heading. A duplicate copy cannot become an extra speaker.
+- Connections for later speakers can warm during current playback. Production player-identified sessions do not generate speculative replies that could leave cancelled dialogue in provider memory. Existing prepared output requires an exact matching request, audience, identity, and delivered history.
+- Changed audiences, superseding requests, cancelled rounds, lost actors, failed playback, and lost world heartbeats retire obsolete preparation. A late result cannot publish into a replacement turn.
 
-Remote audio arrives as original reliable PCM data and is published as one complete WAV per reply; it is not recaptured from browser playback. Eight reusable Audioware slots supply native positional playback; a playing slot is not overwritten. The native playback cursor drives this mod's dialogue subtitles and facial poses. Convai uses its ARKit articulation; local voices use phonetic cues. Recent micro-gap and quiet-pose corrections still need a live check; source/test evidence is in `docs/CONVAI_AUDIO_STREAMING.md` and `docs/LIPSYNC_REFINEMENT.md`.
+See [invitation ownership](../docs/COMPANION_INVITATIONS.md), [player memory](../docs/PLAYER_MEMORY.md), and [Chat reset ownership](../docs/CHAT_MEMORY_RESET.md).
 
-Installed runtime diagnostics:
+## Two audio producers
+
+| Provider | Generation and delivery | Playback clock |
+|---|---|---|
+| **Convai** | One request produces original reliable PCM16 and facial packets. A continuous AudioWorklet ring can start after a small audio buffer, reply text, and game admission. No Omni text splitting or complete-WAV wait. | Device-correlated consumed source samples |
+| **OmniVoice** | Convai produces text; one shared resident model synthesizes phrases at the captured 16/32-step setting. The first complete phrase can play while later phrases generate. | Native Audioware cursor for each phrase |
+
+Convai packet boundaries do not become separate playback starts. The continuous path keeps one utterance owner, preserves source-rate PCM, and uses game-provided Master/Dialogue volume, distance gain, and camera-relative pan. Its Windows browser audio session is separate from Audioware; native occlusion and reverb are not claimed. A complete-WAV compatibility route remains for an adapter that has not advertised continuous support; it does not replay over an already-started continuous stream.
+
+Omni does not stream samples from an unfinished individual inference. Completed phrase files enter eight reusable Audioware slots; a playing or unacknowledged slot cannot be overwritten. One worker owns GPU generation. Local references condition one FP16 CUDA/PyTorch model, with lazy reference preparation and a bounded cache. Selecting OmniVoice begins warm-up from the Settings draft; selecting Convai retires the model after owned work finishes. See [voice preparation](../docs/VOICE_PREPARATION.md) and [source-qualified references](../docs/VOICE_SOURCE_ACTIVATION.md).
+
+Neither producer adds EQ, denoising, silence trimming, or pitch effects. The continuous browser path still uses the operating system's normal output-device mixing. The local path retains its native positional emitter.
+
+## Captions, faces, and completion
+
+The actual playback clock drives native subtitle progression and facial sampling. Convai's supplied articulation is retargeted into supported Cyberpunk mouth controls; local speech uses timed phonetic cues with the shared native pose improvements. A pause or buffering gap does not advance captions or facial time. Completion waits for the audio tail and matching delivery receipt before a group advances to the next speaker.
+
+Dialogue HUD is the new-user default, with native overhead captions optional. A caption binds the exact speaking copy. Dismissal, cancellation, death, and unload retire that owner. Standard light expressions share the facial writer with speech, while native gaze and blinking remain separate.
+
+See [continuous Convai transport](../docs/CONVAI_AUDIO_STREAMING.md), [local phrase playback](../docs/SPEECH_STREAMING.md), [facial refinement](../docs/LIPSYNC_REFINEMENT.md), and [native subtitles](../docs/OVERHEAD_SUBTITLES.md). Service-only timings or source tests do not establish audible playback or visual acceptance.
+
+## Local diagnostics
+
+The installed adapter's runtime contains:
 
 - `party-connections.json`: game-owned membership and heartbeat.
-- `party-connection-state.json`: connection state, setup timing and retries, without credentials or session IDs.
-- `bridge-latency.json`: request, preparation, publication and observed native playback timing.
-- `speech-state.json`: native playback state and cursor.
+- `party-connection-state.json`: connection states, setup timing, and retries.
+- `bridge-latency.json`: request admission, transport, publication, and observed playback timing.
+- `local-voice-state.json`: provider selection, preparation, residency, and actual local device/precision.
+- `speech-state.json`: observed native playback state and cursor.
 
-Service-only measurements are not proof of audible game behavior. The September 28 isolated comparison measured 8.90 seconds cold versus 3.90 seconds with a ready connection. Game acceptance remains recorded in `TODO.md`.
+The project-side runtime holds bridge logs, account mappings, player identity, and sessions. Review relevant errors locally and remove credentials, private conversation text, and remote identifiers before sharing a report. This development build has no packaged support-report exporter.
 
 ## Development
 
-Run `npm test` and `npm run build:voice` after changing the bridge. Start it through `scripts/Start-ConversationBridge.ps1`; the launcher keeps helpers hidden and refuses a duplicate bridge process.
+Start through `scripts/Start-ConversationBridge.ps1` and stop through `scripts/Stop-ConversationBridge.ps1`. The launcher rebuilds the browser client, keeps helpers hidden, and refuses a duplicate bridge. Explicitly set `CYBERPUNK_CONVAI_GAME` when the game is outside the development default path. Preserve the runtime state across restarts.
 
-For Lua and catalog changes, `scripts/Install-DevelopmentMod.ps1 -LuaOnly` copies and verifies the files while the game is running. Activate them with CET's **Reload All Mods**. Redscript and native plugin changes still need a game restart. Use the request-file diagnostic path for game state; do not inject keyboard input or replay old spawn requests.
+Run the focused tests appropriate to a bridge change and `npm run build:voice` for browser-client changes; `npm test` is the combined source suite. Installed MCM/native-source checks need their documented environment. Tests should use isolated fixtures rather than live memory deletion, microphone capture, or production dialogue.
+
+For Lua/catalog changes, `scripts/Install-DevelopmentMod.ps1 -LuaOnly` verifies copied files while the game is running. CET's **Reload All Mods** activates them; loading a save does not. Native script/archive/plugin changes require a game restart. A bridge-source change requires a bridge restart, which rebuilds the client. Game diagnostics use the mod's scoped request-file interface.
+
+When changing a feature, update the [main README](../README.md) and its detailed document. Keep source/test evidence, installed evidence, and user acceptance distinct; unresolved gameplay behavior belongs in the known limitations.

@@ -52,22 +52,54 @@ Session separation does not promise separate private/group provider memories.
 
 **Companion Manager → Settings → Memory** provides a searchable character picker,
 **Forget selected character**, and **Forget all memories**. An inline confirmation
-is required. All targets only the locally recorded contacted characters; it does
-not issue deletions for the rest of the catalogue.
+is required. The selected displayed character is a family of its configured
+ordinary and relationship provider variants. A character clear targets all
+contacted provider pairs in that family, including retained historical pairs.
+All targets only locally recorded contacted pairs; it does not issue deletions
+for the rest of the catalogue.
 
 Before deletion, durable reset epochs invalidate old replies and local provider
-sessions close. The clear names the exact player/character pair and checks an
-empty provider list afterward. A timeout or inconclusive result remains failed
-and blocks affected sends until a new explicit clear succeeds. Restarting the
-bridge never repeats a deletion or performs automatic recovery.
+sessions close. Each target names the exact player/provider-character pair and
+checks an empty provider list afterward. The aggregate succeeds only when all
+its targets are confirmed and transport work has quiesced. A partial, timed-out
+or inconclusive result remains failed and keeps the affected family fenced until
+a new explicit clear succeeds. Restarting the bridge never repeats a deletion.
 
 Success means an empty list was observed. Convai's asynchronous extraction has
 no documented flush barrier, so this does not guarantee that an earlier server
 job cannot finish afterward. Natural recall and a real Forget action still need
 live acceptance with this installed flow.
 
-Forget preserves the player ID and saved local Phone Chat messages. The separate
-**Disappearing messages** preference controls the phone display history.
+### Matching phone Chat cleanup
+
+Phone Chat retains its complete local history and unsent drafts across launches,
+save loads and CET reloads. There is no disappearing-message option or automatic
+launch cleanup.
+
+- A successful **Forget selected character** removes that family's matching Chat
+  messages and drafts only after its aggregate provider reset is confirmed.
+- A successful **Forget all memories** removes all local Chat messages and drafts,
+  including archived data, only after the complete aggregate reset is confirmed.
+- A failed, cancelled or uncertain reset preserves local history and drafts.
+  Pending resets cancel affected requests; delayed replies and cached native
+  editor text cannot restore data removed by a successful reset.
+- An empty contacted set can authorize local cleanup without enabling, deleting
+  or inspecting an unused provider pair. The UI must authorize the configured
+  character family. Every Forget action retains the persistent player ID.
+
+The control owner records a reset intent before cloud dispatch, then publishes
+successful receipts in `runtime/memory-chat-resets.json`. Lua remains the sole
+writer of `phone-history.json`: it removes the matching data and records the
+action tombstone in one replacement. Repeated receipts do not delete newer
+conversations. A missed confirmed result is reconciled locally after restart
+without another provider deletion. A failed local receipt/history write holds
+affected phone sends until persistence succeeds; it does not turn partial cloud
+success into permission to erase the shared Chat.
+
+See [CHAT_MEMORY_RESET.md](CHAT_MEMORY_RESET.md) for family/alias handling,
+archives, durable request epochs and storage-failure recovery. Ordinary and
+relationship profiles retain separate provider memories; their displayed local
+Chat is shared by character.
 
 ## Implementation and checks
 
@@ -77,6 +109,10 @@ Forget preserves the player ID and saved local Phone Chat messages. The separate
 - `bridge/player-knowledge.mjs`: fresh current-world and audience routing.
 - `bridge/player-phone-knowledge.mjs`: immutable phone request/session ownership.
 - `bridge/player-memory-control.mjs`: native MCM command/result IPC.
+- `bridge/chat-memory-resets.mjs`: confirmed aggregate reset journal and local
+  reconciliation.
+- `mod/phone-chat.lua`: history/draft cleanup, receipt tombstones and late-reply
+  guards.
 - `mod/init.lua`: Lua world lifecycle and bounded game knowledge collectors.
 
 Run `npm run test:memory` for the core, provider fixtures, routing, IPC, isolated
@@ -119,3 +155,7 @@ before warming a replacement. A later first actual player send records contact a
 Cancelling one caller leaves other shared callers running; explicit clear and
 close abort shared verification and invalidate old guards. Preparation itself
 does not write the registry, issue a memory-data request, or seed provider LTM.
+
+The later family-aware Chat reset integration has separate offline evidence in
+[CHAT_MEMORY_RESET.md](CHAT_MEMORY_RESET.md). Those tests use isolated registries,
+storage and provider fixtures; no real player's memories or messages are cleared.

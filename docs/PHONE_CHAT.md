@@ -2,9 +2,9 @@
 
 ## Player flow
 
-Hold **T** to open the phone. **Chat** is the third tab, beside Messages and
+Use the game's phone control (normally hold **T**) to open the phone. **Chat** is the third tab, beside Messages and
 Contacts. Use the phone's left/right tab controls to select it, choose a person,
-and press the normal confirm action (**F** on the current keyboard map). The
+and press the normal confirm action. The
 conversation opens directly; there is no quest-message thread selector.
 The existing secondary message action also opens the selected Chat conversation.
 Pointer callbacks are provided for the tabs and contact rows where a pointer is
@@ -19,31 +19,43 @@ remain in the game's Messages and Contacts flows.
 The character does not have to be spawned or nearby. Chat lists active, known
 contacts supported by the conversation catalog, including contacts with no quest
 SMS. Newly unlocked contacts are picked up when opening the tab. Replies use the
-game's sent/received message bubbles. F6–F9 remain in-person conversations.
+game's sent/received message bubbles. Private/group text and microphone actions
+remain separate in-person conversations, using the player's assigned CET bindings.
 
 ## History and memory
 
-**Companion Manager → Settings → Disappearing messages** defaults **Off**.
+History and per-contact drafts persist across game launches, save loads, bridge
+restarts and CET reloads. **There is no disappearing-message setting or automatic
+launch cleanup.** Older settings containing that field are migrated away.
 
-- Off: history and per-contact drafts persist across game launches.
-- On: clear that displayed history and drafts on the next game launch.
-- Loading a save, restarting the bridge, or reloading CET does not clear the
-  current launch's transcript. Enabling the option takes effect at the next launch.
-- Convai phone sessions remain in their separate store. Clearing local history
-  never deletes a Convai session or submits a memory-reset request.
+**Companion Manager → Settings → Memory** owns explicit reset controls:
+
+- **Forget selected character** clears the contacted ordinary/relationship
+  provider variants belonging to that displayed character. Matching local Chat
+  messages and drafts are removed only after the aggregate reset succeeds.
+- **Forget all memories** clears contacted provider pairs and, after the full
+  reset succeeds, all local Chat histories and drafts, including archived data.
+- Failed, cancelled or uncertain resets preserve Chat data. Pending or blocked
+  resets retire affected requests so delayed replies cannot restore old messages.
+- A configured character with no contacted provider pair can receive local Chat
+  cleanup without contacting an unused provider. The player identity is retained.
+
+See [CHAT_MEMORY_RESET.md](CHAT_MEMORY_RESET.md) for aggregate confirmation,
+alias/archive handling, reset receipts, and failures during local persistence.
 
 History and drafts are in the installed mod's `runtime/phone-history.json`.
 They are shared across saves, independent of Cyberpunk's quest journal. All valid
 stored turns are retained; the prototype's silent 40-message cutoff is removed.
 Phone sessions are in the project's ignored `runtime/phone-sessions.json`, separate
-from F6/F8 sessions. No API keys or session IDs enter game widgets or test output.
+from in-person sessions. All channels use the same persistent player identity;
+ordinary and relationship provider profiles keep their own remote memories.
+The local Chat history remains associated with the displayed character.
 
-The bridge identifies the actual game process by PID and creation time, once per
-adapter attachment, and acknowledges that identity for the current adapter world.
-A stale identity cannot clear history. When disappearing messages is enabled,
-Chat waits for this acknowledgement before displaying old messages or accepting
-input. This avoids briefly showing messages that should disappear if the bridge
-is unavailable. Local history is cleared only after acknowledgement.
+Lua applies successful reset receipts to history and drafts in one replacement
+with an action tombstone. Repeated receipts do not erase conversations started
+after Forget. A missed success can be reconciled locally after restart without
+repeating cloud deletion. Current-world and memory guards still reject stale
+replies. No API keys or session IDs enter game widgets or test output.
 
 ## State and ownership
 
@@ -57,7 +69,7 @@ is unavailable. Local history is cleared only after acknowledgement.
 - The composer belongs to the native Conversation canvas. The scroll viewport
   and scrollbar reserve 156 native layout units at the bottom; normal SMS mode
   restores their original margins. It does not follow the message-list height.
-- `phone-chat.lua`: local transcript, drafts, launch retention and one outstanding
+- `phone-chat.lua`: persistent local transcript, drafts, confirmed reset receipts and one outstanding
   text request. It runs on menu frames with zero simulation delta. Contact identity
   is captured on send; changing the view cannot redirect a reply.
 - `phone-chat-style.lua`: matches Chat to the native tab grid and resolved palette,
@@ -69,14 +81,20 @@ is unavailable. Local history is cleared only after acknowledgement.
   across a phone close or save load. The module can be applied live without restarting.
 - `phone-chat.mjs`: catalog-authorized text-only Convai calls and persistent phone
   sessions. No NPC, microphone, local TTS, movement or speech playback is needed.
-- `game-launch.mjs`: hidden, read-only process identification and scoped retries.
+- `chat-memory-resets.mjs`: reconciles explicit memory-reset intents and results
+  into the journal consumed by Lua. It does not write the history file itself.
 
 An API failure preserves the draft and shows inline status. A newer unsent draft
 is not replaced by an earlier request's failure. Fifteen-second heartbeat expiry
 cancels service work after exit; a 45-second UI timeout preserves the draft. Late
 replies cannot enter a new attachment, and repeated polls do not resend a request.
 
-## Verification — September 29
+## Historical verification — September 29
+
+The initial Chat implementation still included the now-retired disappearing-message
+option. Its launch-clearing tests below describe that version, not current behavior.
+Current retention and Forget behavior follow the contract above; later offline
+coverage is recorded in [CHAT_MEMORY_RESET.md](CHAT_MEMORY_RESET.md).
 
 ### Confirmed previous prototype
 
@@ -91,10 +109,11 @@ replies cannot enter a new attachment, and repeated polls do not resend a reques
 - Native isolated compilation passed at 13:53 IST. Lua and bridge syntax checks pass.
 - Full project suite: 167 passing checks, zero failures, one existing installed-MCM
   check skipped (168 total). Focused phone/launch/manager run: 32 pass, one skip.
-- Focused lifecycle checks cover launch-only clearing, CET/save/bridge survival,
+- The initial lifecycle checks covered launch-only clearing, CET/save/bridge survival,
   delayed or stale identity acknowledgement, default persistence, migration,
   complete history retention, and reuse of the saved Convai session after restart.
-- MCM checks cover default Off, atomic save, invalid values and failed-save rollback.
+- The initial MCM checks covered the retired option's default Off, atomic save,
+  invalid values and failed-save rollback.
 - The real running game process was identified twice with the same launch token;
   the token was not printed or committed.
 - Installed after the user closed Cyberpunk, with SHA-256 verification of every
@@ -148,16 +167,16 @@ replies cannot enter a new attachment, and repeated polls do not resend a reques
   native quest choices. No style/domain error was reported. Native Messages
   restoration still has automated coverage, without a new visual acceptance.
 
-### Combined live check
+## Current manual check
 
 1. Open Phone → Chat, choose a person, and confirm: one direct conversation screen.
 2. Inspect header, bottom composer, scrollbar, and empty/history states. Send a
    mixed-case message containing J/L/F/C; confirm one reply to that contact.
 3. Escape typing, return to the list, choose someone else, and return. Drafts and
    history must stay with their contact. Check normal Messages/Contacts afterward.
-4. Toggle Disappearing messages On. CET/save reload must retain the current history.
-   At a later normal game relaunch, check empty display history and retained Convai
-   context. Batch this with the next needed restart; do not restart solely to repeat
-   an already accepted check.
+4. At a later normal game relaunch, check that history and drafts are retained.
+   Batch this with the next needed restart; do not restart solely to repeat an
+   already accepted check. Test Forget with isolated fixtures rather than clearing
+   a player's real conversations during routine verification.
 
 Controller text entry is not implemented; keyboard typing is the current path.
