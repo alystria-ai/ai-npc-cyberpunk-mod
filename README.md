@@ -41,7 +41,7 @@ See [invitations](docs/COMPANION_INVITATIONS.md), [movement](docs/COMPANION_MOVE
 - Convai plays original streamed audio continuously. Local OmniVoice starts after its first complete phrase while later phrases generate during playback. Audio is kept close to its source, without added EQ, denoising, or pitch effects.
 - Native lip, jaw, and facial controls follow the actual playback clock. Both providers use the improved native face mapping; local speech uses phonetic analysis and Convai speech uses its supplied facial data.
 - A light resting expression is standard behavior. Supported Convai emotional signals can adjust it, while native blinking and gaze remain available.
-- **Dialogue HUD** subtitles are the default. **Above speaker** is an optional native overhead display. The game's subtitle preferences still affect native visibility.
+- **Dialogue HUD** subtitles are the default. **Above speaker** is optional; conversations in vehicles use the Dialogue HUD so captions do not float inside the cabin. The game's subtitle preferences still affect native visibility.
 
 Both voice options still need Convai and internet access for dialogue generation. See [local voices](docs/LOCAL_VOICES.md), [voice reference activation](docs/VOICE_SOURCE_ACTIVATION.md), [streamed audio](docs/CONVAI_AUDIO_STREAMING.md), [expressions](docs/COMPANION_EXPRESSIONS.md), and [subtitles](docs/OVERHEAD_SUBTITLES.md).
 

@@ -33,6 +33,7 @@ local judyCopy=actor('202ULL')
 local player=actor('101ULL')
 player.ConvaiManagerSubtitles=function()native();return enabled end
 local currentPlayer=player
+local parents={}
 local defs={UIGameData={ShowDialogLine='show',HideDialogLine='hide'},UI_System={IsInMenu='menu'}}
 local uiBoard={SetVariant=function(_,key,variant,notify)
  native();assert(notify==true)
@@ -46,6 +47,10 @@ local uiBoard={SetVariant=function(_,key,variant,notify)
  else events[#events+1]={kind='hide',id=value}end
 end,GetBool=function(_,field)native();assert(field=='menu');return menu end}
 Game={GetPlayer=function()native();return currentPlayer end,
+ GetMountingFacility=function()native();return {GetMountingInfoSingleWithObjects=function(_,object)
+  native();return {parentId={hash=object.vehicle or '0ULL'}}
+ end}end,
+ FindEntityByID=function(id)native();return parents[id.hash]end,
  GetAllBlackboardDefs=function()native();return defs end,
  GetBlackboardSystem=function()native();return {Get=function()native();return uiBoard end}end}
 UserSettings={new=function()
@@ -152,6 +157,47 @@ end
 local m=(function()${source}end)()
 m.configure({style=function()return style end})
 `;
+
+test('vehicle conversations use the dialogue HUD without changing the overhead preference', () => run(setup + `
+parents['car']={IsAttached=function()return true end,IsVehicle=function()return true end}
+player.vehicle='car';judy.vehicle='car'
+assert(m.show('Judy','We can talk while we drive.',judy,'201ULL'))
+assert(m.status().mode=='dialogue' and m.status().fallback=='vehicle-interior')
+assert(m.status().requestedStyle=='overhead' and style=='overhead' and settingsWrites==0)
+assert(shown()[1].type=='ownerless-regular' and shown()[1].speaker==nil)
+m.clear();player.vehicle=nil
+assert(m.show('Judy','I am still in the passenger seat.',judy,'201ULL'))
+assert(m.status().mode=='dialogue','A seated speaker should not have a floating cabin caption')
+m.clear();judy.vehicle=nil
+assert(m.show('Judy','Back on foot.',judy,'201ULL') and m.status().mode=='overhead')
+`));
+
+test('boarding during timed speech retires the overhead without replaying its page or clock', () => run(setup + `
+parents['car']={IsAttached=function()return true end,IsVehicle=function()return true end}
+local text=string.rep('Night City. ',30)
+assert(m.beginTimed('Judy',text,12,judy,'201ULL'))
+m.syncTimed(7)
+local before=m.status();local old=shown()[#shown()]
+assert(before.page>1 and before.position==7)
+player.vehicle='car';m.update(.1)
+local now=m.status();local replacement=shown()[#shown()]
+assert(now.mode=='dialogue' and now.page==before.page and now.position==7)
+assert(replacement.text==old.text and replacement.type=='ownerless-regular')
+assert(hidden()[#hidden()]==old.id and replacement.id~=old.id)
+local count=#shown();player.vehicle=nil;m.update(.1)
+assert(m.status().mode=='dialogue' and #shown()==count,'Do not swap renderer repeatedly mid-reply')
+assert(settingsWrites==0)
+`));
+
+test('zero mounting IDs and nonvehicle props do not suppress on-foot overhead captions', () => run(setup + `
+assert(m.show('Judy','On foot.',judy,'201ULL') and m.status().mode=='overhead')
+m.clear()
+parents['chair']={IsAttached=function()return true end,IsVehicle=function()return false end}
+player.vehicle='chair'
+assert(m.show('Judy','Sitting outside.',judy,'201ULL') and m.status().mode=='overhead')
+m.clear();player.vehicle='missing'
+assert(m.show('Judy','A stale parent is not a car.',judy,'201ULL') and m.status().mode=='overhead')
+`));
 
 test('optional overhead captions preserve UTF-8 within 120 characters without an artificial word cap', () => run(setup + `
 local words=string.rep('one ',40)..'last'

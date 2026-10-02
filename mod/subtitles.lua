@@ -17,6 +17,21 @@ local function validActor(actor, expected)
     end)
     return ok and valid == true
 end
+local function inVehicle(actor)
+    if not actor then return false end
+    local ok, mounted = pcall(function()
+        local info = Game.GetMountingFacility():GetMountingInfoSingleWithObjects(actor)
+        if not info or not info.parentId or info.parentId.hash == nil then return false end
+        -- Native MountingInfo exists on foot too, with a zero parent ID.
+        if tostring(info.parentId.hash):match('^0+[uUlL]*$') then return false end
+        local parent = Game.FindEntityByID(info.parentId)
+        return parent and parent:IsAttached() and parent:IsVehicle()
+    end)
+    return ok and mounted == true
+end
+local function vehicleConversation(player)
+    return inVehicle(player) or (M.actor and inVehicle(M.actor))
+end
 local function board()
     return Game.GetBlackboardSystem():Get(Game.GetAllBlackboardDefs().UIGameData)
 end
@@ -271,6 +286,9 @@ local function prepare(speaker, text, actor, expected)
     M.entity = type(expected) == 'string' and expected or nil
     if validActor(actor, expected) then M.actor = actor end
     M.mode = M.requestedStyle
+    if M.mode == 'overhead' and vehicleConversation(Game.GetPlayer()) then
+        M.mode, M.fallback = 'dialogue', 'vehicle-interior'
+    end
     if M.mode == 'overhead' then
         local ok, visible = pcall(function()
             return UserSettings.new():GetVar('/accessibility/subtitles', 'Overheads'):GetValue()
@@ -345,6 +363,17 @@ function M.update(delta)
     local ok, player = pcall(function() return Game.GetPlayer() end)
     if not ok or not player or (M.playerID and identity(player) ~= M.playerID) then M.abandon(); return end
     if not M.enabled() or (M.actor and not validActor(M.actor, M.entity)) then M.clear(); return end
+    if M.mode == 'overhead' and vehicleConversation(player) then
+        -- Retire the owned floating root before switching renderer. Keep the
+        -- current page and audio cursor; boarding must not replay the reply.
+        local remaining = M.remaining
+        hideLine()
+        M.mode, M.fallback, M.anchor = 'dialogue', 'vehicle-interior', nil
+        showPage()
+        M.remaining = remaining
+        -- Keep this utterance in the HUD even if V exits midway. The next
+        -- reply reevaluates the saved style without rewriting that preference.
+    end
     if ownedController(M.controller) then
         M.projectionFrames = (M.projectionFrames or 0) + 1
         settleProjection(M.controller, projectionVisible(M.controller))
