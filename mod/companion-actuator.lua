@@ -140,6 +140,8 @@ function M.release(s)
         s.nativeRetryAt=nil
         s.nativeLegFailures=0
         s.recoveryTicket,s.completedEscapeTicket=nil,nil
+        s.destinationProjection=nil
+        s.followAdmission=nil
         s.lastRejection=nil
     end
     return released and lookReleased
@@ -158,6 +160,8 @@ function M.abandon(s)
     s.nativeRetryAt=nil
     s.nativeLegFailures=0
     s.recoveryTicket,s.completedEscapeTicket=nil,nil
+    s.destinationProjection=nil
+    s.followAdmission=nil
     s.lastRejection=nil
     s.feedback={}; s.issued=false
 end
@@ -177,12 +181,16 @@ function M.sense(s,at,speed,dt)
         age=s.clock-(s.issuedAt or s.clock),stage=s.stage,waiting=not s.issued,
         commands=s.commands,error=s.error}
     f.rejection=s.lastRejection
+    f.destinationProjection=s.destinationProjection
     f.afterEscape=s.completedEscapeTicket~=nil and s.completedEscapeTicket==s.ticket
     if s.execution then
         f.route={kind='waypoints',index=s.execution.index,total=#s.execution.points,
             mode=s.execution.mode,phase=s.execution.phase,target=s.executionTarget and space.copy(s.executionTarget)}
     elseif s.detourSearch then
         f.route={kind='detour-search',candidate=s.detourSearch.index,total=#s.detourSearch.candidates}
+    elseif s.followAdmission then
+        f.route={kind='follow-admission',phase=s.followAdmission.handoffPhase or 'preparing'}
+        f.waiting,f.complete=true,false
     end
     if s.suspendedHold then
         f.state,f.stage,f.suspended='SuspendedForEquipment','equipment',true
@@ -322,15 +330,38 @@ end
 
 local function routeClear(s,c,target,following,options)
     options=options or {}
+    local requested=space.copy(target)
+    local projection
     local function reject(reason,stage,metadata,leg)
         local probe=s.routeProbe
         local receipt=metadata or {}
         receipt.stage,receipt.leg=stage or 'navigation',leg
         receipt.at,receipt.ticket=s.clock,s.ticket
-        receipt.origin,receipt.target=probe and space.copy(probe.origin),probe and space.copy(probe.target)
+        receipt.origin=probe and space.copy(probe.origin) or receipt.origin or space.copy(c.position)
+        receipt.target=probe and space.copy(probe.target) or receipt.target or space.copy(target)
+        if projection then receipt.projection=projection end
         s.lastRejection=receipt
         s.routeProbe=nil
         return false,reason,nil,receipt
+    end
+    if following and not options.horizon and not options.resolved then
+        -- V's root Z belongs to V's location. The radial endpoint can be on a
+        -- different part of a sidewalk/kerb. Resolve that endpoint through the
+        -- same bounded native navigation query used for ordinary side stances.
+        local ok,found=pcall(function()
+            return Game.GetAINavigationSystem():FindPointInSphereForCharacter(vector(requested),.55,s.npc)
+        end)
+        if not ok or not found or found.status~=Enum.new('worldNavigationRequestStatus','OK')
+            or not clearance.isPoint(found.point) or space.distance(found.point,requested)>=.8 then
+            s.routeProbe=nil
+            return reject('No clear navigation route','projection',
+                {geometryType='navigation-projection',unavailable=not ok,requested=requested,
+                projectionRadius=.55,maxProjectionShift=.8,
+                point=found and clearance.isPoint(found.point) and space.copy(found.point) or nil})
+        end
+        target=space.copy(found.point)
+        projection={requested=requested,point=space.copy(target),radius=.55,maxShift=.8,
+            shift=space.distance(requested,target),lateralShift=space.ground(requested,target)}
     end
     local probe=s.routeProbe
     if not probe or probe.following~=following or probe.horizon~=options.horizon
@@ -341,9 +372,10 @@ local function routeClear(s,c,target,following,options)
         or (options.horizon and space.angle(probe.goalDirection,space.bearing(c.position,target))>recoveryPolicy.headingChange) then
         probe={origin=space.copy(c.position),target=space.copy(target),following=following,at=s.clock,
             playerPosition=space.copy(c.frame.position),horizon=options.horizon,
-            goalDirection=space.bearing(c.position,target)}
+            goalDirection=space.bearing(c.position,target),projection=projection}
         s.routeProbe=probe
     end
+    probe.projection=projection
     if s.clock-probe.at>3 then
         -- A busy frame can age a partial receipt. Refresh it while held; quota
         -- pressure is never reported as a geometry/native command failure.
@@ -584,6 +616,7 @@ end
 local function block(s,reason,c,target,following)
     s.routeProbe,s.candidateIndex,s.clearanceWaiting,s.clearanceHolding=nil,nil,nil,nil
     s.execution,s.executionTarget=nil,nil
+    s.followAdmission=nil
     if not s.blockedReason then
         s.blockedReason=reason or 'The walking route is obstructed'
         record(s,'route-rejected')
@@ -692,7 +725,8 @@ local function blockedRoute(s,intent,c,canPlan)
     end
     local refreshPlayer=held.rejection and held.rejection.stage=='player'
     local refreshGeometry=held.rejection and held.rejection.geometryType~=nil
-    if not search and (refreshPlayer or refreshGeometry) then
+    local refreshDestination=held.following and held.rejection and held.rejection.stage=='destination'
+    if not search and (refreshPlayer or refreshGeometry or refreshDestination) then
         if refreshPlayer and space.distance(held.playerPosition,c.frame.position)>.02
             or refreshGeometry and space.distance(held.origin,c.position)>.02 then
             -- A player crossing is geometry owned by V, not by the side goal.
@@ -709,14 +743,15 @@ local function blockedRoute(s,intent,c,canPlan)
             clear=target~=nil
         else clear,reason,deferred=routeClear(s,c,desired,true) end
         if deferred then
-            held.playerChecking=refreshPlayer; held.geometryChecking=refreshGeometry; s.clearanceWaiting=true
+            held.playerChecking=refreshPlayer; held.geometryChecking=refreshGeometry or refreshDestination; s.clearanceWaiting=true
             return true
         end
         held.playerChecking,held.geometryChecking,s.clearanceWaiting=nil,nil,nil
         held.nextPlayerCheck=s.clock+1
         if clear then unblocked(s); return true end
         local rejection=s.lastRejection
-        if rejection and (rejection.stage=='player' or rejection.geometryType) then
+        if rejection and (rejection.stage=='player' or rejection.geometryType
+            or held.following and rejection.stage=='destination') then
             -- Native navigation itself may change while V and the goal stay
             -- still. Reverify at most once per second, preserving the hold.
             held.rejection,held.playerPosition,held.origin=rejection,space.copy(c.frame.position),space.copy(c.position)
@@ -808,7 +843,7 @@ local function blockedRoute(s,intent,c,canPlan)
     end
     local anchor=search.leg==1 and search.origin or search.mapped[search.leg-1]
     local context={position=anchor,frame=c.frame,playerGap=c.playerGap,others=c.others,id=c.id}
-    local clear,reason,deferred,route=routeClear(s,context,search.mapped[search.leg],true,{stablePlayer=true})
+    local clear,reason,deferred,route=routeClear(s,context,search.mapped[search.leg],true,{stablePlayer=true,resolved=true})
     if deferred then return true end
     if not clear then nextCandidate(route); return true end
     for _,leg in ipairs(route.legs) do search.legs[#search.legs+1]=leg end
@@ -858,7 +893,19 @@ local function watchRoute(s,c,canPlan)
             {stablePlayer=s.execution~=nil})
         if deferred then waitForClearance(s)
         elseif not clear then block(s,reason,c,s.target or target,s.kind=='follow') end
-        if clear and s.execution then s.execution.commandRoute=route.legs end
+        if clear and s.execution then s.execution.commandRoute=route.legs
+        elseif clear and route.projection then
+            s.destinationProjection,s.target=route.projection,space.copy(route.target)
+            if route.projection.lateralShift>.02 then
+                -- A radial follower cannot promise a laterally changed endpoint.
+                -- The new point's clear route does not certify its old radial
+                -- route. Retire that exact owner now, then keep a safety hold
+                -- while the point coordinator awaits fresh admission/budget.
+                s.execution=execution(route,c.position,route.target,true,'travel')
+                if not s.execution then block(s,'The verified route exceeds bounded waypoint execution',c,route.target,true) end
+                if s.execution then waitForClearance(s) end
+            end
+        end
         return true
     end
     return false
@@ -994,7 +1041,7 @@ local function destination(s,plan,intent,c)
         -- and only that verified prefix is granted to a movement command.
         local horizon=s.recoveryTicket==s.ticket and c.playerGap>recoveryPolicy.distantGap and recoveryPolicy.travelHorizon or nil
         local clear,reason,deferred,route=routeClear(s,c,target,true,{horizon=horizon,stablePlayer=true})
-        return clear and (horizon and route.target or target) or nil,reason,deferred,route,horizon
+        return clear and route.target or nil,reason,deferred,route,horizon
     end
     return validate(s,intent,c)
 end
@@ -1020,9 +1067,11 @@ local function handoff(s,plan,intent,c,canPlan)
     if deferred then waitForClearance(s);return true end
     if not target then block(s,reason,current,intent.kind=='follow' and followGoal(s,current) or intent.goal,plan.following);return true end
     if plan.mode=='escape' then s.completedEscapeTicket=s.ticket end
+    s.followAdmission=nil
     s.execution,s.executionTarget,s.clearanceWaiting,s.clearanceHolding=nil,nil,nil,nil
-    s.target=space.copy(intent.kind=='follow' and followGoal(s,current) or target)
-    if horizon or curved(route) then
+    s.target=space.copy(horizon and followGoal(s,current) or target)
+    s.destinationProjection=route.projection
+    if horizon or curved(route) or route.projection and route.projection.lateralShift>.02 then
         s.execution=execution(route,current.position,s.target,plan.following,horizon and 'advance' or 'travel')
         if not s.execution then block(s,'The verified route exceeds bounded waypoint execution',current,target,plan.following);return true end
         s.execution.rejection=plan.rejection
@@ -1147,6 +1196,8 @@ function M.apply(s,decision,c,canPlan)
         s.execution,s.executionTarget,s.detourSearch,s.blockedContext=nil,nil,nil,nil
         s.nativeLegFailures=0
         s.recoveryTicket,s.completedEscapeTicket=nil,nil
+        s.destinationProjection=nil
+        s.followAdmission=nil
         s.orientationAt=nil
         s.target=nil
     end
@@ -1159,6 +1210,9 @@ function M.apply(s,decision,c,canPlan)
     if s.execution then
         local planned=execute(s,intent,c,canPlan)
         if s.execution or s.blockedReason then return planned end
+    end
+    if s.followAdmission then
+        return handoff(s,s.followAdmission,intent,c,canPlan or not s.issued)
     end
     if intent.kind=='hold' then
         if s.issued and not s.feedback.complete and not s.feedback.failed then return false end
@@ -1177,21 +1231,10 @@ function M.apply(s,decision,c,canPlan)
         -- check belongs to the operation transition; ongoing checks and gait
         -- replacements use the shared planning budget.
         if not canPlan and s.issued then return planned end
-        if not planned then
-            local goal=followGoal(s,c)
-            local clear,reason,deferred,route=routeClear(s,c,goal,true)
-            s.routeCheckedAt=s.clock
-            if deferred then waitForClearance(s); return canPlan end
-            if not clear then block(s,reason,c,goal,true); return canPlan end
-            if curved(route) then
-                s.execution=execution(route,c.position,goal,true)
-                if s.execution then s.target=space.copy(goal); return execute(s,intent,c,canPlan) end
-                block(s,'The verified route exceeds bounded waypoint execution',c,goal,true); return canPlan
-            end
-        end
-        if not cancel(s) then return canPlan end
-        s.clearanceWaiting,s.clearanceHolding=nil,nil
-        follow(s,intent,c);return canPlan
+        local transaction={mode='normal-follow',following=true,target=followGoal(s,c)}
+        if not s.command then transaction.handoffPhase='admitting' end
+        s.followAdmission=transaction
+        return handoff(s,transaction,intent,c,canPlan or not s.issued)
     end
     if intent.kind=='turn' then
         if s.issued or s.failed then return false end

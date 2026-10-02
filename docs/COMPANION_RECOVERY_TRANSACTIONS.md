@@ -125,6 +125,51 @@ updated diagnostic metadata. Unknown native physics keeps its availability
 backoff and owned hold. A fresh valid origin is eligibility for full admission,
 not permission to skip a collision, step or floor check.
 
+## Native follow destination projection
+
+The next live capture proved that local escape and distant catch-up worked:
+Johnny started the escape while V was moving, then used Sprint and reached a
+sampled 5.08 m/s. He stopped at 8.52 metres because the controller changed from
+the bounded advance horizon to a full radial stand-off. That raw endpoint used
+V's road height and its body box intersected Static support. The native
+`FindPointInSphereForCharacter` result at the same XY was 0.147 metres higher;
+its body was clear in all six physics groups and its native path was valid.
+The camera peek occurred earlier while Johnny continued moving; it did not
+change the formation or cause this rejection.
+
+Full normal follow destinations now use the same native 0.55-metre projection
+query as side stances, before body and path admission. The result must be a
+finite OK point within the existing 0.8-metre projection bound. No fixed Z
+offset substitutes for native support. All original body, player, step/slope,
+path size and physical group checks still apply. Distant advance horizons use
+their actual clipped native path point; they do not need to prove an unused
+remote endpoint. Already projected local escape anchors are not projected a
+second time.
+
+A height-only projection can retain the existing radial native follower. A
+laterally shifted point cannot be promised by that command, so it uses the
+existing certified waypoint coordinator. An ongoing radial follower that gains
+a lateral projection retires its exact command immediately: the new side
+point's proof does not certify the old radial route. Asynchronous retirement
+retains that exact handle until terminal acknowledgement; then a safety hold
+owns the body while the point coordinator waits for fresh admission and budget.
+The diagnostic projection
+receipt exposes requested and actual points, radius, shift bound and measured
+total/lateral shift. Release and new operation tickets discard that receipt.
+
+Ordinary native follow admission also uses the explicit preparation, retirement
+and admission phases. Cancellation may move V, change native projection or
+introduce an obstacle before it finishes. After exact terminal acknowledgement,
+the actuator re-reads actual feet/V and resolves and validates the current goal
+again. Asynchronous cancellation retains the old handle; quota deferral retains
+a safety hold. A pre-cancellation route never authorizes the new follower.
+
+A full-follow destination rejection can re-resolve the current projected goal
+at most once per second while V stays still. A changed native projection can
+therefore clear an obsolete ground intersection. A genuine physical obstruction,
+unavailable projection or impossible step stays owned and blocked until the
+current route passes complete admission.
+
 ## Verification boundary
 
 `bridge/companion-recovery-transactions.test.mjs` includes durable cases that
@@ -140,3 +185,10 @@ Existing movement, placement, ownership, chauffeur, vehicle exit/workspot,
 reload and camera/gathering cases remain required regression gates. Source
 simulation cannot establish rendered gait, natural animation blending or native
 road behavior. Those remain the parent's bounded live test after installation.
+
+`bridge/companion-follow-projection.test.mjs` adds the raised-support causal
+fixture and covers current projection while held, native exceptions and bounds,
+real Static obstacles, an impossible vertical native leg, initial/ongoing lateral
+projection, the advance-to-full boundary, synchronous/asynchronous cancellation
+changes, an old radial endpoint blocked by a newly parked vehicle while point
+admission is deferred, and release/replacement of pending follow admission.

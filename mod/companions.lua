@@ -610,7 +610,8 @@ function M.list()
             operation={ticket=f.ticket,kind=f.kind,state=f.state,stage=f.stage,
                 target=f.target,active=f.active,complete=f.complete,failed=f.failed,
                 stalled=f.stalled,suspended=f.suspended,waiting=f.waiting,blocked=f.blocked,
-                afterEscape=f.afterEscape,rejection=f.rejection,route=f.route,error=f.error,commands=m.commands,commandID=f.commandID},
+                afterEscape=f.afterEscape,destinationProjection=f.destinationProjection,
+                rejection=f.rejection,route=f.route,error=f.error,commands=m.commands,commandID=f.commandID},
             commandTrace=m.events,
         }
     end
