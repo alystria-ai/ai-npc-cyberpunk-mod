@@ -113,8 +113,13 @@ function M.segment(from,to,dimensions,progress)
         -- changes in height keeps a sloping nav path from becoming one box
         -- through the floor. Native navigation still supplies the walk route.
         local count=M.segmentBoxes(from,to)
-        if count>64 or math.abs(dz)>math.max(.35,length*.8) then
-            return false,'The companion route has no verified walkable clearance.'
+        local allowedRise=math.max(.35,length*.8)
+        if count>64 or math.abs(dz)>allowedRise then
+            return false,'The companion route has no verified walkable clearance.',nil,
+                {geometryType=count>64 and 'route-size' or 'step-slope',
+                from={x=from.x,y=from.y,z=from.z},to={x=to.x,y=to.y,z=to.z},
+                length=length,rise=math.abs(dz),deltaZ=dz,allowedRise=allowedRise,
+                boxes=count,maxBoxes=64}
         end
         local rotation=length>.001 and Quaternion.ToEulerAngles(
             Quaternion.BuildFromDirectionVector(Vector4.new(dx/length,dy/length,0,0))) or EulerAngles.new(0,0,0)

@@ -100,10 +100,12 @@ function M.decide(s,c,dt)
             s.operation.goal=space.copy(c.travelTarget)
             s.arrivalGoal=space.copy(c.travelTarget)
         end
+        if s.operation.kind=='follow' then s.operation.gait=pace(c,true) end
         return emit(s,glance(c))
     end
     if s.phase=='obstructed' then
         if ours and (motion.waiting or motion.route and motion.route.kind=='waypoints' and not done) then
+            if s.operation.kind=='follow' then s.operation.gait=pace(c,true) end
             return emit(s,glance(c))
         end
         local phase=s.obstructedPhase or 'joining'
@@ -170,7 +172,7 @@ function M.decide(s,c,dt)
     if s.phase=='alongside' or s.phase=='catch_up' then
         -- Stop once already beside V. Hold initiates braking; it does not
         -- declare a parked pose. Accept the eventual measured resting place.
-        if c.comfortable then
+        if c.comfortable or s.phase=='catch_up' and ours and motion.afterEscape and c.nearGroup then
             s.arrivalGoal=nil
             s.arrivalStop=c.frame.stop
             enter(s,'braking','Finish the current forward movement and stop naturally')

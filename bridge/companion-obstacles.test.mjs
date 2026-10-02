@@ -264,6 +264,7 @@ const executeDetour = `
       ' state '..tostring(state.feedback.state))
     if state.feedback.complete then break end
     local command=active(npc)[1]
+    if command.kind=='AIFollowTargetCommand' then break end
     if command.kind=='AIMoveToCommand' then
       local goal=command.movementTarget.position
       if #waypoints==0 or waypoints[#waypoints]~=command then waypoints[#waypoints+1]=command end
@@ -302,7 +303,7 @@ test('a parked car omitted by native navigation produces executed clearance-chec
   assert(state.feedback.complete and not state.feedback.failed)
 `));
 
-test('blocked catch-up checks a free stand-off and executes a detour rather than a follow fallback',()=>run(walking+solids+`
+test('blocked catch-up checks a free stand-off and hands its certified local escape to verified follow',()=>run(walking+solids+`
   player.pos=Vector4.new(0,8); context.frame.position=player.pos
   context.playerGap=8
   decision.operation={ticket='catch-up',kind='follow',gait='Run'}
@@ -310,9 +311,11 @@ test('blocked catch-up checks a free stand-off and executes a detour rather than
   solid('Dynamic',0,8,.3,.3)
   ${executeDetour}
   assert(travelled>6 and #waypoints>=3)
-  assert(not last(npc,'AIFollowTargetCommand'),'native follow bypassed the owned detour')
-  assert(state.feedback.complete and not state.feedback.failed)
-  assert(npc.pos.y<7,'follow validation targeted V occupied centre instead of a stand-off')
+  local follow=last(npc,'AIFollowTargetCommand')
+  assert(follow and state.completedEscapeTicket==state.ticket,'local escape never acquired a verified follow owner')
+  assert(not state.feedback.complete and not state.feedback.failed,'local success completed the whole follow operation')
+  assert(follow.desiredDistance>=1.7 and math.sqrt((state.target.x-player.pos.x)^2+(state.target.y-player.pos.y)^2)>=1.69,
+    'follow validation targeted V occupied centre instead of a stand-off')
 `));
 
 test('detour quota deferral retains the exact safety owner and release clears pending route work',()=>run(walking+solids+`
