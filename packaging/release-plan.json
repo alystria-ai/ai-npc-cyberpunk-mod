@@ -261,12 +261,32 @@
           "source": "mod/companion-clearance.lua",
           "target": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/companion-clearance.lua"
         }
+      ],
+      "plannedDependencyComponents": [
+        {
+          "dependencyId": "mcm",
+          "onlyExtension": ".lua",
+          "preserveGameRelativeArchiveEntryPaths": true,
+          "expectedFileCount": 57,
+          "selection": "approved Lua entries from the pinned MCM source archive; no user settings or bindings",
+          "status": "dependency-distribution-and-compatibility-review-required"
+        }
       ]
     },
     {
       "id": "runtime",
       "filename": "CyberpunkConvai-Runtime.zip",
       "forbiddenExtension": ".lua",
+      "plannedDependencyComponents": [
+        {
+          "dependencyId": "mcm",
+          "forbiddenExtension": ".lua",
+          "preserveGameRelativeArchiveEntryPaths": true,
+          "expectedFileCount": 34,
+          "selection": "19 MCM locale JSON files, 14 MCM redscript files and ModConfigurationMenuAPI/data/storage.version from the pinned source archive; no user settings or bindings",
+          "status": "dependency-distribution-and-compatibility-review-required"
+        }
+      ],
       "files": [
         {
           "source": "characters/world-knowledge.json",
@@ -408,6 +428,17 @@
           "source": "build-generated",
           "selection": "approved profile ID manifest, curated quest/catalog exports; no developer runtime map",
           "status": "approved-profile-ownership-required"
+        },
+        {
+          "id": "quest-catalog",
+          "destination": "bin/x64/plugins/cyber_engine_tweaks/mods/CyberpunkConvai/app/research/cyberpunk/generated",
+          "sourceFiles": [
+            "research/cyberpunk/generated/quest-catalog.json"
+          ],
+          "selection": "required production quest-catalog.json, preserving its app-relative path; never the generated research directory as a tree",
+          "requiredAtBridgeStartup": true,
+          "includeRawGameExports": false,
+          "status": "explicit-data-whitelist-and-relocation-check-required"
         },
         {
           "id": "notices",
@@ -621,7 +652,12 @@
     },
     {
       "name": "MCM",
-      "developmentVersion": "0.10.3"
+      "developmentVersion": "0.10.3",
+      "dependencyId": "mcm",
+      "sourceArchive": "ref mods/Mod Configuration Menu 31640 0.10.3 2026-09-21T16-50Z YfTif7TNd.zip",
+      "sourceArchiveSha256": "503018b1aca4e8cbac96c55fe5ee3f16e5132d190d44933e6e20084060a34c6f",
+      "wholeArchiveCopyAllowed": false,
+      "bundlingStatus": "dependency-distribution-and-compatibility-review-required"
     }
   ],
   "dependencyPolicy": "Version inventory is the current development setup, not an automatic authorization to redistribute third-party game plugins; resolve notices, distribution and compatibility before claiming two ZIPs are sufficient.",
@@ -653,6 +689,9 @@
   "requiredChecks": [
     "scripts-archive-lua-only",
     "runtime-archive-no-lua",
+    "bundled-dependencies-partitioned-by-lua-extension",
+    "pinned-dependency-archive-hashes-and-entry-counts",
+    "required-bridge-data-present-at-package-relative-paths",
     "no-path-traversal-or-duplicate-targets",
     "no-secrets-or-user-state",
     "same-version-compatibility-manifests",
